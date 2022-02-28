@@ -1,0 +1,152 @@
+import { expect } from "chai";
+import hre, { ethers } from "hardhat";
+import { ethers as ethersOriginal } from "ethers";
+import weth_abi from "../abis/weth.json";
+const ATEN_TOKEN = process.env.ATEN_TOKEN || "0x";
+const USDT = "0xdac17f958d2ee523a2206206994597c13d831ec7"; //USDT
+const WETH = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2";
+const STAKING_TOKEN = WETH;
+
+const STAKING_TOKEN_CONTRACT = new ethers.Contract(
+  STAKING_TOKEN,
+  weth_abi
+).connect(ethers.provider.getSigner());
+
+const signer = ethers.provider.getSigner();
+let signerAddress: string;
+let ATHENA_CONTRACT: ethersOriginal.Contract;
+
+describe("Staking Rewards", function () {
+  const ETH_VALUE = "5000";
+  const DATE_NOW = Number.parseInt(((Date.now() + 1000) / 1000).toString());
+
+  before(async () => {
+    signerAddress = await signer.getAddress();
+  });
+
+  it("Should deposit ETH", async function () {
+    const [owner] = await ethers.getSigners();
+    console.log("Signer : ", signerAddress);
+    console.log("Owner : ", owner.address);
+
+    const deposit = await STAKING_TOKEN_CONTRACT.deposit({
+      value: ethers.utils.parseEther(ETH_VALUE),
+    });
+    await deposit.wait();
+    expect(
+      (await STAKING_TOKEN_CONTRACT.balanceOf(owner.address)).toString()
+    ).to.equal(ethers.utils.parseEther(ETH_VALUE));
+  });
+
+  /**
+   *
+   * CONTRACT DEPLOYMENT
+   *
+   */
+
+  it("Should deploy contract", async function () {
+    const factory = await ethers.getContractFactory("Athena");
+    ATHENA_CONTRACT = await factory.deploy(STAKING_TOKEN, ATEN_TOKEN);
+    //await factory.deploy(STAKING_TOKEN, ATEN_TOKEN);
+    await ATHENA_CONTRACT.deployed();
+
+    console.log("Deployed Staker : ", ATHENA_CONTRACT.address);
+
+    expect(ethers.provider.getCode(ATHENA_CONTRACT.address)).to.not.equal(
+      "0x00"
+    );
+  });
+
+  /**
+   *
+   * STAKING
+   *
+   */
+
+  it("Should stake & return the staking amount", async function () {
+    const approve = await STAKING_TOKEN_CONTRACT.approve(
+      ATHENA_CONTRACT.address,
+      ethers.utils.parseEther("1000000")
+    );
+    await approve.wait();
+    await hre.network.provider.request({
+      method: "evm_setNextBlockTimestamp",
+      params: [DATE_NOW],
+    });
+    const multi = await ATHENA_CONTRACT.multicall([
+      ATHENA_CONTRACT.interface.encodeFunctionData("stake", [
+        ethers.utils.parseEther("2000"),
+      ]),
+      ATHENA_CONTRACT.interface.encodeFunctionData("stake", [
+        ethers.utils.parseEther("3000"),
+      ]),
+    ]);
+    // const oneMore = await ATHENA_CONTRACT.stake(ethers.utils.parseEther("1000"));
+    // await hre.network.provider.request({
+    //   method: "evm_increaseTime",
+    //   params: [Number.parseInt(((1000 * 60 * 60 * 24) / 1000).toString())],
+    // });
+    await hre.network.provider.request({
+      method: "evm_setNextBlockTimestamp",
+      params: [DATE_NOW + 60 * 60 * 24],
+    });
+    await ethers.provider
+      .getSigner()
+      .sendTransaction({ value: 1, to: "0x" + "0".repeat(40) });
+
+    expect(await ethers.provider.getBlock("latest")).to.contain({
+      timestamp: Number.parseInt((DATE_NOW + 60 * 60 * 24).toString()),
+    });
+
+    // await ATHENA_CONTRACT.stake(ethers.utils.parseEther("5"));
+    // await ATHENA_CONTRACT.stake(ethers.utils.parseEther("5"));
+    expect(
+      (await ATHENA_CONTRACT.balanceOf(signerAddress)).toString()
+    ).to.equal(ethers.utils.parseEther(ETH_VALUE));
+    expect(await ATHENA_CONTRACT.earned(signerAddress)).to.equal(
+      ethers.utils.parseEther("85000") // should be 86400 ?? See google doc sheet
+    );
+  });
+  it("Should get reward per token", async function () {
+    expect(await ethers.provider.getBlock("latest")).to.contain({
+      timestamp: Number.parseInt((DATE_NOW + 60 * 60 * 24).toString()),
+    });
+    expect((await ATHENA_CONTRACT.rewardPerToken()).toString()).to.equal(
+      "17" // Should be 17.28 ??
+    );
+    expect(
+      Number(
+        ethers.utils.formatEther(await ATHENA_CONTRACT.earned(signerAddress))
+      )
+    ).to.be.greaterThan(0);
+  });
+
+  /**
+   *
+   * PROTOCOLS Handlers
+   * POSITION MANAGER ERC721
+   *
+   */
+
+  it("Should revert inactive protocol for depositing funds", async function () {
+    expect(ATHENA_CONTRACT.provideProtocolFund([0])).revertedWith(
+      "Protocol not active"
+    );
+  });
+  it("Should set new active Protocol", async function () {
+    const tx = await ATHENA_CONTRACT.addNewProtocol(
+      "Test protocol",
+      0,
+      WETH,
+      []
+    );
+    expect(tx).to.be.true;
+    expect(ATHENA_CONTRACT.protocols()).to.equal(1);
+  });
+
+  it("Should get NFT for depositing funds", async function () {
+    expect(await ATHENA_CONTRACT.provideProtocolFund([0])).to.not.throw();
+    expect(await ATHENA_CONTRACT.provideProtocolFund([0])).to.be.true;
+  });
+  //await ATHENA_CONTRACT.balanceOf(signerAddress)).to.be.true;
+});
