@@ -24,6 +24,8 @@ contract AthenaICO is Ownable {
 
     function mint(uint amount, address token, address to) public {
         require(authTokens[token] == true, "Not approved Token for this ICO");
+        //Min & Max ?
+        require(amount > 100 gwei, "Min amount not met");
         // Safe Transfer will revert if not successful
         IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
         if(presales[msg.sender] == 0){
@@ -35,9 +37,15 @@ contract AthenaICO is Ownable {
 
     }
 
+    // MAX 10k addresses
     function distribute(address from) external onlyOwner {
         for (uint256 i = 0; i < presaleUsers; i++) {
             IERC20(ATEN).safeTransferFrom(from, users[i], presales[users[i]]);
         }
+    }
+
+    function withdraw(address token, address to) external onlyOwner {
+        IERC20(token).transferFrom(address(this), to, IERC20(token).balanceOf(address(this)));
+
     }
 }
