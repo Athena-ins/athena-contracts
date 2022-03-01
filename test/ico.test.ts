@@ -1,14 +1,17 @@
 import { expect } from "chai";
+import { before } from "mocha";
 import hre, { ethers } from "hardhat";
 import { ethers as ethersOriginal } from "ethers";
 import weth_abi from "../abis/weth.json";
-const ATEN_TOKEN = process.env.ATEN_TOKEN || "0x";
+const ATEN_TOKEN = "0x86ceb9fa7f5ac373d275d328b7aca1c05cfb0283";
 const USDT = "0xdac17f958d2ee523a2206206994597c13d831ec7"; //USDT
 const WETH = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2";
 
 const WETH_TOKEN_CONTRACT = new ethers.Contract(WETH, weth_abi).connect(
   ethers.provider.getSigner()
 );
+
+// Convert ETH to WETH ? Or full ETH
 
 const USDT_TOKEN_CONTRACT = new ethers.Contract(USDT, weth_abi).connect(
   ethers.provider.getSigner()

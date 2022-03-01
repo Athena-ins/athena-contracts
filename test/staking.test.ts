@@ -2,7 +2,7 @@ import { expect } from "chai";
 import hre, { ethers } from "hardhat";
 import { ethers as ethersOriginal } from "ethers";
 import weth_abi from "../abis/weth.json";
-const ATEN_TOKEN = process.env.ATEN_TOKEN || "0x";
+const ATEN_TOKEN = "0x86ceb9fa7f5ac373d275d328b7aca1c05cfb0283";
 const USDT = "0xdac17f958d2ee523a2206206994597c13d831ec7"; //USDT
 const WETH = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2";
 const STAKING_TOKEN = WETH;
@@ -112,7 +112,7 @@ describe("Staking Rewards", function () {
       timestamp: Number.parseInt((DATE_NOW + 60 * 60 * 24).toString()),
     });
     expect((await ATHENA_CONTRACT.rewardPerToken()).toString()).to.equal(
-      "17" // Should be 17.28 ??
+      "17" // Should be 17.28 ?? => INT FOR EVM
     );
     expect(
       Number(
