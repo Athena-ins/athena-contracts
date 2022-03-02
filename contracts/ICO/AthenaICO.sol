@@ -3,6 +3,7 @@
 pragma solidity ^0.8;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 
 contract AthenaICO is Ownable {
 
@@ -10,42 +11,78 @@ contract AthenaICO is Ownable {
 
     mapping(address => bool) public authTokens;
 
-    address immutable public ATEN = 0x86cEB9FA7f5ac373d275d328B7aCA1c05CFb0283;
+    address public immutable aten = 0x86cEB9FA7f5ac373d275d328B7aCA1c05CFb0283;
+    address public immutable eth = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+    AggregatorV3Interface internal priceFeed;
 
     uint private presaleUsers = 0;
-    mapping(address => uint) private presales;
-    address[] private users;
+    mapping(address => uint) public presales;
+    address[] private buyers;
 
-    constructor(address[] memory tokens) {
+    uint128 public constant ATEN_ICO_PRICE = 350;
+    uint128 public constant PRICE_DIVISOR = 10000;
+
+    /**
+     * Network: Kovan
+     * Aggregator: ETH/USD
+     * Address: 0x9326BFA02ADD2366b30bacB125260Af641031331
+     */
+
+    constructor(address[] memory tokens, address priceAggregator) {
+        // Warning: must only allow stablecoins, no price conversion will be made
         for (uint256 i = 0; i < tokens.length; i++) {
             authTokens[tokens[i]] = true;   
         }
+        // For ETH price only
+        priceFeed = AggregatorV3Interface(priceAggregator);
     }
 
-    function mint(uint amount, address token, address to) public {
+    function prebuy(uint amount, address token, address to) payable public {
         require(authTokens[token] == true, "Not approved Token for this ICO");
         //Min & Max ?
         require(amount > 100 gwei, "Min amount not met");
+        if(token == eth){
+            require(msg.value >= amount, "Sent ETH not met");
+        }
         // Safe Transfer will revert if not successful
-        IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
+        if(token != eth){
+            IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
+        }
         if(presales[msg.sender] == 0){
             presaleUsers++;
+            buyers.push(msg.sender);
         }
-        // NEED CONVERSION VALUE ? SWAP AT THIS TIME ? OR CONVERT value only for reference ?
-        presales[to] += amount; // DANGER IF DIFFERENT TOKENS AND NO CONVERSION
-        // What about mint again for user ??
-
+        if(token == eth) {
+            require(getLatestPrice() > 0, "Wrong price for ETH");
+            amount = amount * 10**priceFeed.decimals() / uint(getLatestPrice());
+        }
+        // amount is now in USDT
+        presales[to] += amount * PRICE_DIVISOR / ATEN_ICO_PRICE;
     }
 
     // MAX 10k addresses
     function distribute(address from) external onlyOwner {
         for (uint256 i = 0; i < presaleUsers; i++) {
-            IERC20(ATEN).safeTransferFrom(from, users[i], presales[users[i]]);
+            IERC20(aten).safeTransferFrom(from, buyers[i], presales[buyers[i]]);
         }
     }
 
-    function withdraw(address token, address to) external onlyOwner {
-        IERC20(token).transferFrom(address(this), to, IERC20(token).balanceOf(address(this)));
-
+    function withdraw(address[] calldata tokens, address to) external onlyOwner {
+        for (uint256 i = 0; i < tokens.length; i++) {
+            IERC20(tokens[i]).safeTransferFrom(address(this), to, IERC20(tokens[i]).balanceOf(address(this)));   
+        }
+        if(address(this).balance > 0){
+            (bool success, ) = to.call{value: address(this).balance}("");
+            require(success, "Failed to send ETH balance");
+        }
     }
+
+    /**
+     * Returns the latest price in WEI
+     */
+    function getLatestPrice() public view returns (int) {
+        (,int price,,,) = priceFeed.latestRoundData();
+        return price;
+    }
+
 }
