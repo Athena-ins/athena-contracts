@@ -3,6 +3,7 @@
 pragma solidity ^0.8;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 
 contract AthenaICO is Ownable {
@@ -39,8 +40,6 @@ contract AthenaICO is Ownable {
 
     function prebuy(uint amount, address token, address to) payable public {
         require(authTokens[token] == true, "Not approved Token for this ICO");
-        //Min & Max ?
-        require(amount > 100 gwei, "Min amount not met");
         if(token == eth){
             require(msg.value >= amount, "Sent ETH not met");
         }
@@ -55,9 +54,13 @@ contract AthenaICO is Ownable {
         if(token == eth) {
             require(getLatestPrice() > 0, "Wrong price for ETH");
             amount = amount * 10**priceFeed.decimals() / uint(getLatestPrice());
+        } else {
+            // We WAD it to match 18 decimals
+            amount = amount * 10 ** 18 / (10**IERC20Metadata(token).decimals());
         }
         // amount is now in USDT
-        presales[to] += amount * PRICE_DIVISOR / ATEN_ICO_PRICE;
+        require(amount > 100 * 10**18, "Min amount not met");
+        presales[to] += amount * (10 ** IERC20Metadata(aten).decimals()) / (10**18) * PRICE_DIVISOR / ATEN_ICO_PRICE;
     }
 
     // MAX 10k addresses
@@ -69,7 +72,9 @@ contract AthenaICO is Ownable {
 
     function withdraw(address[] calldata tokens, address to) external onlyOwner {
         for (uint256 i = 0; i < tokens.length; i++) {
-            IERC20(tokens[i]).safeTransferFrom(address(this), to, IERC20(tokens[i]).balanceOf(address(this)));   
+            if(tokens[i] != eth){
+                IERC20(tokens[i]).safeTransfer(to, IERC20(tokens[i]).balanceOf(address(this)));   
+            }
         }
         if(address(this).balance > 0){
             (bool success, ) = to.call{value: address(this).balance}("");
