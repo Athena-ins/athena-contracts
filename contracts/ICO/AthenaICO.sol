@@ -12,7 +12,7 @@ contract AthenaICO is Ownable {
 
     mapping(address => bool) public authTokens;
 
-    address public immutable aten = 0x86cEB9FA7f5ac373d275d328B7aCA1c05CFb0283;
+    address public immutable aten; //0x86cEB9FA7f5ac373d275d328B7aCA1c05CFb0283;
     address public immutable eth = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     AggregatorV3Interface internal priceFeed;
 
@@ -23,19 +23,22 @@ contract AthenaICO is Ownable {
     uint128 public constant ATEN_ICO_PRICE = 350;
     uint128 public constant PRICE_DIVISOR = 10000;
 
+    event Prebuy(address from, uint amount);
+
     /**
      * Network: Kovan
      * Aggregator: ETH/USD
      * Address: 0x9326BFA02ADD2366b30bacB125260Af641031331
      */
 
-    constructor(address[] memory tokens, address priceAggregator) {
+    constructor(address distributeToken, address[] memory tokens, address priceAggregator) {
         // Warning: must only allow stablecoins, no price conversion will be made
         for (uint256 i = 0; i < tokens.length; i++) {
             authTokens[tokens[i]] = true;   
         }
         // For ETH price only
         priceFeed = AggregatorV3Interface(priceAggregator);
+        aten = distributeToken;
     }
 
     function prebuy(uint amount, address token, address to) payable public {
@@ -47,9 +50,9 @@ contract AthenaICO is Ownable {
         if(token != eth){
             IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
         }
-        if(presales[msg.sender] == 0){
+        if(presales[to] == 0){
             presaleUsers++;
-            buyers.push(msg.sender);
+            buyers.push(to);
         }
         if(token == eth) {
             require(getLatestPrice() > 0, "Wrong price for ETH");
@@ -61,6 +64,7 @@ contract AthenaICO is Ownable {
         // amount is now in USDT
         require(amount > 100 * 10**18, "Min amount not met");
         presales[to] += amount * (10 ** IERC20Metadata(aten).decimals()) / (10**18) * PRICE_DIVISOR / ATEN_ICO_PRICE;
+        emit Prebuy(to, amount);
     }
 
     // MAX 10k addresses

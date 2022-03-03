@@ -2,24 +2,38 @@
 import { useEthers, useEtherBalance } from "@usedapp/core";
 import { formatEther } from "@ethersproject/units";
 import { Button } from "./Components";
+import CSS from "csstype";
 
-export default function ConnectButton() {
-  const { activateBrowserWallet, account, deactivate } = useEthers();
+export default function ConnectButton({
+  className,
+  style,
+}: {
+  className?: string;
+  style?: CSS.Properties;
+}) {
+  const { activateBrowserWallet, account, deactivate, error } = useEthers();
   const etherBalance = useEtherBalance(account);
 
   function handleConnectWallet() {
     activateBrowserWallet();
   }
 
+  error && console.error(error);
   return account ? (
     <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        background: "#333333",
-        borderRadius: 8,
-        padding: 2,
-      }}
+      className={className}
+      style={
+        !className
+          ? {
+              display: "flex",
+              alignItems: "center",
+              background: "#333333",
+              borderRadius: 8,
+              padding: 2,
+              ...style,
+            }
+          : { display: "flex", alignItems: "center", ...style }
+      }
     >
       <div style={{ margin: 4 }}>
         <span color="white">
@@ -27,6 +41,7 @@ export default function ConnectButton() {
         </span>
       </div>
       <Button
+        className={className}
         style={{
           background: "gray",
           border: "1px solid transparent",
@@ -49,6 +64,8 @@ export default function ConnectButton() {
       </Button>
     </div>
   ) : (
-    <Button onClick={handleConnectWallet}>Connect to a wallet</Button>
+    <Button className={className} onClick={handleConnectWallet}>
+      Connect to a wallet
+    </Button>
   );
 }
