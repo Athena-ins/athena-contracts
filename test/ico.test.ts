@@ -39,6 +39,7 @@ describe("ICO Pre sale", function () {
   it("Should deploy contract", async function () {
     const factory = await ethers.getContractFactory("AthenaICO");
     ATHENA_CONTRACT = await factory.deploy(
+      ATEN_TOKEN,
       [ETH, USDT],
       "0xEe9F2375b4bdF6387aa8265dD4FB8F16512A1d46" // Chainlink MAINNET USDT/ETH
     );
@@ -220,14 +221,14 @@ describe("ICO Pre sale", function () {
       );
       await mint.wait();
       expect(mint).to.have.property("hash");
-    //   const balance = await ethers.provider.getBalance(ATHENA_CONTRACT.address);
-    //   expect(balance.toString()).to.equal(
-    //     ethers.utils.parseEther((index + 1).toString())
-    //   );
+      //   const balance = await ethers.provider.getBalance(ATHENA_CONTRACT.address);
+      //   expect(balance.toString()).to.equal(
+      //     ethers.utils.parseEther((index + 1).toString())
+      //   );
     }
     const balance = await ethers.provider.getBalance(ATHENA_CONTRACT.address);
     expect(balance.toString()).to.equal(
-      ethers.utils.parseEther((accounts.length).toString())
+      ethers.utils.parseEther(accounts.length.toString())
     );
   });
   it("Should distribute tokens to 10k addresses", async function () {
