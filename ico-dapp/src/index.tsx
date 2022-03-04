@@ -12,9 +12,9 @@ import { Mainnet, DAppProvider, Config } from "@usedapp/core";
 // };
 
 ReactDOM.render(
-    <DAppProvider config={{}}>
-      <App />
-    </DAppProvider>,
+  <DAppProvider config={{}}>
+    <App />
+  </DAppProvider>,
   document.getElementById("root")
 );
 

@@ -204,7 +204,7 @@ const TransactionDetails = styled.div`
 const NotificationWrapper = styled(motion.div)`
   display: flex;
   align-items: center;
-  background-color: #ff9b9b; //${Colors.White};
+  background-color: #15247e; //${Colors.White};
   box-shadow: ${Shadows.notification};
   width: 395px;
   border-radius: 10px;
@@ -212,7 +212,7 @@ const NotificationWrapper = styled(motion.div)`
   padding: 10px 20px 10px 20px;
 `;
 
-const NotificationsWrapper = styled.div`
+export const NotificationsWrapper = styled.div`
   position: fixed;
   right: 24px;
   bottom: 24px;

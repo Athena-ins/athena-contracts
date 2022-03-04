@@ -94,7 +94,7 @@ contract AthenaICO is Ownable {
     }
 
     function claim() public {
-
+        
     }
 
     /**

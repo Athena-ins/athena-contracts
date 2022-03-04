@@ -7,18 +7,20 @@ import CSS from "csstype";
 export default function ConnectButton({
   className,
   style,
+  account,
+  connectWC,
+  connectMetamask,
+  disconnect,
 }: {
   className?: string;
   style?: CSS.Properties;
+  account?: string;
+  connectWC?: () => void;
+  connectMetamask?: () => void;
+  disconnect?: () => void;
 }) {
-  const { activateBrowserWallet, account, deactivate, error } = useEthers();
   const etherBalance = useEtherBalance(account);
 
-  function handleConnectWallet() {
-    activateBrowserWallet();
-  }
-
-  error && console.error(error);
   return account ? (
     <div
       className={className}
@@ -51,8 +53,7 @@ export default function ConnectButton({
           display: "flex",
           alignItems: "center",
         }}
-        onClick={() => deactivate()}
-        // bg="gray.800"
+        onClick={disconnect}
       >
         <span style={{ margin: 2, color: "white" }}>
           {account &&
@@ -64,8 +65,17 @@ export default function ConnectButton({
       </Button>
     </div>
   ) : (
-    <Button className={className} onClick={handleConnectWallet}>
-      Connect to a wallet
-    </Button>
+    <div style={style}>
+      <Button className={className} onClick={connectMetamask}>
+        Metamask
+      </Button>
+      <Button
+        className={className}
+        onClick={() => connectWC?.()}
+        style={{ marginLeft: 16 }}
+      >
+        Wallet Connect
+      </Button>
+    </div>
   );
 }
