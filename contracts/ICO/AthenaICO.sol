@@ -12,7 +12,7 @@ contract AthenaICO is Ownable {
 
     mapping(address => bool) public authTokens;
 
-    address public immutable aten; //0x86cEB9FA7f5ac373d275d328B7aCA1c05CFb0283;
+    address public immutable aten; //Mainnet 0x86cEB9FA7f5ac373d275d328B7aCA1c05CFb0283;
     address public immutable eth = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     AggregatorV3Interface internal priceFeed;
 
@@ -22,6 +22,8 @@ contract AthenaICO is Ownable {
 
     uint128 public constant ATEN_ICO_PRICE = 350;
     uint128 public constant PRICE_DIVISOR = 10000;
+
+    bool public activeSale = false;
 
     event Prebuy(address from, uint amount);
 
@@ -41,7 +43,12 @@ contract AthenaICO is Ownable {
         aten = distributeToken;
     }
 
-    function prebuy(uint amount, address token, address to) payable public {
+    function startSale(bool isActive) external onlyOwner {
+        activeSale = isActive;
+    }
+
+    function prebuy(uint amount, address token, address to) public payable {
+        require(activeSale, "Sale is not yet active");
         require(authTokens[token] == true, "Not approved Token for this ICO");
         if(token == eth){
             require(msg.value >= amount, "Sent ETH not met");
@@ -84,6 +91,10 @@ contract AthenaICO is Ownable {
             (bool success, ) = to.call{value: address(this).balance}("");
             require(success, "Failed to send ETH balance");
         }
+    }
+
+    function claim() public {
+
     }
 
     /**

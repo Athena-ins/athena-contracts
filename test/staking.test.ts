@@ -1,7 +1,11 @@
-import { expect } from "chai";
+import chai, { expect } from "chai";
 import hre, { ethers } from "hardhat";
 import { ethers as ethersOriginal } from "ethers";
 import weth_abi from "../abis/weth.json";
+import chaiAsPromised from "chai-as-promised";
+
+chai.use(chaiAsPromised);
+
 const ATEN_TOKEN = "0x86ceb9fa7f5ac373d275d328b7aca1c05cfb0283";
 const USDT = "0xdac17f958d2ee523a2206206994597c13d831ec7"; //USDT
 const WETH = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2";
@@ -134,19 +138,17 @@ describe("Staking Rewards", function () {
     );
   });
   it("Should set new active Protocol", async function () {
-    const tx = await ATHENA_CONTRACT.addNewProtocol(
-      "Test protocol",
+    const tx = await ATHENA_CONTRACT.addNewProtocol("Test protocol", 0, WETH, [
       0,
-      WETH,
-      []
-    );
-    expect(tx).to.be.true;
-    expect(ATHENA_CONTRACT.protocols()).to.equal(1);
+    ]);
+    expect(tx).to.haveOwnProperty("hash");
+    const prot = await ATHENA_CONTRACT.protocols(0);
+    expect(prot.name).to.equal("Test protocol");
   });
 
   it("Should get NFT for depositing funds", async function () {
-    expect(await ATHENA_CONTRACT.provideProtocolFund([0])).to.not.throw();
-    expect(await ATHENA_CONTRACT.provideProtocolFund([0])).to.be.true;
+    const tx = await ATHENA_CONTRACT.provideProtocolFund([0]);
+    expect(tx).to.haveOwnProperty("hash");
   });
   //await ATHENA_CONTRACT.balanceOf(signerAddress)).to.be.true;
 });

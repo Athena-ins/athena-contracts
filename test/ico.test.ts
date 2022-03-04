@@ -1,8 +1,12 @@
-import { expect } from "chai";
+import chai, { expect } from "chai";
 import { before } from "mocha";
 import hre, { ethers } from "hardhat";
 import { ethers as ethersOriginal } from "ethers";
 import weth_abi from "../abis/weth.json";
+import chaiAsPromised from "chai-as-promised";
+
+chai.use(chaiAsPromised);
+
 const ATEN_TOKEN = "0x86ceb9fa7f5ac373d275d328b7aca1c05cfb0283";
 const ATEN_OWNER_ADDRESS = "0x967d98e659f2787A38d928B9B7a49a2E4701B30C";
 const USDT = "0xdac17f958d2ee523a2206206994597c13d831ec7"; //USDT
@@ -89,6 +93,24 @@ describe("ICO Pre sale", function () {
     const price = await ATHENA_CONTRACT.getLatestPrice();
     expect(price.toString()).to.equal("332064878882758");
     expect(price.toNumber()).to.be.greaterThan(wei.div(4900).toNumber());
+  });
+
+  it("Should Fail to Mint some ICO with ETH cause paused", async function () {
+    await expect(
+      ATHENA_CONTRACT.prebuy(
+        ethers.utils.parseEther(ETH_VALUE),
+        ETH,
+        signerAddress,
+        {
+          value: ethers.utils.parseEther(ETH_VALUE),
+        }
+      )
+    ).to.be.rejectedWith("Sale is not yet active");
+  });
+
+  it("Should activate preSale", async function () {
+    const startSale = await ATHENA_CONTRACT.startSale(true);
+    expect(startSale).to.haveOwnProperty("hash");
   });
 
   it("Should Mint some ICO with ETH", async function () {
