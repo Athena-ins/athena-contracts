@@ -189,7 +189,14 @@ function App() {
             <span className="highlight-word underline-only">round 1</span>
           </h1>
         </header>
-        <div className="bg-primary card card-sales">
+        <div
+          className="bg-primary card-sales"
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
           {account ? (
             <ConnectButton
               className="btn btn-secondary"
