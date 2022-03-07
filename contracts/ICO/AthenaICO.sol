@@ -22,6 +22,8 @@ contract AthenaICO is Ownable {
 
     uint128 public constant ATEN_ICO_PRICE = 350;
     uint128 public constant PRICE_DIVISOR = 10000;
+    uint256 public constant maxTokensSale = 300 * 10**18;
+    uint256 public tokenSold = 0;
 
     bool public activeSale = false;
 
@@ -70,7 +72,9 @@ contract AthenaICO is Ownable {
         }
         // amount is now in USDT
         require(amount > 100 * 10**18, "Min amount not met");
-        presales[to] += amount * (10 ** IERC20Metadata(aten).decimals()) / (10**18) * PRICE_DIVISOR / ATEN_ICO_PRICE;
+        uint atenSold = amount * (10 ** IERC20Metadata(aten).decimals()) / (10**18) * PRICE_DIVISOR / ATEN_ICO_PRICE;
+        require(tokenSold + atenSold <= maxTokensSale, "Too many tokens sold");
+        presales[to] += atenSold;
         emit Prebuy(to, amount);
     }
 
