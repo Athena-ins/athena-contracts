@@ -6,52 +6,130 @@ import { useEffect, useState } from "react";
 import { usePersistedState } from "./usePersistedState";
 
 export const useWallet = () => {
-  let chainId: number | null = null;
   const {
     activateBrowserWallet,
     deactivate,
     account: metaAccount,
     error,
+    chainId: chainIdEthers,
+    library: ethersLibrary,
   } = useEthers();
+  const [chainId, setChainId] = useState(0);
   const [account, setAccount] = usePersistedState(null, "account");
+  const [provider, setProvider] = useState<
+    ethers.providers.JsonRpcProvider | undefined
+  >(undefined);
   const [isConnected, setIsConnected] = usePersistedState(false, "connected");
-  const [library, setlibrary] = useState<any>(undefined);
+  // const [library, setlibrary] = useState<any>(undefined);
+
+  /**
+   * peerMeta:
+chainId : 4
+description: "MetaMask Mobile app"
+icons: ['https://raw.githubusercontent.com/MetaMask/brand-resources/master/SVG/metamask-fox.svg']
+name: "MetaMask"
+ssl: true
+url: "https://metamask.io"
+
+
+chainId : 1
+peerMeta:
+description: null
+icons: ['']
+name: "Trust Wallet Android"
+url: "https://trustwallet.com"
+   */
+
+  const sendTx = async (txData: any) => {
+    let txSent;
+    if (metaAccount === account && ethersLibrary) {
+      //ethers Metamask tx
+      txSent = await ethersLibrary.getSigner().sendTransaction(txData);
+    } else {
+      //Wallet connect TX,
+      if (connector.clientMeta?.url.search("trustwallet.com") === -1) {
+        txSent = await connector.sendTransaction(txData);
+      } else {
+        //Trust Wallet TX
+        txSent = await connector.sendCustomRequest({
+          method: "trust_signTransaction",
+          params: [
+            {
+              network: 60,
+              transaction: JSON.stringify(txData),
+            },
+          ],
+        });
+      }
+    }
+
+    console.log("Sent tx : ", txSent);
+    const receipt = await txSent.wait?.();
+    console.log("Receipt ? ", receipt);
+    return receipt;
+  };
 
   const disconnect = () => {
     connector.connected ? connector.killSession() : deactivate();
   };
 
   useEffect(() => {
+    if (chainIdEthers) setChainId(chainIdEthers);
+  }, [chainIdEthers]);
+
+  useEffect(() => {
     setAccount(metaAccount || null);
+    if (metaAccount && ethersLibrary) {
+      setProvider(ethersLibrary);
+    }
   }, [metaAccount]);
+
+  useEffect(() => {
+    console.log("Chain id changed : ", chainId);
+  }, [chainId]);
+
+  useEffect(() => {
+    init();
+  }, []);
+
+  const init = async () => {
+    if (connector.connected && !isConnected) {
+      console.log("Connector already connected : ", connector.accounts);
+      setIsConnected(true);
+      setAccount(connector.accounts[0]);
+      setChainId(connector.chainId);
+    }
+  };
 
   const connector = new WalletConnect({
     bridge: "https://bridge.walletconnect.org", // Required
     qrcodeModal: QRCodeModal,
   });
 
-  const connectWC = () => {
-    if (!connector.connected) connector.createSession();
+  const connectWC = async () => {
+    if (!connector.connected) await connector.createSession();
     else {
       setIsConnected(true);
       setAccount(connector.accounts[0]);
-      setlibrary(new ethers.providers.JsonRpcProvider(connector.rpcUrl));
+      setChainId(connector.chainId);
+
+      console.log("Connector connected : ", connector.chainId);
+      console.log("Connector connected : ", connector.accounts);
     }
+    const provider = new ethers.providers.JsonRpcProvider(
+      chainId === 1
+        ? process.env.REACT_APP_MAINNET_URL
+        : chainId === 4
+        ? process.env.REACT_APP_RINKEBY_URL
+        : ""
+    );
+
+    //  Enable session (triggers QR Code modal)
+    setProvider(provider);
+    // setlibrary(new ethers.providers.Web3Provider(provider));
   };
 
-  //   // Check if connection is already established
-  //   if (!connector.connected) {
-  //     // create new session
-  //     connector.createSession();
-  //   }
-
-  if (connector.connected && !isConnected) {
-    console.log("Connector already connected : ", connector.accounts);
-    setIsConnected(true);
-    setAccount(connector.accounts[0]);
-  }
-
-  connector.on("connect", (error, payload) => {
+  connector.on("connect", async (error, payload) => {
     if (error) {
       throw error;
     }
@@ -60,7 +138,8 @@ export const useWallet = () => {
     // Get provided accounts and chainId
     const obj = payload.params[0];
     setAccount(obj.accounts[0]);
-    chainId = obj.chainId;
+    setChainId(obj.chainId);
+    console.log("Connector connected : ", obj, connector.accounts);
   });
 
   connector.on("session_update", (error, payload) => {
@@ -71,8 +150,9 @@ export const useWallet = () => {
     // Get updated accounts and chainId
     const obj = payload.params[0];
     setAccount(obj.accounts[0]);
-    if (connector.connected) setIsConnected(true);
-    chainId = obj.chainId;
+    setIsConnected(connector.connected);
+    setChainId(obj.chainId);
+    console.log("Connector update : ", obj, connector.accounts);
   });
 
   connector.on("disconnect", (error, payload) => {
@@ -81,6 +161,7 @@ export const useWallet = () => {
     }
     console.log("Disconnect wallet Connect");
     setAccount(null);
+    setChainId(0);
 
     // Delete connector
   });
@@ -90,7 +171,8 @@ export const useWallet = () => {
     connected: isConnected,
     connectWC,
     connectMetamask: activateBrowserWallet,
-    library,
+    sendTx,
     disconnect,
+    error,
   };
 };

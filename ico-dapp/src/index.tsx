@@ -3,13 +3,13 @@ import ReactDOM from "react-dom";
 import App from "./App";
 import { Mainnet, DAppProvider, Config } from "@usedapp/core";
 
-// const config: Config = {
-//   readOnlyChainId: Mainnet.chainId,
-//   readOnlyUrls: {
-//     [Mainnet.chainId]:
-//       "https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161",
-//   },
-// };
+const config: Config = {
+  readOnlyChainId: Mainnet.chainId,
+  readOnlyUrls: {
+    [Mainnet.chainId]:
+      "https://eth-mainnet.alchemyapi.io/v2/STnnAuDaTiWez3QJ-KCTNieo_I6Px4fw", //restricted to athena-co.io
+  },
+};
 
 ReactDOM.render(
   <DAppProvider config={{}}>

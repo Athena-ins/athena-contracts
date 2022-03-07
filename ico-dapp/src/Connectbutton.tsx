@@ -1,5 +1,5 @@
 // ConnectButton.tsx
-import { useEthers, useEtherBalance } from "@usedapp/core";
+import { useEthers, useEtherBalance, getChainById } from "@usedapp/core";
 import { formatEther } from "@ethersproject/units";
 import { Button } from "./Components";
 import CSS from "csstype";
@@ -11,10 +11,12 @@ export default function ConnectButton({
   connectWC,
   connectMetamask,
   disconnect,
+  chainId,
 }: {
   className?: string;
   style?: CSS.Properties;
   account?: string;
+  chainId?: number;
   connectWC?: () => void;
   connectMetamask?: () => void;
   disconnect?: () => void;
@@ -63,6 +65,18 @@ export default function ConnectButton({
             )}`}
         </span>
       </Button>
+      {typeof chainId === "number" && (
+        <span
+          style={{
+            paddingLeft: 8,
+            color: [1, 4].includes(chainId) ? "inherit" : "red",
+          }}
+        >
+          {[1, 4].includes(chainId)
+            ? getChainById(chainId)?.chainName
+            : "Wrong network"}
+        </span>
+      )}
     </div>
   ) : (
     <div style={style}>

@@ -22,7 +22,6 @@ import { formatEther, formatUnits, parseUnits } from "ethers/lib/utils";
 import { BigNumber, Contract, ethers } from "ethers";
 import abi from "./contractAbi.json";
 import { useWallet } from "./useWallet";
-import { usePersistedState } from "./usePersistedState";
 const SCALER = 100000;
 const ETH = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
 
@@ -35,8 +34,10 @@ function App() {
     connected,
     connectWC,
     connectMetamask,
-    library,
+    // library,
+    sendTx,
     disconnect,
+    error,
   } = useWallet();
 
   const [modalWalletOpen, setModalWalletOpen] = useState(false);
@@ -59,10 +60,6 @@ function App() {
     { text: string; date: number }[]
   >([]);
 
-  const { state, send, resetState } = useContractFunction(
-    new ethers.Contract(ATHENA_ICO_CONTRACT_ADDRESS, abi),
-    "prebuy"
-  );
   const { value: ethPrice, error: ethPriceError } =
     useCall({
       contract: new Contract(ATHENA_ICO_CONTRACT_ADDRESS, abi),
@@ -110,20 +107,27 @@ function App() {
     },
   ]);
 
+  useEffect(() => {
+    if (account) {
+      if (chainId !== 1 && chainId !== 4) {
+        console.error("Wrong Chain ID ! ", chainId);
+      }
+    }
+  }, [chainId]);
+
   const handleApprove = async (e: any) => {
     e.preventDefault();
-    if (!library?.getSigner()) return;
+    // if (!library?.getSigner()) return;
 
     try {
       setLoadingApprove(true);
-      const send = await usdtContract
-        .connect(library?.getSigner())
-        .approve(
-          ATHENA_ICO_CONTRACT_ADDRESS,
-          ethers.utils.parseUnits(amount, 6)
-        );
-      const receipt = await send.wait();
-      console.log("RECEIPT", receipt);
+      const txData = usdtContract.interface.encodeFunctionData("approve", [
+        ATHENA_ICO_CONTRACT_ADDRESS,
+        ethers.utils.parseUnits(amount, 6),
+      ]);
+      const receipt = await sendTx(txData);
+      // const receipt = await send.wait();
+      // console.log("RECEIPT", receipt);
       addNotification(receipt);
     } catch (error) {
       setLoadingApprove(false);
@@ -134,46 +138,45 @@ function App() {
     if (account && modalWalletOpen) setModalWalletOpen(false);
   }, [account]);
 
-  useEffect(() => {
-    if (state.status)
-      setnotifHistory((prev) => [
-        ...prev,
-        {
-          date: Date.now(),
-          text:
-            state.errorMessage || state.receipt?.transactionHash
-              ? "Tx : " +
-                (chainId === 1 ? Mainnet : Rinkeby).getExplorerTransactionLink(
-                  state.receipt?.transactionHash || "0x00"
-                )
-              : "Undefined",
-        },
-      ]);
-  }, [state]);
+  // useEffect(() => {
+  //   if (state.status)
+  //     setnotifHistory((prev) => [
+  //       ...prev,
+  //       {
+  //         date: Date.now(),
+  //         text:
+  //           state.errorMessage || state.receipt?.transactionHash
+  //             ? "Tx : " +
+  //               (chainId === 1 ? Mainnet : Rinkeby).getExplorerTransactionLink(
+  //                 state.receipt?.transactionHash || "0x00"
+  //               )
+  //             : "Undefined",
+  //       },
+  //     ]);
+  // }, [state]);
 
   const handleMint = async (e: any) => {
     try {
       e.preventDefault();
-      await send(
+      const txData = new ethers.Contract(
+        ATHENA_ICO_CONTRACT_ADDRESS,
+        abi
+      ).interface.encodeFunctionData("prebuy", [
         ethers.utils.parseUnits(amount, isEth ? 18 : 6),
         isEth ? ETH : USDT,
         account,
-        {
-          value: isEth ? ethers.utils.parseEther(amount) : undefined,
-        }
-      );
-
-      // resetState();
-      // addNotification({
-      //   chainId: state.chainId || 0,
-      //   notification: {
-      //     type: state.errorMessage,
-      //     submittedAt: Date.now(),
-      //     address: "Denied",
-      //   },
-      // });
+      ]);
+      const receipt = await sendTx({
+        from: account,
+        to: ATHENA_ICO_CONTRACT_ADDRESS,
+        data: txData,
+        chainId: chainId,
+        value: isEth ? ethers.utils.parseEther(amount) : undefined,
+      });
+      // const receipt = await send.wait();
+      // console.log("RECEIPT", receipt);
+      addNotification(receipt);
     } catch (error) {
-      resetState();
       console.error(error);
     }
   };
@@ -202,13 +205,13 @@ function App() {
               className="btn btn-secondary"
               account={account}
               disconnect={disconnect}
+              chainId={chainId}
             />
           ) : (
             <Button
               className="btn btn-secondary"
               style={{ marginBottom: 16 }}
               onClick={() => setModalWalletOpen(true)}
-              // onClick={() => connector.createSession()}
             >
               Connect to a Wallet
             </Button>
