@@ -22,7 +22,7 @@ contract AthenaICO is Ownable {
 
     uint128 public constant ATEN_ICO_PRICE = 350;
     uint128 public constant PRICE_DIVISOR = 10000;
-    uint256 public constant maxTokensSale = 300 * 10**18;
+    uint256 public immutable maxTokensSale;
     uint256 public tokenSold = 0;
 
     bool public activeSale = false;
@@ -35,7 +35,7 @@ contract AthenaICO is Ownable {
      * Address: 0x9326BFA02ADD2366b30bacB125260Af641031331
      */
 
-    constructor(address distributeToken, address[] memory tokens, address priceAggregator) {
+    constructor(address distributeToken, uint maxTokens, address[] memory tokens, address priceAggregator) {
         // Warning: must only allow stablecoins, no price conversion will be made
         for (uint256 i = 0; i < tokens.length; i++) {
             authTokens[tokens[i]] = true;   
@@ -43,6 +43,7 @@ contract AthenaICO is Ownable {
         // For ETH price only
         priceFeed = AggregatorV3Interface(priceAggregator);
         aten = distributeToken;
+        maxTokensSale = maxTokens;
     }
 
     function startSale(bool isActive) external onlyOwner {

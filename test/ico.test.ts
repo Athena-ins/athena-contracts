@@ -44,6 +44,7 @@ describe("ICO Pre sale", function () {
     const factory = await ethers.getContractFactory("AthenaICO");
     ATHENA_CONTRACT = await factory.deploy(
       ATEN_TOKEN,
+      ethers.utils.parseEther("1000000"),
       [ETH, USDT],
       "0xEe9F2375b4bdF6387aa8265dD4FB8F16512A1d46" // Chainlink MAINNET USDT/ETH
     );
@@ -147,7 +148,7 @@ describe("ICO Pre sale", function () {
     );
     const transfer = await USDT_TOKEN_CONTRACT.connect(signer).transfer(
       signerAddress,
-      ethers.utils.parseUnits("20000", 6)
+      ethers.utils.parseUnits("220000", 6)
     );
     await transfer.wait();
     await hre.network.provider.request({
@@ -155,13 +156,13 @@ describe("ICO Pre sale", function () {
       params: ["0xf977814e90da44bfa03b6295a0616a897441acec"],
     });
     const balUSDT = await USDT_TOKEN_CONTRACT.balanceOf(signerAddress);
-    expect(balUSDT.toString()).to.equal(ethers.utils.parseUnits("20000", 6));
+    expect(balUSDT.toString()).to.equal(ethers.utils.parseUnits("220000", 6));
   });
 
   it("Should Mint some ICO with USDT", async function () {
     const approve = await USDT_TOKEN_CONTRACT.approve(
       ATHENA_CONTRACT.address,
-      ethersOriginal.utils.parseUnits("20000", 6)
+      ethersOriginal.utils.parseUnits("220000", 6)
     );
     await approve.wait();
     const mint = await ATHENA_CONTRACT.prebuy(
@@ -176,6 +177,16 @@ describe("ICO Pre sale", function () {
       ATHENA_CONTRACT.address
     );
     expect(balance.toString()).to.equal(ethers.utils.parseUnits("20000", 6));
+  });
+
+  it("Should fail to Mint some ICO with USDT cause max Sold", async function () {
+    expect(
+      ATHENA_CONTRACT.prebuy(
+        ethers.utils.parseUnits("200000", 6),
+        USDT,
+        signerAddress
+      )
+    ).to.be.rejectedWith("Too many tokens sold");
   });
 
   /**
