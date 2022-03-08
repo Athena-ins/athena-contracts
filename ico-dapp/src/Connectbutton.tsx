@@ -1,7 +1,7 @@
 // ConnectButton.tsx
 import { useEthers, useEtherBalance, getChainById } from "@usedapp/core";
 import { formatEther } from "@ethersproject/units";
-import { Button } from "./Components";
+import { Button, NotificationIconContainer } from "./Components";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faLink, faLinkSlash } from "@fortawesome/free-solid-svg-icons";
 import CSS from "csstype";
@@ -96,14 +96,46 @@ export default function ConnectButton({
     </div>
   ) : (
     <div style={style}>
-      <Button className={className} onClick={connectMetamask}>
+      <Button
+        className={className}
+        onClick={connectMetamask}
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          color: "#f8901c",
+        }}
+      >
+        <img src="img/metamask.png" width="100px" alt="logo" />
         Metamask
       </Button>
       <Button
         className={className}
-        onClick={() => connectWC?.()}
-        style={{ marginLeft: 16 }}
+        onClick={connectMetamask}
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          marginLeft: 16,
+        }}
       >
+        <img src="img/trustwallet.png" height="90px" alt="logo" />
+      </Button>
+      <Button
+        className={className}
+        onClick={() => connectWC?.()}
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          marginLeft: 16,
+          color: "#3b99fc",
+        }}
+      >
+        <img height="60px" src="img/walletconnect.png" />
         Wallet Connect
       </Button>
     </div>

@@ -225,7 +225,7 @@ export const NotificationsWrapper = styled.div`
   bottom: 24px;
 `;
 
-const NotificationIconContainer = styled.div`
+export const NotificationIconContainer = styled.div`
   width: 60px;
   height: 60px;
   padding: 0px;

@@ -406,8 +406,6 @@ function App() {
         centered
         contentClassName="card card-sales bg-primary"
       >
-        {/* <div className="modal-dialog modal-unstyled" role="document"> */}
-        {/* <div className="modal-content"> */}
         <button
           type="button"
           className="close self-end"
@@ -437,8 +435,6 @@ function App() {
             />
           </div>
         </div>
-        {/* </div> */}
-        {/* </div> */}
       </Modal>
     </>
   );
