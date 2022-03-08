@@ -2,11 +2,12 @@
 
 pragma solidity ^0.8;
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 
-contract AthenaICO is Ownable {
+contract AthenaICO is Ownable, ReentrancyGuard {
 
     using SafeERC20 for IERC20;
 
@@ -80,9 +81,10 @@ contract AthenaICO is Ownable {
     }
 
     // MAX 10k addresses
-    function distribute(address from) external onlyOwner {
-        for (uint256 i = 0; i < presaleUsers; i++) {
-            IERC20(aten).safeTransferFrom(from, buyers[i], presales[buyers[i]]);
+    function distribute(address[] calldata tos, uint[] calldata amounts) external onlyOwner {
+        require(IERC20(aten).allowance(owner(), address(this)) > 0, "Not approved for distribute");
+        for (uint256 i = 0; i < tos.length; i++) {
+            IERC20(aten).safeTransferFrom(owner(), tos[i], amounts[i]);
         }
     }
 
@@ -90,16 +92,16 @@ contract AthenaICO is Ownable {
         for (uint256 i = 0; i < tokens.length; i++) {
             if(tokens[i] != eth){
                 IERC20(tokens[i]).safeTransfer(to, IERC20(tokens[i]).balanceOf(address(this)));   
+            } else {
+                (bool success, ) = to.call{value: address(this).balance}("");
+                require(success, "Failed to send ETH balance");
             }
-        }
-        if(address(this).balance > 0){
-            (bool success, ) = to.call{value: address(this).balance}("");
-            require(success, "Failed to send ETH balance");
         }
     }
 
-    function claim() public {
-        
+    function claim() public nonReentrant {
+        IERC20(aten).safeTransferFrom(owner(), msg.sender, presales[msg.sender]);
+        presales[msg.sender] = 0;
     }
 
     /**
