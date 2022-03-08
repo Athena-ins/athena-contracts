@@ -419,21 +419,21 @@ function App() {
         <div className="row-flex fullWidth push-reset center-xs">
           <div className="col-xs-10 col-md-6">
             <img alt="Brand" width="100%" src="img/ATHENA-LOGO.svg" />
-            <ConnectButton
-              className="btn btn-secondary"
-              style={{
-                marginTop: "32px",
-                padding: "2px 8px",
-                justifyContent: "space-around",
-                display: "flex",
-                flexDirection: "row",
-              }}
-              account={account}
-              connectWC={connectWC}
-              connectMetamask={connectMetamask}
-              disconnect={disconnect}
-            />
           </div>
+          <ConnectButton
+            className="btn btn-secondary"
+            style={{
+              marginTop: "32px",
+              padding: "2px 8px",
+              justifyContent: "space-around",
+              display: "flex",
+              flexDirection: "row",
+            }}
+            account={account}
+            connectWC={connectWC}
+            connectMetamask={connectMetamask}
+            disconnect={disconnect}
+          />
         </div>
       </Modal>
     </>

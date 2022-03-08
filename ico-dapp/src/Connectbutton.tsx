@@ -95,16 +95,28 @@ export default function ConnectButton({
       )}
     </div>
   ) : (
-    <div style={style}>
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "row",
+        flexWrap: "wrap",
+        ...style,
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
       <Button
         className={className}
         onClick={connectMetamask}
         style={{
+          height: 110,
+          width: 140,
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
           color: "#f8901c",
+          margin: 4,
         }}
       >
         <img src="img/metamask.png" width="100px" alt="logo" />
@@ -114,11 +126,13 @@ export default function ConnectButton({
         className={className}
         onClick={connectMetamask}
         style={{
+          height: 110,
+          width: 140,
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          marginLeft: 16,
+          margin: 4,
         }}
       >
         <img src="img/trustwallet.png" height="90px" alt="logo" />
@@ -127,11 +141,13 @@ export default function ConnectButton({
         className={className}
         onClick={() => connectWC?.()}
         style={{
+          height: 110,
+          width: 140,
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          marginLeft: 16,
+          margin: 4,
           color: "#3b99fc",
         }}
       >
