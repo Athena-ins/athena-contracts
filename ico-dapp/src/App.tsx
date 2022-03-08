@@ -138,23 +138,6 @@ function App() {
     if (account && modalWalletOpen) setModalWalletOpen(false);
   }, [account]);
 
-  // useEffect(() => {
-  //   if (state.status)
-  //     setnotifHistory((prev) => [
-  //       ...prev,
-  //       {
-  //         date: Date.now(),
-  //         text:
-  //           state.errorMessage || state.receipt?.transactionHash
-  //             ? "Tx : " +
-  //               (chainId === 1 ? Mainnet : Rinkeby).getExplorerTransactionLink(
-  //                 state.receipt?.transactionHash || "0x00"
-  //               )
-  //             : "Undefined",
-  //       },
-  //     ]);
-  // }, [state]);
-
   const handleMint = async (e: any) => {
     try {
       e.preventDefault();
@@ -289,7 +272,7 @@ function App() {
                   readOnly
                   className="form-control"
                   value={
-                    amount && ethPrice && isEth
+                    Number(amount) && ethPrice && isEth
                       ? parseFloat(
                           formatUnits(
                             BigNumber.from(
@@ -304,7 +287,7 @@ function App() {
                             18
                           )
                         ).toFixed(4)
-                      : amount && ethPrice && !isEth
+                      : Number(amount) && ethPrice && !isEth
                       ? parseFloat(
                           formatUnits(
                             BigNumber.from(
@@ -358,7 +341,7 @@ function App() {
               onClick={handleMint}
               disabled={
                 !account ||
-                !amount ||
+                !Number(amount) ||
                 !(isEth
                   ? etherBalance?.gte(parseUnits(amount.toString()) || false)
                   : tokenBalance?.gte(parseUnits(amount.toString(), 6)) ||

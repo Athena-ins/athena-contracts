@@ -1,6 +1,13 @@
 import styled from "styled-components";
 import { AnimatePresence, motion } from "framer-motion";
 import type { TransactionResponse } from "@ethersproject/providers";
+import {
+  faTriangleExclamation,
+  faClock,
+  faCheck,
+  faWallet,
+} from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { ReactElement } from "react";
 import {
   getExplorerTransactionLink,
@@ -223,6 +230,9 @@ const NotificationIconContainer = styled.div`
   height: 60px;
   padding: 0px;
   margin-right: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 `;
 
 const ListIconContainer = styled.div`
@@ -253,14 +263,20 @@ const ListDetailsWrapper = styled.div`
 export const notificationContent: {
   [key in Notification["type"]]: { title: string; icon: ReactElement };
 } = {
-  transactionFailed: { title: "Transaction failed", icon: <span>!!!</span> },
+  transactionFailed: {
+    title: "Transaction failed",
+    icon: <FontAwesomeIcon icon={faTriangleExclamation}></FontAwesomeIcon>,
+  },
   transactionStarted: {
     title: "Transaction started",
-    icon: <span>Clock</span>,
+    icon: <FontAwesomeIcon icon={faClock}></FontAwesomeIcon>,
   },
   transactionSucceed: {
     title: "Transaction succeed",
-    icon: <span>Check</span>,
+    icon: <FontAwesomeIcon icon={faCheck}></FontAwesomeIcon>,
   },
-  walletConnected: { title: "Wallet connected", icon: <span>Wallet</span> },
+  walletConnected: {
+    title: "Wallet connected",
+    icon: <FontAwesomeIcon icon={faWallet}></FontAwesomeIcon>,
+  },
 };

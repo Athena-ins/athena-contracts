@@ -2,6 +2,8 @@
 import { useEthers, useEtherBalance, getChainById } from "@usedapp/core";
 import { formatEther } from "@ethersproject/units";
 import { Button } from "./Components";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faLink, faLinkSlash } from "@fortawesome/free-solid-svg-icons";
 import CSS from "csstype";
 
 export default function ConnectButton({
@@ -33,10 +35,17 @@ export default function ConnectButton({
               alignItems: "center",
               background: "#333333",
               borderRadius: 8,
-              padding: 2,
+              padding: "8px",
+              margin: "1px",
               ...style,
             }
-          : { display: "flex", alignItems: "center", ...style }
+          : {
+              display: "flex",
+              alignItems: "center",
+              padding: "8px",
+              margin: "1px",
+              ...style,
+            }
       }
     >
       <div style={{ margin: 4 }}>
@@ -45,19 +54,18 @@ export default function ConnectButton({
         </span>
       </div>
       <Button
-        className={className}
+        // className={className}
         style={{
           background: "gray",
-          border: "1px solid transparent",
           borderRadius: 8,
-          margin: 1,
-          height: "38px",
+          border: 0,
+          // height: "32px",
           display: "flex",
           alignItems: "center",
         }}
         onClick={disconnect}
       >
-        <span style={{ margin: 2, color: "white" }}>
+        <span style={{ margin: 2, color: "white", padding: 1 }}>
           {account &&
             `${account.slice(0, 6)}...${account.slice(
               account.length - 4,
@@ -72,9 +80,17 @@ export default function ConnectButton({
             color: [1, 4].includes(chainId) ? "inherit" : "red",
           }}
         >
-          {[1, 4].includes(chainId)
-            ? getChainById(chainId)?.chainName
-            : "Wrong network"}
+          {[1, 4].includes(chainId) ? (
+            <span>
+              <FontAwesomeIcon icon={faLink}></FontAwesomeIcon>
+              {getChainById(chainId)?.chainName}
+            </span>
+          ) : (
+            <span>
+              <FontAwesomeIcon icon={faLinkSlash}></FontAwesomeIcon>
+              Wrong network
+            </span>
+          )}
         </span>
       )}
     </div>
