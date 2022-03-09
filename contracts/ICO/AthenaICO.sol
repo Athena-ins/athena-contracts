@@ -83,7 +83,7 @@ contract AthenaICO is Ownable, ReentrancyGuard {
         require(tokenSold + atenSold <= maxTokensSale, "Too many tokens sold");
         tokenSold += atenSold;
         presales[to] += atenSold;
-        emit Prebuy(to, amount);
+        emit Prebuy(to, atenSold);
     }
 
     // MAX 10k addresses
