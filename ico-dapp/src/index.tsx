@@ -1,19 +1,26 @@
 import React from "react";
 import ReactDOM from "react-dom";
 import App from "./App";
-import { Mainnet, DAppProvider, Config } from "@usedapp/core";
+import { Mainnet, DAppProvider, Config, Rinkeby } from "@usedapp/core";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const config: Config = {
-  readOnlyChainId: Mainnet.chainId,
+  readOnlyChainId:
+    process.env.NODE_ENV === "production" ? Mainnet.chainId : Rinkeby.chainId,
   readOnlyUrls: {
     [Mainnet.chainId]:
       "https://eth-mainnet.alchemyapi.io/v2/STnnAuDaTiWez3QJ-KCTNieo_I6Px4fw", //restricted to athena-co.io
+    [Rinkeby.chainId]:
+      "https://eth-rinkeby.alchemyapi.io/v2/cC4j_jLDMaEvYZZAC5pXetu4ZyZ2MDnX", //RINKEBY NOT RESTRICTED
   },
+  networks: [Mainnet, Rinkeby],
 };
 
 ReactDOM.render(
-  <DAppProvider config={{}}>
+  <DAppProvider config={config}>
     <App />
+    <ToastContainer position="top-center" theme="colored" />
   </DAppProvider>,
   document.getElementById("root")
 );

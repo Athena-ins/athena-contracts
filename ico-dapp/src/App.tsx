@@ -1,28 +1,20 @@
 import {
+  getExplorerTransactionLink,
   useCall,
-  useContractFunction,
   useEtherBalance,
-  useEthers,
-  useNotifications,
   useTokenAllowance,
   useTokenBalance,
-  Mainnet,
-  Rinkeby,
 } from "@usedapp/core";
 import ConnectButton from "./Connectbutton";
-import {
-  Button,
-  notificationContent,
-  NotificationElement,
-  NotificationsWrapper,
-} from "./Components";
+import { toast } from "react-toastify";
+import { Button } from "./Components";
 import { Modal } from "react-bootstrap";
 import { useEffect, useState } from "react";
 import { formatEther, formatUnits, parseUnits } from "ethers/lib/utils";
 import { BigNumber, Contract, ethers } from "ethers";
 import abi from "./contractAbi.json";
 import { useWallet } from "./useWallet";
-const SCALER = 100000;
+const SCALER = 10000000;
 const ETH = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
 
 const wei = BigNumber.from(10).pow(18);
@@ -35,6 +27,7 @@ function App() {
     connectWC,
     connectMetamask,
     // library,
+    provider,
     sendTx,
     disconnect,
     error,
@@ -50,14 +43,13 @@ function App() {
   // ; //USDT
   const ATHENA_ICO_CONTRACT_ADDRESS =
     chainId === 1
-      ? "0xb66657B12A0eCcB31E677036f532A491430EB055"
+      ? "0xFDe2a58B64771e794DCCBC491cD3DE5623798729"
       : chainId === 4
-      ? "0xb66657B12A0eCcB31E677036f532A491430EB055"
-      : "0xb66657B12A0eCcB31E677036f532A491430EB055";
-  const { notifications, addNotification } = useNotifications();
+      ? "0xFDe2a58B64771e794DCCBC491cD3DE5623798729"
+      : "0xFDe2a58B64771e794DCCBC491cD3DE5623798729";
   const [loadingApprove, setLoadingApprove] = useState(false);
   const [notifHistory, setnotifHistory] = useState<
-    { text: string; date: number }[]
+    { text: string; date: number; link?: string; amount?: string }[]
   >([]);
 
   const { value: ethPrice, error: ethPriceError } =
@@ -73,10 +65,13 @@ function App() {
       args: [],
     }) ?? {};
   const [isEth, setIsEth] = useState(true);
+  const [isSaleOpen, setIsSaleOpen] = useState(false);
+  const [isClaimOpen, setIsClaimOpen] = useState(false);
   const [amount, setAmount] = useState("0");
   const [toggleETH, setToggleETH] = useState(false);
   const tokenBalance = useTokenBalance(USDT, account);
   const ATENbalance = useTokenBalance(atenToken?.[0], account);
+
   const tokenAllowance = useTokenAllowance(
     USDT,
     account,
@@ -108,17 +103,37 @@ function App() {
   ]);
 
   useEffect(() => {
+    if (chainId && provider?.network) {
+      init();
+    }
+  }, [chainId, provider]);
+
+  const init = async () => {
+    try {
+      const contract = new ethers.Contract(
+        ATHENA_ICO_CONTRACT_ADDRESS,
+        abi,
+        provider
+      );
+      setIsSaleOpen(await contract.activeSale());
+    } catch (error: any) {
+      toast.error(error.message);
+    }
+  };
+
+  useEffect(() => {
     if (account) {
-      if (chainId !== 1 && chainId !== 4) {
+      if (chainId && chainId !== 1 && chainId !== 4) {
+        toast.error(
+          "Wrong Chain ID : " + chainId + ", please switch to Ethereum Mainnet"
+        );
         console.error("Wrong Chain ID ! ", chainId);
       }
     }
-  }, [chainId]);
+  }, [account, chainId]);
 
   const handleApprove = async (e: any) => {
     e.preventDefault();
-    // if (!library?.getSigner()) return;
-
     try {
       setLoadingApprove(true);
       const txData = usdtContract.interface.encodeFunctionData("approve", [
@@ -126,9 +141,6 @@ function App() {
         ethers.utils.parseUnits(amount, 6),
       ]);
       const receipt = await sendTx(txData);
-      // const receipt = await send.wait();
-      // console.log("RECEIPT", receipt);
-      addNotification(receipt);
     } catch (error) {
       setLoadingApprove(false);
     }
@@ -136,7 +148,32 @@ function App() {
 
   useEffect(() => {
     if (account && modalWalletOpen) setModalWalletOpen(false);
+    if (account && provider && chainId) {
+      getHistoryEvents();
+    }
   }, [account]);
+
+  const getHistoryEvents = async () => {
+    const contract = new ethers.Contract(
+      ATHENA_ICO_CONTRACT_ADDRESS,
+      abi,
+      provider
+    );
+    const eventsHistory = await contract.queryFilter(
+      contract.filters.Prebuy(account)
+    );
+    console.log("History : ", eventsHistory);
+    // const array = [];
+    const array = await Promise.all(
+      eventsHistory.map(async (ev) => ({
+        text: "Transaction pre-sale",
+        date: (await ev.getBlock()).timestamp * 1000,
+        amount: ev.args?.amount?.toString(),
+        link: getExplorerTransactionLink(ev.transactionHash, chainId),
+      }))
+    );
+    setnotifHistory(array);
+  };
 
   const handleMint = async (e: any) => {
     try {
@@ -156,9 +193,12 @@ function App() {
         chainId: chainId,
         value: isEth ? ethers.utils.parseEther(amount) : undefined,
       });
+      toast.info("Transaction success", { autoClose: false });
+      init();
+
       // const receipt = await send.wait();
       // console.log("RECEIPT", receipt);
-      addNotification(receipt);
+      // addNotification(receipt);
     } catch (error) {
       console.error(error);
     }
@@ -228,14 +268,14 @@ function App() {
                   ETH
                 </span>
               </div>
-              <select
+              {/* <select
                 className="form-control"
                 data-first-option="show"
                 style={{ display: "none" }}
               >
                 <option value="usdt">USDT</option>
                 <option value="eth">ETH</option>
-              </select>
+              </select> */}
             </div>
             <div className="row-flex bottom-md mini-push-top">
               <div className="col-xs-12 col-md-8">
@@ -280,8 +320,8 @@ function App() {
                             )
                               .mul(wei)
                               .div(SCALER)
-                              .div(ethPrice[0])
                               .mul(wei)
+                              .div(ethPrice[0])
                               .mul(1000)
                               .div(35),
                             18
@@ -318,14 +358,30 @@ function App() {
             className={Number(amount) == 0 ? "collapse" : "show"}
             id="aten-info"
           >
-            <div className="label label-ghost">1 ATEN = $0.035</div>
+            <div
+              className="label label-ghost"
+              style={{ display: "flex", justifyContent: "space-between" }}
+            >
+              <span>1 ATEN = $0.035</span>
+              {isEth && (
+                <span>
+                  1 ETH = $
+                  {ethPrice &&
+                    formatUnits(BigNumber.from(10).pow(18).div(ethPrice[0]), 0)}
+                </span>
+              )}
+            </div>
           </div>
-          {!isEth &&
-          tokenAllowance?.lt(
-            BigNumber.from(parseInt((Number(amount) * SCALER).toString()))
-              .mul(10 ** 6)
-              .div(SCALER)
-          ) ? (
+          {!isSaleOpen ? (
+            <Button className="btn btn-block btn-secondary" disabled={true}>
+              Sale is Not Opened yet
+            </Button>
+          ) : !isEth &&
+            tokenAllowance?.lt(
+              BigNumber.from(parseInt((Number(amount) * SCALER).toString()))
+                .mul(10 ** 6)
+                .div(SCALER)
+            ) ? (
             <Button
               className="btn btn-block btn-info"
               type="submit"
@@ -352,52 +408,46 @@ function App() {
             </Button>
           )}
         </form>
-        <NotificationsWrapper>
-          {notifications.map((notification) => {
-            if ("transaction" in notification)
-              return (
-                <NotificationElement
-                  key={notification.id}
-                  icon={notificationContent[notification.type].icon}
-                  title={notificationContent[notification.type].title}
-                  transaction={notification.transaction}
-                  date={Date.now()}
-                />
-              );
-            else
-              return (
-                <NotificationElement
-                  key={notification.id}
-                  icon={notificationContent[notification.type].icon}
-                  title={notificationContent[notification.type].title}
-                  date={Date.now()}
-                />
-              );
-          })}
-        </NotificationsWrapper>
-        {/* <h3>History</h3>
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column-reverse",
-            position: "absolute",
-          }}
-        >
-          {notifHistory.map((notification, i) => (
-            <div key={i}>
-              <p>Le : {new Date(notification.date).toLocaleDateString()}</p>
-              <p>
-                {notification.text.includes("https://") ? (
-                  <a href={notification.text.slice(4)}>
-                    {"Tx link to explorer"}
-                  </a>
-                ) : (
-                  notification.text
-                )}
-              </p>
+        {notifHistory.length && (
+          <>
+            <h3>History</h3>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column-reverse",
+                position: "absolute",
+              }}
+            >
+              {notifHistory.map((notification, i) => (
+                <div key={i}>
+                  <p>
+                    On :{" "}
+                    {new Date(notification.date).toLocaleDateString() +
+                      " - " +
+                      new Date(notification.date).toLocaleTimeString()}
+                  </p>
+                  {notification.amount && (
+                    <p>
+                      Amount :{" "}
+                      {Number(
+                        ethers.utils.formatEther(notification.amount)
+                      ).toFixed(2)} ATEN
+                    </p>
+                  )}
+                  <p>
+                    {notification.link ? (
+                      <a href={notification.link} target="_blank">
+                        {"Tx explorer link"}
+                      </a>
+                    ) : (
+                      notification.text
+                    )}
+                  </p>
+                </div>
+              ))}
             </div>
-          ))}
-        </div> */}
+          </>
+        )}
       </article>
       <Modal
         show={modalWalletOpen}

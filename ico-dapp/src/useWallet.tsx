@@ -1,9 +1,10 @@
-import { useEthers } from "@usedapp/core";
+import { useConfig, useEthers } from "@usedapp/core";
 import WalletConnect from "@walletconnect/client";
 import QRCodeModal from "@walletconnect/qrcode-modal";
 import { ethers } from "ethers";
 import { useEffect, useState } from "react";
 import { usePersistedState } from "./usePersistedState";
+import { toast } from "react-toastify";
 
 export const useWallet = () => {
   const {
@@ -14,6 +15,7 @@ export const useWallet = () => {
     chainId: chainIdEthers,
     library: ethersLibrary,
   } = useEthers();
+  const config = useConfig();
   const [chainId, setChainId] = useState(0);
   const [account, setAccount] = usePersistedState(null, "account");
   const [provider, setProvider] = useState<
@@ -63,8 +65,15 @@ url: "https://trustwallet.com"
       }
     }
 
+    const id = toast.info("Sending transaction...", { autoClose: 0 });
+
     console.log("Sent tx : ", txSent);
     const receipt = await txSent.wait?.();
+    toast.update(id, {
+      render: "Tx success " + receipt.transactionHash,
+      type: "success",
+      autoClose: 10000,
+    });
     console.log("Receipt ? ", receipt);
     return receipt;
   };
@@ -85,8 +94,18 @@ url: "https://trustwallet.com"
   }, [metaAccount]);
 
   useEffect(() => {
-    console.log("Chain id changed : ", chainId);
-  }, [chainId]);
+    if (
+      !metaAccount &&
+      account &&
+      !ethersLibrary &&
+      !provider &&
+      config.readOnlyUrls
+    )
+      setProvider(
+        new ethers.providers.JsonRpcProvider(config.readOnlyUrls[chainId])
+      );
+    else if (ethersLibrary) setProvider(ethersLibrary);
+  }, [account]);
 
   useEffect(() => {
     init();
@@ -172,6 +191,7 @@ url: "https://trustwallet.com"
     connectWC,
     connectMetamask: activateBrowserWallet,
     sendTx,
+    provider,
     disconnect,
     error,
   };
