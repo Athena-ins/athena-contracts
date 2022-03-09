@@ -7,6 +7,7 @@ import chaiAsPromised from "chai-as-promised";
 import { distributeTokens } from "../scripts/distribute";
 import path from "path";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { formatUnits } from "ethers/lib/utils";
 
 chai.use(chaiAsPromised);
 
@@ -51,7 +52,7 @@ describe("ICO Pre sale", function () {
     const factory = await ethers.getContractFactory("AthenaICO");
     ATHENA_CONTRACT = await factory.connect(signer).deploy(
       ATEN_TOKEN,
-      ethers.utils.parseEther("1000000"),
+      ethers.utils.parseEther("520000"),
       [ETH, USDT],
       "0xEe9F2375b4bdF6387aa8265dD4FB8F16512A1d46" // Chainlink MAINNET USDT/ETH
     );
@@ -62,6 +63,10 @@ describe("ICO Pre sale", function () {
     expect(await ethers.provider.getCode(ATHENA_CONTRACT.address)).to.not.equal(
       "0x00"
     );
+    expect((await ATHENA_CONTRACT.maxTokensSale()).toString()).to.equal(
+      ethers.utils.parseEther("520000")
+    );
+    expect((await ATHENA_CONTRACT.tokenSold()).toString()).to.equal("0");
     // expect(await ATHENA_CONTRACT.authTokens(1)).to.equal(WETH);
   });
 
@@ -130,13 +135,29 @@ describe("ICO Pre sale", function () {
     expect(mint).to.have.property("hash");
     const balance = await ethers.provider.getBalance(ATHENA_CONTRACT.address);
     expect(balance.toString()).to.equal(ethers.utils.parseEther("1"));
+    const mapping = await ATHENA_CONTRACT.presales(signerAddress);
+    expect(mapping.toString()).to.equal(
+      (await ATHENA_CONTRACT.tokenSold()).toString()
+    );
   });
 
   it("Should get ATEN amount from 1 WETH", async () => {
     // Fixed block for ETH @3011 USDT
     // ATEN @0.035 = 86041 ATEN for 1 ETH
+    // price from oracle = 332064878882758
+    const ethPrice = await ATHENA_CONTRACT.getLatestPrice();
+    const expectedAten = ethers.BigNumber.from(
+      parseInt((1 * 100000).toString())
+    )
+      .mul(wei)
+      .div(100000)
+      .mul(wei)
+      .div(ethPrice)
+      .mul(1000)
+      .div(35);
+
     const mapping = await ATHENA_CONTRACT.presales(signerAddress);
-    expect(mapping.toString()).to.equal("86041705667753779780085");
+    expect(mapping.toString()).to.equal(expectedAten);
   });
 
   it("Should transfer USDT from Binance to Signer ", async () => {
@@ -173,11 +194,11 @@ describe("ICO Pre sale", function () {
   it("Should Mint some ICO with USDT", async function () {
     const approve = await USDT_TOKEN_CONTRACT.connect(signer).approve(
       ATHENA_CONTRACT.address,
-      ethersOriginal.utils.parseUnits("220000", 6)
+      ethersOriginal.utils.parseUnits("215000", 6)
     );
     await approve.wait();
     const mint = await ATHENA_CONTRACT.prebuy(
-      ethers.utils.parseUnits("20000", 6),
+      ethers.utils.parseUnits("15000", 6),
       USDT,
       signerAddress
     );
@@ -187,17 +208,34 @@ describe("ICO Pre sale", function () {
     const balance = await USDT_TOKEN_CONTRACT.connect(signer).balanceOf(
       ATHENA_CONTRACT.address
     );
-    expect(balance.toString()).to.equal(ethers.utils.parseUnits("20000", 6));
+    expect(balance.toString()).to.equal(ethers.utils.parseUnits("15000", 6));
   });
 
   it("Should fail to Mint some ICO with USDT cause max Sold", async function () {
-    expect(
+    await expect(
       ATHENA_CONTRACT.prebuy(
-        ethers.utils.parseUnits("200000", 6),
+        ethers.utils.parseUnits("15000", 6),
         USDT,
         signerAddress
       )
     ).to.be.rejectedWith("Too many tokens sold");
+  });
+
+  it("Should fail to Mint some ICO with USDT cause max Amount & min Amount", async function () {
+    await expect(
+      ATHENA_CONTRACT.prebuy(
+        ethers.utils.parseUnits("20000", 6),
+        USDT,
+        signerAddress
+      )
+    ).to.be.rejectedWith("Amount requirements not met");
+    await expect(
+      ATHENA_CONTRACT.prebuy(
+        ethers.utils.parseUnits("90", 6),
+        USDT,
+        signerAddress
+      )
+    ).to.be.rejectedWith("Amount requirements not met");
   });
 
   /**
@@ -251,7 +289,53 @@ describe("ICO Pre sale", function () {
   });
 
   /**
-   * NOW WE MINT 10k ADDRESSES AND DISTRIBUTE
+   *
+   * Deploy new contract for 300 addresses
+   */
+
+  it("Should deploy new contract for 300 addresses", async function () {
+    const factory = await ethers.getContractFactory("AthenaICO");
+    ATHENA_CONTRACT = await factory.connect(signer).deploy(
+      ATEN_TOKEN,
+      ethers.utils.parseEther("30000000"),
+      [ETH, USDT],
+      "0xEe9F2375b4bdF6387aa8265dD4FB8F16512A1d46" // Chainlink MAINNET USDT/ETH
+    );
+    await ATHENA_CONTRACT.deployed();
+
+    // console.log("Deployed ICO Contract : ", ATHENA_CONTRACT.address);
+
+    expect(await ethers.provider.getCode(ATHENA_CONTRACT.address)).to.not.equal(
+      "0x00"
+    );
+    expect((await ATHENA_CONTRACT.maxTokensSale()).toString()).to.equal(
+      ethers.utils.parseEther("30000000")
+    );
+    expect((await ATHENA_CONTRACT.tokenSold()).toString()).to.equal("0");
+    // expect(await ATHENA_CONTRACT.authTokens(1)).to.equal(WETH);
+    const ATEN_TOKEN_CONTRACT = new ethers.Contract(
+      ATEN_TOKEN,
+      weth_abi
+    ).connect(signer);
+    const allowContract = await ATEN_TOKEN_CONTRACT.approve(
+      ATHENA_CONTRACT.address,
+      ALLOWANCE
+    );
+    await allowContract.wait();
+    // await hre.network.provider.request({
+    //   method: "hardhat_stopImpersonatingAccount",
+    //   params: [ATEN_OWNER_ADDRESS],
+    // });
+    const allowed = await ATEN_TOKEN_CONTRACT.allowance(
+      ATEN_OWNER_ADDRESS,
+      ATHENA_CONTRACT.address
+    );
+    expect(allowed.toString()).to.equal(ALLOWANCE);
+    const startSale = await ATHENA_CONTRACT.startSale(true);
+    expect(startSale).to.haveOwnProperty("hash");
+  });
+  /**
+   * NOW WE MINT lot of ADDRESSES AND DISTRIBUTE
    */
   it("Should mint all Hardhat (300?) addresses", async function () {
     this.timeout(120000);
@@ -272,6 +356,19 @@ describe("ICO Pre sale", function () {
     expect(balance.toString()).to.equal(
       ethers.utils.parseEther(accounts.length.toString())
     );
+  });
+
+  it("Should fail to claim tokens cause not active", async function () {
+    const accounts = await ethers.getSigners();
+    const signerLocal = accounts[0];
+    await expect(
+      ATHENA_CONTRACT.connect(signerLocal).claim()
+    ).to.be.rejectedWith("Claim not yet active");
+  });
+
+  it("Should active claim tokens ", async function () {
+    const activeClaim = await ATHENA_CONTRACT.startClaim(true);
+    expect(activeClaim).to.haveOwnProperty("hash");
   });
 
   it("Should user claim and get tokens", async function () {
@@ -297,6 +394,7 @@ describe("ICO Pre sale", function () {
     //   ALLOWANCE
     // );
     // await allowContract.wait();
+    this.timeout(120000);
     const ATEN_TOKEN_CONTRACT = new ethers.Contract(
       ATEN_TOKEN,
       weth_abi

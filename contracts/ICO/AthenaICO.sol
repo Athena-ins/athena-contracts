@@ -27,8 +27,9 @@ contract AthenaICO is Ownable, ReentrancyGuard {
     uint256 public tokenSold = 0;
 
     bool public activeSale = false;
+    bool public activeClaim = false;
 
-    event Prebuy(address from, uint amount);
+    event Prebuy(address indexed from, uint amount);
 
     /**
      * Network: Kovan
@@ -51,7 +52,11 @@ contract AthenaICO is Ownable, ReentrancyGuard {
         activeSale = isActive;
     }
 
-    function prebuy(uint amount, address token, address to) public payable {
+    function startClaim(bool isActive) external onlyOwner {
+        activeClaim = isActive;
+    }
+
+    function prebuy(uint amount, address token, address to) public payable nonReentrant {
         require(activeSale, "Sale is not yet active");
         require(authTokens[token] == true, "Not approved Token for this ICO");
         if(token == eth){
@@ -72,10 +77,11 @@ contract AthenaICO is Ownable, ReentrancyGuard {
             // We WAD it to match 18 decimals
             amount = amount * 10 ** 18 / (10**IERC20Metadata(token).decimals());
         }
-        // amount is now in USDT
-        require(amount > 100 * 10**18, "Min amount not met");
-        uint atenSold = amount * (10 ** IERC20Metadata(aten).decimals()) / (10**18) * PRICE_DIVISOR / ATEN_ICO_PRICE;
+        // amount is now in USDT, in WAD
+        require(amount >= 100 ether && amount <= 15000 ether, "Amount requirements not met");
+        uint atenSold = amount * (10 ** IERC20Metadata(aten).decimals()) * PRICE_DIVISOR / 1 ether / ATEN_ICO_PRICE;
         require(tokenSold + atenSold <= maxTokensSale, "Too many tokens sold");
+        tokenSold += atenSold;
         presales[to] += atenSold;
         emit Prebuy(to, amount);
     }
@@ -100,6 +106,7 @@ contract AthenaICO is Ownable, ReentrancyGuard {
     }
 
     function claim() public nonReentrant {
+        require(activeClaim, "Claim not yet active");
         IERC20(aten).safeTransferFrom(owner(), msg.sender, presales[msg.sender]);
         presales[msg.sender] = 0;
     }
