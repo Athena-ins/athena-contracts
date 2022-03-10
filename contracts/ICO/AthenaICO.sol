@@ -77,7 +77,7 @@ contract AthenaICO is Ownable, ReentrancyGuard {
             amount = amount * 10 ** 18 / (10**IERC20Metadata(token).decimals());
         }
         // amount is now in USDT, in WAD
-        require(amount >= 100 ether && amount <= 15000 ether, "Amount requirements not met");
+        require(amount >= 200 ether && amount <= 15000 ether, "Amount requirements not met");
         uint atenSold = amount * (10 ** IERC20Metadata(aten).decimals()) * PRICE_DIVISOR / 1 ether / ATEN_ICO_PRICE;
         require(tokenSold + atenSold <= maxTokensSale, "Too many tokens sold");
         tokenSold += atenSold;

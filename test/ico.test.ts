@@ -182,7 +182,7 @@ describe("ICO Pre sale", function () {
     const newSigner = accounts[1];
     const transfer2 = await USDT_TOKEN_CONTRACT.connect(binanceSigner).transfer(
       newSigner.address,
-      ethers.utils.parseUnits("101", 6)
+      ethers.utils.parseUnits("201", 6)
     );
     await hre.network.provider.request({
       method: "hardhat_stopImpersonatingAccount",
@@ -200,11 +200,11 @@ describe("ICO Pre sale", function () {
   it("Should Mint some more ICO with USDT", async function () {
     const approve = await USDT_TOKEN_CONTRACT.connect(signer).approve(
       ATHENA_CONTRACT.address,
-      ethersOriginal.utils.parseUnits("215000", 6)
+      ethersOriginal.utils.parseUnits("214000", 6)
     );
     await approve.wait();
     const mint = await ATHENA_CONTRACT.prebuy(
-      ethers.utils.parseUnits("15000", 6),
+      ethers.utils.parseUnits("14000", 6),
       USDT,
       signerAddress
     );
@@ -214,7 +214,7 @@ describe("ICO Pre sale", function () {
     const balance = await USDT_TOKEN_CONTRACT.connect(signer).balanceOf(
       ATHENA_CONTRACT.address
     );
-    expect(balance.toString()).to.equal(ethers.utils.parseUnits("15000", 6));
+    expect(balance.toString()).to.equal(ethers.utils.parseUnits("14000", 6));
   });
 
   it("Should Mint some New ICO with USDT", async function () {
@@ -222,11 +222,11 @@ describe("ICO Pre sale", function () {
     const newSigner = accounts[1];
     const approve = await USDT_TOKEN_CONTRACT.connect(newSigner).approve(
       ATHENA_CONTRACT.address,
-      ethersOriginal.utils.parseUnits("101", 6)
+      ethersOriginal.utils.parseUnits("201", 6)
     );
     await approve.wait();
     const mint = await ATHENA_CONTRACT.connect(newSigner).prebuy(
-      ethers.utils.parseUnits("101", 6),
+      ethers.utils.parseUnits("201", 6),
       USDT,
       newSigner.address
     );
@@ -236,7 +236,7 @@ describe("ICO Pre sale", function () {
     const balance = await USDT_TOKEN_CONTRACT.connect(newSigner).balanceOf(
       ATHENA_CONTRACT.address
     );
-    expect(balance.toString()).to.equal(ethers.utils.parseUnits("15101", 6));
+    expect(balance.toString()).to.equal(ethers.utils.parseUnits("14201", 6));
     const presaleUnits = await ATHENA_CONTRACT.connect(newSigner).presales(
       newSigner.address
     );
@@ -246,7 +246,7 @@ describe("ICO Pre sale", function () {
   it("Should fail to Mint some ICO with USDT cause max Sold", async function () {
     await expect(
       ATHENA_CONTRACT.prebuy(
-        ethers.utils.parseUnits("15000", 6),
+        ethers.utils.parseUnits("14000", 6),
         USDT,
         signerAddress
       )
@@ -263,7 +263,7 @@ describe("ICO Pre sale", function () {
     ).to.be.rejectedWith("Amount requirements not met");
     await expect(
       ATHENA_CONTRACT.prebuy(
-        ethers.utils.parseUnits("90", 6),
+        ethers.utils.parseUnits("190", 6),
         USDT,
         signerAddress
       )
