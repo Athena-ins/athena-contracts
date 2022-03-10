@@ -1,7 +1,6 @@
 import {
   getExplorerTransactionLink,
   useCall,
-  useEtherBalance,
   useTokenAllowance,
   useTokenBalance,
 } from "@usedapp/core";
@@ -17,6 +16,7 @@ import { formatEther, formatUnits, parseUnits } from "ethers/lib/utils";
 import { BigNumber, Contract, ethers } from "ethers";
 import abi from "./contractAbi.json";
 import { useWallet } from "./useWallet";
+import { useEtherBalance } from "./useEtherBalance";
 const SCALER = 10000000;
 const ETH = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
 
@@ -187,6 +187,7 @@ function App() {
   const handleMint = async (e: any) => {
     try {
       e.preventDefault();
+      if (!account) return toast.warning("Can not send Tx, missing account");
       const txData = new ethers.Contract(
         ATHENA_ICO_CONTRACT_ADDRESS,
         abi
@@ -200,15 +201,41 @@ function App() {
         to: ATHENA_ICO_CONTRACT_ADDRESS,
         data: txData,
         chainId: chainId,
-        value: isEth ? ethers.utils.parseEther(amount) : undefined,
+        value: isEth ? ethers.utils.parseEther(amount).toString() : undefined,
       });
-      toast.info("Transaction success", { autoClose: false });
-      init();
+      if (receipt) {
+        toast.info(
+          <p>
+            <span>Transaction ongoing</span>
+            <br />
+            <a
+              target="_blank"
+              href={getExplorerTransactionLink(receipt, chainId)}
+            >
+              Link to Explorer
+            </a>
+          </p>,
+          { autoClose: 60000, closeOnClick: false }
+        );
+        setnotifHistory((prev) => [
+          ...prev,
+          {
+            text: "Transaction awaiting confirmation",
+            date: Date.now(),
+            link: getExplorerTransactionLink(receipt, chainId),
+          },
+        ]);
+
+        setTimeout(() => {
+          init();
+        }, 60000);
+      }
 
       // const receipt = await send.wait();
       // console.log("RECEIPT", receipt);
       // addNotification(receipt);
-    } catch (error) {
+    } catch (error: any) {
+      toast.error(error.message);
       console.error(error);
     }
   };

@@ -48,39 +48,51 @@ url: "https://trustwallet.com"
    */
 
     const sendTx = async (txData: any) => {
-      let txSent;
-      if (metaAccount === account && ethersLibrary) {
-        //ethers Metamask tx
-        txSent = await ethersLibrary.getSigner().sendTransaction(txData);
-      } else {
-        //Wallet connect TX,
-        if (connector.clientMeta?.url.search("trustwallet.com") === -1) {
-          txSent = await connector.sendTransaction(txData);
+      const id = toast.info("Sending transaction...", { autoClose: false });
+      try {
+        let txSent;
+
+        if (metaAccount === account && ethersLibrary) {
+          //ethers Metamask tx
+          txSent = await ethersLibrary.getSigner().sendTransaction(txData);
         } else {
-          //Trust Wallet TX
-          txSent = await connector.sendCustomRequest({
-            method: "trust_signTransaction",
-            params: [
-              {
-                network: 60,
-                transaction: JSON.stringify(txData),
-              },
-            ],
-          });
+          //Wallet connect TX,
+          if (
+            connector.clientMeta?.url.search("trustwallet.com") === -1 ||
+            connector.peerMeta?.url.search("trustwallet.com") === -1
+          ) {
+            txSent = await connector.sendTransaction(txData);
+          } else {
+            //Trust Wallet TX
+            txSent = await connector.sendCustomRequest({
+              method: "trust_signTransaction",
+              params: [
+                {
+                  network: 60,
+                  transaction: JSON.stringify(txData),
+                },
+              ],
+            });
+          }
         }
+
+        console.log("Sent tx : ", txSent);
+        // const receipt = await txSent.wait?.();
+        toast.update(id, {
+          render:
+            "Tx success " + typeof txSent === "string" ? txSent : txSent.hash,
+          type: "success",
+          autoClose: 10000,
+        });
+        return txSent;
+      } catch (error: any) {
+        toast.update(id, {
+          render: "Tx failed : " + error.message,
+          type: "error",
+          autoClose: 10000,
+        });
+        return;
       }
-
-      const id = toast.info("Sending transaction...", { autoClose: 0 });
-
-      console.log("Sent tx : ", txSent);
-      const receipt = await txSent.wait?.();
-      toast.update(id, {
-        render: "Tx success " + receipt.transactionHash,
-        type: "success",
-        autoClose: 10000,
-      });
-      console.log("Receipt ? ", receipt);
-      return receipt;
     };
 
     const disconnect = () => {
@@ -93,7 +105,7 @@ url: "https://trustwallet.com"
 
     useEffect(() => {
       setAccount(metaAccount || null);
-      if (metaAccount && ethersLibrary) {
+      if (metaAccount && ethersLibrary?.network) {
         setProvider(ethersLibrary);
       }
     }, [metaAccount]);
@@ -110,7 +122,7 @@ url: "https://trustwallet.com"
           new ethers.providers.JsonRpcProvider(config.readOnlyUrls[chainId])
         );
       else if (ethersLibrary) setProvider(ethersLibrary);
-    }, [account]);
+    }, [account, chainId]);
 
     useEffect(() => {
       init();
