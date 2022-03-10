@@ -154,25 +154,29 @@ function App() {
   }, [account]);
 
   const getHistoryEvents = async () => {
-    const contract = new ethers.Contract(
-      ATHENA_ICO_CONTRACT_ADDRESS,
-      abi,
-      provider
-    );
-    const eventsHistory = await contract.queryFilter(
-      contract.filters.Prebuy(account)
-    );
-    console.log("History : ", eventsHistory);
-    // const array = [];
-    const array = await Promise.all(
-      eventsHistory.map(async (ev) => ({
-        text: "Transaction pre-sale",
-        date: (await ev.getBlock()).timestamp * 1000,
-        amount: ev.args?.amount?.toString(),
-        link: getExplorerTransactionLink(ev.transactionHash, chainId),
-      }))
-    );
-    setnotifHistory(array);
+    try {
+      const contract = new ethers.Contract(
+        ATHENA_ICO_CONTRACT_ADDRESS,
+        abi,
+        provider
+      );
+      const eventsHistory = await contract.queryFilter(
+        contract.filters.Prebuy(account)
+      );
+      // const array = [];
+      const array = await Promise.all(
+        eventsHistory.map(async (ev) => ({
+          text: "Transaction pre-sale",
+          date: (await ev.getBlock()).timestamp * 1000,
+          amount: ev.args?.amount?.toString(),
+          link: getExplorerTransactionLink(ev.transactionHash, chainId),
+        }))
+      );
+      setnotifHistory(array);
+    } catch (error) {
+      toast.warn("Could not get network");
+      setnotifHistory([]);
+    }
   };
 
   const handleMint = async (e: any) => {
@@ -408,7 +412,7 @@ function App() {
             </Button>
           )}
         </form>
-        {notifHistory.length && (
+        {notifHistory.length > 0 && (
           <>
             <h3>History</h3>
             <div
@@ -431,7 +435,8 @@ function App() {
                       Amount :{" "}
                       {Number(
                         ethers.utils.formatEther(notification.amount)
-                      ).toFixed(2)} ATEN
+                      ).toFixed(2)}{" "}
+                      ATEN
                     </p>
                   )}
                   <p>
