@@ -70,6 +70,7 @@ function App() {
   const [isEth, setIsEth] = useState(true);
   const [isSaleOpen, setIsSaleOpen] = useState(false);
   const [isClaimOpen, setIsClaimOpen] = useState(false);
+  const [atenToClaim, setAtenToClaim] = useState(BigNumber.from("0"));
   const [amount, setAmount] = useState("0");
   const [toggleETH, setToggleETH] = useState(false);
   const tokenBalance = useTokenBalance(USDT, account);
@@ -126,6 +127,10 @@ function App() {
   };
 
   useEffect(() => {
+    if (account && modalWalletOpen) setModalWalletOpen(false);
+    if (account && provider?.network && chainId) {
+      getHistoryEvents();
+    }
     if (account) {
       if (chainId && chainId !== 1 && chainId !== 4) {
         toast.error(
@@ -156,13 +161,6 @@ function App() {
     }
   };
 
-  useEffect(() => {
-    if (account && modalWalletOpen) setModalWalletOpen(false);
-    if (account && provider?.network && chainId) {
-      getHistoryEvents();
-    }
-  }, [account]);
-
   const getHistoryEvents = async () => {
     try {
       if (!account) return;
@@ -184,6 +182,8 @@ function App() {
         }))
       );
       setnotifHistory(array);
+      const presales = await contract.presales(account);
+      setAtenToClaim(presales);
     } catch (error) {
       toast.warn("Could not get network");
       setnotifHistory([]);
@@ -533,6 +533,7 @@ function App() {
             }}
           >
             <h3>History</h3>
+            <div>Total Aten : {formatBalance(atenToClaim)}</div>
             <div
               style={{
                 display: "flex",

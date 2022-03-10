@@ -160,7 +160,7 @@ describe("ICO Pre sale", function () {
     expect(mapping.toString()).to.equal(expectedAten);
   });
 
-  it("Should transfer USDT from Binance to Signer ", async () => {
+  it("Should transfer USDT from Binance to Signers", async () => {
     //BINANCE WALLET 1Md2 USDT 0xF977814e90dA44bFA03b6295A0616a897441aceC
     await hre.network.provider.request({
       method: "hardhat_impersonateAccount",
@@ -178,6 +178,12 @@ describe("ICO Pre sale", function () {
       ethers.utils.parseUnits("220000", 6)
     );
     await transfer.wait();
+    const accounts = await ethers.getSigners();
+    const newSigner = accounts[1];
+    const transfer2 = await USDT_TOKEN_CONTRACT.connect(binanceSigner).transfer(
+      newSigner.address,
+      ethers.utils.parseUnits("101", 6)
+    );
     await hre.network.provider.request({
       method: "hardhat_stopImpersonatingAccount",
       params: ["0xf977814e90da44bfa03b6295a0616a897441acec"],
@@ -191,7 +197,7 @@ describe("ICO Pre sale", function () {
     );
   });
 
-  it("Should Mint some ICO with USDT", async function () {
+  it("Should Mint some more ICO with USDT", async function () {
     const approve = await USDT_TOKEN_CONTRACT.connect(signer).approve(
       ATHENA_CONTRACT.address,
       ethersOriginal.utils.parseUnits("215000", 6)
@@ -209,6 +215,32 @@ describe("ICO Pre sale", function () {
       ATHENA_CONTRACT.address
     );
     expect(balance.toString()).to.equal(ethers.utils.parseUnits("15000", 6));
+  });
+
+  it("Should Mint some New ICO with USDT", async function () {
+    const accounts = await ethers.getSigners();
+    const newSigner = accounts[1];
+    const approve = await USDT_TOKEN_CONTRACT.connect(newSigner).approve(
+      ATHENA_CONTRACT.address,
+      ethersOriginal.utils.parseUnits("101", 6)
+    );
+    await approve.wait();
+    const mint = await ATHENA_CONTRACT.connect(newSigner).prebuy(
+      ethers.utils.parseUnits("101", 6),
+      USDT,
+      newSigner.address
+    );
+    await mint.wait();
+
+    expect(mint).to.have.property("hash");
+    const balance = await USDT_TOKEN_CONTRACT.connect(newSigner).balanceOf(
+      ATHENA_CONTRACT.address
+    );
+    expect(balance.toString()).to.equal(ethers.utils.parseUnits("15101", 6));
+    const presaleUnits = await ATHENA_CONTRACT.connect(newSigner).presales(
+      newSigner.address
+    );
+    expect(presaleUnits.toString()).to.not.equal("0");
   });
 
   it("Should fail to Mint some ICO with USDT cause max Sold", async function () {
@@ -237,13 +269,6 @@ describe("ICO Pre sale", function () {
       )
     ).to.be.rejectedWith("Amount requirements not met");
   });
-
-  /**
-   *
-   * PROTOCOLS Handlers
-   * POSITION MANAGER ERC721
-   *
-   */
 
   // it("Should user claim and get tokens", async function () {
   //    this.timeout(120000);
