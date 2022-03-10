@@ -159,6 +159,7 @@ function App() {
 
   const getHistoryEvents = async () => {
     try {
+      if (!account) return;
       const contract = new ethers.Contract(
         ATHENA_ICO_CONTRACT_ADDRESS,
         abi,
