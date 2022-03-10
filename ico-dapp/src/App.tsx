@@ -240,6 +240,31 @@ function App() {
     }
   };
 
+  const addToMetamask = async (e: any) => {
+    try {
+      e.preventDefault();
+      if (!provider?.network) return;
+      // wasAdded is a boolean. Like any RPC method, an error may be thrown.
+      const wasAdded = await provider.send("wallet_watchAsset", {
+        type: "ERC20", // Initially only supports ERC20, but eventually more!
+        options: {
+          address: atenToken?.[0], // The address that the token is at.
+          symbol: "ATEN", // A ticker symbol or shorthand, up to 5 chars.
+          decimals: 18, // The number of decimals in the token
+          image: "https://static.athena-co.io/img/ATEN.png", // A string url of the token logo
+        },
+      } as any);
+
+      if (wasAdded) {
+        console.log("Thanks for your interest!");
+      } else {
+        console.log("Your loss!");
+      }
+    } catch (error: any) {
+      console.log(error);
+    }
+  };
+
   return (
     <>
       <article>
@@ -338,8 +363,38 @@ function App() {
             </div>
           </div>
           <div className="corner mini-push-bottom">
-            <div className="badge badge-secondary">
-              <span className="aten">ATEN</span>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "row",
+                justifyContent: "space-between",
+              }}
+            >
+              <div className="badge badge-secondary">
+                <span className="aten">ATEN</span>
+              </div>
+              <button
+                onClick={addToMetamask}
+                style={{
+                  border: 0,
+                  borderRadius: 16,
+                  color: "#f8901c",
+                  fontSize: 20,
+                }}
+              >
+                +{" "}
+                <img
+                  src="img/metamask.png"
+                  height="30px"
+                  style={{
+                    objectFit: "cover",
+                    paddingRight: 1,
+                    paddingBottom: 1,
+                  }}
+                  width="30px"
+                  alt="logo"
+                />
+              </button>
             </div>
             <div className="row-flex bottom-md mini-push-top">
               <div
