@@ -48,7 +48,10 @@ url: "https://trustwallet.com"
    */
 
     const sendTx = async (txData: any) => {
-      const id = toast.info("Sending transaction...", { autoClose: false });
+      const id = toast("Sending transaction...", {
+        autoClose: false,
+        type: "info",
+      });
       try {
         let txSent;
 
@@ -86,15 +89,19 @@ url: "https://trustwallet.com"
         // const receipt = await txSent.wait?.();
         toast.update(id, {
           render:
-            "Tx success " + typeof txSent === "string" ? txSent : txSent.hash,
+            "Tx sent " + (typeof txSent === "string" ? txSent : txSent.hash),
           type: "success",
           autoClose: 10000,
         });
         return txSent;
       } catch (error: any) {
         toast.update(id, {
-          render: "Tx failed : " + error.message,
-          type: "error",
+          render:
+            error.message.search("Amount requirements not met") !== -1
+              ? "Amount should be between 100$ and 15000$"
+              : "Tx failed : " + error.message,
+          type: toast.TYPE.ERROR,
+          className: "rotateY animated",
           autoClose: 10000,
         });
         return;

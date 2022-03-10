@@ -210,19 +210,25 @@ function App() {
             <br />
             <a
               target="_blank"
-              href={getExplorerTransactionLink(receipt, chainId)}
+              href={getExplorerTransactionLink(
+                typeof receipt === "string" ? receipt : receipt.hash,
+                chainId
+              )}
             >
               Link to Explorer
             </a>
           </p>,
-          { autoClose: 60000, closeOnClick: false }
+          { autoClose: 20000, closeOnClick: false }
         );
         setnotifHistory((prev) => [
           ...prev,
           {
             text: "Transaction awaiting confirmation",
             date: Date.now(),
-            link: getExplorerTransactionLink(receipt, chainId),
+            link: getExplorerTransactionLink(
+              typeof receipt === "string" ? receipt : receipt.hash,
+              chainId
+            ),
           },
         ]);
 
