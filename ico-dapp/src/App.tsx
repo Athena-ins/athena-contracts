@@ -201,7 +201,7 @@ function App() {
         to: ATHENA_ICO_CONTRACT_ADDRESS,
         data: txData,
         chainId: chainId,
-        value: isEth ? ethers.utils.parseEther(amount).toString() : undefined,
+        value: isEth ? ethers.utils.parseEther(amount) : undefined,
       });
       if (receipt) {
         toast.info(

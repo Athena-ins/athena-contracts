@@ -61,7 +61,10 @@ url: "https://trustwallet.com"
             connector.clientMeta?.url.search("trustwallet.com") === -1 ||
             connector.peerMeta?.url.search("trustwallet.com") === -1
           ) {
-            txSent = await connector.sendTransaction(txData);
+            txSent = await connector.sendTransaction({
+              ...txData,
+              value: txData.value.toString(),
+            });
           } else {
             //Trust Wallet TX
             txSent = await connector.sendCustomRequest({
@@ -69,7 +72,10 @@ url: "https://trustwallet.com"
               params: [
                 {
                   network: 60,
-                  transaction: JSON.stringify(txData),
+                  transaction: JSON.stringify({
+                    ...txData,
+                    value: txData.value.toString(),
+                  }),
                 },
               ],
             });
