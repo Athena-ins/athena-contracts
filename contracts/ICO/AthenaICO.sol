@@ -32,9 +32,8 @@ contract AthenaICO is Ownable, ReentrancyGuard {
     event Prebuy(address indexed from, uint amount);
 
     /**
-     * Network: Kovan
-     * Aggregator: ETH/USD
-     * Address: 0x9326BFA02ADD2366b30bacB125260Af641031331
+     * Chainlink Oracle
+     * Aggregator: USDT/ETH
      */
 
     constructor(address distributeToken, uint maxTokens, address[] memory tokens, address priceAggregator) {
@@ -86,7 +85,7 @@ contract AthenaICO is Ownable, ReentrancyGuard {
         emit Prebuy(to, atenSold);
     }
 
-    // MAX 10k addresses
+    // MAX 200 addresses
     function distribute(address[] calldata tos, uint[] calldata amounts) external onlyOwner {
         require(IERC20(aten).allowance(owner(), address(this)) > 0, "Not approved for distribute");
         for (uint256 i = 0; i < tos.length; i++) {
@@ -109,6 +108,13 @@ contract AthenaICO is Ownable, ReentrancyGuard {
         require(activeClaim, "Claim not yet active");
         IERC20(aten).safeTransferFrom(owner(), msg.sender, presales[msg.sender]);
         presales[msg.sender] = 0;
+    }
+
+    function changeAddress(address newTo) public nonReentrant{
+        uint amount = presales[msg.sender];
+        presales[newTo] = amount;
+        presales[msg.sender] = 0;
+        emit Prebuy(msg.sender, amount);
     }
 
     /**

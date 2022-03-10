@@ -371,6 +371,31 @@ describe("ICO Pre sale", function () {
     expect(activeClaim).to.haveOwnProperty("hash");
   });
 
+  it("Should change dest address for tokens", async () => {
+    const accounts = await ethers.getSigners();
+    const signerLocal = accounts[accounts.length - 1];
+    const ATEN_TOKEN_CONTRACT = new ethers.Contract(
+      ATEN_TOKEN,
+      weth_abi
+    ).connect(signerLocal);
+    const changeAddress = await ATHENA_CONTRACT.connect(
+      signerLocal
+    ).changeAddress("0x" + "0".repeat(40));
+    const receipt = await changeAddress.wait();
+    expect(receipt).to.haveOwnProperty("transactionHash");
+    const amount = await ATHENA_CONTRACT.presales(signerLocal.address);
+    expect(amount.toString()).to.equal("0");
+    await expect(
+      ATHENA_CONTRACT.connect(signerLocal).claim()
+    ).to.be.rejectedWith("Transfer amount must be greater than zero");
+    const balShouldBeZero = await ATEN_TOKEN_CONTRACT.balanceOf(
+      signerLocal.address
+    );
+    expect(balShouldBeZero.toString()).to.equal("0");
+    const mappingZero = await ATHENA_CONTRACT.presales("0x" + "0".repeat(40));
+    expect(mappingZero.toString()).to.not.equal("0");
+  });
+
   it("Should user claim and get tokens", async function () {
     this.timeout(120000);
     const ATEN_TOKEN_CONTRACT = new ethers.Contract(
@@ -378,7 +403,8 @@ describe("ICO Pre sale", function () {
       weth_abi
     ).connect(signer);
     const accounts = await ethers.getSigners();
-    for (let index = 0; index < accounts.length; index++) {
+    // Careful, -1 to avoid last user changed address test above
+    for (let index = 0; index < accounts.length - 1; index++) {
       const signerLocal = accounts[index];
       const claim = await ATHENA_CONTRACT.connect(signerLocal).claim();
       await claim.wait();
