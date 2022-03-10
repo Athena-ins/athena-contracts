@@ -149,7 +149,7 @@ function App() {
 
   useEffect(() => {
     if (account && modalWalletOpen) setModalWalletOpen(false);
-    if (account && provider && chainId) {
+    if (account && provider?.network && chainId) {
       getHistoryEvents();
     }
   }, [account]);
