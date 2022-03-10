@@ -85,8 +85,6 @@ url: "https://trustwallet.com"
           }
         }
 
-        console.log("Sent tx : ", txSent);
-        // const receipt = await txSent.wait?.();
         toast.update(id, {
           render:
             "Tx sent " + (typeof txSent === "string" ? txSent : txSent.hash),
@@ -206,6 +204,8 @@ url: "https://trustwallet.com"
       console.log("Disconnect wallet Connect");
       setAccount(null);
       setChainId(0);
+      setProvider(undefined);
+      setIsConnected(false);
 
       // Delete connector
     });
