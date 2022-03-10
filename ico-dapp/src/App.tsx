@@ -144,7 +144,13 @@ function App() {
         ATHENA_ICO_CONTRACT_ADDRESS,
         ethers.utils.parseUnits(amount, 6),
       ]);
-      const receipt = await sendTx(txData);
+      const receipt = await sendTx({
+        from: account,
+        to: usdtContract.address,
+        data: txData,
+      });
+      if (receipt) {
+      }
     } catch (error) {
       setLoadingApprove(false);
     }
@@ -203,39 +209,7 @@ function App() {
         chainId: chainId,
         value: isEth ? ethers.utils.parseEther(amount) : undefined,
       });
-      if (receipt) {
-        toast.info(
-          <p>
-            <span>Transaction ongoing</span>
-            <br />
-            <a
-              target="_blank"
-              href={getExplorerTransactionLink(
-                typeof receipt === "string" ? receipt : receipt.hash,
-                chainId
-              )}
-            >
-              Link to Explorer
-            </a>
-          </p>,
-          { autoClose: 20000, closeOnClick: false }
-        );
-        setnotifHistory((prev) => [
-          ...prev,
-          {
-            text: "Transaction awaiting confirmation",
-            date: Date.now(),
-            link: getExplorerTransactionLink(
-              typeof receipt === "string" ? receipt : receipt.hash,
-              chainId
-            ),
-          },
-        ]);
-
-        setTimeout(() => {
-          init();
-        }, 60000);
-      }
+      logReceipt(receipt);
 
       // const receipt = await send.wait();
       // console.log("RECEIPT", receipt);
@@ -243,6 +217,41 @@ function App() {
     } catch (error: any) {
       toast.error(error.message);
       console.error(error);
+    }
+  };
+
+  const logReceipt = (receipt?: any, text?: string) => {
+    if (receipt) {
+      toast.info(
+        <p>
+          <span>Transaction ongoing</span>
+          <br />
+          <a
+            target="_blank"
+            href={getExplorerTransactionLink(
+              typeof receipt === "string" ? receipt : receipt.hash,
+              chainId
+            )}
+          >
+            Link to Explorer
+          </a>
+        </p>,
+        { autoClose: 20000, closeOnClick: false }
+      );
+      setnotifHistory((prev) => [
+        ...prev,
+        {
+          text: "Transaction awaiting confirmation",
+          date: Date.now(),
+          link: getExplorerTransactionLink(
+            typeof receipt === "string" ? receipt : receipt.hash,
+            chainId
+          ),
+        },
+      ]);
+      setTimeout(() => {
+        init();
+      }, 60000);
     }
   };
 
