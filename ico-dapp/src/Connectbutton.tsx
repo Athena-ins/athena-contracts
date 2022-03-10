@@ -1,7 +1,6 @@
 // ConnectButton.tsx
-import { useEthers, useEtherBalance, getChainById } from "@usedapp/core";
-import { formatEther } from "@ethersproject/units";
-import { Button, NotificationIconContainer } from "./Components";
+import { useEtherBalance, getChainById } from "@usedapp/core";
+import { Button, formatBalance } from "./Components";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faLink, faLinkSlash } from "@fortawesome/free-solid-svg-icons";
 import CSS from "csstype";
@@ -50,7 +49,7 @@ export default function ConnectButton({
     >
       <div style={{ margin: 4 }}>
         <span color="white">
-          {etherBalance && parseFloat(formatEther(etherBalance)).toFixed(3)} ETH
+          {etherBalance && formatBalance(etherBalance)} ETH
         </span>
       </div>
       <Button

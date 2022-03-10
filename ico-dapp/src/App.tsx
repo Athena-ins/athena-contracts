@@ -7,9 +7,12 @@ import {
 } from "@usedapp/core";
 import ConnectButton from "./Connectbutton";
 import { toast } from "react-toastify";
-import { Button } from "./Components";
+import { Button, formatBalance } from "./Components";
 import { Modal } from "react-bootstrap";
 import { useEffect, useState } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faWarning } from "@fortawesome/free-solid-svg-icons";
+
 import { formatEther, formatUnits, parseUnits } from "ethers/lib/utils";
 import { BigNumber, Contract, ethers } from "ethers";
 import abi from "./contractAbi.json";
@@ -311,43 +314,51 @@ function App() {
               <span className="aten">ATEN</span>
             </div>
             <div className="row-flex bottom-md mini-push-top">
-              <div className="col-xs-12 col-md-8">
+              <div
+                className="col-xs-12 col-md-8"
+                style={{ display: "flex", flexDirection: "row" }}
+              >
                 <input
                   name="result"
                   readOnly
                   className="form-control"
                   value={
                     Number(amount) && ethPrice && isEth
-                      ? parseFloat(
-                          formatUnits(
-                            BigNumber.from(
-                              parseInt((Number(amount) * SCALER).toString())
-                            )
-                              .mul(wei)
-                              .div(SCALER)
-                              .mul(wei)
-                              .div(ethPrice[0])
-                              .mul(1000)
-                              .div(35),
-                            18
+                      ? formatBalance(
+                          BigNumber.from(
+                            parseInt((Number(amount) * SCALER).toString())
                           )
-                        ).toFixed(4)
+                            .mul(wei)
+                            .div(SCALER)
+                            .mul(wei)
+                            .div(ethPrice[0])
+                            .mul(1000)
+                            .div(35),
+                          18
+                        )
                       : Number(amount) && ethPrice && !isEth
-                      ? parseFloat(
-                          formatUnits(
-                            BigNumber.from(
-                              parseInt((Number(amount) * SCALER).toString())
-                            )
-                              .mul(10 ** 6)
-                              .div(SCALER)
-                              .mul(1000)
-                              .div(35),
-                            6
+                      ? formatBalance(
+                          BigNumber.from(
+                            parseInt((Number(amount) * SCALER).toString())
                           )
-                        ).toFixed(4)
+                            .mul(10 ** 6)
+                            .div(SCALER)
+                            .mul(1000)
+                            .div(35),
+                          6
+                        )
                       : "0"
                   }
                 />
+
+                <div
+                  style={{ paddingLeft: 8 }}
+                  title="Warning: Aten amount is an estimate but not guaranteed, and
+                final amount will be registered by the ICO smart contract at
+                transaction time only."
+                >
+                  <FontAwesomeIcon icon={faWarning} />
+                </div>
               </div>
               <div className="col-xs-12 col-md-4">
                 <p className="bal">
