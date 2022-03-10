@@ -116,6 +116,7 @@ function App() {
         provider
       );
       setIsSaleOpen(await contract.activeSale());
+      getHistoryEvents();
     } catch (error: any) {
       toast.error(error.message);
     }
@@ -423,15 +424,15 @@ function App() {
               }}
             >
               {notifHistory.map((notification, i) => (
-                <div key={i}>
-                  <p>
+                <div key={i} style={{ marginTop: 16 }}>
+                  <p style={{ margin: 4 }}>
                     On :{" "}
                     {new Date(notification.date).toLocaleDateString() +
                       " - " +
                       new Date(notification.date).toLocaleTimeString()}
                   </p>
                   {notification.amount && (
-                    <p>
+                    <p style={{ margin: 4 }}>
                       Amount :{" "}
                       {Number(
                         ethers.utils.formatEther(notification.amount)
@@ -439,7 +440,7 @@ function App() {
                       ATEN
                     </p>
                   )}
-                  <p>
+                  <p style={{ margin: 4 }}>
                     {notification.link ? (
                       <a href={notification.link} target="_blank">
                         {"Tx explorer link"}
