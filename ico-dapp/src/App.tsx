@@ -453,13 +453,22 @@ function App() {
           )}
         </form>
         {notifHistory.length > 0 && (
-          <>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              position: "absolute",
+              maxHeight: 400,
+              // overflowY: "scroll",
+            }}
+          >
             <h3>History</h3>
             <div
               style={{
                 display: "flex",
                 flexDirection: "column-reverse",
-                position: "absolute",
+                maxHeight: 400,
+                overflowY: "scroll",
               }}
             >
               {notifHistory.map((notification, i) => (
@@ -491,7 +500,7 @@ function App() {
                 </div>
               ))}
             </div>
-          </>
+          </div>
         )}
       </article>
       <Modal
