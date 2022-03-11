@@ -156,9 +156,10 @@ function App() {
         to: usdtContract.address,
         data: txData,
       });
-      if (receipt) {
-      }
+      logReceipt(receipt);
     } catch (error) {
+      console.error(error);
+    } finally {
       setLoadingApprove(false);
     }
   };
@@ -188,9 +189,9 @@ function App() {
       setAtenToClaim(presales);
     } catch (error: any) {
       console.error(error);
+      setnotifHistory([]);
       if (error.message.includes('method="presales(address)"')) return;
       toast.warn("Could not get network");
-      setnotifHistory([]);
     }
   };
 
@@ -214,13 +215,13 @@ function App() {
         value: isEth ? ethers.utils.parseEther(amount) : undefined,
       });
       logReceipt(receipt);
-
-      // const receipt = await send.wait();
-      // console.log("RECEIPT", receipt);
-      // addNotification(receipt);
     } catch (error: any) {
-      toast.error(error.message);
       console.error(error);
+      toast.error(
+        error.message.includes("Amount requirements not met")
+          ? "Amount should be between 200$ and 15000$"
+          : "Tx failed : " + error.message
+      );
     }
   };
 
