@@ -122,6 +122,8 @@ function App() {
       setIsSaleOpen(await contract.activeSale());
       getHistoryEvents();
     } catch (error: any) {
+      if (error.message.includes("activeSale()"))
+        return toast.warn("Contract is not deployed on this network");
       toast.error(error.message);
     }
   };
@@ -184,7 +186,9 @@ function App() {
       setnotifHistory(array);
       const presales = await contract.presales(account);
       setAtenToClaim(presales);
-    } catch (error) {
+    } catch (error: any) {
+      console.error(error);
+      if (error.message.includes('method="presales(address)"')) return;
       toast.warn("Could not get network");
       setnotifHistory([]);
     }
