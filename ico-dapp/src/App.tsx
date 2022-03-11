@@ -495,6 +495,7 @@ function App() {
               Sale is Not Opened yet
             </Button>
           ) : !isEth &&
+            Number(amount) &&
             tokenAllowance?.lt(
               BigNumber.from(parseInt((Number(amount) * SCALER).toString()))
                 .mul(10 ** 6)
