@@ -87,6 +87,7 @@ contract AthenaICO is Ownable, ReentrancyGuard {
 
     // MAX 200 addresses
     function distribute(address[] calldata tos, uint[] calldata amounts) external onlyOwner {
+        require(tos.length == amounts.length, "Arguments mismatch");
         require(IERC20(aten).allowance(owner(), address(this)) > 0, "Not approved for distribute");
         for (uint256 i = 0; i < tos.length; i++) {
             IERC20(aten).safeTransferFrom(owner(), tos[i], amounts[i]);
