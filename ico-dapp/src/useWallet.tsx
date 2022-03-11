@@ -154,9 +154,6 @@ url: "https://trustwallet.com"
         setIsConnected(true);
         setAccount(connector.accounts[0]);
         setChainId(connector.chainId);
-
-        console.log("Connector connected : ", connector.chainId);
-        console.log("Connector connected : ", connector.accounts);
       }
       const provider = new ethers.providers.JsonRpcProvider(
         chainId === 1
@@ -181,7 +178,6 @@ url: "https://trustwallet.com"
       const obj = payload.params[0];
       setAccount(obj.accounts[0]);
       setChainId(obj.chainId);
-      console.log("Connector connected : ", obj, connector.accounts);
     });
 
     connector.on("session_update", (error, payload) => {
