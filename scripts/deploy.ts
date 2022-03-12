@@ -10,11 +10,13 @@ import abi from "../artifacts/contracts/ICO/AthenaICO.sol/AthenaICO.json";
 
 const ETH = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
 const contractAddress = "0xFDe2a58B64771e794DCCBC491cD3DE5623798729";
-const chainId: number = 4;
+const chainId: number = 1;
 const USDT = (async () =>
   (await hre.ethers.provider.getNetwork()).chainId === 1
     ? "0xdac17f958d2ee523a2206206994597c13d831ec7"
     : "0xD92E713d051C37EbB2561803a3b5FBAbc4962431")(); //USDT
+
+const USDC = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
 
 async function deploy(signer: SignerWithAddress) {
   try {
@@ -24,12 +26,6 @@ async function deploy(signer: SignerWithAddress) {
     // If this script is run directly using `node` you may want to call compile
     // manually to make sure everything is compiled
     await hre.run("compile");
-
-    const chainId = (await signer.provider?.getNetwork())?.chainId;
-
-    if (chainId === 1) {
-      return;
-    }
 
     // const ATENfactory = await ethers.getContractFactory("ATEN");
     // const ATEN_CONTRACT = await ATENfactory.deploy();
@@ -48,17 +44,18 @@ async function deploy(signer: SignerWithAddress) {
       chainId === 1
         ? "0x86cEB9FA7f5ac373d275d328B7aCA1c05CFb0283"
         : ATEN_CONTRACT.address,
-      ethers.utils.parseEther("300000000"),
-      [ETH, await USDT],
+      ethers.utils.parseEther("100000000"),
+      [ETH, await USDT, USDC],
       chainId === 1
-        ? "0xEe9F2375b4bdF6387aa8265dD4FB8F16512A1d46"
+        ? "0xEe9F2375b4bdF6387aa8265dD4FB8F16512A1d46" // Chainlink MAINNET USDT/ETH
         : "0xdCA36F27cbC4E38aE16C4E9f99D39b42337F6dcf" // CHAINLINK RINKEBY USDC/ETH
-      // "0xEe9F2375b4bdF6387aa8265dD4FB8F16512A1d46" // Chainlink MAINNET USDT/ETH
     );
     await ATHENA_CONTRACT.deployed();
 
     console.log("Deployed ICO Contract : ", ATHENA_CONTRACT.address);
-    console.log("Done !");
+    const owner = await ATHENA_CONTRACT.owner();
+
+    console.log("Done, owner = ", owner);
     process.exit(0);
   } catch (error) {
     console.error(error);
