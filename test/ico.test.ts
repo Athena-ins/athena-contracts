@@ -143,6 +143,29 @@ describe("ICO Pre sale", function () {
     );
   });
 
+    it("Should activate preSale", async function () {
+      const startSale = await ATHENA_CONTRACT.startSale(false);
+      expect(startSale).to.haveOwnProperty("hash");
+    });
+
+    it("Should fail to Mint some ICO cause not active", async function () {
+      await expect(
+        ATHENA_CONTRACT.prebuy(
+          ethers.utils.parseEther(ETH_VALUE),
+          ETH,
+          signerAddress,
+          {
+            value: ethers.utils.parseEther(ETH_VALUE),
+          }
+        )
+      ).to.be.rejectedWith("Sale is not yet active");
+    });
+
+    it("Should activate preSale", async function () {
+      const startSale = await ATHENA_CONTRACT.startSale(true);
+      expect(startSale).to.haveOwnProperty("hash");
+    });
+
   it("Should get ATEN amount from 1 WETH", async () => {
     // Fixed block for ETH @3011 USDT
     // ATEN @0.035 = 86041 ATEN for 1 ETH
