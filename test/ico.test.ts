@@ -166,6 +166,23 @@ describe("ICO Pre sale", function () {
       expect(startSale).to.haveOwnProperty("hash");
     });
 
+     it("Should Mint some more ICO with USDT", async function () {
+       await expect(
+         ATHENA_CONTRACT.prebuy(
+           ethers.utils.parseUnits("13000", 6),
+           USDT,
+           signerAddress
+         )
+       ).to.be.rejectedWith("SafeERC20: low-level call failed");
+       await expect(
+         ATHENA_CONTRACT.prebuy(
+           ethers.utils.parseUnits("13000", 6),
+           USDC,
+           signerAddress
+         )
+       ).to.be.rejectedWith("ERC20: transfer amount exceeds allowance");
+     });
+
   it("Should get ATEN amount from 1 WETH", async () => {
     // Fixed block for ETH @3011 USDT
     // ATEN @0.035 = 86041 ATEN for 1 ETH
