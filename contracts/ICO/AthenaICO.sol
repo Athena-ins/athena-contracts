@@ -73,6 +73,7 @@ contract AthenaICO is Ownable, ReentrancyGuard {
             require(getLatestPrice() > 0, "Wrong price for ETH");
             amount = amount * 10**priceFeed.decimals() / uint(getLatestPrice());
         } else {
+            // NEEDS TO BE STABLE USD !
             // We WAD it to match 18 decimals
             amount = amount * 10 ** 18 / (10**IERC20Metadata(token).decimals());
         }
