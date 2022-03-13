@@ -46,7 +46,7 @@ function App() {
   // ; //USDT
   const ATHENA_ICO_CONTRACT_ADDRESS =
     chainId === 1
-      ? "0xFDe2a58B64771e794DCCBC491cD3DE5623798729"
+      ? "0x17b7aF7Ef7488747a76E16A79C180c8c989EC670"
       : chainId === 4
       ? "0xFDe2a58B64771e794DCCBC491cD3DE5623798729"
       : "0xFDe2a58B64771e794DCCBC491cD3DE5623798729";
@@ -70,6 +70,8 @@ function App() {
   const [isEth, setIsEth] = useState(true);
   const [isSaleOpen, setIsSaleOpen] = useState(false);
   const [isClaimOpen, setIsClaimOpen] = useState(false);
+  const [tokensSold, setTokensSold] = useState(BigNumber.from("0"));
+  const [maxTokens, setMaxTokens] = useState(BigNumber.from("0"));
   const [atenToClaim, setAtenToClaim] = useState(BigNumber.from("0"));
   const [amount, setAmount] = useState("0");
   const [toggleETH, setToggleETH] = useState(false);
@@ -120,6 +122,8 @@ function App() {
         provider
       );
       setIsSaleOpen(await contract.activeSale());
+      setMaxTokens(await contract.maxTokensSale());
+      setTokensSold(await contract.tokenSold());
       getHistoryEvents();
     } catch (error: any) {
       if (error.message.includes("activeSale()"))
@@ -295,6 +299,15 @@ function App() {
             </span>{" "}
             <span className="highlight-word underline-only">round 1</span>
           </h1>
+          {/* <h2>
+            Tokens :{" "}
+            {formatBalance(tokensSold) + " / " + formatBalance(maxTokens)}
+            {" => " +
+              (tokensSold.mul(10000).div(maxTokens).toNumber() / 100).toFixed(
+                2
+              ) +
+              "%"}
+          </h2> */}
         </header>
         <div
           className="bg-primary card-sales"
