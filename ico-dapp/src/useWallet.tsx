@@ -122,18 +122,12 @@ url: "https://trustwallet.com"
     }, [metaAccount]);
 
     useEffect(() => {
-      if (
-        !metaAccount &&
-        account &&
-        !ethersLibrary &&
-        !provider &&
-        config.readOnlyUrls
-      )
+      if (!metaAccount && account && chainId && config.readOnlyUrls)
         setProvider(
           new ethers.providers.JsonRpcProvider(config.readOnlyUrls[chainId])
         );
       else if (ethersLibrary) setProvider(ethersLibrary);
-    }, [account, chainId]);
+    }, [account, chainId]); 
 
     useEffect(() => {
       init();

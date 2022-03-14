@@ -109,9 +109,9 @@ function App() {
   ]);
 
   useEffect(() => {
+    if (account && modalWalletOpen) setModalWalletOpen(false);
     if (chainId && provider?.network && account) {
       init();
-      if (account && modalWalletOpen) setModalWalletOpen(false);
       if (account) {
         if (chainId && chainId !== 1 && chainId !== 4) {
           toast.error(
@@ -319,6 +319,7 @@ function App() {
               account={account}
               disconnect={disconnect}
               chainId={chainId}
+              provider={provider}
             />
           ) : (
             <Button
