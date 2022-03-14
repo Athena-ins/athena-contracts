@@ -1,11 +1,10 @@
-import { BigNumber } from "ethers";
+import { BigNumber, ethers } from "ethers";
 import { useEffect, useState } from "react";
-import { useWallet } from "./useWallet";
 
 export function useEtherBalance(
-  address: string | null | undefined
+  address: string | null | undefined,
+  provider: ethers.providers.JsonRpcProvider | undefined
 ): BigNumber | undefined {
-  const { provider } = useWallet();
   const [etherBalance, setEtherBalance] = useState<BigNumber | undefined>(
     undefined
   );

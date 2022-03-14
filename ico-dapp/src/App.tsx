@@ -83,7 +83,7 @@ function App() {
     account,
     ATHENA_ICO_CONTRACT_ADDRESS
   );
-  const etherBalance = useEtherBalance(account);
+  const etherBalance = useEtherBalance(account, provider);
 
   const usdtContract = new ethers.Contract(USDT, [
     {
@@ -109,10 +109,21 @@ function App() {
   ]);
 
   useEffect(() => {
-    if (chainId && provider?.network) {
+    if (chainId && provider?.network && account) {
       init();
+      if (account && modalWalletOpen) setModalWalletOpen(false);
+      if (account) {
+        if (chainId && chainId !== 1 && chainId !== 4) {
+          toast.error(
+            "Wrong Chain ID : " +
+              chainId +
+              ", please switch to Ethereum Mainnet"
+          );
+          console.error("Wrong Chain ID ! ", chainId);
+        }
+      }
     }
-  }, [chainId, provider]);
+  }, [chainId, provider, account]);
 
   const init = async () => {
     try {
@@ -131,21 +142,6 @@ function App() {
       toast.error(error.message);
     }
   };
-
-  useEffect(() => {
-    if (account && modalWalletOpen) setModalWalletOpen(false);
-    if (account && provider?.network && chainId) {
-      getHistoryEvents();
-    }
-    if (account) {
-      if (chainId && chainId !== 1 && chainId !== 4) {
-        toast.error(
-          "Wrong Chain ID : " + chainId + ", please switch to Ethereum Mainnet"
-        );
-        console.error("Wrong Chain ID ! ", chainId);
-      }
-    }
-  }, [account, chainId]);
 
   const handleApprove = async (e: any) => {
     e.preventDefault();
