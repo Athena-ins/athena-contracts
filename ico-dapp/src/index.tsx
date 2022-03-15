@@ -10,7 +10,9 @@ const config: Config = {
     process.env.NODE_ENV === "production" ? Mainnet.chainId : Rinkeby.chainId,
   readOnlyUrls: {
     [Mainnet.chainId]:
-      "https://eth-mainnet.alchemyapi.io/v2/STnnAuDaTiWez3QJ-KCTNieo_I6Px4fw", //restricted to athena-co.io
+      process.env.NODE_ENV === "production"
+        ? "https://eth-mainnet.alchemyapi.io/v2/STnnAuDaTiWez3QJ-KCTNieo_I6Px4fw" //restricted to athena-co.io
+        : "https://eth-mainnet.alchemyapi.io/v2/Mly4IF7lnfXrOCqP2syy5YBcqtwUQYxU",
     [Rinkeby.chainId]:
       "https://eth-rinkeby.alchemyapi.io/v2/cC4j_jLDMaEvYZZAC5pXetu4ZyZ2MDnX", //RINKEBY NOT RESTRICTED
   },
