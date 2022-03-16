@@ -8,10 +8,11 @@ export function useEtherBalance(
   const [etherBalance, setEtherBalance] = useState<BigNumber | undefined>(
     undefined
   );
+  const chaindIdProvider = provider?.network?.chainId;
   useEffect(() => {
-    if (address && provider?.network) getBalance();
+    if (chaindIdProvider) getBalance();
     else setEtherBalance(BigNumber.from("0"));
-  }, [provider?.network?.chainId, address]);
+  }, [chaindIdProvider, address]);
 
   const getBalance = async () => {
     const eth = address

@@ -44,10 +44,8 @@ function App() {
   const {
     account,
     chainId,
-    connected,
     connectWC,
     connectMetamask,
-    // library,
     provider,
     sendTx,
     disconnect,
@@ -56,7 +54,6 @@ function App() {
 
   const [modalWalletOpen, setModalWalletOpen] = useState(false);
 
-  const [loadingApprove, setLoadingApprove] = useState(false);
   const [notifHistory, setnotifHistory] = useState<
     { text: string; date: number; link?: string; amount?: string }[]
   >([]);
@@ -134,7 +131,6 @@ function App() {
     e.preventDefault();
     try {
       const usdtContract = new ethers.Contract(USDT[chainId], erc20abi);
-      setLoadingApprove(true);
       const txData = usdtContract.interface.encodeFunctionData("approve", [
         ATHENA_ICO_CONTRACT_ADDRESS[chainId],
         ethers.utils.parseUnits(amount, 6),
@@ -147,8 +143,6 @@ function App() {
       logReceipt(receipt);
     } catch (error) {
       console.error(error);
-    } finally {
-      setLoadingApprove(false);
     }
   };
 
@@ -505,7 +499,7 @@ function App() {
               className="btn btn-block btn-info"
               type="submit"
               onClick={handleApprove}
-              disabled={loadingApprove}
+              disabled={!account}
             >
               APPROVE USDT
             </Button>

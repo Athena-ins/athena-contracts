@@ -12,7 +12,7 @@ export function useTokenBalance(
   );
   useEffect(() => {
     getBalance();
-  }, [provider?.network?.chainId, address, account]);
+  }, [provider?.network?.chainId, account]);
 
   const getBalance = async () => {
     try {
