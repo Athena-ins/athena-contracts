@@ -287,7 +287,7 @@ function App() {
               "%"}
           </h2> */}
         </header>
-        <div id="version01" />
+        <div id="version02" />
         <div
           className="bg-primary card-sales"
           style={{
