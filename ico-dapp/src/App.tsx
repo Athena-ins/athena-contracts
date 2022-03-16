@@ -136,7 +136,7 @@ function App() {
       const usdtContract = new ethers.Contract(USDT[chainId], erc20abi);
       setLoadingApprove(true);
       const txData = usdtContract.interface.encodeFunctionData("approve", [
-        ATHENA_ICO_CONTRACT_ADDRESS,
+        ATHENA_ICO_CONTRACT_ADDRESS[chainId],
         ethers.utils.parseUnits(amount, 6),
       ]);
       const receipt = await sendTx({
@@ -192,12 +192,12 @@ function App() {
         abi
       ).interface.encodeFunctionData("prebuy", [
         ethers.utils.parseUnits(amount, isEth ? 18 : 6),
-        isEth ? ETH : USDT,
+        isEth ? ETH : USDT[chainId],
         account,
       ]);
       const receipt = await sendTx({
         from: account,
-        to: ATHENA_ICO_CONTRACT_ADDRESS,
+        to: ATHENA_ICO_CONTRACT_ADDRESS[chainId],
         data: txData,
         chainId: chainId,
         value: isEth ? ethers.utils.parseEther(amount) : undefined,
