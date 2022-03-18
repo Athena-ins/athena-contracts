@@ -16,9 +16,7 @@ contract AthenaICO is Ownable, ReentrancyGuard {
     address public immutable eth = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     AggregatorV3Interface internal priceFeed;
 
-    uint256 private presaleUsers = 0;
     mapping(address => uint256) public presales;
-    address[] private buyers;
 
     uint128 public constant ATEN_ICO_PRICE = 350;
     uint128 public constant PRICE_DIVISOR = 10000;
@@ -33,10 +31,12 @@ contract AthenaICO is Ownable, ReentrancyGuard {
     event Prebuy(address indexed from, uint256 amount);
 
     /**
-     * Chainlink Oracle
-     * Aggregator: USDT/ETH
+     * @dev Constructs a new ICO pre-sale Contract
+     * @param distributeToken The ERC20 to be distributed for ICO
+     * @param maxTokens The maximum amount of ICO token to sell
+     * @param tokens The authorized tokens to receive for the ICO
+     * @param priceAggregator The chainlink Oracle Aggregator for conversion ETH to stable USD
      */
-
     constructor(
         address distributeToken,
         uint256 maxTokens,
@@ -53,10 +53,19 @@ contract AthenaICO is Ownable, ReentrancyGuard {
         maxTokensSale = maxTokens;
     }
 
+    /**
+     * @dev Start sale
+     * @param isActive Permits to stop sale with same function
+     */
     function startSale(bool isActive) external onlyOwner {
         activeSale = isActive;
     }
 
+    /**
+     * @dev Start claim and/or set time for next Claims
+     * @param isActive Boolean to start / stop claim
+     * @param next Boolean to start nextClaim within next 30 days
+     */
     function startClaim(bool isActive, bool next) external onlyOwner {
         activeClaim = isActive;
         if (next) {
@@ -66,6 +75,12 @@ contract AthenaICO is Ownable, ReentrancyGuard {
         }
     }
 
+    /**
+     * @dev buy ICO tokens with selected sent token or ETH
+     * @param amount Amount approved for transfer to contract to buy ICO
+     * @param token Token approved for transfer to contract to buy ICO
+     * @param to Selected account which will be able to claim
+     */
     function prebuy(
         uint256 amount,
         address token,
@@ -88,10 +103,6 @@ contract AthenaICO is Ownable, ReentrancyGuard {
                 uint256(getLatestPrice());
         }
         // amount is now in USDT, in WAD
-        if (presales[to] == 0) {
-            presaleUsers++;
-            buyers.push(to);
-        }
         require(
             amount >= 200 ether && amount <= 15000 ether,
             "Amount requirements not met"
@@ -107,7 +118,13 @@ contract AthenaICO is Ownable, ReentrancyGuard {
         emit Prebuy(to, atenSold);
     }
 
-    // MAX 200 addresses
+    /**
+     * @dev onlyOwner distribution of ICO tokens to selected addresses
+     * @param tos Addresses to receive corresponding amounts
+     * @param amounts Amounts approved for transfer from owner to tos
+     * @custom:warning will likely fail if more than about 200 to 300 addresses
+     */
+    
     function distribute(address[] calldata tos, uint256[] calldata amounts)
         external
         onlyOwner
@@ -122,6 +139,11 @@ contract AthenaICO is Ownable, ReentrancyGuard {
         }
     }
 
+    /**
+     * @dev onlyOwner withdraw selected tokens from this ICO contract
+     * @param tokens tokens addresses to withdraw (eth is 0xEeee...)
+     * @param to wallet to receive all tokens & eth
+     */
     function withdraw(address[] calldata tokens, address to)
         external
         onlyOwner
@@ -139,6 +161,9 @@ contract AthenaICO is Ownable, ReentrancyGuard {
         }
     }
 
+    /**
+     * @dev Get your ICO tokens (from sender) with previously prebuy, depending on availabiliy
+     */
     function claim() public nonReentrant {
         require(activeClaim, "Claim not yet active");
         uint8 allowed = 1;
@@ -160,6 +185,10 @@ contract AthenaICO is Ownable, ReentrancyGuard {
         claimed[msg.sender] = allowed;
     }
 
+    /**
+     * @dev change your address from previous buys
+     * @param newTo new wallet address that will be able to withdraw balance
+     */
     function changeAddress(address newTo) public nonReentrant {
         uint256 amount = presales[msg.sender];
         presales[newTo] = amount;
@@ -169,7 +198,7 @@ contract AthenaICO is Ownable, ReentrancyGuard {
     }
 
     /**
-     * Returns the latest price in WEI
+     * @dev returns latest Chainlink price from oracle (X/ETH)
      */
     function getLatestPrice() public view returns (int256) {
         (, int256 price, , , ) = priceFeed.latestRoundData();
