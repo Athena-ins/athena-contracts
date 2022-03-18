@@ -1,15 +1,16 @@
 import chai, { expect } from "chai";
 import { before } from "mocha";
 import hre, { ethers } from "hardhat";
-import { ethers as ethersOriginal } from "ethers";
+import { BigNumber, ethers as ethersOriginal } from "ethers";
 import weth_abi from "../abis/weth.json";
 import chaiAsPromised from "chai-as-promised";
 import { distributeTokens } from "../scripts/distribute";
 import path from "path";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { formatUnits } from "ethers/lib/utils";
 
 chai.use(chaiAsPromised);
+
+const DATE_NOW = Number.parseInt(((Date.now() + 1000) / 1000).toString());
 
 const ATEN_TOKEN = "0x86ceb9fa7f5ac373d275d328b7aca1c05cfb0283";
 const ATEN_OWNER_ADDRESS = "0x967d98e659f2787A38d928B9B7a49a2E4701B30C";
@@ -36,6 +37,10 @@ let balUSDTownerBefore: ethersOriginal.BigNumber;
 describe("ICO Pre sale", function () {
   const ETH_VALUE = "1";
   before(async () => {
+    await hre.network.provider.request({
+      method: "evm_setNextBlockTimestamp",
+      params: [DATE_NOW],
+    });
     await hre.network.provider.request({
       method: "hardhat_impersonateAccount",
       params: [ATEN_OWNER_ADDRESS],
@@ -143,45 +148,45 @@ describe("ICO Pre sale", function () {
     );
   });
 
-    it("Should activate preSale", async function () {
-      const startSale = await ATHENA_CONTRACT.startSale(false);
-      expect(startSale).to.haveOwnProperty("hash");
-    });
+  it("Should activate preSale", async function () {
+    const startSale = await ATHENA_CONTRACT.startSale(false);
+    expect(startSale).to.haveOwnProperty("hash");
+  });
 
-    it("Should fail to Mint some ICO cause not active", async function () {
-      await expect(
-        ATHENA_CONTRACT.prebuy(
-          ethers.utils.parseEther(ETH_VALUE),
-          ETH,
-          signerAddress,
-          {
-            value: ethers.utils.parseEther(ETH_VALUE),
-          }
-        )
-      ).to.be.rejectedWith("Sale is not yet active");
-    });
+  it("Should fail to Mint some ICO cause not active", async function () {
+    await expect(
+      ATHENA_CONTRACT.prebuy(
+        ethers.utils.parseEther(ETH_VALUE),
+        ETH,
+        signerAddress,
+        {
+          value: ethers.utils.parseEther(ETH_VALUE),
+        }
+      )
+    ).to.be.rejectedWith("Sale is not yet active");
+  });
 
-    it("Should activate preSale", async function () {
-      const startSale = await ATHENA_CONTRACT.startSale(true);
-      expect(startSale).to.haveOwnProperty("hash");
-    });
+  it("Should activate preSale", async function () {
+    const startSale = await ATHENA_CONTRACT.startSale(true);
+    expect(startSale).to.haveOwnProperty("hash");
+  });
 
-     it("Should Mint some more ICO with USDT", async function () {
-       await expect(
-         ATHENA_CONTRACT.prebuy(
-           ethers.utils.parseUnits("13000", 6),
-           USDT,
-           signerAddress
-         )
-       ).to.be.rejectedWith("SafeERC20: low-level call failed");
-       await expect(
-         ATHENA_CONTRACT.prebuy(
-           ethers.utils.parseUnits("13000", 6),
-           USDC,
-           signerAddress
-         )
-       ).to.be.rejectedWith("ERC20: transfer amount exceeds allowance");
-     });
+  it("Should Mint some more ICO with USDT", async function () {
+    await expect(
+      ATHENA_CONTRACT.prebuy(
+        ethers.utils.parseUnits("13000", 6),
+        USDT,
+        signerAddress
+      )
+    ).to.be.rejectedWith("SafeERC20: low-level call failed");
+    await expect(
+      ATHENA_CONTRACT.prebuy(
+        ethers.utils.parseUnits("13000", 6),
+        USDC,
+        signerAddress
+      )
+    ).to.be.rejectedWith("ERC20: transfer amount exceeds allowance");
+  });
 
   it("Should get ATEN amount from 1 WETH", async () => {
     // Fixed block for ETH @3011 USDT
@@ -196,7 +201,9 @@ describe("ICO Pre sale", function () {
       .mul(wei)
       .div(ethPrice)
       .mul(1000)
-      .div(35);
+      .div(35)
+      .div(4)
+      .mul(4);
 
     const mapping = await ATHENA_CONTRACT.presales(signerAddress);
     expect(mapping.toString()).to.equal(expectedAten);
@@ -458,7 +465,7 @@ describe("ICO Pre sale", function () {
   });
 
   it("Should active claim tokens ", async function () {
-    const activeClaim = await ATHENA_CONTRACT.startClaim(true);
+    const activeClaim = await ATHENA_CONTRACT.startClaim(true, true);
     expect(activeClaim).to.haveOwnProperty("hash");
   });
 
@@ -487,8 +494,115 @@ describe("ICO Pre sale", function () {
     expect(mappingZero.toString()).to.not.equal("0");
   });
 
-  it("Should user claim and get tokens", async function () {
+  it("Should token mapping prebuy is /4 round", async function () {
     this.timeout(120000);
+    const ATEN_TOKEN_CONTRACT = new ethers.Contract(
+      ATEN_TOKEN,
+      weth_abi
+    ).connect(signer);
+    const accounts = await ethers.getSigners();
+    // Careful, -1 to avoid last user changed address test above
+    const signerLocal = accounts[0];
+    const amount = await ATHENA_CONTRACT.connect(signerLocal).presales(
+      signerLocal.address
+    );
+    expect(amount.toString()).to.equal(
+      BigNumber.from("86041705667753779780084").div(4).mul(4)
+    );
+  });
+
+  it("Should users claim and get tokens 1 / 4 ", async function () {
+    this.timeout(120000);
+    const ATEN_TOKEN_CONTRACT = new ethers.Contract(
+      ATEN_TOKEN,
+      weth_abi
+    ).connect(signer);
+    const accounts = await ethers.getSigners();
+    // Careful, -1 to avoid last user changed address test above
+    for (let index = 0; index < accounts.length - 4; index++) {
+      const signerLocal = accounts[index];
+      const claim = await ATHENA_CONTRACT.connect(signerLocal).claim();
+      await claim.wait();
+      expect(claim).to.have.property("hash");
+      const balance = await ATEN_TOKEN_CONTRACT.balanceOf(signerLocal.address);
+      expect(balance.toString()).to.equal(
+        BigNumber.from("86041705667753779780084").div(4)
+      );
+    }
+  });
+
+  it("Should user claim again and get NO token again", async function () {
+    this.timeout(120000);
+    const ATEN_TOKEN_CONTRACT = new ethers.Contract(
+      ATEN_TOKEN,
+      weth_abi
+    ).connect(signer);
+    const accounts = await ethers.getSigners();
+    // Careful, -1 to avoid last user changed address test above
+
+    const signerLocal = accounts[0];
+    await expect(
+      ATHENA_CONTRACT.connect(signerLocal).claim()
+    ).to.be.revertedWith("Already claimed batch");
+    const balance = await ATEN_TOKEN_CONTRACT.balanceOf(signerLocal.address);
+    expect(balance.toString()).to.equal(
+      BigNumber.from("86041705667753779780084").div(4)
+    );
+  });
+
+  it("Should users claim and get tokens 2 / 4 ", async function () {
+    await hre.network.provider.request({
+      method: "evm_setNextBlockTimestamp",
+      params: [DATE_NOW + 60 * 60 * 24 * 31],
+    });
+    this.timeout(120000);
+    const ATEN_TOKEN_CONTRACT = new ethers.Contract(
+      ATEN_TOKEN,
+      weth_abi
+    ).connect(signer);
+    const accounts = await ethers.getSigners();
+    // Careful, -1 to avoid last user changed address test above
+    for (let index = 0; index < accounts.length - 3; index++) {
+      const signerLocal = accounts[index];
+      const claim = await ATHENA_CONTRACT.connect(signerLocal).claim();
+      await claim.wait();
+      expect(claim).to.have.property("hash");
+      const balance = await ATEN_TOKEN_CONTRACT.balanceOf(signerLocal.address);
+      expect(balance.toString()).to.equal(
+        BigNumber.from("86041705667753779780084").mul(2).div(4)
+      );
+    }
+  });
+
+  it("Should users claim and get tokens 3 / 4 ", async function () {
+    this.timeout(120000);
+    await hre.network.provider.request({
+      method: "evm_setNextBlockTimestamp",
+      params: [DATE_NOW + 60 * 60 * 24 * 61],
+    });
+    const ATEN_TOKEN_CONTRACT = new ethers.Contract(
+      ATEN_TOKEN,
+      weth_abi
+    ).connect(signer);
+    const accounts = await ethers.getSigners();
+    // Careful, -1 to avoid last user changed address test above
+    for (let index = 0; index < accounts.length - 2; index++) {
+      const signerLocal = accounts[index];
+      const claim = await ATHENA_CONTRACT.connect(signerLocal).claim();
+      await claim.wait();
+      expect(claim).to.have.property("hash");
+      const balance = await ATEN_TOKEN_CONTRACT.balanceOf(signerLocal.address);
+      expect(balance.toString()).to.equal(
+        BigNumber.from("86041705667753779780084").mul(3).div(4)
+      );
+    }
+  });
+  it("Should users claim and get tokens 4 / 4 ", async function () {
+    this.timeout(120000);
+    await hre.network.provider.request({
+      method: "evm_setNextBlockTimestamp",
+      params: [DATE_NOW + 60 * 60 * 24 * 91],
+    });
     const ATEN_TOKEN_CONTRACT = new ethers.Contract(
       ATEN_TOKEN,
       weth_abi
@@ -501,7 +615,9 @@ describe("ICO Pre sale", function () {
       await claim.wait();
       expect(claim).to.have.property("hash");
       const balance = await ATEN_TOKEN_CONTRACT.balanceOf(signerLocal.address);
-      expect(balance.toString()).to.equal("86041705667753779780085");
+      expect(balance.toString()).to.equal(
+        BigNumber.from("86041705667753779780084")
+      );
     }
   });
 

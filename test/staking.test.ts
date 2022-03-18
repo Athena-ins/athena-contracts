@@ -22,10 +22,26 @@ let ATHENA_CONTRACT: ethersOriginal.Contract;
 
 describe("Staking Rewards", function () {
   const ETH_VALUE = "5000";
-  const DATE_NOW = Number.parseInt(((Date.now() + 1000) / 1000).toString());
+  let DATE_NOW: number;
 
   before(async () => {
     signerAddress = await signer.getAddress();
+    await hre.network.provider.request({
+      method: "hardhat_reset",
+      params: [
+        {
+          forking: {
+            jsonRpcUrl: process.env.MAINNET_URL,
+            blockNumber: 14307200,
+          },
+        },
+      ],
+    });
+    DATE_NOW = Number.parseInt(((Date.now() + 1000) / 1000).toString());
+    await hre.network.provider.request({
+      method: "evm_setNextBlockTimestamp",
+      params: [DATE_NOW],
+    });
   });
 
   it("Should deposit ETH", async function () {
@@ -73,10 +89,6 @@ describe("Staking Rewards", function () {
       ethers.utils.parseEther("1000000")
     );
     await approve.wait();
-    await hre.network.provider.request({
-      method: "evm_setNextBlockTimestamp",
-      params: [DATE_NOW],
-    });
     const multi = await ATHENA_CONTRACT.multicall([
       ATHENA_CONTRACT.interface.encodeFunctionData("stake", [
         ethers.utils.parseEther("2000"),
@@ -94,9 +106,7 @@ describe("Staking Rewards", function () {
       method: "evm_setNextBlockTimestamp",
       params: [DATE_NOW + 60 * 60 * 24],
     });
-    await ethers.provider
-      .getSigner()
-      .sendTransaction({ value: 1, to: "0x" + "0".repeat(40) });
+    await hre.network.provider.send("evm_mine");
 
     expect(await ethers.provider.getBlock("latest")).to.contain({
       timestamp: Number.parseInt((DATE_NOW + 60 * 60 * 24).toString()),

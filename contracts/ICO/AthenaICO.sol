@@ -8,7 +8,6 @@ import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 
 contract AthenaICO is Ownable, ReentrancyGuard {
-
     using SafeERC20 for IERC20;
 
     mapping(address => bool) public authTokens;
@@ -17,29 +16,36 @@ contract AthenaICO is Ownable, ReentrancyGuard {
     address public immutable eth = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     AggregatorV3Interface internal priceFeed;
 
-    uint private presaleUsers = 0;
-    mapping(address => uint) public presales;
+    uint256 private presaleUsers = 0;
+    mapping(address => uint256) public presales;
     address[] private buyers;
 
     uint128 public constant ATEN_ICO_PRICE = 350;
     uint128 public constant PRICE_DIVISOR = 10000;
     uint256 public immutable maxTokensSale;
     uint256 public tokenSold = 0;
+    uint256 public nextClaim = 0;
+    mapping(address => uint8) private claimed;
 
     bool public activeSale = false;
     bool public activeClaim = false;
 
-    event Prebuy(address indexed from, uint amount);
+    event Prebuy(address indexed from, uint256 amount);
 
     /**
      * Chainlink Oracle
      * Aggregator: USDT/ETH
      */
 
-    constructor(address distributeToken, uint maxTokens, address[] memory tokens, address priceAggregator) {
+    constructor(
+        address distributeToken,
+        uint256 maxTokens,
+        address[] memory tokens,
+        address priceAggregator
+    ) {
         // Warning: must only allow stablecoins, no price conversion will be made
         for (uint256 i = 0; i < tokens.length; i++) {
-            authTokens[tokens[i]] = true;   
+            authTokens[tokens[i]] = true;
         }
         // For ETH price only
         priceFeed = AggregatorV3Interface(priceAggregator);
@@ -51,35 +57,50 @@ contract AthenaICO is Ownable, ReentrancyGuard {
         activeSale = isActive;
     }
 
-    function startClaim(bool isActive) external onlyOwner {
+    function startClaim(bool isActive, bool next) external onlyOwner {
         activeClaim = isActive;
+        if (next) {
+            nextClaim =
+                (nextClaim != 0 ? nextClaim : block.timestamp) +
+                30 days;
+        }
     }
 
-    function prebuy(uint amount, address token, address to) public payable nonReentrant {
+    function prebuy(
+        uint256 amount,
+        address token,
+        address to
+    ) public payable nonReentrant {
         require(activeSale, "Sale is not yet active");
         require(authTokens[token] == true, "Not approved Token for this ICO");
-        if(token == eth){
-            require(msg.value >= amount, "Sent ETH not met");
-        }
-        // Safe Transfer will revert if not successful
-        if(token != eth){
+        if (token != eth) {
+            // Safe Transfer will revert if not successful
             IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
+            // NEEDS TO BE STABLE USD !
+            // We WAD it to match 18 decimals
+            amount = (amount * 10**18) / (10**IERC20Metadata(token).decimals());
+        } else {
+            //token == eth
+            require(msg.value >= amount, "Sent ETH not met");
+            require(getLatestPrice() > 0, "Wrong price for ETH");
+            amount =
+                (amount * 10**priceFeed.decimals()) /
+                uint256(getLatestPrice());
         }
-        if(presales[to] == 0){
+        // amount is now in USDT, in WAD
+        if (presales[to] == 0) {
             presaleUsers++;
             buyers.push(to);
         }
-        if(token == eth) {
-            require(getLatestPrice() > 0, "Wrong price for ETH");
-            amount = amount * 10**priceFeed.decimals() / uint(getLatestPrice());
-        } else {
-            // NEEDS TO BE STABLE USD !
-            // We WAD it to match 18 decimals
-            amount = amount * 10 ** 18 / (10**IERC20Metadata(token).decimals());
-        }
-        // amount is now in USDT, in WAD
-        require(amount >= 200 ether && amount <= 15000 ether, "Amount requirements not met");
-        uint atenSold = amount * (10 ** IERC20Metadata(aten).decimals()) * PRICE_DIVISOR / 1 ether / ATEN_ICO_PRICE;
+        require(
+            amount >= 200 ether && amount <= 15000 ether,
+            "Amount requirements not met"
+        );
+        uint256 atenSold = (((amount *
+            (10**IERC20Metadata(aten).decimals()) *
+            PRICE_DIVISOR) /
+            1 ether /
+            ATEN_ICO_PRICE) / 4) * 4; // /4 to be sure we will distribute 100% token
         require(tokenSold + atenSold <= maxTokensSale, "Too many tokens sold");
         tokenSold += atenSold;
         presales[to] += atenSold;
@@ -87,18 +108,30 @@ contract AthenaICO is Ownable, ReentrancyGuard {
     }
 
     // MAX 200 addresses
-    function distribute(address[] calldata tos, uint[] calldata amounts) external onlyOwner {
+    function distribute(address[] calldata tos, uint256[] calldata amounts)
+        external
+        onlyOwner
+    {
         require(tos.length == amounts.length, "Arguments mismatch");
-        require(IERC20(aten).allowance(owner(), address(this)) > 0, "Not approved for distribute");
+        require(
+            IERC20(aten).allowance(owner(), address(this)) > 0,
+            "Not approved for distribute"
+        );
         for (uint256 i = 0; i < tos.length; i++) {
             IERC20(aten).safeTransferFrom(owner(), tos[i], amounts[i]);
         }
     }
 
-    function withdraw(address[] calldata tokens, address to) external onlyOwner {
+    function withdraw(address[] calldata tokens, address to)
+        external
+        onlyOwner
+    {
         for (uint256 i = 0; i < tokens.length; i++) {
-            if(tokens[i] != eth){
-                IERC20(tokens[i]).safeTransfer(to, IERC20(tokens[i]).balanceOf(address(this)));   
+            if (tokens[i] != eth) {
+                IERC20(tokens[i]).safeTransfer(
+                    to,
+                    IERC20(tokens[i]).balanceOf(address(this))
+                );
             } else {
                 (bool success, ) = to.call{value: address(this).balance}("");
                 require(success, "Failed to send ETH balance");
@@ -108,23 +141,38 @@ contract AthenaICO is Ownable, ReentrancyGuard {
 
     function claim() public nonReentrant {
         require(activeClaim, "Claim not yet active");
-        IERC20(aten).safeTransferFrom(owner(), msg.sender, presales[msg.sender]);
-        presales[msg.sender] = 0;
+        uint8 allowed = 1;
+        if (nextClaim > 0 && block.timestamp >= nextClaim) {
+            allowed++;
+            if (block.timestamp >= nextClaim + 30 days) {
+                allowed++;
+                if (block.timestamp >= nextClaim + 60 days) {
+                    allowed++;
+                }
+            }
+        }
+        require(claimed[msg.sender] < allowed, "Already claimed batch");
+        IERC20(aten).safeTransferFrom(
+            owner(),
+            msg.sender,
+            (presales[msg.sender] * (allowed - claimed[msg.sender])) / 4
+        );
+        claimed[msg.sender] = allowed;
     }
 
-    function changeAddress(address newTo) public nonReentrant{
-        uint amount = presales[msg.sender];
+    function changeAddress(address newTo) public nonReentrant {
+        uint256 amount = presales[msg.sender];
         presales[newTo] = amount;
         presales[msg.sender] = 0;
-        emit Prebuy(msg.sender, amount);
+        claimed[newTo] = claimed[msg.sender];
+        emit Prebuy(newTo, amount);
     }
 
     /**
      * Returns the latest price in WEI
      */
-    function getLatestPrice() public view returns (int) {
-        (,int price,,,) = priceFeed.latestRoundData();
+    function getLatestPrice() public view returns (int256) {
+        (, int256 price, , , ) = priceFeed.latestRoundData();
         return price;
     }
-
 }
