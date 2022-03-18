@@ -1,6 +1,7 @@
 import { BigNumber, ethers } from "ethers";
 import { useEffect, useState } from "react";
 import erc20abi from "./erc20abi.json";
+import { useBlock } from "./useBlock";
 
 export function useTokenBalance(
   address: string | null | undefined,
@@ -10,9 +11,11 @@ export function useTokenBalance(
   const [tokenBalance, setTokenBalance] = useState<BigNumber | undefined>(
     undefined
   );
+  const block = useBlock(provider);
+
   useEffect(() => {
     getBalance();
-  }, [provider?.network?.chainId, account]);
+  }, [provider?.network?.chainId, account, block]);
 
   const getBalance = async () => {
     try {

@@ -1,6 +1,7 @@
 import { BigNumber, ethers } from "ethers";
 import { useEffect, useState } from "react";
 import erc20abi from "./erc20abi.json";
+import { useBlock } from "./useBlock";
 
 export function useTokenAllowance(
   address: string | null | undefined,
@@ -11,10 +12,12 @@ export function useTokenAllowance(
   const [tokenAllowance, setTokenAllowance] = useState<BigNumber | undefined>(
     undefined
   );
+  const block = useBlock(provider);
+
   useEffect(() => {
     if (address && provider?.network?.chainId) getAllowance();
     else setTokenAllowance(BigNumber.from("0"));
-  }, [provider?.network?.chainId, address]);
+  }, [provider?.network?.chainId, address, block]);
 
   const getAllowance = async () => {
     if (!address || !spender || !account || !provider?.network?.chainId)

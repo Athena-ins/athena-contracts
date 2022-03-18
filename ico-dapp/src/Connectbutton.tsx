@@ -1,11 +1,10 @@
 // ConnectButton.tsx
-import { getChainById } from "@usedapp/core";
+import { getChainById, useEtherBalance } from "@usedapp/core";
 import { Button, formatBalance } from "./Components";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faLink, faLinkSlash } from "@fortawesome/free-solid-svg-icons";
 import CSS from "csstype";
 import { JsonRpcProvider } from "@ethersproject/providers";
-import { useEtherBalance } from "./useEtherBalance";
 
 export default function ConnectButton({
   className,
@@ -26,7 +25,7 @@ export default function ConnectButton({
   disconnect?: () => void;
   provider?: JsonRpcProvider;
 }) {
-  const etherBalance = useEtherBalance(account, provider);
+  const etherBalance = useEtherBalance(account);
 
   return account ? (
     <div
@@ -52,9 +51,7 @@ export default function ConnectButton({
       }
     >
       <div style={{ margin: 4 }}>
-        <span color="white">
-          {etherBalance && formatBalance(etherBalance)} ETH
-        </span>
+        <span color="white">{formatBalance(etherBalance)} ETH</span>
       </div>
       <Button
         // className={className}

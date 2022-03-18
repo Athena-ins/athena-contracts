@@ -9,12 +9,12 @@ import readline from "readline";
 import abi from "../artifacts/contracts/ICO/AthenaICO.sol/AthenaICO.json";
 
 const ETH = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
-const contractAddress = "0xFDe2a58B64771e794DCCBC491cD3DE5623798729";
-const chainId: number = 1;
-const USDT = (async () =>
-  (await hre.ethers.provider.getNetwork()).chainId === 1
+const contractAddress = "0x06bBebaf38430DFF7CbBB0492b6f23Ed6440799A";
+const chainId: number = 4;
+const USDT =
+  chainId === 1
     ? "0xdac17f958d2ee523a2206206994597c13d831ec7"
-    : "0xD92E713d051C37EbB2561803a3b5FBAbc4962431")(); //USDT
+    : "0xD92E713d051C37EbB2561803a3b5FBAbc4962431"; //USDT
 
 const USDC = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
 
@@ -39,18 +39,18 @@ async function deploy(signer: SignerWithAddress) {
 
     // console.log("Deployed ATEN Contract : ", ATEN_CONTRACT.address);
 
-    const factory = await ethers.getContractFactory("AthenaICO");
+    const factory = await ethers.getContractFactory("AthenaICO", signer);
     const ATHENA_CONTRACT = await factory.deploy(
       chainId === 1
         ? "0x86cEB9FA7f5ac373d275d328B7aCA1c05CFb0283"
         : ATEN_CONTRACT.address,
       ethers.utils.parseEther("100000000"),
-      [ETH, await USDT, USDC],
+      [ETH, USDT, USDC],
       chainId === 1
         ? "0xEe9F2375b4bdF6387aa8265dD4FB8F16512A1d46" // Chainlink MAINNET USDT/ETH
         : "0xdCA36F27cbC4E38aE16C4E9f99D39b42337F6dcf" // CHAINLINK RINKEBY USDC/ETH
     );
-    await ATHENA_CONTRACT.deployed();
+    const rec = await ATHENA_CONTRACT.deployed();
 
     console.log("Deployed ICO Contract : ", ATHENA_CONTRACT.address);
     const owner = await ATHENA_CONTRACT.owner();
@@ -64,30 +64,42 @@ async function deploy(signer: SignerWithAddress) {
 
 const activeSale = async (signer: SignerWithAddress) => {
   const ATHENA_CONTRACT = new ethers.Contract(contractAddress, abi.abi, signer);
+  const code = await ethers.provider.getCode(contractAddress);
+  console.log("Contract code : ", code.substring(0, 40));
+
+  if (!code || code === "0x00")
+    throw new Error("No contract at this address !");
   console.log("WITH SIGNER : ", signer.address);
   const start = await ATHENA_CONTRACT.startSale(true);
-  await start.wait();
-  console.log("Done !");
+  const receipt = await start.wait();
+  console.log("Done, hash ; ", receipt.transactionHash);
+  process.exit(0);
+};
+
+const activeClaim = async (signer: SignerWithAddress) => {
+  const ATHENA_CONTRACT = new ethers.Contract(contractAddress, abi.abi, signer);
+  const code = await ethers.provider.getCode(contractAddress);
+  console.log("Contract code : ", code.substring(0, 40));
+
+  if (!code || code === "0x00")
+    throw new Error("No contract at this address !");
+  console.log("WITH SIGNER : ", signer.address);
+  const start = await ATHENA_CONTRACT.startClaim(true, true);
+  const receipt = await start.wait();
+  console.log("Done, hash ; ", receipt.transactionHash);
   process.exit(0);
 };
 
 const withdraw = async (signer: SignerWithAddress) => {
-  const oldContract = new ethers.Contract(
-    "0xFDe2a58B64771e794DCCBC491cD3DE5623798729",
-    abi.abi,
-    signer
-  );
+  const oldContract = new ethers.Contract(contractAddress, abi.abi, signer);
 
-  const withdraw = await oldContract.withdraw(
-    [ETH, await USDT],
-    signer.address
-  );
+  const withdraw = await oldContract.withdraw([USDT], signer.address);
 
   const receipt = await withdraw.wait();
   if (!receipt) throw new Error("Could not withdraw !!");
   const bal = await hre.ethers.provider.getBalance(oldContract.address);
   if (!bal.eq(0)) throw new Error("Not really withdraw... " + bal.toString());
-  console.log("Done !");
+  console.log("Done, hash ; ", receipt.transactionHash);
   process.exit(0);
 };
 
@@ -113,7 +125,7 @@ async function main() {
   // process.stdin.setRawMode(true);
   rl.on("line", async (input: string) => {
     console.log("String / Key : ", input);
-    if (input.includes("cancel") || input.includes("no")) {
+    if (input.includes("cancel")) {
       process.exit();
     } else if (input.toLowerCase() === "deploy") {
       console.log(`Going to deploy... Sending TX...`);
@@ -130,7 +142,7 @@ async function main() {
       input.toLowerCase() === "claim"
     ) {
       console.log(`Going to open Claim... Sending TX...`);
-      // await activeSale();
+      await activeClaim(signer);
       process.exit(0);
     } else if (
       // input.toLowerCase() === "y" ||

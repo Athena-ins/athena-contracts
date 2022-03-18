@@ -4,6 +4,7 @@ import QRCodeModal from "@walletconnect/qrcode-modal";
 import { ethers } from "ethers";
 import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
+import { useBlock } from "./useBlock";
 
 const connector = new WalletConnect({
   bridge: "https://bridge.walletconnect.org", // Required
@@ -14,12 +15,14 @@ export const useWallet = () => {
   const {
     activateBrowserWallet,
     deactivate,
+    activate,
     account: metaAccount,
     error,
     chainId: chainIdEthers,
     library: ethersLibrary,
   } = useEthers();
   const config = useConfig();
+
   const [chainId, setChainId] = useState(0);
   const [account, setAccount] = useState<string | undefined>(undefined);
   const [provider, setProvider] = useState<
@@ -120,9 +123,7 @@ url: "https://trustwallet.com"
 
   useEffect(() => {
     setAccount(metaAccount || undefined);
-    if (metaAccount && ethersLibrary?.network) {
-      setProvider(ethersLibrary);
-    }
+    setProviderConfig();
   }, [metaAccount]);
 
   useEffect(() => {
@@ -130,11 +131,15 @@ url: "https://trustwallet.com"
   }, []);
 
   const setProviderConfig = () => {
-    if (!metaAccount && account && chainId && config.readOnlyUrls)
-      setProvider(
-        new ethers.providers.JsonRpcProvider(config.readOnlyUrls[chainId])
-      );
-    else if (ethersLibrary) setProvider(ethersLibrary);
+    provider?.removeAllListeners();
+    if (!config.readOnlyUrls) return;
+    const prov =
+      ethersLibrary ||
+      new ethers.providers.JsonRpcProvider(config.readOnlyUrls[chainId]);
+    if (!ethersLibrary && account && chainId) {
+      activate(prov);
+    }
+    setProvider(prov);
   };
 
   const init = async () => {
@@ -188,6 +193,7 @@ url: "https://trustwallet.com"
     console.log("Disconnect wallet Connect");
     setAccount(undefined);
     setChainId(0);
+    provider?.removeAllListeners();
     setProvider(undefined);
     setIsConnected(false);
 

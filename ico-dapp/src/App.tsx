@@ -1,4 +1,10 @@
-import { getExplorerTransactionLink } from "@usedapp/core";
+import {
+  getExplorerTransactionLink,
+  useCall,
+  useEtherBalance,
+  useTokenAllowance,
+  useTokenBalance,
+} from "@usedapp/core";
 import ConnectButton from "./Connectbutton";
 import { toast } from "react-toastify";
 import { Button, formatBalance } from "./Components";
@@ -12,10 +18,10 @@ import { BigNumber, Contract, ethers } from "ethers";
 import abi from "./contractAbi.json";
 import erc20abi from "./erc20abi.json";
 import { useWallet } from "./useWallet";
-import { useEtherBalance } from "./useEtherBalance";
-import { useTokenBalance } from "./useTokenBalance";
-import { useTokenAllowance } from "./useTokenAllowance";
-import { useCall } from "./useCall";
+// import { useEtherBalance } from "./useEtherBalance";
+// import { useTokenBalance } from "./useTokenBalance";
+// import { useTokenAllowance } from "./useTokenAllowance";
+// import { useCall } from "./useCall";
 const SCALER = 10000000;
 const ETH = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
 
@@ -30,8 +36,8 @@ const USDT: { [chainId: number]: string } = {
 
 const ATHENA_ICO_CONTRACT_ADDRESS: { [chainId: number]: string } = {
   [1]: "0x17b7aF7Ef7488747a76E16A79C180c8c989EC670",
-  [4]: "0xFDe2a58B64771e794DCCBC491cD3DE5623798729",
-  [0]: "0xFDe2a58B64771e794DCCBC491cD3DE5623798729",
+  [4]: "0x06bBebaf38430DFF7CbBB0492b6f23Ed6440799A",
+  [0]: "0x06bBebaf38430DFF7CbBB0492b6f23Ed6440799A",
 };
 
 const ATEN_TOKEN_ADDRESS: { [chainId: number]: string } = {
@@ -58,13 +64,15 @@ function App() {
     { text: string; date: number; link?: string; amount?: string }[]
   >([]);
 
-  const ethPrice = useCall(
-    ATHENA_ICO_CONTRACT_ADDRESS[chainId] || ATHENA_ICO_CONTRACT_ADDRESS[0],
-    abi,
-    "getLatestPrice",
-    [],
-    provider
-  );
+  const { value: ethPrice, error: errorEthPrice } =
+    useCall({
+      contract: new ethers.Contract(
+        ATHENA_ICO_CONTRACT_ADDRESS[chainId] || ATHENA_ICO_CONTRACT_ADDRESS[0],
+        abi
+      ),
+      method: "getLatestPrice",
+      args: [],
+    }) ?? {};
   const [isEth, setIsEth] = useState(true);
   const [isSaleOpen, setIsSaleOpen] = useState(false);
   const [isClaimOpen, setIsClaimOpen] = useState(false);
@@ -73,20 +81,15 @@ function App() {
   const [atenToClaim, setAtenToClaim] = useState(BigNumber.from("0"));
   const [amount, setAmount] = useState("0");
   const [toggleETH, setToggleETH] = useState(false);
-  const tokenBalance = useTokenBalance(USDT[chainId], account, provider);
-  const ATENbalance = useTokenBalance(
-    ATEN_TOKEN_ADDRESS[chainId],
-    account,
-    provider
-  );
+  const tokenBalance = useTokenBalance(USDT[chainId], account);
+  const ATENbalance = useTokenBalance(ATEN_TOKEN_ADDRESS[chainId], account);
 
   const tokenAllowance = useTokenAllowance(
     USDT[chainId],
     account,
-    ATHENA_ICO_CONTRACT_ADDRESS[chainId],
-    provider
+    ATHENA_ICO_CONTRACT_ADDRESS[chainId]
   );
-  const etherBalance = useEtherBalance(account, provider);
+  const etherBalance = useEtherBalance(account);
 
   useEffect(() => {
     if (account && modalWalletOpen) setModalWalletOpen(false);
@@ -116,9 +119,13 @@ function App() {
       );
       if (!code || code === "0x00")
         return toast.warn("Contract is not deployed on this network");
-      setIsSaleOpen(await contract.activeSale());
+
+      const isitactive = await contract.activeSale();
+
+      setIsSaleOpen(isitactive);
       setMaxTokens(await contract.maxTokensSale());
       setTokensSold(await contract.tokenSold());
+      setIsClaimOpen(await contract.activeClaim());
       getHistoryEvents();
     } catch (error: any) {
       // if (error.message.includes("activeSale()"))
@@ -236,9 +243,7 @@ function App() {
           ),
         },
       ]);
-      setTimeout(() => {
-        init();
-      }, 60000);
+      setTimeout(init, 60000);
     }
   };
 
@@ -314,35 +319,36 @@ function App() {
             </Button>
           )}
         </div>
-        <form className="bg-primary card card-sales">
-          <div className="corner">
-            <div
-              className={"sel" + (toggleETH ? " active" : "")}
-              onClick={() => setToggleETH(!toggleETH)}
-            >
-              <span
-                className="sel__placeholder"
-                data-placeholder={isEth ? "ETH" : "USDT"}
+        {!isClaimOpen ? (
+          <form className="bg-primary card card-sales">
+            <div className="corner">
+              <div
+                className={"sel" + (toggleETH ? " active" : "")}
+                onClick={() => setToggleETH(!toggleETH)}
               >
-                {isEth ? "ETH" : "USDT"}
-              </span>
-              <div className="sel__box">
                 <span
-                  className="sel__box__options"
-                  data-value="usdt"
-                  onClick={(e) => setIsEth(false)}
+                  className="sel__placeholder"
+                  data-placeholder={isEth ? "ETH" : "USDT"}
                 >
-                  USDT
+                  {isEth ? "ETH" : "USDT"}
                 </span>
-                <span
-                  className="sel__box__options selected"
-                  data-value="eth"
-                  onClick={(e) => setIsEth(true)}
-                >
-                  ETH
-                </span>
-              </div>
-              {/* <select
+                <div className="sel__box">
+                  <span
+                    className="sel__box__options"
+                    data-value="usdt"
+                    onClick={(e) => setIsEth(false)}
+                  >
+                    USDT
+                  </span>
+                  <span
+                    className="sel__box__options selected"
+                    data-value="eth"
+                    onClick={(e) => setIsEth(true)}
+                  >
+                    ETH
+                  </span>
+                </div>
+                {/* <select
                 className="form-control"
                 data-first-option="show"
                 style={{ display: "none" }}
@@ -350,177 +356,183 @@ function App() {
                 <option value="usdt">USDT</option>
                 <option value="eth">ETH</option>
               </select> */}
-            </div>
-            <div className="row-flex bottom-md mini-push-top">
-              <div className="col-xs-12 col-md-8">
-                <input
-                  name="amount"
-                  className="form-control"
-                  onChange={(e) => setAmount(e.target.value || "0")}
-                  value={amount}
-                />
               </div>
-              <div className="col-xs-12 col-md-4">
-                <p className="bal">
-                  Balance:{" "}
-                  <span>
-                    {parseFloat(
-                      formatUnits(
-                        (isEth ? etherBalance : tokenBalance) || "0",
-                        isEth ? 18 : 6
-                      )
-                    ).toFixed(2)}
-                  </span>
-                </p>
-              </div>
-            </div>
-          </div>
-          <div className="corner mini-push-bottom">
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "row",
-                justifyContent: "space-between",
-              }}
-            >
-              <div className="badge badge-secondary">
-                <span className="aten">ATEN</span>
-              </div>
-              <button
-                onClick={addToMetamask}
-                style={{
-                  border: 0,
-                  borderRadius: 16,
-                  color: "#f8901c",
-                  fontSize: 20,
-                }}
-              >
-                +{" "}
-                <img
-                  src="img/metamask.png"
-                  height="30px"
-                  style={{
-                    objectFit: "cover",
-                    paddingRight: 1,
-                    paddingBottom: 1,
-                  }}
-                  width="30px"
-                  alt="logo"
-                />
-              </button>
-            </div>
-            <div className="row-flex bottom-md mini-push-top">
-              <div
-                className="col-xs-12 col-md-8"
-                style={{ display: "flex", flexDirection: "row" }}
-              >
-                <input
-                  name="result"
-                  readOnly
-                  className="form-control"
-                  value={
-                    Number(amount) && ethPrice?.[0] && isEth
-                      ? formatBalance(
-                          BigNumber.from(
-                            parseInt((Number(amount) * SCALER).toString())
-                          )
-                            .mul(wei)
-                            .div(SCALER)
-                            .mul(wei)
-                            .div(ethPrice[0])
-                            .mul(1000)
-                            .div(35),
-                          18
+              <div className="row-flex bottom-md mini-push-top">
+                <div className="col-xs-12 col-md-8">
+                  <input
+                    name="amount"
+                    className="form-control"
+                    onChange={(e) => setAmount(e.target.value || "0")}
+                    value={amount}
+                  />
+                </div>
+                <div className="col-xs-12 col-md-4">
+                  <p className="bal">
+                    Balance:{" "}
+                    <span>
+                      {parseFloat(
+                        formatUnits(
+                          (isEth ? etherBalance : tokenBalance) || "0",
+                          isEth ? 18 : 6
                         )
-                      : Number(amount) && !isEth
-                      ? formatBalance(
-                          BigNumber.from(
-                            parseInt((Number(amount) * SCALER).toString())
-                          )
-                            .mul(10 ** 6)
-                            .div(SCALER)
-                            .mul(1000)
-                            .div(35),
-                          6
-                        )
-                      : "0"
-                  }
-                />
-
-                <div
-                  style={{ paddingLeft: 8 }}
-                  title="Warning: Aten amount is an estimate but not guaranteed, and
-                final amount will be registered by the ICO smart contract at
-                transaction time only."
-                >
-                  <FontAwesomeIcon icon={faWarning} />
+                      ).toFixed(2)}
+                    </span>
+                  </p>
                 </div>
               </div>
-              <div className="col-xs-12 col-md-4">
-                <p className="bal">
-                  Balance:{" "}
-                  <span>
-                    {parseFloat(formatEther(ATENbalance || "0")).toFixed(2)}
-                  </span>
-                </p>
+            </div>
+            <div className="corner mini-push-bottom">
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                }}
+              >
+                <div className="badge badge-secondary">
+                  <span className="aten">ATEN</span>
+                </div>
+                <button
+                  onClick={addToMetamask}
+                  style={{
+                    border: 0,
+                    borderRadius: 16,
+                    color: "#f8901c",
+                    fontSize: 20,
+                  }}
+                >
+                  +{" "}
+                  <img
+                    src="img/metamask.png"
+                    height="30px"
+                    style={{
+                      objectFit: "cover",
+                      paddingRight: 1,
+                      paddingBottom: 1,
+                    }}
+                    width="30px"
+                    alt="logo"
+                  />
+                </button>
+              </div>
+              <div className="row-flex bottom-md mini-push-top">
+                <div
+                  className="col-xs-12 col-md-8"
+                  style={{ display: "flex", flexDirection: "row" }}
+                >
+                  <input
+                    name="result"
+                    readOnly
+                    className="form-control"
+                    value={
+                      Number(amount) && ethPrice?.[0] && isEth
+                        ? formatBalance(
+                            BigNumber.from(
+                              parseInt((Number(amount) * SCALER).toString())
+                            )
+                              .mul(wei)
+                              .div(SCALER)
+                              .mul(wei)
+                              .div(ethPrice[0])
+                              .mul(1000)
+                              .div(35),
+                            18
+                          )
+                        : Number(amount) && !isEth
+                        ? formatBalance(
+                            BigNumber.from(
+                              parseInt((Number(amount) * SCALER).toString())
+                            )
+                              .mul(10 ** 6)
+                              .div(SCALER)
+                              .mul(1000)
+                              .div(35),
+                            6
+                          )
+                        : "0"
+                    }
+                  />
+
+                  <div
+                    style={{ paddingLeft: 8 }}
+                    title="Warning: Aten amount is an estimate but not guaranteed, and
+                final amount will be registered by the ICO smart contract at
+                transaction time only."
+                  >
+                    <FontAwesomeIcon icon={faWarning} />
+                  </div>
+                </div>
+                <div className="col-xs-12 col-md-4">
+                  <p className="bal">
+                    Balance:{" "}
+                    <span>
+                      {parseFloat(formatEther(ATENbalance || "0")).toFixed(2)}
+                    </span>
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
-          <div
-            className={Number(amount) == 0 ? "collapse" : "show"}
-            id="aten-info"
-          >
             <div
-              className="label label-ghost"
-              style={{ display: "flex", justifyContent: "space-between" }}
+              className={Number(amount) == 0 ? "collapse" : "show"}
+              id="aten-info"
             >
-              <span>1 ATEN = $0.035</span>
-              {isEth && (
-                <span>
-                  1 ETH = $
-                  {ethPrice?.[0] &&
-                    formatUnits(BigNumber.from(10).pow(18).div(ethPrice[0]), 0)}
-                </span>
-              )}
+              <div
+                className="label label-ghost"
+                style={{ display: "flex", justifyContent: "space-between" }}
+              >
+                <span>1 ATEN = $0.035</span>
+                {isEth && (
+                  <span>
+                    1 ETH = $
+                    {ethPrice?.[0] &&
+                      formatUnits(
+                        BigNumber.from(10).pow(18).div(ethPrice[0]),
+                        0
+                      )}
+                  </span>
+                )}
+              </div>
             </div>
-          </div>
-          {!isSaleOpen ? (
-            <Button className="btn btn-block btn-secondary" disabled={true}>
-              Sale is Not Opened yet
-            </Button>
-          ) : !isEth &&
-            Number(amount) &&
-            tokenAllowance?.lt(
-              BigNumber.from(parseInt((Number(amount) * SCALER).toString()))
-                .mul(10 ** 6)
-                .div(SCALER)
-            ) ? (
-            <Button
-              className="btn btn-block btn-info"
-              type="submit"
-              onClick={handleApprove}
-              disabled={!account}
-            >
-              APPROVE USDT
-            </Button>
-          ) : (
-            <Button
-              className="btn btn-block btn-secondary"
-              type="submit"
-              onClick={handleMint}
-              disabled={
-                !account ||
-                !Number(amount) ||
-                !(isEth
-                  ? etherBalance?.gte(parseUnits(amount.toString()) || false)
-                  : tokenBalance?.gte(parseUnits(amount.toString(), 6)) ||
-                    false)
-              }
-            >
-              Purchase ATEN
-            </Button>
-          )}
-        </form>
+            {!isSaleOpen ? (
+              <Button className="btn btn-block btn-secondary" disabled={true}>
+                Sale is Not Available
+              </Button>
+            ) : !isEth &&
+              Number(amount) &&
+              tokenAllowance?.lt(
+                BigNumber.from(parseInt((Number(amount) * SCALER).toString()))
+                  .mul(10 ** 6)
+                  .div(SCALER)
+              ) ? (
+              <Button
+                className="btn btn-block btn-info"
+                type="submit"
+                onClick={handleApprove}
+                disabled={!account}
+              >
+                APPROVE USDT
+              </Button>
+            ) : (
+              <Button
+                className="btn btn-block btn-secondary"
+                type="submit"
+                onClick={handleMint}
+                disabled={
+                  !account ||
+                  !Number(amount) ||
+                  !(isEth
+                    ? etherBalance?.gte(parseUnits(amount.toString()) || false)
+                    : tokenBalance?.gte(parseUnits(amount.toString(), 6)) ||
+                      false)
+                }
+              >
+                Purchase ATEN
+              </Button>
+            )}
+          </form>
+        ) : (
+          <div className="corner"></div>
+        )}
         {notifHistory.length > 0 && (
           <div
             style={{

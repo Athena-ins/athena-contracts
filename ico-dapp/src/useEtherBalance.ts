@@ -1,5 +1,6 @@
 import { BigNumber, ethers } from "ethers";
 import { useEffect, useState } from "react";
+import { useBlock } from "./useBlock";
 
 export function useEtherBalance(
   address: string | null | undefined,
@@ -8,11 +9,13 @@ export function useEtherBalance(
   const [etherBalance, setEtherBalance] = useState<BigNumber | undefined>(
     undefined
   );
+  const block = useBlock(provider);
+
   const chaindIdProvider = provider?.network?.chainId;
   useEffect(() => {
     if (chaindIdProvider) getBalance();
     else setEtherBalance(BigNumber.from("0"));
-  }, [chaindIdProvider, address]);
+  }, [chaindIdProvider, address, block]);
 
   const getBalance = async () => {
     const eth = address
