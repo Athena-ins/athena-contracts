@@ -10,13 +10,13 @@ import abi from "../artifacts/contracts/ICO/AthenaICO.sol/AthenaICO.json";
 import abiERC20 from "../abis/weth.json";
 
 const ETH = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
-const contractAddress = "0x527EAD250b5A8e4D80C7A353CF56d1735DA198f4";
+const contractAddress = "0xd6D479596061326F6caF486921441ED44Ea0076b";
 const chainId: number = 4;
 const ATEN_CONTRACT = {
   address:
     chainId === 1
       ? "0x86cEB9FA7f5ac373d275d328B7aCA1c05CFb0283"
-      : "0xdf6F897c9c8ca5EDd450678a600e5A883Cd4985f", // RINKEBY
+      : "0x2da9F0DF7DC5f9F6e024B4ABf97148B405D9b4F8", // RINKEBY
 };
 const USDT =
   chainId === 1
@@ -25,7 +25,10 @@ const USDT =
 
 const USDC = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
 
-async function deploy(signer: SignerWithAddress) {
+async function deploy(
+  signer: SignerWithAddress,
+  tokenSigner?: SignerWithAddress
+) {
   try {
     // Hardhat always runs the compile task when running scripts with its command
     // line interface.
@@ -34,17 +37,24 @@ async function deploy(signer: SignerWithAddress) {
     // manually to make sure everything is compiled
     await hre.run("compile");
 
-    // const ATENfactory = await ethers.getContractFactory("ATEN");
-    // const ATEN_CONTRACT = await ATENfactory.deploy();
-    // await ATEN_CONTRACT.deployed();
+    if (chainId === 1 && tokenSigner)
+      throw new Error("Should not deploy ATEN on Mainnet !");
+    console.log("Deploying ATEN TOKEN WITH ADDRESS : ", tokenSigner?.address);
+    const ATENfactory = (await ethers.getContractFactory("ATEN")).connect(
+      tokenSigner || signer
+    );
+    const ATEN_CONTRACT_LOCAL = await ATENfactory.deploy();
+    await ATEN_CONTRACT_LOCAL.deployed();
 
-    // console.log("Deployed ATEN Contract : ", ATEN_CONTRACT.address);
+    console.log("Deployed ATEN Contract : ", ATEN_CONTRACT_LOCAL.address);
 
     const factory = await ethers.getContractFactory("AthenaICO", signer);
     const ATHENA_CONTRACT = await factory.deploy(
       chainId === 1
         ? "0x86cEB9FA7f5ac373d275d328B7aCA1c05CFb0283"
-        : ATEN_CONTRACT.address,
+        : ATEN_CONTRACT_LOCAL.address,
+      // Wallet tokens to take from
+      tokenSigner?.address || "0x967d98e659f2787A38d928B9B7a49a2E4701B30C",
       ethers.utils.parseEther("100000000"),
       [ETH, USDT, USDC],
       chainId === 1
@@ -127,7 +137,7 @@ async function main() {
   // if (!process.env.PRIVATE_KEY)
   //   throw new Error("Missing process.env.PRIVATE_KEY");
   // const signer = new ethers.Wallet(process.env.PRIVATE_KEY, ethers.provider);
-  const [signer] = await ethers.getSigners();
+  const [signer, signer2] = await ethers.getSigners();
 
   console.log("NETWORK IS : ", hre.network.config);
   console.log("NETWORK : ", hre.network.name);
@@ -149,7 +159,7 @@ async function main() {
       process.exit();
     } else if (input.toLowerCase() === "deploy") {
       console.log(`Going to deploy... Sending TX...`);
-      await deploy(signer);
+      await deploy(signer, signer2);
     } else if (
       // input.toLowerCase() === "y" ||
       input.toLowerCase() === "sale"
@@ -183,7 +193,7 @@ async function main() {
       input.toLowerCase() === "approve"
     ) {
       console.log(`Going to approve... Sending TX...`);
-      await approve(signer);
+      await approve(signer2);
       process.exit(0);
     } else {
       console.error("You cancelled...");

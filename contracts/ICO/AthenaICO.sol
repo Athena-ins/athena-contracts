@@ -14,6 +14,7 @@ contract AthenaICO is Ownable, ReentrancyGuard {
 
     address public immutable aten; //Mainnet 0x86cEB9FA7f5ac373d275d328B7aCA1c05CFb0283;
     address public immutable eth = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+    address private immutable walletTokens;
     AggregatorV3Interface internal priceFeed;
 
     mapping(address => uint256) public presales;
@@ -39,6 +40,7 @@ contract AthenaICO is Ownable, ReentrancyGuard {
      */
     constructor(
         address distributeToken,
+        address walletTokensToTransfer,
         uint256 maxTokens,
         address[] memory tokens,
         address priceAggregator
@@ -47,6 +49,7 @@ contract AthenaICO is Ownable, ReentrancyGuard {
         for (uint256 i = 0; i < tokens.length; i++) {
             authTokens[tokens[i]] = true;
         }
+        walletTokens = walletTokensToTransfer;
         // For ETH price only
         priceFeed = AggregatorV3Interface(priceAggregator);
         aten = distributeToken;
@@ -131,11 +134,11 @@ contract AthenaICO is Ownable, ReentrancyGuard {
     {
         require(tos.length == amounts.length, "Arguments mismatch");
         require(
-            IERC20(aten).allowance(owner(), address(this)) > 0,
+            IERC20(aten).allowance(walletTokens, address(this)) > 0,
             "Not approved for distribute"
         );
         for (uint256 i = 0; i < tos.length; i++) {
-            IERC20(aten).safeTransferFrom(owner(), tos[i], amounts[i]);
+            IERC20(aten).safeTransferFrom(walletTokens, tos[i], amounts[i]);
         }
     }
 
@@ -169,7 +172,7 @@ contract AthenaICO is Ownable, ReentrancyGuard {
         (uint8 allowed) = allowedClaim();
         require(claimed[msg.sender] < allowed, "Already claimed batch");
         IERC20(aten).safeTransferFrom(
-            owner(),
+            walletTokens,
             msg.sender,
             availableClaim(msg.sender)
         );

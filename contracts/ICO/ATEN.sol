@@ -484,7 +484,7 @@ contract ATEN is Context, IERC20, Ownable {
     string  private _name = "ATEN";
     string  private _symbol = "ATEN";
     uint256 private _decimals = 18;
-	  address private FeeAddress = 0x967d98e659f2787A38d928B9B7a49a2E4701B30C;
+	  address private FeeAddress = 0xB47bcc2354b1d99607797553df1DEBcA2eccb30E;
 
     uint256 private _MAX = ~uint256(0);
     uint256 private _GRANULARITY = 1000;

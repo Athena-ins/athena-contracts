@@ -49,7 +49,13 @@ const config: HardhatUserConfig = {
     rinkeby: {
       url: process.env.RINKEBY_URL || "",
       accounts:
-        process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
+        process.env.PRIVATE_KEY !== undefined
+          ? [process.env.PRIVATE_KEY].concat(
+              process.env.PRIVATE_KEY_2 !== undefined
+                ? [process.env.PRIVATE_KEY_2]
+                : []
+            )
+          : [],
     },
     ropsten: {
       url: process.env.ROPSTEN_URL || "",

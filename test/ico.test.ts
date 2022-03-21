@@ -22,6 +22,8 @@ const USDC = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
 const ALLOWANCE = ethersOriginal.utils.parseEther("3000000000");
 const wei = ethersOriginal.BigNumber.from(10).pow(18);
 
+let expectedATEN: BigNumber;
+
 // const WETH_TOKEN_CONTRACT = new ethers.Contract(WETH, weth_abi).connect(
 //   ethers.provider.getSigner()
 // );
@@ -31,6 +33,8 @@ const USDC_TOKEN_CONTRACT = new ethers.Contract(USDC, weth_abi);
 
 let signer: SignerWithAddress; // = ethers.provider.getSigner();
 let signerAddress: string;
+let signerATEN: SignerWithAddress; // = ethers.provider.getSigner();
+let signerATENAddress: string;
 let ATHENA_CONTRACT: ethersOriginal.Contract;
 let balUSDTownerBefore: ethersOriginal.BigNumber;
 
@@ -45,7 +49,9 @@ describe("ICO Pre sale", function () {
       method: "hardhat_impersonateAccount",
       params: [ATEN_OWNER_ADDRESS],
     });
-    signer = await ethers.getSigner(ATEN_OWNER_ADDRESS);
+    signerATEN = await ethers.getSigner(ATEN_OWNER_ADDRESS);
+    signerATENAddress = await signerATEN.getAddress();
+    [signer] = await ethers.getSigners();
     signerAddress = await signer.getAddress();
   });
 
@@ -59,6 +65,7 @@ describe("ICO Pre sale", function () {
     const factory = await ethers.getContractFactory("AthenaICO");
     ATHENA_CONTRACT = await factory.connect(signer).deploy(
       ATEN_TOKEN,
+      signerATENAddress,
       ethers.utils.parseEther("520000"),
       [ETH, USDT, USDC],
       "0xEe9F2375b4bdF6387aa8265dD4FB8F16512A1d46" // Chainlink MAINNET USDT/ETH
@@ -81,7 +88,7 @@ describe("ICO Pre sale", function () {
     const ATEN_TOKEN_CONTRACT = new ethers.Contract(
       ATEN_TOKEN,
       weth_abi
-    ).connect(signer);
+    ).connect(signerATEN);
     const allowContract = await ATEN_TOKEN_CONTRACT.approve(
       ATHENA_CONTRACT.address,
       ALLOWANCE
@@ -96,6 +103,48 @@ describe("ICO Pre sale", function () {
       ATHENA_CONTRACT.address
     );
     expect(allowed.toString()).to.equal(ALLOWANCE);
+
+    /**
+     * FOLLOWING Can be used to calculate fees on transfers
+     * Warning : owner is excluded, and receives fees...
+     */
+    // const accounts = await ethers.getSigners();
+
+    // const balBefore = await ATEN_TOKEN_CONTRACT.balanceOf(signerATEN.address);
+
+    // const amountToTransfer = ethers.utils.parseEther("1");
+    // const transfer = await ATEN_TOKEN_CONTRACT.transfer(
+    //   accounts[10].address,
+    //   amountToTransfer
+    // );
+    // const receipt = await transfer.wait();
+    // expect(receipt).to.haveOwnProperty("transactionHash");
+    // const bal = await ATEN_TOKEN_CONTRACT.balanceOf(accounts[10].address);
+    // expect(bal.toString()).to.equal(amountToTransfer.toString());
+
+    // const transfer2 = await ATEN_TOKEN_CONTRACT.connect(accounts[10]).transfer(
+    //   accounts[20].address,
+    //   bal.toString()
+    // );
+    // const receipt2 = await transfer2.wait();
+    // expect(receipt2).to.haveOwnProperty("transactionHash");
+    // const bal2 = await ATEN_TOKEN_CONTRACT.balanceOf(accounts[20].address);
+    // console.log("Balance 2 : ", bal2.toString());
+
+    // expect(bal2.toString()).to.equal(
+    //   BigNumber.from("99975").mul(amountToTransfer).div("100000").toString()
+    // );
+    // const transferBack = await ATEN_TOKEN_CONTRACT.connect(
+    //   accounts[20]
+    // ).transfer(signerATEN.address, bal2);
+    // await transferBack.wait();
+    // const balAfter = await ATEN_TOKEN_CONTRACT.balanceOf(signerATEN.address);
+    // console.log("Bal before : ", ethers.utils.formatEther(balBefore));
+    // console.log("Bal After : ", ethers.utils.formatEther(balAfter));
+
+    // expect(balBefore.sub(balAfter).toString()).to.equal(
+    //   BigNumber.from(25).mul(amountToTransfer).div("100000").toString()
+    // );
   });
 
   /**
@@ -193,9 +242,7 @@ describe("ICO Pre sale", function () {
     // ATEN @0.035 = 86041 ATEN for 1 ETH
     // price from oracle = 332064878882758
     const ethPrice = await ATHENA_CONTRACT.getLatestPrice();
-    const expectedAten = ethers.BigNumber.from(
-      parseInt((1 * 100000).toString())
-    )
+    expectedATEN = ethers.BigNumber.from(parseInt((1 * 100000).toString()))
       .mul(wei)
       .div(100000)
       .mul(wei)
@@ -206,7 +253,7 @@ describe("ICO Pre sale", function () {
       .mul(4);
 
     const mapping = await ATHENA_CONTRACT.presales(signerAddress);
-    expect(mapping.toString()).to.equal(expectedAten);
+    expect(mapping.toString()).to.equal(expectedATEN);
   });
 
   it("Should transfer USDT from Binance to Signers", async () => {
@@ -395,6 +442,7 @@ describe("ICO Pre sale", function () {
     const factory = await ethers.getContractFactory("AthenaICO");
     ATHENA_CONTRACT = await factory.connect(signer).deploy(
       ATEN_TOKEN,
+      signerATENAddress,
       ethers.utils.parseEther("30000000"),
       [ETH, USDT],
       "0xEe9F2375b4bdF6387aa8265dD4FB8F16512A1d46" // Chainlink MAINNET USDT/ETH
@@ -414,7 +462,7 @@ describe("ICO Pre sale", function () {
     const ATEN_TOKEN_CONTRACT = new ethers.Contract(
       ATEN_TOKEN,
       weth_abi
-    ).connect(signer);
+    ).connect(signerATEN);
     const allowContract = await ATEN_TOKEN_CONTRACT.approve(
       ATHENA_CONTRACT.address,
       ALLOWANCE
@@ -506,9 +554,7 @@ describe("ICO Pre sale", function () {
     const amount = await ATHENA_CONTRACT.connect(signerLocal).presales(
       signerLocal.address
     );
-    expect(amount.toString()).to.equal(
-      BigNumber.from("86041705667753779780084").div(4).mul(4)
-    );
+    expect(amount.toString()).to.equal(expectedATEN.div(4).mul(4).toString());
   });
 
   it("Should users claim and get tokens 1 / 4 ", async function () {
@@ -525,9 +571,7 @@ describe("ICO Pre sale", function () {
       await claim.wait();
       expect(claim).to.have.property("hash");
       const balance = await ATEN_TOKEN_CONTRACT.balanceOf(signerLocal.address);
-      expect(balance.toString()).to.equal(
-        BigNumber.from("86041705667753779780084").div(4)
-      );
+      expect(balance.toString()).to.equal(expectedATEN.div(4).toString());
     }
   });
 
@@ -545,9 +589,7 @@ describe("ICO Pre sale", function () {
       ATHENA_CONTRACT.connect(signerLocal).claim()
     ).to.be.revertedWith("Already claimed batch");
     const balance = await ATEN_TOKEN_CONTRACT.balanceOf(signerLocal.address);
-    expect(balance.toString()).to.equal(
-      BigNumber.from("86041705667753779780084").div(4)
-    );
+    expect(balance.toString()).to.equal(expectedATEN.div(4).toString());
   });
 
   it("Should users claim and get tokens 2 / 4 ", async function () {
@@ -569,7 +611,7 @@ describe("ICO Pre sale", function () {
       expect(claim).to.have.property("hash");
       const balance = await ATEN_TOKEN_CONTRACT.balanceOf(signerLocal.address);
       expect(balance.toString()).to.equal(
-        BigNumber.from("86041705667753779780084").mul(2).div(4)
+        expectedATEN.mul(2).div(4).toString()
       );
     }
   });
@@ -607,9 +649,7 @@ describe("ICO Pre sale", function () {
       signerLocal
     ).availableClaim(signerLocal.address);
 
-    expect(claimAvailable.toString()).to.equal(
-      BigNumber.from("86041705667753779780084").mul(1).div(4)
-    );
+    expect(claimAvailable.toString()).to.equal(expectedATEN.mul(1).div(4));
     // Careful, -1 to avoid last user changed address test above
     for (let index = 0; index < accounts.length - 2; index++) {
       const signerLocal = accounts[index];
@@ -618,7 +658,7 @@ describe("ICO Pre sale", function () {
       expect(claim).to.have.property("hash");
       const balance = await ATEN_TOKEN_CONTRACT.balanceOf(signerLocal.address);
       expect(balance.toString()).to.equal(
-        BigNumber.from("86041705667753779780084").mul(3).div(4)
+        expectedATEN.mul(3).div(4).toString()
       );
     }
   });
@@ -640,9 +680,7 @@ describe("ICO Pre sale", function () {
       await claim.wait();
       expect(claim).to.have.property("hash");
       const balance = await ATEN_TOKEN_CONTRACT.balanceOf(signerLocal.address);
-      expect(balance.toString()).to.equal(
-        BigNumber.from("86041705667753779780084")
-      );
+      expect(balance.toString()).to.equal(expectedATEN.toString());
     }
   });
 
