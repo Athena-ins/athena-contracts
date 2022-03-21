@@ -7,10 +7,17 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import hre, { ethers } from "hardhat";
 import readline from "readline";
 import abi from "../artifacts/contracts/ICO/AthenaICO.sol/AthenaICO.json";
+import abiERC20 from "../abis/weth.json";
 
 const ETH = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
-const contractAddress = "0x06bBebaf38430DFF7CbBB0492b6f23Ed6440799A";
+const contractAddress = "0x527EAD250b5A8e4D80C7A353CF56d1735DA198f4";
 const chainId: number = 4;
+const ATEN_CONTRACT = {
+  address:
+    chainId === 1
+      ? "0x86cEB9FA7f5ac373d275d328B7aCA1c05CFb0283"
+      : "0xdf6F897c9c8ca5EDd450678a600e5A883Cd4985f", // RINKEBY
+};
 const USDT =
   chainId === 1
     ? "0xdac17f958d2ee523a2206206994597c13d831ec7"
@@ -30,12 +37,6 @@ async function deploy(signer: SignerWithAddress) {
     // const ATENfactory = await ethers.getContractFactory("ATEN");
     // const ATEN_CONTRACT = await ATENfactory.deploy();
     // await ATEN_CONTRACT.deployed();
-    const ATEN_CONTRACT = {
-      address:
-        chainId === 1
-          ? "0x86cEB9FA7f5ac373d275d328B7aCA1c05CFb0283"
-          : "0xdf6F897c9c8ca5EDd450678a600e5A883Cd4985f", // RINKEBY
-    };
 
     // console.log("Deployed ATEN Contract : ", ATEN_CONTRACT.address);
 
@@ -62,7 +63,7 @@ async function deploy(signer: SignerWithAddress) {
   }
 }
 
-const activeSale = async (signer: SignerWithAddress) => {
+const activeSale = async (signer: SignerWithAddress, starting = true) => {
   const ATHENA_CONTRACT = new ethers.Contract(contractAddress, abi.abi, signer);
   const code = await ethers.provider.getCode(contractAddress);
   console.log("Contract code : ", code.substring(0, 40));
@@ -70,7 +71,7 @@ const activeSale = async (signer: SignerWithAddress) => {
   if (!code || code === "0x00")
     throw new Error("No contract at this address !");
   console.log("WITH SIGNER : ", signer.address);
-  const start = await ATHENA_CONTRACT.startSale(true);
+  const start = await ATHENA_CONTRACT.startSale(starting);
   const receipt = await start.wait();
   console.log("Done, hash ; ", receipt.transactionHash);
   process.exit(0);
@@ -93,12 +94,31 @@ const activeClaim = async (signer: SignerWithAddress) => {
 const withdraw = async (signer: SignerWithAddress) => {
   const oldContract = new ethers.Contract(contractAddress, abi.abi, signer);
 
-  const withdraw = await oldContract.withdraw([USDT], signer.address);
+  const withdraw = await oldContract.withdraw([ETH, USDT], signer.address);
 
   const receipt = await withdraw.wait();
   if (!receipt) throw new Error("Could not withdraw !!");
+  console.log("Done, hash ; ", receipt.transactionHash);
   const bal = await hre.ethers.provider.getBalance(oldContract.address);
   if (!bal.eq(0)) throw new Error("Not really withdraw... " + bal.toString());
+
+  process.exit(0);
+};
+
+const approve = async (signer: SignerWithAddress) => {
+  const contractAten = new ethers.Contract(
+    ATEN_CONTRACT.address,
+    abiERC20,
+    signer
+  );
+
+  const approved = await contractAten.approve(
+    contractAddress,
+    ethers.utils.parseEther("100000000")
+  );
+
+  const receipt = await approved.wait();
+  if (!receipt) throw new Error("Could not approve !!");
   console.log("Done, hash ; ", receipt.transactionHash);
   process.exit(0);
 };
@@ -139,6 +159,13 @@ async function main() {
       process.exit(0);
     } else if (
       // input.toLowerCase() === "y" ||
+      input.toLowerCase() === "stopsale"
+    ) {
+      console.log(`Going to open sale... Sending TX...`);
+      await activeSale(signer, false);
+      process.exit(0);
+    } else if (
+      // input.toLowerCase() === "y" ||
       input.toLowerCase() === "claim"
     ) {
       console.log(`Going to open Claim... Sending TX...`);
@@ -151,13 +178,20 @@ async function main() {
       console.log(`Going to open withdraw... Sending TX...`);
       await withdraw(signer);
       process.exit(0);
+    } else if (
+      // input.toLowerCase() === "y" ||
+      input.toLowerCase() === "approve"
+    ) {
+      console.log(`Going to approve... Sending TX...`);
+      await approve(signer);
+      process.exit(0);
     } else {
       console.error("You cancelled...");
       process.exit(1);
     }
   });
   console.log(
-    "If addresses are correct, choose script : deploy, sale, claim, withdraw"
+    "If addresses are correct, choose script : deploy, sale, stopsale, claim, withdraw, approve"
   );
 }
 
