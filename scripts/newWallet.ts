@@ -7,6 +7,8 @@ import { ethers } from "ethers";
       if (wallet.address[2] === "A" && wallet.address[3] === "1") {
         console.log("WALLET address : " + wallet.address);
         console.log("WALLET PK : " + wallet.privateKey);
+        console.log("WALLET Seed : " + wallet.mnemonic.phrase);
+        console.log("WALLET Other : " + wallet.mnemonic.path);
         console.log("WALLET Public : " + wallet.publicKey);
         return;
       }
