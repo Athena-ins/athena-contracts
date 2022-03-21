@@ -14,15 +14,12 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faWarning } from "@fortawesome/free-solid-svg-icons";
 
 import { formatEther, formatUnits, parseUnits } from "ethers/lib/utils";
-import { BigNumber, Contract, ethers } from "ethers";
+import { BigNumber, ethers } from "ethers";
 import abi from "./contractAbi.json";
 import erc20abi from "./erc20abi.json";
 import { useWallet } from "./useWallet";
-// import { useEtherBalance } from "./useEtherBalance";
-// import { useTokenBalance } from "./useTokenBalance";
-// import { useTokenAllowance } from "./useTokenAllowance";
-// import { useCall } from "./useCall";
 const SCALER = 10000000;
+const _0 = BigNumber.from("0");
 const ETH = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
 
 const wei = BigNumber.from(10).pow(18);
@@ -36,8 +33,8 @@ const USDT: { [chainId: number]: string } = {
 
 const ATHENA_ICO_CONTRACT_ADDRESS: { [chainId: number]: string } = {
   [1]: "0x17b7aF7Ef7488747a76E16A79C180c8c989EC670",
-  [4]: "0x06bBebaf38430DFF7CbBB0492b6f23Ed6440799A",
-  [0]: "0x06bBebaf38430DFF7CbBB0492b6f23Ed6440799A",
+  [4]: "0x527EAD250b5A8e4D80C7A353CF56d1735DA198f4",
+  [0]: "0x527EAD250b5A8e4D80C7A353CF56d1735DA198f4",
 };
 
 const ATEN_TOKEN_ADDRESS: { [chainId: number]: string } = {
@@ -76,9 +73,11 @@ function App() {
   const [isEth, setIsEth] = useState(true);
   const [isSaleOpen, setIsSaleOpen] = useState(false);
   const [isClaimOpen, setIsClaimOpen] = useState(false);
-  const [tokensSold, setTokensSold] = useState(BigNumber.from("0"));
-  const [maxTokens, setMaxTokens] = useState(BigNumber.from("0"));
-  const [atenToClaim, setAtenToClaim] = useState(BigNumber.from("0"));
+  const [tokensSold, setTokensSold] = useState(_0);
+  const [maxTokens, setMaxTokens] = useState(_0);
+  const [atenToClaim, setAtenToClaim] = useState(_0);
+  const [allowedClaim, setAllowedClaimed] = useState(_0);
+  const [availableToClaim, setAvailableToClaim] = useState(_0);
   const [amount, setAmount] = useState("0");
   const [toggleETH, setToggleETH] = useState(false);
   const tokenBalance = useTokenBalance(USDT[chainId], account);
@@ -176,6 +175,10 @@ function App() {
       setnotifHistory(array);
       const presales = await contract.presales(account);
       setAtenToClaim(presales);
+
+      const available = await contract.availableClaim(account);
+      setAllowedClaimed(await contract.allowedClaim());
+      setAvailableToClaim(available);
     } catch (error: any) {
       console.error(error);
       setnotifHistory([]);
@@ -206,11 +209,25 @@ function App() {
       logReceipt(receipt);
     } catch (error: any) {
       console.error(error);
-      toast.error(
-        error.message.includes("Amount requirements not met")
-          ? "Amount should be between 200$ and 15000$"
-          : "Tx failed : " + error.message
-      );
+    }
+  };
+
+  const handleClaim = async (_e: any) => {
+    try {
+      if (!account) return toast.warning("Can not Claim, missing account");
+      const txData = new ethers.Contract(
+        ATHENA_ICO_CONTRACT_ADDRESS[chainId],
+        abi
+      ).interface.encodeFunctionData("claim");
+      const receipt = await sendTx({
+        from: account,
+        to: ATHENA_ICO_CONTRACT_ADDRESS[chainId],
+        data: txData,
+        chainId: chainId,
+      });
+      logReceipt(receipt);
+    } catch (error: any) {
+      console.error(error);
     }
   };
 
@@ -292,7 +309,7 @@ function App() {
               "%"}
           </h2> */}
         </header>
-        <div id="version02" />
+        <div id="version03" />
         <div
           className="bg-primary card-sales"
           style={{
@@ -531,7 +548,47 @@ function App() {
             )}
           </form>
         ) : (
-          <div className="corner"></div>
+          <div className="bg-primary card card-sales">
+            <div className="corner">
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: 16,
+                }}
+              >
+                <div
+                  className="badge badge-secondary"
+                  style={{ marginRight: 16 }}
+                >
+                  <span className="aten">ATEN</span>
+                </div>
+                <p className="bal">
+                  Balance:{" "}
+                  <span>
+                    {parseFloat(formatEther(ATENbalance || "0")).toFixed(2)}
+                  </span>
+                </p>
+              </div>
+              <p style={{ margin: 8 }}>
+                Locked :{" "}
+                {formatBalance(
+                  atenToClaim.sub(
+                    BigNumber.from(allowedClaim).mul(atenToClaim).div(4)
+                  )
+                )}
+              </p>
+              <Button
+                className="btn btn-block btn-secondary"
+                type="submit"
+                onClick={handleClaim}
+                disabled={!account || availableToClaim.toString() === "0"}
+              >
+                Claim {formatBalance(availableToClaim)} ATEN
+              </Button>
+            </div>
+          </div>
         )}
         {notifHistory.length > 0 && (
           <div

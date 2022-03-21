@@ -99,7 +99,7 @@ url: "https://trustwallet.com"
       toast.update(id, {
         render:
           error.message.search("Amount requirements not met") !== -1
-            ? "Amount should be between 100$ and 15000$"
+            ? "Amount should be between 200$ and 15000$"
             : "Tx failed : " + error.message,
         type: toast.TYPE.ERROR,
         className: "rotateY animated",
@@ -134,9 +134,10 @@ url: "https://trustwallet.com"
     provider?.removeAllListeners();
     if (!config.readOnlyUrls) return;
     const prov =
-      ethersLibrary ||
-      new ethers.providers.JsonRpcProvider(config.readOnlyUrls[chainId]);
-    if (!ethersLibrary && account && chainId) {
+      metaAccount === account && ethersLibrary
+        ? ethersLibrary
+        : new ethers.providers.JsonRpcProvider(config.readOnlyUrls[chainId]);
+    if (connector.connected) {
       activate(prov);
     }
     setProvider(prov);

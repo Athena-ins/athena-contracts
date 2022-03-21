@@ -22,7 +22,7 @@ const config: Config = {
 ReactDOM.render(
   <DAppProvider config={config}>
     <App />
-    <ToastContainer position="top-center" theme="colored" />
+    <ToastContainer position="top-right" theme="colored" />
   </DAppProvider>,
   document.getElementById("root")
 );
