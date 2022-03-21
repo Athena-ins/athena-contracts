@@ -171,7 +171,7 @@ contract AthenaICO is Ownable, ReentrancyGuard {
         IERC20(aten).safeTransferFrom(
             owner(),
             msg.sender,
-            availableClaim()
+            availableClaim(msg.sender)
         );
         claimed[msg.sender] = allowed;
     }
@@ -197,8 +197,8 @@ contract AthenaICO is Ownable, ReentrancyGuard {
     /**
      * @dev view how many tokens are available to claim now for caller
      */
-    function availableClaim() public view returns (uint256) {
-        return (presales[msg.sender] * (allowedClaim() - claimed[msg.sender])) / 4;
+    function availableClaim(address guy) public view returns (uint256) {
+        return (presales[guy] * (allowedClaim() - claimed[guy])) / 4;
     }
 
     /**

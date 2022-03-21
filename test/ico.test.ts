@@ -581,7 +581,7 @@ describe("ICO Pre sale", function () {
     const signerLocal = accounts[1];
     const claimAvailable = await ATHENA_CONTRACT.connect(
       signerLocal
-    ).availableClaim();
+    ).availableClaim(signerLocal.address);
 
     expect(claimAvailable.toString()).to.equal("0");
   });
@@ -605,7 +605,7 @@ describe("ICO Pre sale", function () {
     const signerLocal = accounts[1];
     const claimAvailable = await ATHENA_CONTRACT.connect(
       signerLocal
-    ).availableClaim();
+    ).availableClaim(signerLocal.address);
 
     expect(claimAvailable.toString()).to.equal(
       BigNumber.from("86041705667753779780084").mul(1).div(4)
