@@ -18,3 +18,34 @@ export const Button = styled.button`
     background: grey;
   }
 `;
+
+export const ButtonAddMetamask = ({
+  addToMetamask,
+}: {
+  addToMetamask: (e: any) => void;
+}) => {
+  return (
+    <button
+      onClick={addToMetamask}
+      style={{
+        border: 0,
+        borderRadius: 16,
+        color: "#f8901c",
+        fontSize: 20,
+      }}
+    >
+      +{" "}
+      <img
+        src="img/metamask.png"
+        height="30px"
+        style={{
+          objectFit: "cover",
+          paddingRight: 1,
+          paddingBottom: 1,
+        }}
+        width="30px"
+        alt="logo"
+      />
+    </button>
+  );
+};

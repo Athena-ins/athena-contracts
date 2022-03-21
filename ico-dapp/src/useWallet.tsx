@@ -184,7 +184,6 @@ url: "https://trustwallet.com"
     setAccount(obj.accounts[0]);
     setIsConnected(connector.connected);
     setChainId(obj.chainId);
-    console.log("Connector update : ", obj, connector.accounts);
   });
 
   connector.on("disconnect", (error, payload) => {

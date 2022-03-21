@@ -7,7 +7,7 @@ import {
 } from "@usedapp/core";
 import ConnectButton from "./Connectbutton";
 import { toast } from "react-toastify";
-import { Button, formatBalance } from "./Components";
+import { Button, ButtonAddMetamask, formatBalance } from "./Components";
 import { Modal } from "react-bootstrap";
 import { useEffect, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -33,14 +33,14 @@ const USDT: { [chainId: number]: string } = {
 
 const ATHENA_ICO_CONTRACT_ADDRESS: { [chainId: number]: string } = {
   [1]: "0x17b7aF7Ef7488747a76E16A79C180c8c989EC670",
-  [4]: "0x527EAD250b5A8e4D80C7A353CF56d1735DA198f4",
-  [0]: "0x527EAD250b5A8e4D80C7A353CF56d1735DA198f4",
+  [4]: "0xd6D479596061326F6caF486921441ED44Ea0076b",
+  [0]: "0xd6D479596061326F6caF486921441ED44Ea0076b",
 };
 
 const ATEN_TOKEN_ADDRESS: { [chainId: number]: string } = {
   [1]: "0x86ceb9fa7f5ac373d275d328b7aca1c05cfb0283",
-  [4]: "0xdf6F897c9c8ca5EDd450678a600e5A883Cd4985f",
-  [0]: "0xdf6F897c9c8ca5EDd450678a600e5A883Cd4985f",
+  [4]: "0x2da9F0DF7DC5f9F6e024B4ABf97148B405D9b4F8",
+  [0]: "0x2da9F0DF7DC5f9F6e024B4ABf97148B405D9b4F8",
 };
 
 function App() {
@@ -409,28 +409,7 @@ function App() {
                 <div className="badge badge-secondary">
                   <span className="aten">ATEN</span>
                 </div>
-                <button
-                  onClick={addToMetamask}
-                  style={{
-                    border: 0,
-                    borderRadius: 16,
-                    color: "#f8901c",
-                    fontSize: 20,
-                  }}
-                >
-                  +{" "}
-                  <img
-                    src="img/metamask.png"
-                    height="30px"
-                    style={{
-                      objectFit: "cover",
-                      paddingRight: 1,
-                      paddingBottom: 1,
-                    }}
-                    width="30px"
-                    alt="logo"
-                  />
-                </button>
+                <ButtonAddMetamask addToMetamask={addToMetamask} />
               </div>
               <div className="row-flex bottom-md mini-push-top">
                 <div
@@ -564,14 +543,15 @@ function App() {
                 >
                   <span className="aten">ATEN</span>
                 </div>
-                <p className="bal">
-                  Balance:{" "}
-                  <span>
-                    {parseFloat(formatEther(ATENbalance || "0")).toFixed(2)}
-                  </span>
-                </p>
+                <ButtonAddMetamask addToMetamask={addToMetamask} />
               </div>
-              <p style={{ margin: 8 }}>
+              <p className="bal" style={{ margin: 8 }}>
+                Balance:{" "}
+                <span>
+                  {parseFloat(formatEther(ATENbalance || "0")).toFixed(2)}
+                </span>
+              </p>
+              <p className="bal" style={{ margin: 8 }}>
                 Locked :{" "}
                 {formatBalance(
                   atenToClaim.sub(
