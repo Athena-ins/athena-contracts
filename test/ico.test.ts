@@ -120,7 +120,7 @@ describe("ICO Pre sale", function () {
           value: ethers.utils.parseEther(ETH_VALUE),
         }
       )
-    ).to.be.rejectedWith("Sale is not yet active");
+    ).to.be.rejectedWith("Sale is not active");
   });
 
   it("Should activate preSale", async function () {
@@ -163,7 +163,7 @@ describe("ICO Pre sale", function () {
           value: ethers.utils.parseEther(ETH_VALUE),
         }
       )
-    ).to.be.rejectedWith("Sale is not yet active");
+    ).to.be.rejectedWith("Sale is not active");
   });
 
   it("Should activate preSale", async function () {
@@ -461,7 +461,7 @@ describe("ICO Pre sale", function () {
     const signerLocal = accounts[0];
     await expect(
       ATHENA_CONTRACT.connect(signerLocal).claim()
-    ).to.be.rejectedWith("Claim not yet active");
+    ).to.be.rejectedWith("Claim not active");
   });
 
   it("Should active claim tokens ", async function () {
@@ -574,17 +574,42 @@ describe("ICO Pre sale", function () {
     }
   });
 
+  it("Should user view available claim 2 / 4 ", async function () {
+    const accounts = await ethers.getSigners();
+    // Careful, -1 to avoid last user changed address test above
+
+    const signerLocal = accounts[1];
+    const claimAvailable = await ATHENA_CONTRACT.connect(
+      signerLocal
+    ).availableClaim();
+
+    expect(claimAvailable.toString()).to.equal("0");
+  });
+
   it("Should users claim and get tokens 3 / 4 ", async function () {
     this.timeout(120000);
     await hre.network.provider.request({
       method: "evm_setNextBlockTimestamp",
       params: [DATE_NOW + 60 * 60 * 24 * 61],
     });
+    await hre.network.provider.request({
+      method: "evm_mine",
+      params: [],
+    });
+
     const ATEN_TOKEN_CONTRACT = new ethers.Contract(
       ATEN_TOKEN,
       weth_abi
     ).connect(signer);
     const accounts = await ethers.getSigners();
+    const signerLocal = accounts[1];
+    const claimAvailable = await ATHENA_CONTRACT.connect(
+      signerLocal
+    ).availableClaim();
+
+    expect(claimAvailable.toString()).to.equal(
+      BigNumber.from("86041705667753779780084").mul(1).div(4)
+    );
     // Careful, -1 to avoid last user changed address test above
     for (let index = 0; index < accounts.length - 2; index++) {
       const signerLocal = accounts[index];

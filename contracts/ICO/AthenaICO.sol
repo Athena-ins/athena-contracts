@@ -86,7 +86,7 @@ contract AthenaICO is Ownable, ReentrancyGuard {
         address token,
         address to
     ) public payable nonReentrant {
-        require(activeSale, "Sale is not yet active");
+        require(activeSale, "Sale is not active");
         require(authTokens[token] == true, "Not approved Token for this ICO");
         if (token != eth) {
             // Safe Transfer will revert if not successful
@@ -165,7 +165,22 @@ contract AthenaICO is Ownable, ReentrancyGuard {
      * @dev Get your ICO tokens (from sender) with previously prebuy, depending on availabiliy
      */
     function claim() public nonReentrant {
-        require(activeClaim, "Claim not yet active");
+        require(activeClaim, "Claim not active");
+        (uint8 allowed) = allowedClaim();
+        require(claimed[msg.sender] < allowed, "Already claimed batch");
+        IERC20(aten).safeTransferFrom(
+            owner(),
+            msg.sender,
+            availableClaim()
+        );
+        claimed[msg.sender] = allowed;
+    }
+
+    /**
+     * @dev view how many claims are available now
+     */
+    function allowedClaim() public view returns (uint8) {
+        if(!activeClaim) return 0;
         uint8 allowed = 1;
         if (nextClaim > 0 && block.timestamp >= nextClaim) {
             allowed++;
@@ -176,13 +191,14 @@ contract AthenaICO is Ownable, ReentrancyGuard {
                 }
             }
         }
-        require(claimed[msg.sender] < allowed, "Already claimed batch");
-        IERC20(aten).safeTransferFrom(
-            owner(),
-            msg.sender,
-            (presales[msg.sender] * (allowed - claimed[msg.sender])) / 4
-        );
-        claimed[msg.sender] = allowed;
+        return allowed;
+    }
+
+    /**
+     * @dev view how many tokens are available to claim now for caller
+     */
+    function availableClaim() public view returns (uint256) {
+        return (presales[msg.sender] * (allowedClaim() - claimed[msg.sender])) / 4;
     }
 
     /**
