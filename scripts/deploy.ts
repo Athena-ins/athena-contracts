@@ -6,8 +6,8 @@
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import hre, { ethers } from "hardhat";
 import readline from "readline";
-import abi from "../artifacts/contracts/ICO/AthenaICO.sol/AthenaICO.json";
 import abiERC20 from "../abis/weth.json";
+import abi from "../artifacts/contracts/ICO/AthenaICO.sol/AthenaICO.json";
 
 const ETH = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
 

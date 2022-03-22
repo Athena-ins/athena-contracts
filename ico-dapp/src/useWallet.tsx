@@ -4,7 +4,6 @@ import QRCodeModal from "@walletconnect/qrcode-modal";
 import { ethers } from "ethers";
 import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
-import { useBlock } from "./useBlock";
 
 const connector = new WalletConnect({
   bridge: "https://bridge.walletconnect.org", // Required

@@ -1,3 +1,5 @@
+import { faInfoCircle, faWarning } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   getExplorerTransactionLink,
   useCall,
@@ -5,25 +7,18 @@ import {
   useTokenAllowance,
   useTokenBalance,
 } from "@usedapp/core";
-import ConnectButton from "./Connectbutton";
+import { BigNumber, ethers } from "ethers";
+import { formatEther, formatUnits, parseUnits } from "ethers/lib/utils";
+import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
+import { Modal } from "react-bootstrap";
 import { toast } from "react-toastify";
 import { Button, ButtonAddMetamask, formatBalance, LiAten } from "./Components";
-import { Modal } from "react-bootstrap";
-import { useEffect, useState } from "react";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faWarning, faInfoCircle } from "@fortawesome/free-solid-svg-icons";
-import { motion } from "framer-motion";
-
-import {
-  formatEther,
-  formatUnits,
-  parseEther,
-  parseUnits,
-} from "ethers/lib/utils";
-import { BigNumber, ethers } from "ethers";
+import ConnectButton from "./Connectbutton";
 import abi from "./contractAbi.json";
 import erc20abi from "./erc20abi.json";
 import { useWallet } from "./useWallet";
+
 const SCALER = 10000000;
 const _0 = BigNumber.from("0");
 const ETH = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
@@ -305,24 +300,37 @@ function App() {
             </span>{" "}
             <span className="highlight-word underline-only">round 1</span>
           </h1>
-          {maxTokens.gt(0) &&
-            isSaleOpen &&
-            tokensSold > parseEther("30000000") && (
-              <div>
-                Tokens sold :{" "}
-                {(
-                  tokensSold.mul(10000).div(maxTokens).toNumber() / 100
-                ).toFixed(2) + "%"}
-                {/* {formatBalance(tokensSold) + " / " + formatBalance(maxTokens)} */}
-                <motion.div
-                  initial={{ width: 0 }}
-                  style={{
-                    height: 8,
-                    borderRadius: "4px 0 0 4px",
-                    backgroundColor: "#f2fc20",
-                  }}
-                  animate={{
-                    width: `
+        </header>
+        <div id="version03" />
+        {maxTokens.gt(0) && (
+          // isSaleOpen
+          // && !isClaimOpen && tokensSold > parseEther("30000000")
+          // &&
+          <div
+            className="bg-primary card-sales"
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "center",
+              alignItems: "flex-start",
+            }}
+          >
+            <span>
+              Tokens sold :{" "}
+              {(tokensSold.mul(10000).div(maxTokens).toNumber() / 100).toFixed(
+                2
+              ) + "%"}
+            </span>
+            {/* {formatBalance(tokensSold) + " / " + formatBalance(maxTokens)} */}
+            <motion.div
+              initial={{ width: 0 }}
+              style={{
+                height: 12,
+                borderRadius: "6px 0 0 6px",
+                backgroundColor: "#f2fc20",
+              }}
+              animate={{
+                width: `
                       ${Math.max(
                         parseInt(
                           tokensSold
@@ -334,18 +342,16 @@ function App() {
                         ),
                         10
                       )}%`,
-                  }}
-                  transition={{
-                    type: "spring",
-                    duration: 2,
-                    repeat: 1,
-                    bounce: 0.6,
-                  }}
-                />
-              </div>
-            )}
-        </header>
-        <div id="version03" />
+              }}
+              transition={{
+                type: "spring",
+                duration: 2,
+                repeat: 1,
+                bounce: 0.6,
+              }}
+            />
+          </div>
+        )}
         <div
           className="bg-primary card-sales"
           style={{

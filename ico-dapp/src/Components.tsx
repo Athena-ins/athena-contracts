@@ -1,7 +1,6 @@
-import styled from "styled-components";
-
 import { BigNumber } from "ethers";
 import { formatUnits } from "ethers/lib/utils";
+import styled from "styled-components";
 
 const formatter = new Intl.NumberFormat("en-us", {
   minimumFractionDigits: 2,
