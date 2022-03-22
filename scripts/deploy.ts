@@ -10,8 +10,13 @@ import abi from "../artifacts/contracts/ICO/AthenaICO.sol/AthenaICO.json";
 import abiERC20 from "../abis/weth.json";
 
 const ETH = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
-const contractAddress = "0xd6D479596061326F6caF486921441ED44Ea0076b";
+
 const chainId: number = 4;
+const contractAddress =
+  chainId === 1
+    ? "0x8bFad5636BBf29F75208acE134dD23257C245391"
+    : "0xd6D479596061326F6caF486921441ED44Ea0076b";
+const ATEN_MAINNET_OWNER = "0x967d98e659f2787A38d928B9B7a49a2E4701B30C";
 const ATEN_CONTRACT = {
   address:
     chainId === 1
@@ -37,24 +42,30 @@ async function deploy(
     // manually to make sure everything is compiled
     await hre.run("compile");
 
-    if (chainId === 1 && tokenSigner)
-      throw new Error("Should not deploy ATEN on Mainnet !");
-    console.log("Deploying ATEN TOKEN WITH ADDRESS : ", tokenSigner?.address);
-    const ATENfactory = (await ethers.getContractFactory("ATEN")).connect(
-      tokenSigner || signer
-    );
-    const ATEN_CONTRACT_LOCAL = await ATENfactory.deploy();
-    await ATEN_CONTRACT_LOCAL.deployed();
+    let ATEN_CONTRACT_LOCAL;
+    if (chainId !== 1 && tokenSigner) {
+      // throw new Error("Should not deploy ATEN on Mainnet !");
+      console.log("Deploying ATEN TOKEN WITH ADDRESS : ", tokenSigner?.address);
+      const ATENfactory = (await ethers.getContractFactory("ATEN")).connect(
+        tokenSigner || signer
+      );
+      ATEN_CONTRACT_LOCAL = await ATENfactory.deploy();
+      await ATEN_CONTRACT_LOCAL.deployed();
 
-    console.log("Deployed ATEN Contract : ", ATEN_CONTRACT_LOCAL.address);
+      console.log("Deployed ATEN Contract : ", ATEN_CONTRACT_LOCAL.address);
+    }
 
     const factory = await ethers.getContractFactory("AthenaICO", signer);
     const ATHENA_CONTRACT = await factory.deploy(
       chainId === 1
         ? "0x86cEB9FA7f5ac373d275d328B7aCA1c05CFb0283"
-        : ATEN_CONTRACT_LOCAL.address,
+        : ATEN_CONTRACT_LOCAL?.address
+        ? ATEN_CONTRACT_LOCAL.address
+        : "0x86ceb9fa7f5ac373d275d328b7aca1c05cfb0283",
       // Wallet tokens to take from
-      tokenSigner?.address || "0x967d98e659f2787A38d928B9B7a49a2E4701B30C",
+      chainId === 1
+        ? ATEN_MAINNET_OWNER
+        : tokenSigner?.address || ATEN_MAINNET_OWNER,
       ethers.utils.parseEther("100000000"),
       [ETH, USDT, USDC],
       chainId === 1
@@ -159,7 +170,7 @@ async function main() {
       process.exit();
     } else if (input.toLowerCase() === "deploy") {
       console.log(`Going to deploy... Sending TX...`);
-      await deploy(signer, signer2);
+      await deploy(signer, chainId === 1 ? undefined : signer2);
     } else if (
       // input.toLowerCase() === "y" ||
       input.toLowerCase() === "sale"
