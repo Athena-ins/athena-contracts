@@ -7,13 +7,19 @@ import {
 } from "@usedapp/core";
 import ConnectButton from "./Connectbutton";
 import { toast } from "react-toastify";
-import { Button, ButtonAddMetamask, formatBalance } from "./Components";
+import { Button, ButtonAddMetamask, formatBalance, LiAten } from "./Components";
 import { Modal } from "react-bootstrap";
 import { useEffect, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faWarning } from "@fortawesome/free-solid-svg-icons";
+import { faWarning, faInfoCircle } from "@fortawesome/free-solid-svg-icons";
+import { motion } from "framer-motion";
 
-import { formatEther, formatUnits, parseUnits } from "ethers/lib/utils";
+import {
+  formatEther,
+  formatUnits,
+  parseEther,
+  parseUnits,
+} from "ethers/lib/utils";
 import { BigNumber, ethers } from "ethers";
 import abi from "./contractAbi.json";
 import erc20abi from "./erc20abi.json";
@@ -299,15 +305,45 @@ function App() {
             </span>{" "}
             <span className="highlight-word underline-only">round 1</span>
           </h1>
-          {/* <h2>
-            Tokens :{" "}
-            {formatBalance(tokensSold) + " / " + formatBalance(maxTokens)}
-            {" => " +
-              (tokensSold.mul(10000).div(maxTokens).toNumber() / 100).toFixed(
-                2
-              ) +
-              "%"}
-          </h2> */}
+          {maxTokens.gt(0) &&
+            isSaleOpen &&
+            tokensSold > parseEther("30000000") && (
+              <div>
+                Tokens sold :{" "}
+                {(
+                  tokensSold.mul(10000).div(maxTokens).toNumber() / 100
+                ).toFixed(2) + "%"}
+                {/* {formatBalance(tokensSold) + " / " + formatBalance(maxTokens)} */}
+                <motion.div
+                  initial={{ width: 0 }}
+                  style={{
+                    height: 8,
+                    borderRadius: "4px 0 0 4px",
+                    backgroundColor: "#f2fc20",
+                  }}
+                  animate={{
+                    width: `
+                      ${Math.max(
+                        parseInt(
+                          tokensSold
+                            .mul(10000)
+                            .div(maxTokens)
+                            .div(10000)
+                            .toNumber()
+                            .toString()
+                        ),
+                        10
+                      )}%`,
+                  }}
+                  transition={{
+                    type: "spring",
+                    duration: 2,
+                    repeat: 1,
+                    bounce: 0.6,
+                  }}
+                />
+              </div>
+            )}
         </header>
         <div id="version03" />
         <div
@@ -569,58 +605,93 @@ function App() {
               </Button>
             </div>
           </div>
-        )}
-        {notifHistory.length > 0 && (
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              position: "absolute",
-              maxHeight: 400,
-              // overflowY: "scroll",
-            }}
-          >
-            <h3>History</h3>
-            <div>Total Aten : {formatBalance(atenToClaim)}</div>
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column-reverse",
-                maxHeight: 400,
-                overflowY: "scroll",
+        )}{" "}
+        <section
+          className="animated fadeIn wow"
+          style={{
+            width: "100%",
+            display: "flex",
+            flexDirection: "column",
+            position: "relative",
+            justifyContent: "center",
+            alignItems: "center",
+            maxHeight: 600,
+          }}
+        >
+          <div>
+            <motion.h2
+              animate={{
+                scale: [1, 1.04, 1],
+              }}
+              transition={{
+                type: "spring",
+                duration: 2,
+                repeat: 3,
+                bounce: 0.6,
               }}
             >
-              {notifHistory.map((notification, i) => (
-                <div key={i} style={{ marginTop: 16 }}>
-                  <p style={{ margin: 4 }}>
-                    On :{" "}
-                    {new Date(notification.date).toLocaleDateString() +
-                      " - " +
-                      new Date(notification.date).toLocaleTimeString()}
-                  </p>
-                  {notification.amount && (
-                    <p style={{ margin: 4 }}>
-                      Amount :{" "}
-                      {Number(
-                        ethers.utils.formatEther(notification.amount)
-                      ).toFixed(2)}{" "}
-                      ATEN
-                    </p>
-                  )}
-                  <p style={{ margin: 4 }}>
-                    {notification.link ? (
-                      <a href={notification.link} target="_blank">
-                        {"Tx explorer link"}
-                      </a>
-                    ) : (
-                      notification.text
-                    )}
-                  </p>
+              <FontAwesomeIcon icon={faInfoCircle} /> Sale information
+            </motion.h2>
+            <ul>
+              <LiAten>Minimum of 200 USDT (or ETH equivalent) purchase</LiAten>
+              <LiAten>
+                Maximum of 15 000 USDT (or ETH equivalent) purchase
+              </LiAten>
+              <LiAten>
+                Tokens will be released in 4 steps, from claim activation to +30
+                days each (so D+90 days)
+              </LiAten>
+              <LiAten>You will have to claim your tokens at end of sale</LiAten>
+              <LiAten>
+                Claims can be cumulated if more than 1 step is passed to save on
+                gas
+              </LiAten>
+            </ul>
+            {notifHistory.length > 0 && (
+              <div>
+                <h3>History</h3>
+                <div>Total Aten : {formatBalance(atenToClaim)}</div>
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column-reverse",
+                    maxHeight: 400,
+                    overflowY: "scroll",
+                  }}
+                >
+                  {notifHistory.map((notification, i) => (
+                    <div key={i} style={{ marginTop: 16 }}>
+                      <p style={{ margin: 4 }}>
+                        On :{" "}
+                        {new Date(notification.date).toLocaleDateString() +
+                          " - " +
+                          new Date(notification.date).toLocaleTimeString()}
+                      </p>
+                      {notification.amount && (
+                        <p style={{ margin: 4 }}>
+                          Amount :{" "}
+                          {Number(
+                            ethers.utils.formatEther(notification.amount)
+                          ).toFixed(2)}{" "}
+                          ATEN
+                        </p>
+                      )}
+                      <p style={{ margin: 4 }}>
+                        {notification.link ? (
+                          <a href={notification.link} target="_blank">
+                            {"Tx explorer link"}
+                          </a>
+                        ) : (
+                          notification.text
+                        )}
+                      </p>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </div>
+            )}
           </div>
-        )}
+        </section>
       </article>
       <Modal
         show={modalWalletOpen}

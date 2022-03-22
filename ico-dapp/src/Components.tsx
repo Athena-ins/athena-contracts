@@ -49,3 +49,9 @@ export const ButtonAddMetamask = ({
     </button>
   );
 };
+
+export const LiAten = styled.li`
+  list-style-image: linear-gradient(to left bottom, #f2fc20, #1415b3);
+  list-style-type: circle;
+  /* list-style: url("img/ATEN.png"); */
+`;
