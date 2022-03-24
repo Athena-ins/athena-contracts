@@ -302,35 +302,35 @@ function App() {
           </h1>
         </header>
         <div id="version03" />
-        {maxTokens.gt(0) && (
-          // isSaleOpen
-          // && !isClaimOpen && tokensSold > parseEther("30000000")
-          // &&
-          <div
-            className="bg-primary card-sales"
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "center",
-              alignItems: "flex-start",
-            }}
-          >
-            <span>
-              Tokens sold :{" "}
-              {(tokensSold.mul(10000).div(maxTokens).toNumber() / 100).toFixed(
-                2
-              ) + "%"}
-            </span>
-            {/* {formatBalance(tokensSold) + " / " + formatBalance(maxTokens)} */}
-            <motion.div
-              initial={{ width: 0 }}
+        {maxTokens.gt(0) &&
+          isSaleOpen &&
+          !isClaimOpen &&
+          tokensSold.gte(maxTokens.mul(60).div(100)) && (
+            <div
+              className="bg-primary card-sales"
               style={{
-                height: 12,
-                borderRadius: "6px 0 0 6px",
-                backgroundColor: "#f2fc20",
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "center",
+                alignItems: "flex-start",
               }}
-              animate={{
-                width: `
+            >
+              <span>
+                Tokens sold :{" "}
+                {(
+                  tokensSold.mul(10000).div(maxTokens).toNumber() / 100
+                ).toFixed(2) + "%"}
+              </span>
+              {/* {formatBalance(tokensSold) + " / " + formatBalance(maxTokens)} */}
+              <motion.div
+                initial={{ width: 0 }}
+                style={{
+                  height: 12,
+                  borderRadius: "6px 0 0 6px",
+                  backgroundColor: "#f2fc20",
+                }}
+                animate={{
+                  width: `
                       ${Math.max(
                         parseInt(
                           tokensSold
@@ -342,16 +342,16 @@ function App() {
                         ),
                         10
                       )}%`,
-              }}
-              transition={{
-                type: "spring",
-                duration: 2,
-                repeat: 1,
-                bounce: 0.6,
-              }}
-            />
-          </div>
-        )}
+                }}
+                transition={{
+                  type: "spring",
+                  duration: 2,
+                  repeat: 1,
+                  bounce: 0.6,
+                }}
+              />
+            </div>
+          )}
         <div
           className="bg-primary card-sales"
           style={{
@@ -651,6 +651,12 @@ function App() {
               <LiAten>
                 Claims can be cumulated if more than 1 step is passed to save on
                 gas
+              </LiAten>
+              <LiAten>
+                Legal disclaimer for the sale is available{" "}
+                <a href="disclaimer.html" target="_blank">
+                  here
+                </a>
               </LiAten>
             </ul>
             {notifHistory.length > 0 && (
