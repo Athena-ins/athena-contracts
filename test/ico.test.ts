@@ -75,7 +75,7 @@ describe("ICO Pre sale", function () {
     // console.log("Deployed ICO Contract : ", ATHENA_CONTRACT.address);
 
     expect(await ethers.provider.getCode(ATHENA_CONTRACT.address)).to.not.equal(
-      "0x00"
+      "0x"
     );
     expect((await ATHENA_CONTRACT.maxTokensSale()).toString()).to.equal(
       ethers.utils.parseEther("520000")

@@ -66,14 +66,12 @@ describe("Staking Rewards", function () {
 
   it("Should deploy contract", async function () {
     const factory = await ethers.getContractFactory("Athena");
-    ATHENA_CONTRACT = await factory.deploy(STAKING_TOKEN, ATEN_TOKEN);
+    ATHENA_CONTRACT = await factory.deploy(STAKING_TOKEN, ATEN_TOKEN, USDT);
     //await factory.deploy(STAKING_TOKEN, ATEN_TOKEN);
     await ATHENA_CONTRACT.deployed();
 
-    console.log("Deployed Staker : ", ATHENA_CONTRACT.address);
-
-    expect(ethers.provider.getCode(ATHENA_CONTRACT.address)).to.not.equal(
-      "0x00"
+    expect(await ethers.provider.getCode(ATHENA_CONTRACT.address)).to.not.equal(
+      "0x"
     );
   });
 

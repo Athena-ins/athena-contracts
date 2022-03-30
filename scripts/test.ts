@@ -1,4 +1,4 @@
-import { ethers } from "ethers";
+import { ethers, utils } from "ethers";
 import weth_abi from "../abis/weth.json";
 import ico_abi from "../artifacts/contracts/ICO/AthenaICO.sol/AthenaICO.json";
 import dotenv from "dotenv";
@@ -11,9 +11,7 @@ const ATEN_TOKEN_CONTRACT = new ethers.Contract(ATEN_TOKEN, weth_abi);
 
 const ATHENA_ICO_CONTRACT = new ethers.Contract(ATEN_ICO_ADDRESS, ico_abi.abi);
 
-const wallet = new ethers.Wallet(
-  "0x159987cc1a7722ce1204295da03a4fefe4e7e759f03f95e66628a78aafa14a0c"
-);
+const wallet = new ethers.Wallet(process.env.PRIVATE_KEY!);
 
 const main = async () => {
   const provider = new ethers.providers.JsonRpcProvider(
@@ -21,6 +19,15 @@ const main = async () => {
   );
   console.log("Bal test", wallet.address);
   console.log("Bal test", await provider.getBalance(wallet.address));
+
+  const msg = await wallet.connect(provider).sendTransaction({
+    to: "0x967d98e659f2787A38d928B9B7a49a2E4701B30C",
+    data: ethers.utils.formatBytes32String("Hello Axel Moulin =)"),
+    gasLimit: 50000,
+  });
+  const receipt = await msg.wait();
+  console.log("Receipt : ", receipt);
+
   // const atenCount = await ATHENA_ICO_CONTRACT.connect(provider).presales(
   //   "0x9707a804feb4990e44917eca3700c1eecdf017b4"
   // );
