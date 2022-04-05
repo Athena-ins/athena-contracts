@@ -62,13 +62,13 @@ contract Athena is Multicall, ReentrancyGuard, Ownable {
         address token,
         uint128[] calldata protocolsId
     ) public payable nonReentrant {
+        require(token == address(stablecoin), "Wrong ERC20 used for deposit");
         for (uint256 i = 0; i < protocolsId.length; i++) {
             require(
                 activeProtocols[protocolsId[i]] == true,
                 "Protocol not active"
             );
         }
-        require(token == address(stablecoin), "Wrong ERC20 used for deposit");
         for (uint256 index = 0; index < protocolsId.length; index++) {
             for (uint256 index2 = 0; index2 < protocolsId.length; index2++) {
                 require(
@@ -78,17 +78,28 @@ contract Athena is Multicall, ReentrancyGuard, Ownable {
                     "Protocol not compatible"
                 );
             }
+            _mintProtocol(protocolsId[index]);
         }
-        //@dev double check 
-        IERC20(stablecoin).safeTransferFrom(msg.sender, address(this), amount);
-        //@dev TODO Transfer to AAVE, get LP
-        IPositionsManager(positionsManager).addLiquidity(msg.sender, 0, amount, protocolsId);
+        _transferLiquidity(amount);
+        IPositionsManager(positionsManager).addLiquidity(
+            msg.sender,
+            0,
+            amount,
+            protocolsId
+        );
     }
 
+    function _transferLiquidity(uint256 amount) internal {
+        //@dev TODO Transfer to AAVE, get LP
+        //@dev double check
+        IERC20(stablecoin).safeTransferFrom(msg.sender, address(this), amount);
+    }
+
+    function _mintProtocol(uint128 protocolId) internal {}
 
     function initialize(address positionsAddress) external onlyOwner {
         positionsManager = positionsAddress;
-        //initialized = true; //@dev required ? 
+        //initialized = true; //@dev required ?
     }
 
     function addNewProtocol(
