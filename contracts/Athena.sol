@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import "./StakingRewards.sol";
 // import "./Vault.sol";
-import "./PositionManager.sol";
+import "./interfaces/IPositionsManager.sol";
 
 contract Athena is Multicall, ReentrancyGuard, Ownable {
     using SafeERC20 for IERC20;
@@ -18,6 +18,8 @@ contract Athena is Multicall, ReentrancyGuard, Ownable {
         string name;
         //address for the protocol interface to be unique
         address protocolAddress;
+        //Premium rate to pay for this protocol
+        uint8 premiumRate;
         //Protocol guarantee type, could be 0 = smart contract vuln, 1 = unpeg, 2 = rug pull ...
         uint8 guarantee;
     }
@@ -26,12 +28,15 @@ contract Athena is Multicall, ReentrancyGuard, Ownable {
         public incompatibilityProtocols;
     mapping(uint128 => bool) public activeProtocols;
     address public stablecoin;
+    // AAVE lending pool
+    address public lendingpool;
+    address public positionsManager;
+
+    uint8 premiumDivisor;
 
     Protocol[] public protocols;
-
-    PositionManager private positions;
-    // Vault private vaultManager;
     StakingRewards private staking;
+    // Vault private vaultManager;
 
     event NewProtocol(uint128);
     event AddGuarantee(
@@ -43,12 +48,13 @@ contract Athena is Multicall, ReentrancyGuard, Ownable {
     constructor(
         address stablecoinUsed,
         address _stakingToken,
-        address _rewardsToken
+        address _rewardsToken,
+        address aaveLendingPool
     ) {
-        positions = new PositionManager(address(this));
         // vaultManager = new Vault(stablecoinUsed, address(this));
         staking = new StakingRewards(_stakingToken, _rewardsToken);
         stablecoin = stablecoinUsed;
+        lendingpool = aaveLendingPool;
     }
 
     function deposit(
@@ -73,21 +79,22 @@ contract Athena is Multicall, ReentrancyGuard, Ownable {
                 );
             }
         }
+        //@dev double check 
         IERC20(stablecoin).safeTransferFrom(msg.sender, address(this), amount);
-        positions.mint(msg.sender, 0, amount, abi.encode(protocolsId));
+        //@dev TODO Transfer to AAVE, get LP
+        IPositionsManager(positionsManager).addLiquidity(msg.sender, 0, amount, protocolsId);
     }
 
-    function balanceOf(address _owner, uint256 _id)
-        public
-        view
-        returns (uint256)
-    {
-        return positions.balanceOf(_owner, _id);
+
+    function initialize(address positionsAddress) external onlyOwner {
+        positionsManager = positionsAddress;
+        //initialized = true; //@dev required ? 
     }
 
     function addNewProtocol(
         string calldata name,
         uint8 guaranteeType,
+        uint8 premium,
         address iface,
         uint128[] calldata protocolsNotCompat
     ) public onlyOwner {
@@ -95,6 +102,7 @@ contract Athena is Multicall, ReentrancyGuard, Ownable {
             id: uint128(protocols.length),
             name: name,
             protocolAddress: iface,
+            premiumRate: premium,
             guarantee: guaranteeType
         });
         for (uint256 i = 0; i < protocolsNotCompat.length; i++) {

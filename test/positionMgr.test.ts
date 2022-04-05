@@ -11,13 +11,14 @@ const ATEN_TOKEN = "0x86ceb9fa7f5ac373d275d328b7aca1c05cfb0283";
 const USDT = "0xdac17f958d2ee523a2206206994597c13d831ec7"; //USDT
 const USDT_Wrong = "0xdac17f958d2ee523a2206206994597c13d831ec8"; //USDT
 const WETH = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2";
+const AAVE_LENDING_POOL = "0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9";
 const NULL_ADDRESS = "0x" + "0".repeat(40);
 const STAKING_TOKEN = WETH;
 
 const USDT_TOKEN_CONTRACT = new ethers.Contract(USDT, weth_abi);
 
 const STAKING_TOKEN_CONTRACT = new ethers.Contract(
-  STAKING_TOKEN,
+  ATEN_TOKEN,
   weth_abi
 ).connect(ethers.provider.getSigner());
 
@@ -25,6 +26,9 @@ let owner: originalEthers.Signer, user: originalEthers.Signer;
 let ownerAddress: string;
 let userAddress: string;
 let ATHENA_CONTRACT: ethersOriginal.Contract;
+let POS_CONTRACT: ethersOriginal.Contract;
+
+const BN = (num: string | number) => ethers.BigNumber.from(num);
 
 describe("Position Manager", function () {
   const ETH_VALUE = "5000";
@@ -64,7 +68,7 @@ describe("Position Manager", function () {
     const factory = await ethers.getContractFactory("Athena");
     ATHENA_CONTRACT = await factory
       .connect(owner)
-      .deploy(USDT, STAKING_TOKEN, ATEN_TOKEN);
+      .deploy(USDT, STAKING_TOKEN, ATEN_TOKEN, AAVE_LENDING_POOL);
     //await factory.deploy(STAKING_TOKEN, ATEN_TOKEN);
     await ATHENA_CONTRACT.deployed();
 
@@ -73,6 +77,18 @@ describe("Position Manager", function () {
     expect(await ethers.provider.getCode(ATHENA_CONTRACT.address)).to.not.equal(
       "0x"
     );
+    /** Positions Manager */
+    const factoryPos = await ethers.getContractFactory("PositionsManager");
+    POS_CONTRACT = await factoryPos
+      .connect(owner)
+      .deploy(ATHENA_CONTRACT.address);
+    await POS_CONTRACT.deployed();
+    expect(await ethers.provider.getCode(POS_CONTRACT.address)).to.not.equal(
+      "0x"
+    );
+
+    const init = await ATHENA_CONTRACT.initialize(POS_CONTRACT.address);
+
     //BINANCE WALLET 1Md2 USDT 0xF977814e90dA44bFA03b6295A0616a897441aceC
     await hre.network.provider.request({
       method: "hardhat_impersonateAccount",
@@ -104,15 +120,20 @@ describe("Position Manager", function () {
   });
   it("Should revert new active Protocol not owner", async function () {
     await expect(
-      ATHENA_CONTRACT.connect(user).addNewProtocol("Test protocol", 0, WETH, [
+      ATHENA_CONTRACT.connect(user).addNewProtocol(
+        "Test protocol",
         0,
-      ])
+        1,
+        WETH,
+        [0]
+      )
     ).to.be.rejectedWith("Ownable: caller is not the owner");
   });
   it("Should set new active Protocol", async function () {
     const tx = await ATHENA_CONTRACT.addNewProtocol(
       "Test protocol",
       0,
+      30,
       WETH,
       []
     );
@@ -125,6 +146,7 @@ describe("Position Manager", function () {
     const tx = await ATHENA_CONTRACT.addNewProtocol(
       "Test protocol 2",
       0,
+      30,
       NULL_ADDRESS,
       []
     );
@@ -137,6 +159,7 @@ describe("Position Manager", function () {
     const tx = await ATHENA_CONTRACT.addNewProtocol(
       "Test protocol 3",
       0,
+      30,
       NULL_ADDRESS,
       [0]
     );
@@ -173,9 +196,25 @@ describe("Position Manager", function () {
       ATHENA_CONTRACT.address
     );
     expect(bal).to.equal(10000);
+    const tx2 = await ATHENA_CONTRACT.connect(user).deposit(10001, USDT, [0]);
+    expect(tx2).to.haveOwnProperty("hash");
+    const bal2 = await USDT_TOKEN_CONTRACT.connect(user).balanceOf(
+      ATHENA_CONTRACT.address
+    );
+    expect(bal2).to.equal(20001);
 
-    const balNFT = await ATHENA_CONTRACT.balanceOf(userAddress, 0);
-    expect(balNFT).to.equal("1");
+    const balNFT = await POS_CONTRACT.balanceOf(userAddress);
+    const userNFTindex = await POS_CONTRACT.tokenOfOwnerByIndex(userAddress, 0);
+    const userNFTindex2 = await POS_CONTRACT.tokenOfOwnerByIndex(
+      userAddress,
+      1
+    );
+    expect(balNFT).to.equal("2");
+    expect(userNFTindex).to.equal("0"); // tokenid 0
+    expect(userNFTindex2).to.equal("1"); // tokenid 1
+    const position = await POS_CONTRACT.positions(0);
+    expect(position.liquidity).to.equal(BN("10000"));
+    expect(position.protocols).to.deep.equal([BN(0), BN(1)]); // deep equal because array is different, BN values are the same
   });
   //await ATHENA_CONTRACT.balanceOf(signerAddress)).to.be.true;
 });
@@ -216,7 +255,12 @@ describe("Policy Manager", function () {
 
   it("Should deploy contract", async function () {
     const factory = await ethers.getContractFactory("Athena");
-    ATHENA_CONTRACT = await factory.deploy(USDT, STAKING_TOKEN, ATEN_TOKEN);
+    ATHENA_CONTRACT = await factory.deploy(
+      USDT,
+      STAKING_TOKEN,
+      ATEN_TOKEN,
+      AAVE_LENDING_POOL
+    );
     //await factory.deploy(STAKING_TOKEN, ATEN_TOKEN);
     await ATHENA_CONTRACT.deployed();
 

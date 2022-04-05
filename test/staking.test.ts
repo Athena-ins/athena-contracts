@@ -133,30 +133,4 @@ describe("Staking Rewards", function () {
     ).to.be.greaterThan(0);
   });
 
-  /**
-   *
-   * PROTOCOLS Handlers
-   * POSITION MANAGER ERC721
-   *
-   */
-
-  it("Should revert inactive protocol for depositing funds", async function () {
-    expect(ATHENA_CONTRACT.provideProtocolFund([0])).revertedWith(
-      "Protocol not active"
-    );
-  });
-  it("Should set new active Protocol", async function () {
-    const tx = await ATHENA_CONTRACT.addNewProtocol("Test protocol", 0, WETH, [
-      0,
-    ]);
-    expect(tx).to.haveOwnProperty("hash");
-    const prot = await ATHENA_CONTRACT.protocols(0);
-    expect(prot.name).to.equal("Test protocol");
-  });
-
-  it("Should get NFT for depositing funds", async function () {
-    const tx = await ATHENA_CONTRACT.provideProtocolFund([0]);
-    expect(tx).to.haveOwnProperty("hash");
-  });
-  //await ATHENA_CONTRACT.balanceOf(signerAddress)).to.be.true;
 });
