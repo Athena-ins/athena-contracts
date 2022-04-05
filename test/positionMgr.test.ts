@@ -215,6 +215,10 @@ describe("Position Manager", function () {
     const position = await POS_CONTRACT.positions(0);
     expect(position.liquidity).to.equal(BN("10000"));
     expect(position.protocols).to.deep.equal([BN(0), BN(1)]); // deep equal because array is different, BN values are the same
+
+    const position2 = await POS_CONTRACT.positions(1);
+    expect(position2.liquidity).to.equal(BN("10001"));
+    expect(position2.protocols).to.deep.equal([BN(0)]); // deep equal because array is different, BN values are the same
   });
   //await ATHENA_CONTRACT.balanceOf(signerAddress)).to.be.true;
 });
