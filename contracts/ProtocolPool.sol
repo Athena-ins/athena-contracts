@@ -1,14 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8;
-import "@openzeppelin/contracts/utils/Multicall.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "./PremiumRewards.sol";
 
-contract ProtocolPool is ERC20, ReentrancyGuard, Ownable, Pausable {
-    address immutable core;
-    address immutable underlyingAssetAddress; 
+contract ProtocolPool is ERC20, Ownable, Pausable, PremiumRewards {
+    address immutable private core;
+    address immutable public underlyingAssetAddress;
 
     //@dev constructs Pool LP Tokens, decimals defaults to 18
     constructor(
@@ -16,8 +15,18 @@ contract ProtocolPool is ERC20, ReentrancyGuard, Ownable, Pausable {
         address _underlyingAsset,
         string memory _name,
         string memory _symbol
-    ) ERC20(_name, _symbol) {
+    ) ERC20(_name, _symbol) PremiumRewards(_underlyingAsset) {
         core = _core;
         underlyingAssetAddress = _underlyingAsset;
+    }
+
+    modifier onlyCore() {
+        require(msg.sender == core, "Only Core");
+        _;
+    }
+
+    function mint(address _account, uint256 _amount) external onlyCore {
+        _stake(_amount);
+        _mint(_account, _amount);
     }
 }

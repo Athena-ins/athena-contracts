@@ -23,12 +23,12 @@ const main = async () => {
 
   const WETH_Contract = new ethers.Contract(WETH_ADDRESS, weth_abi, provider);
 
-  const allowance = await WETH_Contract.allowance(
-    "0x5AA3393e361C2EB342408559309b3e873CD876d6",
-    "0x58418d6c83EfAB01ed78b0AC42E55af01eE77DbA"
-  );
+  // const allowance = await WETH_Contract.allowance(
+  //   "0x5AA3393e361C2EB342408559309b3e873CD876d6",
+  //   "0x58418d6c83EfAB01ed78b0AC42E55af01eE77DbA"
+  // );
 
-  console.log("ALLOW : ", ethers.utils.formatEther(allowance));
+  // console.log("ALLOW : ", ethers.utils.formatEther(allowance));
 
   // const msg = await wallet.connect(provider).sendTransaction({
   //   to: "0x967d98e659f2787A38d928B9B7a49a2E4701B30C",

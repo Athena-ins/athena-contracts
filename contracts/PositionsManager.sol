@@ -14,7 +14,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
         uint128 discount;
         // alternative would be mapping id to protocol data
         // like amount for Protocol, ...
-        PositionsLibrary.ProtocolPosition[] protocolsPositions;
+        uint128[] protocolsId;
     }
 
     address private core;
@@ -46,25 +46,25 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
         view
         returns (
             uint256 liquidity,
-            PositionsLibrary.ProtocolPosition[] memory protocols
+            uint128[] memory protocolsId
         )
     {
         Position memory position = _positions[tokenId];
-        return (position.providedLiquidity, position.protocolsPositions);
+        return (position.providedLiquidity, position.protocolsId);
     }
 
-    function addLiquidity(
+    function mint(
         address to,
         uint128 _discount,
         uint256 amount,
         uint256 atenStake,
-        PositionsLibrary.ProtocolPosition[] calldata _protocolsPositions
+        uint128[] calldata _protocolsIds
     ) external override onlyCore {
         _positions[_nextId] = Position({
             owner: to,
             providedLiquidity: amount,
             discount: _discount,
-            protocolsPositions: _protocolsPositions,
+            protocolsId: _protocolsIds,
             atens: atenStake
         });
         _mint(to, _nextId);

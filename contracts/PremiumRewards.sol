@@ -3,31 +3,34 @@ pragma solidity ^0.8;
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-contract StakingRewards is ReentrancyGuard {
+contract PremiumRewards is ReentrancyGuard {
     IERC20 public rewardsToken;
-    IERC20 public stakingToken;
 
-    uint public rewardRate = 1;
-    uint public lastUpdateTime;
-    uint public rewardPerTokenStored;
-    uint public precision = 1e18;
+    uint256 public rewardRate = 1;
+    uint256 public lastUpdateTime;
+    uint256 public rewardPerTokenStored;
+    uint256 public precision = 1e18;
 
-    mapping(address => uint) public userRewardPerTokenPaid;
-    mapping(address => uint) public rewards;
+    mapping(address => uint256) public userRewardPerTokenPaid;
+    mapping(address => uint256) public rewards;
 
-    uint public totalShares;
-    mapping(address => uint) private _balances;
+    uint256 public totalShares;
+    uint256 public premiumSupply;
+    mapping(address => uint256) private _balances;
 
-    constructor(address _stakingToken, address _rewardsToken) {
-        stakingToken = IERC20(_stakingToken);
+    constructor(address _rewardsToken) {
         rewardsToken = IERC20(_rewardsToken);
     }
 
-    function balanceOfPremiums(address account) external view returns (uint256) {
-        return _balances[account];
+    function depositPremium(uint256 _amount) internal {
+        premiumSupply += _amount;
     }
 
-    function rewardPerToken() public view returns (uint) {
+    function balanceOfPremiums(address _account) external view returns (uint256) {
+        return _balances[_account];
+    }
+
+    function rewardPerToken() public view returns (uint256) {
         if (totalShares == 0) {
             return 0;
         }
@@ -36,7 +39,7 @@ contract StakingRewards is ReentrancyGuard {
             (((block.timestamp - lastUpdateTime) * rewardRate * precision) / totalShares);
     }
 
-    function earned(address account) public view returns (uint) {
+    function earned(address account) public view returns (uint256) {
         return
             ((_balances[account] *
                 (rewardPerToken() - userRewardPerTokenPaid[account]))) +
@@ -51,20 +54,18 @@ contract StakingRewards is ReentrancyGuard {
         _;
     }
 
-    function _stake(uint _amount) internal updateReward(msg.sender) nonReentrant {
+    function _stake(uint256 _amount) internal updateReward(msg.sender) nonReentrant {
         totalShares += _amount;
         _balances[msg.sender] += _amount;
-        stakingToken.transferFrom(msg.sender, address(this), _amount);
     }
 
-    function withdraw(uint _amount) external updateReward(msg.sender) nonReentrant {
+    function withdraw(uint256 _amount) external updateReward(msg.sender) nonReentrant {
         totalShares -= _amount;
         _balances[msg.sender] -= _amount;
-        stakingToken.transfer(msg.sender, _amount);
     }
 
     function claim() external updateReward(msg.sender) nonReentrant {
-        uint reward = rewards[msg.sender];
+        uint256 reward = rewards[msg.sender];
         rewards[msg.sender] = 0;
         rewardsToken.transfer(msg.sender, reward);
     }

@@ -13,7 +13,7 @@ const USDT_Wrong = "0xdac17f958d2ee523a2206206994597c13d831ec8"; //USDT
 const WETH = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2";
 const AAVE_LENDING_POOL = "0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9";
 const NULL_ADDRESS = "0x" + "0".repeat(40);
-const STAKING_TOKEN = WETH;
+const STAKING_TOKEN = USDT;
 
 const USDT_TOKEN_CONTRACT = new ethers.Contract(USDT, weth_abi);
 
@@ -72,7 +72,7 @@ describe("Position Manager", function () {
     const factory = await ethers.getContractFactory("Athena");
     ATHENA_CONTRACT = await factory
       .connect(owner)
-      .deploy(USDT, STAKING_TOKEN, ATEN_TOKEN, AAVE_LENDING_POOL);
+      .deploy(USDT, ATEN_TOKEN, AAVE_LENDING_POOL);
     //await factory.deploy(STAKING_TOKEN, ATEN_TOKEN);
     await ATHENA_CONTRACT.deployed();
 
@@ -98,6 +98,9 @@ describe("Position Manager", function () {
     expect(
       await ethers.provider.getCode(STAKED_ATENS_CONTRACT.address)
     ).to.not.equal("0x");
+    /**
+     * Initialize protocol with required values
+     */
     const init = await ATHENA_CONTRACT.initialize(
       POS_CONTRACT.address,
       STAKED_ATENS_CONTRACT.address
@@ -142,9 +145,9 @@ describe("Position Manager", function () {
    */
 
   it("Should revert inactive protocol for depositing funds", async function () {
-    expect(ATHENA_CONTRACT.connect(user).deposit(10000, 0, [0])).revertedWith(
-      "Protocol not active"
-    );
+    expect(
+      ATHENA_CONTRACT.connect(user).deposit(10000, 0, [0], [1])
+    ).revertedWith("Protocol not active");
   });
   it("Should revert new active Protocol not owner", async function () {
     await expect(
@@ -157,9 +160,9 @@ describe("Position Manager", function () {
       )
     ).to.be.rejectedWith("Ownable: caller is not the owner");
   });
-  it("Should set new active Protocol", async function () {
+  it("Should set new active Protocol 0", async function () {
     const tx = await ATHENA_CONTRACT.addNewProtocol(
-      "Test protocol",
+      "Test protocol 0",
       0,
       30,
       WETH,
@@ -167,33 +170,33 @@ describe("Position Manager", function () {
     );
     expect(tx).to.haveOwnProperty("hash");
     const prot = await ATHENA_CONTRACT.protocols(0);
-    expect(prot.name).to.equal("Test protocol");
+    expect(prot.name).to.equal("Test protocol 0");
   });
 
-  it("Should set new active Protocol 2 ", async function () {
+  it("Should set new active Protocol 1 ", async function () {
     const tx = await ATHENA_CONTRACT.addNewProtocol(
-      "Test protocol 2",
+      "Test protocol 1",
       0,
       30,
       NULL_ADDRESS,
       []
     );
     expect(tx).to.haveOwnProperty("hash");
-    const prot = await ATHENA_CONTRACT.protocols(0);
-    expect(prot.name).to.equal("Test protocol");
+    const prot = await ATHENA_CONTRACT.protocols(1);
+    expect(prot.name).to.equal("Test protocol 1");
   });
 
-  it("Should set new active Protocol 3 not compatible with 0", async function () {
+  it("Should set new active Protocol 2 not compatible with 0", async function () {
     const tx = await ATHENA_CONTRACT.addNewProtocol(
-      "Test protocol 3",
+      "Test protocol 2",
       0,
       30,
       NULL_ADDRESS,
       [0]
     );
     expect(tx).to.haveOwnProperty("hash");
-    const prot = await ATHENA_CONTRACT.protocols(0);
-    expect(prot.name).to.equal("Test protocol");
+    const prot = await ATHENA_CONTRACT.protocols(2);
+    expect(prot.name).to.equal("Test protocol 2");
   });
 
   // Not used anymore, assuming token is checked and transferred
@@ -202,12 +205,6 @@ describe("Position Manager", function () {
   //     ATHENA_CONTRACT.connect(user).deposit(10000, USDT_Wrong, [0])
   //   ).revertedWith("Wrong ERC20 used for deposit");
   // });
-
-  it("Should revert for wrong compatibility protocols for depositing funds", async function () {
-    await expect(
-      ATHENA_CONTRACT.connect(user).deposit(10000, USDT, [0, 2])
-    ).revertedWith("Protocol not compatible");
-  });
 
   it("Should set discounts with Aten", async function () {
     const tx = await ATHENA_CONTRACT.connect(owner).setDiscountWithAten([
@@ -264,56 +261,92 @@ describe("Position Manager", function () {
     );
   });
 
-  it("Should get NFT for depositing funds", async function () {
-    //Approve before sending !
-    const approved = await new ethers.Contract(USDT, weth_abi, user).approve(
-      ATHENA_CONTRACT.address,
-      utils.parseEther("100000000000")
-    );
-    await approved.wait();
-    const tx = await ATHENA_CONTRACT.connect(user).deposit(
-      10000,
-      10000,
-      [0, 1]
-    );
-    expect(tx).to.haveOwnProperty("hash");
-    const bal = await USDT_TOKEN_CONTRACT.connect(user).balanceOf(
-      ATHENA_CONTRACT.address
-    );
-    expect(bal).to.equal(10000);
+  describe("Deposit funds", () => {
+    it("Should approve funds", async function () {
+      //Approve before sending !
+      const approved = await new ethers.Contract(USDT, weth_abi, user).approve(
+        ATHENA_CONTRACT.address,
+        utils.parseEther("100000000000")
+      );
+      await approved.wait();
+      expect(approved).to.haveOwnProperty("hash");
+    });
+    it("Should revert for wrong length of args", async function () {
+      await expect(
+        ATHENA_CONTRACT.connect(user).deposit(10000, USDT, [0, 2], [1])
+      ).revertedWith("Invalid deposit protocol length");
+    });
+    it("Should revert for wrong compatibility protocols for depositing funds", async function () {
+      await expect(
+        ATHENA_CONTRACT.connect(user).deposit(10000, USDT, [0, 2], [1, 1])
+      ).revertedWith("Protocol not compatible");
+    });
+    it("Should revert for wrong compatibility protocols for depositing funds, inverted numbers", async function () {
+      await expect(
+        ATHENA_CONTRACT.connect(user).deposit(10000, USDT, [2, 0], [1, 1])
+      ).revertedWith("Protocol not compatible");
+    });
+    it("Should success deposit funds user 1", async function () {
+      const tx = await ATHENA_CONTRACT.connect(user).deposit(
+        10000,
+        10000,
+        [0, 1],
+        [10000, 10000]
+      );
+      expect(tx).to.haveOwnProperty("hash");
+      const bal = await USDT_TOKEN_CONTRACT.connect(user).balanceOf(
+        ATHENA_CONTRACT.address
+      );
+      expect(bal).to.equal(10000);
+    });
 
-    await expect(
-      ATHENA_CONTRACT.connect(user).deposit(1, 1, [0])
-    ).to.be.rejectedWith("Already have a position");
+    it("Should fail depositing funds for earlier position", async function () {
+      await expect(
+        ATHENA_CONTRACT.connect(user).deposit(1, 1, [0], [1])
+      ).to.be.rejectedWith("Already have a position");
+    });
+    it("Should success deposit funds user 2", async function () {
+      const approved2 = await new ethers.Contract(
+        USDT,
+        weth_abi,
+        user2
+      ).approve(ATHENA_CONTRACT.address, utils.parseEther("100000000000"));
+      await approved2.wait();
+      const tx2 = await ATHENA_CONTRACT.connect(user2).deposit(
+        10001,
+        10000,
+        [0],
+        [10000]
+      );
+      expect(tx2).to.haveOwnProperty("hash");
+    });
+    it("Should check funds and NFT", async function () {
+      const bal2 = await USDT_TOKEN_CONTRACT.connect(user2).balanceOf(
+        ATHENA_CONTRACT.address
+      );
+      expect(bal2).to.equal(20001);
 
-    const approved2 = await new ethers.Contract(USDT, weth_abi, user2).approve(
-      ATHENA_CONTRACT.address,
-      utils.parseEther("100000000000")
-    );
-    await approved.wait();
-    const tx2 = await ATHENA_CONTRACT.connect(user2).deposit(10001, 10000, [0]);
-    expect(tx2).to.haveOwnProperty("hash");
-    const bal2 = await USDT_TOKEN_CONTRACT.connect(user2).balanceOf(
-      ATHENA_CONTRACT.address
-    );
-    expect(bal2).to.equal(20001);
+      const balNFT = await POS_CONTRACT.balanceOf(userAddress);
+      const userNFTindex = await POS_CONTRACT.tokenOfOwnerByIndex(
+        userAddress,
+        0
+      );
+      const userNFTindex2 = await POS_CONTRACT.tokenOfOwnerByIndex(
+        user2.getAddress(),
+        0
+      );
+      expect(balNFT).to.equal("1");
+      expect(userNFTindex).to.equal("0"); // tokenid 0
+      expect(userNFTindex2).to.equal("1"); // tokenid 1
+      const position = await POS_CONTRACT.positions(0);
+      expect(position.liquidity).to.equal(BN("10000"));
+      expect(position.protocolsId).to.deep.equal([BN(0), BN(1)]); // deep equal because array is different, BN values are the same
 
-    const balNFT = await POS_CONTRACT.balanceOf(userAddress);
-    const userNFTindex = await POS_CONTRACT.tokenOfOwnerByIndex(userAddress, 0);
-    const userNFTindex2 = await POS_CONTRACT.tokenOfOwnerByIndex(
-      user2.getAddress(),
-      0
-    );
-    expect(balNFT).to.equal("1");
-    expect(userNFTindex).to.equal("0"); // tokenid 0
-    expect(userNFTindex2).to.equal("1"); // tokenid 1
-    const position = await POS_CONTRACT.positions(0);
-    expect(position.liquidity).to.equal(BN("10000"));
-    expect(position.protocols).to.deep.equal([BN(0), BN(1)]); // deep equal because array is different, BN values are the same
-
-    const position2 = await POS_CONTRACT.positions(1);
-    expect(position2.liquidity).to.equal(BN("10001"));
-    expect(position2.protocols).to.deep.equal([BN(0)]); // deep equal because array is different, BN values are the same
+      const position2 = await POS_CONTRACT.positions(1);
+      expect(position2.liquidity).to.equal(BN("10001"));
+      expect(position2.protocolsId).to.deep.equal([BN(0)]); // deep equal because array is different, BN values are the same
+    });
   });
+
   //await ATHENA_CONTRACT.balanceOf(signerAddress)).to.be.true;
 });

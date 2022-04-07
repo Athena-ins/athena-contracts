@@ -2,18 +2,19 @@
 pragma solidity ^0.8;
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-
-import "./StakingRewards.sol";
+import "@openzeppelin/contracts/utils/Multicall.sol";
+import "./ProtocolPool.sol";
 import "./interfaces/IPositionsManager.sol";
-import "./library/PositionsLibrary.sol";
+
+// import "./library/PositionsLibrary.sol";
 
 contract Athena is Multicall, ReentrancyGuard, Ownable {
     using SafeERC20 for IERC20;
     struct Protocol {
         //id in mapping
         uint128 id;
-        //compatibility with other protocols
-        // uint128[] compatibility;
+        //Protocol Pool Address deployed
+        address deployed;
         //Protocol name
         string name;
         //address for the protocol interface to be unique
@@ -32,8 +33,9 @@ contract Athena is Multicall, ReentrancyGuard, Ownable {
     address public lendingpool;
     address public positionsManager;
     address public stakedAtensGP;
+    address public rewardsToken;
 
-    uint8 premiumDivisor;
+    uint8 private premiumDivisor;
 
     struct AtenDiscount {
         uint256 atenAmount;
@@ -43,8 +45,6 @@ contract Athena is Multicall, ReentrancyGuard, Ownable {
     AtenDiscount[] public premiumAtenDiscounts;
 
     Protocol[] public protocols;
-    StakingRewards private staking;
-    // Vault private vaultManager;
 
     event NewProtocol(uint128);
     event AddGuarantee(
@@ -55,12 +55,10 @@ contract Athena is Multicall, ReentrancyGuard, Ownable {
 
     constructor(
         address stablecoinUsed,
-        address _stakingToken,
         address _rewardsToken,
         address aaveLendingPool
     ) {
-        // vaultManager = new Vault(stablecoinUsed, address(this));
-        staking = new StakingRewards(_stakingToken, _rewardsToken);
+        rewardsToken = _rewardsToken;
         stablecoin = stablecoinUsed;
         lendingpool = aaveLendingPool;
     }
@@ -77,41 +75,55 @@ contract Athena is Multicall, ReentrancyGuard, Ownable {
     function deposit(
         uint256 amount,
         uint256 atenToStake,
-        PositionsLibrary.ProtocolPosition[] calldata _protocolsPositions
+        uint128[] calldata _protocolIds,
+        uint256[] calldata _amounts
     ) public payable nonReentrant {
         require(
             IPositionsManager(positionsManager).balanceOf(msg.sender) == 0,
             "Already have a position"
         );
-        for (uint256 index = 0; index < _protocolsPositions.length; index++) {
+        require(
+            _protocolIds.length == _amounts.length,
+            "Invalid deposit protocol length"
+        );
+        for (uint256 index = 0; index < _protocolIds.length; index++) {
             require(
-                activeProtocols[_protocolsPositions[index].protocolId] == true,
+                activeProtocols[_protocolIds[index]] == true,
                 "Protocol not active"
             );
             for (
-                uint256 index2 = 0;
-                index2 < _protocolsPositions.length;
+                uint256 index2 = index + 1;
+                index2 < _protocolIds.length;
                 index2++
             ) {
+                //@Dev TODO WARNING issue here with protocols inverted ??
                 require(
-                    incompatibilityProtocols[
-                        _protocolsPositions[index].protocolId
-                    ][_protocolsPositions[index2].protocolId] == false,
+                    incompatibilityProtocols[_protocolIds[index2]][
+                        _protocolIds[index]
+                    ] ==
+                        false &&
+                        incompatibilityProtocols[_protocolIds[index]][
+                            _protocolIds[index2]
+                        ] ==
+                        false,
                     "Protocol not compatible"
                 );
             }
-            _mintProtocol(_protocolsPositions[index]);
+            ProtocolPool(protocols[_protocolIds[index]].deployed).mint(
+                msg.sender,
+                _amounts[index]
+            );
         }
         _transferLiquidity(amount);
         //@dev TODO stake atens and get corresponding discount
         //_stakeAtens();
         uint128 discount = getDiscountWithAten(atenToStake);
-        IPositionsManager(positionsManager).addLiquidity(
+        IPositionsManager(positionsManager).mint(
             msg.sender,
             discount,
             amount,
             atenToStake,
-            _protocolsPositions
+            _protocolIds
         );
     }
 
@@ -144,10 +156,6 @@ contract Athena is Multicall, ReentrancyGuard, Ownable {
         IERC20(stablecoin).safeTransferFrom(msg.sender, address(this), _amount);
     }
 
-    function _mintProtocol(
-        PositionsLibrary.ProtocolPosition calldata _protocolPosition
-    ) internal {}
-
     function addNewProtocol(
         string calldata name,
         uint8 guaranteeType,
@@ -155,20 +163,27 @@ contract Athena is Multicall, ReentrancyGuard, Ownable {
         address iface,
         uint128[] calldata protocolsNotCompat
     ) public onlyOwner {
+        ProtocolPool _protocolDeployed = new ProtocolPool(
+            address(this),
+            rewardsToken,
+            name,
+            string(abi.encodePacked("AT_PROTO_", protocols.length))
+        );
         Protocol memory newProtocol = Protocol({
             id: uint128(protocols.length),
             name: name,
             protocolAddress: iface,
             premiumRate: premium,
-            guarantee: guaranteeType
+            guarantee: guaranteeType,
+            deployed: address(_protocolDeployed)
         });
         for (uint256 i = 0; i < protocolsNotCompat.length; i++) {
             incompatibilityProtocols[newProtocol.id][
                 protocolsNotCompat[i]
             ] = true;
         }
+        activeProtocols[uint128(protocols.length)] = true;
         protocols.push(newProtocol);
-        activeProtocols[uint128(protocols.length - 1)] = true;
         emit NewProtocol(newProtocol.id);
     }
 
