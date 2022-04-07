@@ -3,14 +3,18 @@ pragma solidity ^0.8;
 
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "./interfaces/IPositionsManager.sol";
+import "./library/PositionsLibrary.sol";
 
 contract PositionsManager is IPositionsManager, ERC721Enumerable {
     struct Position {
-        uint256 providedLiquidity;
         address owner;
+        uint256 providedLiquidity;
+        //Aten to stake with position in stable
+        uint256 atens;
+        uint128 discount;
         // alternative would be mapping id to protocol data
         // like amount for Protocol, ...
-        uint128[] protocolsId;
+        PositionsLibrary.ProtocolPosition[] protocolsPositions;
     }
 
     address private core;
@@ -40,22 +44,28 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
     function positions(uint256 tokenId)
         external
         view
-        returns (uint256 liquidity, uint128[] memory protocols)
+        returns (
+            uint256 liquidity,
+            PositionsLibrary.ProtocolPosition[] memory protocols
+        )
     {
         Position memory position = _positions[tokenId];
-        return (position.providedLiquidity, position.protocolsId);
+        return (position.providedLiquidity, position.protocolsPositions);
     }
 
     function addLiquidity(
         address to,
-        uint256 id,
+        uint128 _discount,
         uint256 amount,
-        uint128[] calldata protocolsId
+        uint256 atenStake,
+        PositionsLibrary.ProtocolPosition[] calldata _protocolsPositions
     ) external override onlyCore {
         _positions[_nextId] = Position({
             owner: to,
             providedLiquidity: amount,
-            protocolsId: protocolsId
+            discount: _discount,
+            protocolsPositions: _protocolsPositions,
+            atens: atenStake
         });
         _mint(to, _nextId);
         _nextId++;

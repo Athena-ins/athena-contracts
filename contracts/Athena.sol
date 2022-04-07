@@ -4,8 +4,8 @@ pragma solidity ^0.8;
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import "./StakingRewards.sol";
-// import "./Vault.sol";
 import "./interfaces/IPositionsManager.sol";
+import "./library/PositionsLibrary.sol";
 
 contract Athena is Multicall, ReentrancyGuard, Ownable {
     using SafeERC20 for IERC20;
@@ -31,8 +31,16 @@ contract Athena is Multicall, ReentrancyGuard, Ownable {
     // AAVE lending pool
     address public lendingpool;
     address public positionsManager;
+    address public stakedAtensGP;
 
     uint8 premiumDivisor;
+
+    struct AtenDiscount {
+        uint256 atenAmount;
+        uint128 discount;
+    }
+
+    AtenDiscount[] public premiumAtenDiscounts;
 
     Protocol[] public protocols;
     StakingRewards private staking;
@@ -57,50 +65,88 @@ contract Athena is Multicall, ReentrancyGuard, Ownable {
         lendingpool = aaveLendingPool;
     }
 
+    function initialize(address positionsAddress, address _stakedAtensGP)
+        external
+        onlyOwner
+    {
+        positionsManager = positionsAddress;
+        stakedAtensGP = _stakedAtensGP;
+        //initialized = true; //@dev required ?
+    }
+
     function deposit(
         uint256 amount,
-        address token,
-        uint128[] calldata protocolsId
+        uint256 atenToStake,
+        PositionsLibrary.ProtocolPosition[] calldata _protocolsPositions
     ) public payable nonReentrant {
-        require(token == address(stablecoin), "Wrong ERC20 used for deposit");
-        for (uint256 i = 0; i < protocolsId.length; i++) {
+        require(
+            IPositionsManager(positionsManager).balanceOf(msg.sender) == 0,
+            "Already have a position"
+        );
+        for (uint256 index = 0; index < _protocolsPositions.length; index++) {
             require(
-                activeProtocols[protocolsId[i]] == true,
+                activeProtocols[_protocolsPositions[index].protocolId] == true,
                 "Protocol not active"
             );
-        }
-        for (uint256 index = 0; index < protocolsId.length; index++) {
-            for (uint256 index2 = 0; index2 < protocolsId.length; index2++) {
+            for (
+                uint256 index2 = 0;
+                index2 < _protocolsPositions.length;
+                index2++
+            ) {
                 require(
-                    incompatibilityProtocols[protocolsId[index]][
-                        protocolsId[index2]
-                    ] == false,
+                    incompatibilityProtocols[
+                        _protocolsPositions[index].protocolId
+                    ][_protocolsPositions[index2].protocolId] == false,
                     "Protocol not compatible"
                 );
             }
-            _mintProtocol(protocolsId[index]);
+            _mintProtocol(_protocolsPositions[index]);
         }
         _transferLiquidity(amount);
+        //@dev TODO stake atens and get corresponding discount
+        //_stakeAtens();
+        uint128 discount = getDiscountWithAten(atenToStake);
         IPositionsManager(positionsManager).addLiquidity(
             msg.sender,
-            0,
+            discount,
             amount,
-            protocolsId
+            atenToStake,
+            _protocolsPositions
         );
     }
 
-    function _transferLiquidity(uint256 amount) internal {
+    function setDiscountWithAten(AtenDiscount[] calldata _discountToSet)
+        public
+        onlyOwner
+    {
+        for (uint256 index = 0; index < _discountToSet.length; index++) {
+            premiumAtenDiscounts.push(_discountToSet[index]);
+        }
+    }
+
+    function getDiscountWithAten(uint256 _amount)
+        public
+        view
+        returns (uint128)
+    {
+        for (uint256 index = 0; index < premiumAtenDiscounts.length; index++) {
+            if (_amount < premiumAtenDiscounts[index].atenAmount)
+                return
+                    index == 0 ? 0 : premiumAtenDiscounts[index - 1].discount;
+        }
+        // Else we are above max discount, so give it max discount
+        return premiumAtenDiscounts[premiumAtenDiscounts.length - 1].discount;
+    }
+
+    function _transferLiquidity(uint256 _amount) internal {
         //@dev TODO Transfer to AAVE, get LP
         //@dev double check
-        IERC20(stablecoin).safeTransferFrom(msg.sender, address(this), amount);
+        IERC20(stablecoin).safeTransferFrom(msg.sender, address(this), _amount);
     }
 
-    function _mintProtocol(uint128 protocolId) internal {}
-
-    function initialize(address positionsAddress) external onlyOwner {
-        positionsManager = positionsAddress;
-        //initialized = true; //@dev required ?
-    }
+    function _mintProtocol(
+        PositionsLibrary.ProtocolPosition calldata _protocolPosition
+    ) internal {}
 
     function addNewProtocol(
         string calldata name,
