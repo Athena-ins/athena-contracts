@@ -60,6 +60,12 @@ contract FixedRateStakeable {
 
     function _setStakeRewards(RewardRate[] calldata _rewardToSet) internal {
         for (uint256 index = 0; index < _rewardToSet.length; index++) {
+            if (index > 0) {
+                require(
+                    _rewardToSet[index].amount > _rewardToSet[index - 1].amount,
+                    "Rate must be in ascending order"
+                );
+            }
             rewardRates.push(_rewardToSet[index]);
         }
     }
@@ -75,7 +81,7 @@ contract FixedRateStakeable {
         returns (uint256)
     {
         if (_userStake.amount == 0 || _userStake.rate == 0) return 0;
-        uint256 divRewardPerSecond = ((365 days) / _userStake.rate) * 100 * 100;
+        uint256 divRewardPerSecond = (365 days) * 100 * 100 / _userStake.rate;
         return
             ((block.timestamp - _userStake.since) * _userStake.amount) /
             divRewardPerSecond;
@@ -99,10 +105,7 @@ contract FixedRateStakeable {
      */
     function _withdrawStake(uint256 amount) internal returns (uint256) {
         Stakeholder storage userStake = stakes[msg.sender];
-        require(
-            userStake.amount >= amount,
-            "Invalid amount"
-        );
+        require(userStake.amount >= amount, "Invalid amount");
 
         // Calculate available Reward first before we start modifying data
         uint256 reward = calculateStakeReward(userStake);
@@ -120,7 +123,7 @@ contract FixedRateStakeable {
      * @notice
      * public function to view rewards available for a stake
      */
-    function hasRewards(address _staker)
+    function rewardsOf(address _staker)
         public
         view
         returns (uint256 rewards, uint128 rate)

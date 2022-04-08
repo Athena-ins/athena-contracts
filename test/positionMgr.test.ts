@@ -4,6 +4,7 @@ import { BigNumber, ethers as originalEthers } from "ethers";
 import { ethers as ethersOriginal, utils } from "ethers";
 import weth_abi from "../abis/weth.json";
 import chaiAsPromised from "chai-as-promised";
+import { increaseTimeAndMine } from "./helpers";
 
 chai.use(chaiAsPromised);
 
@@ -276,18 +277,33 @@ describe("Position Manager", function () {
   });
 
   it("Should set reward Rates ATEN with USD", async function () {
+    await expect(
+      STAKED_ATENS_CONTRACT.connect(owner).setStakeRewards([
+        [1000, 1000],
+        [10, 1200],
+      ])
+    ).to.be.rejectedWith("Rate must be in ascending order");
     const tx = await STAKED_ATENS_CONTRACT.connect(owner).setStakeRewards([
-      [1, 1000],
-      [10000, 1200],
-      [100000, 1600],
-      [1000000, 2000],
+      ["1", "1000"],
+      ["10000", "1200"],
+      ["100000", "1600"],
+      ["1000000", "2000"],
     ]);
     expect(tx).to.haveOwnProperty("hash");
     const discountFirst = await STAKED_ATENS_CONTRACT.connect(owner).getRate(0);
     expect(discountFirst).to.equal(BN(0));
-    expect(await STAKED_ATENS_CONTRACT.connect(owner).getRate(1000)).to.equal(
+    expect(await STAKED_ATENS_CONTRACT.connect(owner).getRate(10)).to.equal(
       BN(1000)
     );
+    expect(
+      await STAKED_ATENS_CONTRACT.connect(owner).getRate("10000")
+    ).to.equal(BN(1200));
+    expect(
+      await STAKED_ATENS_CONTRACT.connect(owner).getRate("100001")
+    ).to.equal(BN(1600));
+    expect(
+      await STAKED_ATENS_CONTRACT.connect(owner).getRate(1000000)
+    ).to.equal(BN(2000));
   });
 
   describe("Deposit funds", () => {
@@ -318,7 +334,7 @@ describe("Position Manager", function () {
     it("Should success deposit funds user 1", async function () {
       const tx = await ATHENA_CONTRACT.connect(user).deposit(
         10000,
-        1000000,
+        100000,
         [0, 1],
         [10000, 10000]
       );
@@ -382,26 +398,30 @@ describe("Position Manager", function () {
       const lp = await STAKED_ATENS_CONTRACT.connect(user).balanceOf(
         await user.getAddress()
       );
-      expect(lp).to.equal(BN(1000000));
+      expect(lp).to.equal(BN(100000));
       const lp2 = await STAKED_ATENS_CONTRACT.connect(user2).balanceOf(
         await user2.getAddress()
       );
       expect(lp2).to.equal(BN(9000000));
     });
     it("Should view rewards amount", async function () {
-      const rewards = await STAKED_ATENS_CONTRACT.connect(user).hasRewards(
+      increaseTimeAndMine(3600 * 24 * 365);
+      const rewards = await STAKED_ATENS_CONTRACT.connect(user).rewardsOf(
         userAddress
       );
-      const rewards2 = await STAKED_ATENS_CONTRACT.connect(user2).hasRewards(
-        user2.getAddress()
+      const rewards2 = await STAKED_ATENS_CONTRACT.connect(user2).rewardsOf(
+        await user2.getAddress()
       );
-      console.log("Rewards user 1 : ", rewards);
-      console.log("Rewards user 2 : ", rewards2);
+      // user1 deposited 10000 USD so reward is 1200 rate & deposited 100000 ATENS
+      expect(rewards[0]).to.equal(
+        BN(parseInt(((100000 * 12) / 100).toString()))
+      );
 
-      expect(rewards[0].toString()).to.not.equal("0");
       expect(rewards[1].toString()).to.equal("1200");
-      expect(rewards2[0].toString()).to.be.equal("0"); // still not mined a new block so should be 0
-      expect(rewards2[1].toSrring()).to.be.equal("1000");
+      expect(rewards2[0]).to.equal(
+        BN(parseInt(((9000000 * 10) / 100).toString()))
+      );
+      expect(rewards2[1].toString()).to.equal("1000"); // user2 deposited 1001 USD so reward is 1000
     });
     it("Should withdraw ATEN with rewards", async () => {
       const balanceBefore = await ATEN_TOKEN_CONTRACT.connect(user).balanceOf(
@@ -410,12 +430,14 @@ describe("Position Manager", function () {
       await expect(
         STAKED_ATENS_CONTRACT.connect(user).withdraw(1000001)
       ).to.be.rejectedWith("Invalid amount");
-      const tx = await STAKED_ATENS_CONTRACT.connect(user).withdraw(1000000);
+      const tx = await STAKED_ATENS_CONTRACT.connect(user).withdraw(100000);
       expect(tx).to.haveOwnProperty("hash");
       const balance = await ATEN_TOKEN_CONTRACT.connect(user).balanceOf(
         userAddress
       );
-      expect(balance.sub(balanceBefore)).to.equal(BN(1));
+      expect(balance.sub(balanceBefore)).to.equal(
+        BN(parseInt(((100000 * 12) / 100 + 100000).toString()))
+      );
     });
   });
 
