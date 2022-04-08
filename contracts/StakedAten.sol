@@ -25,13 +25,14 @@ contract StakedAten is ERC20, FixedRateStakeable, ReentrancyGuard, Ownable {
         _;
     }
 
-    function stake(uint256 _amount) public onlyCore {
+    function stake(address _account, uint256 _amount, uint256 _usdDeposit) public onlyCore {
         IERC20(underlyingAssetAddress).safeTransferFrom(
-            msg.sender,
+            _account,
             address(this),
             _amount
         );
-        _stake(_amount);
+        _stake(_account, _amount, _usdDeposit);
+        _mint(_account, _amount);
     }
 
     function setStakeRewards(RewardRate[] calldata _rewardToSet)
@@ -39,5 +40,13 @@ contract StakedAten is ERC20, FixedRateStakeable, ReentrancyGuard, Ownable {
         onlyOwner
     {
         _setStakeRewards(_rewardToSet);
+    }
+
+    function withdraw(uint256 _amount) public {
+        uint256 amountToReturn = _withdrawStake(_amount);
+        IERC20(underlyingAssetAddress).safeTransfer(
+            msg.sender,
+            amountToReturn
+        );
     }
 }

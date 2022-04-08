@@ -8,6 +8,7 @@ import chaiAsPromised from "chai-as-promised";
 chai.use(chaiAsPromised);
 
 const ATEN_TOKEN = "0x86ceb9fa7f5ac373d275d328b7aca1c05cfb0283";
+const ATEN_OWNER_ADDRESS = "0x967d98e659f2787A38d928B9B7a49a2E4701B30C";
 const USDT = "0xdac17f958d2ee523a2206206994597c13d831ec7"; //USDT
 const USDT_Wrong = "0xdac17f958d2ee523a2206206994597c13d831ec8"; //USDT
 const WETH = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2";
@@ -29,7 +30,8 @@ let owner: originalEthers.Signer,
   userAddress: string,
   ATHENA_CONTRACT: ethersOriginal.Contract,
   POS_CONTRACT: ethersOriginal.Contract,
-  STAKED_ATENS_CONTRACT: ethersOriginal.Contract;
+  STAKED_ATENS_CONTRACT: ethersOriginal.Contract,
+  ATEN_TOKEN_CONTRACT: ethersOriginal.Contract;
 
 const BN = (num: string | number) => ethers.BigNumber.from(num);
 
@@ -60,6 +62,7 @@ describe("Position Manager", function () {
       method: "evm_setNextBlockTimestamp",
       params: [DATE_NOW],
     });
+    ATEN_TOKEN_CONTRACT = new ethers.Contract(ATEN_TOKEN, weth_abi);
   });
 
   /**
@@ -136,6 +139,34 @@ describe("Position Manager", function () {
         await user2.getAddress()
       )
     ).to.equal(ethers.utils.parseUnits("100000", 6));
+
+    /** ATEN TOKENS  */
+    await hre.network.provider.request({
+      method: "hardhat_impersonateAccount",
+      params: [ATEN_OWNER_ADDRESS],
+    });
+    const atenOwnerSigner = await ethers.getSigner(ATEN_OWNER_ADDRESS);
+    const ATEN_TOKEN_CONTRACT = new ethers.Contract(
+      ATEN_TOKEN,
+      weth_abi,
+      atenOwnerSigner
+    );
+    await ATEN_TOKEN_CONTRACT.transfer(
+      userAddress,
+      ethers.utils.parseEther("10000000")
+    );
+    await ATEN_TOKEN_CONTRACT.transfer(
+      await user2.getAddress(),
+      ethers.utils.parseEther("10000000")
+    );
+    await ATEN_TOKEN_CONTRACT.connect(user).approve(
+      STAKED_ATENS_CONTRACT.address,
+      ethers.utils.parseEther("10000000")
+    );
+    await ATEN_TOKEN_CONTRACT.connect(user2).approve(
+      STAKED_ATENS_CONTRACT.address,
+      ethers.utils.parseEther("10000000")
+    );
   });
 
   /**
@@ -207,57 +238,55 @@ describe("Position Manager", function () {
   // });
 
   it("Should set discounts with Aten", async function () {
-    const tx = await ATHENA_CONTRACT.connect(owner).setDiscountWithAten([
-      [1000, 10],
-      [100000, 20],
+    const tx = await ATHENA_CONTRACT.connect(owner).setFeesWithAten([
+      [1000, 200],
+      [100000, 150],
       [1000000, 50],
     ]);
     expect(tx).to.haveOwnProperty("hash");
-    const discountFirst = await ATHENA_CONTRACT.connect(
-      owner
-    ).premiumAtenDiscounts(0);
+    const discountFirst = await ATHENA_CONTRACT.connect(owner).premiumAtenFees(
+      0
+    );
     expect(discountFirst.atenAmount).to.equal(BN(1000));
-    expect(discountFirst.discount).to.equal(BN(10));
-    const discountSnd = await ATHENA_CONTRACT.connect(
-      owner
-    ).premiumAtenDiscounts(1);
+    expect(discountFirst.discount).to.equal(BN(200));
+    const discountSnd = await ATHENA_CONTRACT.connect(owner).premiumAtenFees(1);
     expect(discountSnd.atenAmount).to.equal(BN(100000));
-    expect(discountSnd.discount).to.equal(BN(20));
-    const discountThird = await ATHENA_CONTRACT.connect(
-      owner
-    ).premiumAtenDiscounts(2);
+    expect(discountSnd.discount).to.equal(BN(150));
+    const discountThird = await ATHENA_CONTRACT.connect(owner).premiumAtenFees(
+      2
+    );
     expect(discountThird.atenAmount).to.equal(BN(1000000));
     expect(discountThird.discount).to.equal(BN(50));
 
     await expect(
-      ATHENA_CONTRACT.connect(owner).premiumAtenDiscounts(3)
+      ATHENA_CONTRACT.connect(owner).premiumAtenFees(3)
     ).to.be.rejectedWith();
   });
 
   it("Should get discount amount with Aten", async function () {
+    expect(await ATHENA_CONTRACT.connect(user).getFeesWithAten(999)).to.equal(
+      0
+    );
+    expect(await ATHENA_CONTRACT.connect(user).getFeesWithAten(1000)).to.equal(
+      200
+    );
     expect(
-      await ATHENA_CONTRACT.connect(user).getDiscountWithAten(999)
-    ).to.equal(0);
-    expect(
-      await ATHENA_CONTRACT.connect(user).getDiscountWithAten(1000)
-    ).to.equal(10);
-    expect(
-      await ATHENA_CONTRACT.connect(user).getDiscountWithAten(10000000)
+      await ATHENA_CONTRACT.connect(user).getFeesWithAten(10000000)
     ).to.equal(50);
   });
 
   it("Should set reward Rates ATEN with USD", async function () {
     const tx = await STAKED_ATENS_CONTRACT.connect(owner).setStakeRewards([
-      [1, 100],
-      [10000, 120],
-      [100000, 160],
-      [1000000, 200],
+      [1, 1000],
+      [10000, 1200],
+      [100000, 1600],
+      [1000000, 2000],
     ]);
     expect(tx).to.haveOwnProperty("hash");
     const discountFirst = await STAKED_ATENS_CONTRACT.connect(owner).getRate(0);
     expect(discountFirst).to.equal(BN(0));
     expect(await STAKED_ATENS_CONTRACT.connect(owner).getRate(1000)).to.equal(
-      BN(100)
+      BN(1000)
     );
   });
 
@@ -289,7 +318,7 @@ describe("Position Manager", function () {
     it("Should success deposit funds user 1", async function () {
       const tx = await ATHENA_CONTRACT.connect(user).deposit(
         10000,
-        10000,
+        1000000,
         [0, 1],
         [10000, 10000]
       );
@@ -313,8 +342,8 @@ describe("Position Manager", function () {
       ).approve(ATHENA_CONTRACT.address, utils.parseEther("100000000000"));
       await approved2.wait();
       const tx2 = await ATHENA_CONTRACT.connect(user2).deposit(
-        10001,
-        10000,
+        1001,
+        9000000,
         [0],
         [10000]
       );
@@ -324,7 +353,7 @@ describe("Position Manager", function () {
       const bal2 = await USDT_TOKEN_CONTRACT.connect(user2).balanceOf(
         ATHENA_CONTRACT.address
       );
-      expect(bal2).to.equal(20001);
+      expect(bal2).to.equal(11001);
 
       const balNFT = await POS_CONTRACT.balanceOf(userAddress);
       const userNFTindex = await POS_CONTRACT.tokenOfOwnerByIndex(
@@ -343,8 +372,50 @@ describe("Position Manager", function () {
       expect(position.protocolsId).to.deep.equal([BN(0), BN(1)]); // deep equal because array is different, BN values are the same
 
       const position2 = await POS_CONTRACT.positions(1);
-      expect(position2.liquidity).to.equal(BN("10001"));
+      expect(position2.liquidity).to.equal(BN("1001"));
       expect(position2.protocolsId).to.deep.equal([BN(0)]); // deep equal because array is different, BN values are the same
+    });
+  });
+
+  describe("LP & Staking amounts ", () => {
+    it("Should get LP amount", async function () {
+      const lp = await STAKED_ATENS_CONTRACT.connect(user).balanceOf(
+        await user.getAddress()
+      );
+      expect(lp).to.equal(BN(1000000));
+      const lp2 = await STAKED_ATENS_CONTRACT.connect(user2).balanceOf(
+        await user2.getAddress()
+      );
+      expect(lp2).to.equal(BN(9000000));
+    });
+    it("Should view rewards amount", async function () {
+      const rewards = await STAKED_ATENS_CONTRACT.connect(user).hasRewards(
+        userAddress
+      );
+      const rewards2 = await STAKED_ATENS_CONTRACT.connect(user2).hasRewards(
+        user2.getAddress()
+      );
+      console.log("Rewards user 1 : ", rewards);
+      console.log("Rewards user 2 : ", rewards2);
+
+      expect(rewards[0].toString()).to.not.equal("0");
+      expect(rewards[1].toString()).to.equal("1200");
+      expect(rewards2[0].toString()).to.be.equal("0"); // still not mined a new block so should be 0
+      expect(rewards2[1].toSrring()).to.be.equal("1000");
+    });
+    it("Should withdraw ATEN with rewards", async () => {
+      const balanceBefore = await ATEN_TOKEN_CONTRACT.connect(user).balanceOf(
+        userAddress
+      );
+      await expect(
+        STAKED_ATENS_CONTRACT.connect(user).withdraw(1000001)
+      ).to.be.rejectedWith("Invalid amount");
+      const tx = await STAKED_ATENS_CONTRACT.connect(user).withdraw(1000000);
+      expect(tx).to.haveOwnProperty("hash");
+      const balance = await ATEN_TOKEN_CONTRACT.connect(user).balanceOf(
+        userAddress
+      );
+      expect(balance.sub(balanceBefore)).to.equal(BN(1));
     });
   });
 

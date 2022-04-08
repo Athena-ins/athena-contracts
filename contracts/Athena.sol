@@ -5,6 +5,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/Multicall.sol";
 import "./ProtocolPool.sol";
 import "./interfaces/IPositionsManager.sol";
+import "./StakedAten.sol";
 
 // import "./library/PositionsLibrary.sol";
 
@@ -42,7 +43,7 @@ contract Athena is Multicall, ReentrancyGuard, Ownable {
         uint128 discount;
     }
 
-    AtenDiscount[] public premiumAtenDiscounts;
+    AtenDiscount[] public premiumAtenFees;
 
     Protocol[] public protocols;
 
@@ -116,38 +117,42 @@ contract Athena is Multicall, ReentrancyGuard, Ownable {
         }
         _transferLiquidity(amount);
         //@dev TODO stake atens and get corresponding discount
-        //_stakeAtens();
-        uint128 discount = getDiscountWithAten(atenToStake);
+        _stakeAtens(atenToStake, amount);
+        uint128 fees = getFeesWithAten(atenToStake);
         IPositionsManager(positionsManager).mint(
             msg.sender,
-            discount,
+            fees,
             amount,
             atenToStake,
             _protocolIds
         );
     }
 
-    function setDiscountWithAten(AtenDiscount[] calldata _discountToSet)
+    function _stakeAtens(uint256 atenToStake, uint256 amount) internal {
+        StakedAten(stakedAtensGP).stake(msg.sender, atenToStake, amount);
+    }
+
+    function setFeesWithAten(AtenDiscount[] calldata _discountToSet)
         public
         onlyOwner
     {
         for (uint256 index = 0; index < _discountToSet.length; index++) {
-            premiumAtenDiscounts.push(_discountToSet[index]);
+            premiumAtenFees.push(_discountToSet[index]);
         }
     }
 
-    function getDiscountWithAten(uint256 _amount)
+    function getFeesWithAten(uint256 _amount)
         public
         view
         returns (uint128)
     {
-        for (uint256 index = 0; index < premiumAtenDiscounts.length; index++) {
-            if (_amount < premiumAtenDiscounts[index].atenAmount)
+        for (uint256 index = 0; index < premiumAtenFees.length; index++) {
+            if (_amount < premiumAtenFees[index].atenAmount)
                 return
-                    index == 0 ? 0 : premiumAtenDiscounts[index - 1].discount;
+                    index == 0 ? 0 : premiumAtenFees[index - 1].discount;
         }
         // Else we are above max discount, so give it max discount
-        return premiumAtenDiscounts[premiumAtenDiscounts.length - 1].discount;
+        return premiumAtenFees[premiumAtenFees.length - 1].discount;
     }
 
     function _transferLiquidity(uint256 _amount) internal {

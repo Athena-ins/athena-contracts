@@ -54,19 +54,19 @@ contract PremiumRewards is ReentrancyGuard {
         _;
     }
 
-    function _stake(uint256 _amount) internal updateReward(msg.sender) nonReentrant {
+    function _stake(address _account, uint256 _amount) internal updateReward(_account) nonReentrant {
         totalShares += _amount;
-        _balances[msg.sender] += _amount;
+        _balances[_account] += _amount;
     }
 
-    function withdraw(uint256 _amount) external updateReward(msg.sender) nonReentrant {
+    function _withdraw(address _account, uint256 _amount) internal updateReward(_account) nonReentrant {
         totalShares -= _amount;
-        _balances[msg.sender] -= _amount;
+        _balances[_account] -= _amount;
     }
 
-    function claim() external updateReward(msg.sender) nonReentrant {
-        uint256 reward = rewards[msg.sender];
-        rewards[msg.sender] = 0;
-        rewardsToken.transfer(msg.sender, reward);
+    function _claim(address _account) internal updateReward(_account) nonReentrant {
+        uint256 reward = rewards[_account];
+        rewards[_account] = 0;
+        rewardsToken.transfer(_account, reward);
     }
 }

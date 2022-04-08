@@ -26,7 +26,7 @@ contract ProtocolPool is ERC20, Ownable, Pausable, PremiumRewards {
     }
 
     function mint(address _account, uint256 _amount) external onlyCore {
-        _stake(_amount);
+        _stake(_account, _amount);
         _mint(_account, _amount);
     }
 }
