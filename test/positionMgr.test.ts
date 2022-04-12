@@ -4,7 +4,7 @@ import { BigNumber, ethers as originalEthers } from "ethers";
 import { ethers as ethersOriginal, utils } from "ethers";
 import weth_abi from "../abis/weth.json";
 import chaiAsPromised from "chai-as-promised";
-import { increaseTimeAndMine } from "./helpers";
+import { getATokenBalance, increaseTimeAndMine } from "./helpers";
 
 chai.use(chaiAsPromised);
 
@@ -14,6 +14,7 @@ const USDT = "0xdac17f958d2ee523a2206206994597c13d831ec7"; //USDT
 const USDT_Wrong = "0xdac17f958d2ee523a2206206994597c13d831ec8"; //USDT
 const WETH = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2";
 const AAVE_LENDING_POOL = "0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9";
+const AAVE_REGISTRY = "0xb53c1a33016b2dc2ff3653530bff1848a515c8c5";
 const NULL_ADDRESS = "0x" + "0".repeat(40);
 const STAKING_TOKEN = USDT;
 
@@ -32,7 +33,9 @@ let owner: originalEthers.Signer,
   ATHENA_CONTRACT: ethersOriginal.Contract,
   POS_CONTRACT: ethersOriginal.Contract,
   STAKED_ATENS_CONTRACT: ethersOriginal.Contract,
-  ATEN_TOKEN_CONTRACT: ethersOriginal.Contract;
+  ATEN_TOKEN_CONTRACT: ethersOriginal.Contract,
+  POLICY_CONTRACT: ethersOriginal.Contract,
+  allSigners: originalEthers.Signer[];
 
 const BN = (num: string | number) => ethers.BigNumber.from(num);
 
@@ -41,7 +44,7 @@ describe("Position Manager", function () {
   let DATE_NOW: number;
 
   before(async () => {
-    const allSigners = await ethers.getSigners();
+    allSigners = await ethers.getSigners();
     owner = allSigners[0];
     user = allSigners[1];
     user2 = allSigners[2];
@@ -76,7 +79,7 @@ describe("Position Manager", function () {
     const factory = await ethers.getContractFactory("Athena");
     ATHENA_CONTRACT = await factory
       .connect(owner)
-      .deploy(USDT, ATEN_TOKEN, AAVE_LENDING_POOL);
+      .deploy(USDT, ATEN_TOKEN, AAVE_REGISTRY);
     //await factory.deploy(STAKING_TOKEN, ATEN_TOKEN);
     await ATHENA_CONTRACT.deployed();
 
@@ -102,12 +105,26 @@ describe("Position Manager", function () {
     expect(
       await ethers.provider.getCode(STAKED_ATENS_CONTRACT.address)
     ).to.not.equal("0x");
+
+    /** Policy Manager */
+    const factoryPolicy = await ethers.getContractFactory("PolicyManager");
+    POLICY_CONTRACT = await factoryPolicy
+      .connect(owner)
+      .deploy(ATHENA_CONTRACT.address);
+    await POLICY_CONTRACT.deployed();
+    expect(await ethers.provider.getCode(POLICY_CONTRACT.address)).to.not.equal(
+      "0x"
+    );
+  });
+
+  it("Should initialize Protocol", async () => {
     /**
      * Initialize protocol with required values
      */
     const init = await ATHENA_CONTRACT.initialize(
       POS_CONTRACT.address,
-      STAKED_ATENS_CONTRACT.address
+      STAKED_ATENS_CONTRACT.address,
+      POLICY_CONTRACT.address
     );
     await init.wait();
     expect(init).to.haveOwnProperty("hash");
@@ -339,10 +356,11 @@ describe("Position Manager", function () {
         [10000, 10000]
       );
       expect(tx).to.haveOwnProperty("hash");
-      const bal = await USDT_TOKEN_CONTRACT.connect(user).balanceOf(
-        ATHENA_CONTRACT.address
-      );
-      expect(bal).to.equal(10000);
+
+      // we check AAVE aToken balance
+      expect(
+        await getATokenBalance(AAVE_LENDING_POOL, ATHENA_CONTRACT, USDT, user)
+      ).to.equal(10000);
     });
 
     it("Should fail depositing funds for earlier position", async function () {
@@ -366,10 +384,10 @@ describe("Position Manager", function () {
       expect(tx2).to.haveOwnProperty("hash");
     });
     it("Should check funds and NFT", async function () {
-      const bal2 = await USDT_TOKEN_CONTRACT.connect(user2).balanceOf(
-        ATHENA_CONTRACT.address
-      );
-      expect(bal2).to.equal(11001);
+      // Now its not USDT on contract anymore but AAVE LP !
+      expect(
+        await getATokenBalance(AAVE_LENDING_POOL, ATHENA_CONTRACT, USDT, user)
+      ).to.equal(11001);
 
       const balNFT = await POS_CONTRACT.balanceOf(userAddress);
       const userNFTindex = await POS_CONTRACT.tokenOfOwnerByIndex(
@@ -392,8 +410,12 @@ describe("Position Manager", function () {
       expect(position2.protocolsId).to.deep.equal([BN(0)]); // deep equal because array is different, BN values are the same
     });
   });
-
-  describe("LP & Staking amounts ", () => {
+  /**
+   *
+   * NOW we go further in time to check datas
+   *
+   */
+  describe("ATEN LP & Staking amounts ", () => {
     it("Should get LP amount", async function () {
       const lp = await STAKED_ATENS_CONTRACT.connect(user).balanceOf(
         await user.getAddress()
@@ -428,17 +450,36 @@ describe("Position Manager", function () {
         userAddress
       );
       await expect(
-        STAKED_ATENS_CONTRACT.connect(user).withdraw(1000001)
+        ATHENA_CONTRACT.connect(user).withdrawAtens(1000001)
       ).to.be.rejectedWith("Invalid amount");
-      const tx = await STAKED_ATENS_CONTRACT.connect(user).withdraw(100000);
+      const tx = await ATHENA_CONTRACT.connect(user).withdrawAtens(100000);
       expect(tx).to.haveOwnProperty("hash");
       const balance = await ATEN_TOKEN_CONTRACT.connect(user).balanceOf(
         userAddress
       );
-      expect(balance.sub(balanceBefore)).to.equal(
-        BN(parseInt(((100000 * 12) / 100 + 100000).toString()))
+      expect(balance.sub(balanceBefore).toNumber()).to.be.greaterThan(
+        ((100000 * 12) / 100 + 100000) * 0.99
+      );
+      expect(balance.sub(balanceBefore).toNumber()).to.be.lessThan(
+        ((100000 * 12) / 100 + 100000) * 1.01
       );
     });
+  });
+
+  describe("USD Premium rewards", () => {
+    it("Should get 0 premium rewards", async function () {});
+    it("Should Take Premium on 1 year protocol 0", async function () {
+      const tx = await ATHENA_CONTRACT.connect(user).takePolicy(10000, 0, 0);
+      expect(tx).to.haveOwnProperty("hash");
+      const balance = await POLICY_CONTRACT.balanceOf(userAddress);
+      expect(balance).to.equal(BN(1));
+      const tokenId = await POLICY_CONTRACT.tokenOfOwnerByIndex(userAddress, 0);
+      expect(tokenId).to.equal(BN(0));
+      const policy = await POLICY_CONTRACT.policies(tokenId);
+      expect(policy.amountGuaranteed).to.equal(BN(10000));
+      expect(policy.protocolId).to.equal(BN(0));
+    });
+    it("Should get X premium rewards now with protocol 0", async function () {});
   });
 
   //await ATHENA_CONTRACT.balanceOf(signerAddress)).to.be.true;

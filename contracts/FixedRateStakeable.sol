@@ -103,8 +103,8 @@ contract FixedRateStakeable {
      * Will return the amount to MINT onto the acount
      * Will also calculateStakeReward and reset timer
      */
-    function _withdrawStake(uint256 amount) internal returns (uint256) {
-        Stakeholder storage userStake = stakes[msg.sender];
+    function _withdrawStake(address _account, uint256 amount) internal returns (uint256) {
+        Stakeholder storage userStake = stakes[_account];
         require(userStake.amount >= amount, "Invalid amount");
 
         // Calculate available Reward first before we start modifying data

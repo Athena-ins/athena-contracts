@@ -5,12 +5,16 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/Multicall.sol";
 import "./ProtocolPool.sol";
 import "./interfaces/IPositionsManager.sol";
+import "./AAVE/ILendingPoolAddressesProvider.sol";
+import "./AAVE/ILendingPool.sol";
 import "./StakedAten.sol";
+import "./PolicyManager.sol";
 
 // import "./library/PositionsLibrary.sol";
 
 contract Athena is Multicall, ReentrancyGuard, Ownable {
     using SafeERC20 for IERC20;
+    uint256 constant MAX_UINT256 = 2**256 - 1;
     struct Protocol {
         //id in mapping
         uint128 id;
@@ -31,8 +35,9 @@ contract Athena is Multicall, ReentrancyGuard, Ownable {
     mapping(uint128 => bool) public activeProtocols;
     address public stablecoin;
     // AAVE lending pool
-    address public lendingpool;
+    address public aaveAddressesRegistry;
     address public positionsManager;
+    address public policyManager;
     address public stakedAtensGP;
     address public rewardsToken;
 
@@ -55,22 +60,39 @@ contract Athena is Multicall, ReentrancyGuard, Ownable {
     );
 
     constructor(
-        address stablecoinUsed,
+        address _stablecoinUsed,
         address _rewardsToken,
-        address aaveLendingPool
+        address _aaveAddressesRegistry
     ) {
         rewardsToken = _rewardsToken;
-        stablecoin = stablecoinUsed;
-        lendingpool = aaveLendingPool;
+        stablecoin = _stablecoinUsed;
+        aaveAddressesRegistry = _aaveAddressesRegistry;
     }
 
-    function initialize(address positionsAddress, address _stakedAtensGP)
-        external
-        onlyOwner
-    {
-        positionsManager = positionsAddress;
+    function initialize(
+        address _positionsAddress,
+        address _stakedAtensGP,
+        address _policyManagerAddress
+    ) external onlyOwner {
+        positionsManager = _positionsAddress;
         stakedAtensGP = _stakedAtensGP;
+        policyManager = _policyManagerAddress;
+        approveLendingPool();
         //initialized = true; //@dev required ?
+    }
+
+    function takePolicy(
+        uint256 _amountGuaranteed,
+        uint256 _atensLocked,
+        uint128 _protocolId
+    ) public payable nonReentrant {
+        require(_amountGuaranteed > 0, "Amount must be greater than 0");
+        PolicyManager(policyManager).mint(
+            msg.sender,
+            _amountGuaranteed,
+            _atensLocked,
+            _protocolId
+        );
     }
 
     function deposit(
@@ -132,6 +154,28 @@ contract Athena is Multicall, ReentrancyGuard, Ownable {
         StakedAten(stakedAtensGP).stake(msg.sender, atenToStake, amount);
     }
 
+    function withdrawAtens(uint256 atenToWithdraw) external {
+        //@dev TODO check if multiple NFT positions
+        uint256 tokenId = IPositionsManager(positionsManager)
+            .tokenOfOwnerByIndex(msg.sender, 0);
+        (uint256 liquidity, uint128[] memory protocolsId) = IPositionsManager(
+            positionsManager
+        ).positions(tokenId);
+        uint128 fees = getFeesWithAten(liquidity);
+        uint256 actualAtens = StakedAten(stakedAtensGP).balanceOf(msg.sender);
+        require(actualAtens > 0, "No Atens to withdraw");
+        // require(atenToWithdraw <= actualAtens, "Not enough Atens to withdraw");
+        StakedAten(stakedAtensGP).withdraw(msg.sender, atenToWithdraw);
+        IPositionsManager(positionsManager).update(
+            msg.sender,
+            fees,
+            liquidity,
+            actualAtens - atenToWithdraw,
+            protocolsId,
+            tokenId
+        );
+    }
+
     function setFeesWithAten(AtenDiscount[] calldata _discountToSet)
         public
         onlyOwner
@@ -141,24 +185,35 @@ contract Athena is Multicall, ReentrancyGuard, Ownable {
         }
     }
 
-    function getFeesWithAten(uint256 _amount)
-        public
-        view
-        returns (uint128)
-    {
+    function getFeesWithAten(uint256 _amount) public view returns (uint128) {
         for (uint256 index = 0; index < premiumAtenFees.length; index++) {
             if (_amount < premiumAtenFees[index].atenAmount)
-                return
-                    index == 0 ? 0 : premiumAtenFees[index - 1].discount;
+                return index == 0 ? 0 : premiumAtenFees[index - 1].discount;
         }
         // Else we are above max discount, so give it max discount
         return premiumAtenFees[premiumAtenFees.length - 1].discount;
     }
 
+    function approveLendingPool() internal {
+        IERC20(stablecoin).safeApprove(
+            ILendingPoolAddressesProvider(aaveAddressesRegistry)
+                .getLendingPool(),
+            MAX_UINT256
+        );
+    }
+
     function _transferLiquidity(uint256 _amount) internal {
         //@dev TODO Transfer to AAVE, get LP
-        //@dev double check
         IERC20(stablecoin).safeTransferFrom(msg.sender, address(this), _amount);
+        address lendingPool = ILendingPoolAddressesProvider(
+            aaveAddressesRegistry
+        ).getLendingPool();
+        ILendingPool(lendingPool).deposit(
+            stablecoin,
+            _amount,
+            address(this),
+            0
+        );
     }
 
     function addNewProtocol(

@@ -3,6 +3,10 @@ pragma solidity ^0.8;
 import "@openzeppelin/contracts/token/ERC721/extensions/IERC721Enumerable.sol";
 
 interface IPositionsManager is IERC721Enumerable {
+    function positions(uint256 tokenId)
+        external
+        view
+        returns (uint256 liquidity, uint128[] memory protocolsId);
 
     function mint(
         address to,
@@ -10,5 +14,14 @@ interface IPositionsManager is IERC721Enumerable {
         uint256 amount,
         uint256 atenStake,
         uint128[] calldata _protocolsIds
+    ) external;
+
+    function update(
+        address to,
+        uint128 _discount,
+        uint256 amount,
+        uint256 atenStake,
+        uint128[] calldata _protocolsIds,
+        uint256 tokenId
     ) external;
 }
