@@ -2,6 +2,7 @@
 pragma solidity ^0.8;
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/utils/Multicall.sol";
 import "./ProtocolPool.sol";
 import "./interfaces/IPositionsManager.sol";
@@ -28,11 +29,13 @@ contract Athena is Multicall, ReentrancyGuard, Ownable {
         uint8 premiumRate;
         //Protocol guarantee type, could be 0 = smart contract vuln, 1 = unpeg, 2 = rug pull ...
         uint8 guarantee;
+        //is Active or paused
+        bool active;
     }
 
     mapping(uint128 => mapping(uint128 => bool))
         public incompatibilityProtocols;
-    mapping(uint128 => bool) public activeProtocols;
+    mapping(uint128 => Protocol) public protocolsMapping;
     address public stablecoin;
     // AAVE lending pool
     address public aaveAddressesRegistry;
@@ -50,7 +53,7 @@ contract Athena is Multicall, ReentrancyGuard, Ownable {
 
     AtenDiscount[] public premiumAtenFees;
 
-    Protocol[] public protocols;
+    uint128[] public protocols;
 
     event NewProtocol(uint128);
     event AddGuarantee(
@@ -81,12 +84,14 @@ contract Athena is Multicall, ReentrancyGuard, Ownable {
         //initialized = true; //@dev required ?
     }
 
-    function takePolicy(
+    function buyPolicy(
         uint256 _amountGuaranteed,
         uint256 _atensLocked,
         uint128 _protocolId
     ) public payable nonReentrant {
         require(_amountGuaranteed > 0, "Amount must be greater than 0");
+        //@dev TODO get rate for price and durationw
+        IERC20(stablecoin).safeTransferFrom(msg.sender, protocolsMapping[_protocolId].deployed, _amountGuaranteed);
         PolicyManager(policyManager).mint(
             msg.sender,
             _amountGuaranteed,
@@ -111,7 +116,7 @@ contract Athena is Multicall, ReentrancyGuard, Ownable {
         );
         for (uint256 index = 0; index < _protocolIds.length; index++) {
             require(
-                activeProtocols[_protocolIds[index]] == true,
+                protocolsMapping[_protocolIds[index]].active == true,
                 "Protocol not active"
             );
             for (
@@ -132,7 +137,7 @@ contract Athena is Multicall, ReentrancyGuard, Ownable {
                     "Protocol not compatible"
                 );
             }
-            ProtocolPool(protocols[_protocolIds[index]].deployed).mint(
+            ProtocolPool(protocolsMapping[_protocolIds[index]].deployed).mint(
                 msg.sender,
                 _amounts[index]
             );
@@ -223,31 +228,34 @@ contract Athena is Multicall, ReentrancyGuard, Ownable {
         address iface,
         uint128[] calldata protocolsNotCompat
     ) public onlyOwner {
+        uint128 newProtocolId = uint128(protocols.length);
         ProtocolPool _protocolDeployed = new ProtocolPool(
             address(this),
             rewardsToken,
             name,
-            string(abi.encodePacked("AT_PROTO_", protocols.length))
+            // A P P = Athena Protocol Pool
+            string(abi.encodePacked("APP_", Strings.toString(newProtocolId)))
         );
         Protocol memory newProtocol = Protocol({
-            id: uint128(protocols.length),
+            id: newProtocolId,
             name: name,
             protocolAddress: iface,
             premiumRate: premium,
             guarantee: guaranteeType,
-            deployed: address(_protocolDeployed)
+            deployed: address(_protocolDeployed),
+            active: true
         });
         for (uint256 i = 0; i < protocolsNotCompat.length; i++) {
-            incompatibilityProtocols[newProtocol.id][
+            incompatibilityProtocols[newProtocolId][
                 protocolsNotCompat[i]
             ] = true;
         }
-        activeProtocols[uint128(protocols.length)] = true;
-        protocols.push(newProtocol);
-        emit NewProtocol(newProtocol.id);
+        protocolsMapping[newProtocolId] = newProtocol;
+        protocols.push(newProtocolId);
+        emit NewProtocol(newProtocolId);
     }
 
     function pauseProtocol(uint128 protocolId, bool pause) external onlyOwner {
-        activeProtocols[protocolId] = pause;
+        protocolsMapping[protocolId].active = pause;
     }
 }

@@ -4,13 +4,10 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract PremiumRewards is ReentrancyGuard {
-    IERC20 public rewardsToken;
-
-    uint256 public rewardRate = 1;
     uint256 public lastUpdateTime;
     uint256 public rewardPerTokenStored;
     uint256 public precision = 1e18;
-
+    address public underlyingAsset;
     mapping(address => uint256) public userRewardPerTokenPaid;
     mapping(address => uint256) public rewards;
 
@@ -18,15 +15,19 @@ contract PremiumRewards is ReentrancyGuard {
     uint256 public premiumSupply;
     mapping(address => uint256) private _balances;
 
-    constructor(address _rewardsToken) {
-        rewardsToken = IERC20(_rewardsToken);
+    constructor(address _underlyingAsset) {
+        underlyingAsset = _underlyingAsset;
     }
 
     function depositPremium(uint256 _amount) internal {
         premiumSupply += _amount;
     }
 
-    function balanceOfPremiums(address _account) external view returns (uint256) {
+    function balanceOfPremiums(address _account)
+        external
+        view
+        returns (uint256)
+    {
         return _balances[_account];
     }
 
@@ -36,14 +37,19 @@ contract PremiumRewards is ReentrancyGuard {
         }
         return
             rewardPerTokenStored +
-            (((block.timestamp - lastUpdateTime) * rewardRate * precision) / totalShares);
+            (((block.timestamp - lastUpdateTime) * precision) * totalPremiumAvailable() / totalShares);
+    }
+
+    function totalPremiumAvailable() public view returns (uint256) {
+        return premiumSupply;
     }
 
     function earned(address account) public view returns (uint256) {
         return
-            ((_balances[account] *
-                (rewardPerToken() - userRewardPerTokenPaid[account]))) +
-            rewards[account];
+            (
+                (_balances[account] *
+                    (rewardPerToken() - userRewardPerTokenPaid[account]))
+            ) + rewards[account];
     }
 
     modifier updateReward(address account) {
@@ -54,19 +60,32 @@ contract PremiumRewards is ReentrancyGuard {
         _;
     }
 
-    function _stake(address _account, uint256 _amount) internal updateReward(_account) nonReentrant {
+    function _stake(address _account, uint256 _amount)
+        internal
+        updateReward(_account)
+        nonReentrant
+    {
         totalShares += _amount;
         _balances[_account] += _amount;
     }
 
-    function _withdraw(address _account, uint256 _amount) internal updateReward(_account) nonReentrant {
+    function _withdraw(address _account, uint256 _amount)
+        internal
+        updateReward(_account)
+        nonReentrant
+    {
         totalShares -= _amount;
         _balances[_account] -= _amount;
+        _claim(_account);
     }
 
-    function _claim(address _account) internal updateReward(_account) nonReentrant {
+    function _claim(address _account)
+        internal
+        updateReward(_account)
+        nonReentrant
+    {
         uint256 reward = rewards[_account];
         rewards[_account] = 0;
-        rewardsToken.transfer(_account, reward);
+        IERC20(underlyingAsset).transfer(_account, reward);
     }
 }

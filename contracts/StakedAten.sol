@@ -3,18 +3,24 @@ pragma solidity ^0.8;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+// import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "./library/ERC20withSnapshot.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./FixedRateStakeable.sol";
 
-contract StakedAten is ERC20, FixedRateStakeable, ReentrancyGuard, Ownable {
+contract StakedAten is
+    ERC20WithSnapshot,
+    FixedRateStakeable,
+    ReentrancyGuard,
+    Ownable
+{
     using SafeERC20 for IERC20;
     address public immutable underlyingAssetAddress;
     address public immutable core;
 
     //@dev constructs Pool LP Tokens, decimals defaults to 18
     constructor(address _underlyingAsset, address _core)
-        ERC20("ATEN Guarantee Pool Provider Token", "ATEN_GP_LP")
+        ERC20WithSnapshot("ATEN Guarantee Pool Provider Token", "ATEN_GP_LP")
     {
         underlyingAssetAddress = _underlyingAsset;
         core = _core;
@@ -30,6 +36,8 @@ contract StakedAten is ERC20, FixedRateStakeable, ReentrancyGuard, Ownable {
         uint256 _amount,
         uint256 _usdDeposit
     ) public onlyCore {
+        // we put from & to opposite so as token owner has a Snapshot balance when staking
+        _beforeTokenTransfer(address(0), _account, _amount);
         IERC20(underlyingAssetAddress).safeTransferFrom(
             _account,
             address(this),
@@ -48,6 +56,8 @@ contract StakedAten is ERC20, FixedRateStakeable, ReentrancyGuard, Ownable {
 
     function withdraw(address _account, uint256 _amount) public onlyCore {
         uint256 amountToReturn = _withdrawStake(_account, _amount);
+        // we put from & to opposite so as token owner has a Snapshot balance when staking
+        _beforeTokenTransfer(_account, address(0), _amount);
         IERC20(underlyingAssetAddress).safeTransfer(_account, amountToReturn);
     }
 }

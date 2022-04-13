@@ -5,6 +5,7 @@ import { ethers as ethersOriginal, utils } from "ethers";
 import weth_abi from "../abis/weth.json";
 import chaiAsPromised from "chai-as-promised";
 import { getATokenBalance, increaseTimeAndMine } from "./helpers";
+import protocolPoolAbi from "../artifacts/contracts/ProtocolPool.sol/ProtocolPool.json";
 
 chai.use(chaiAsPromised);
 
@@ -218,7 +219,7 @@ describe("Position Manager", function () {
       []
     );
     expect(tx).to.haveOwnProperty("hash");
-    const prot = await ATHENA_CONTRACT.protocols(0);
+    const prot = await ATHENA_CONTRACT.protocolsMapping(0);
     expect(prot.name).to.equal("Test protocol 0");
   });
 
@@ -231,7 +232,7 @@ describe("Position Manager", function () {
       []
     );
     expect(tx).to.haveOwnProperty("hash");
-    const prot = await ATHENA_CONTRACT.protocols(1);
+    const prot = await ATHENA_CONTRACT.protocolsMapping(1);
     expect(prot.name).to.equal("Test protocol 1");
   });
 
@@ -244,7 +245,7 @@ describe("Position Manager", function () {
       [0]
     );
     expect(tx).to.haveOwnProperty("hash");
-    const prot = await ATHENA_CONTRACT.protocols(2);
+    const prot = await ATHENA_CONTRACT.protocolsMapping(2);
     expect(prot.name).to.equal("Test protocol 2");
   });
 
@@ -386,8 +387,10 @@ describe("Position Manager", function () {
     it("Should check funds and NFT", async function () {
       // Now its not USDT on contract anymore but AAVE LP !
       expect(
-        await getATokenBalance(AAVE_LENDING_POOL, ATHENA_CONTRACT, USDT, user)
-      ).to.equal(11001);
+        (
+          await getATokenBalance(AAVE_LENDING_POOL, ATHENA_CONTRACT, USDT, user)
+        ).toNumber()
+      ).to.be.greaterThanOrEqual(11001);
 
       const balNFT = await POS_CONTRACT.balanceOf(userAddress);
       const userNFTindex = await POS_CONTRACT.tokenOfOwnerByIndex(
@@ -469,7 +472,13 @@ describe("Position Manager", function () {
   describe("USD Premium rewards", () => {
     it("Should get 0 premium rewards", async function () {});
     it("Should Take Premium on 1 year protocol 0", async function () {
-      const tx = await ATHENA_CONTRACT.connect(user).takePolicy(10000, 0, 0);
+      //user already approved Contract to provide funds
+      const PROTOCOL_ID = 1;
+      const tx = await ATHENA_CONTRACT.connect(user).buyPolicy(
+        10000,
+        0,
+        PROTOCOL_ID
+      );
       expect(tx).to.haveOwnProperty("hash");
       const balance = await POLICY_CONTRACT.balanceOf(userAddress);
       expect(balance).to.equal(BN(1));
@@ -477,7 +486,21 @@ describe("Position Manager", function () {
       expect(tokenId).to.equal(BN(0));
       const policy = await POLICY_CONTRACT.policies(tokenId);
       expect(policy.amountGuaranteed).to.equal(BN(10000));
-      expect(policy.protocolId).to.equal(BN(0));
+      expect(policy.protocolId).to.equal(BN(PROTOCOL_ID));
+      const protocol = await ATHENA_CONTRACT.connect(user).protocolsMapping(
+        PROTOCOL_ID
+      );
+      const protocolContract = new ethers.Contract(
+        protocol.deployed,
+        protocolPoolAbi.abi,
+        user
+      );
+      expect(await protocolContract.balanceOf(userAddress)).to.not.equal(BN(0));
+      expect(await protocolContract.symbol()).to.equal("APP_" + PROTOCOL_ID);
+      const balanceProtocol = await USDT_TOKEN_CONTRACT.connect(user).balanceOf(
+        protocol.deployed
+      );
+      expect(balanceProtocol).to.equal(BN(10000));
     });
     it("Should get X premium rewards now with protocol 0", async function () {});
   });
