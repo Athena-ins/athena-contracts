@@ -23,7 +23,7 @@ contract PrivateSale is Ownable, ReentrancyGuard {
     uint256 public immutable maxTokensSale;
     uint256 public tokenSold = 0;
     uint256 public nextClaim = 0;
-    mapping(address => uint8) private claimed;
+    mapping(address => uint256) private claimed;
     mapping(address => uint256) private whitelist;
 
     bool public activeSale = false;
@@ -71,7 +71,7 @@ contract PrivateSale is Ownable, ReentrancyGuard {
         if (next) {
             nextClaim =
                 (nextClaim != 0 ? nextClaim : block.timestamp) +
-                30 days;
+                90 days;
         }
     }
 
@@ -79,20 +79,10 @@ contract PrivateSale is Ownable, ReentrancyGuard {
      * @dev buy ICO tokens with selected sent token or ETH
      * @param amount Amount approved for transfer to contract to buy ICO
      * @param token Token approved for transfer to contract to buy ICO
-     * @param to Selected account which will be able to claim
      */
-    function buy(
-        uint256 amount,
-        address token,
-        address to
-    ) public payable nonReentrant {
+    function buy(uint256 amount, address token) public payable nonReentrant {
         require(activeSale, "Sale is not active");
         require(authTokens[token] == true, "Token not approved for this ICO");
-        require(
-            whitelist[msg.sender] >= amount &&
-                whitelist[msg.sender] - presales[msg.sender] > amount,
-            "Not enough whitelisted tokens"
-        );
         // Safe Transfer will revert if not successful
         IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
         // NEEDS TO BE STABLE USD !
@@ -100,22 +90,41 @@ contract PrivateSale is Ownable, ReentrancyGuard {
         amount = (amount * 10**18) / (10**IERC20Metadata(token).decimals());
         // amount is now in USDT, in WAD
         require(
-            amount >= 200 ether && amount <= 15000 ether,
+            amount >= 500 ether && amount <= 500000 ether,
             "Amount requirements not met"
         );
         uint256 atenSold = (((amount *
             (10**IERC20Metadata(aten).decimals()) *
             PRICE_DIVISOR) /
             1 ether /
-            ATEN_ICO_PRICE) / 4) * 4; // /4 to be sure we will distribute 100% token
+            ATEN_ICO_PRICE) / 12) * 12; // /10 to be sure we will distribute 100% token
         require(tokenSold + atenSold <= maxTokensSale, "Too many tokens sold");
+        uint256 allowed = whitelist[msg.sender] - presales[msg.sender];
+        require(atenSold <= allowed, "Not enough whitelisted tokens");
         tokenSold += atenSold;
-        presales[to] += atenSold;
-        emit Prebuy(to, atenSold);
+        presales[msg.sender] += atenSold;
+        emit Prebuy(msg.sender, atenSold);
     }
 
     /**
-     * @dev onlyOwner withdraw selected tokens from this ICO contract
+     * @dev Whitelist wallets to allow buy
+     * @param _tos Wallet to whitelist
+     * @param _amounts Amount of tokens to whitelist
+     */
+
+    function whitelistAddresses(
+        address[] calldata _tos,
+        uint256[] calldata _amounts
+    ) public onlyOwner {
+        require(_tos.length == _amounts.length, "Arguments length mismatch");
+        for (uint256 i = 0; i < _tos.length; i++) {
+            require(_amounts[i] > 0, "Amount must be greater than 0");
+            whitelist[_tos[i]] = _amounts[i];
+        }
+    }
+
+    /**
+     * @dev onlyOwner withdraw selected tokens from this ICO contract and unsold ATEN
      * @param tokens tokens addresses to withdraw (eth is 0xEeee...)
      * @param to wallet to receive all tokens & eth
      */
@@ -146,7 +155,7 @@ contract PrivateSale is Ownable, ReentrancyGuard {
      */
     function claim() public nonReentrant {
         require(activeClaim, "Claim not active");
-        uint8 allowed = allowedClaim();
+        uint256 allowed = allowedClaim();
         require(claimed[msg.sender] < allowed, "Already claimed batch");
         IERC20(aten).safeTransferFrom(
             address(this),
@@ -159,17 +168,11 @@ contract PrivateSale is Ownable, ReentrancyGuard {
     /**
      * @dev view how many claims are available now
      */
-    function allowedClaim() public view returns (uint8) {
+    function allowedClaim() public view returns (uint256) {
         if (!activeClaim) return 0;
-        uint8 allowed = 1;
+        uint256 allowed = 1;
         if (nextClaim > 0 && block.timestamp >= nextClaim) {
-            allowed++;
-            if (block.timestamp >= nextClaim + 30 days) {
-                allowed++;
-                if (block.timestamp >= nextClaim + 60 days) {
-                    allowed++;
-                }
-            }
+            allowed = (block.timestamp - nextClaim) % 30 days;
         }
         return allowed;
     }
