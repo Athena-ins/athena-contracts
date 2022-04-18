@@ -13,7 +13,6 @@ contract PrivateSale is Ownable, ReentrancyGuard {
     mapping(address => bool) public authTokens;
 
     address public immutable aten; //Mainnet 0x86cEB9FA7f5ac373d275d328B7aCA1c05CFb0283;
-    address private immutable walletTokens;
     AggregatorV3Interface internal priceFeed;
 
     mapping(address => uint256) public presales;
@@ -56,7 +55,6 @@ contract PrivateSale is Ownable, ReentrancyGuard {
      */
     constructor(
         address distributeToken,
-        address walletTokensToTransfer,
         uint256 maxTokens,
         address[] memory tokens
     ) {
@@ -64,7 +62,6 @@ contract PrivateSale is Ownable, ReentrancyGuard {
         for (uint256 i = 0; i < tokens.length; i++) {
             authTokens[tokens[i]] = true;
         }
-        walletTokens = walletTokensToTransfer;
         // For ETH price only
         aten = distributeToken;
         maxTokensSale = maxTokens;

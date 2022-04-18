@@ -67,7 +67,7 @@ describe("Smart Contract Private sale whitelist", function () {
     const factory = await ethers.getContractFactory("PrivateSale");
     PRIVATE_SALE_CONTRACT = await factory
       .connect(owner)
-      .deploy(ATEN_TOKEN, signerATENAddress, ALLOWANCE, [USDT, USDC]);
+      .deploy(ATEN_TOKEN, ALLOWANCE, [USDT, USDC]);
     await PRIVATE_SALE_CONTRACT.deployed();
 
     // console.log("Deployed ICO Contract : ", PRIVATE_SALE_CONTRACT.address);
