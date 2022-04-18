@@ -140,9 +140,9 @@ contract PrivateSale is Ownable, ReentrancyGuard {
     {
         for (uint256 i = 0; i < tokens.length; i++) {
             if (tokens[i] == aten) {
-                IERC20(tokens[i]).safeTransfer(
+                IERC20(aten).safeTransfer(
                     to,
-                    IERC20(tokens[i]).balanceOf(address(this)) - tokenSold
+                    IERC20(aten).balanceOf(address(this)) - tokenSold
                 );
             } else {
                 IERC20(tokens[i]).safeTransfer(
