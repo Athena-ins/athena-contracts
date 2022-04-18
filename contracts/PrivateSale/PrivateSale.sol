@@ -17,17 +17,34 @@ contract PrivateSale is Ownable, ReentrancyGuard {
     AggregatorV3Interface internal priceFeed;
 
     mapping(address => uint256) public presales;
-
+    address[] private buyers;
     uint128 public constant ATEN_ICO_PRICE = 50;
     uint128 public constant PRICE_DIVISOR = 10000;
     uint256 public immutable maxTokensSale;
     uint256 public tokenSold = 0;
-    uint256 public nextClaim = 0;
-    mapping(address => uint256) private claimed;
+    uint256 public dateStartVesting = 0;
     mapping(address => uint256) private whitelist;
 
+    uint8[] public distributionToken = [
+        0,
+        0,
+        0,
+        5,
+        5,
+        5,
+        5,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10,
+        10
+    ];
+    mapping(uint8 => bool) private claimed;
+
     bool public activeSale = false;
-    bool public activeClaim = false;
 
     event Prebuy(address indexed from, uint256 amount);
 
@@ -62,17 +79,10 @@ contract PrivateSale is Ownable, ReentrancyGuard {
     }
 
     /**
-     * @dev Start claim and/or set time for next Claims
-     * @param isActive Boolean to start / stop claim
-     * @param next Boolean to start nextClaim within next 30 days
+     * @dev Start vesting with date from now
      */
-    function startClaim(bool isActive, bool next) external onlyOwner {
-        activeClaim = isActive;
-        if (next) {
-            nextClaim =
-                (nextClaim != 0 ? nextClaim : block.timestamp) +
-                90 days;
-        }
+    function startVesting() external onlyOwner {
+        dateStartVesting = block.timestamp;
     }
 
     /**
@@ -89,19 +99,18 @@ contract PrivateSale is Ownable, ReentrancyGuard {
         // We WAD it to match 18 decimals
         amount = (amount * 10**18) / (10**IERC20Metadata(token).decimals());
         // amount is now in USDT, in WAD
-        require(
-            amount >= 500 ether && amount <= 500000 ether,
-            "Amount requirements not met"
+        uint256 atenSold = (
+            ((amount * (10**IERC20Metadata(aten).decimals()) * PRICE_DIVISOR) /
+                1 ether /
+                ATEN_ICO_PRICE)
         );
-        uint256 atenSold = (((amount *
-            (10**IERC20Metadata(aten).decimals()) *
-            PRICE_DIVISOR) /
-            1 ether /
-            ATEN_ICO_PRICE) / 12) * 12; // /10 to be sure we will distribute 100% token
         require(tokenSold + atenSold <= maxTokensSale, "Too many tokens sold");
         uint256 allowed = whitelist[msg.sender] - presales[msg.sender];
         require(atenSold <= allowed, "Not enough whitelisted tokens");
         tokenSold += atenSold;
+        if (presales[msg.sender] == 0) {
+            buyers.push(msg.sender);
+        }
         presales[msg.sender] += atenSold;
         emit Prebuy(msg.sender, atenSold);
     }
@@ -151,37 +160,34 @@ contract PrivateSale is Ownable, ReentrancyGuard {
     }
 
     /**
-     * @dev Get your ICO tokens (from sender) with previously prebuy, depending on availabiliy
+     * @dev Distribute ICO tokens (from contract) with previously buy, depending on availabiliy
+     * @param month Month to distribute tokens, starting from 0
      */
-    function claim() public nonReentrant {
-        require(activeClaim, "Claim not active");
-        uint256 allowed = allowedClaim();
-        require(claimed[msg.sender] < allowed, "Already claimed batch");
-        IERC20(aten).safeTransferFrom(
-            address(this),
-            msg.sender,
-            availableClaim(msg.sender)
-        );
-        claimed[msg.sender] = allowed;
+    function distribute(uint8 month) public nonReentrant {
+        require(dateStartVesting > 0, "Vesting not active");
+        require(month <= monthIndex(), "Month not available");
+        require(claimed[month] == false, "Already distributed");
+
+        for (uint256 index = 0; index < buyers.length; index++) {
+            uint256 amount = (presales[buyers[index]] *
+                distributionToken[month]) / 100;
+            if (amount > 0) {
+                IERC20(aten).safeTransfer(buyers[index], amount);
+            }
+        }
+        claimed[month] = true;
     }
 
     /**
      * @dev view how many claims are available now
      */
-    function allowedClaim() public view returns (uint256) {
-        if (!activeClaim) return 0;
-        uint256 allowed = 1;
-        if (nextClaim > 0 && block.timestamp >= nextClaim) {
-            allowed = (block.timestamp - nextClaim) % 30 days;
-        }
-        return allowed;
+    function monthIndex() public view returns (uint8) {
+        return uint8((block.timestamp - dateStartVesting) / 30 days);
     }
 
-    /**
-     * @dev view how many tokens are available to claim now for caller
-     */
-    function availableClaim(address guy) public view returns (uint256) {
-        return (presales[guy] * (allowedClaim() - claimed[guy])) / 4;
+    function available(uint8 month) public view returns (uint8) {
+        uint8 mi = month == 0 ? monthIndex() : month;
+        return claimed[mi] ? 0 : distributionToken[mi];
     }
 
     /**
@@ -189,10 +195,12 @@ contract PrivateSale is Ownable, ReentrancyGuard {
      * @param newTo new wallet address that will be able to withdraw balance
      */
     function changeAddress(address newTo) public nonReentrant {
+        require(presales[msg.sender] > 0, "No tokens to change");
         uint256 amount = presales[msg.sender];
         presales[newTo] = amount;
         presales[msg.sender] = 0;
-        claimed[newTo] = claimed[msg.sender];
+        buyers.push(newTo);
+        // claimed[newTo] = claimed[msg.sender];
         emit Prebuy(newTo, amount);
     }
 }
