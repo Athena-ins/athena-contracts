@@ -255,7 +255,7 @@ describe("Smart Contract Private sale whitelist", function () {
   //   );
   // });
 
-  it("Should activate preSale", async function () {
+  it("Should stop preSale", async function () {
     const startSale = await PRIVATE_SALE_CONTRACT.startSale(false);
     expect(startSale).to.haveOwnProperty("hash");
   });
@@ -269,7 +269,7 @@ describe("Smart Contract Private sale whitelist", function () {
     ).to.be.rejectedWith("Sale is not active");
   });
 
-  it("Should activate preSale", async function () {
+  it("Should activate preSale again", async function () {
     const startSale = await PRIVATE_SALE_CONTRACT.startSale(true);
     expect(startSale).to.haveOwnProperty("hash");
   });
@@ -329,7 +329,7 @@ describe("Smart Contract Private sale whitelist", function () {
     for (let index = 4; index < 90; index++) {
       const signerLocal = accounts[index];
       const buy = await PRIVATE_SALE_CONTRACT.connect(signerLocal).buy(
-        ethers.utils.parseUnits("10000", 6), //14 M ATEN SOLD
+        ethers.utils.parseUnits("10000", 6), //36 M ATEN SOLD
         USDT
       );
       await buy.wait();

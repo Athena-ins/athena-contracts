@@ -83,7 +83,7 @@ contract PrivateSale is Ownable, ReentrancyGuard {
     }
 
     /**
-     * @dev buy ICO tokens with selected sent token or ETH
+     * @dev buy ICO tokens with selected sent token
      * @param amount Amount approved for transfer to contract to buy ICO
      * @param token Token approved for transfer to contract to buy ICO
      */
