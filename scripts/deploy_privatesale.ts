@@ -15,7 +15,7 @@ const chainId: number = 4;
 const contractAddress =
   chainId === 1
     ? "0x8bFad5636BBf29F75208acE134dD23257C245391"
-    : "0x41f84D3448f6f9576e51114382Af277A6B95f939";
+    : "0x8F23520FdA6B183bbAA072b7d57375F7bE27db6d";
 const ATEN_MAINNET_OWNER = "0x967d98e659f2787A38d928B9B7a49a2E4701B30C";
 const ATEN_CONTRACT = {
   address:
@@ -28,7 +28,10 @@ const USDT =
     ? "0xdac17f958d2ee523a2206206994597c13d831ec7"
     : "0xD92E713d051C37EbB2561803a3b5FBAbc4962431"; //USDT
 
-const USDC = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
+const USDC =
+  chainId === 1
+    ? "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+    : "0xeb8f08a975ab53e34d8a0330e0d34de942c95926";
 
 async function deploy(
   signer: SignerWithAddress,
@@ -62,7 +65,7 @@ async function deploy(
         ? "0x86cEB9FA7f5ac373d275d328B7aCA1c05CFb0283"
         : ATEN_CONTRACT_LOCAL?.address
         ? ATEN_CONTRACT_LOCAL.address
-        : "0x86ceb9fa7f5ac373d275d328b7aca1c05cfb0283",
+        : ATEN_CONTRACT.address,
       ethers.utils.parseEther("294000000"),
       [USDT, USDC]
     );
@@ -103,6 +106,26 @@ const activeSale = async (signer: SignerWithAddress, starting = true) => {
   process.exit(0);
 };
 
+const buy = async (signer: SignerWithAddress, starting = true) => {
+  const ATHENA_CONTRACT = new ethers.Contract(contractAddress, abi.abi, signer);
+  const code = await ethers.provider.getCode(contractAddress);
+  console.log("Contract code : ", code.substring(0, 40));
+
+  if (!code || code === "0x00")
+    throw new Error("No contract at this address !");
+  console.log("WITH SIGNER : ", signer.address);
+  const start = await ATHENA_CONTRACT.buy(
+    ethers.utils.parseUnits("100", 6),
+    USDT,
+    {
+      gasLimit: 1000000,
+    }
+  );
+  const receipt = await start.wait();
+  console.log("Done, hash ; ", receipt.transactionHash);
+  process.exit(0);
+};
+
 const distribute = async (signer: SignerWithAddress) => {
   const ATHENA_CONTRACT = new ethers.Contract(contractAddress, abi.abi, signer);
   const code = await ethers.provider.getCode(contractAddress);
@@ -125,7 +148,20 @@ const addWhitelist = async (signer: SignerWithAddress) => {
   if (!code || code === "0x00")
     throw new Error("No contract at this address !");
   console.log("WITH SIGNER : ", signer.address);
-  const start = await ATHENA_CONTRACT.whitelistAddresses([], []);
+  const start = await ATHENA_CONTRACT.whitelistAddresses(
+    [
+      "0xed5450bb62501e1c40d0e4025a9f62317800e790",
+      "0xB47bcc2354b1d99607797553df1DEBcA2eccb30E",
+      "0x381e0E1bf14e616AC542A298ACB90184ED8cD0c1",
+      "0xa5946b2Ee8942d572e7dD93fE261C39005B93dAB",
+    ],
+    [
+      ethers.utils.parseEther("300000"),
+      ethers.utils.parseEther("300000"),
+      ethers.utils.parseEther("300000"),
+      ethers.utils.parseEther("300000"),
+    ]
+  );
   const receipt = await start.wait();
   console.log("Done, hash ; ", receipt.transactionHash);
   process.exit(0);
@@ -134,7 +170,10 @@ const addWhitelist = async (signer: SignerWithAddress) => {
 const withdraw = async (signer: SignerWithAddress) => {
   const oldContract = new ethers.Contract(contractAddress, abi.abi, signer);
 
-  const withdraw = await oldContract.withdraw([ETH, USDT], signer.address);
+  const withdraw = await oldContract.withdraw(
+    [ATEN_CONTRACT.address, USDT],
+    signer.address
+  );
 
   const receipt = await withdraw.wait();
   if (!receipt) throw new Error("Could not withdraw !!");
@@ -207,13 +246,20 @@ async function main() {
       console.log(`Going to open withdraw... Sending TX...`);
       await withdraw(signer);
       process.exit(0);
+    } else if (
+      // input.toLowerCase() === "y" ||
+      input.toLowerCase() === "buy"
+    ) {
+      console.log(`Going to open withdraw... Sending TX...`);
+      await buy(signer);
+      process.exit(0);
     } else {
       console.error("You cancelled...");
       process.exit(1);
     }
   });
   console.log(
-    "If addresses are correct, choose script : deploy, sale, stopsale, distribute, withdraw"
+    "If addresses are correct, choose script : deploy, sale, whitelist, stopsale, distribute, withdraw"
   );
 }
 

@@ -30,13 +30,13 @@ const USDT: { [chainId: number]: string } = {
   [0]: "0xD92E713d051C37EbB2561803a3b5FBAbc4962431",
 };
 const USDC: { [chainId: number]: string } = {
-  [1]: "0xdac17f958d2ee523a2206206994597c13d831ec7",
-  [4]: "0xD92E713d051C37EbB2561803a3b5FBAbc4962431",
+  [1]: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+  [4]: "0xeb8f08a975Ab53E34D8a0330E0D34de942C95926",
   [0]: "0xD92E713d051C37EbB2561803a3b5FBAbc4962431",
 };
 const ATHENA_ICO_CONTRACT_ADDRESS: { [chainId: number]: string } = {
   [1]: "0x8bFad5636BBf29F75208acE134dD23257C245391",
-  [4]: "0x41f84D3448f6f9576e51114382Af277A6B95f939",
+  [4]: "0x8F23520FdA6B183bbAA072b7d57375F7bE27db6d",
   [0]: "0x41f84D3448f6f9576e51114382Af277A6B95f939",
 };
 
@@ -152,6 +152,19 @@ function App() {
     }
   };
 
+  const watchTx = (hash: string) => {
+    const id = setInterval(() => {
+      provider?.getTransactionReceipt(hash).then((receipt) => {
+        if (receipt) {
+          setAmount("0");
+          toast.success("Transaction Successful");
+          init();
+          clearInterval(id);
+        }
+      });
+    }, 3000);
+  };
+
   const getHistoryEvents = async () => {
     try {
       if (!account) return;
@@ -166,7 +179,7 @@ function App() {
       // const array = [];
       const array = await Promise.all(
         eventsHistory.map(async (ev) => ({
-          text: "Transaction pre-sale",
+          text: "Transaction Buy",
           date: (await ev.getBlock()).timestamp * 1000,
           amount: ev.args?.amount?.toString(),
           link: getExplorerTransactionLink(ev.transactionHash, chainId),
@@ -190,17 +203,15 @@ function App() {
       const txData = new ethers.Contract(
         ATHENA_ICO_CONTRACT_ADDRESS[chainId],
         abi
-      ).interface.encodeFunctionData("prebuy", [
-        ethers.utils.parseUnits(amount, isUSDT ? 18 : 6),
-        isUSDT ? ETH : USDT[chainId],
-        account,
+      ).interface.encodeFunctionData("buy", [
+        ethers.utils.parseUnits(amount, isUSDT ? 6 : 6).toString(),
+        isUSDT ? USDT[chainId] : USDC[chainId],
       ]);
       const receipt = await sendTx({
         from: account,
         to: ATHENA_ICO_CONTRACT_ADDRESS[chainId],
         data: txData,
         chainId: chainId,
-        value: isUSDT ? ethers.utils.parseEther(amount) : undefined,
       });
       logReceipt(receipt);
     } catch (error: any) {
@@ -257,6 +268,7 @@ function App() {
         },
       ]);
       setTimeout(init, 60000);
+      watchTx(receipt?.hash || receipt);
     }
   };
 
@@ -291,12 +303,12 @@ function App() {
         <header className="animated fadeIn wow">
           <h1 className="highlight double push-bottom">
             <span className="highlight-word underline-only no-underline">
-              Public sale
+              Private sale
             </span>{" "}
-            <span className="highlight-word underline-only">round 1</span>
+            <span className="highlight-word underline-only">round 0</span>
           </h1>
         </header>
-        <div id="version03" />
+        <div id="versionVC01" />
         {maxTokens.gt(0) &&
           isSaleOpen &&
           !distributeMonth &&
@@ -610,7 +622,7 @@ function App() {
               <FontAwesomeIcon icon={faInfoCircle} /> Sale information
             </motion.h2>
             <ul>
-              <LiAten>Maximum of 1 500 000 USDT purchase</LiAten>
+              <LiAten>Maximum of 1 300 000 USDT purchase</LiAten>
               <LiAten>
                 Tokens will be released as stated for partners in white paper,
                 from claim activation to + 3 months, then 5% month 4 to 7, and

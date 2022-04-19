@@ -26,7 +26,7 @@
     "react-bootstrap": "^2.2.0",
     "react-dom": "^17.0.2",
     "react-scripts": "5.0.0",
-    "react-toastify": "^8.2.0",
+    "react-toastify": "^9.0.0-rc-2",
     "styled-components": "^5.3.3",
     "typescript": "^4.6.2",
     "util": "^0.12.4",

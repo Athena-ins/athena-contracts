@@ -95,15 +95,19 @@ url: "https://trustwallet.com"
       return txSent;
     } catch (error: any) {
       console.error(error);
+      // setTimeout(() => {
       toast.update(id, {
-        render:
-          error.message.search("Amount requirements not met") !== -1
-            ? "Amount should be between 200$ and 15000$"
-            : "Tx failed : " + error.message,
+        render: error.message.includes("Not enough whitelisted tokens")
+          ? "Not enough whitelisted tokens, contact the team for more information"
+          : error.message.search("Amount requirements not met") !== -1
+          ? "Amount should be between 200$ and 15000$"
+          : "Tx failed : " + error.message,
         type: toast.TYPE.ERROR,
         className: "rotateY animated",
         autoClose: 10000,
       });
+      // }, 1000);
+
       return;
     }
   };
