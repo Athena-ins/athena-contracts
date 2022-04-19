@@ -67,6 +67,8 @@ function App() {
   const [isUSDT, setIsUSDT] = useState(true);
   const [isSaleOpen, setIsSaleOpen] = useState(false);
   const [distributeMonth, setDistributeMonth] = useState(0);
+  const [vestingDate, setVestingDate] = useState(0);
+  const [tokensAvailable, setTokensAvailable] = useState(0);
   const [tokensSold, setTokensSold] = useState(_0);
   const [maxTokens, setMaxTokens] = useState(_0);
   const [atenToClaim, setAtenToClaim] = useState(_0);
@@ -123,7 +125,7 @@ function App() {
       setMaxTokens(await contract.maxTokensSale());
       setTokensSold(await contract.tokenSold());
       getHistoryEvents();
-      setDistributeMonth(await contract.available(0));
+      setVestingDate(await contract.dateStartVesting());
     } catch (error: any) {
       // if (error.message.includes("activeSale()"))
       console.error(error.message);
@@ -188,6 +190,12 @@ function App() {
       setnotifHistory(array);
       const presales = await contract.presales(account);
       setAtenToClaim(presales);
+      contract
+        .available(0)
+        .then((res: number) => {
+          setTokensAvailable(res);
+        })
+        .catch((err: any) => console.error(err));
     } catch (error: any) {
       console.error(error);
       setnotifHistory([]);
@@ -219,13 +227,13 @@ function App() {
     }
   };
 
-  const handleClaim = async (_e: any) => {
+  const handleDistribute = async (_e: any) => {
     try {
       if (!account) return toast.warning("Can not Claim, missing account");
       const txData = new ethers.Contract(
         ATHENA_ICO_CONTRACT_ADDRESS[chainId],
         abi
-      ).interface.encodeFunctionData("claim");
+      ).interface.encodeFunctionData("distribute", ["0"]);
       const receipt = await sendTx({
         from: account,
         to: ATHENA_ICO_CONTRACT_ADDRESS[chainId],
@@ -305,7 +313,7 @@ function App() {
             <span className="highlight-word underline-only no-underline">
               Private sale
             </span>{" "}
-            <span className="highlight-word underline-only">round 0</span>
+            <span className="highlight-word underline-only">partners</span>
           </h1>
         </header>
         <div id="versionVC01" />
@@ -587,8 +595,10 @@ function App() {
               <Button
                 className="btn btn-block btn-secondary"
                 type="submit"
-                onClick={handleClaim}
-                disabled={!account || distributeMonth === 0}
+                onClick={handleDistribute}
+                disabled={
+                  !account || distributeMonth === 0 || vestingDate === 0
+                }
               >
                 Distribute ATENs
               </Button>
