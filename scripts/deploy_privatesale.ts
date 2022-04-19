@@ -140,6 +140,20 @@ const distribute = async (signer: SignerWithAddress) => {
   process.exit(0);
 };
 
+const startVesting = async (signer: SignerWithAddress) => {
+  const ATHENA_CONTRACT = new ethers.Contract(contractAddress, abi.abi, signer);
+  const code = await ethers.provider.getCode(contractAddress);
+  console.log("Contract code : ", code.substring(0, 40));
+
+  if (!code || code === "0x00")
+    throw new Error("No contract at this address !");
+  console.log("WITH SIGNER : ", signer.address);
+  const start = await ATHENA_CONTRACT.startVesting();
+  const receipt = await start.wait();
+  console.log("Done, hash ; ", receipt.transactionHash);
+  process.exit(0);
+};
+
 const addWhitelist = async (signer: SignerWithAddress) => {
   const ATHENA_CONTRACT = new ethers.Contract(contractAddress, abi.abi, signer);
   const code = await ethers.provider.getCode(contractAddress);
@@ -231,6 +245,13 @@ async function main() {
     ) {
       console.log(`Going to open sale... Sending TX...`);
       await activeSale(signer, false);
+      process.exit(0);
+    } else if (
+      // input.toLowerCase() === "y" ||
+      input.toLowerCase() === "vesting"
+    ) {
+      console.log(`Going to start vesting... Sending TX...`);
+      await startVesting(signer);
       process.exit(0);
     } else if (
       // input.toLowerCase() === "y" ||
