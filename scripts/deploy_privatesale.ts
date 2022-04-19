@@ -225,52 +225,31 @@ async function main() {
     } else if (input.toLowerCase() === "deploy") {
       console.log(`Going to deploy... Sending TX...`);
       await deploy(signer, chainId === 1 ? undefined : signer2);
-    } else if (
-      // input.toLowerCase() === "y" ||
-      input.toLowerCase() === "sale"
-    ) {
+    } else if (input.toLowerCase() === "sale") {
       console.log(`Going to open sale... Sending TX...`);
       await activeSale(signer);
       process.exit(0);
-    } else if (
-      // input.toLowerCase() === "y" ||
-      input.toLowerCase() === "whitelist"
-    ) {
+    } else if (input.toLowerCase() === "whitelist") {
       console.log(`Going to add whitelist... Sending TX...`);
       await addWhitelist(signer);
       process.exit(0);
-    } else if (
-      // input.toLowerCase() === "y" ||
-      input.toLowerCase() === "stopsale"
-    ) {
+    } else if (input.toLowerCase() === "stopsale") {
       console.log(`Going to open sale... Sending TX...`);
       await activeSale(signer, false);
       process.exit(0);
-    } else if (
-      // input.toLowerCase() === "y" ||
-      input.toLowerCase() === "vesting"
-    ) {
+    } else if (input.toLowerCase() === "vesting") {
       console.log(`Going to start vesting... Sending TX...`);
       await startVesting(signer);
       process.exit(0);
-    } else if (
-      // input.toLowerCase() === "y" ||
-      input.toLowerCase() === "distribute"
-    ) {
+    } else if (input.toLowerCase() === "distribute") {
       console.log(`Going to open Claim... Sending TX...`);
       await distribute(signer);
       process.exit(0);
-    } else if (
-      // input.toLowerCase() === "y" ||
-      input.toLowerCase() === "withdraw"
-    ) {
+    } else if (input.toLowerCase() === "withdraw") {
       console.log(`Going to open withdraw... Sending TX...`);
       await withdraw(signer);
       process.exit(0);
-    } else if (
-      // input.toLowerCase() === "y" ||
-      input.toLowerCase() === "buy"
-    ) {
+    } else if (input.toLowerCase() === "buy") {
       console.log(`Going to open withdraw... Sending TX...`);
       await buy(signer);
       process.exit(0);
@@ -280,7 +259,7 @@ async function main() {
     }
   });
   console.log(
-    "If addresses are correct, choose script : deploy, sale, whitelist, stopsale, distribute, withdraw"
+    "If addresses are correct, choose script : deploy, sale, whitelist, stopsale, distribute, withdraw, vesting"
   );
 }
 
