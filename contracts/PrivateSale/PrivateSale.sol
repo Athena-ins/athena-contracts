@@ -13,7 +13,6 @@ contract PrivateSale is Ownable, ReentrancyGuard {
     mapping(address => bool) public authTokens;
 
     address public immutable aten; //Mainnet 0x86cEB9FA7f5ac373d275d328B7aCA1c05CFb0283;
-    AggregatorV3Interface internal priceFeed;
 
     mapping(address => uint256) public presales;
     address[] private buyers;
