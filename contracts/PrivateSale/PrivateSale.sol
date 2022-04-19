@@ -95,11 +95,11 @@ contract PrivateSale is Ownable, ReentrancyGuard {
         // We WAD it to match 18 decimals
         amount = (amount * 10**18) / (10**IERC20Metadata(token).decimals());
         // amount is now in USDT, in WAD
-        uint256 atenSold = (
-            ((amount * (10**IERC20Metadata(aten).decimals()) * PRICE_DIVISOR) /
-                1 ether /
-                ATEN_ICO_PRICE)
-        );
+        uint256 atenSold = ((amount *
+            (10**IERC20Metadata(aten).decimals()) *
+            PRICE_DIVISOR) /
+            1 ether /
+            ATEN_ICO_PRICE);
         require(tokenSold + atenSold <= maxTokensSale, "Too many tokens sold");
         uint256 allowed = whitelist[msg.sender] - presales[msg.sender];
         require(atenSold <= allowed, "Not enough whitelisted tokens");
@@ -156,7 +156,7 @@ contract PrivateSale is Ownable, ReentrancyGuard {
     }
 
     /**
-     * @dev Distribute ICO tokens (from contract) with previously buy, depending on availabiliy
+     * @dev Distribute tokens (from contract) with previously buy, depending on availabiliy
      * @param month Month to distribute tokens, starting from 0
      */
     function distribute(uint8 month) public nonReentrant {
