@@ -68,6 +68,7 @@ function App() {
   const [isSaleOpen, setIsSaleOpen] = useState(false);
   const [distributeMonth, setDistributeMonth] = useState(0);
   const [vestingDate, setVestingDate] = useState(0);
+  const [loading, setLoading] = useState(false);
   const [tokensAvailable, setTokensAvailable] = useState(0);
   const [tokensSold, setTokensSold] = useState(_0);
   const [maxTokens, setMaxTokens] = useState(_0);
@@ -108,6 +109,7 @@ function App() {
 
   const init = async () => {
     try {
+      setLoading(true);
       const contract = new ethers.Contract(
         ATHENA_ICO_CONTRACT_ADDRESS[chainId] || ATHENA_ICO_CONTRACT_ADDRESS[0],
         abi,
@@ -129,12 +131,15 @@ function App() {
     } catch (error: any) {
       // if (error.message.includes("activeSale()"))
       console.error(error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleApprove = async (e: any) => {
     e.preventDefault();
     try {
+      setLoading(true);
       const usdxContract = new ethers.Contract(
         isUSDT ? USDT[chainId] : USDC[chainId],
         erc20abi
@@ -152,19 +157,6 @@ function App() {
     } catch (error) {
       console.error(error);
     }
-  };
-
-  const watchTx = (hash: string) => {
-    const id = setInterval(() => {
-      provider?.getTransactionReceipt(hash).then((receipt) => {
-        if (receipt) {
-          setAmount("0");
-          toast.success("Transaction Successful");
-          init();
-          clearInterval(id);
-        }
-      });
-    }, 3000);
   };
 
   const getHistoryEvents = async () => {
@@ -207,6 +199,7 @@ function App() {
   const handleMint = async (e: any) => {
     try {
       e.preventDefault();
+      setLoading(true);
       if (!account) return toast.warning("Can not send Tx, missing account");
       const txData = new ethers.Contract(
         ATHENA_ICO_CONTRACT_ADDRESS[chainId],
@@ -224,12 +217,13 @@ function App() {
       logReceipt(receipt);
     } catch (error: any) {
       console.error(error);
+      setLoading(false);
     }
   };
 
   const handleDistribute = async (_e: any) => {
     try {
-      if (!account) return toast.warning("Can not Claim, missing account");
+      if (!account) return toast.warning("Can not distribute, missing account");
       const txData = new ethers.Contract(
         ATHENA_ICO_CONTRACT_ADDRESS[chainId],
         abi
@@ -278,6 +272,20 @@ function App() {
       setTimeout(init, 60000);
       watchTx(receipt?.hash || receipt);
     }
+  };
+
+  const watchTx = (hash: string) => {
+    const id = setInterval(() => {
+      provider?.getTransactionReceipt(hash).then((receipt) => {
+        if (receipt) {
+          setAmount("0");
+          toast.success("Transaction Successful");
+          init();
+          clearInterval(id);
+          setLoading(false);
+        }
+      });
+    }, 3000);
   };
 
   const addToMetamask = async (e: any) => {
@@ -521,7 +529,7 @@ function App() {
             </div>
             {!isSaleOpen ? (
               <Button className="btn btn-block btn-secondary" disabled={true}>
-                Sale is Not Available
+                {!account ? "Connect a wallet" : "Sale is Not Available"}
               </Button>
             ) : Number(amount) &&
               (isUSDT
@@ -552,7 +560,9 @@ function App() {
                 className="btn btn-block btn-secondary"
                 type="submit"
                 onClick={handleMint}
+                loading={loading}
                 disabled={
+                  loading ||
                   !account ||
                   !Number(amount) ||
                   !(isUSDT
