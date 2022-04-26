@@ -11,7 +11,7 @@ let tickers: ITicker[] = [];
 // const slope1 = 0.001;
 // const slope2 = 0.2;
 
-const rate = 0.03;
+const rate = 0.1 * 3.7;
 
 const userG = {
   capital: 10000,
@@ -38,13 +38,31 @@ const updateTickers = (
   liquidity: number,
   premiumEmission: number,
   lastUpdate: number,
-  date: number
+  date: number,
+  newTickers?: ITicker[]
 ) => {
-  const updateTickers = tickers.concat();
   let lastTicker = 0;
-  for (let index = 0; index < tickers.length; index++) {
-    const element = tickers[index];
-    if (element.time <= date) {
+  const originalEmission = premiumEmission;
+  let checked = false;
+  if (lastUpdate < tickers[0]?.time && date < tickers[0]?.time) {
+    // EXCEPT IF TICKER STOP IN BETWEEN
+    liquidity += originalEmission * (date - lastUpdate);
+  }
+  const updateTickers = tickers.concat();
+
+  if (newTickers) {
+    updateTickers.push(...newTickers);
+    updateTickers.sort((a, b) => (a.time >= b.time ? 1 : -1));
+  }
+  let element = tickers[0];
+  let index = 0;
+  while (element?.time <= date) {
+    if (element?.time <= date) {
+      //   if (lastUpdate < element.time && !checked) {
+      //     checked = true;
+      //     liquidity += originalEmission * (date - lastUpdate);
+      //     lastUpdate = element.time;
+      //   } else {
       liquidity +=
         lastUpdate === 0
           ? 0
@@ -53,11 +71,16 @@ const updateTickers = (
       premiumEmission += element.emissionRate;
       lastTicker = element.time;
       updateTickers.splice(0, 1);
-      continue;
+      index++;
+      element = tickers[index];
     }
-    break;
   }
-  liquidity += premiumEmission * (date - (lastTicker || lastUpdate));
+
+  if (lastTicker < date) {
+    liquidity += premiumEmission * (date - lastTicker);
+  }
+
+  //   liquidity += premiumEmission * (date - (lastTicker || lastUpdate));
 
   return {
     updateTickers,
@@ -76,10 +99,11 @@ const getRewards = (
   tickers: ITicker[],
   date: number
 ) => {
+  console.log("Data ticker rewards before : ", actualTicker, tickers);
   const data = updateTickers(
     tickers,
     actualTicker.premiumsLiquidity,
-    0,
+    actualTicker.premiumEmission,
     actualTicker.lastUpdate,
     date
   );
@@ -91,29 +115,27 @@ const getRewards = (
 };
 // We add a premium for first user
 const usera = {
-  premium: 300,
+  premium: 100,
   insured: 10000,
 };
 const dateUserA = secondsToDay(0);
-
+console.log("------ ADDING USER A ---------");
 const emissionRateTmp =
   usera.premium / duration(usera.premium, usera.insured, rate);
-tickers.push(
-  ...[
-    { time: dateUserA, emissionRate: emissionRateTmp },
-    {
-      time: dateUserA + duration(usera.premium, usera.insured, rate),
-      emissionRate: -emissionRateTmp,
-    },
-  ]
-);
 
 const data = updateTickers(
   tickers,
   actualTicker.premiumsLiquidity,
   actualTicker.premiumEmission,
   actualTicker.lastUpdate,
-  dateUserA
+  dateUserA,
+  [
+    { time: dateUserA, emissionRate: emissionRateTmp },
+    {
+      time: dateUserA + duration(usera.premium, usera.insured, rate),
+      emissionRate: -emissionRateTmp,
+    },
+  ]
 );
 // WE SET DATA AS IT IS A WRITE ACTION
 actualTicker.lastUpdate = data.lastUpdate;
@@ -126,37 +148,38 @@ console.log("Liquidity init : ", actualTicker.premiumsLiquidity);
 console.log("Emission init : ", actualTicker.premiumEmission);
 // console.log("Duration S : ", duration(usera.premium, usera.insured, rate));
 console.log("Duration D : ", duration(usera.premium, usera.insured, rate));
-console.log("Duration Test : ", duration(300, usera.insured, rate) / 365 === 1);
 
-const dateTest = dateUserA + 10;
-console.log("\n 10 days later : " + dateTest + "\n");
+const dateTest = dateUserA + 1;
+console.log("\n days later : " + dateTest + "\n");
 console.log("LIQUIDITY : ", getRewards(1, actualTicker, tickers, dateTest));
-console.log("Liquidity actual : ", actualTicker.premiumsLiquidity);
 
-console.log("Tickers + 10 ", tickers);
+/**
+ * ADD USER B
+ */
+console.log("------ ADDING USER B ---------");
 
 const userb = {
-  premium: 100,
-  insured: 3000,
+  premium: 50,
+  insured: 1000,
 };
 
-const tickerb1 = dateUserA + 50;
+const tickerb1 = dateUserA + 2;
 const tickerb2 = tickerb1 + duration(userb.premium, userb.insured, rate);
 const emissionRateTmp2 =
   userb.premium / duration(userb.premium, userb.insured, rate);
-tickers.push(
-  { time: tickerb1, emissionRate: emissionRateTmp2 },
-  { time: tickerb2, emissionRate: -emissionRateTmp2 }
-);
+
 // REDUCE TICKER IF EXISTING TICKER TIME
-tickers.sort((a, b) => (a.time >= b.time ? 1 : -1));
 
 const data2 = updateTickers(
   tickers,
   actualTicker.premiumsLiquidity,
   actualTicker.premiumEmission,
   actualTicker.lastUpdate,
-  tickerb1
+  tickerb1,
+  [
+    { time: tickerb1, emissionRate: emissionRateTmp2 },
+    { time: tickerb2, emissionRate: -emissionRateTmp2 },
+  ]
 );
 // WE SET DATA AS IT IS A WRITE ACTION
 actualTicker.lastUpdate = data2.lastUpdate;
@@ -164,14 +187,36 @@ actualTicker.lastUpdate = tickerb1;
 tickers = data2.updateTickers;
 actualTicker.premiumsLiquidity = data2.liquidity;
 actualTicker.premiumEmission = data2.premiumEmission;
-console.log("\nLiquidity now " + tickerb1 + " : " + data2.liquidity);
+
+console.log("\nLiquidity now " + tickerb1 + " : ", data2.liquidity);
 console.log("Actual ticker now " + tickerb1 + " : ", actualTicker);
 console.log("Tickers now " + tickerb1 + " : ", tickers);
-console.log("Time remaining until next ticker ", tickers[0].time - tickerb1);
+console.log("Time remaining until next ticker ", tickers[0]?.time - tickerb1);
+console.log("\n--------- 5 DAYS LATER -------");
+const dateTest2 = dateUserA + 5;
+console.log("\n days later : " + dateTest2 + "\n");
+console.log("LIQUIDITY : ", getRewards(1, actualTicker, tickers, dateTest2));
 
+console.log("\n--------- 20 DAYS LATER -------");
+const dateTest20 = dateUserA + 20;
+console.log("\n days later : " + dateTest20 + "\n");
+console.log("LIQUIDITY : ", getRewards(1, actualTicker, tickers, dateTest20));
 //PUT RATE IN TICKER !
-console.log("\nLATER ON -------");
-const dateClaim = tickerb1 + 200;
+console.log("\n--------- LATER ON = CLAIM -------");
+
+const dateClaim = dateUserA + 20;
+
+const rewards = getRewards(
+  1,
+  {
+    premiumEmission: actualTicker.premiumEmission,
+    premiumsLiquidity: actualTicker.premiumsLiquidity,
+    lastUpdate: actualTicker.lastUpdate,
+  },
+  tickers,
+  dateClaim
+);
+console.log("Rewards now : ", rewards);
 
 const dataClaim = updateTickers(
   tickers,
@@ -189,24 +234,13 @@ actualTicker.lastUpdate = dataClaim.lastUpdate;
 console.log("\nLiquidity now " + dateClaim + " : " + dataClaim.liquidity);
 console.log("Emission now " + dateClaim + " : " + actualTicker.premiumEmission);
 console.log("Tickers now " + dateClaim + " : ", tickers);
-console.log("Time remaining until next ticker ", tickers[0].time - dateClaim);
-const rewards = getRewards(
-  1,
-  {
-    premiumEmission: actualTicker.premiumEmission,
-    premiumsLiquidity: dataClaim.liquidity,
-    lastUpdate: actualTicker.lastUpdate,
-  },
-  tickers,
-  dateClaim
-);
-console.log("Rewards now : ", rewards);
+console.log("Time remaining until next ticker ", tickers[0]?.time - dateClaim);
 
-expect(rewards).to.be.greaterThan(100);
-expect(rewards).to.be.lessThanOrEqual(300);
-
-const lastDate = tickers[tickers.length - 1].time;
-console.log("\n\n Last date : ", lastDate);
+// expect(rewards).to.be.greaterThanOrEqual(100);
+// expect(rewards).to.be.lessThanOrEqual(300);
+console.log("\n-------- LAST TICKER DATE ---------");
+const lastDate = tickers[tickers.length - 1]?.time;
+console.log("Last date : ", lastDate);
 console.log("Last data before : ", actualTicker);
 const lastRewards = getRewards(
   1,
