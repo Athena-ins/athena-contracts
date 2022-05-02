@@ -12,23 +12,30 @@ contract PremiumRewards is ReentrancyGuard {
         int256 emissionRate;
         uint256 liquidity;
     }
+    struct Policy {
+        uint256 time;
+        uint256 capital;
+        uint256 premium;
+        address owner;
+    }
     uint256 public lastUpdateTime;
-    uint256 public rewardPerTokenStored;
+    // uint256 public rewardPerTokenStored;
     uint256 public precision = 1e18;
     address public underlyingAsset;
     Ticker public actualTicker;
     mapping(uint256 => Ticker) public premiumEmissionTickers;
     uint256[] public initializedTickers;
-    mapping(address => uint256) public userRewardPerTokenPaid;
-    mapping(address => uint256) public rewards;
+
+    Policy[] public policies;
+    uint256 internal accruedInterest;
 
     uint256 public totalShares;
     uint256 public premiumSupply;
     uint256 public totalInsured;
     mapping(address => uint256) private _balances;
 
-      uint256 internal constant RAY = 1e27;
-  uint256 internal constant halfRAY = RAY / 2;
+    uint256 internal constant RAY = 1e27;
+    uint256 internal constant halfRAY = RAY / 2;
 
     constructor(address _underlyingAsset) {
         underlyingAsset = _underlyingAsset;
@@ -37,20 +44,65 @@ contract PremiumRewards is ReentrancyGuard {
         premiumEmissionTickers[day] = Ticker(day - 1, 0, 0);
     }
 
-    modifier updateReward(address account) {
-        rewardPerTokenStored = rewardPerToken();
+    modifier updateState(address account) {
+        // rewardPerTokenStored = rewardPerToken();
+        accruedInterest += getAccruedInterest();
         lastUpdateTime = block.timestamp;
-        rewards[account] = earned(account);
-        userRewardPerTokenPaid[account] = rewardPerTokenStored;
+
+        // New rate, next date policy expire ?
+
+        // rewards[account] = earned(account);
+        // userRewardPerTokenPaid[account] = rewardPerTokenStored;
         _;
     }
 
     function getRate() public view returns (uint256) {
         // returns actual usage rate on capital insured / capital provided for insurance
-        return 10000; // 1% at 10.000 precision
+        return precision; // 1% at precision
     }
 
-    function buyPremium(uint256 _amount, uint256 _capitalInsured) external {
+    function getAccruedInterest()
+        public
+        view
+        returns (uint256 _accruedInterests)
+    {
+        uint256 day = secondsToDay(block.timestamp);
+        uint256 lastDay = secondsToDay(lastUpdateTime);
+        for (uint256 index = 0; index < policies.length; index++) {
+            if (
+                duration(
+                    policies[index].premium,
+                    policies[index].capital,
+                    getRate()
+                ) +
+                    policies[index].time >
+                day
+            ) {
+                _accruedInterests +=
+                    (policies[index].premium * (day - lastDay) * getRate()) /
+                    precision;
+            } else if (
+                duration(
+                    policies[index].premium,
+                    policies[index].capital,
+                    getRate()
+                ) +
+                    policies[index].time <=
+                day
+            ) {
+                _accruedInterests +=
+                    (policies[index].premium *
+                        (policies[index].time - lastDay) *
+                        getRate()) /
+                    precision;
+                //remove policy
+            }
+        }
+
+        return accruedInterest;
+    }
+
+    function buyPolicy(uint256 _amount, uint256 _capitalInsured) external {
         IERC20(underlyingAsset).safeTransferFrom(
             msg.sender,
             address(this),
@@ -61,24 +113,6 @@ contract PremiumRewards is ReentrancyGuard {
         uint256 _duration = duration(_amount, _capitalInsured, getRate());
         console.log("Duration : ", _duration);
         console.log("Time day : ", secondsToDay(block.timestamp));
-        uint256 _emissionRate = (_amount * 10000) / _duration;
-        console.log("Emission Rate : ", _emissionRate);
-        updateTickers(
-            [
-                Ticker({
-                     //19109 on 27/04/2022
-                    time: secondsToDay(block.timestamp),
-                    emissionRate: int256(_emissionRate),
-                    liquidity: 0
-                }),
-                Ticker({
-                    time: secondsToDay(block.timestamp) + _duration,
-                    emissionRate: -int256(_emissionRate),
-                    liquidity: 0
-                })
-            ]
-        );
-        console.log("Tickers size : ", initializedTickers.length);
     }
 
     function balanceOfPremiums(address _account)
@@ -89,28 +123,6 @@ contract PremiumRewards is ReentrancyGuard {
         return _balances[_account];
     }
 
-    function rewardPerToken() public view returns (uint256) {
-        if (totalShares == 0) {
-            return 0;
-        }
-        return
-            rewardPerTokenStored +
-            ((((block.timestamp - lastUpdateTime) * precision) *
-                totalPremiumAvailable()) / totalShares);
-    }
-
-    function totalPremiumAvailable() public view returns (uint256) {
-        return premiumSupply;
-    }
-
-    function earned(address account) public view returns (uint256) {
-        return
-            (
-                (_balances[account] *
-                    (rewardPerToken() - userRewardPerTokenPaid[account]))
-            ) + rewards[account];
-    }
-
     function secondsToDay(uint256 _seconds) public pure returns (uint256) {
         return _seconds / (60 * 60 * 24);
     }
@@ -119,23 +131,27 @@ contract PremiumRewards is ReentrancyGuard {
         uint256 premium,
         uint256 capital,
         uint256 rate
-    ) public pure returns (uint256) {
-        return (premium * 100 * 10000 * 365) / (capital * (rate));
+    ) public view returns (uint256) {
+        return (premium * 100 * precision * 365) / (capital * (rate));
     }
 
-    function roundDown(uint256 _numerator, uint256 _denominator) public pure returns (uint256) {
+    function roundDown(uint256 _numerator, uint256 _denominator)
+        public
+        pure
+        returns (uint256)
+    {
         return _numerator / _denominator;
     }
 
     /**
-    * @dev Multiplies two ray, rounding half up to the nearest ray
-    * @param a Ray
-    * @param b Ray
-    * @return The result of a*b, in ray
-    **/
+     * @dev Multiplies two ray, rounding half up to the nearest ray
+     * @param a Ray
+     * @param b Ray
+     * @return The result of a*b, in ray
+     **/
     function rayMul(uint256 a, uint256 b) public pure returns (uint256) {
         if (a == 0 || b == 0) {
-        return 0;
+            return 0;
         }
 
         require(a <= (type(uint256).max - halfRAY) / b, "Overflow rayMul");
@@ -161,9 +177,16 @@ contract PremiumRewards is ReentrancyGuard {
             initializedTickers.push((_addTickers[1].time));
             premiumEmissionTickers[(_addTickers[0].time)] = _addTickers[0];
             premiumEmissionTickers[(_addTickers[1].time)] = _addTickers[1];
-            console.log("Add Tickers 1: ", premiumEmissionTickers[(_addTickers[0].time)].time);
-            console.logInt(premiumEmissionTickers[(_addTickers[0].time)].emissionRate);
-            console.logInt(premiumEmissionTickers[(_addTickers[1].time)].emissionRate);
+            console.log(
+                "Add Tickers 1: ",
+                premiumEmissionTickers[(_addTickers[0].time)].time
+            );
+            console.logInt(
+                premiumEmissionTickers[(_addTickers[0].time)].emissionRate
+            );
+            console.logInt(
+                premiumEmissionTickers[(_addTickers[1].time)].emissionRate
+            );
             // actualTicker.emissionRate += _addTickers[0].emissionRate;
             // actualTicker.time = _addTickers[0].time;
             //HANDLE UPDATE Existing TICKER TIME DATA
@@ -183,13 +206,14 @@ contract PremiumRewards is ReentrancyGuard {
         while (elementTicker.time <= _time) {
             crossedTicker = true;
             console.log("While loop : ", index);
-            actualTicker.liquidity += uint256(actualTicker.emissionRate) *
-                    (elementTicker.time -
-                        (
-                            (index > 0 && previousTicker.time > 0)
-                                ? previousTicker.time
-                                : actualTicker.time
-                        ));
+            actualTicker.liquidity +=
+                uint256(actualTicker.emissionRate) *
+                (elementTicker.time -
+                    (
+                        (index > 0 && previousTicker.time > 0)
+                            ? previousTicker.time
+                            : actualTicker.time
+                    ));
             actualTicker.emissionRate += elementTicker.emissionRate;
             console.log("While loop ER : ");
             console.logInt(actualTicker.emissionRate);
@@ -200,14 +224,17 @@ contract PremiumRewards is ReentrancyGuard {
             elementTicker = premiumEmissionTickers[initializedTickers[index]];
         }
         premiumEmissionTickers[_time] = actualTicker;
-        if (crossedTicker){
+        if (crossedTicker) {
             sortTickers();
             removeTickers(index);
         }
         console.log("Last ticker size : ", initializedTickers.length);
         for (uint256 j = 0; j < initializedTickers.length; j++) {
-            console.log("Ticker %d %d : ", initializedTickers[j],
-                premiumEmissionTickers[initializedTickers[j]].time);
+            console.log(
+                "Ticker %d %d : ",
+                initializedTickers[j],
+                premiumEmissionTickers[initializedTickers[j]].time
+            );
         }
         if (_lastTicker != 0 && _lastTicker < _time) {
             actualTicker.liquidity +=
@@ -216,8 +243,14 @@ contract PremiumRewards is ReentrancyGuard {
         }
     }
 
-    function removeTickers(uint256 _amount) internal returns (uint256[] storage) {
-        require(_amount > 0 && _amount < initializedTickers.length, "Wrong remove ticker _amount");
+    function removeTickers(uint256 _amount)
+        internal
+        returns (uint256[] storage)
+    {
+        require(
+            _amount > 0 && _amount < initializedTickers.length,
+            "Wrong remove ticker _amount"
+        );
         console.log("Remove tickers : ", _amount);
         // remove previousTicker from storage
         for (uint256 i = 0; i < initializedTickers.length - _amount; i++) {
@@ -232,32 +265,41 @@ contract PremiumRewards is ReentrancyGuard {
     }
 
     function sortTickers() public {
-       quickSort(initializedTickers, int(0), int(initializedTickers.length - 1));
+        quickSort(
+            initializedTickers,
+            int256(0),
+            int256(initializedTickers.length - 1)
+        );
     }
 
-    function quickSort(uint[] storage arr, int left, int right) internal {
-        int i = left;
-        int j = right;
-        if(i==j) return;
-        uint pivot = arr[uint(left + (right - left) / 2)];
+    function quickSort(
+        uint256[] storage arr,
+        int256 left,
+        int256 right
+    ) internal {
+        int256 i = left;
+        int256 j = right;
+        if (i == j) return;
+        uint256 pivot = arr[uint256(left + (right - left) / 2)];
         while (i <= j) {
-            while (arr[uint(i)] < pivot) i++;
-            while (pivot < arr[uint(j)]) j--;
+            while (arr[uint256(i)] < pivot) i++;
+            while (pivot < arr[uint256(j)]) j--;
             if (i <= j) {
-                (arr[uint(i)], arr[uint(j)]) = (arr[uint(j)], arr[uint(i)]);
+                (arr[uint256(i)], arr[uint256(j)]) = (
+                    arr[uint256(j)],
+                    arr[uint256(i)]
+                );
                 i++;
                 j--;
             }
         }
-        if (left < j)
-            quickSort(arr, left, j);
-        if (i < right)
-            quickSort(arr, i, right);
+        if (left < j) quickSort(arr, left, j);
+        if (i < right) quickSort(arr, i, right);
     }
 
     function _stake(address _account, uint256 _amount)
         internal
-        updateReward(_account)
+        updateState(_account)
         nonReentrant
     {
         totalShares += _amount;
@@ -266,21 +308,12 @@ contract PremiumRewards is ReentrancyGuard {
 
     function _withdraw(address _account, uint256 _amount)
         internal
-        updateReward(_account)
+        updateState(_account)
         nonReentrant
     {
+        require(_balances[_account] >= _amount, "Not enough balance");
         totalShares -= _amount;
         _balances[_account] -= _amount;
-        _claim(_account);
-    }
-
-    function _claim(address _account)
-        internal
-        updateReward(_account)
-        nonReentrant
-    {
-        uint256 reward = rewards[_account];
-        rewards[_account] = 0;
-        IERC20(underlyingAsset).safeTransfer(_account, reward);
+        IERC20(underlyingAsset).safeTransfer(_account, _amount);
     }
 }
