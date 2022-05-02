@@ -42,11 +42,9 @@ const updateTickers = (
   newTickers?: ITicker[]
 ) => {
   let lastTicker = 0;
-  const originalEmission = premiumEmission;
-  let checked = false;
   if (lastUpdate < tickers[0]?.time && date < tickers[0]?.time) {
     // EXCEPT IF TICKER STOP IN BETWEEN
-    liquidity += originalEmission * (date - lastUpdate);
+    liquidity += premiumEmission * (date - lastUpdate);
   }
   const updateTickers = tickers.concat();
 
@@ -57,30 +55,21 @@ const updateTickers = (
   let element = tickers[0];
   let index = 0;
   while (element?.time <= date) {
-    if (element?.time <= date) {
-      //   if (lastUpdate < element.time && !checked) {
-      //     checked = true;
-      //     liquidity += originalEmission * (date - lastUpdate);
-      //     lastUpdate = element.time;
-      //   } else {
-      liquidity +=
-        lastUpdate === 0
-          ? 0
-          : premiumEmission *
-            (element.time - (index > 0 ? tickers[index - 1].time : lastUpdate));
-      premiumEmission += element.emissionRate;
-      lastTicker = element.time;
-      updateTickers.splice(0, 1);
-      index++;
-      element = tickers[index];
-    }
+    liquidity +=
+      lastUpdate === 0
+        ? 0
+        : premiumEmission *
+          (element.time - (index > 0 ? tickers[index - 1].time : lastUpdate));
+    premiumEmission += element.emissionRate;
+    lastTicker = element.time;
+    updateTickers.splice(0, 1);
+    index++;
+    element = tickers[index];
   }
 
   if (lastTicker < date) {
     liquidity += premiumEmission * (date - lastTicker);
   }
-
-  //   liquidity += premiumEmission * (date - (lastTicker || lastUpdate));
 
   return {
     updateTickers,
@@ -239,7 +228,7 @@ console.log("Time remaining until next ticker ", tickers[0]?.time - dateClaim);
 // expect(rewards).to.be.greaterThanOrEqual(100);
 // expect(rewards).to.be.lessThanOrEqual(300);
 console.log("\n-------- LAST TICKER DATE ---------");
-const lastDate = tickers[tickers.length - 1]?.time;
+const lastDate = tickers[tickers.length - 1]?.time + 10;
 console.log("Last date : ", lastDate);
 console.log("Last data before : ", actualTicker);
 const lastRewards = getRewards(
@@ -252,7 +241,8 @@ const lastRewards = getRewards(
   tickers,
   lastDate
 );
-console.log("Last rewards : ", lastRewards, lastRewards + rewards);
+console.log("Last rewards : ", lastRewards);
+console.log("TOTAL REWARDS ", lastRewards + rewards);
 // const lastData = updateTickers(
 //   tickers,
 //   actualTicker.premiumsLiquidity,
