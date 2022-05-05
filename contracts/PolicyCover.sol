@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "hardhat/console.sol";
 
-contract PremiumRewards is ReentrancyGuard {
+contract PolicyCover is ReentrancyGuard {
     using SafeERC20 for IERC20;
     struct Ticker {
         uint256 time;
@@ -20,10 +20,10 @@ contract PremiumRewards is ReentrancyGuard {
     }
     uint256 public lastUpdateTime;
     // uint256 public rewardPerTokenStored;
-    uint256 public precision = 1e18;
+    uint256 public precision = 10000;
     address public underlyingAsset;
     Ticker public actualTicker;
-    mapping(uint256 => Ticker) public premiumEmissionTickers;
+    mapping(uint256 => Ticker) public policyTickers;
     uint256[] public initializedTickers;
 
     Policy[] public policies;
@@ -34,14 +34,22 @@ contract PremiumRewards is ReentrancyGuard {
     uint256 public totalInsured;
     mapping(address => uint256) private _balances;
 
+    uint256 internal _uOptimal = 7500; // 75 / 100 * 10000
+    uint256 internal _r0 = 10000; // 1 * 10000
+    uint256 internal _rSlope1 = 1200; // 1.2 * 10000
+    uint256 internal _rSlope2 = 1100; // 1.1 * 10000
+    uint256 internal _power_slope2 = 100;
+
     uint256 internal constant RAY = 1e27;
     uint256 internal constant halfRAY = RAY / 2;
+
+    uint256 internal availableCapital = 100000;
 
     constructor(address _underlyingAsset) {
         underlyingAsset = _underlyingAsset;
         uint256 day = secondsToDay(block.timestamp);
         initializedTickers.push(day);
-        premiumEmissionTickers[day] = Ticker(day - 1, 0, 0);
+        policyTickers[day] = Ticker(day - 1, 0, 0);
     }
 
     modifier updateState(address account) {
@@ -56,9 +64,29 @@ contract PremiumRewards is ReentrancyGuard {
         _;
     }
 
-    function getRate() public view returns (uint256) {
+    /**
+        Si U < Uoptimal : 	P = R0 + Rslope1*(U - Uoptimal)
+        Si U >= Uoptimal : 	P = R0 + Rslope1 + Rslope2 * (U - Uoptimal)^(Power_slope2)
+     */
+    function getRate(uint256 _addedPolicy) public view returns (uint256) {
+        // returns actual rate for insurance
+        uint256 _uRate = getUtilisationRate(_addedPolicy);
+        // *precision (10000)
+        console.log("Utilisation rate:", _uRate);
+        if(_uRate < _uOptimal){
+            return _r0 + _rSlope1 * (_uRate / _uOptimal);
+        }
+        else {
+            return _r0 + _rSlope1 + _rSlope2 * (_uRate - _uOptimal) / (10000 - _uOptimal) / 100;
+        }
+    }
+
+    function getUtilisationRate(uint256 _addedPolicy) public view returns (uint256) {
         // returns actual usage rate on capital insured / capital provided for insurance
-        return precision; // 1% at precision
+        if(availableCapital == 0){
+            return 0;
+        }
+        return (totalInsured + _addedPolicy) * precision / availableCapital; // at precision
     }
 
     function getAccruedInterest()
@@ -69,23 +97,24 @@ contract PremiumRewards is ReentrancyGuard {
         uint256 day = secondsToDay(block.timestamp);
         uint256 lastDay = secondsToDay(lastUpdateTime);
         for (uint256 index = 0; index < policies.length; index++) {
+            //@Dev fix rate when policy expired !
             if (
                 duration(
                     policies[index].premium,
                     policies[index].capital,
-                    getRate()
+                    getRate(0)
                 ) +
                     policies[index].time >
                 day
             ) {
                 _accruedInterests +=
-                    (policies[index].premium * (day - lastDay) * getRate()) /
+                    (policies[index].premium * (day - lastDay) * getRate(0)) /
                     precision;
             } else if (
                 duration(
                     policies[index].premium,
                     policies[index].capital,
-                    getRate()
+                    getRate(0)
                 ) +
                     policies[index].time <=
                 day
@@ -93,7 +122,7 @@ contract PremiumRewards is ReentrancyGuard {
                 _accruedInterests +=
                     (policies[index].premium *
                         (policies[index].time - lastDay) *
-                        getRate()) /
+                        getRate(0)) /
                     precision;
                 //remove policy
             }
@@ -110,9 +139,23 @@ contract PremiumRewards is ReentrancyGuard {
         );
         premiumSupply += _amount;
         totalInsured += _capitalInsured;
-        uint256 _duration = duration(_amount, _capitalInsured, getRate());
+        uint256 _duration = duration(_amount, _capitalInsured, getRate(_capitalInsured));
         console.log("Duration : ", _duration);
         console.log("Time day : ", secondsToDay(block.timestamp));
+        updateTickers(
+            [
+                Ticker({
+                    time: secondsToDay(block.timestamp),
+                    emissionRate: 1,
+                    liquidity: 1
+                }),
+                Ticker({
+                    time: secondsToDay(block.timestamp),
+                    emissionRate: -1,
+                    liquidity: 1
+                })
+            ]
+        );
     }
 
     function balanceOfPremiums(address _account)
@@ -164,8 +207,7 @@ contract PremiumRewards is ReentrancyGuard {
         console.log("Time Update Tickers : ", _time);
 
         uint256 _lastTicker = 0;
-        uint256 lastTickerTime = premiumEmissionTickers[initializedTickers[0]]
-            .time;
+        uint256 lastTickerTime = policyTickers[initializedTickers[0]].time;
         if (actualTicker.time < lastTickerTime && _time < lastTickerTime) {
             actualTicker.liquidity +=
                 // safe convert because total emission rate is >= 0
@@ -175,18 +217,14 @@ contract PremiumRewards is ReentrancyGuard {
         if (_addTickers.length > 0) {
             initializedTickers.push((_addTickers[0].time));
             initializedTickers.push((_addTickers[1].time));
-            premiumEmissionTickers[(_addTickers[0].time)] = _addTickers[0];
-            premiumEmissionTickers[(_addTickers[1].time)] = _addTickers[1];
+            policyTickers[(_addTickers[0].time)] = _addTickers[0];
+            policyTickers[(_addTickers[1].time)] = _addTickers[1];
             console.log(
                 "Add Tickers 1: ",
-                premiumEmissionTickers[(_addTickers[0].time)].time
+                policyTickers[(_addTickers[0].time)].time
             );
-            console.logInt(
-                premiumEmissionTickers[(_addTickers[0].time)].emissionRate
-            );
-            console.logInt(
-                premiumEmissionTickers[(_addTickers[1].time)].emissionRate
-            );
+            console.logInt(policyTickers[(_addTickers[0].time)].emissionRate);
+            console.logInt(policyTickers[(_addTickers[1].time)].emissionRate);
             // actualTicker.emissionRate += _addTickers[0].emissionRate;
             // actualTicker.time = _addTickers[0].time;
             //HANDLE UPDATE Existing TICKER TIME DATA
@@ -197,9 +235,7 @@ contract PremiumRewards is ReentrancyGuard {
             // console.log("Add Tickers init 2: ", initializedTickers[1]);
             // console.log("Add Tickers init 2: ", initializedTickers[2]);
         }
-        Ticker memory elementTicker = premiumEmissionTickers[
-            initializedTickers[0]
-        ];
+        Ticker memory elementTicker = policyTickers[initializedTickers[0]];
         uint32 index = 0;
         bool crossedTicker = false;
         Ticker memory previousTicker;
@@ -221,9 +257,9 @@ contract PremiumRewards is ReentrancyGuard {
             previousTicker = elementTicker;
             actualTicker.time = elementTicker.time;
             index++;
-            elementTicker = premiumEmissionTickers[initializedTickers[index]];
+            elementTicker = policyTickers[initializedTickers[index]];
         }
-        premiumEmissionTickers[_time] = actualTicker;
+        policyTickers[_time] = actualTicker;
         if (crossedTicker) {
             sortTickers();
             removeTickers(index);
@@ -233,7 +269,7 @@ contract PremiumRewards is ReentrancyGuard {
             console.log(
                 "Ticker %d %d : ",
                 initializedTickers[j],
-                premiumEmissionTickers[initializedTickers[j]].time
+                policyTickers[initializedTickers[j]].time
             );
         }
         if (_lastTicker != 0 && _lastTicker < _time) {
@@ -254,7 +290,7 @@ contract PremiumRewards is ReentrancyGuard {
         console.log("Remove tickers : ", _amount);
         // remove previousTicker from storage
         for (uint256 i = 0; i < initializedTickers.length - _amount; i++) {
-            delete premiumEmissionTickers[initializedTickers[i]];
+            delete policyTickers[initializedTickers[i]];
             initializedTickers[i] = initializedTickers[i + _amount];
         }
         for (uint256 index = 0; index < _amount; index++) {

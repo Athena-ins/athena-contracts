@@ -3,9 +3,9 @@ pragma solidity ^0.8;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "./PremiumRewards.sol";
+import "./PolicyCover.sol";
 
-contract ProtocolPool is ERC20, Ownable, Pausable, PremiumRewards {
+contract ProtocolPool is ERC20, Ownable, Pausable, PolicyCover {
     address immutable private core;
     address immutable public underlyingAssetAddress;
 
@@ -15,7 +15,7 @@ contract ProtocolPool is ERC20, Ownable, Pausable, PremiumRewards {
         address _underlyingAsset,
         string memory _name,
         string memory _symbol
-    ) ERC20(_name, _symbol) PremiumRewards(_underlyingAsset) {
+    ) ERC20(_name, _symbol) PolicyCover(_underlyingAsset) {
         core = _core;
         underlyingAssetAddress = _underlyingAsset;
     }
