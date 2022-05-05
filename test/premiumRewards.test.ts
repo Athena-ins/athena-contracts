@@ -31,7 +31,7 @@ let owner: originalEthers.Signer,
   user2: originalEthers.Signer,
   ownerAddress: string,
   userAddress: string,
-  PREMIUM_REWARDS_CONTRACT: ethersOriginal.Contract,
+  POLICY_COVER_CONTRACT: ethersOriginal.Contract,
   INS_TX_CONTRACT: ethersOriginal.Contract,
   POS_CONTRACT: ethersOriginal.Contract,
   STAKED_ATENS_CONTRACT: ethersOriginal.Contract,
@@ -62,15 +62,15 @@ describe("Premium Rewards Generic Contract", function () {
    */
 
   it("Should deploy contract", async function () {
-    const factory = await ethers.getContractFactory("PremiumRewards");
-    PREMIUM_REWARDS_CONTRACT = await factory.connect(owner).deploy(USDT);
+    const factory = await ethers.getContractFactory("PolicyCover");
+    POLICY_COVER_CONTRACT = await factory.connect(owner).deploy(USDT);
     //await factory.deploy(STAKING_TOKEN, ATEN_TOKEN);
-    await PREMIUM_REWARDS_CONTRACT.deployed();
+    await POLICY_COVER_CONTRACT.deployed();
 
     expect(await ethers.provider.getCode("0x" + "0".repeat(40))).to.equal("0x");
 
     expect(
-      await ethers.provider.getCode(PREMIUM_REWARDS_CONTRACT.address)
+      await ethers.provider.getCode(POLICY_COVER_CONTRACT.address)
     ).to.not.equal("0x");
   });
 
@@ -104,60 +104,67 @@ describe("Premium Rewards Generic Contract", function () {
   });
 
   it("Should have round down", async () => {
-    await expect(PREMIUM_REWARDS_CONTRACT.roundDown(4, 3)).to.eventually.equal(
-      1
-    );
+    await expect(POLICY_COVER_CONTRACT.roundDown(4, 3)).to.eventually.equal(1);
   });
 
   it("Should have ray Mul", async () => {
     await expect(
-      PREMIUM_REWARDS_CONTRACT.rayMul(
+      POLICY_COVER_CONTRACT.rayMul(
         BN("4").mul(BN(10).pow(BN(27))),
         BN("3").mul(BN(10).pow(BN(27)))
       )
     ).to.eventually.equal(BN("12").mul(BN(10).pow(BN(27))));
   });
 
+  it("Should have rate calculations", async () => {
+    await expect(POLICY_COVER_CONTRACT.getRate(0)).to.eventually.equal(
+      BN("1").mul(BN(10000))
+    ); // 10% = 0.1 => 10 / 100 / 10000
+    // 1000$ on 100000$ Pool => 1% utilisation rate = 10.33%
+    await expect(POLICY_COVER_CONTRACT.getRate(1000)).to.eventually.equal(
+      BN("116").mul(BN(10000)).div(100)
+    );
+    // 90000$ on 100000$ Pool => 90% utilisation rate = 40%
+    await expect(POLICY_COVER_CONTRACT.getRate(90000)).to.eventually.equal(
+      BN("40").mul(BN(10000))
+    );
+  });
+
   it("Should have Duration for premium and capital", async () => {
     await expect(
-      PREMIUM_REWARDS_CONTRACT.duration(365, 36500, 10000) // 1% (1/100 * 10.000)
+      POLICY_COVER_CONTRACT.duration(365, 36500, 10000) // 1% (1/100 * 10.000)
     ).to.eventually.equal(365);
     await expect(
-      PREMIUM_REWARDS_CONTRACT.duration(1, 36500, 10000) // 1%
+      POLICY_COVER_CONTRACT.duration(1, 36500, 10000) // 1%
     ).to.eventually.equal(1);
     await expect(
-      PREMIUM_REWARDS_CONTRACT.duration(1, 36501, 10000) // 1%
+      POLICY_COVER_CONTRACT.duration(1, 36501, 10000) // 1%
     ).to.eventually.equal(0);
     await expect(
-      PREMIUM_REWARDS_CONTRACT.duration(2, 36501, 10000) // 1%
+      POLICY_COVER_CONTRACT.duration(2, 36501, 10000) // 1%
     ).to.eventually.equal(1);
   });
   it("Should buy premium and check values", async () => {
     await USDT_TOKEN_CONTRACT.connect(user).approve(
-      PREMIUM_REWARDS_CONTRACT.address,
+      POLICY_COVER_CONTRACT.address,
       ethers.utils.parseEther(ETH_VALUE)
     );
-    await PREMIUM_REWARDS_CONTRACT.connect(user).buyPremium(10, 10000);
+    await POLICY_COVER_CONTRACT.connect(user).buyPolicy(10, 10000);
 
     await expect(
-      USDT_TOKEN_CONTRACT.connect(user).balanceOf(
-        PREMIUM_REWARDS_CONTRACT.address
-      )
+      USDT_TOKEN_CONTRACT.connect(user).balanceOf(POLICY_COVER_CONTRACT.address)
     ).to.eventually.equal(BN(10));
-    await expect(PREMIUM_REWARDS_CONTRACT.totalInsured()).to.eventually.equal(
+    await expect(POLICY_COVER_CONTRACT.totalInsured()).to.eventually.equal(
       BN(10000)
     );
-    await expect(PREMIUM_REWARDS_CONTRACT.premiumSupply()).to.eventually.equal(
+    await expect(POLICY_COVER_CONTRACT.premiumSupply()).to.eventually.equal(
       BN(10)
     );
-    const timeTicker0 = await PREMIUM_REWARDS_CONTRACT.initializedTickers(0);
+    const timeTicker0 = await POLICY_COVER_CONTRACT.initializedTickers(0);
     console.log(
       "Ticker 0 ",
-      await PREMIUM_REWARDS_CONTRACT.premiumEmissionTickers(timeTicker0)
+      await POLICY_COVER_CONTRACT.premiumEmissionTickers(timeTicker0)
     );
-    console.log(
-      "Actual Ticker ",
-      await PREMIUM_REWARDS_CONTRACT.actualTicker()
-    );
+    console.log("Actual Ticker ", await POLICY_COVER_CONTRACT.actualTicker());
   });
 });
