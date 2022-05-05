@@ -41,7 +41,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
     //     _burn(msg.sender, tokenId, amount);
     // }
 
-    function positions(uint256 tokenId)
+    function positions(uint256 _tokenId)
         external
         view override
         returns (
@@ -49,7 +49,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
             uint128[] memory protocolsId
         )
     {
-        Position memory position = _positions[tokenId];
+        Position memory position = _positions[_tokenId];
         return (position.providedLiquidity, position.protocolsId);
     }
 
@@ -69,6 +69,13 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
         });
         _mint(to, _nextId);
         _nextId++;
+    }
+
+    function burn(
+        address to
+    ) external override onlyCore {
+        uint256 tokenId = tokenOfOwnerByIndex(to, 0);
+        _burn(tokenId);
     }
 
     function update(

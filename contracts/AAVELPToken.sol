@@ -7,7 +7,7 @@ contract AAVELPToken is ERC20, ReentrancyGuard {
     uint256 public lastUpdateTime;
     uint256 public rewardPerTokenStored;
     uint256 public precision = 1e18;
-    address public aToken;
+    address public asset;
     address public core;
     mapping(address => uint256) public userRewardPerTokenPaid;
     mapping(address => uint256) public rewards;
@@ -15,10 +15,10 @@ contract AAVELPToken is ERC20, ReentrancyGuard {
     uint256 public totalShares;
     mapping(address => uint256) private _balances;
 
-    constructor(address _aToken, address _core)
+    constructor(address _asset, address _core)
         ERC20("AAVE_LP_ATHENA", "AAVE LP x ATHENA Token")
     {   
-        aToken = _aToken;
+        asset = _asset;
         core = _core;
     }
 
@@ -27,7 +27,7 @@ contract AAVELPToken is ERC20, ReentrancyGuard {
         _;
     }
 
-    function mint(address _account, uint256 _amount) external onlyCore {
+    function deposit(address _account, uint256 _amount) external onlyCore {
         uint256 share = _amount / underlyingBalance(address(this));
         _mint(_account, share);
     }
@@ -37,7 +37,23 @@ contract AAVELPToken is ERC20, ReentrancyGuard {
         view
         returns (uint256)
     {
-        return ERC20(aToken).balanceOf(_account);
+        return ERC20(asset).balanceOf(_account);
+    }
+
+    function totalAssets() public view returns (uint256) {
+        return ERC20(asset).balanceOf(address(this));
+    }
+
+    function convertToShares(uint256 _assets) public view returns (uint256) {
+        return _assets / underlyingBalance(address(this));
+    }
+
+    function convertToAssets(uint256 _shares) public view returns (uint256) {
+        return _shares / totalAssets();
+    }
+
+    function maxDeposit() public pure returns (uint256) {
+        return 2 ** 256 - 1;
     }
 
     function withdraw(address _account, uint256 _amount) external onlyCore {

@@ -56,6 +56,7 @@ contract PolicyCover is ReentrancyGuard {
         // rewardPerTokenStored = rewardPerToken();
         accruedInterest += getAccruedInterest();
         lastUpdateTime = block.timestamp;
+        updateTickers([Ticker(0, 0, 0), Ticker(0, 0, 0)]);
 
         // New rate, next date policy expire ?
 
@@ -214,7 +215,7 @@ contract PolicyCover is ReentrancyGuard {
                 uint256(actualTicker.emissionRate) *
                 (_time - actualTicker.time);
         }
-        if (_addTickers.length > 0) {
+        if (_addTickers.length > 0 && _addTickers[0].time > 0) {
             initializedTickers.push((_addTickers[0].time));
             initializedTickers.push((_addTickers[1].time));
             policyTickers[(_addTickers[0].time)] = _addTickers[0];
@@ -340,6 +341,15 @@ contract PolicyCover is ReentrancyGuard {
     {
         totalShares += _amount;
         _balances[_account] += _amount;
+    }
+
+    function _unstake(address _account, uint256 _amount)
+        internal
+        updateState(_account)
+        nonReentrant
+    {
+        totalShares -= _amount;
+        _balances[_account] -= _amount;
     }
 
     function _withdraw(address _account, uint256 _amount)

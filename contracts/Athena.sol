@@ -155,6 +155,43 @@ contract Athena is Multicall, ReentrancyGuard, Ownable {
         );
     }
 
+    function withdrawAll() external {
+        require(
+            IPositionsManager(positionsManager).balanceOf(msg.sender) > 0,
+            "No position to withdraw"
+        );
+        // uint256 amount = IPositionsManager(positionsManager).balanceOf(msg.sender);
+        uint256 _tokenId = IPositionsManager(positionsManager).tokenOfOwnerByIndex(
+            msg.sender,
+            0
+        );
+        (,uint128[] memory protocolIds) = IPositionsManager(positionsManager).positions(_tokenId);
+        uint256[] memory amounts;
+        amounts[0] = uint256(0);
+        _withdraw(amounts, protocolIds);
+    }
+
+    // @Dev TODO should add selected protocols & amounts to withdraw
+    function withdraw(uint256[] memory _amounts, uint128[] memory protocolIds) external {
+        require(
+            IPositionsManager(positionsManager).balanceOf(msg.sender) > 0,
+            "No position to withdraw"
+        );
+          _withdraw(_amounts, protocolIds);
+    }
+
+    function _withdraw(uint256[] memory _amounts, uint128[] memory protocolIds) internal {
+        // uint256 amount = IPositionsManager(positionsManager).balanceOf(msg.sender);
+        for (uint256 index = 0; index < protocolIds.length; index++) {
+            ProtocolPool(protocolsMapping[protocolIds[index]].deployed).burn(
+                msg.sender,
+                _amounts[index]
+            );
+        }
+        // SHOULD Update if not max withdraw ?
+        IPositionsManager(positionsManager).burn(msg.sender);
+    }
+
     function _stakeAtens(uint256 atenToStake, uint256 amount) internal {
         StakedAten(stakedAtensGP).stake(msg.sender, atenToStake, amount);
     }

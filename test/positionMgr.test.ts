@@ -502,7 +502,10 @@ describe("Position Manager", function () {
       );
       expect(balanceProtocol).to.equal(BN(10000));
     });
-    it("Should get X premium rewards now with protocol 0", async function () {});
+    it.skip("Should get X premium rewards now with protocol 0", async function () {});
+    it("Should withdraw everything and get AAVE rewards", async function () {
+      await ATHENA_CONTRACT.withdrawAll();
+    });
   });
 
   //await ATHENA_CONTRACT.balanceOf(signerAddress)).to.be.true;

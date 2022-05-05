@@ -29,4 +29,9 @@ contract ProtocolPool is ERC20, Ownable, Pausable, PolicyCover {
         _stake(_account, _amount);
         _mint(_account, _amount);
     }
+
+    function burn(address _account, uint256 _amount) external onlyCore {
+        _unstake(_account, _amount);
+        _burn(_account, _amount);
+    }
 }
