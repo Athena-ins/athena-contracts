@@ -11,6 +11,11 @@ Launch tests :
 npx hardhat test
 ```
 
+Launch only a specific test :
+```shell
+npx hardhat test tests/testFile.test.ts
+```
+
 Before deploying make sure to have `> 90% coverage`
 
 ```shell
