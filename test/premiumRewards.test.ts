@@ -100,7 +100,7 @@ describe("Premium Rewards Generic Contract", function () {
       await USDT_TOKEN_CONTRACT.connect(user2).balanceOf(
         await user2.getAddress()
       )
-    ).to.equal(ethers.utils.parseUnits("100000", 6));
+    ).to.be.greaterThanOrEqual(ethers.utils.parseUnits("100000", 6));
   });
 
   it("Should have round down", async () => {

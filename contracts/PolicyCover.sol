@@ -3,9 +3,11 @@ pragma solidity ^0.8;
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "./interfaces/IPolicyCover.sol";
+
 import "hardhat/console.sol";
 
-contract PolicyCover is ReentrancyGuard {
+contract PolicyCover is IPolicyCover, ReentrancyGuard {
     using SafeERC20 for IERC20;
     struct Ticker {
         uint256 time;
@@ -132,7 +134,7 @@ contract PolicyCover is ReentrancyGuard {
         return accruedInterest;
     }
 
-    function buyPolicy(uint256 _amount, uint256 _capitalInsured) external {
+    function buyPolicy(uint256 _amount, uint256 _capitalInsured) override external {
         IERC20(underlyingAsset).safeTransferFrom(
             msg.sender,
             address(this),

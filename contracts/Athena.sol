@@ -3,17 +3,17 @@ pragma solidity ^0.8;
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
-import "@openzeppelin/contracts/utils/Multicall.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./ProtocolPool.sol";
 import "./interfaces/IPositionsManager.sol";
 import "./AAVE/ILendingPoolAddressesProvider.sol";
 import "./AAVE/ILendingPool.sol";
-import "./StakedAten.sol";
-import "./PolicyManager.sol";
+import "./interfaces/IStakedAten.sol";
+import "./interfaces/IPolicyManager.sol";
 
 // import "./library/PositionsLibrary.sol";
 
-contract Athena is Multicall, ReentrancyGuard, Ownable {
+contract Athena is ReentrancyGuard, Ownable {
     using SafeERC20 for IERC20;
     uint256 constant MAX_UINT256 = 2**256 - 1;
     struct Protocol {
@@ -91,8 +91,12 @@ contract Athena is Multicall, ReentrancyGuard, Ownable {
     ) public payable nonReentrant {
         require(_amountGuaranteed > 0, "Amount must be greater than 0");
         //@dev TODO get rate for price and durationw
-        IERC20(stablecoin).safeTransferFrom(msg.sender, protocolsMapping[_protocolId].deployed, _amountGuaranteed);
-        PolicyManager(policyManager).mint(
+        IERC20(stablecoin).safeTransferFrom(
+            msg.sender,
+            protocolsMapping[_protocolId].deployed,
+            _amountGuaranteed
+        );
+        IPolicyManager(policyManager).mint(
             msg.sender,
             _amountGuaranteed,
             _atensLocked,
@@ -137,7 +141,7 @@ contract Athena is Multicall, ReentrancyGuard, Ownable {
                     "Protocol not compatible"
                 );
             }
-            ProtocolPool(protocolsMapping[_protocolIds[index]].deployed).mint(
+            IProtocolPool(protocolsMapping[_protocolIds[index]].deployed).mint(
                 msg.sender,
                 _amounts[index]
             );
@@ -161,29 +165,32 @@ contract Athena is Multicall, ReentrancyGuard, Ownable {
             "No position to withdraw"
         );
         // uint256 amount = IPositionsManager(positionsManager).balanceOf(msg.sender);
-        uint256 _tokenId = IPositionsManager(positionsManager).tokenOfOwnerByIndex(
-            msg.sender,
-            0
-        );
-        (,uint128[] memory protocolIds) = IPositionsManager(positionsManager).positions(_tokenId);
+        uint256 _tokenId = IPositionsManager(positionsManager)
+            .tokenOfOwnerByIndex(msg.sender, 0);
+        (, uint128[] memory protocolIds) = IPositionsManager(positionsManager)
+            .positions(_tokenId);
         uint256[] memory amounts;
         amounts[0] = uint256(0);
         _withdraw(amounts, protocolIds);
     }
 
     // @Dev TODO should add selected protocols & amounts to withdraw
-    function withdraw(uint256[] memory _amounts, uint128[] memory protocolIds) external {
+    function withdraw(uint256[] memory _amounts, uint128[] memory protocolIds)
+        external
+    {
         require(
             IPositionsManager(positionsManager).balanceOf(msg.sender) > 0,
             "No position to withdraw"
         );
-          _withdraw(_amounts, protocolIds);
+        _withdraw(_amounts, protocolIds);
     }
 
-    function _withdraw(uint256[] memory _amounts, uint128[] memory protocolIds) internal {
+    function _withdraw(uint256[] memory _amounts, uint128[] memory protocolIds)
+        internal
+    {
         // uint256 amount = IPositionsManager(positionsManager).balanceOf(msg.sender);
         for (uint256 index = 0; index < protocolIds.length; index++) {
-            ProtocolPool(protocolsMapping[protocolIds[index]].deployed).burn(
+            IProtocolPool(protocolsMapping[protocolIds[index]].deployed).burn(
                 msg.sender,
                 _amounts[index]
             );
@@ -193,7 +200,7 @@ contract Athena is Multicall, ReentrancyGuard, Ownable {
     }
 
     function _stakeAtens(uint256 atenToStake, uint256 amount) internal {
-        StakedAten(stakedAtensGP).stake(msg.sender, atenToStake, amount);
+        IStakedAten(stakedAtensGP).stake(msg.sender, atenToStake, amount);
     }
 
     function withdrawAtens(uint256 atenToWithdraw) external {
@@ -204,10 +211,10 @@ contract Athena is Multicall, ReentrancyGuard, Ownable {
             positionsManager
         ).positions(tokenId);
         uint128 fees = getFeesWithAten(liquidity);
-        uint256 actualAtens = StakedAten(stakedAtensGP).balanceOf(msg.sender);
+        uint256 actualAtens = IStakedAten(stakedAtensGP).balanceOf(msg.sender);
         require(actualAtens > 0, "No Atens to withdraw");
         // require(atenToWithdraw <= actualAtens, "Not enough Atens to withdraw");
-        StakedAten(stakedAtensGP).withdraw(msg.sender, atenToWithdraw);
+        IStakedAten(stakedAtensGP).withdraw(msg.sender, atenToWithdraw);
         IPositionsManager(positionsManager).update(
             msg.sender,
             fees,

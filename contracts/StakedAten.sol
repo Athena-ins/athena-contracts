@@ -7,8 +7,10 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./library/ERC20withSnapshot.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./FixedRateStakeable.sol";
+import "./interfaces/IStakedAten.sol";
 
 contract StakedAten is
+    IStakedAten,
     ERC20WithSnapshot,
     FixedRateStakeable,
     ReentrancyGuard,
@@ -35,7 +37,7 @@ contract StakedAten is
         address _account,
         uint256 _amount,
         uint256 _usdDeposit
-    ) public onlyCore {
+    ) external override onlyCore {
         // we put from & to opposite so as token owner has a Snapshot balance when staking
         _beforeTokenTransfer(address(0), _account, _amount);
         IERC20(underlyingAssetAddress).safeTransferFrom(
@@ -54,7 +56,11 @@ contract StakedAten is
         _setStakeRewards(_rewardToSet);
     }
 
-    function withdraw(address _account, uint256 _amount) public onlyCore {
+    function withdraw(address _account, uint256 _amount)
+        external
+        override
+        onlyCore
+    {
         uint256 amountToReturn = _withdrawStake(_account, _amount);
         // we put from & to opposite so as token owner has a Snapshot balance when staking
         _beforeTokenTransfer(_account, address(0), _amount);
