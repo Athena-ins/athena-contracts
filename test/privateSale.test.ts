@@ -38,7 +38,7 @@ let signerATENAddress: string;
 let PRIVATE_SALE_CONTRACT: ethersOriginal.Contract;
 let balUSDTownerBefore: ethersOriginal.BigNumber;
 
-describe("Smart Contract Private sale whitelist", function () {
+describe.skip("Smart Contract Private sale whitelist", function () {
   const ETH_VALUE = "1";
   before(async () => {
     await hre.network.provider.request({

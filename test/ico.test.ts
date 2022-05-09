@@ -37,7 +37,7 @@ let signerATENAddress: string;
 let ATHENA_CONTRACT: ethersOriginal.Contract;
 let balUSDTownerBefore: ethersOriginal.BigNumber;
 
-describe("ICO Pre sale", function () {
+describe.skip("ICO Pre sale", function () {
   const ETH_VALUE = "1";
   before(async () => {
     await hre.network.provider.request({
