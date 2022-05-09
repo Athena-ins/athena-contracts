@@ -2,6 +2,20 @@
 
 This project is Athena's guarantee pool and policies smart contracts and tests.
 
+# Starting project
+
+Install all dependencies : 
+```bash
+npm i
+```
+
+Get your .env from .env.example
+
+```bash
+cp .env.example .env
+```
+and set your provider keys
+
 # Development
 
 TDD only : Every team member should write unit tests at least before developing a new feature.
