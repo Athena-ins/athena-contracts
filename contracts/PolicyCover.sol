@@ -11,8 +11,8 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     using SafeERC20 for IERC20;
     struct Ticker {
         uint256 time;
-        int256 emissionRate;
-        uint256 liquidity;
+        int256 emissionRate; //Thao@NOTE: il faut penser au cas Overflow de types
+        uint256 liquidity; //Thao@QUESTION: on a besoin de liquidity ou emissionRate ou les deux ???
     }
     struct Policy {
         uint256 time;
