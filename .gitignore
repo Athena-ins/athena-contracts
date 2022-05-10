@@ -112,3 +112,9 @@ typechain
 #Hardhat files
 cache
 artifacts
+
+#prettierrc
+.prettierrc
+
+#vscode
+.vscode
