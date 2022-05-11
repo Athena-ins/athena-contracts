@@ -27,20 +27,4 @@ library LowGasSafeMath {
   function mul(uint256 x, uint256 y) internal pure returns (uint256 z) {
     require(x == 0 || (z = x * y) / x == y);
   }
-
-  /// @notice Returns x + y, reverts if overflows or underflows
-  /// @param x The augend
-  /// @param y The addend
-  /// @return z The sum of x and y
-  function add(int256 x, int256 y) internal pure returns (int256 z) {
-    require((z = x + y) >= x == (y >= 0));
-  }
-
-  /// @notice Returns x - y, reverts if overflows or underflows
-  /// @param x The minuend
-  /// @param y The subtrahend
-  /// @return z The difference of x and y
-  function sub(int256 x, int256 y) internal pure returns (int256 z) {
-    require((z = x - y) <= x == (y >= 0));
-  }
 }
