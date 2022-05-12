@@ -35,12 +35,12 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     uint24 tick;
     uint256 useRate;
     uint256 emissionRate;
-    uint256 hoursPerTick; //uint128???
+    uint256 hoursPerTick;
     uint256 cumulativeRatio;
     uint256 lastUpdateTimestamp;
   }
 
-  Slot0 internal slot0;
+  Slot0 public slot0;
 
   uint256 internal _uOptimal = 7500; // 75 / 100 * 10000
   uint256 internal _r0 = 10000; // 1 * 10000
@@ -48,27 +48,43 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
   uint256 internal _rSlope2 = 1100; // 1.1 * 10000
   uint256 internal _powerSlope2 = 100;
 
-  uint256 public precision = 10000;
+  uint256 public precision = 1e4;
   uint256 public premiumSupply;
   uint256 public totalInsured;
   uint256 internal availableCapital = 100000;
-  //Thao@NOTE: availableCapital + totalInsured = reserveCapitalPool
+  //Thao@NOTE: availableCapital = reserveCapitalPool
 
   address public underlyingAsset;
 
   constructor(address _underlyingAsset) {
     underlyingAsset = _underlyingAsset;
+
+    slot0.useRate = getRate(0, true);
+    slot0.hoursPerTick = 24;
+    slot0.cumulativeRatio = 1;
+    slot0.lastUpdateTimestamp = block.timestamp;
+
+    // console.log(slot0.tick);
+    // console.log(slot0.useRate);
+    // console.log(slot0.emissionRate);
+    // console.log(slot0.hoursPerTick);
+    // console.log(slot0.cumulativeRatio);
+    // console.log(slot0.lastUpdateTimestamp);
   }
 
   /**
         Si U < Uoptimal : 	P = R0 + Rslope1*(U - Uoptimal)
         Si U >= Uoptimal : 	P = R0 + Rslope1 + Rslope2 * (U - Uoptimal)^(Power_slope2)
      */
-  function getRate(uint256 _addedPolicy) public view returns (uint256) {
+  function getRate(uint256 _addedPolicy, bool isAdded)
+    public
+    view
+    returns (uint256)
+  {
     // returns actual rate for insurance
-    uint256 _uRate = getUtilisationRate(_addedPolicy);
+    uint256 _uRate = getUtilisationRate(_addedPolicy, isAdded);
     // *precision (10000)
-    console.log("Utilisation rate:", _uRate);
+    // console.log("Utilisation rate:", _uRate);
     if (_uRate < _uOptimal) {
       return _r0 + _rSlope1 * (_uRate / _uOptimal);
     } else {
@@ -81,7 +97,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     }
   }
 
-  function getUtilisationRate(uint256 _addedPolicy)
+  function getUtilisationRate(uint256 _addedPolicy, bool isAdded)
     public
     view
     returns (uint256)
@@ -90,31 +106,20 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     if (availableCapital == 0) {
       return 0;
     }
-    return ((totalInsured + _addedPolicy) * precision) / availableCapital; // at precision
+
+    return
+      ((isAdded ? totalInsured + _addedPolicy : totalInsured - _addedPolicy) *
+        precision) / availableCapital; // at precision
   }
 
   function getUseRateRatio(uint256 oldRate, uint256 newRate)
-    private
-    pure
+    public
+    view
     returns (uint256)
   {
-    return newRate / oldRate; //Thao@WARN: il n'y a pas de flotant
-  }
+    if (oldRate == 0) return 1;
 
-  function getNewSecondsPerTick(uint256 oldSecondsPerTick, uint256 ratio)
-    internal
-    pure
-    returns (uint256)
-  {
-    return oldSecondsPerTick / ratio;
-  }
-
-  function getNewEmissionRate(uint256 oldEmissionRate, uint256 ratio)
-    internal
-    pure
-    returns (uint256)
-  {
-    return oldEmissionRate * ratio;
+    return (newRate * precision) / oldRate;
   }
 
   function duration(
@@ -125,32 +130,8 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     return (premium * 100 * precision * 365 * 24) / (capital * (rate));
   }
 
-  function deleteTick(uint24 tick) internal {
-    ticks.clear(tick);
-    tickBitmap.flipTick(tick);
-  }
-
-  function crossTick(uint24 tick, uint256 totalCumulativeRatio)
-    internal
-    view
-    returns (
-      uint256 capitalToRemove,
-      uint256 rateToRemove,
-      uint256 emissionRateToRemove
-    )
-  {
-    Tick.Info[] memory tickInfos = ticks.cross(tick);
-    for (uint256 i = 0; i < tickInfos.length; i++) {
-      capitalToRemove += tickInfos[i].capitalInsured;
-      rateToRemove += tickInfos[i].addedRate;
-      emissionRateToRemove +=
-        tickInfos[i].beginEmissionRate *
-        (totalCumulativeRatio / tickInfos[i].beginCumutativeRatio);
-    }
-  }
-
   function actualize(uint256 timestamp) internal {
-    uint256 hoursGaps = timestamp - slot0.lastUpdateTimestamp / 3600; //3600 = 60 * 60
+    uint256 hoursGaps = (timestamp - slot0.lastUpdateTimestamp) / 3600; //3600 = 60 * 60
 
     Slot0 memory step = Slot0({
       tick: slot0.tick,
@@ -162,28 +143,29 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     });
 
     uint256 hoursPassed;
-    while (hoursPassed != hoursGaps) {
+    while (hoursPassed < hoursGaps) {
       (uint24 next, bool initialized) = tickBitmap
-        .nextInitializedTickWithinOneWord(step.tick);
+        .nextInitializedTickInTheRightWithinOneWord(step.tick);
 
       uint256 nextHoursPassed = hoursPassed +
         (next - step.tick) *
         step.hoursPerTick;
 
       if (initialized && nextHoursPassed <= hoursGaps) {
-        (
-          uint256 capitalToRemove,
-          uint256 rateToRemove,
-          uint256 emissionRateToRemove
-        ) = crossTick(next, step.cumulativeRatio);
+        (uint256 capitalToRemove, uint256 emissionRateToRemove) = ticks.cross(
+          next,
+          step.cumulativeRatio
+        );
 
-        totalInsured -= capitalToRemove;
-
-        uint256 ratio = (step.useRate - rateToRemove) / step.useRate;
+        uint256 newRate = getRate(capitalToRemove, false);
+        uint256 ratio = getUseRateRatio(step.useRate, newRate);
         step.emissionRate = (step.emissionRate - emissionRateToRemove) * ratio;
         step.hoursPerTick /= ratio;
         step.cumulativeRatio *= ratio;
-        step.useRate -= rateToRemove;
+        step.useRate = newRate;
+
+        totalInsured -= capitalToRemove;
+
         ticks.clear(next);
         tickBitmap.flipTick(next);
       }
@@ -221,23 +203,15 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     premiumSupply += _amount;
     totalInsured += _capitalInsured;
 
-    //2
-    cache.useRate = getRate(_capitalInsured);
-    //4
-    uint256 ratio = cache.useRate / slot0.useRate;
-    //8
+    cache.useRate = getRate(_capitalInsured, true);
+    uint256 ratio = getUseRateRatio(slot0.useRate, cache.useRate);
     cache.hoursPerTick = slot0.hoursPerTick / ratio;
-    //10
     cache.cumulativeRatio = slot0.cumulativeRatio * ratio;
-    //3
     uint256 _durationInHour = duration(_amount, _capitalInsured, cache.useRate);
-    //6
     uint256 newEmissionRate = (_amount * 24) / _durationInHour;
-    //5 et 7
     cache.emissionRate = slot0.emissionRate * ratio + newEmissionRate;
-    //9
     uint24 lastTick = slot0.tick + uint24(_durationInHour / cache.hoursPerTick);
-    //11
+
     if (!tickBitmap.isInitializedTick(lastTick)) {
       tickBitmap.flipTick(lastTick);
     }
@@ -245,7 +219,6 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     ticks.pushTickInfo(
       lastTick,
       _capitalInsured,
-      cache.useRate - slot0.useRate,
       newEmissionRate,
       cache.cumulativeRatio
     );
@@ -302,5 +275,3 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     IERC20(underlyingAsset).safeTransfer(_account, _amount);
   }
 }
-
-//withdrawPremium
