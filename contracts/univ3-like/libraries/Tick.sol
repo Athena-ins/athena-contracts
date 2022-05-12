@@ -8,7 +8,6 @@ library Tick {
 
   struct Info {
     uint256 capitalInsured;
-    uint256 addedRate;
     uint256 beginEmissionRate;
     uint256 beginCumutativeRatio;
   }
@@ -17,13 +16,11 @@ library Tick {
     mapping(uint24 => Tick.Info[]) storage self,
     uint24 tick,
     uint256 capitalInsured,
-    uint256 addedRate,
     uint256 beginEmissionRate,
     uint256 beginCumutativeRatio
   ) internal {
     Info memory newInfo = Info(
       capitalInsured,
-      addedRate,
       beginEmissionRate,
       beginCumutativeRatio
     );
@@ -36,11 +33,21 @@ library Tick {
     delete self[tick];
   }
 
-  function cross(mapping(uint24 => Tick.Info[]) storage self, uint24 tick)
+  function cross(
+    mapping(uint24 => Tick.Info[]) storage self,
+    uint24 tick,
+    uint256 totalCumulativeRatio
+  )
     internal
     view
-    returns (Info[] memory)
+    returns (uint256 capitalInsuredToRemove, uint256 emissionRateToRemove)
   {
-    return self[tick];
+    Tick.Info[] memory tickInfos = self[tick];
+    for (uint256 i = 0; i < tickInfos.length; i++) {
+      capitalInsuredToRemove += tickInfos[i].capitalInsured;
+      emissionRateToRemove +=
+        tickInfos[i].beginEmissionRate *
+        (totalCumulativeRatio / tickInfos[i].beginCumutativeRatio);
+    }
   }
 }
