@@ -37,14 +37,14 @@ library TickBitmap {
   ) internal view returns (bool) {
     (uint16 wordPos, uint8 bitPos) = position(tick);
     uint256 mask = 1 << bitPos;
-    return (self[wordPos] ^ mask) != 0;
+    return (self[wordPos] & mask) != 0;
   }
 
   /// @notice Returns the next initialized tick contained in the same word (or adjacent word) as the tick that is either
   /// to the left (less than or equal to) or right (greater than) of the given tick
   /// @param self The mapping in which to compute the next initialized tick
   /// @param tick The starting tick
-  function nextInitializedTickWithinOneWord(
+  function nextInitializedTickInTheRightWithinOneWord(
     mapping(uint16 => uint256) storage self,
     uint24 tick
   ) internal view returns (uint24 next, bool initialized) {
