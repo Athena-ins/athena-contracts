@@ -5,7 +5,6 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
-import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 
 contract PrivateSale is Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
@@ -181,6 +180,9 @@ contract PrivateSale is Ownable, ReentrancyGuard {
         return uint8((block.timestamp - dateStartVesting) / 30 days);
     }
 
+    /**
+     * @dev view how many tokens are available now
+     */
     function available(uint8 month) public view returns (uint8) {
         uint8 mi = month == 0 ? monthIndex() : month;
         return claimed[mi] ? 0 : distributionToken[mi];
