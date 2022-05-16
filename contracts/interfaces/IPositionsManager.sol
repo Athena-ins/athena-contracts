@@ -6,12 +6,13 @@ interface IPositionsManager is IERC721Enumerable {
     function positions(uint256 _tokenId)
         external
         view
-        returns (uint256 liquidity, uint128[] memory protocolsId);
+        returns (uint256 liquidity, uint128[] memory protocolsId, uint256 atokens);
 
     function mint(
         address to,
         uint128 discount,
         uint256 amount,
+        uint256 _atokenBalance,
         uint256 atenStake,
         uint128[] calldata _protocolsIds
     ) external;
@@ -21,9 +22,9 @@ interface IPositionsManager is IERC721Enumerable {
     ) external;
 
     function update(
-        address to,
         uint128 _discount,
         uint256 amount,
+        uint256 _atokenBalance,
         uint256 atenStake,
         uint128[] calldata _protocolsIds,
         uint256 tokenId

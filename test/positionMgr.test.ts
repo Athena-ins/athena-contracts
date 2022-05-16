@@ -3,6 +3,7 @@ import hre, { ethers } from "hardhat";
 import { BigNumber, ethers as originalEthers } from "ethers";
 import { ethers as ethersOriginal, utils } from "ethers";
 import weth_abi from "../abis/weth.json";
+import atoken_abi from "../abis/AToken.json";
 import chaiAsPromised from "chai-as-promised";
 import { getATokenBalance, increaseTimeAndMine } from "./helpers";
 import protocolPoolAbi from "../artifacts/contracts/ProtocolPool.sol/ProtocolPool.json";
@@ -12,6 +13,7 @@ chai.use(chaiAsPromised);
 const ATEN_TOKEN = "0x86ceb9fa7f5ac373d275d328b7aca1c05cfb0283";
 const ATEN_OWNER_ADDRESS = "0x967d98e659f2787A38d928B9B7a49a2E4701B30C";
 const USDT = "0xdac17f958d2ee523a2206206994597c13d831ec7"; //USDT
+const USDT_AAVE_ATOKEN = "0x3Ed3B47Dd13EC9a98b44e6204A523E766B225811";
 const USDT_Wrong = "0xdac17f958d2ee523a2206206994597c13d831ec8"; //USDT
 const WETH = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2";
 const AAVE_LENDING_POOL = "0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9";
@@ -29,11 +31,13 @@ const STAKING_TOKEN_CONTRACT = new ethers.Contract(
 let owner: originalEthers.Signer,
   user: originalEthers.Signer,
   user2: originalEthers.Signer,
+  user3: originalEthers.Signer,
   ownerAddress: string,
   userAddress: string,
   ATHENA_CONTRACT: ethersOriginal.Contract,
   POS_CONTRACT: ethersOriginal.Contract,
   STAKED_ATENS_CONTRACT: ethersOriginal.Contract,
+  // AAVELP_CONTRACT: ethersOriginal.Contract,
   ATEN_TOKEN_CONTRACT: ethersOriginal.Contract,
   POLICY_CONTRACT: ethersOriginal.Contract,
   allSigners: originalEthers.Signer[];
@@ -49,6 +53,7 @@ describe("Position Manager", function () {
     owner = allSigners[0];
     user = allSigners[1];
     user2 = allSigners[2];
+    user3 = allSigners[3];
     userAddress = await user.getAddress();
     ownerAddress = await owner.getAddress();
     await hre.network.provider.request({
@@ -107,6 +112,16 @@ describe("Position Manager", function () {
       await ethers.provider.getCode(STAKED_ATENS_CONTRACT.address)
     ).to.not.equal("0x");
 
+    // const wrappedAAVE = await ethers.getContractFactory("AAVELPToken");
+    // //AAVE USDT ATOKEN ?
+    // AAVELP_CONTRACT = await wrappedAAVE
+    //   .connect(owner)
+    //   .deploy(AUSDT_TOKEN, ATHENA_CONTRACT.address);
+    // await AAVELP_CONTRACT.deployed();
+    // expect(await ethers.provider.getCode(AAVELP_CONTRACT.address)).to.not.equal(
+    //   "0x"
+    // );
+
     /** Policy Manager */
     const factoryPolicy = await ethers.getContractFactory("PolicyManager");
     POLICY_CONTRACT = await factoryPolicy
@@ -125,7 +140,9 @@ describe("Position Manager", function () {
     const init = await ATHENA_CONTRACT.initialize(
       POS_CONTRACT.address,
       STAKED_ATENS_CONTRACT.address,
-      POLICY_CONTRACT.address
+      POLICY_CONTRACT.address,
+      USDT_AAVE_ATOKEN
+      // AAVELP_CONTRACT.address
     );
     await init.wait();
     expect(init).to.haveOwnProperty("hash");
@@ -150,13 +167,19 @@ describe("Position Manager", function () {
     ).to.be.not.equal(BigNumber.from("0"));
 
     const transfer2 = await USDT_TOKEN_CONTRACT.connect(binanceSigner).transfer(
-      await user2.getAddress(),
+      user2.getAddress(),
       ethers.utils.parseUnits("100000", 6)
     );
     expect(
-      await USDT_TOKEN_CONTRACT.connect(user2).balanceOf(
-        await user2.getAddress()
-      )
+      await USDT_TOKEN_CONTRACT.connect(user2).balanceOf(user2.getAddress())
+    ).to.equal(ethers.utils.parseUnits("100000", 6));
+
+    const transfer3 = await USDT_TOKEN_CONTRACT.connect(binanceSigner).transfer(
+      user3.getAddress(),
+      ethers.utils.parseUnits("100000", 6)
+    );
+    expect(
+      await USDT_TOKEN_CONTRACT.connect(user2).balanceOf(user3.getAddress())
     ).to.equal(ethers.utils.parseUnits("100000", 6));
 
     /** ATEN TOKENS  */
@@ -175,7 +198,12 @@ describe("Position Manager", function () {
       ethers.utils.parseEther("10000000")
     );
     await ATEN_TOKEN_CONTRACT.transfer(
-      await user2.getAddress(),
+      user2.getAddress(),
+      ethers.utils.parseEther("10000000")
+    );
+
+    await ATEN_TOKEN_CONTRACT.transfer(
+      user3.getAddress(),
       ethers.utils.parseEther("10000000")
     );
     await ATEN_TOKEN_CONTRACT.connect(user).approve(
@@ -183,6 +211,11 @@ describe("Position Manager", function () {
       ethers.utils.parseEther("10000000")
     );
     await ATEN_TOKEN_CONTRACT.connect(user2).approve(
+      STAKED_ATENS_CONTRACT.address,
+      ethers.utils.parseEther("10000000")
+    );
+
+    await ATEN_TOKEN_CONTRACT.connect(user3).approve(
       STAKED_ATENS_CONTRACT.address,
       ethers.utils.parseEther("10000000")
     );
@@ -362,6 +395,9 @@ describe("Position Manager", function () {
       expect(
         await getATokenBalance(AAVE_LENDING_POOL, ATHENA_CONTRACT, USDT, user)
       ).to.equal(10000);
+
+      //Need to check Wrapped Atoken for user
+      // need to deploy and mint AAVELPToken;
     });
 
     it("Should fail depositing funds for earlier position", async function () {
@@ -504,7 +540,137 @@ describe("Position Manager", function () {
     });
     it.skip("Should get X premium rewards now with protocol 0", async function () {});
     it("Should withdraw everything and get AAVE rewards", async function () {
-      await ATHENA_CONTRACT.withdrawAll();
+      // const totalSharesBefore = await AAVELP_CONTRACT.totalSupply();
+      // console.log("Total shares before : ", totalSharesBefore.toString());
+      // const underlyingBalance = await AAVELP_CONTRACT.underlyingBalance(
+      //   user2.getAddress()
+      // );
+      const AtokenContract = new ethers.Contract(
+        USDT_AAVE_ATOKEN,
+        atoken_abi,
+        user2
+      );
+      // const totalSupplyBeforeTime = await AtokenContract.totalSupply();
+      // console.log(
+      //   "Total supply before time : ",
+      //   totalSupplyBeforeTime.toString()
+      // );
+
+      // const atokenBalBeforeAll = await AtokenContract.scaledBalanceOf(
+      //   ATHENA_CONTRACT.address
+      // );
+      // const atokenBalSimpleBeforeAll = await AtokenContract.balanceOf(
+      //   ATHENA_CONTRACT.address
+      // );
+      // console.log(
+      //   "AToken balance scaled before time increase : ",
+      //   atokenBalBeforeAll.toString()
+      // );
+      // console.log(
+      //   "AToken balance Simple before time increase : ",
+      //   atokenBalSimpleBeforeAll.toString()
+      // );
+      // await increaseTimeAndMine((3600 * 24 * 365) / 3);
+
+      /**
+       * deposit from new user to get rewards but not as much as user1
+       */
+
+      const approve = await USDT_TOKEN_CONTRACT.connect(user3).approve(
+        ATHENA_CONTRACT.address,
+        1000000
+      );
+
+      const tx3 = await ATHENA_CONTRACT.connect(user3).deposit(
+        1001,
+        9000000,
+        [0],
+        [10000]
+      );
+      await tx3.wait();
+      expect(tx3).to.haveOwnProperty("hash");
+
+      // We already went 1 year into future, so user 3 should get half rewards 1 year from now
+      await increaseTimeAndMine(3600 * 24 * 365);
+
+      const balBefore3 = await USDT_TOKEN_CONTRACT.connect(user).balanceOf(
+        user3.getAddress()
+      );
+      await ATHENA_CONTRACT.connect(user3).withdrawAll();
+      const balAfter3 = await USDT_TOKEN_CONTRACT.connect(user).balanceOf(
+        user3.getAddress()
+      );
+      console.log(
+        "Diff Balance withdraw end user 3: ",
+        balAfter3.sub(balBefore3).toNumber()
+      );
+      expect(balAfter3.sub(balBefore3).toNumber()).to.be.greaterThan(0);
+      // const totalSupplyAfterTime = await AtokenContract.totalSupply();
+      // console.log(
+      //   "Total supply after time : ",
+      //   totalSupplyAfterTime.toString()
+      // );
+      // const atokenBal = await AtokenContract.scaledBalanceOf(
+      //   ATHENA_CONTRACT.address
+      // );
+      // const atokenBalSimpleBefore = await AtokenContract.balanceOf(
+      //   ATHENA_CONTRACT.address
+      // );
+      // console.log("AToken balance before : ", atokenBal.toString());
+      // console.log(
+      //   "AToken balance Simple before : ",
+      //   atokenBalSimpleBefore.toString()
+      // );
+      // const totalAssets = await AAVELP_CONTRACT.totalAssets();
+      // console.log("Total Assets ATOKEN before : ", totalAssets.toString());
+      // expect(totalSharesBefore).to.be.greaterThan(1);
+      const balBefore = await USDT_TOKEN_CONTRACT.connect(user2).balanceOf(
+        user2.getAddress()
+      );
+      await ATHENA_CONTRACT.connect(user2).withdrawAll();
+      const balAfter = await USDT_TOKEN_CONTRACT.connect(user2).balanceOf(
+        user2.getAddress()
+      );
+      console.log(
+        "Diff Balance withdraw end user 2 : ",
+        balAfter.sub(balBefore).toNumber()
+      );
+
+      // const atokenBalAfter = await AtokenContract.scaledBalanceOf(
+      //   ATHENA_CONTRACT.address
+      // );
+      // console.log("AToken balance After : ", atokenBalAfter.toString());
+
+      expect(balAfter.sub(balBefore).toNumber()).to.be.greaterThan(0);
+      /**
+       * Again for user 1 :
+       */
+      // const atokenBal1 = await AtokenContract.scaledBalanceOf(
+      //   ATHENA_CONTRACT.address
+      // );
+      // console.log("AToken balance 1 before : ", atokenBal1.toString());
+      // const totalAssets = await AAVELP_CONTRACT.totalAssets();
+      // console.log("Total Assets ATOKEN before : ", totalAssets.toString());
+      // expect(totalSharesBefore).to.be.greaterThan(1);
+      const balBefore1 = await USDT_TOKEN_CONTRACT.connect(user).balanceOf(
+        user.getAddress()
+      );
+      await ATHENA_CONTRACT.connect(user).withdrawAll();
+      const balAfter1 = await USDT_TOKEN_CONTRACT.connect(user).balanceOf(
+        user.getAddress()
+      );
+      console.log(
+        "Diff Balance withdraw end user 1 : ",
+        balAfter1.sub(balBefore1).toNumber()
+      );
+
+      expect(balAfter1.sub(balBefore1).toNumber()).to.be.greaterThan(0);
+
+      const atokenBalAfter1 = await AtokenContract.scaledBalanceOf(
+        ATHENA_CONTRACT.address
+      );
+      console.log("AToken balance After : ", atokenBalAfter1.toString());
+      // expect Wrapped AAVE burned and USDT back ? With rewards ?
     });
   });
 
