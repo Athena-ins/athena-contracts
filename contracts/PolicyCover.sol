@@ -27,10 +27,6 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
   using Position for mapping(bytes32 => Position.Info);
   using Position for Position.Info;
 
-  mapping(uint24 => Tick.Info[]) public ticks;
-  mapping(uint16 => uint256) public tickBitmap;
-  mapping(bytes32 => Position.Info) public positions;
-
   struct Slot0 {
     uint24 tick;
     uint256 useRate;
@@ -41,100 +37,46 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     uint256 lastUpdateTimestamp;
   }
 
-  Slot0 public slot0;
+  Slot0 internal slot0;
 
-  uint256 internal _uOptimal = 7500; // 75 / 100 * 10000
-  uint256 internal _r0 = 10000; // 1 * 10000
-  uint256 internal _rSlope1 = 1200; // 1.2 * 10000
-  uint256 internal _rSlope2 = 1100; // 1.1 * 10000
-  uint256 internal _powerSlope2 = 100;
+  mapping(uint24 => Tick.Info[]) internal ticks;
+  mapping(uint16 => uint256) internal tickBitmap;
+  mapping(bytes32 => Position.Info) internal positions;
 
-  uint256 public precision = 1e4;
-  uint256 public premiumSupply;
-  uint256 public totalInsured;
-  uint256 internal availableCapital = 100000;
   //Thao@NOTE: availableCapital = reserveCapitalPool
-
-  address public underlyingAsset;
+  uint256 internal availableCapital = 100000;
+  uint256 internal premiumSupply;
+  uint256 internal totalInsured;
 
   constructor(address _underlyingAsset) {
-    underlyingAsset = _underlyingAsset;
-
-    slot0.useRate = getRate(0, true); //Thao@TODO: il faut initialiser useRate dans constructor
-    slot0.hoursPerTick = 24;
+    //Thao@TODO: see how init a pool policy ???
+    //Thao@NOTE: init for testing
+    slot0.useRate = 1; //Thao@NOTE: taux initiale = 1%
+    slot0.hoursPerTick = 48;
     slot0.numerator = 1;
     slot0.denumerator = 1;
     slot0.lastUpdateTimestamp = block.timestamp;
-
-    // console.log(slot0.tick);
-    // console.log(slot0.useRate);
-    // console.log(slot0.emissionRate);
-    // console.log(slot0.hoursPerTick);
-    // console.log(slot0.cumulativeRatio);
-    // console.log(slot0.lastUpdateTimestamp);
   }
 
-  /**
-        Si U < Uoptimal : 	P = R0 + Rslope1*(U - Uoptimal)
-        Si U >= Uoptimal : 	P = R0 + Rslope1 + Rslope2 * (U - Uoptimal)^(Power_slope2)
-     */
-  function getRate(uint256 _addedPolicy, bool isAdded)
-    public
-    view
-    returns (uint256)
-  {
-    // returns actual rate for insurance
-    uint256 _uRate = getUtilisationRate(_addedPolicy, isAdded);
-    // *precision (10000)
-    // console.log("Utilisation rate:", _uRate);
-    if (_uRate < _uOptimal) {
-      return _r0 + _rSlope1 * (_uRate / _uOptimal);
-    } else {
-      return
-        _r0 +
-        _rSlope1 +
-        (_rSlope2 * (_uRate - _uOptimal)) /
-        (10000 - _uOptimal) /
-        100;
-    }
+  function isInitializedTick(uint24 tick) public view returns (bool) {
+    return tickBitmap.isInitializedTick(tick);
   }
 
-  function getUtilisationRate(uint256 _addedPolicy, bool isAdded)
-    public
-    view
-    returns (uint256)
-  {
-    // returns actual usage rate on capital insured / capital provided for insurance
-    if (availableCapital == 0) {
-      return 0;
-    }
-
-    return
-      ((isAdded ? totalInsured + _addedPolicy : totalInsured - _addedPolicy) *
-        precision) / availableCapital; // at precision
+  function getRate() public view returns (uint256) {
+    return slot0.useRate;
   }
 
-  function getUseRateRatio(uint256 oldRate, uint256 newRate)
-    public
-    view
-    returns (uint256)
-  {
-    if (oldRate == 0) return 1;
-
-    return (newRate * precision) / oldRate;
-  }
-
-  function duration(
+  function durationHourUnit(
     uint256 premium,
     uint256 capital,
     uint256 rate
-  ) public view returns (uint256) {
-    return (premium * 100 * precision * 365 * 24) / (capital * (rate));
+  ) internal pure returns (uint256) {
+    return ((premium * 24 * 100 * 365) / capital) / rate;
   }
 
-  function actualize(uint256 timestamp) internal {
-    uint256 hoursGaps = (timestamp - slot0.lastUpdateTimestamp) / 3600; //3600 = 60 * 60
+  event Actualizing(uint24 currentTick);
 
+  function actualizing() internal {
     Slot0 memory step = Slot0({
       tick: slot0.tick,
       useRate: slot0.useRate,
@@ -142,10 +84,13 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
       hoursPerTick: slot0.hoursPerTick,
       numerator: slot0.numerator,
       denumerator: slot0.denumerator,
-      lastUpdateTimestamp: 0
+      lastUpdateTimestamp: slot0.lastUpdateTimestamp
     });
 
+    uint256 hoursGaps = (block.timestamp - step.lastUpdateTimestamp) / 3600; //3600 = 60 * 60
+
     uint256 hoursPassed;
+
     while (hoursPassed < hoursGaps) {
       (uint24 next, bool initialized) = tickBitmap
         .nextInitializedTickInTheRightWithinOneWord(step.tick);
@@ -161,15 +106,15 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
           step.denumerator
         );
 
-        uint256 newRate = getRate(capitalToRemove, false);
-        // uint256 ratio = getUseRateRatio(step.useRate, newRate);
+        uint256 newUseRate = getRate();
+
         step.emissionRate =
-          ((step.emissionRate - emissionRateToRemove) * newRate) /
+          ((step.emissionRate - emissionRateToRemove) * newUseRate) /
           step.useRate;
-        step.hoursPerTick = (step.hoursPerTick * step.useRate) / newRate;
-        step.numerator *= newRate;
+        step.hoursPerTick = (step.hoursPerTick * step.useRate) / newUseRate;
+        step.numerator *= newUseRate;
         step.denumerator *= step.useRate;
-        step.useRate = newRate;
+        step.useRate = newUseRate;
 
         totalInsured -= capitalToRemove;
 
@@ -192,62 +137,90 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     slot0.hoursPerTick = step.hoursPerTick;
     slot0.numerator = step.numerator;
     slot0.denumerator = step.denumerator;
-    slot0.lastUpdateTimestamp = timestamp;
+    slot0.lastUpdateTimestamp = block.timestamp;
+
+    emit Actualizing(step.tick);
   }
 
+  //Thao@TODO:
   function buyPolicy(uint256 _amount, uint256 _capitalInsured) external {
-    IERC20(underlyingAsset).safeTransferFrom(
-      msg.sender,
-      address(this),
-      _amount
-    );
-
-    Slot0 memory cache;
-    cache.lastUpdateTimestamp = block.timestamp;
-
-    //1
-    actualize(cache.lastUpdateTimestamp);
-
-    cache.useRate = getRate(_capitalInsured, true);
+    actualizing();
+    uint256 newUseRate = getRate();
 
     premiumSupply += _amount;
     totalInsured += _capitalInsured;
 
-    // uint256 ratio = getUseRateRatio(slot0.useRate, cache.useRate);
-    cache.hoursPerTick = (slot0.hoursPerTick * slot0.useRate) / cache.useRate;
-    cache.numerator *= cache.useRate;
-    cache.denumerator *= slot0.useRate;
-    uint256 _durationInHour = duration(_amount, _capitalInsured, cache.useRate);
+    performBuyPolicy(newUseRate, _amount, _capitalInsured);
+  }
 
-    console.log(_durationInHour);
+  event BuyPolicy(
+    uint256 useRate,
+    uint256 addingEmissionRate,
+    uint256 hourPerTick,
+    uint24 tick
+  );
 
-    uint256 newEmissionRate = (_amount * 24) / _durationInHour;
-    cache.emissionRate =
-      newEmissionRate +
-      (slot0.emissionRate * cache.useRate) /
-      slot0.useRate;
-    uint24 lastTick = slot0.tick + uint24(_durationInHour / cache.hoursPerTick);
+  function performBuyPolicy(
+    uint256 newUseRate,
+    uint256 _amount,
+    uint256 _capitalInsured
+  ) internal {
+    uint256 oldUseRate = slot0.useRate;
+
+    uint256 _durationInHour = durationHourUnit(
+      _amount,
+      _capitalInsured,
+      newUseRate
+    );
+
+    uint256 addingEmissionRate = (_amount * 24) / _durationInHour;
+    slot0.emissionRate =
+      addingEmissionRate +
+      (slot0.emissionRate * newUseRate) /
+      oldUseRate;
+
+    uint256 newHoursPerTick = (slot0.hoursPerTick * oldUseRate) / newUseRate;
+    // uint256 newHoursPerTick = 24;
+    uint24 lastTick = slot0.tick + uint24(_durationInHour / newHoursPerTick);
 
     if (!tickBitmap.isInitializedTick(lastTick)) {
       tickBitmap.flipTick(lastTick);
     }
 
+    uint256 newNumerator = slot0.numerator * newUseRate;
+    uint256 newDenumerator = slot0.denumerator * oldUseRate;
+
     ticks.pushTickInfo(
       lastTick,
       _capitalInsured,
-      newEmissionRate,
-      cache.numerator,
-      cache.denumerator
+      addingEmissionRate,
+      newNumerator,
+      newDenumerator
     );
 
-    slot0.useRate = cache.useRate;
-    slot0.emissionRate = cache.emissionRate;
-    slot0.hoursPerTick = cache.hoursPerTick;
-    slot0.numerator = cache.numerator;
-    slot0.denumerator = cache.denumerator;
-    slot0.lastUpdateTimestamp = cache.lastUpdateTimestamp;
+    slot0.useRate = newUseRate;
+    slot0.hoursPerTick = newHoursPerTick;
+    slot0.numerator = newNumerator;
+    slot0.denumerator = newDenumerator;
+    slot0.lastUpdateTimestamp = block.timestamp;
 
-    //Thao@TODO: event
+    emit BuyPolicy(newUseRate, addingEmissionRate, newHoursPerTick, lastTick);
+  }
+
+  function remainedDay(uint256 newUseRate, uint24 lastTick)
+    internal
+    view
+    returns (uint256)
+  {
+    uint256 oldUseRate = slot0.useRate;
+    console.log(oldUseRate);
+    //Thao@WARN: newHoursPerTick contient que la parti entière (9 au lieu de 9,6)
+    uint256 newHoursPerTick = (slot0.hoursPerTick * oldUseRate * 1e27) /
+      newUseRate;
+    console.log(newHoursPerTick);
+    uint256 numberRemainedTick = lastTick - slot0.tick;
+    console.log(numberRemainedTick);
+    return (numberRemainedTick * newHoursPerTick) / 24 / 1e27;
   }
 
   //Thao@NOTE:
@@ -286,10 +259,5 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     internal
     updateState(_account)
     nonReentrant
-  {
-    // require(_balances[_account] >= _amount, "Not enough balance");
-    // totalShares -= _amount;
-    // _balances[_account] -= _amount;
-    IERC20(underlyingAsset).safeTransfer(_account, _amount);
-  }
+  {}
 }
