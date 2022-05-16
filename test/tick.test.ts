@@ -88,21 +88,22 @@ describe("Ticks and TickBitmap", function () {
 
   describe("Ticks", function () {
     it("Should check pushTick and removeTick", async () => {
-      await LibrariesTest.pushTick(100, 1000, 300, 150);
+      await LibrariesTest.pushTick(100, 1000, 300, 1, 7);
       let [capitalInsuredToRemove, emissionRateToRemove] =
-        await LibrariesTest.crossTick(100, 100 * 150 * 350);
+        await LibrariesTest.crossTick(100, 2, 3);
       expect(capitalInsuredToRemove).to.be.equal(BigNumber.from(1000));
       expect(emissionRateToRemove).to.be.equal(
-        BigNumber.from(((100 * 150 * 350) / 150) * 300)
+        BigNumber.from(Math.floor((300 * (2 / 3)) / (1 / 7)))
       );
 
-      await LibrariesTest.pushTick(100, 2000, 700, 350);
+      await LibrariesTest.pushTick(100, 2000, 700, 5, 4);
       [capitalInsuredToRemove, emissionRateToRemove] =
-        await LibrariesTest.crossTick(100, 100 * 150 * 350);
+        await LibrariesTest.crossTick(100, 2, 3);
       expect(capitalInsuredToRemove).to.be.equal(BigNumber.from(1000 + 2000));
       expect(emissionRateToRemove).to.be.equal(
         BigNumber.from(
-          ((100 * 150 * 350) / 150) * 300 + ((100 * 150 * 350) / 350) * 700
+          Math.floor((300 * (2 / 3)) / (1 / 7)) +
+            Math.floor((700 * (2 / 3)) / (5 / 4))
         )
       );
 

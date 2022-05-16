@@ -110,7 +110,8 @@ describe("Premium Rewards Generic Contract", function () {
     expect(slot0.useRate).to.be.equal(BN("1").mul(BN(10000)));
     expect(slot0.emissionRate).to.be.equal(BigNumber.from("0"));
     expect(slot0.hoursPerTick).to.be.equal(BigNumber.from("24"));
-    expect(slot0.cumulativeRatio).to.be.equal(BigNumber.from("1"));
+    expect(slot0.numerator).to.be.equal(BigNumber.from("1"));
+    expect(slot0.denumerator).to.be.equal(BigNumber.from("1"));
     expect(slot0.lastUpdateTimestamp);
   });
 
@@ -164,7 +165,8 @@ describe("Premium Rewards Generic Contract", function () {
     expect(duration_04.div(BigNumber.from(24))).to.be.equal(BigNumber.from(1));
   });
 
-  it.skip("Should buy premium and check values", async () => {
+  it("Should buy premium and check values", async () => {
+    await increaseTimeAndMine(3600 * 48);
     await USDT_TOKEN_CONTRACT.connect(user).approve(
       POLICY_COVER_CONTRACT.address,
       ethers.utils.parseEther(ETH_VALUE)
@@ -180,5 +182,14 @@ describe("Premium Rewards Generic Contract", function () {
     await expect(POLICY_COVER_CONTRACT.premiumSupply()).to.eventually.equal(
       BN(10)
     );
+
+    const slot0 = await POLICY_COVER_CONTRACT.slot0();
+    console.log("tick " + slot0.tick);
+    console.log(slot0.useRate);
+    console.log(slot0.emissionRate);
+    console.log(slot0.hoursPerTick);
+    console.log(slot0.numerator);
+    console.log(slot0.denumerator);
+    console.log(slot0.lastUpdateTimestamp);
   });
 });

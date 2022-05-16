@@ -6,10 +6,12 @@ import "./LowGasSafeMath.sol";
 library Tick {
   using LowGasSafeMath for uint256;
 
+  //Thao@NOTE: Info contient aussi lien vers position
   struct Info {
-    uint256 capitalInsured;
+    uint256 capitalInsured; //dans position
     uint256 beginEmissionRate;
-    uint256 beginCumutativeRatio;
+    uint256 beginNumerator;
+    uint256 beginDenominator;
   }
 
   function pushTickInfo(
@@ -17,12 +19,14 @@ library Tick {
     uint24 tick,
     uint256 capitalInsured,
     uint256 beginEmissionRate,
-    uint256 beginCumutativeRatio
+    uint256 beginNumerator,
+    uint256 beginDenumerator
   ) internal {
     Info memory newInfo = Info(
       capitalInsured,
       beginEmissionRate,
-      beginCumutativeRatio
+      beginNumerator,
+      beginDenumerator
     );
     self[tick].push(newInfo);
   }
@@ -36,7 +40,8 @@ library Tick {
   function cross(
     mapping(uint24 => Tick.Info[]) storage self,
     uint24 tick,
-    uint256 totalCumulativeRatio
+    uint256 currentNumerator,
+    uint256 currentDenumerator
   )
     internal
     view
@@ -46,8 +51,10 @@ library Tick {
     for (uint256 i = 0; i < tickInfos.length; i++) {
       capitalInsuredToRemove += tickInfos[i].capitalInsured;
       emissionRateToRemove +=
-        tickInfos[i].beginEmissionRate *
-        (totalCumulativeRatio / tickInfos[i].beginCumutativeRatio);
+        ((tickInfos[i].beginEmissionRate *
+          currentNumerator *
+          tickInfos[i].beginDenominator) / tickInfos[i].beginNumerator) /
+        currentDenumerator;
     }
   }
 }

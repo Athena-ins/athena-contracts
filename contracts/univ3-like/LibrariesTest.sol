@@ -22,12 +22,12 @@ contract LibrariesTest {
   mapping(bytes32 => Position.Info) public positions;
 
   //Thao@TEST
-  function crossTick(uint24 tick, uint256 totalCumulativeRatio)
-    public
-    view
-    returns (uint256, uint256)
-  {
-    return ticks.cross(tick, totalCumulativeRatio);
+  function crossTick(
+    uint24 tick,
+    uint256 numerator,
+    uint256 denumerator
+  ) public view returns (uint256, uint256) {
+    return ticks.cross(tick, numerator, denumerator);
   }
 
   //Thao@TEST
@@ -54,13 +54,20 @@ contract LibrariesTest {
     uint24 tick,
     uint256 capitalInsured,
     uint256 emissionRate,
-    uint256 cumulativeRatio
+    uint256 numerator,
+    uint256 denumerator
   ) public {
     if (!tickBitmap.isInitializedTick(tick)) {
       tickBitmap.flipTick(tick);
     }
 
-    ticks.pushTickInfo(tick, capitalInsured, emissionRate, cumulativeRatio);
+    ticks.pushTickInfo(
+      tick,
+      capitalInsured,
+      emissionRate,
+      numerator,
+      denumerator
+    );
   }
 
   //Thao@TEST

@@ -36,7 +36,8 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     uint256 useRate;
     uint256 emissionRate;
     uint256 hoursPerTick;
-    uint256 cumulativeRatio;
+    uint256 numerator;
+    uint256 denumerator;
     uint256 lastUpdateTimestamp;
   }
 
@@ -59,9 +60,10 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
   constructor(address _underlyingAsset) {
     underlyingAsset = _underlyingAsset;
 
-    slot0.useRate = getRate(0, true);
+    slot0.useRate = getRate(0, true); //Thao@TODO: il faut initialiser useRate dans constructor
     slot0.hoursPerTick = 24;
-    slot0.cumulativeRatio = 1;
+    slot0.numerator = 1;
+    slot0.denumerator = 1;
     slot0.lastUpdateTimestamp = block.timestamp;
 
     // console.log(slot0.tick);
@@ -138,7 +140,8 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
       useRate: slot0.useRate,
       emissionRate: slot0.emissionRate,
       hoursPerTick: slot0.hoursPerTick,
-      cumulativeRatio: slot0.cumulativeRatio,
+      numerator: slot0.numerator,
+      denumerator: slot0.denumerator,
       lastUpdateTimestamp: 0
     });
 
@@ -154,14 +157,18 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
       if (initialized && nextHoursPassed <= hoursGaps) {
         (uint256 capitalToRemove, uint256 emissionRateToRemove) = ticks.cross(
           next,
-          step.cumulativeRatio
+          step.numerator,
+          step.denumerator
         );
 
         uint256 newRate = getRate(capitalToRemove, false);
-        uint256 ratio = getUseRateRatio(step.useRate, newRate);
-        step.emissionRate = (step.emissionRate - emissionRateToRemove) * ratio;
-        step.hoursPerTick /= ratio;
-        step.cumulativeRatio *= ratio;
+        // uint256 ratio = getUseRateRatio(step.useRate, newRate);
+        step.emissionRate =
+          ((step.emissionRate - emissionRateToRemove) * newRate) /
+          step.useRate;
+        step.hoursPerTick = (step.hoursPerTick * step.useRate) / newRate;
+        step.numerator *= newRate;
+        step.denumerator *= step.useRate;
         step.useRate = newRate;
 
         totalInsured -= capitalToRemove;
@@ -183,7 +190,8 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     slot0.useRate = step.useRate;
     slot0.emissionRate = step.emissionRate;
     slot0.hoursPerTick = step.hoursPerTick;
-    slot0.cumulativeRatio = step.cumulativeRatio;
+    slot0.numerator = step.numerator;
+    slot0.denumerator = step.denumerator;
     slot0.lastUpdateTimestamp = timestamp;
   }
 
@@ -200,16 +208,24 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     //1
     actualize(cache.lastUpdateTimestamp);
 
+    cache.useRate = getRate(_capitalInsured, true);
+
     premiumSupply += _amount;
     totalInsured += _capitalInsured;
 
-    cache.useRate = getRate(_capitalInsured, true);
-    uint256 ratio = getUseRateRatio(slot0.useRate, cache.useRate);
-    cache.hoursPerTick = slot0.hoursPerTick / ratio;
-    cache.cumulativeRatio = slot0.cumulativeRatio * ratio;
+    // uint256 ratio = getUseRateRatio(slot0.useRate, cache.useRate);
+    cache.hoursPerTick = (slot0.hoursPerTick * slot0.useRate) / cache.useRate;
+    cache.numerator *= cache.useRate;
+    cache.denumerator *= slot0.useRate;
     uint256 _durationInHour = duration(_amount, _capitalInsured, cache.useRate);
+
+    console.log(_durationInHour);
+
     uint256 newEmissionRate = (_amount * 24) / _durationInHour;
-    cache.emissionRate = slot0.emissionRate * ratio + newEmissionRate;
+    cache.emissionRate =
+      newEmissionRate +
+      (slot0.emissionRate * cache.useRate) /
+      slot0.useRate;
     uint24 lastTick = slot0.tick + uint24(_durationInHour / cache.hoursPerTick);
 
     if (!tickBitmap.isInitializedTick(lastTick)) {
@@ -220,13 +236,15 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
       lastTick,
       _capitalInsured,
       newEmissionRate,
-      cache.cumulativeRatio
+      cache.numerator,
+      cache.denumerator
     );
 
     slot0.useRate = cache.useRate;
     slot0.emissionRate = cache.emissionRate;
     slot0.hoursPerTick = cache.hoursPerTick;
-    slot0.cumulativeRatio = cache.cumulativeRatio;
+    slot0.numerator = cache.numerator;
+    slot0.denumerator = cache.denumerator;
     slot0.lastUpdateTimestamp = cache.lastUpdateTimestamp;
 
     //Thao@TODO: event
