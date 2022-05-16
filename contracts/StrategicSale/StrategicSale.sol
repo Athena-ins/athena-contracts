@@ -65,7 +65,6 @@ contract StrategicSale is Ownable, ReentrancyGuard {
     for (uint256 i = 0; i < tokens.length; i++) {
       authTokens[tokens[i]] = true;
     }
-    // For ETH price only
     aten = distributeToken;
     maxTokensSale = maxTokens;
   }
@@ -90,7 +89,7 @@ contract StrategicSale is Ownable, ReentrancyGuard {
    * @param amount Amount approved for transfer to contract to buy ICO
    * @param token Token approved for transfer to contract to buy ICO
    */
-  function buy(uint256 amount, address token) public payable nonReentrant {
+  function buy(uint256 amount, address token) external payable nonReentrant {
     require(activeSale, "Sale is not active");
     require(authTokens[token] == true, "Token not approved for this ICO");
     // Safe Transfer will revert if not successful
@@ -123,7 +122,7 @@ contract StrategicSale is Ownable, ReentrancyGuard {
   function whitelistAddresses(
     address[] calldata _tos,
     uint256[] calldata _amounts
-  ) public onlyOwner {
+  ) external onlyOwner {
     require(_tos.length == _amounts.length, "Arguments length mismatch");
     for (uint256 i = 0; i < _tos.length; i++) {
       require(_amounts[i] > 0, "Amount must be greater than 0");
@@ -159,7 +158,7 @@ contract StrategicSale is Ownable, ReentrancyGuard {
    * @dev Distribute tokens (from contract) with previously buy, depending on availabiliy
    * @param month Month to distribute tokens, starting from 0
    */
-  function distribute(uint8 month) public nonReentrant {
+  function distribute(uint8 month) external nonReentrant {
     require(dateStartVesting > 0, "Vesting not active");
     require(month <= monthIndex(), "Month not available");
     require(claimed[month] == false, "Already distributed");
@@ -193,13 +192,12 @@ contract StrategicSale is Ownable, ReentrancyGuard {
    * @dev change your address from previous buys
    * @param newTo new wallet address that will be able to withdraw balance
    */
-  function changeAddress(address newTo) public nonReentrant {
+  function changeAddress(address newTo) external nonReentrant {
     require(presales[msg.sender] > 0, "No tokens to change");
     uint256 amount = presales[msg.sender];
     presales[newTo] = amount;
     presales[msg.sender] = 0;
     buyers.push(newTo);
-    // claimed[newTo] = claimed[msg.sender];
     emit Prebuy(newTo, amount);
   }
 }
