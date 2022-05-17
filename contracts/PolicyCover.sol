@@ -27,6 +27,26 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
   using Position for mapping(bytes32 => Position.Info);
   using Position for Position.Info;
 
+  event TouchInitializedTick(string msg, uint24 tick, bool initialized);
+
+  event Actualizing(
+    string msg,
+    uint24 tick,
+    uint256 useRate,
+    uint256 emissionRate,
+    uint256 hourPerTick,
+    uint256 numerator,
+    uint256 denumerator,
+    uint256 lastUpdateTimestamp
+  );
+
+  event BuyPolicy(
+    uint256 useRate,
+    uint256 addingEmissionRate,
+    uint256 hourPerTick,
+    uint24 tick
+  );
+
   struct Slot0 {
     uint24 tick;
     uint256 useRate;
@@ -48,9 +68,13 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
   uint256 internal premiumSupply;
   uint256 internal totalInsured;
 
+  address public underlyingAsset;
+
   constructor(address _underlyingAsset) {
+    underlyingAsset = _underlyingAsset;
     //Thao@TODO: see how init a pool policy ???
     //Thao@NOTE: init for testing
+    slot0.emissionRate = 0;
     slot0.useRate = 1; //Thao@NOTE: taux initiale = 1%
     slot0.hoursPerTick = 48;
     slot0.numerator = 1;
@@ -62,8 +86,32 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     return tickBitmap.isInitializedTick(tick);
   }
 
-  function getRate() public view returns (uint256) {
-    return slot0.useRate;
+  function pushTickInfo(
+    uint24 tick,
+    uint256 capitalInsured,
+    uint256 emissionRate,
+    uint256 numerator,
+    uint256 denumerator
+  ) internal {
+    ticks.pushTickInfo(
+      tick,
+      capitalInsured,
+      emissionRate,
+      numerator,
+      denumerator
+    );
+  }
+
+  function flipTick(uint24 tick) internal {
+    tickBitmap.flipTick(tick);
+  }
+
+  uint256[] useRateTable = [2, 4, 1, 1, 1, 1, 1, 1, 1, 1];
+  uint256 index = 0;
+
+  function getUseRate(bool initialized) internal returns (uint256 useRate) {
+    useRate = useRateTable[index];
+    if (initialized) index++;
   }
 
   function durationHourUnit(
@@ -73,8 +121,6 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
   ) internal pure returns (uint256) {
     return ((premium * 24 * 100 * 365) / capital) / rate;
   }
-
-  event Actualizing(uint24 currentTick);
 
   function actualizing() internal {
     Slot0 memory step = Slot0({
@@ -88,47 +134,70 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     });
 
     uint256 hoursGaps = (block.timestamp - step.lastUpdateTimestamp) / 3600; //3600 = 60 * 60
+    // console.log(hoursGaps);
 
     uint256 hoursPassed;
 
     while (hoursPassed < hoursGaps) {
-      (uint24 next, bool initialized) = tickBitmap
+      (uint24 tickNext, bool initialized) = tickBitmap
         .nextInitializedTickInTheRightWithinOneWord(step.tick);
 
+      emit TouchInitializedTick("Tick", tickNext, initialized);
+
       uint256 nextHoursPassed = hoursPassed +
-        (next - step.tick) *
+        (tickNext - step.tick) *
         step.hoursPerTick;
 
       if (initialized && nextHoursPassed <= hoursGaps) {
         (uint256 capitalToRemove, uint256 emissionRateToRemove) = ticks.cross(
-          next,
+          tickNext,
           step.numerator,
           step.denumerator
         );
 
-        uint256 newUseRate = getRate();
+        console.log("*******************************");
+        console.log(emissionRateToRemove);
+
+        uint256 newUseRate = getUseRate(initialized);
 
         step.emissionRate =
           ((step.emissionRate - emissionRateToRemove) * newUseRate) /
           step.useRate;
         step.hoursPerTick = (step.hoursPerTick * step.useRate) / newUseRate;
-        step.numerator *= newUseRate;
-        step.denumerator *= step.useRate;
+        step.numerator = newUseRate;
+        // step.denumerator = step.useRate;
         step.useRate = newUseRate;
 
         totalInsured -= capitalToRemove;
 
-        ticks.clear(next);
-        tickBitmap.flipTick(next);
+        ticks.clear(tickNext);
+        tickBitmap.flipTick(tickNext);
+
+        emit TouchInitializedTick("Touch", tickNext, initialized);
       }
 
       if (nextHoursPassed < hoursGaps) {
-        step.tick = next;
+        step.tick = tickNext;
+        // step.useRate = getUseRate(false);
         hoursPassed = nextHoursPassed;
       } else {
         step.tick += uint24((hoursGaps - hoursPassed) / step.hoursPerTick);
+        // step.useRate = getUseRate(false);
         hoursPassed = hoursGaps;
       }
+
+      step.lastUpdateTimestamp += hoursPassed * 3600;
+
+      emit Actualizing(
+        "ActualizingStep",
+        step.tick,
+        step.useRate,
+        step.emissionRate,
+        step.hoursPerTick,
+        step.numerator,
+        step.denumerator,
+        step.lastUpdateTimestamp
+      );
     }
 
     slot0.tick = step.tick;
@@ -139,26 +208,28 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     slot0.denumerator = step.denumerator;
     slot0.lastUpdateTimestamp = block.timestamp;
 
-    emit Actualizing(step.tick);
+    emit Actualizing(
+      "Actualizing",
+      slot0.tick,
+      slot0.useRate,
+      slot0.emissionRate,
+      slot0.hoursPerTick,
+      slot0.numerator,
+      slot0.denumerator,
+      slot0.lastUpdateTimestamp
+    );
   }
 
   //Thao@TODO:
   function buyPolicy(uint256 _amount, uint256 _capitalInsured) external {
     actualizing();
-    uint256 newUseRate = getRate();
+    uint256 newUseRate = getUseRate(false);
 
     premiumSupply += _amount;
     totalInsured += _capitalInsured;
 
     performBuyPolicy(newUseRate, _amount, _capitalInsured);
   }
-
-  event BuyPolicy(
-    uint256 useRate,
-    uint256 addingEmissionRate,
-    uint256 hourPerTick,
-    uint24 tick
-  );
 
   function performBuyPolicy(
     uint256 newUseRate,
