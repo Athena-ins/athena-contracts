@@ -41,106 +41,23 @@ describe("Policy cover contract", function () {
     ).to.not.equal("0x");
   });
 
-  it.skip("Should initialize slot0 in constructor", async function () {
+  it("Should initialize slot0 in constructor", async function () {
     const slot0 = await POLICY_COVER_CONTRACT_TEST.getSlot0();
 
-    expect(slot0.tick).to.be.equal(BN("0"));
-    expect(slot0.useRate).to.be.equal(BN("1"));
-    expect(slot0.emissionRate).to.be.equal(BN("0"));
-    expect(slot0.hoursPerTick).to.be.equal(BN("48"));
-    expect(slot0.numerator).to.be.equal(BN("1"));
-    expect(slot0.denumerator).to.be.equal(BN("1"));
-    expect(slot0.lastUpdateTimestamp);
+    expect(slot0.tick).to.be.equal(BN(0));
+    expect(slot0.useRate).to.be.equal(BN(1));
+    expect(slot0.emissionRate).to.be.equal(BN(0));
+    expect(slot0.hoursPerTick).to.be.equal(BN(48));
+    expect(slot0.numerator).to.be.equal(BN(1));
+    expect(slot0.denominator).to.be.equal(BN(1));
+    expect(slot0.lastUpdateTimestamp).to.be.equal(BN(1646219106));
   });
 
-  it.skip("Should set newUseRate slot0", async () => {
-    await POLICY_COVER_CONTRACT_TEST.setRate(2);
-    let rate = await POLICY_COVER_CONTRACT_TEST.getRate();
-    expect(rate).to.be.equal(BN(2));
+  it.skip("Should actualizing and show information about initialised tick and remaning days", async () => {
+    await POLICY_COVER_CONTRACT_TEST.mineTick(370, 365000, 20, 2, 1);
+    await POLICY_COVER_CONTRACT_TEST.mineTick(745, 365000, 40, 4, 1);
 
-    await POLICY_COVER_CONTRACT_TEST.setRate(5);
-    rate = await POLICY_COVER_CONTRACT_TEST.getRate();
-    expect(rate).to.be.equal(BN(5));
-
-    await POLICY_COVER_CONTRACT_TEST.setRate(6);
-    rate = await POLICY_COVER_CONTRACT_TEST.getRate();
-    expect(rate).to.be.equal(BN(6));
-
-    await POLICY_COVER_CONTRACT_TEST.setRate(1);
-    rate = await POLICY_COVER_CONTRACT_TEST.getRate();
-    expect(rate).to.be.equal(BN(1));
-  });
-
-  it.skip("Should return duration by hour unit", async () => {
-    const durationHourUnit =
-      await POLICY_COVER_CONTRACT_TEST.testDurationHourUnit(3650, 182500, 2);
-
-    expect(durationHourUnit).to.be.equal(BN(365 * 24));
-  });
-
-  it.skip("Should return emission rate per day", async () => {
-    const emissionRatePerDay =
-      await POLICY_COVER_CONTRACT_TEST.testGetEmissionRatePerDay(182500, 2);
-
-    expect(emissionRatePerDay).to.be.equal(BN(10));
-  });
-
-  it.skip("Should update slot0 when perform buy policy", async () => {
-    const response = await POLICY_COVER_CONTRACT_TEST.testPerformBuyPolicy(
-      2,
-      3650,
-      182500
-    );
-    const result = await response.wait();
-    const decodedData = result.events[0].decode(result.events[0].data);
-
-    expect(decodedData.useRate).to.be.equal(BN(2));
-    expect(decodedData.addingEmissionRate).to.be.equal(BN(10));
-    expect(decodedData.hourPerTick).to.be.equal(BN(24));
-    expect(decodedData.tick).to.be.equal(365);
-
-    // console.log(result.events[0].decode(result.events[0].data));
-
-    for (let i = 0; i < 365 * 2; i++) {
-      const isInit = await POLICY_COVER_CONTRACT_TEST.testIsInitializedTick(i);
-      if (i === 365) expect(isInit).to.be.equal(true);
-      else expect(isInit).to.be.equal(false);
-    }
-  });
-
-  it.skip("should return current tick when actualizing after 10 days", async () => {
-    await increaseTimeAndMine(10 * 24 * 60 * 60);
-    const response = await POLICY_COVER_CONTRACT_TEST.testActualizing();
-    const result = await response.wait();
-    const decodedData = result.events[0].decode(result.events[0].data);
-
-    expect(decodedData.tick).to.be.equal(10);
-
-    const slot0 = await POLICY_COVER_CONTRACT_TEST.getSlot0();
-    expect(slot0.tick).to.be.equal(BN("10"));
-    expect(slot0.useRate).to.be.equal(BN("2"));
-    expect(slot0.emissionRate).to.be.equal(BN("10"));
-    expect(slot0.hoursPerTick).to.be.equal(BN("24"));
-    expect(slot0.numerator).to.be.equal(BN("2"));
-    expect(slot0.denumerator).to.be.equal(BN("1"));
-    expect(slot0.lastUpdateTimestamp);
-  });
-
-  it.skip("should return number of remained day with fee = 5%", async () => {
-    const remainedDays = await POLICY_COVER_CONTRACT_TEST.testRemainedDay(
-      5,
-      365
-    );
-    expect(remainedDays).to.be.equal(BN(142));
-  });
-
-  it("Should actualizing", async () => {
-    await POLICY_COVER_CONTRACT_TEST.mineTick(375, 365000, 20, 2, 1);
-    await POLICY_COVER_CONTRACT_TEST.mineTick(740, 365000, 40, 4, 1);
-    await POLICY_COVER_CONTRACT_TEST.mineTick(1000, 0, 0, 1, 1);
-
-    //initTimestamp: 1646219106
-    await POLICY_COVER_CONTRACT_TEST.setTick(20);
+    await POLICY_COVER_CONTRACT_TEST.setTick(15);
     await POLICY_COVER_CONTRACT_TEST.setRate(4);
     await POLICY_COVER_CONTRACT_TEST.setEmissionRate(80);
     await POLICY_COVER_CONTRACT_TEST.setHoursPerTick(12);
@@ -159,7 +76,7 @@ describe("Policy cover contract", function () {
     console.log(`denumerator: ${slot0.denumerator}`);
     console.log(`lastUpdateTimestamp: ${slot0.lastUpdateTimestamp}`);
 
-    await increaseTimeAndMine(375 * 2 * 24 * 60 * 60);
+    await increaseTimeAndMine(375 * 5 * 24 * 60 * 60);
 
     const response = await POLICY_COVER_CONTRACT_TEST.testActualizing();
     const result = await response.wait();
@@ -182,5 +99,76 @@ describe("Policy cover contract", function () {
     console.log(`numerator: ${slot0.numerator}`);
     console.log(`denumerator: ${slot0.denumerator}`);
     console.log(`lastUpdateTimestamp: ${slot0.lastUpdateTimestamp}`);
+  });
+
+  async function actualizing() {
+    const response = await POLICY_COVER_CONTRACT_TEST.testActualizing();
+    const result = await response.wait();
+
+    const array = [];
+    for (let i = 0; i < result.events.length; i++) {
+      const decodedData = result.events[i].decode(result.events[i].data);
+      console.log(`${decodedData}`);
+      if (decodedData.msg === "HoursToDay") {
+        array.push(decodedData);
+      }
+    }
+
+    console.log("-------------------------------");
+    return array;
+  }
+
+  async function performBuyPolicy(
+    newRate: number,
+    amount: number,
+    capital: number
+  ) {
+    const response = await POLICY_COVER_CONTRACT_TEST.testPerformBuyPolicy(
+      newRate,
+      amount,
+      capital
+    );
+
+    const result = await response.wait();
+    const decodedData = result.events[0].decode(result.events[0].data);
+    return decodedData;
+  }
+
+  it("Should update slot0 when perform buy policy and mine new tick", async () => {
+    await POLICY_COVER_CONTRACT_TEST.setTick(0);
+    await POLICY_COVER_CONTRACT_TEST.setRate(1);
+    await POLICY_COVER_CONTRACT_TEST.setEmissionRate(0);
+    await POLICY_COVER_CONTRACT_TEST.setHoursPerTick(48);
+    await POLICY_COVER_CONTRACT_TEST.setNumerator(1);
+    await POLICY_COVER_CONTRACT_TEST.setDenumerator(1);
+    await POLICY_COVER_CONTRACT_TEST.setLastUpdateTimestamp(1646219106);
+
+    await increaseTimeAndMine(10 * 24 * 60 * 60);
+
+    const array1 = await actualizing();
+    expect(array1.length).to.be.equal(0);
+
+    const resultA = await performBuyPolicy(2, 7300, 365000);
+    expect(resultA.useRate).to.be.equal(2);
+    expect(resultA.addingEmissionRate).to.be.equal(20);
+    expect(resultA.hourPerTick).to.be.equal(24);
+    expect(resultA.tick).to.be.equal(370);
+
+    await increaseTimeAndMine(10 * 24 * 60 * 60);
+
+    const array2 = await actualizing();
+    expect(array2.length).to.be.equal(0);
+
+    const resultB = await performBuyPolicy(4, 14600, 365000);
+    expect(resultB.useRate).to.be.equal(4);
+    expect(resultB.addingEmissionRate).to.be.equal(40);
+    expect(resultB.hourPerTick).to.be.equal(12);
+    expect(resultB.tick).to.be.equal(745);
+
+    await increaseTimeAndMine(1000 * 24 * 60 * 60);
+    const array3 = await actualizing();
+    expect(array3.length).to.be.equal(2);
+    expect(array3[0].nbrDays.toString()).to.be.equal("177");
+    expect(array3[1].nbrDays.toString()).to.be.equal("375");
   });
 });
