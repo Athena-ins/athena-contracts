@@ -53,11 +53,11 @@ contract PolicyCoverTest is PolicyCover {
   }
 
   function getDenumerator() public view returns (uint256) {
-    return slot0.denumerator;
+    return slot0.denominator;
   }
 
-  function setDenumerator(uint256 denumerator) public {
-    slot0.denumerator = denumerator;
+  function setDenumerator(uint256 denominator) public {
+    slot0.denominator = denominator;
   }
 
   function getLastUpdateTimestamp() public view returns (uint256) {
@@ -72,12 +72,10 @@ contract PolicyCoverTest is PolicyCover {
     uint24 tick,
     uint256 capitalInsured,
     uint256 emissionRate,
-    uint256 numerator,
-    uint256 denumerator
+    uint256 numerator
   ) public {
     totalInsured += capitalInsured;
-    pushTickInfo(tick, capitalInsured, emissionRate, numerator, denumerator);
-    flipTick(tick);
+    addTick(tick, capitalInsured, emissionRate, numerator);
   }
 
   function testIsInitializedTick(uint24 tick) public view returns (bool) {

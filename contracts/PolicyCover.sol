@@ -28,7 +28,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
   using Position for Position.Info;
 
   event TouchInitializedTick(string msg, uint24 tick, bool initialized);
-
+  event HoursToDay(string msg, uint256 nbrHours, uint256 nbrDays);
   event Actualizing(
     string msg,
     uint24 tick,
@@ -36,11 +36,11 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     uint256 emissionRate,
     uint256 hourPerTick,
     uint256 numerator,
-    uint256 denumerator,
+    uint256 denominator,
     uint256 lastUpdateTimestamp
   );
-
   event BuyPolicy(
+    string msg,
     uint256 useRate,
     uint256 addingEmissionRate,
     uint256 hourPerTick,
@@ -52,8 +52,8 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     uint256 useRate;
     uint256 emissionRate;
     uint256 hoursPerTick;
-    uint256 numerator;
-    uint256 denumerator;
+    uint256 numerator; //Thao@TODO: can be remove because same with useRate
+    uint256 denominator; //Thao@TODO: to remove from Slot0
     uint256 lastUpdateTimestamp;
   }
 
@@ -67,6 +67,8 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
   uint256 internal availableCapital = 100000;
   uint256 internal premiumSupply;
   uint256 internal totalInsured;
+  //Thao@TODO: actualizing
+  uint256 internal premiumSpent;
 
   address public underlyingAsset;
 
@@ -78,7 +80,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     slot0.useRate = 1; //Thao@NOTE: taux initiale = 1%
     slot0.hoursPerTick = 48;
     slot0.numerator = 1;
-    slot0.denumerator = 1;
+    slot0.denominator = 1;
     slot0.lastUpdateTimestamp = block.timestamp;
   }
 
@@ -86,28 +88,26 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     return tickBitmap.isInitializedTick(tick);
   }
 
-  function pushTickInfo(
+  function addTick(
     uint24 tick,
     uint256 capitalInsured,
     uint256 emissionRate,
-    uint256 numerator,
-    uint256 denumerator
+    uint256 numerator
   ) internal {
-    ticks.pushTickInfo(
-      tick,
-      capitalInsured,
-      emissionRate,
-      numerator,
-      denumerator
-    );
+    ticks.pushTickInfo(tick, capitalInsured, emissionRate, numerator);
+
+    if (!tickBitmap.isInitializedTick(tick)) {
+      tickBitmap.flipTick(tick);
+    }
   }
 
-  function flipTick(uint24 tick) internal {
+  function removeTick(uint24 tick) internal {
+    ticks.clear(tick);
     tickBitmap.flipTick(tick);
   }
 
-  uint256[] useRateTable = [2, 4, 1, 1, 1, 1, 1, 1, 1, 1];
-  uint256 index = 0;
+  uint256[] private useRateTable = [2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
+  uint256 private index = 0;
 
   function getUseRate(bool initialized) internal returns (uint256 useRate) {
     useRate = useRateTable[index];
@@ -129,7 +129,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
       emissionRate: slot0.emissionRate,
       hoursPerTick: slot0.hoursPerTick,
       numerator: slot0.numerator,
-      denumerator: slot0.denumerator,
+      denominator: slot0.denominator,
       lastUpdateTimestamp: slot0.lastUpdateTimestamp
     });
 
@@ -137,7 +137,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     // console.log(hoursGaps);
 
     uint256 hoursPassed;
-
+    uint256 hoursToDay;
     while (hoursPassed < hoursGaps) {
       (uint24 tickNext, bool initialized) = tickBitmap
         .nextInitializedTickInTheRightWithinOneWord(step.tick);
@@ -148,14 +148,16 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
         (tickNext - step.tick) *
         step.hoursPerTick;
 
+      hoursToDay += (tickNext - step.tick) * step.hoursPerTick;
+
       if (initialized && nextHoursPassed <= hoursGaps) {
         (uint256 capitalToRemove, uint256 emissionRateToRemove) = ticks.cross(
           tickNext,
-          step.numerator,
-          step.denumerator
+          step.numerator
         );
 
-        console.log("*******************************");
+        console.log("-------------------------------");
+        console.log("emissionRateToRemove:");
         console.log(emissionRateToRemove);
 
         uint256 newUseRate = getUseRate(initialized);
@@ -165,24 +167,22 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
           step.useRate;
         step.hoursPerTick = (step.hoursPerTick * step.useRate) / newUseRate;
         step.numerator = newUseRate;
-        // step.denumerator = step.useRate;
         step.useRate = newUseRate;
 
         totalInsured -= capitalToRemove;
 
-        ticks.clear(tickNext);
-        tickBitmap.flipTick(tickNext);
+        removeTick(tickNext);
 
+        emit HoursToDay("HoursToDay", hoursToDay, hoursToDay / 24);
+        hoursToDay = 0;
         emit TouchInitializedTick("Touch", tickNext, initialized);
       }
 
       if (nextHoursPassed < hoursGaps) {
         step.tick = tickNext;
-        // step.useRate = getUseRate(false);
         hoursPassed = nextHoursPassed;
       } else {
         step.tick += uint24((hoursGaps - hoursPassed) / step.hoursPerTick);
-        // step.useRate = getUseRate(false);
         hoursPassed = hoursGaps;
       }
 
@@ -195,7 +195,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
         step.emissionRate,
         step.hoursPerTick,
         step.numerator,
-        step.denumerator,
+        step.denominator,
         step.lastUpdateTimestamp
       );
     }
@@ -205,7 +205,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     slot0.emissionRate = step.emissionRate;
     slot0.hoursPerTick = step.hoursPerTick;
     slot0.numerator = step.numerator;
-    slot0.denumerator = step.denumerator;
+    slot0.denominator = step.denominator;
     slot0.lastUpdateTimestamp = block.timestamp;
 
     emit Actualizing(
@@ -215,7 +215,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
       slot0.emissionRate,
       slot0.hoursPerTick,
       slot0.numerator,
-      slot0.denumerator,
+      slot0.denominator,
       slot0.lastUpdateTimestamp
     );
   }
@@ -251,31 +251,24 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
       oldUseRate;
 
     uint256 newHoursPerTick = (slot0.hoursPerTick * oldUseRate) / newUseRate;
-    // uint256 newHoursPerTick = 24;
     uint24 lastTick = slot0.tick + uint24(_durationInHour / newHoursPerTick);
 
-    if (!tickBitmap.isInitializedTick(lastTick)) {
-      tickBitmap.flipTick(lastTick);
-    }
-
-    uint256 newNumerator = slot0.numerator * newUseRate;
-    uint256 newDenumerator = slot0.denumerator * oldUseRate;
-
-    ticks.pushTickInfo(
-      lastTick,
-      _capitalInsured,
-      addingEmissionRate,
-      newNumerator,
-      newDenumerator
-    );
+    addTick(lastTick, _capitalInsured, addingEmissionRate, newUseRate);
 
     slot0.useRate = newUseRate;
     slot0.hoursPerTick = newHoursPerTick;
-    slot0.numerator = newNumerator;
-    slot0.denumerator = newDenumerator;
+    slot0.numerator = newUseRate;
     slot0.lastUpdateTimestamp = block.timestamp;
 
-    emit BuyPolicy(newUseRate, addingEmissionRate, newHoursPerTick, lastTick);
+    totalInsured += _capitalInsured; //Thao@WARN: not here
+
+    emit BuyPolicy(
+      "BuyPolicy",
+      newUseRate,
+      addingEmissionRate,
+      newHoursPerTick,
+      lastTick
+    );
   }
 
   function remainedDay(uint256 newUseRate, uint24 lastTick)
@@ -313,6 +306,10 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     updateState(_account)
     nonReentrant
   {
+    //Thao@NOTE: remove warning
+    _account;
+    _amount;
+
     // totalShares += _amount;
     // _balances[_account] += _amount;
   }
@@ -322,6 +319,10 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     updateState(_account)
     nonReentrant
   {
+    //Thao@NOTE: remove warning
+    _account;
+    _amount;
+
     // totalShares -= _amount;
     // _balances[_account] -= _amount;
   }
@@ -330,5 +331,9 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     internal
     updateState(_account)
     nonReentrant
-  {}
+  {
+    //Thao@NOTE: remove warning
+    _account;
+    _amount;
+  }
 }

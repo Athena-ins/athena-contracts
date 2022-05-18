@@ -11,7 +11,6 @@ library Tick {
     uint256 capitalInsured; //dans position
     uint256 beginEmissionRate;
     uint256 beginNumerator;
-    uint256 beginDenominator;
   }
 
   function pushTickInfo(
@@ -19,14 +18,12 @@ library Tick {
     uint24 tick,
     uint256 capitalInsured,
     uint256 beginEmissionRate,
-    uint256 beginNumerator,
-    uint256 beginDenumerator
+    uint256 beginNumerator
   ) internal {
     Info memory newInfo = Info(
       capitalInsured,
       beginEmissionRate,
-      beginNumerator,
-      beginDenumerator
+      beginNumerator
     );
     self[tick].push(newInfo);
   }
@@ -40,8 +37,7 @@ library Tick {
   function cross(
     mapping(uint24 => Tick.Info[]) storage self,
     uint24 tick,
-    uint256 currentNumerator,
-    uint256 currentDenumerator
+    uint256 currentNumerator
   )
     internal
     view
@@ -50,11 +46,8 @@ library Tick {
     Tick.Info[] memory tickInfos = self[tick];
     for (uint256 i = 0; i < tickInfos.length; i++) {
       capitalInsuredToRemove += tickInfos[i].capitalInsured;
-      emissionRateToRemove +=
-        ((tickInfos[i].beginEmissionRate *
-          currentNumerator *
-          tickInfos[i].beginDenominator) / tickInfos[i].beginNumerator) /
-        currentDenumerator;
+      emissionRateToRemove += ((tickInfos[i].beginEmissionRate *
+        currentNumerator) / tickInfos[i].beginNumerator);
     }
   }
 }

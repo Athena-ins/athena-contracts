@@ -27,7 +27,7 @@ contract LibrariesTest {
     uint256 numerator,
     uint256 denumerator
   ) public view returns (uint256, uint256) {
-    return ticks.cross(tick, numerator, denumerator);
+    return ticks.cross(tick, numerator);
   }
 
   //Thao@TEST
@@ -61,13 +61,7 @@ contract LibrariesTest {
       tickBitmap.flipTick(tick);
     }
 
-    ticks.pushTickInfo(
-      tick,
-      capitalInsured,
-      emissionRate,
-      numerator,
-      denumerator
-    );
+    ticks.pushTickInfo(tick, capitalInsured, emissionRate, numerator);
   }
 
   //Thao@TEST
