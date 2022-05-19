@@ -675,6 +675,9 @@ describe("Position Manager", function () {
         balAfter1.sub(balBefore1).toNumber()
       );
 
+      // Expect deposit 10000 + premium 1000 (only share) + rewards from AAVE unkown but > 0
+      expect(balAfter1.sub(balBefore1).toNumber()).to.be.greaterThan(11001);
+
       expect(balAfter1.sub(balBefore1).toNumber()).to.be.greaterThan(0);
 
       const atokenBalAfter1 = await AtokenContract.scaledBalanceOf(
