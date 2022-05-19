@@ -52,7 +52,7 @@ contract Athena is ReentrancyGuard, Ownable {
     uint128 discount;
   }
 
-  AtenDiscount[] public premiumAtenFees;
+  AtenDiscount[] public premiumAtenDiscount;
 
   uint128[] public protocols;
 
@@ -155,12 +155,11 @@ contract Athena is ReentrancyGuard, Ownable {
       );
     }
     uint256 _atokens = _transferLiquidity(amount);
-    //@dev TODO stake atens and get corresponding discount
     _stakeAtens(atenToStake, amount);
-    uint128 fees = getFeesWithAten(atenToStake);
+    uint128 _discount = getDiscountWithAten(atenToStake);
     IPositionsManager(positionsManager).mint(
       msg.sender,
-      fees,
+      _discount,
       amount,
       _atokens,
       atenToStake,
@@ -174,6 +173,7 @@ contract Athena is ReentrancyGuard, Ownable {
       "No position to withdraw"
     );
     // uint256 amount = IPositionsManager(positionsManager).balanceOf(msg.sender);
+    // removed because only one position is allowed in protocol
     uint256 _tokenId = IPositionsManager(positionsManager).tokenOfOwnerByIndex(
       msg.sender,
       0
@@ -181,14 +181,15 @@ contract Athena is ReentrancyGuard, Ownable {
     (
       uint256 liquidity,
       uint128[] memory protocolIds,
-      uint256 atokens
+      uint256 atokens,
+      uint128 discount
     ) = IPositionsManager(positionsManager).positions(_tokenId);
     uint256[] memory amounts = new uint256[](protocolIds.length);
     for (uint256 index = 0; index < protocolIds.length; index++) {
       amounts[index] = liquidity;
     }
     // amounts[0] = uint256(0);
-    _withdraw(amounts, protocolIds, atokens);
+    _withdraw(amounts, protocolIds, atokens, discount);
   }
 
   // @Dev TODO should add selected protocols & amounts to withdraw
@@ -201,13 +202,14 @@ contract Athena is ReentrancyGuard, Ownable {
       IPositionsManager(positionsManager).balanceOf(msg.sender) > 0,
       "No position to withdraw"
     );
-    _withdraw(_amounts, protocolIds, atokens);
+    _withdraw(_amounts, protocolIds, atokens, 0);
   }
 
   function _withdraw(
     uint256[] memory _amounts,
     uint128[] memory protocolIds,
-    uint256 atokens
+    uint256 atokens,
+    uint128 discount
   ) internal {
     // uint256 amount = IPositionsManager(positionsManager).balanceOf(msg.sender);
     for (uint256 index = 0; index < protocolIds.length; index++) {
@@ -217,7 +219,8 @@ contract Athena is ReentrancyGuard, Ownable {
       // );
       IProtocolPool(protocolsMapping[protocolIds[index]].deployed).withdraw(
         msg.sender,
-        _amounts[index]
+        _amounts[index],
+        discount
       );
     }
     // SHOULD Update if not max withdraw ?
@@ -238,15 +241,15 @@ contract Athena is ReentrancyGuard, Ownable {
     (
       uint256 liquidity,
       uint128[] memory protocolsId,
-      uint256 atokens
+      uint256 atokens,
     ) = IPositionsManager(positionsManager).positions(tokenId);
-    uint128 fees = getFeesWithAten(liquidity);
+    uint128 _discount = getDiscountWithAten(liquidity);
     uint256 actualAtens = IStakedAten(stakedAtensGP).balanceOf(msg.sender);
     require(actualAtens > 0, "No Atens to withdraw");
     // require(atenToWithdraw <= actualAtens, "Not enough Atens to withdraw");
     IStakedAten(stakedAtensGP).withdraw(msg.sender, atenToWithdraw);
     IPositionsManager(positionsManager).update(
-      fees,
+      _discount,
       liquidity,
       atokens,
       actualAtens - atenToWithdraw,
@@ -255,22 +258,22 @@ contract Athena is ReentrancyGuard, Ownable {
     );
   }
 
-  function setFeesWithAten(AtenDiscount[] calldata _discountToSet)
+  function setDiscountWithAten(AtenDiscount[] calldata _discountToSet)
     public
     onlyOwner
   {
     for (uint256 index = 0; index < _discountToSet.length; index++) {
-      premiumAtenFees.push(_discountToSet[index]);
+      premiumAtenDiscount.push(_discountToSet[index]);
     }
   }
 
-  function getFeesWithAten(uint256 _amount) public view returns (uint128) {
-    for (uint256 index = 0; index < premiumAtenFees.length; index++) {
-      if (_amount < premiumAtenFees[index].atenAmount)
-        return index == 0 ? 0 : premiumAtenFees[index - 1].discount;
+  function getDiscountWithAten(uint256 _amount) public view returns (uint128) {
+    for (uint256 index = 0; index < premiumAtenDiscount.length; index++) {
+      if (_amount < premiumAtenDiscount[index].atenAmount)
+        return index == 0 ? 0 : premiumAtenDiscount[index - 1].discount;
     }
     // Else we are above max discount, so give it max discount
-    return premiumAtenFees[premiumAtenFees.length - 1].discount;
+    return premiumAtenDiscount[premiumAtenDiscount.length - 1].discount;
   }
 
   function approveLendingPool() internal {

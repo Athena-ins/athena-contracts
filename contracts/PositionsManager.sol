@@ -47,10 +47,20 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
     external
     view
     override
-    returns (uint256 liquidity, uint128[] memory protocolsId, uint256 atokens)
+    returns (
+      uint256 liquidity,
+      uint128[] memory protocolsId,
+      uint256 atokens,
+      uint128 discount
+    )
   {
     Position memory position = _positions[_tokenId];
-    return (position.providedLiquidity, position.protocolsId, position.atokenBalance);
+    return (
+      position.providedLiquidity,
+      position.protocolsId,
+      position.atokenBalance,
+      position.discount
+    );
   }
 
   function mint(

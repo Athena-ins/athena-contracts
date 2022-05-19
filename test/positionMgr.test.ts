@@ -301,40 +301,42 @@ describe("Position Manager", function () {
   // });
 
   it("Should set discounts with Aten", async function () {
-    const tx = await ATHENA_CONTRACT.connect(owner).setFeesWithAten([
+    const tx = await ATHENA_CONTRACT.connect(owner).setDiscountWithAten([
       [1000, 200],
       [100000, 150],
       [1000000, 50],
     ]);
     expect(tx).to.haveOwnProperty("hash");
-    const discountFirst = await ATHENA_CONTRACT.connect(owner).premiumAtenFees(
-      0
-    );
+    const discountFirst = await ATHENA_CONTRACT.connect(
+      owner
+    ).premiumAtenDiscount(0);
     expect(discountFirst.atenAmount).to.equal(BN(1000));
     expect(discountFirst.discount).to.equal(BN(200));
-    const discountSnd = await ATHENA_CONTRACT.connect(owner).premiumAtenFees(1);
+    const discountSnd = await ATHENA_CONTRACT.connect(
+      owner
+    ).premiumAtenDiscount(1);
     expect(discountSnd.atenAmount).to.equal(BN(100000));
     expect(discountSnd.discount).to.equal(BN(150));
-    const discountThird = await ATHENA_CONTRACT.connect(owner).premiumAtenFees(
-      2
-    );
+    const discountThird = await ATHENA_CONTRACT.connect(
+      owner
+    ).premiumAtenDiscount(2);
     expect(discountThird.atenAmount).to.equal(BN(1000000));
     expect(discountThird.discount).to.equal(BN(50));
 
     await expect(
-      ATHENA_CONTRACT.connect(owner).premiumAtenFees(3)
+      ATHENA_CONTRACT.connect(owner).premiumAtenDiscount(3)
     ).to.be.rejectedWith();
   });
 
   it("Should get discount amount with Aten", async function () {
-    expect(await ATHENA_CONTRACT.connect(user).getFeesWithAten(999)).to.equal(
-      0
-    );
-    expect(await ATHENA_CONTRACT.connect(user).getFeesWithAten(1000)).to.equal(
-      200
-    );
     expect(
-      await ATHENA_CONTRACT.connect(user).getFeesWithAten(10000000)
+      await ATHENA_CONTRACT.connect(user).getDiscountWithAten(999)
+    ).to.equal(0);
+    expect(
+      await ATHENA_CONTRACT.connect(user).getDiscountWithAten(1000)
+    ).to.equal(200);
+    expect(
+      await ATHENA_CONTRACT.connect(user).getDiscountWithAten(10000000)
     ).to.equal(50);
   });
 
@@ -432,11 +434,11 @@ describe("Position Manager", function () {
     });
     it("Should check funds and NFT", async function () {
       // Now its not USDT on contract anymore but AAVE LP !
-      expect(
-        (
-          await getATokenBalance(AAVE_LENDING_POOL, ATHENA_CONTRACT, USDT, user)
-        ).toNumber()
-      ).to.be.greaterThanOrEqual(11001);
+      const balAtoken = (
+        await getATokenBalance(AAVE_LENDING_POOL, ATHENA_CONTRACT, USDT, user)
+      ).toNumber();
+      expect(balAtoken).to.be.greaterThanOrEqual(11000);
+      expect(balAtoken).to.be.lessThanOrEqual(11002);
 
       const balNFT = await POS_CONTRACT.balanceOf(userAddress);
       const userNFTindex = await POS_CONTRACT.tokenOfOwnerByIndex(
@@ -517,9 +519,9 @@ describe("Position Manager", function () {
 
   describe("USD Premium rewards", () => {
     it("Should get 0 premium rewards", async function () {});
-    it("Should Take Premium on 1 year protocol 0", async function () {
+    it("Should buy Policy on 1 year protocol 0", async function () {
       //user already approved Contract to provide funds
-      const PROTOCOL_ID = 1;
+      const PROTOCOL_ID = 0;
       const tx = await ATHENA_CONTRACT.connect(user).buyPolicy(
         10000,
         1000,
@@ -551,38 +553,11 @@ describe("Position Manager", function () {
     });
     it.skip("Should get X premium rewards now with protocol 0", async function () {});
     it("Should withdraw everything and get AAVE rewards", async function () {
-      // const totalSharesBefore = await AAVELP_CONTRACT.totalSupply();
-      // console.log("Total shares before : ", totalSharesBefore.toString());
-      // const underlyingBalance = await AAVELP_CONTRACT.underlyingBalance(
-      //   user2.getAddress()
-      // );
       const AtokenContract = new ethers.Contract(
         USDT_AAVE_ATOKEN,
         atoken_abi,
         user2
       );
-      // const totalSupplyBeforeTime = await AtokenContract.totalSupply();
-      // console.log(
-      //   "Total supply before time : ",
-      //   totalSupplyBeforeTime.toString()
-      // );
-
-      // const atokenBalBeforeAll = await AtokenContract.scaledBalanceOf(
-      //   ATHENA_CONTRACT.address
-      // );
-      // const atokenBalSimpleBeforeAll = await AtokenContract.balanceOf(
-      //   ATHENA_CONTRACT.address
-      // );
-      // console.log(
-      //   "AToken balance scaled before time increase : ",
-      //   atokenBalBeforeAll.toString()
-      // );
-      // console.log(
-      //   "AToken balance Simple before time increase : ",
-      //   atokenBalSimpleBeforeAll.toString()
-      // );
-      // await increaseTimeAndMine((3600 * 24 * 365) / 3);
-
       /**
        * deposit from new user to get rewards but not as much as user1
        */
@@ -592,18 +567,38 @@ describe("Position Manager", function () {
         1000000
       );
 
+      const capitalDeposit = 1000;
+      const PROTOCOL_ID = 1;
+
       const tx3 = await ATHENA_CONTRACT.connect(user3).deposit(
-        1000,
+        capitalDeposit,
         9000000,
-        [1],
-        [1000]
+        [PROTOCOL_ID],
+        [capitalDeposit]
       );
       await tx3.wait();
       expect(tx3).to.haveOwnProperty("hash");
 
       // We already went 1 year into future, so user 3 should get half rewards 1 year from now
       await increaseTimeAndMine(3600 * 24 * 365);
+      const protocol = await ATHENA_CONTRACT.connect(user).protocolsMapping(
+        PROTOCOL_ID
+      );
+      const protocolContract = new ethers.Contract(
+        protocol.deployed,
+        protocolPoolAbi.abi,
+        user
+      );
+      expect(await protocolContract.balanceOf(user3.getAddress())).to.not.equal(
+        BN(0)
+      );
+      expect(await protocolContract.symbol()).to.equal("APP_" + PROTOCOL_ID);
 
+      const rewardsUser3 = await protocolContract
+        .connect(user3)
+        .rewardsOf(user3.getAddress(), capitalDeposit);
+
+      expect(rewardsUser3).to.equal(BN(0));
       const balBefore3 = await USDT_TOKEN_CONTRACT.connect(user).balanceOf(
         user3.getAddress()
       );
@@ -615,26 +610,42 @@ describe("Position Manager", function () {
         "Diff Balance withdraw end user 3: ",
         balAfter3.sub(balBefore3).toNumber()
       );
-      expect(balAfter3.sub(balBefore3).toNumber()).to.be.greaterThan(0);
-      // const totalSupplyAfterTime = await AtokenContract.totalSupply();
-      // console.log(
-      //   "Total supply after time : ",
-      //   totalSupplyAfterTime.toString()
-      // );
-      // const atokenBal = await AtokenContract.scaledBalanceOf(
-      //   ATHENA_CONTRACT.address
-      // );
-      // const atokenBalSimpleBefore = await AtokenContract.balanceOf(
-      //   ATHENA_CONTRACT.address
-      // );
-      // console.log("AToken balance before : ", atokenBal.toString());
-      // console.log(
-      //   "AToken balance Simple before : ",
-      //   atokenBalSimpleBefore.toString()
-      // );
-      // const totalAssets = await AAVELP_CONTRACT.totalAssets();
-      // console.log("Total Assets ATOKEN before : ", totalAssets.toString());
-      // expect(totalSharesBefore).to.be.greaterThan(1);
+      expect(balAfter3.sub(balBefore3).toNumber()).to.be.greaterThanOrEqual(
+        capitalDeposit
+      );
+      expect(balAfter3.sub(balBefore3).toNumber()).to.be.lessThanOrEqual(
+        capitalDeposit * 1.05 //5% APY on AAVE
+      );
+
+      /**
+       * User 2 view rewards then withdraw
+       */
+      const protocol0 = await ATHENA_CONTRACT.connect(user2).protocolsMapping(
+        0
+      );
+      const protocolContract0 = new ethers.Contract(
+        protocol0.deployed,
+        protocolPoolAbi.abi,
+        user2
+      );
+      expect(
+        await protocolContract0.balanceOf(user2.getAddress())
+      ).to.not.equal(BN(0));
+      expect(await protocolContract0.symbol()).to.equal("APP_" + "0");
+
+      const userNFTindex2 = await POS_CONTRACT.tokenOfOwnerByIndex(
+        user2.getAddress(),
+        0
+      );
+      const nftUser2 = await POS_CONTRACT.positions(userNFTindex2);
+      console.log("User 2 end position : ", nftUser2);
+
+      const rewardsUser2 = await protocolContract0
+        .connect(user2)
+        .rewardsOf(user2.getAddress(), nftUser2.liquidity);
+      console.log("Rewards user 2 : ", rewardsUser2.toString());
+
+      expect(rewardsUser2.toNumber()).to.be.greaterThanOrEqual(1);
       const balBefore = await USDT_TOKEN_CONTRACT.connect(user2).balanceOf(
         user2.getAddress()
       );
@@ -647,22 +658,11 @@ describe("Position Manager", function () {
         balAfter.sub(balBefore).toNumber()
       );
 
-      // const atokenBalAfter = await AtokenContract.scaledBalanceOf(
-      //   ATHENA_CONTRACT.address
-      // );
-      // console.log("AToken balance After : ", atokenBalAfter.toString());
-
       expect(balAfter.sub(balBefore).toNumber()).to.be.greaterThan(0);
       /**
        * Again for user 1 :
        */
-      // const atokenBal1 = await AtokenContract.scaledBalanceOf(
-      //   ATHENA_CONTRACT.address
-      // );
-      // console.log("AToken balance 1 before : ", atokenBal1.toString());
-      // const totalAssets = await AAVELP_CONTRACT.totalAssets();
-      // console.log("Total Assets ATOKEN before : ", totalAssets.toString());
-      // expect(totalSharesBefore).to.be.greaterThan(1);
+
       const balBefore1 = await USDT_TOKEN_CONTRACT.connect(user).balanceOf(
         user.getAddress()
       );
@@ -683,7 +683,15 @@ describe("Position Manager", function () {
       const atokenBalAfter1 = await AtokenContract.scaledBalanceOf(
         ATHENA_CONTRACT.address
       );
-      console.log("AToken balance After : ", atokenBalAfter1.toString());
+      expect(atokenBalAfter1.toNumber()).to.be.lessThanOrEqual(3);
+
+      const treasury = await USDT_TOKEN_CONTRACT.connect(user).balanceOf(
+        ATHENA_CONTRACT.address
+      );
+      console.log("Treasury balance : ", treasury.toString());
+
+      expect(treasury.toNumber()).to.be.greaterThanOrEqual(10);
+      expect(treasury.toNumber()).to.be.lessThanOrEqual(1000);
       // expect Wrapped AAVE burned and USDT back ? With rewards ?
     });
   });

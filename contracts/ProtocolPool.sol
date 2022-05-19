@@ -6,7 +6,7 @@ import "./PolicyCover.sol";
 import "./libraries/WadRayMath.sol";
 import "hardhat/console.sol";
 
-contract ProtocolPool is IProtocolPool, ERC20, Ownable, Pausable, PolicyCover {
+contract ProtocolPool is IProtocolPool, ERC20, PolicyCover {
   using WadRayMath for uint256;
   using SafeERC20 for IERC20;
 
@@ -30,9 +30,10 @@ contract ProtocolPool is IProtocolPool, ERC20, Ownable, Pausable, PolicyCover {
   }
 
   function mint(address _account, uint256 _amount) external onlyCore {
+    actualizing();
+    _mint(_account, (_amount.rayMul(liquidityIndex)).rayDiv(RAY));
     availableCapital += _amount;
     updateLiquidityIndex();
-    _mint(_account, (_amount.rayMul(liquidityIndex)).rayDiv(RAY));
   }
 
   function updateLiquidityIndex() internal override {
@@ -41,37 +42,66 @@ contract ProtocolPool is IProtocolPool, ERC20, Ownable, Pausable, PolicyCover {
       liquidityIndex = RAY;
     } else
       liquidityIndex = (_totalSupply).rayDiv(availableCapital + premiumSupply);
-    console.log("Update liquidity Index : ", liquidityIndex);
   }
 
-  function withdraw(address _account, uint256 _userCapital) external onlyCore {
-    uint256 _amount = balanceOf(_account);
-    console.log("User : ", _account);
-    console.log("Liquidity Index : ", liquidityIndex);
-    console.log("Amount balance : ", _amount);
-    console.log("Amount balance scaled : ", (_amount).rayDiv(liquidityIndex));
-    console.log("User Capital : ", _userCapital);
+  function withdraw(
+    address _account,
+    uint256 _userCapital,
+    uint128 _discount
+  ) external onlyCore {
     // liquidity index is * 1E18
-    uint256 _redeem = (_amount).rayDiv(liquidityIndex) - _userCapital;
-    console.log("Redeem : ", _redeem);
-    _burn(_account, _amount);
+    uint256 _redeem = rewardsOf(_account, _userCapital);
+    // console.log("Redeem : ", _redeem);
+    _burn(_account, balanceOf(_account));
     if (_redeem > 0) {
       // sub fees depending on aten staking
-      IERC20(underlyingAsset).safeTransfer(_account, _redeem);
+      IERC20(underlyingAsset).safeTransfer(
+        _account,
+        (_redeem * (1000 - _discount)) / 1000
+      );
+      _transferToTreasury((_redeem * _discount) / 1000);
     }
+    premiumSupply -= _redeem;
     availableCapital -= _userCapital;
     updateLiquidityIndex();
   }
 
-  function claim(address _account, uint256 _userCapital) external onlyCore {
+  function rewardsOf(address _account, uint256 _userCapital)
+    public
+    view
+    returns (uint256 _redeem)
+  {
     uint256 _amount = balanceOf(_account);
-    uint256 _redeem = (_amount).rayDiv(liquidityIndex) - _userCapital;
-    _burn(_account, _redeem);
+    uint256 _scaledBalance = (_amount).rayDiv(liquidityIndex);
+    // console.log("User : ", _account);
+    // console.log("Protocol : ", name());
+    // console.log("Liquidity Index : ", liquidityIndex);
+    // console.log("Amount balance : ", _amount);
+    // console.log("Amount balance scaled : ", (_amount).rayDiv(liquidityIndex));
+    // console.log("User Capital : ", _userCapital);
+    if (_scaledBalance > _userCapital) {
+      _redeem = _scaledBalance - _userCapital;
+    } else {
+      _redeem = 0;
+    }
+  }
+
+  function claim(address _account, uint256 _userCapital) external onlyCore {
+    uint256 _redeem = rewardsOf(_account, _userCapital);
+
     if (_redeem > 0) {
       // sub fees depending on aten staking
       IERC20(underlyingAsset).safeTransfer(_account, _redeem);
+      // _transferToTreasury(_redeem);
     }
     // availableCapital -= _userCapital;
+    premiumSupply -= _redeem;
+    // burn some tokens to reflect capital with no rewards
+    _burn(_account, _redeem.rayDiv(liquidityIndex));
     updateLiquidityIndex();
+  }
+
+  function _transferToTreasury(uint256 _amount) internal {
+    IERC20(underlyingAsset).safeTransfer(core, _amount);
   }
 }
