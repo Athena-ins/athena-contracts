@@ -340,66 +340,68 @@ describe("Policy cover contract", function () {
   });
 
   it("buy pilicy", async () => {
-    // await hre.network.provider.request({
-    //   method: "hardhat_reset",
-    //   params: [
-    //     {
-    //       forking: {
-    //         // jsonRpcUrl: process.env.MAINNET_URL,
-    //         blockNumber: 14307200,
-    //       },
-    //     },
-    //   ],
-    // });
+    for (let i = 0; i < 3; i++) {
+      // await hre.network.provider.request({
+      //   method: "hardhat_reset",
+      //   params: [
+      //     {
+      //       forking: {
+      //         // jsonRpcUrl: process.env.MAINNET_URL,
+      //         blockNumber: 14307200,
+      //       },
+      //     },
+      //   ],
+      // });
 
-    await POLICY_COVER_CONTRACT_TEST.setTick(0);
-    await POLICY_COVER_CONTRACT_TEST.setRate(1);
-    await POLICY_COVER_CONTRACT_TEST.setEmissionRate(0);
-    await POLICY_COVER_CONTRACT_TEST.setHoursPerTick(48);
-    await POLICY_COVER_CONTRACT_TEST.setPremiumSpent(0);
-    // await POLICY_COVER_CONTRACT_TEST.setLastUpdateTimestamp(1646219106);
+      await POLICY_COVER_CONTRACT_TEST.setTick(0);
+      await POLICY_COVER_CONTRACT_TEST.setRate(1);
+      await POLICY_COVER_CONTRACT_TEST.setEmissionRate(0);
+      await POLICY_COVER_CONTRACT_TEST.setHoursPerTick(48);
+      await POLICY_COVER_CONTRACT_TEST.setPremiumSpent(0);
+      // await POLICY_COVER_CONTRACT_TEST.setLastUpdateTimestamp(1646219106);
 
-    await increaseTimeAndMine(10 * 24 * 60 * 60);
+      await increaseTimeAndMine(10 * 24 * 60 * 60);
 
-    await POLICY_COVER_CONTRACT_TEST.testBuyPolicy(7300, 365000);
+      await POLICY_COVER_CONTRACT_TEST.testBuyPolicy(7300, 365000);
 
-    let slot0 = await POLICY_COVER_CONTRACT_TEST.getSlot0();
+      let slot0 = await POLICY_COVER_CONTRACT_TEST.getSlot0();
 
-    expect(slot0.tick).to.be.equal(5);
-    expect(slot0.useRate).to.be.equal(2);
-    expect(slot0.emissionRate).to.be.equal(20);
-    expect(slot0.hoursPerTick).to.be.equal(24);
-    expect(slot0.premiumSpent).to.be.equal(0);
+      expect(slot0.tick).to.be.equal(5);
+      expect(slot0.useRate).to.be.equal(2);
+      expect(slot0.emissionRate).to.be.equal(20);
+      expect(slot0.hoursPerTick).to.be.equal(24);
+      expect(slot0.premiumSpent).to.be.equal(0);
 
-    await increaseTimeAndMine(10 * 24 * 60 * 60);
+      await increaseTimeAndMine(10 * 24 * 60 * 60);
 
-    const resultB = await POLICY_COVER_CONTRACT_TEST.testBuyPolicy(
-      14600,
-      365000
-    );
+      const resultB = await POLICY_COVER_CONTRACT_TEST.testBuyPolicy(
+        14600,
+        365000
+      );
 
-    slot0 = await POLICY_COVER_CONTRACT_TEST.getSlot0();
+      slot0 = await POLICY_COVER_CONTRACT_TEST.getSlot0();
 
-    expect(slot0.tick).to.be.equal(15);
-    expect(slot0.useRate).to.be.equal(4);
-    expect(slot0.emissionRate).to.be.equal(80);
-    expect(slot0.hoursPerTick).to.be.equal(12);
-    expect(slot0.premiumSpent).to.be.equal(200);
+      expect(slot0.tick).to.be.equal(15);
+      expect(slot0.useRate).to.be.equal(4);
+      expect(slot0.emissionRate).to.be.equal(80);
+      expect(slot0.hoursPerTick).to.be.equal(12);
+      expect(slot0.premiumSpent).to.be.equal(200);
 
-    await increaseTimeAndMine(1000 * 24 * 60 * 60);
+      await increaseTimeAndMine(1000 * 24 * 60 * 60);
 
-    console.log("Final actualizing");
-    const array3 = await actualizing();
-    console.log(`array 3: ${array3}`);
-    expect(array3.length).to.be.equal(2);
-    expect(array3[0].nbrDays.toString()).to.be.equal("177");
-    expect(array3[1].nbrDays.toString()).to.be.equal("375");
+      console.log("Final actualizing");
+      const array3 = await actualizing();
+      console.log(`array 3: ${array3}`);
+      expect(array3.length).to.be.equal(2);
+      expect(array3[0].nbrDays.toString()).to.be.equal("177");
+      expect(array3[1].nbrDays.toString()).to.be.equal("375");
 
-    slot0 = await POLICY_COVER_CONTRACT_TEST.getSlot0();
-    // expect(slot0.tick).to.be.equal(15);
-    expect(slot0.useRate).to.be.equal(1);
-    expect(slot0.emissionRate).to.be.equal(0);
-    expect(slot0.hoursPerTick).to.be.equal(48);
-    expect(slot0.premiumSpent).to.be.equal(21900);
+      slot0 = await POLICY_COVER_CONTRACT_TEST.getSlot0();
+      // expect(slot0.tick).to.be.equal(15);
+      expect(slot0.useRate).to.be.equal(1);
+      expect(slot0.emissionRate).to.be.equal(0);
+      expect(slot0.hoursPerTick).to.be.equal(48);
+      expect(slot0.premiumSpent).to.be.equal(21900);
+    }
   });
 });
