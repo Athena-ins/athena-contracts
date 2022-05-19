@@ -44,20 +44,12 @@ contract PolicyCoverTest is PolicyCover {
     slot0.hoursPerTick = hoursPerTick;
   }
 
-  function getNumerator() public view returns (uint256) {
-    return slot0.numerator;
+  function getPremiumSpent() public view returns (uint256) {
+    return slot0.premiumSpent;
   }
 
-  function setNumerator(uint256 numerator) public {
-    slot0.numerator = numerator;
-  }
-
-  function getDenumerator() public view returns (uint256) {
-    return slot0.denominator;
-  }
-
-  function setDenumerator(uint256 denominator) public {
-    slot0.denominator = denominator;
+  function setPremiumSpent(uint256 premiumSpent) public {
+    slot0.premiumSpent = premiumSpent;
   }
 
   function getLastUpdateTimestamp() public view returns (uint256) {

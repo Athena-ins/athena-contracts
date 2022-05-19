@@ -10,7 +10,7 @@ library Tick {
   struct Info {
     uint256 capitalInsured; //dans position
     uint256 beginEmissionRate;
-    uint256 beginNumerator;
+    uint256 beginUseRate;
   }
 
   function pushTickInfo(
@@ -18,13 +18,9 @@ library Tick {
     uint24 tick,
     uint256 capitalInsured,
     uint256 beginEmissionRate,
-    uint256 beginNumerator
+    uint256 beginUseRate
   ) internal {
-    Info memory newInfo = Info(
-      capitalInsured,
-      beginEmissionRate,
-      beginNumerator
-    );
+    Info memory newInfo = Info(capitalInsured, beginEmissionRate, beginUseRate);
     self[tick].push(newInfo);
   }
 
@@ -37,7 +33,7 @@ library Tick {
   function cross(
     mapping(uint24 => Tick.Info[]) storage self,
     uint24 tick,
-    uint256 currentNumerator
+    uint256 currentUseRate
   )
     internal
     view
@@ -47,7 +43,7 @@ library Tick {
     for (uint256 i = 0; i < tickInfos.length; i++) {
       capitalInsuredToRemove += tickInfos[i].capitalInsured;
       emissionRateToRemove += ((tickInfos[i].beginEmissionRate *
-        currentNumerator) / tickInfos[i].beginNumerator);
+        currentUseRate) / tickInfos[i].beginUseRate);
     }
   }
 }

@@ -48,8 +48,7 @@ describe("Policy cover contract", function () {
     expect(slot0.useRate).to.be.equal(BN(1));
     expect(slot0.emissionRate).to.be.equal(BN(0));
     expect(slot0.hoursPerTick).to.be.equal(BN(48));
-    expect(slot0.numerator).to.be.equal(BN(1));
-    expect(slot0.denominator).to.be.equal(BN(1));
+    expect(slot0.premiumSpent).to.be.equal(BN(0));
     expect(slot0.lastUpdateTimestamp).to.be.equal(BN(1646219106));
   });
 
@@ -139,14 +138,16 @@ describe("Policy cover contract", function () {
     await POLICY_COVER_CONTRACT_TEST.setRate(1);
     await POLICY_COVER_CONTRACT_TEST.setEmissionRate(0);
     await POLICY_COVER_CONTRACT_TEST.setHoursPerTick(48);
-    await POLICY_COVER_CONTRACT_TEST.setNumerator(1);
-    await POLICY_COVER_CONTRACT_TEST.setDenumerator(1);
     await POLICY_COVER_CONTRACT_TEST.setLastUpdateTimestamp(1646219106);
 
     await increaseTimeAndMine(10 * 24 * 60 * 60);
 
+    console.log("Actualizing before A enter");
     const array1 = await actualizing();
     expect(array1.length).to.be.equal(0);
+
+    const premiumSpent1 = await POLICY_COVER_CONTRACT_TEST.getPremiumSpent();
+    expect(premiumSpent1).to.be.equal(BN(0));
 
     const resultA = await performBuyPolicy(2, 7300, 365000);
     expect(resultA.useRate).to.be.equal(2);
@@ -156,8 +157,12 @@ describe("Policy cover contract", function () {
 
     await increaseTimeAndMine(10 * 24 * 60 * 60);
 
+    console.log("Actualizing before B enter");
     const array2 = await actualizing();
     expect(array2.length).to.be.equal(0);
+
+    const premiumSpent2 = await POLICY_COVER_CONTRACT_TEST.getPremiumSpent();
+    expect(premiumSpent2).to.be.equal(BN(200));
 
     const resultB = await performBuyPolicy(4, 14600, 365000);
     expect(resultB.useRate).to.be.equal(4);
@@ -166,9 +171,14 @@ describe("Policy cover contract", function () {
     expect(resultB.tick).to.be.equal(745);
 
     await increaseTimeAndMine(1000 * 24 * 60 * 60);
+
+    console.log("Final actualizing");
     const array3 = await actualizing();
     expect(array3.length).to.be.equal(2);
     expect(array3[0].nbrDays.toString()).to.be.equal("177");
     expect(array3[1].nbrDays.toString()).to.be.equal("375");
+
+    const premiumSpent3 = await POLICY_COVER_CONTRACT_TEST.getPremiumSpent();
+    expect(premiumSpent3).to.be.equal(BN(21900));
   });
 });

@@ -9,9 +9,7 @@ import "./libraries/Position.sol";
 
 contract LibrariesTest {
   using LowGasSafeMath for uint256;
-  using LowGasSafeMath for int256;
   using SafeCast for uint256;
-  using SafeCast for int256;
   using Tick for mapping(uint24 => Tick.Info[]);
   using TickBitmap for mapping(uint16 => uint256);
   using Position for mapping(bytes32 => Position.Info);
@@ -22,12 +20,12 @@ contract LibrariesTest {
   mapping(bytes32 => Position.Info) public positions;
 
   //Thao@TEST
-  function crossTick(
-    uint24 tick,
-    uint256 numerator,
-    uint256 denumerator
-  ) public view returns (uint256, uint256) {
-    return ticks.cross(tick, numerator);
+  function crossTick(uint24 tick, uint256 currentUseRate)
+    public
+    view
+    returns (uint256, uint256)
+  {
+    return ticks.cross(tick, currentUseRate);
   }
 
   //Thao@TEST
@@ -54,14 +52,13 @@ contract LibrariesTest {
     uint24 tick,
     uint256 capitalInsured,
     uint256 emissionRate,
-    uint256 numerator,
-    uint256 denumerator
+    uint256 useRate
   ) public {
     if (!tickBitmap.isInitializedTick(tick)) {
       tickBitmap.flipTick(tick);
     }
 
-    ticks.pushTickInfo(tick, capitalInsured, emissionRate, numerator);
+    ticks.pushTickInfo(tick, capitalInsured, emissionRate, useRate);
   }
 
   //Thao@TEST

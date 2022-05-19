@@ -19,9 +19,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
   using SafeERC20 for IERC20;
 
   using LowGasSafeMath for uint256;
-  using LowGasSafeMath for int256;
   using SafeCast for uint256;
-  using SafeCast for int256;
   using Tick for mapping(uint24 => Tick.Info[]);
   using TickBitmap for mapping(uint16 => uint256);
   using Position for mapping(bytes32 => Position.Info);
@@ -35,8 +33,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     uint256 useRate,
     uint256 emissionRate,
     uint256 hourPerTick,
-    uint256 numerator,
-    uint256 denominator,
+    uint256 premiumSpent,
     uint256 lastUpdateTimestamp
   );
   event BuyPolicy(
@@ -52,8 +49,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     uint256 useRate;
     uint256 emissionRate;
     uint256 hoursPerTick;
-    uint256 numerator; //Thao@TODO: can be remove because same with useRate
-    uint256 denominator; //Thao@TODO: to remove from Slot0
+    uint256 premiumSpent;
     uint256 lastUpdateTimestamp;
   }
 
@@ -63,12 +59,10 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
   mapping(uint16 => uint256) internal tickBitmap;
   mapping(bytes32 => Position.Info) internal positions;
 
-  //Thao@NOTE: availableCapital = reserveCapitalPool
+  //Thao@NOTE: availableCapital = CapitalPool reserve
   uint256 internal availableCapital = 100000;
   uint256 internal premiumSupply;
   uint256 internal totalInsured;
-  //Thao@TODO: actualizing
-  uint256 internal premiumSpent;
 
   address public underlyingAsset;
 
@@ -79,8 +73,6 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     slot0.emissionRate = 0;
     slot0.useRate = 1; //Thao@NOTE: taux initiale = 1%
     slot0.hoursPerTick = 48;
-    slot0.numerator = 1;
-    slot0.denominator = 1;
     slot0.lastUpdateTimestamp = block.timestamp;
   }
 
@@ -128,8 +120,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
       useRate: slot0.useRate,
       emissionRate: slot0.emissionRate,
       hoursPerTick: slot0.hoursPerTick,
-      numerator: slot0.numerator,
-      denominator: slot0.denominator,
+      premiumSpent: slot0.premiumSpent,
       lastUpdateTimestamp: slot0.lastUpdateTimestamp
     });
 
@@ -137,7 +128,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     // console.log(hoursGaps);
 
     uint256 hoursPassed;
-    uint256 hoursToDay;
+    uint256 hoursToDay; //Thao@NOTE: remove after testing
     while (hoursPassed < hoursGaps) {
       (uint24 tickNext, bool initialized) = tickBitmap
         .nextInitializedTickInTheRightWithinOneWord(step.tick);
@@ -150,15 +141,29 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
 
       hoursToDay += (tickNext - step.tick) * step.hoursPerTick;
 
+      if (nextHoursPassed < hoursGaps) {
+        step.premiumSpent +=
+          ((tickNext - step.tick) * step.hoursPerTick * step.emissionRate) /
+          24;
+        step.tick = tickNext;
+        hoursPassed = nextHoursPassed;
+      } else {
+        step.premiumSpent +=
+          ((hoursGaps - hoursPassed) * step.emissionRate) /
+          24;
+        step.tick += uint24((hoursGaps - hoursPassed) / step.hoursPerTick);
+        hoursPassed = hoursGaps;
+      }
+
       if (initialized && nextHoursPassed <= hoursGaps) {
         (uint256 capitalToRemove, uint256 emissionRateToRemove) = ticks.cross(
           tickNext,
-          step.numerator
+          step.useRate
         );
 
-        console.log("-------------------------------");
         console.log("emissionRateToRemove:");
         console.log(emissionRateToRemove);
+        console.log("-------------------------------");
 
         uint256 newUseRate = getUseRate(initialized);
 
@@ -166,7 +171,6 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
           ((step.emissionRate - emissionRateToRemove) * newUseRate) /
           step.useRate;
         step.hoursPerTick = (step.hoursPerTick * step.useRate) / newUseRate;
-        step.numerator = newUseRate;
         step.useRate = newUseRate;
 
         totalInsured -= capitalToRemove;
@@ -178,14 +182,6 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
         emit TouchInitializedTick("Touch", tickNext, initialized);
       }
 
-      if (nextHoursPassed < hoursGaps) {
-        step.tick = tickNext;
-        hoursPassed = nextHoursPassed;
-      } else {
-        step.tick += uint24((hoursGaps - hoursPassed) / step.hoursPerTick);
-        hoursPassed = hoursGaps;
-      }
-
       step.lastUpdateTimestamp += hoursPassed * 3600;
 
       emit Actualizing(
@@ -194,8 +190,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
         step.useRate,
         step.emissionRate,
         step.hoursPerTick,
-        step.numerator,
-        step.denominator,
+        step.premiumSpent,
         step.lastUpdateTimestamp
       );
     }
@@ -204,8 +199,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     slot0.useRate = step.useRate;
     slot0.emissionRate = step.emissionRate;
     slot0.hoursPerTick = step.hoursPerTick;
-    slot0.numerator = step.numerator;
-    slot0.denominator = step.denominator;
+    slot0.premiumSpent = step.premiumSpent;
     slot0.lastUpdateTimestamp = block.timestamp;
 
     emit Actualizing(
@@ -214,8 +208,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
       slot0.useRate,
       slot0.emissionRate,
       slot0.hoursPerTick,
-      slot0.numerator,
-      slot0.denominator,
+      slot0.premiumSpent,
       slot0.lastUpdateTimestamp
     );
   }
@@ -257,7 +250,6 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
 
     slot0.useRate = newUseRate;
     slot0.hoursPerTick = newHoursPerTick;
-    slot0.numerator = newUseRate;
     slot0.lastUpdateTimestamp = block.timestamp;
 
     totalInsured += _capitalInsured; //Thao@WARN: not here
