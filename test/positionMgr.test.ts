@@ -37,6 +37,7 @@ let owner: originalEthers.Signer,
   ATHENA_CONTRACT: ethersOriginal.Contract,
   POS_CONTRACT: ethersOriginal.Contract,
   STAKED_ATENS_CONTRACT: ethersOriginal.Contract,
+  FACTORY_PROTOCOL_CONTRACT: ethersOriginal.Contract,
   // AAVELP_CONTRACT: ethersOriginal.Contract,
   ATEN_TOKEN_CONTRACT: ethersOriginal.Contract,
   POLICY_CONTRACT: ethersOriginal.Contract,
@@ -112,6 +113,15 @@ describe("Position Manager", function () {
       await ethers.provider.getCode(STAKED_ATENS_CONTRACT.address)
     ).to.not.equal("0x");
 
+    const factoryProtocol = await ethers.getContractFactory("ProtocolFactory");
+    FACTORY_PROTOCOL_CONTRACT = await factoryProtocol
+      .connect(owner)
+      .deploy(ATHENA_CONTRACT.address);
+    await FACTORY_PROTOCOL_CONTRACT.deployed();
+    expect(
+      await ethers.provider.getCode(FACTORY_PROTOCOL_CONTRACT.address)
+    ).to.not.equal("0x");
+
     // const wrappedAAVE = await ethers.getContractFactory("AAVELPToken");
     // //AAVE USDT ATOKEN ?
     // AAVELP_CONTRACT = await wrappedAAVE
@@ -141,7 +151,8 @@ describe("Position Manager", function () {
       POS_CONTRACT.address,
       STAKED_ATENS_CONTRACT.address,
       POLICY_CONTRACT.address,
-      USDT_AAVE_ATOKEN
+      USDT_AAVE_ATOKEN,
+      FACTORY_PROTOCOL_CONTRACT.address
       // AAVELP_CONTRACT.address
     );
     await init.wait();
@@ -393,11 +404,10 @@ describe("Position Manager", function () {
 
       // we check AAVE aToken balance
       expect(
-        await getATokenBalance(AAVE_LENDING_POOL, ATHENA_CONTRACT, USDT, user)
-      ).to.equal(10000);
-
-      //Need to check Wrapped Atoken for user
-      // need to deploy and mint AAVELPToken;
+        (
+          await getATokenBalance(AAVE_LENDING_POOL, ATHENA_CONTRACT, USDT, user)
+        ).toNumber()
+      ).to.be.greaterThanOrEqual(10000);
     });
 
     it("Should fail depositing funds for earlier position", async function () {
@@ -416,7 +426,7 @@ describe("Position Manager", function () {
         1001,
         9000000,
         [0],
-        [10000]
+        [1001]
       );
       expect(tx2).to.haveOwnProperty("hash");
     });
@@ -512,6 +522,7 @@ describe("Position Manager", function () {
       const PROTOCOL_ID = 1;
       const tx = await ATHENA_CONTRACT.connect(user).buyPolicy(
         10000,
+        1000,
         0,
         PROTOCOL_ID
       );
@@ -536,7 +547,7 @@ describe("Position Manager", function () {
       const balanceProtocol = await USDT_TOKEN_CONTRACT.connect(user).balanceOf(
         protocol.deployed
       );
-      expect(balanceProtocol).to.equal(BN(10000));
+      expect(balanceProtocol).to.equal(BN(1000));
     });
     it.skip("Should get X premium rewards now with protocol 0", async function () {});
     it("Should withdraw everything and get AAVE rewards", async function () {
@@ -582,10 +593,10 @@ describe("Position Manager", function () {
       );
 
       const tx3 = await ATHENA_CONTRACT.connect(user3).deposit(
-        1001,
+        1000,
         9000000,
-        [0],
-        [10000]
+        [1],
+        [1000]
       );
       await tx3.wait();
       expect(tx3).to.haveOwnProperty("hash");

@@ -3,7 +3,7 @@ pragma solidity ^0.8;
 
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "./interfaces/IPositionsManager.sol";
-import "./library/PositionsLibrary.sol";
+import "./libraries/PositionsLibrary.sol";
 
 contract PositionsManager is IPositionsManager, ERC721Enumerable {
   struct Position {

@@ -4,7 +4,7 @@ pragma solidity ^0.8;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 // import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "./library/ERC20withSnapshot.sol";
+import "./libraries/ERC20withSnapshot.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./FixedRateStakeable.sol";
 import "./interfaces/IStakedAten.sol";
@@ -20,7 +20,11 @@ contract StakedAten is
     address public immutable underlyingAssetAddress;
     address public immutable core;
 
-    //@dev constructs Pool LP Tokens, decimals defaults to 18
+    /** 
+     * @notice constructs Pool LP Tokens for staking, decimals defaults to 18
+     * @param _underlyingAsset is the address of the staked token
+     * @param _core is the address of the core contract
+    */
     constructor(address _underlyingAsset, address _core)
         ERC20WithSnapshot("ATEN Guarantee Pool Provider Token", "ATEN_GP_LP")
     {

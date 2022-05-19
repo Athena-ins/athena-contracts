@@ -7,7 +7,7 @@ contract StakingRewards is ReentrancyGuard {
     IERC20 public rewardsToken;
     IERC20 public stakingToken;
 
-    uint public rewardRate = 1;
+    uint public rewardRate = 0;
     uint public lastUpdateTime;
     uint public rewardPerTokenStored;
     uint public precision = 1e18;
@@ -48,6 +48,12 @@ contract StakingRewards is ReentrancyGuard {
         lastUpdateTime = block.timestamp;
         rewards[account] = earned(account);
         userRewardPerTokenPaid[account] = rewardPerTokenStored;
+        _;
+    }
+
+    modifier updateRewardNoAccount() {
+        rewardPerTokenStored = rewardPerToken();
+        lastUpdateTime = block.timestamp;
         _;
     }
 

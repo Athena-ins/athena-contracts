@@ -2,7 +2,6 @@
 pragma solidity ^0.8;
 
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import "./univ3-like/libraries/LowGasSafeMath.sol";
@@ -16,7 +15,6 @@ import "./interfaces/IPolicyCover.sol";
 import "hardhat/console.sol";
 
 contract PolicyCover is IPolicyCover, ReentrancyGuard {
-  using SafeERC20 for IERC20;
 
   using LowGasSafeMath for uint256;
   using SafeCast for uint256;
@@ -59,10 +57,11 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
   mapping(uint16 => uint256) internal tickBitmap;
   mapping(bytes32 => Position.Info) internal positions;
 
-  //Thao@NOTE: availableCapital = CapitalPool reserve
-  uint256 internal availableCapital = 100000;
+  //Thao@NOTE: availableCapital = reserveCapitalPool
+  uint256 internal availableCapital;
   uint256 internal premiumSupply;
   uint256 internal totalInsured;
+  uint256 internal premiumSpent = 100;
 
   address public underlyingAsset;
 
@@ -213,6 +212,10 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     );
   }
 
+  function updateLiquidityIndex() virtual internal {
+      
+  }
+
   //Thao@TODO:
   function buyPolicy(uint256 _amount, uint256 _capitalInsured) external {
     actualizing();
@@ -220,6 +223,8 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
 
     premiumSupply += _amount;
     totalInsured += _capitalInsured;
+
+    updateLiquidityIndex();
 
     performBuyPolicy(newUseRate, _amount, _capitalInsured);
   }

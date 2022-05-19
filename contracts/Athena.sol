@@ -2,21 +2,19 @@
 pragma solidity ^0.8;
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "./ProtocolPool.sol";
 import "./interfaces/IPositionsManager.sol";
+import "./interfaces/IProtocolFactory.sol";
+import "./interfaces/IProtocolPool.sol";
 import "./AAVE/ILendingPoolAddressesProvider.sol";
 import "./AAVE/ILendingPool.sol";
 import "./interfaces/IStakedAten.sol";
 import "./interfaces/IPolicyManager.sol";
 import "./interfaces/IScaledBalanceToken.sol";
 
-// import "./library/PositionsLibrary.sol";
-
 contract Athena is ReentrancyGuard, Ownable {
   using SafeERC20 for IERC20;
-  uint256 constant MAX_UINT256 = 2**256 - 1;
+  uint256 internal constant MAX_UINT256 = 2**256 - 1;
   struct Protocol {
     //id in mapping
     uint128 id;
@@ -41,6 +39,8 @@ contract Athena is ReentrancyGuard, Ownable {
   address public aaveAddressesRegistry;
   address public positionsManager;
   address public policyManager;
+  address public protocolFactory;
+
   address public stakedAtensGP;
   address public rewardsToken;
   address public aaveAtoken;
@@ -77,18 +77,21 @@ contract Athena is ReentrancyGuard, Ownable {
     address _positionsAddress,
     address _stakedAtensGP,
     address _policyManagerAddress,
-    address _aaveAtoken
+    address _aaveAtoken,
+    address _protocolFactory
   ) external onlyOwner {
     positionsManager = _positionsAddress;
     stakedAtensGP = _stakedAtensGP;
     policyManager = _policyManagerAddress;
     aaveAtoken = _aaveAtoken;
+    protocolFactory = _protocolFactory;
     approveLendingPool();
     //initialized = true; //@dev required ?
   }
 
   function buyPolicy(
     uint256 _amountGuaranteed,
+    uint256 _premium,
     uint256 _atensLocked,
     uint128 _protocolId
   ) public payable nonReentrant {
@@ -97,13 +100,17 @@ contract Athena is ReentrancyGuard, Ownable {
     IERC20(stablecoin).safeTransferFrom(
       msg.sender,
       protocolsMapping[_protocolId].deployed,
-      _amountGuaranteed
+      _premium
     );
     IPolicyManager(policyManager).mint(
       msg.sender,
       _amountGuaranteed,
       _atensLocked,
       _protocolId
+    );
+    IPolicyCover(protocolsMapping[_protocolId].deployed).buyPolicy(
+      _premium,
+      _amountGuaranteed
     );
   }
 
@@ -138,13 +145,16 @@ contract Athena is ReentrancyGuard, Ownable {
           "Protocol not compatible"
         );
       }
+      require(
+        _amounts[index] <= amount,
+        "Protocol amount must be less than deposit amount"
+      );
       IProtocolPool(protocolsMapping[_protocolIds[index]].deployed).mint(
         msg.sender,
         _amounts[index]
       );
     }
     uint256 _atokens = _transferLiquidity(amount);
-    console.log("ATOkens : ", _atokens);
     //@dev TODO stake atens and get corresponding discount
     _stakeAtens(atenToStake, amount);
     uint128 fees = getFeesWithAten(atenToStake);
@@ -201,7 +211,11 @@ contract Athena is ReentrancyGuard, Ownable {
   ) internal {
     // uint256 amount = IPositionsManager(positionsManager).balanceOf(msg.sender);
     for (uint256 index = 0; index < protocolIds.length; index++) {
-      IProtocolPool(protocolsMapping[protocolIds[index]].deployed).burn(
+      // Claim rewards / update procotol positions then burn
+      // IProtocolPool(protocolsMapping[protocolIds[index]].deployed).claim(
+      //   msg.sender, _amounts[index]
+      // );
+      IProtocolPool(protocolsMapping[protocolIds[index]].deployed).withdraw(
         msg.sender,
         _amounts[index]
       );
@@ -303,20 +317,22 @@ contract Athena is ReentrancyGuard, Ownable {
     uint128[] calldata protocolsNotCompat
   ) public onlyOwner {
     uint128 newProtocolId = uint128(protocols.length);
-    ProtocolPool _protocolDeployed = new ProtocolPool(
-      address(this),
-      rewardsToken,
-      name,
-      // A P P = Athena Protocol Pool
-      string(abi.encodePacked("APP_", Strings.toString(newProtocolId)))
-    );
+    address _protocolDeployed = IProtocolFactory(protocolFactory)
+      .deployProtocol(name, stablecoin, newProtocolId);
+    // ProtocolPool _protocolDeployed = new ProtocolPool(
+    //   address(this),
+    //   rewardsToken,
+    //   name,
+    //   // A P P = Athena Protocol Pool
+    //   string(abi.encodePacked("APP_", Strings.toString(newProtocolId)))
+    // );
     Protocol memory newProtocol = Protocol({
       id: newProtocolId,
       name: name,
       protocolAddress: iface,
       premiumRate: premium,
       guarantee: guaranteeType,
-      deployed: address(_protocolDeployed),
+      deployed: _protocolDeployed,
       active: true
     });
     for (uint256 i = 0; i < protocolsNotCompat.length; i++) {
