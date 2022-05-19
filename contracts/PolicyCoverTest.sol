@@ -8,6 +8,10 @@ import "hardhat/console.sol";
 contract PolicyCoverTest is PolicyCover {
   constructor(address _underlyingAsset) PolicyCover(_underlyingAsset) {}
 
+  function addTotalInsured(uint256 capital) public {
+    totalInsured += capital;
+  }
+
   function getSlot0() public view returns (Slot0 memory) {
     return slot0;
   }
@@ -79,6 +83,11 @@ contract PolicyCoverTest is PolicyCover {
   {
     return (capital * rate) / 100 / 365;
   }
+
+  //beginEmissionRate = (capital * beginUseRate) / 100 / days
+  //days = (capital * beginUseRate) / 100 / beginEmissionRate
+  //amount = days * beginEmissionRate
+  //amount = (capital * beginUseRate) / 100
 
   function testDurationHourUnit(
     uint256 premium,

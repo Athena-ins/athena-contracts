@@ -14,6 +14,7 @@ import "./interfaces/IPolicyCover.sol";
 
 import "hardhat/console.sol";
 
+//Thao@TODO: move calculs with rouding in fcts
 contract PolicyCover is IPolicyCover, ReentrancyGuard {
   using LowGasSafeMath for uint256;
   using SafeCast for uint256;
