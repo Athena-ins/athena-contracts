@@ -35,6 +35,9 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
   );
   event BuyPolicy(
     string msg,
+    address owner,
+    uint256 premium,
+    uint256 capitalInsured,
     uint256 useRate,
     uint256 addingEmissionRate,
     uint256 hourPerTick,
@@ -357,11 +360,11 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     slot0.useRate = newUseRate;
     slot0.hoursPerTick = newHoursPerTick;
 
-    //Thao@NOTE: all ready updated in actualizing
-    // slot0.lastUpdateTimestamp = block.timestamp;
-
     emit BuyPolicy(
       "BuyPolicy",
+      owner,
+      premium,
+      capitalInsured,
       newUseRate,
       addingEmissionRate,
       newHoursPerTick,
@@ -369,10 +372,9 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     );
   }
 
-  function withdrawPolicy(address owner)
-    external
-    returns (uint256 remainedAmount)
-  {
+  event WithdrawPolicy(address owner, uint256 remainedAmount);
+
+  function withdrawPolicy(address owner) external {
     require(positions.hasOwner(owner), "Owner Not Exist");
 
     Position.Info storage position = positions.get(owner);
@@ -382,18 +384,18 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
 
     require(slot0.tick < lastTick, "Policy Expired");
 
-    uint256 newUseRate = myGetUseRate(false, false);
     uint256 ownerCurrentEmissionRate = (position.getBeginEmissionRate() *
-      newUseRate) / position.beginUseRate;
-    remainedAmount =
-      ((lastTick - slot0.tick) *
-        slot0.hoursPerTick *
-        ownerCurrentEmissionRate) /
-      24;
+      slot0.useRate) / position.beginUseRate;
+
+    uint256 remainedAmount = ((lastTick - slot0.tick) *
+      slot0.hoursPerTick *
+      ownerCurrentEmissionRate) / 24;
 
     totalInsured -= position.capitalInsured;
 
+    uint256 newUseRate = myGetUseRate(false, true);
     slot0.emissionRate -= ownerCurrentEmissionRate;
+    slot0.emissionRate = (slot0.emissionRate * newUseRate) / slot0.useRate;
     slot0.hoursPerTick = (slot0.hoursPerTick * slot0.useRate) / newUseRate;
     slot0.useRate = newUseRate;
 
@@ -404,11 +406,10 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
         ticks.getLastOwnerInTick(lastTick)
       );
     } else {
-      ticks.clear(lastTick);
-      positions.removeOwner(owner);
+      removeTick(lastTick);
     }
 
-    //Thao@TODO: Event
+    emit WithdrawPolicy(owner, remainedAmount);
   }
 
   function remainedDay(uint256 newUseRate, uint24 lastTick)

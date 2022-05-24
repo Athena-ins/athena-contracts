@@ -73,7 +73,7 @@ describe("Policy cover contract", function () {
     return array;
   }
 
-  it("Should buy policy", async () => {
+  it.skip("Should buy policy", async () => {
     for (let i = 0; i < 3; i++) {
       // await hre.network.provider.request({
       //   method: "hardhat_reset",
@@ -244,5 +244,98 @@ describe("Policy cover contract", function () {
     expect(result3.vTotalInsured).to.be.equal(
       await POLICY_COVER_CONTRACT_TEST.getTotalInsured()
     );
+  });
+
+  it("Should withdraw policy", async () => {
+    // await hre.network.provider.request({
+    //   method: "hardhat_reset",
+    //   params: [
+    //     {
+    //       forking: {
+    //         // jsonRpcUrl: process.env.MAINNET_URL,
+    //         blockNumber: 14307200,
+    //       },
+    //     },
+    //   ],
+    // });
+
+    await POLICY_COVER_CONTRACT_TEST.setTick(0);
+    await POLICY_COVER_CONTRACT_TEST.setRate(1);
+    await POLICY_COVER_CONTRACT_TEST.setEmissionRate(0);
+    await POLICY_COVER_CONTRACT_TEST.setHoursPerTick(48);
+    await POLICY_COVER_CONTRACT_TEST.setPremiumSpent(0);
+    // await POLICY_COVER_CONTRACT_TEST.setLastUpdateTimestamp(1646219106);
+    await POLICY_COVER_CONTRACT_TEST.setTotalInsured(0);
+
+    await increaseTimeAndMine(10 * 24 * 60 * 60);
+
+    await POLICY_COVER_CONTRACT_TEST.testBuyPolicy(
+      await user1.getAddress(),
+      7300,
+      365000
+    );
+
+    let slot0 = await POLICY_COVER_CONTRACT_TEST.getSlot0();
+
+    expect(slot0.tick).to.be.equal(5);
+    expect(slot0.useRate).to.be.equal(2);
+    expect(slot0.emissionRate).to.be.equal(20);
+    expect(slot0.hoursPerTick).to.be.equal(24);
+    expect(slot0.premiumSpent).to.be.equal(0);
+
+    await increaseTimeAndMine(10 * 24 * 60 * 60);
+
+    const resultB = await POLICY_COVER_CONTRACT_TEST.testBuyPolicy(
+      await user2.getAddress(),
+      14600,
+      365000
+    );
+
+    slot0 = await POLICY_COVER_CONTRACT_TEST.getSlot0();
+
+    expect(slot0.tick).to.be.equal(15);
+    expect(slot0.useRate).to.be.equal(4);
+    expect(slot0.emissionRate).to.be.equal(80);
+    expect(slot0.hoursPerTick).to.be.equal(12);
+    expect(slot0.premiumSpent).to.be.equal(200);
+
+    await increaseTimeAndMine(10 * 24 * 60 * 60);
+
+    const response = await POLICY_COVER_CONTRACT_TEST.withdrawPolicy(
+      await user1.getAddress()
+    );
+    const result = await response.wait();
+    expect(
+      result.events[3].decode(result.events[3].data).remainedAmount
+    ).to.be.equal(6700);
+
+    slot0 = await POLICY_COVER_CONTRACT_TEST.getSlot0();
+    expect(slot0.tick).to.be.equal(35);
+    expect(slot0.useRate).to.be.equal(2);
+    expect(slot0.emissionRate).to.be.equal(20);
+    expect(slot0.hoursPerTick).to.be.equal(24);
+    expect(slot0.premiumSpent).to.be.equal(200 + 400 + 400);
+
+    const totalInsured = await POLICY_COVER_CONTRACT_TEST.getTotalInsured();
+    expect(totalInsured).to.be.equal(BN(365000));
+
+    const response2 = await POLICY_COVER_CONTRACT_TEST.withdrawPolicy(
+      await user2.getAddress()
+    );
+    const result2 = await response2.wait();
+    // console.log(result2);
+    expect(
+      result2.events[1].decode(result2.events[1].data).remainedAmount
+    ).to.be.equal(14200);
+
+    slot0 = await POLICY_COVER_CONTRACT_TEST.getSlot0();
+    expect(slot0.tick).to.be.equal(35);
+    expect(slot0.useRate).to.be.equal(1);
+    expect(slot0.emissionRate).to.be.equal(0);
+    expect(slot0.hoursPerTick).to.be.equal(48);
+    expect(slot0.premiumSpent).to.be.equal(200 + 400 + 400);
+
+    const totalInsured2 = await POLICY_COVER_CONTRACT_TEST.getTotalInsured();
+    expect(totalInsured2).to.be.equal(BN(0));
   });
 });

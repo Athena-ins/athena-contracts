@@ -32,7 +32,7 @@ library Tick {
     mapping(uint24 => address[]) storage self,
     uint24 tick
   ) internal view returns (address) {
-    address[] storage owners = self[tick];
+    address[] memory owners = self[tick];
     return owners[owners.length - 1];
   }
 
