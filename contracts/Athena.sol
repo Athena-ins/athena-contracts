@@ -90,6 +90,7 @@ contract Athena is ReentrancyGuard, Ownable {
   }
 
   function buyPolicy(
+    address owner,
     uint256 _amountGuaranteed,
     uint256 _premium,
     uint256 _atensLocked,
@@ -109,6 +110,7 @@ contract Athena is ReentrancyGuard, Ownable {
       _protocolId
     );
     IPolicyCover(protocolsMapping[_protocolId].deployed).buyPolicy(
+      owner,
       _premium,
       _amountGuaranteed
     );
@@ -242,6 +244,7 @@ contract Athena is ReentrancyGuard, Ownable {
       uint256 liquidity,
       uint128[] memory protocolsId,
       uint256 atokens,
+
     ) = IPositionsManager(positionsManager).positions(tokenId);
     uint128 _discount = getDiscountWithAten(liquidity);
     uint256 actualAtens = IStakedAten(stakedAtensGP).balanceOf(msg.sender);

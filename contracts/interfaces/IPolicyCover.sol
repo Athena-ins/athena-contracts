@@ -6,5 +6,9 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "./IPolicyCover.sol";
 
 interface IPolicyCover {
-    function buyPolicy(uint256 _amount, uint256 _capitalInsured) external;
+  function buyPolicy(
+    address owner,
+    uint256 _amount,
+    uint256 _capitalInsured
+  ) external;
 }

@@ -60,14 +60,12 @@ contract PolicyCoverTest is PolicyCover {
     slot0.lastUpdateTimestamp = timestamp;
   }
 
-  function mineTick(
-    uint24 tick,
-    uint256 capitalInsured,
-    uint256 emissionRate,
-    uint256 numerator
-  ) public {
-    totalInsured += capitalInsured;
-    addTick(tick, capitalInsured, emissionRate, numerator);
+  function getTotalInsured() public view returns (uint256) {
+    return totalInsured;
+  }
+
+  function setTotalInsured(uint256 _totalInsured) public {
+    totalInsured = _totalInsured;
   }
 
   function testIsInitializedTick(uint24 tick) public view returns (bool) {
@@ -94,16 +92,12 @@ contract PolicyCoverTest is PolicyCover {
     actualizing();
   }
 
-  function testBuyPolicy(uint256 _amount, uint256 _capitalInsured) public {
-    this.buyPolicy(_amount, _capitalInsured);
-  }
-
-  function testPerformBuyPolicy(
-    uint256 newUseRate,
+  function testBuyPolicy(
+    address owner,
     uint256 _amount,
     uint256 _capitalInsured
   ) public {
-    performBuyPolicy(newUseRate, _amount, _capitalInsured);
+    this.buyPolicy(owner, _amount, _capitalInsured);
   }
 
   function testRemainedDay(uint256 newUseRate, uint24 lastTick)

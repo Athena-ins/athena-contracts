@@ -1,28 +1,51 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8;
 
-/// @title Position
-/// @notice Positions represent an owner address' liquidity between a lower and upper tick boundary
-/// @dev Positions store additional state for tracking fees owed to the position
 library Position {
-  // info stored for each user's position
   struct Info {
-    address owner;
-    uint24 lastTick;
-    uint256 amount;
     uint256 capitalInsured;
+    uint256 beginUseRate;
+    //Thao@TODO: pack ownerIndex and lastTick in uint256 for saving gas
+    uint256 ownerIndex;
+    uint24 lastTick;
   }
 
-  /// @notice Returns the Info struct of a position, given an owner and position boundaries
-  /// @param self The mapping containing all user positions
-  /// @param owner The address of the position owner
-  /// @param lastTick The upper tick boundary of the position
-  /// @return position The position info struct of the given owners' position
-  function get(
-    mapping(bytes32 => Info) storage self,
-    address owner,
-    uint24 lastTick
-  ) internal view returns (Position.Info storage position) {
-    position = self[keccak256(abi.encodePacked(owner, lastTick))];
+  function get(mapping(address => Position.Info) storage self, address owner)
+    internal
+    view
+    returns (Position.Info storage)
+  {
+    return self[owner];
+  }
+
+  function replaceAndRemoveOwner(
+    mapping(address => Position.Info) storage self,
+    address ownerToRemove,
+    address ownerToReplace
+  ) internal {
+    self[ownerToReplace].ownerIndex = self[ownerToRemove].ownerIndex;
+    delete self[ownerToRemove];
+  }
+
+  function removeOwner(
+    mapping(address => Position.Info) storage self,
+    address owner
+  ) internal {
+    delete self[owner];
+  }
+
+  function getBeginEmissionRate(Position.Info storage self)
+    internal
+    view
+    returns (uint256)
+  {
+    return (self.capitalInsured * self.beginUseRate) / 36500; //36500 = 100 * 365
+  }
+
+  function hasOwner(
+    mapping(address => Position.Info) storage self,
+    address owner
+  ) internal view returns (bool) {
+    return self[owner].capitalInsured > 0;
   }
 }

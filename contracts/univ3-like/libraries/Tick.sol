@@ -1,49 +1,70 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8;
 
+import "./Position.sol";
 import "./LowGasSafeMath.sol";
 
 library Tick {
   using LowGasSafeMath for uint256;
+  using Position for mapping(address => Position.Info);
+  using Position for Position.Info;
 
-  //Thao@NOTE: Info contient aussi lien vers position
-  struct Info {
-    uint256 capitalInsured; //dans position
-    uint256 beginEmissionRate;
-    uint256 beginUseRate;
+  function addOwner(
+    mapping(uint24 => address[]) storage self,
+    address owner,
+    uint24 tick
+  ) internal returns (uint256) {
+    self[tick].push(owner);
+    return self[tick].length - 1;
   }
 
-  function pushTickInfo(
-    mapping(uint24 => Tick.Info[]) storage self,
-    uint24 tick,
-    uint256 capitalInsured,
-    uint256 beginEmissionRate,
-    uint256 beginUseRate
+  function removeOwner(
+    mapping(uint24 => address[]) storage self,
+    uint256 ownerIndexToRemove,
+    uint24 tick
   ) internal {
-    Info memory newInfo = Info(capitalInsured, beginEmissionRate, beginUseRate);
-    self[tick].push(newInfo);
+    address[] storage owners = self[tick];
+    owners[ownerIndexToRemove] = owners[owners.length - 1];
+    owners.pop();
   }
 
-  function clear(mapping(uint24 => Tick.Info[]) storage self, uint24 tick)
+  function getLastOwnerInTick(
+    mapping(uint24 => address[]) storage self,
+    uint24 tick
+  ) internal view returns (address) {
+    address[] storage owners = self[tick];
+    return owners[owners.length - 1];
+  }
+
+  function getOwnerNumber(
+    mapping(uint24 => address[]) storage self,
+    uint24 tick
+  ) internal view returns (uint256) {
+    return self[tick].length;
+  }
+
+  function clear(mapping(uint24 => address[]) storage self, uint24 tick)
     internal
   {
     delete self[tick];
   }
 
   function cross(
-    mapping(uint24 => Tick.Info[]) storage self,
+    mapping(uint24 => address[]) storage self,
+    mapping(address => Position.Info) storage positions,
     uint24 tick,
     uint256 currentUseRate
   )
     internal
     view
-    returns (uint256 capitalInsuredToRemove, uint256 emissionRateToRemove)
+    returns (uint256 capitalToRemove, uint256 emissionRateToRemove)
   {
-    Tick.Info[] memory tickInfos = self[tick];
-    for (uint256 i = 0; i < tickInfos.length; i++) {
-      capitalInsuredToRemove += tickInfos[i].capitalInsured;
-      emissionRateToRemove += ((tickInfos[i].beginEmissionRate *
-        currentUseRate) / tickInfos[i].beginUseRate);
+    address[] memory owners = self[tick];
+    for (uint256 i = 0; i < owners.length; i++) {
+      Position.Info storage position = positions.get(owners[i]);
+      capitalToRemove += position.capitalInsured;
+      emissionRateToRemove += ((position.getBeginEmissionRate() *
+        currentUseRate) / position.beginUseRate);
     }
   }
 }
