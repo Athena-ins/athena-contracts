@@ -15,6 +15,7 @@ import "./interfaces/IPolicyCover.sol";
 import "hardhat/console.sol";
 
 //Thao@TODO: move calculs with rouding in fcts
+//Thao@NOTE: calcul days, useRate, premiumSpent ???
 contract PolicyCover is IPolicyCover, ReentrancyGuard {
   using LowGasSafeMath for uint256;
   using SafeCast for uint256;
@@ -30,7 +31,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     uint24 tick,
     uint256 useRate,
     uint256 emissionRate,
-    uint256 hourPerTick,
+    uint256 hoursPerTick,
     uint256 premiumSpent,
     uint256 lastUpdateTimestamp
   );
@@ -41,7 +42,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     uint256 capitalInsured,
     uint256 useRate,
     uint256 addingEmissionRate,
-    uint256 hourPerTick,
+    uint256 hoursPerTick,
     uint24 tick
   );
 
@@ -111,6 +112,9 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     tickBitmap.flipTick(tick);
   }
 
+  //   uint256 premiumSpent;
+  //   uint256 lastUpdateTimestamp;
+
   uint256[] private removeUseRates = [2, 1, 2, 1, 2, 1, 2, 1, 1, 1, 1, 1, 1, 1];
   uint256 private removeIndex = 0;
   uint256[] private addUseRates = [2, 4, 2, 4, 2, 4, 2, 4, 1, 1, 1, 1, 1, 1];
@@ -133,8 +137,24 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     uint256 x,
     uint256 y,
     bool isMul
-  ) internal view returns (uint256) {
+  ) internal pure returns (uint256) {
     return isMul ? x * y : x / y;
+  }
+
+  function getEmissionRate(
+    uint256 oldEmissionRate,
+    uint256 oldUseRate,
+    uint256 newUseRate
+  ) internal pure returns (uint256) {
+    return (oldEmissionRate * newUseRate) / oldUseRate;
+  }
+
+  function getHoursPerTick(
+    uint256 oldHourPerTick,
+    uint256 oldUseRate,
+    uint256 newUseRate
+  ) internal pure returns (uint256) {
+    return (oldHourPerTick * oldUseRate) / newUseRate;
   }
 
   function durationHourUnit(
@@ -203,13 +223,17 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
         uint256 newUseRate = getUseRate(2, div, false);
         div++;
 
-        vSlot0.emissionRate =
-          ((vSlot0.emissionRate - emissionRateToRemove) * newUseRate) /
-          vSlot0.useRate;
+        vSlot0.emissionRate = getEmissionRate(
+          vSlot0.emissionRate - emissionRateToRemove,
+          vSlot0.useRate,
+          newUseRate
+        );
 
-        vSlot0.hoursPerTick =
-          (vSlot0.hoursPerTick * vSlot0.useRate) /
-          newUseRate;
+        vSlot0.hoursPerTick = getHoursPerTick(
+          vSlot0.hoursPerTick,
+          vSlot0.useRate,
+          newUseRate
+        );
 
         vSlot0.useRate = newUseRate;
 
@@ -275,11 +299,18 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
 
         uint256 newUseRate = myGetUseRate(false, initialized);
 
-        step.emissionRate =
-          ((step.emissionRate - emissionRateToRemove) * newUseRate) /
-          step.useRate;
+        step.emissionRate = getEmissionRate(
+          step.emissionRate - emissionRateToRemove,
+          step.useRate,
+          newUseRate
+        );
 
-        step.hoursPerTick = (step.hoursPerTick * step.useRate) / newUseRate;
+        step.hoursPerTick = getHoursPerTick(
+          step.hoursPerTick,
+          step.useRate,
+          newUseRate
+        );
+        // (step.hoursPerTick * step.useRate) / newUseRate;
 
         step.useRate = newUseRate;
 
@@ -349,11 +380,15 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
 
     uint256 addingEmissionRate = (premium * 24) / _durationInHour;
     slot0.emissionRate =
-      addingEmissionRate +
-      (slot0.emissionRate * newUseRate) /
-      oldUseRate;
+      getEmissionRate(slot0.emissionRate, oldUseRate, newUseRate) +
+      addingEmissionRate;
 
-    uint256 newHoursPerTick = (slot0.hoursPerTick * oldUseRate) / newUseRate;
+    uint256 newHoursPerTick = getHoursPerTick(
+      slot0.hoursPerTick,
+      oldUseRate,
+      newUseRate
+    );
+
     uint24 lastTick = slot0.tick + uint24(_durationInHour / newHoursPerTick);
 
     addPosition(owner, capitalInsured, newUseRate, lastTick);
@@ -385,8 +420,11 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
 
     require(slot0.tick < lastTick, "Policy Expired");
 
-    uint256 ownerCurrentEmissionRate = (position.getBeginEmissionRate() *
-      slot0.useRate) / position.beginUseRate;
+    uint256 ownerCurrentEmissionRate = getEmissionRate(
+      position.getBeginEmissionRate(),
+      position.beginUseRate,
+      slot0.useRate
+    );
 
     uint256 remainedAmount = ((lastTick - slot0.tick) *
       slot0.hoursPerTick *
@@ -395,9 +433,21 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     totalInsured -= position.capitalInsured;
 
     uint256 newUseRate = myGetUseRate(false, true);
-    slot0.emissionRate -= ownerCurrentEmissionRate;
-    slot0.emissionRate = (slot0.emissionRate * newUseRate) / slot0.useRate;
-    slot0.hoursPerTick = (slot0.hoursPerTick * slot0.useRate) / newUseRate;
+    slot0.emissionRate = getEmissionRate(
+      slot0.emissionRate - ownerCurrentEmissionRate,
+      slot0.useRate,
+      newUseRate
+    );
+    // ((slot0.emissionRate - ownerCurrentEmissionRate) * newUseRate) /
+    //   slot0.useRate;
+
+    slot0.hoursPerTick = getHoursPerTick(
+      slot0.hoursPerTick,
+      slot0.useRate,
+      newUseRate
+    );
+    // (slot0.hoursPerTick * slot0.useRate) / newUseRate;
+
     slot0.useRate = newUseRate;
 
     if (ticks.getOwnerNumber(lastTick) > 1) {
