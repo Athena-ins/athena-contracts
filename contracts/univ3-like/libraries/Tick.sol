@@ -3,10 +3,8 @@ pragma solidity ^0.8;
 
 import "./Position.sol";
 
-// import "./LowGasSafeMath.sol";
-
 library Tick {
-  // using LowGasSafeMath for uint256;
+  using WadRayMath for uint256;
   using Position for mapping(address => Position.Info);
   using Position for Position.Info;
 
@@ -64,8 +62,10 @@ library Tick {
     for (uint256 i = 0; i < owners.length; i++) {
       Position.Info storage position = positions.get(owners[i]);
       capitalToRemove += position.capitalInsured;
-      emissionRateToRemove += ((position.getBeginEmissionRate() *
-        currentUseRate) / position.beginUseRate);
+      emissionRateToRemove += position
+        .getBeginEmissionRate()
+        .rayMul(currentUseRate)
+        .rayDiv(position.beginUseRate);
     }
   }
 }
