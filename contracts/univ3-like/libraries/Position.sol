@@ -4,7 +4,7 @@ pragma solidity ^0.8;
 library Position {
   struct Info {
     uint256 capitalInsured;
-    uint256 beginUseRate;
+    uint256 beginUseRate; //RAY
     //Thao@TODO: pack ownerIndex and lastTick in uint256 for saving gas
     uint256 ownerIndex;
     uint24 lastTick;
@@ -39,7 +39,7 @@ library Position {
     view
     returns (uint256)
   {
-    return (self.capitalInsured * self.beginUseRate) / 36500; //36500 = 100 * 365
+    return (self.capitalInsured * self.beginUseRate) / 1e27 / 36500; //36500 = 100 * 365
   }
 
   function hasOwner(
