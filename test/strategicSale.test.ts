@@ -291,7 +291,7 @@ describe("Smart Contract STRATEGIC sale whitelist", function () {
 
   it("Should fail to claim tokens cause not active", async function () {
     await expect(
-      PRIVATE_SALE_CONTRACT.connect(owner).distribute(0)
+      PRIVATE_SALE_CONTRACT.connect(owner).distribute(0, 0)
     ).to.be.rejectedWith("Vesting not active");
   });
 
@@ -452,7 +452,7 @@ describe("Smart Contract STRATEGIC sale whitelist", function () {
     const signerLocal = accounts[1];
     const distribute = await PRIVATE_SALE_CONTRACT.connect(
       signerLocal
-    ).distribute(0);
+    ).distribute(0, 0);
     await distribute.wait();
     expect(distribute).to.have.property("hash");
     for (let index = 4; index < 15; index++) {
@@ -484,10 +484,10 @@ describe("Smart Contract STRATEGIC sale whitelist", function () {
     const accounts = await ethers.getSigners();
     const signerLocal = accounts[1];
     await expect(
-      PRIVATE_SALE_CONTRACT.connect(signerLocal).distribute(15)
+      PRIVATE_SALE_CONTRACT.connect(signerLocal).distribute(15, 0)
     ).to.be.revertedWith("Month not available");
     await expect(
-      PRIVATE_SALE_CONTRACT.connect(signerLocal).distribute(0)
+      PRIVATE_SALE_CONTRACT.connect(signerLocal).distribute(0, 0)
     ).to.be.revertedWith("Already distributed");
   });
 
@@ -506,7 +506,7 @@ describe("Smart Contract STRATEGIC sale whitelist", function () {
     const signerLocal = accounts[2];
     const distribute = await PRIVATE_SALE_CONTRACT.connect(
       signerLocal
-    ).distribute(12 - 1);
+    ).distribute(12 - 1, 0);
     await distribute.wait();
     expect(distribute).to.have.property("hash");
     for (let index = 5; index < 15; index++) {
@@ -537,7 +537,7 @@ describe("Smart Contract STRATEGIC sale whitelist", function () {
     const signerLocal = accounts[2];
     const distribute = await PRIVATE_SALE_CONTRACT.connect(
       signerLocal
-    ).distribute(19);
+    ).distribute(19, 0);
     await distribute.wait();
     expect(distribute).to.have.property("hash");
     for (let index = 5; index < 15; index++) {
@@ -567,7 +567,8 @@ describe("Smart Contract STRATEGIC sale whitelist", function () {
     for (let index = 1; index < 20; index++) {
       if (index === 19 || index === 11) continue;
       const claim = await PRIVATE_SALE_CONTRACT.connect(signerLocal).distribute(
-        index
+        index,
+        0
       );
       await claim.wait();
       expect(claim).to.have.property("hash");
@@ -582,4 +583,164 @@ describe("Smart Contract STRATEGIC sale whitelist", function () {
 
     expect(balATEN.lte(ethers.utils.parseEther("2000"))).to.be.true;
   });
+
+  /****
+   * TRY AGAIN WITH 300+ addresses
+   */
+  it("Should deploy again for 300+ addresses", async () => {
+    const factory = await ethers.getContractFactory("StrategicSale");
+    PRIVATE_SALE_CONTRACT = await factory
+      .connect(owner)
+      .deploy(ATEN_TOKEN, ALLOWANCE, [USDT, USDC]);
+    await PRIVATE_SALE_CONTRACT.deployed();
+
+    // console.log("Deployed ICO Contract : ", PRIVATE_SALE_CONTRACT.address);
+
+    expect(
+      await ethers.provider.getCode(PRIVATE_SALE_CONTRACT.address)
+    ).to.not.equal("0x");
+    expect((await PRIVATE_SALE_CONTRACT.maxTokensSale()).toString()).to.equal(
+      ALLOWANCE
+    );
+    expect((await PRIVATE_SALE_CONTRACT.tokenSold()).toString()).to.equal("0");
+  });
+
+  it("Should distribute USDT again for 300+ addresses", async function () {
+    this.timeout(600000);
+    //BINANCE WALLET 1Md2 USDT 0xF977814e90dA44bFA03b6295A0616a897441aceC
+    await hre.network.provider.request({
+      method: "hardhat_impersonateAccount",
+      params: ["0xf977814e90da44bfa03b6295a0616a897441acec"],
+    });
+    const binanceSigner = await ethers.getSigner(
+      "0xF977814e90dA44bFA03b6295A0616a897441aceC"
+    );
+    const balbefore = await USDT_TOKEN_CONTRACT.connect(
+      binanceSigner
+    ).balanceOf(ownerAddress);
+
+    const transfer = await USDT_TOKEN_CONTRACT.connect(binanceSigner).transfer(
+      ownerAddress,
+      ethers.utils.parseUnits("220000", 6)
+    );
+    await transfer.wait();
+    const transferUSDC = await USDC_TOKEN_CONTRACT.connect(
+      binanceSigner
+    ).transfer(allSigners[3].address, ethers.utils.parseUnits("220000", 6));
+    await transferUSDC.wait();
+    await USDC_TOKEN_CONTRACT.connect(allSigners[3]).approve(
+      PRIVATE_SALE_CONTRACT.address,
+      ethers.utils.parseUnits("220000", 6)
+    );
+
+    for (let index = 0; index < 302; index++) {
+      const tx = await USDT_TOKEN_CONTRACT.connect(binanceSigner).transfer(
+        allSigners[index].address,
+        ethers.utils.parseUnits((200000 + index * 10000).toString(), 6)
+      );
+      const approve = await USDT_TOKEN_CONTRACT.connect(
+        allSigners[index]
+      ).approve(
+        PRIVATE_SALE_CONTRACT.address,
+        ethersOriginal.utils.parseUnits("900000000", 6)
+      );
+      await approve.wait();
+    }
+    const tx = await USDT_TOKEN_CONTRACT.connect(binanceSigner).transfer(
+      allSigners[5].address,
+      ethers.utils.parseUnits((2000000).toString(), 6)
+    );
+    await tx.wait();
+
+    await hre.network.provider.request({
+      method: "hardhat_stopImpersonatingAccount",
+      params: ["0xf977814e90da44bfa03b6295a0616a897441acec"],
+    });
+    balUSDTownerBefore = await USDT_TOKEN_CONTRACT.connect(owner).balanceOf(
+      ownerAddress
+    );
+
+    expect(
+      balUSDTownerBefore.sub(balbefore).toNumber()
+    ).to.be.greaterThanOrEqual(ethers.utils.parseUnits("220000", 6).toNumber());
+  });
+
+  it("Should send ATEN to Contract again for 300+ addresses", async () => {
+    const ATEN_TOKEN_CONTRACT = new ethers.Contract(
+      ATEN_TOKEN,
+      weth_abi
+    ).connect(signerATEN);
+    const allowContract = await ATEN_TOKEN_CONTRACT.transfer(
+      PRIVATE_SALE_CONTRACT.address,
+      ALLOWANCE
+    );
+    await allowContract.wait();
+    // await hre.network.provider.request({
+    //   method: "hardhat_stopImpersonatingAccount",
+    //   params: [ATEN_OWNER_ADDRESS],
+    // });
+    const balance = await ATEN_TOKEN_CONTRACT.balanceOf(
+      PRIVATE_SALE_CONTRACT.address
+    );
+    expect(balance.toString()).to.equal(ALLOWANCE);
+  });
+
+  it("Should activate preSale again for 300+ addresses", async function () {
+    const startSale = await PRIVATE_SALE_CONTRACT.startSale(true);
+    expect(startSale).to.haveOwnProperty("hash");
+  });
+  it("Should add whitelist again for 300+ addresses", async function () {
+    this.timeout(120000);
+    const toWhiteList = allSigners.slice(0, 301).map((s) => s.address);
+    const startSale = await PRIVATE_SALE_CONTRACT.whitelistAddresses(
+      toWhiteList,
+      toWhiteList.map((_e) =>
+        ethers.utils.parseUnits(
+          BigNumber.from(10000).mul(10000).div(50).toString(),
+          18
+        )
+      )
+    );
+    expect(startSale).to.haveOwnProperty("hash");
+  });
+  it("Should buy again for 300+ addresses", async function () {
+    this.timeout(120000);
+    for (let index = 0; index < 302; index++) {
+      const signerLocal = allSigners[index];
+      const buy = await PRIVATE_SALE_CONTRACT.connect(signerLocal).buy(
+        ethers.utils.parseUnits("1000", 6), //36 M ATEN SOLD
+        USDT
+      );
+      await buy.wait();
+      expect(buy).to.have.property("hash");
+
+      const balance = await PRIVATE_SALE_CONTRACT.presales(signerLocal.address);
+      expect(balance.toString()).to.equal(expectedATEN.div(10).toString());
+    }
+  });
+  it("Should active distribute tokens again for 300+ addresses", async function () {
+    const activeClaim = await PRIVATE_SALE_CONTRACT.startVesting();
+    expect(activeClaim).to.haveOwnProperty("hash");
+  });
+  it("Should distribute on 2 tx ?", async function () {
+    this.timeout(120000);
+
+    await increaseTimeAndMine(20 * 31 * 24 * 60 * 60);
+    for (let index = 0; index < 21; index++) {
+      const claim = await PRIVATE_SALE_CONTRACT.connect(
+        allSigners[42]
+      ).distribute(index, 0);
+      await claim.wait();
+      expect(claim).to.have.property("hash");
+    }
+  });
+  it("Should now have empty ATEN balance on Contract", async () => {
+    const balATEN = await ATEN_TOKEN_CONTRACT.connect(owner).balanceOf(
+      PRIVATE_SALE_CONTRACT.address
+    );
+    console.log("Remaining ATEN : " + ethers.utils.formatEther(balATEN));
+
+    expect(balATEN.lte(ethers.utils.parseEther("2000"))).to.be.true;
+  });
 });
+

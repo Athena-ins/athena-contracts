@@ -44,7 +44,7 @@ const config: HardhatUserConfig = {
         // interval: 5000,
       },
       accounts: {
-        count: 300,
+        count: 302,
       },
     },
     rinkeby: {

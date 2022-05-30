@@ -2,11 +2,10 @@
 
 pragma solidity ^0.8;
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
-contract StrategicSale is Ownable, ReentrancyGuard {
+contract StrategicSale is Ownable {
   using SafeERC20 for IERC20;
 
   mapping(address => bool) public authTokens;
@@ -20,6 +19,7 @@ contract StrategicSale is Ownable, ReentrancyGuard {
   uint256 public immutable maxTokensSale;
   uint256 public tokenSold = 0;
   uint256 public dateStartVesting = 0;
+  uint256 public distributeIndex = 0;
   mapping(address => uint256) private whitelist;
 
   uint8[] public distributionToken = [
@@ -89,7 +89,7 @@ contract StrategicSale is Ownable, ReentrancyGuard {
    * @param amount Amount approved for transfer to contract to buy ICO
    * @param token Token approved for transfer to contract to buy ICO
    */
-  function buy(uint256 amount, address token) external payable nonReentrant {
+  function buy(uint256 amount, address token) external payable {
     require(activeSale, "Sale is not active");
     require(authTokens[token] == true, "Token not approved for this ICO");
     // Safe Transfer will revert if not successful
@@ -158,19 +158,28 @@ contract StrategicSale is Ownable, ReentrancyGuard {
    * @dev Distribute tokens (from contract) with previously buy, depending on availabiliy
    * @param month Month to distribute tokens, starting from 0
    */
-  function distribute(uint8 month) external nonReentrant {
+  function distribute(uint8 month, uint256 indexLimit) external {
     require(dateStartVesting > 0, "Vesting not active");
     require(month <= monthIndex(), "Month not available");
     require(claimed[month] == false, "Already distributed");
 
-    for (uint256 index = 0; index < buyers.length; index++) {
+    if (indexLimit == 0) {
+      indexLimit = buyers.length > 300
+        ? distributeIndex + 300
+        : distributeIndex + buyers.length;
+    }
+    for (uint256 index = distributeIndex; index < indexLimit; index++) {
       uint256 amount = (presales[buyers[index]] * distributionToken[month]) /
         100;
       if (amount > 0) {
         IERC20(aten).safeTransfer(buyers[index], amount);
       }
+      distributeIndex = index;
     }
-    claimed[month] = true;
+    if (distributeIndex == buyers.length - 1) {
+      claimed[month] = true;
+      distributeIndex = 0;
+    }
   }
 
   /**
@@ -192,7 +201,7 @@ contract StrategicSale is Ownable, ReentrancyGuard {
    * @dev change your address from previous buys
    * @param newTo new wallet address that will be able to withdraw balance
    */
-  function changeAddress(address newTo) external nonReentrant {
+  function changeAddress(address newTo) external {
     require(presales[msg.sender] > 0, "No tokens to change");
     uint256 amount = presales[msg.sender];
     presales[newTo] = amount;
