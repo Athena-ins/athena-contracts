@@ -121,4 +121,21 @@ contract PolicyCoverTest is PolicyCover {
   {
     return remainedDay(newUseRate, lastTick);
   }
+
+  function testMulOverFlow() public pure returns (uint256) {
+    return type(uint256).max * type(uint256).max;
+  }
+
+  function testAddOverFlow() public pure returns (uint256) {
+    return type(uint256).max + type(uint256).max;
+  }
+
+  function testSubOverFlow() public pure returns (uint256) {
+    return 1 - type(uint256).max;
+  }
+
+  function testDivByZero() public pure returns (uint256) {
+    uint256 zero = 0;
+    return 30 / zero;
+  }
 }
