@@ -32,26 +32,10 @@ library WadRayMath {
    * @return The result of a*b, in ray
    **/
   function rayMul(uint256 a, uint256 b) internal pure returns (uint256) {
-    if (a == 0 || b == 0) {
-      return 0;
-    }
-
-    require(a <= (type(uint256).max - halfRAY) / b, "Overflow in rayMul");
-
     return (a * b + halfRAY) / RAY;
   }
 
-  function rayMulRoundingDown(uint256 a, uint256 b)
-    internal
-    pure
-    returns (uint256)
-  {
-    if (a == 0 || b == 0) {
-      return 0;
-    }
-
-    require(a <= type(uint256).max / b, "Overflow in rayMul");
-
+  function rayMulDown(uint256 a, uint256 b) internal pure returns (uint256) {
     return (a * b) / RAY;
   }
 
@@ -62,23 +46,10 @@ library WadRayMath {
    * @return The result of a/b, in ray
    **/
   function rayDiv(uint256 a, uint256 b) internal pure returns (uint256) {
-    require(b != 0, "Division by zero");
-    uint256 halfB = b / 2;
-
-    require(a <= (type(uint256).max - halfB) / RAY, "Overflow in rayDiv");
-
-    return (a * RAY + halfB) / b;
+    return ((a * RAY) + (b / 2)) / b;
   }
 
-  function rayDivRoundingDown(uint256 a, uint256 b)
-    internal
-    pure
-    returns (uint256)
-  {
-    require(b != 0, "Division by zero");
-
-    require(a <= type(uint256).max / RAY, "Overflow in rayDiv");
-
+  function rayDivDown(uint256 a, uint256 b) internal pure returns (uint256) {
     return (a * RAY) / b;
   }
 }
