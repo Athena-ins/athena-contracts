@@ -6,6 +6,8 @@ import "./PolicyCover.sol";
 import "hardhat/console.sol";
 
 contract PolicyCoverTest is PolicyCover {
+  using TickBitmap for mapping(uint16 => uint256);
+
   constructor(address _underlyingAsset) PolicyCover(_underlyingAsset) {}
 
   function addTotalInsured(uint256 capital) public {
@@ -72,8 +74,16 @@ contract PolicyCoverTest is PolicyCover {
     totalInsured = _totalInsured;
   }
 
+  function getAvailableCapital() public view returns (uint256) {
+    return availableCapital;
+  }
+
+  function setAvailableCapital(uint256 _availableCapital) public {
+    availableCapital = _availableCapital;
+  }
+
   function testIsInitializedTick(uint24 tick) public view returns (bool) {
-    return isInitializedTick(tick);
+    return tickBitmap.isInitializedTick(tick);
   }
 
   function testGetEmissionRatePerDay(uint256 capital, uint256 rate)
@@ -83,11 +93,6 @@ contract PolicyCoverTest is PolicyCover {
   {
     return (capital * rate) / 100 / 365;
   }
-
-  //beginEmissionRate = (capital * beginUseRate) / 100 / days
-  //days = (capital * beginUseRate) / 100 / beginEmissionRate
-  //amount = days * beginEmissionRate
-  //amount = (capital * beginUseRate) / 100
 
   function testDurationHourUnit(
     uint256 premium,
