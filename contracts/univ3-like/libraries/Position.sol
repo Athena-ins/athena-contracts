@@ -8,7 +8,7 @@ library Position {
 
   struct Info {
     uint256 capitalInsured;
-    uint256 beginUseRate; //RAY
+    uint256 beginUseRate;
     //Thao@TODO: pack ownerIndex and lastTick in uint256 for saving gas
     uint256 ownerIndex;
     uint24 lastTick;
@@ -43,7 +43,10 @@ library Position {
     view
     returns (uint256)
   {
-    return self.capitalInsured.rayMul(self.beginUseRate).rayDiv(36500 * 1e27); //36500 = 100 * 365
+    return
+      self.capitalInsured.rayMul(self.beginUseRate).rayDiv(
+        36500 * WadRayMath.RAY
+      ); //36500 = 100 * 365
   }
 
   function hasOwner(
