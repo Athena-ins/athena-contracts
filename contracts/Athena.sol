@@ -45,6 +45,8 @@ contract Athena is ReentrancyGuard, Ownable {
   address public rewardsToken;
   address public aaveAtoken;
 
+  address public arbitrator;
+
   uint8 private premiumDivisor;
 
   struct AtenDiscount {
@@ -78,19 +80,20 @@ contract Athena is ReentrancyGuard, Ownable {
     address _stakedAtensGP,
     address _policyManagerAddress,
     address _aaveAtoken,
-    address _protocolFactory
+    address _protocolFactory,
+    address _arbitrator
   ) external onlyOwner {
     positionsManager = _positionsAddress;
     stakedAtensGP = _stakedAtensGP;
     policyManager = _policyManagerAddress;
     aaveAtoken = _aaveAtoken;
     protocolFactory = _protocolFactory;
+    arbitrator = _arbitrator;
     approveLendingPool();
     //initialized = true; //@dev required ?
   }
 
   function buyPolicy(
-    address owner,
     uint256 _amountGuaranteed,
     uint256 _premium,
     uint256 _atensLocked,
@@ -110,7 +113,7 @@ contract Athena is ReentrancyGuard, Ownable {
       _protocolId
     );
     IPolicyCover(protocolsMapping[_protocolId].deployed).buyPolicy(
-      owner,
+      msg.sender,
       _premium,
       _amountGuaranteed
     );
