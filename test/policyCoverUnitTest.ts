@@ -101,8 +101,8 @@ describe("Policy cover contract", function () {
 
       const response1 = await POLICY_COVER_CONTRACT_TEST.testBuyPolicy(
         await user1.getAddress(),
-        7300,
-        365000
+        OneRay.mul(7300),
+        OneRay.mul(365000)
       );
 
       const events = (await response1.wait()).events;
@@ -112,7 +112,7 @@ describe("Policy cover contract", function () {
 
       expect(slot0.tick).to.be.equal(5);
       expect(slot0.useRate).to.be.equal(OneRay.mul(2));
-      expect(slot0.emissionRate).to.be.equal(20);
+      expect(slot0.emissionRate).to.be.equal(OneRay.mul(20));
       expect(slot0.hoursPerTick).to.be.equal(OneRay.mul(24));
       expect(slot0.premiumSpent).to.be.equal(0);
 
@@ -120,17 +120,17 @@ describe("Policy cover contract", function () {
 
       const resultB = await POLICY_COVER_CONTRACT_TEST.testBuyPolicy(
         await user2.getAddress(),
-        14600,
-        365000
+        OneRay.mul(14600),
+        OneRay.mul(365000)
       );
 
       slot0 = await POLICY_COVER_CONTRACT_TEST.getSlot0();
 
       expect(slot0.tick).to.be.equal(15);
       expect(slot0.useRate).to.be.equal(OneRay.mul(4));
-      expect(slot0.emissionRate).to.be.equal(80);
+      expect(slot0.emissionRate).to.be.equal(OneRay.mul(80));
       expect(slot0.hoursPerTick).to.be.equal(OneRay.mul(12));
-      expect(slot0.premiumSpent).to.be.equal(200);
+      expect(slot0.premiumSpent).to.be.equal(OneRay.mul(200));
 
       await increaseTimeAndMine(1000 * 24 * 60 * 60);
 
@@ -146,7 +146,7 @@ describe("Policy cover contract", function () {
       expect(slot0.useRate).to.be.equal(OneRay);
       expect(slot0.emissionRate).to.be.equal(0);
       expect(slot0.hoursPerTick).to.be.equal(OneRay.mul(48));
-      expect(slot0.premiumSpent).to.be.equal(21900);
+      expect(slot0.premiumSpent).to.be.equal(OneRay.mul(21900));
 
       const totalInsured = await POLICY_COVER_CONTRACT_TEST.getTotalInsured();
       expect(totalInsured).to.be.equal(BN(0));
@@ -181,8 +181,8 @@ describe("Policy cover contract", function () {
 
     await POLICY_COVER_CONTRACT_TEST.testBuyPolicy(
       await user1.getAddress(),
-      7300,
-      365000
+      OneRay.mul(7300),
+      OneRay.mul(365000)
     );
 
     slot0 = await POLICY_COVER_CONTRACT_TEST.getSlot0();
@@ -201,7 +201,7 @@ describe("Policy cover contract", function () {
     expect(result2.vSlot0.useRate).to.be.equal(slot0.useRate);
     expect(result2.vSlot0.emissionRate).to.be.equal(slot0.emissionRate);
     expect(result2.vSlot0.hoursPerTick).to.be.equal(slot0.hoursPerTick);
-    expect(result2.vSlot0.premiumSpent).to.be.equal(200);
+    expect(result2.vSlot0.premiumSpent).to.be.equal(OneRay.mul(200));
     expect(result2.vTotalInsured).to.be.equal(
       await POLICY_COVER_CONTRACT_TEST.getTotalInsured()
     );
@@ -210,8 +210,8 @@ describe("Policy cover contract", function () {
 
     const resultB = await POLICY_COVER_CONTRACT_TEST.testBuyPolicy(
       await user2.getAddress(),
-      14600,
-      365000
+      OneRay.mul(14600),
+      OneRay.mul(365000)
     );
 
     slot0 = await POLICY_COVER_CONTRACT_TEST.getSlot0();
@@ -276,15 +276,15 @@ describe("Policy cover contract", function () {
 
     await POLICY_COVER_CONTRACT_TEST.testBuyPolicy(
       await user1.getAddress(),
-      7300,
-      365000
+      OneRay.mul(7300),
+      OneRay.mul(365000)
     );
 
     let slot0 = await POLICY_COVER_CONTRACT_TEST.getSlot0();
 
     expect(slot0.tick).to.be.equal(5);
     expect(slot0.useRate).to.be.equal(OneRay.mul(2));
-    expect(slot0.emissionRate).to.be.equal(20);
+    expect(slot0.emissionRate).to.be.equal(OneRay.mul(20));
     expect(slot0.hoursPerTick).to.be.equal(OneRay.mul(24));
     expect(slot0.premiumSpent).to.be.equal(0);
 
@@ -292,17 +292,17 @@ describe("Policy cover contract", function () {
 
     const resultB = await POLICY_COVER_CONTRACT_TEST.testBuyPolicy(
       await user2.getAddress(),
-      14600,
-      365000
+      OneRay.mul(14600),
+      OneRay.mul(365000)
     );
 
     slot0 = await POLICY_COVER_CONTRACT_TEST.getSlot0();
 
     expect(slot0.tick).to.be.equal(15);
     expect(slot0.useRate).to.be.equal(OneRay.mul(4));
-    expect(slot0.emissionRate).to.be.equal(80);
+    expect(slot0.emissionRate).to.be.equal(OneRay.mul(80));
     expect(slot0.hoursPerTick).to.be.equal(OneRay.mul(12));
-    expect(slot0.premiumSpent).to.be.equal(200);
+    expect(slot0.premiumSpent).to.be.equal(OneRay.mul(200));
 
     await increaseTimeAndMine(10 * 24 * 60 * 60);
 
@@ -312,17 +312,17 @@ describe("Policy cover contract", function () {
     const result = await response.wait();
     expect(
       result.events[3].decode(result.events[3].data).remainedAmount
-    ).to.be.equal(6700);
+    ).to.be.equal(OneRay.mul(6700));
 
     slot0 = await POLICY_COVER_CONTRACT_TEST.getSlot0();
     expect(slot0.tick).to.be.equal(35);
     expect(slot0.useRate).to.be.equal(OneRay.mul(2));
-    expect(slot0.emissionRate).to.be.equal(20);
+    expect(slot0.emissionRate).to.be.equal(OneRay.mul(20));
     expect(slot0.hoursPerTick).to.be.equal(OneRay.mul(24));
-    expect(slot0.premiumSpent).to.be.equal(200 + 400 + 400);
+    expect(slot0.premiumSpent).to.be.equal(OneRay.mul(200 + 400 + 400));
 
     const totalInsured = await POLICY_COVER_CONTRACT_TEST.getTotalInsured();
-    expect(totalInsured).to.be.equal(BN(365000));
+    expect(totalInsured).to.be.equal(OneRay.mul(365000));
 
     const response2 = await POLICY_COVER_CONTRACT_TEST.withdrawPolicy(
       await user2.getAddress()
@@ -331,14 +331,14 @@ describe("Policy cover contract", function () {
     // console.log(result2);
     expect(
       result2.events[1].decode(result2.events[1].data).remainedAmount
-    ).to.be.equal(14200);
+    ).to.be.equal(OneRay.mul(14200));
 
     slot0 = await POLICY_COVER_CONTRACT_TEST.getSlot0();
     expect(slot0.tick).to.be.equal(35);
     expect(slot0.useRate).to.be.equal(OneRay);
     expect(slot0.emissionRate).to.be.equal(0);
     expect(slot0.hoursPerTick).to.be.equal(OneRay.mul(48));
-    expect(slot0.premiumSpent).to.be.equal(200 + 400 + 400);
+    expect(slot0.premiumSpent).to.be.equal(OneRay.mul(200 + 400 + 400));
 
     const totalInsured2 = await POLICY_COVER_CONTRACT_TEST.getTotalInsured();
     expect(totalInsured2).to.be.equal(BN(0));

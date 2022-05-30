@@ -7,14 +7,14 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./univ3-like/libraries/Tick.sol";
 import "./univ3-like/libraries/TickBitmap.sol";
 import "./univ3-like/libraries/Position.sol";
+import "./libraries/WadRayMath.sol";
 
 import "./interfaces/IPolicyCover.sol";
 
 import "hardhat/console.sol";
 
 contract PolicyCover is IPolicyCover, ReentrancyGuard {
-  // using LowGasSafeMath for uint256;
-  // using SafeCast for uint256;
+  using WadRayMath for uint256;
   using Tick for mapping(uint24 => address[]);
   using TickBitmap for mapping(uint16 => uint256);
   using Position for mapping(address => Position.Info);
@@ -60,11 +60,11 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
   uint256 internal availableCapital;
   uint256 internal totalInsured;
 
-  uint256 internal precision = 1e27; // Ray
-  uint256 internal _uOptimal = 75 * 1e25; // 75% in Ray
-  uint256 internal _r0 = 1e27; // 1 in Ray
-  uint256 internal _rSlope1 = 12 * 1e26; // 1.2 in Ray
-  uint256 internal _rSlope2 = 11 * 1e26; // 1.1 in Ray
+  uint256 internal precision = WadRayMath.RAY;
+  uint256 internal _uOptimal = 75 * 1e25;
+  uint256 internal _r0 = WadRayMath.RAY;
+  uint256 internal _rSlope1 = 5 * WadRayMath.RAY;
+  uint256 internal _rSlope2 = 11 * 1e26;
 
   address public underlyingAsset;
 
@@ -73,11 +73,9 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
 
   constructor(address _underlyingAsset) {
     underlyingAsset = _underlyingAsset;
-    //Thao@TODO: see how init a pool policy ???
-    //Thao@NOTE: init for testing
     slot0.emissionRate = 0;
-    slot0.useRate = 1 * 1e27; //Thao@NOTE: taux initiale = 1%
-    slot0.hoursPerTick = 48 * 1e27;
+    slot0.useRate = WadRayMath.RAY; //Thao@NOTE: taux initiale = 1%
+    slot0.hoursPerTick = 48 * WadRayMath.RAY;
     slot0.lastUpdateTimestamp = block.timestamp;
   }
 
@@ -153,10 +151,10 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     returns (uint256 useRate)
   {
     if (isAdded) {
-      useRate = addUseRates[addIndex] * 1e27;
+      useRate = addUseRates[addIndex] * WadRayMath.RAY;
       addIndex++;
     } else {
-      useRate = removeUseRates[removeIndex] * 1e27;
+      useRate = removeUseRates[removeIndex] * WadRayMath.RAY;
       if (initialized) removeIndex++;
     }
   }
@@ -166,7 +164,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     uint256 y,
     bool isMul
   ) internal pure returns (uint256) {
-    return isMul ? x * 1e27 * y : (x * 1e27) / y;
+    return isMul ? x * WadRayMath.RAY * y : (x * WadRayMath.RAY) / y;
   }
 
   function getEmissionRate(
@@ -192,7 +190,11 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     uint256 capital,
     uint256 useRate
   ) internal pure returns (uint256) {
-    return (((amount * 24 * 100 * 365 * 1e27) / capital) * 1e27) / useRate;
+    return
+      amount.rayDiv(capital).rayDiv(useRate).rayMul(
+        24 * 100 * 365 * WadRayMath.RAY
+      );
+    // return (((amount * 24 * 100 * 365 * WadRayMath.RAY) / capital) * WadRayMath.RAY) / useRate;
   }
 
   function actualizingUntilGivenDate(uint256 dateInSecond)
@@ -212,7 +214,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     vTotalInsured = totalInsured;
 
     uint256 hoursGaps = ((dateInSecond - vSlot0.lastUpdateTimestamp) / 3600) *
-      1e27; //3600 = 60 * 60
+      WadRayMath.RAY; //3600 = 60 * 60
     uint256 hoursPassed;
 
     uint256 div = 1;
@@ -229,7 +231,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
           ((tickNext - vSlot0.tick) *
             vSlot0.hoursPerTick *
             vSlot0.emissionRate) /
-          1e27 /
+          WadRayMath.RAY /
           24;
 
         vSlot0.tick = tickNext;
@@ -238,7 +240,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
       } else {
         vSlot0.premiumSpent +=
           ((hoursGaps - hoursPassed) * vSlot0.emissionRate) /
-          1e27 /
+          WadRayMath.RAY /
           24;
 
         vSlot0.tick += uint24((hoursGaps - hoursPassed) / vSlot0.hoursPerTick);
@@ -288,7 +290,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     });
 
     uint256 hoursGaps = ((block.timestamp - step.lastUpdateTimestamp) / 3600) *
-      1e27; //3600 = 60 * 60
+      WadRayMath.RAY; //3600 = 60 * 60
 
     console.log("hoursGaps");
     console.log(hoursGaps);
@@ -314,14 +316,14 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
       if (nextHoursPassed < hoursGaps) {
         step.premiumSpent +=
           ((tickNext - step.tick) * step.hoursPerTick * step.emissionRate) /
-          1e27 /
+          WadRayMath.RAY /
           24;
         step.tick = tickNext;
         hoursPassed = nextHoursPassed;
       } else {
         step.premiumSpent +=
           ((hoursGaps - hoursPassed) * step.emissionRate) /
-          1e27 /
+          WadRayMath.RAY /
           24;
         step.tick += uint24((hoursGaps - hoursPassed) / step.hoursPerTick);
         hoursPassed = hoursGaps;
@@ -358,7 +360,11 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
 
         removeTick(tickNext);
 
-        emit HoursToDay("HoursToDay", hoursToDay, hoursToDay / 1e27 / 24);
+        emit HoursToDay(
+          "HoursToDay",
+          hoursToDay,
+          hoursToDay / WadRayMath.RAY / 24
+        );
         hoursToDay = 0;
         emit TouchInitializedTick("Touch", tickNext, initialized);
       }
@@ -416,7 +422,9 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
       newUseRate
     );
 
-    uint256 addingEmissionRate = (premium * 24 * 1e27) / _durationInHour;
+    uint256 addingEmissionRate = premium.rayMul(24 * WadRayMath.RAY).rayDiv(
+      _durationInHour
+    );
     slot0.emissionRate =
       getEmissionRate(slot0.emissionRate, oldUseRate, newUseRate) +
       addingEmissionRate;
@@ -470,7 +478,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
       slot0.hoursPerTick *
       ownerCurrentEmissionRate) /
       24 /
-      1e27;
+      WadRayMath.RAY;
 
     totalInsured -= position.capitalInsured;
 
@@ -510,12 +518,13 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     uint256 oldUseRate = slot0.useRate;
     console.log(oldUseRate);
 
-    uint256 newHoursPerTick = (slot0.hoursPerTick * oldUseRate * 1e27) /
-      newUseRate;
+    uint256 newHoursPerTick = slot0.hoursPerTick.rayMul(oldUseRate).rayDiv(
+      newUseRate
+    );
     console.log(newHoursPerTick);
     uint256 numberRemainedTick = lastTick - slot0.tick;
     console.log(numberRemainedTick);
-    return (numberRemainedTick * newHoursPerTick) / 24 / 1e27;
+    return (numberRemainedTick * newHoursPerTick) / 24 / WadRayMath.RAY;
   }
 
   //Thao@NOTE:
