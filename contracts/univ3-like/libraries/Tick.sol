@@ -2,10 +2,11 @@
 pragma solidity ^0.8;
 
 import "./Position.sol";
-import "./LowGasSafeMath.sol";
+
+// import "./LowGasSafeMath.sol";
 
 library Tick {
-  using LowGasSafeMath for uint256;
+  // using LowGasSafeMath for uint256;
   using Position for mapping(address => Position.Info);
   using Position for Position.Info;
 
