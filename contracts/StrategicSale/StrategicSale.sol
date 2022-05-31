@@ -19,7 +19,8 @@ contract StrategicSale is Ownable {
   uint256 public immutable maxTokensSale;
   uint256 public tokenSold = 0;
   uint256 public dateStartVesting = 0;
-  uint256 public distributeIndex = 0;
+  // uint256 public distributeIndex = 0;
+  mapping(uint16 => uint256) public distributeIndex;
   mapping(address => uint256) private whitelist;
 
   uint8[] public distributionToken = [
@@ -97,12 +98,12 @@ contract StrategicSale is Ownable {
     // NEEDS TO BE STABLE USD !
     // We WAD it to match 18 decimals
     amount = (amount * 10**18) / (10**IERC20Metadata(token).decimals());
-    // amount is now in USDT, in WAD
-    uint256 atenSold = ((amount *
-      (10**IERC20Metadata(aten).decimals()) *
+    // amount is now in USD, in WAD
+    uint256 atenSold = (amount *
+      10**IERC20Metadata(aten).decimals() *
       PRICE_DIVISOR) /
       1 ether /
-      ATEN_ICO_PRICE);
+      ATEN_ICO_PRICE;
     require(tokenSold + atenSold <= maxTokensSale, "Too many tokens sold");
     uint256 allowed = whitelist[msg.sender] - presales[msg.sender];
     require(atenSold <= allowed, "Not enough whitelisted tokens");
@@ -136,11 +137,16 @@ contract StrategicSale is Ownable {
    * @param to wallet to receive all tokens & eth
    */
   function withdraw(address[] calldata tokens, address to) external onlyOwner {
+    bool doneDistribute = true;
+    for (uint8 i = 0; i < distributionToken.length; i++) {
+      if (claimed[i] == false) doneDistribute = false;
+    }
     for (uint256 i = 0; i < tokens.length; i++) {
       if (tokens[i] == aten) {
         IERC20(aten).safeTransfer(
           to,
-          IERC20(aten).balanceOf(address(this)) - tokenSold
+          IERC20(aten).balanceOf(address(this)) -
+            (doneDistribute ? 0 : tokenSold)
         );
       } else {
         IERC20(tokens[i]).safeTransfer(
@@ -158,30 +164,28 @@ contract StrategicSale is Ownable {
    * @dev Distribute tokens (from contract) with previously buy, depending on availabiliy
    * @param month Month to distribute tokens, starting from 0
    */
-  function distribute(uint8 month, uint256 indexLimit) external {
+  function distribute(uint8 month) external {
     require(dateStartVesting > 0, "Vesting not active");
     require(month <= monthIndex(), "Month not available");
     require(claimed[month] == false, "Already distributed");
 
-    if (indexLimit == 0) {
-      indexLimit = buyers.length > 300
-        ? distributeIndex + 300
-        : distributeIndex + buyers.length;
-    }
-    for (uint256 index = distributeIndex; index < indexLimit; index++) {
+    uint256 indexLimit = buyers.length > 300
+      ? distributeIndex[month] + 300
+      : buyers.length;
+    indexLimit = indexLimit > buyers.length ? buyers.length : indexLimit;
+    for (uint256 index = distributeIndex[month]; index < indexLimit; index++) {
       uint256 amount = (presales[buyers[index]] * distributionToken[month]) /
         100;
       if (amount > 0) {
         IERC20(aten).safeTransfer(buyers[index], amount);
       }
-      distributeIndex = index;
+      distributeIndex[month] = index;
     }
-    if (distributeIndex == buyers.length - 1) {
+    if (distributeIndex[month] == buyers.length - 1) {
       claimed[month] = true;
-      distributeIndex = 0;
     }
   }
-
+ 
   /**
    * @dev view how many claims are available now
    */
