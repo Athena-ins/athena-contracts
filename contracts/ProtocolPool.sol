@@ -48,7 +48,9 @@ contract ProtocolPool is IProtocolPool, ERC20, PolicyCover {
     if (_totalSupply == 0) {
       liquidityIndex = RAY;
     } else
-      liquidityIndex = (_totalSupply).rayDiv(availableCapital + totalInsured);
+      liquidityIndex = (_totalSupply).rayDiv(
+        availableCapital + totalInsuredCapital
+      );
   }
 
   function withdraw(
@@ -68,7 +70,7 @@ contract ProtocolPool is IProtocolPool, ERC20, PolicyCover {
       );
       _transferToTreasury((_redeem * _discount) / 1000);
     }
-    totalInsured -= _redeem;
+    totalInsuredCapital -= _redeem;
     availableCapital -= _userCapital;
     updateLiquidityIndex();
   }
@@ -102,7 +104,7 @@ contract ProtocolPool is IProtocolPool, ERC20, PolicyCover {
       // _transferToTreasury(_redeem);
     }
     // availableCapital -= _userCapital;
-    totalInsured -= _redeem;
+    totalInsuredCapital -= _redeem;
     // burn some tokens to reflect capital with no rewards
     _burn(_account, _redeem.rayDiv(liquidityIndex));
     updateLiquidityIndex();

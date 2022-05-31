@@ -17,7 +17,7 @@ contract PolicyCoverTest is PolicyCover {
   ) PolicyCover(_underlyingAsset, _uOptimal, _r0, _rSlope1, _rSlope2) {}
 
   function addTotalInsured(uint256 capital) public {
-    totalInsured += capital;
+    totalInsuredCapital += capital;
   }
 
   function getSlot0() public view returns (Slot0 memory) {
@@ -73,11 +73,11 @@ contract PolicyCoverTest is PolicyCover {
   }
 
   function getTotalInsured() public view returns (uint256) {
-    return totalInsured;
+    return totalInsuredCapital;
   }
 
   function setTotalInsured(uint256 _totalInsured) public {
-    totalInsured = _totalInsured;
+    totalInsuredCapital = _totalInsured;
   }
 
   function getAvailableCapital() public view returns (uint256) {

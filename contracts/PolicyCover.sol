@@ -66,7 +66,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
   Slot0 internal slot0;
 
   uint256 internal availableCapital;
-  uint256 internal totalInsured;
+  uint256 internal totalInsuredCapital;
 
   address public underlyingAsset;
 
@@ -215,7 +215,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
       lastUpdateTimestamp: slot0.lastUpdateTimestamp
     });
 
-    __totalInsured = totalInsured;
+    __totalInsured = totalInsuredCapital;
 
     uint256 __hoursGaps = ((_dateInSecond - __slot0.lastUpdateTimestamp) /
       3600) * WadRayMath.RAY; //3600 = 60 * 60
@@ -349,7 +349,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
           getUtilisationRate(
             false,
             __capitalToRemove,
-            totalInsured,
+            totalInsuredCapital,
             availableCapital
           )
         );
@@ -368,7 +368,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
 
         __step.premiumRate = __newPremiumRate;
 
-        totalInsured -= __capitalToRemove;
+        totalInsuredCapital -= __capitalToRemove;
 
         removeTick(__tickNext);
 
@@ -423,10 +423,15 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
 
     uint256 __newPremiumRate = getPremiumRate(
       //Thao@TODO: avoid storage variable
-      getUtilisationRate(true, capitalInsured, totalInsured, availableCapital)
+      getUtilisationRate(
+        true,
+        capitalInsured,
+        totalInsuredCapital,
+        availableCapital
+      )
     );
 
-    totalInsured += capitalInsured;
+    totalInsuredCapital += capitalInsured;
 
     updateLiquidityIndex();
 
@@ -500,12 +505,12 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
       getUtilisationRate(
         false,
         position.capitalInsured,
-        totalInsured,
+        totalInsuredCapital,
         availableCapital
       )
     );
 
-    totalInsured -= position.capitalInsured;
+    totalInsuredCapital -= position.capitalInsured;
 
     slot0.emissionRate = getEmissionRate(
       slot0.emissionRate - ownerCurrentEmissionRate,
