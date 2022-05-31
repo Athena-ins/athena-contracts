@@ -69,9 +69,6 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
 
   address public underlyingAsset;
 
-  //Thao@TODO: remove
-  uint256 internal premiumSupply;
-
   constructor(address _underlyingAsset) {
     underlyingAsset = _underlyingAsset;
     f = Formula({
