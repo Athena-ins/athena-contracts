@@ -60,8 +60,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
   uint256 internal availableCapital;
   uint256 internal totalInsured;
 
-  uint256 internal precision = WadRayMath.RAY;
-  uint256 internal _uOptimal = 75 * 1e25;
+  uint256 internal _uOptimal = 75 * WadRayMath.RAY;
   uint256 internal _r0 = WadRayMath.RAY;
   uint256 internal _rSlope1 = 5 * WadRayMath.RAY;
   uint256 internal _rSlope2 = 11 * 1e26;
@@ -73,136 +72,126 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
 
   constructor(address _underlyingAsset) {
     underlyingAsset = _underlyingAsset;
+    availableCapital = 730000 * WadRayMath.RAY;
     slot0.emissionRate = 0;
     slot0.useRate = WadRayMath.RAY; //Thao@NOTE: taux initiale = 1%
     slot0.hoursPerTick = 48 * WadRayMath.RAY;
     slot0.lastUpdateTimestamp = block.timestamp;
   }
 
-  //Thao@TODO: remove testing fct
-  function isInitializedTick(uint24 tick) public view returns (bool) {
-    return tickBitmap.isInitializedTick(tick);
+  function addAvailableCapital(uint256 _capital) public {
+    availableCapital += _capital;
+    //event
+  }
+
+  function removeAvailableCapital(uint256 _capital) public {
+    availableCapital -= _capital;
+    //event
   }
 
   function addPosition(
-    address owner,
-    uint256 capitalInsured,
-    uint256 beginUseRate,
-    uint24 tick
+    address _owner,
+    uint256 _capitalInsured,
+    uint256 _beginPremiumRate,
+    uint24 _tick
   ) internal {
-    positions[owner] = Position.Info(
-      capitalInsured,
-      beginUseRate,
-      ticks.addOwner(owner, tick),
-      tick
+    positions[_owner] = Position.Info(
+      _capitalInsured,
+      _beginPremiumRate,
+      ticks.addOwner(_owner, _tick),
+      _tick
     );
 
-    if (!tickBitmap.isInitializedTick(tick)) {
-      tickBitmap.flipTick(tick);
+    if (!tickBitmap.isInitializedTick(_tick)) {
+      tickBitmap.flipTick(_tick);
     }
   }
 
-  function removeTick(uint24 tick) internal {
-    address[] memory owners = ticks[tick];
-    for (uint256 i = 0; i < owners.length; i++) {
-      positions.removeOwner(owners[i]);
+  function removeTick(uint24 _tick) internal {
+    address[] memory __owners = ticks[_tick];
+    for (uint256 i = 0; i < __owners.length; i++) {
+      positions.removeOwner(__owners[i]);
     }
 
-    ticks.clear(tick);
-    tickBitmap.flipTick(tick);
+    ticks.clear(_tick);
+    tickBitmap.flipTick(_tick);
   }
 
-  function getRate(uint256 _addedPolicy) public view returns (uint256) {
-    // returns actual rate for insurance
-    uint256 _uRate = getUtilisationRate(_addedPolicy);
-    // par ex = *precision (10000)
-    console.log("Utilisation rate:", _uRate);
-    if (_uRate < _uOptimal) {
-      return _r0 + _rSlope1 * (_uRate / _uOptimal);
-    } else {
-      return
-        _r0 +
-        _rSlope1 +
-        (_rSlope2 * (_uRate - _uOptimal)) /
-        (10000 - _uOptimal) /
-        100;
-    }
-  }
-
-  function getUtilisationRate(uint256 _addedPolicy)
+  function getPremiumRate(uint256 _utilisationRate)
     public
     view
     returns (uint256)
   {
+    // returns actual rate for insurance
+    console.log("Utilisation rate:", _utilisationRate);
+    if (_utilisationRate < _uOptimal) {
+      return _r0 + _rSlope1.rayMul(_utilisationRate.rayDiv(_uOptimal));
+    } else {
+      return
+        _r0 +
+        _rSlope1 +
+        (_rSlope2 * (_utilisationRate - _uOptimal)) /
+        (100 * WadRayMath.RAY - _uOptimal) /
+        100;
+    }
+  }
+
+  function getUtilisationRate(
+    bool _isAdded,
+    uint256 _capitalInsured,
+    uint256 _totalInsured,
+    uint256 _availableCapital
+  ) public view returns (uint256) {
+    console.log("_isAdded:", _isAdded);
+    console.log("_capitalInsured:", _capitalInsured);
+    console.log("_totalInsured:", _totalInsured);
+    console.log("_availableCapital", _availableCapital);
     // returns actual usage rate on capital insured / capital provided for insurance
-    if (availableCapital == 0) {
+    if (_availableCapital == 0) {
       return 0;
     }
-    return ((totalInsured + _addedPolicy) * precision) / availableCapital; // at precision
-  }
-
-  uint256[] private removeUseRates = [2, 1, 2, 1, 2, 1, 2, 1, 1, 1, 1, 1, 1, 1];
-  uint256 private removeIndex = 0;
-  uint256[] private addUseRates = [2, 4, 2, 4, 2, 4, 2, 4, 1, 1, 1, 1, 1, 1];
-  uint256 private addIndex = 0;
-
-  function myGetUseRate(bool isAdded, bool initialized)
-    internal
-    returns (uint256 useRate)
-  {
-    if (isAdded) {
-      useRate = addUseRates[addIndex] * WadRayMath.RAY;
-      addIndex++;
-    } else {
-      useRate = removeUseRates[removeIndex] * WadRayMath.RAY;
-      if (initialized) removeIndex++;
-    }
-  }
-
-  function getUseRate(
-    uint256 x,
-    uint256 y,
-    bool isMul
-  ) internal pure returns (uint256) {
-    return isMul ? x * WadRayMath.RAY * y : (x * WadRayMath.RAY) / y;
+    return
+      _isAdded
+        ? ((_totalInsured + _capitalInsured) * 100).rayDiv(_availableCapital)
+        : ((_totalInsured - _capitalInsured) * 100).rayDiv(_availableCapital);
   }
 
   function getEmissionRate(
-    uint256 oldEmissionRate,
-    uint256 oldUseRate,
-    uint256 newUseRate
+    uint256 _oldEmissionRate,
+    uint256 _oldUseRate,
+    uint256 _newUseRate
   ) internal pure returns (uint256) {
-    // uint256 * Ray / Ray = uint256
-    return (oldEmissionRate * newUseRate) / oldUseRate;
+    return _oldEmissionRate.rayMul(_newUseRate).rayDiv(_oldUseRate);
   }
 
   function getHoursPerTick(
-    uint256 oldHourPerTick,
-    uint256 oldUseRate,
-    uint256 newUseRate
+    uint256 _oldHourPerTick,
+    uint256 _oldUseRate,
+    uint256 _newUseRate
   ) internal pure returns (uint256) {
-    //Ray * Ray / Ray = Ray
-    return (oldHourPerTick * oldUseRate) / newUseRate;
+    return _oldHourPerTick.rayMul(_oldUseRate).rayDiv(_newUseRate);
   }
 
   function durationHourUnit(
-    uint256 amount,
-    uint256 capital,
-    uint256 useRate
+    uint256 _amount,
+    uint256 _capital,
+    uint256 _useRate
   ) internal pure returns (uint256) {
+    //876000000000000000000000000000000 = 24 * 100 * 365 * WadRayMath.RAY
     return
-      amount.rayDiv(capital).rayDiv(useRate).rayMul(
-        24 * 100 * 365 * WadRayMath.RAY
+      _amount.rayMul(876000000000000000000000000000000).rayDiv(_capital).rayDiv(
+        _useRate
       );
-    // return (((amount * 24 * 100 * 365 * WadRayMath.RAY) / capital) * WadRayMath.RAY) / useRate;
   }
 
-  function actualizingUntilGivenDate(uint256 dateInSecond)
+  function actualizingUntilGivenDate(uint256 _dateInSecond)
     external
     view
-    returns (Slot0 memory vSlot0, uint256 vTotalInsured)
+    returns (Slot0 memory __slot0, uint256 __totalInsured)
   {
-    vSlot0 = Slot0({
+    uint256 __availableCapital = availableCapital;
+
+    __slot0 = Slot0({
       tick: slot0.tick,
       useRate: slot0.useRate,
       emissionRate: slot0.emissionRate,
@@ -211,76 +200,78 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
       lastUpdateTimestamp: slot0.lastUpdateTimestamp
     });
 
-    vTotalInsured = totalInsured;
+    __totalInsured = totalInsured;
 
-    uint256 hoursGaps = ((dateInSecond - vSlot0.lastUpdateTimestamp) / 3600) *
-      WadRayMath.RAY; //3600 = 60 * 60
-    uint256 hoursPassed;
+    uint256 __hoursGaps = ((_dateInSecond - __slot0.lastUpdateTimestamp) /
+      3600) * WadRayMath.RAY; //3600 = 60 * 60
+    uint256 __hoursPassed;
 
-    uint256 div = 1;
-    while (hoursPassed < hoursGaps) {
-      (uint24 tickNext, bool initialized) = tickBitmap
-        .nextInitializedTickInTheRightWithinOneWord(vSlot0.tick);
+    while (__hoursPassed < __hoursGaps) {
+      (uint24 __tickNext, bool __initialized) = tickBitmap
+        .nextInitializedTickInTheRightWithinOneWord(__slot0.tick);
 
-      uint256 nextHoursPassed = hoursPassed +
-        (tickNext - vSlot0.tick) *
-        vSlot0.hoursPerTick;
+      uint256 __nextHoursPassed = __hoursPassed +
+        (__tickNext - __slot0.tick) *
+        __slot0.hoursPerTick;
 
-      if (nextHoursPassed < hoursGaps) {
-        vSlot0.premiumSpent +=
-          ((tickNext - vSlot0.tick) *
-            vSlot0.hoursPerTick *
-            vSlot0.emissionRate) /
-          WadRayMath.RAY /
-          24;
+      if (__nextHoursPassed < __hoursGaps) {
+        //24000000000000000000000000000 = 24 * WadRayMath.RAY
+        __slot0.premiumSpent += ((__tickNext - __slot0.tick) *
+          __slot0.hoursPerTick.rayMul(__slot0.emissionRate)).rayDiv(
+            24000000000000000000000000000
+          );
 
-        vSlot0.tick = tickNext;
+        __slot0.tick = __tickNext;
 
-        hoursPassed = nextHoursPassed;
+        __hoursPassed = __nextHoursPassed;
       } else {
-        vSlot0.premiumSpent +=
-          ((hoursGaps - hoursPassed) * vSlot0.emissionRate) /
-          WadRayMath.RAY /
-          24;
+        __slot0.premiumSpent += (__hoursGaps - __hoursPassed)
+          .rayMul(__slot0.emissionRate)
+          .rayDiv(24000000000000000000000000000);
 
-        vSlot0.tick += uint24((hoursGaps - hoursPassed) / vSlot0.hoursPerTick);
+        __slot0.tick += uint24(
+          (__hoursGaps - __hoursPassed) / __slot0.hoursPerTick
+        );
 
-        hoursPassed = hoursGaps;
+        __hoursPassed = __hoursGaps;
       }
 
-      if (initialized && nextHoursPassed <= hoursGaps) {
-        (uint256 capitalToRemove, uint256 emissionRateToRemove) = ticks.cross(
-          positions,
-          tickNext,
-          vSlot0.useRate
+      if (__initialized && __nextHoursPassed <= __hoursGaps) {
+        (uint256 __capitalToRemove, uint256 __emissionRateToRemove) = ticks
+          .cross(positions, __tickNext, __slot0.useRate);
+
+        uint256 __newUseRate = getPremiumRate(
+          getUtilisationRate(
+            false,
+            __capitalToRemove,
+            __totalInsured,
+            __availableCapital
+          )
         );
 
-        uint256 newUseRate = getUseRate(2, div, false);
-        div++;
-
-        vSlot0.emissionRate = getEmissionRate(
-          vSlot0.emissionRate - emissionRateToRemove,
-          vSlot0.useRate,
-          newUseRate
+        __slot0.emissionRate = getEmissionRate(
+          __slot0.emissionRate - __emissionRateToRemove,
+          __slot0.useRate,
+          __newUseRate
         );
 
-        vSlot0.hoursPerTick = getHoursPerTick(
-          vSlot0.hoursPerTick,
-          vSlot0.useRate,
-          newUseRate
+        __slot0.hoursPerTick = getHoursPerTick(
+          __slot0.hoursPerTick,
+          __slot0.useRate,
+          __newUseRate
         );
 
-        vSlot0.useRate = newUseRate;
+        __slot0.useRate = __newUseRate;
 
-        vTotalInsured -= capitalToRemove;
+        __totalInsured -= __capitalToRemove;
       }
     }
 
-    vSlot0.lastUpdateTimestamp = dateInSecond;
+    __slot0.lastUpdateTimestamp = _dateInSecond;
   }
 
   function actualizing() internal {
-    Slot0 memory step = Slot0({
+    Slot0 memory __step = Slot0({
       tick: slot0.tick,
       useRate: slot0.useRate,
       emissionRate: slot0.emissionRate,
@@ -289,102 +280,108 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
       lastUpdateTimestamp: slot0.lastUpdateTimestamp
     });
 
-    uint256 hoursGaps = ((block.timestamp - step.lastUpdateTimestamp) / 3600) *
-      WadRayMath.RAY; //3600 = 60 * 60
+    uint256 __hoursGaps = ((block.timestamp - __step.lastUpdateTimestamp) /
+      3600) * WadRayMath.RAY; //3600 = 60 * 60
 
-    console.log("hoursGaps");
-    console.log(hoursGaps);
+    console.log("__hoursGaps:", __hoursGaps);
 
-    uint256 hoursPassed;
-    uint256 hoursToDay; //Thao@NOTE: remove after testing
+    uint256 __hoursPassed;
+    uint256 __hoursToDay; //Thao@NOTE: remove after testing
 
-    while (hoursPassed < hoursGaps) {
-      (uint24 tickNext, bool initialized) = tickBitmap
-        .nextInitializedTickInTheRightWithinOneWord(step.tick);
+    while (__hoursPassed < __hoursGaps) {
+      (uint24 __tickNext, bool __initialized) = tickBitmap
+        .nextInitializedTickInTheRightWithinOneWord(__step.tick);
 
-      emit TouchInitializedTick("Tick", tickNext, initialized);
+      emit TouchInitializedTick("Tick", __tickNext, __initialized);
 
-      uint256 nextHoursPassed = hoursPassed +
-        (tickNext - step.tick) *
-        step.hoursPerTick;
+      uint256 __nextHoursPassed = __hoursPassed +
+        (__tickNext - __step.tick) *
+        __step.hoursPerTick;
 
-      console.log("nextHoursPassed");
-      console.log(nextHoursPassed);
+      console.log("__nextHoursPassed:", __nextHoursPassed);
 
-      hoursToDay += (tickNext - step.tick) * step.hoursPerTick;
+      __hoursToDay += (__tickNext - __step.tick) * __step.hoursPerTick;
 
-      if (nextHoursPassed < hoursGaps) {
-        step.premiumSpent +=
-          ((tickNext - step.tick) * step.hoursPerTick * step.emissionRate) /
+      if (__nextHoursPassed < __hoursGaps) {
+        __step.premiumSpent +=
+          ((__tickNext - __step.tick) *
+            __step.hoursPerTick *
+            __step.emissionRate) /
           WadRayMath.RAY /
           24;
-        step.tick = tickNext;
-        hoursPassed = nextHoursPassed;
+        __step.tick = __tickNext;
+        __hoursPassed = __nextHoursPassed;
       } else {
-        step.premiumSpent +=
-          ((hoursGaps - hoursPassed) * step.emissionRate) /
+        __step.premiumSpent +=
+          ((__hoursGaps - __hoursPassed) * __step.emissionRate) /
           WadRayMath.RAY /
           24;
-        step.tick += uint24((hoursGaps - hoursPassed) / step.hoursPerTick);
-        hoursPassed = hoursGaps;
+        __step.tick += uint24(
+          (__hoursGaps - __hoursPassed) / __step.hoursPerTick
+        );
+        __hoursPassed = __hoursGaps;
       }
 
-      if (initialized && nextHoursPassed <= hoursGaps) {
-        (uint256 capitalToRemove, uint256 emissionRateToRemove) = ticks.cross(
-          positions,
-          tickNext,
-          step.useRate
-        );
+      if (__initialized && __nextHoursPassed <= __hoursGaps) {
+        (uint256 __capitalToRemove, uint256 __emissionRateToRemove) = ticks
+          .cross(positions, __tickNext, __step.useRate);
 
-        console.log("emissionRateToRemove:");
-        console.log(emissionRateToRemove);
+        console.log("__emissionRateToRemove:", __emissionRateToRemove);
         console.log("-------------------------------");
 
-        uint256 newUseRate = myGetUseRate(false, initialized);
-
-        step.emissionRate = getEmissionRate(
-          step.emissionRate - emissionRateToRemove,
-          step.useRate,
-          newUseRate
+        uint256 __newPremiumRate = getPremiumRate(
+          //Thao@TODO: avoid storage variable
+          getUtilisationRate(
+            false,
+            __capitalToRemove,
+            totalInsured,
+            availableCapital
+          )
         );
 
-        step.hoursPerTick = getHoursPerTick(
-          step.hoursPerTick,
-          step.useRate,
-          newUseRate
+        __step.emissionRate = getEmissionRate(
+          __step.emissionRate - __emissionRateToRemove,
+          __step.useRate,
+          __newPremiumRate
         );
 
-        step.useRate = newUseRate;
+        __step.hoursPerTick = getHoursPerTick(
+          __step.hoursPerTick,
+          __step.useRate,
+          __newPremiumRate
+        );
 
-        totalInsured -= capitalToRemove;
+        __step.useRate = __newPremiumRate;
 
-        removeTick(tickNext);
+        totalInsured -= __capitalToRemove;
+
+        removeTick(__tickNext);
 
         emit HoursToDay(
           "HoursToDay",
-          hoursToDay,
-          hoursToDay / WadRayMath.RAY / 24
+          __hoursToDay,
+          __hoursToDay / WadRayMath.RAY / 24
         );
-        hoursToDay = 0;
-        emit TouchInitializedTick("Touch", tickNext, initialized);
+        __hoursToDay = 0;
+        emit TouchInitializedTick("Touch", __tickNext, __initialized);
       }
 
       emit Actualizing(
         "ActualizingStep",
-        step.tick,
-        step.useRate,
-        step.emissionRate,
-        step.hoursPerTick,
-        step.premiumSpent,
-        step.lastUpdateTimestamp
+        __step.tick,
+        __step.useRate,
+        __step.emissionRate,
+        __step.hoursPerTick,
+        __step.premiumSpent,
+        __step.lastUpdateTimestamp
       );
     }
 
-    slot0.tick = step.tick;
-    slot0.useRate = step.useRate;
-    slot0.emissionRate = step.emissionRate;
-    slot0.hoursPerTick = step.hoursPerTick;
-    slot0.premiumSpent = step.premiumSpent;
+    slot0.tick = __step.tick;
+    slot0.useRate = __step.useRate;
+    slot0.emissionRate = __step.emissionRate;
+    slot0.hoursPerTick = __step.hoursPerTick;
+    slot0.premiumSpent = __step.premiumSpent;
     slot0.lastUpdateTimestamp = block.timestamp;
 
     emit Actualizing(
@@ -408,7 +405,11 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     require(!positions.hasOwner(owner), "Owner exist");
 
     actualizing();
-    uint256 newUseRate = myGetUseRate(true, false);
+
+    uint256 __newPremiumRate = getPremiumRate(
+      //Thao@TODO: avoid storage variable
+      getUtilisationRate(true, capitalInsured, totalInsured, availableCapital)
+    );
 
     totalInsured += capitalInsured;
 
@@ -419,29 +420,28 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     uint256 _durationInHour = durationHourUnit(
       premium,
       capitalInsured,
-      newUseRate
+      __newPremiumRate
     );
 
     uint256 addingEmissionRate = premium.rayMul(24 * WadRayMath.RAY).rayDiv(
       _durationInHour
     );
     slot0.emissionRate =
-      getEmissionRate(slot0.emissionRate, oldUseRate, newUseRate) +
+      getEmissionRate(slot0.emissionRate, oldUseRate, __newPremiumRate) +
       addingEmissionRate;
 
     uint256 newHoursPerTick = getHoursPerTick(
       slot0.hoursPerTick,
       oldUseRate,
-      newUseRate
+      __newPremiumRate
     );
 
     uint24 lastTick = slot0.tick + uint24(_durationInHour / newHoursPerTick);
-    console.log("_durationInHour");
-    console.log(_durationInHour);
+    console.log("_durationInHour:", _durationInHour);
 
-    addPosition(owner, capitalInsured, newUseRate, lastTick);
+    addPosition(owner, capitalInsured, __newPremiumRate, lastTick);
 
-    slot0.useRate = newUseRate;
+    slot0.useRate = __newPremiumRate;
     slot0.hoursPerTick = newHoursPerTick;
 
     emit BuyPolicy(
@@ -449,7 +449,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
       owner,
       premium,
       capitalInsured,
-      newUseRate,
+      __newPremiumRate,
       addingEmissionRate,
       newHoursPerTick,
       lastTick
@@ -480,22 +480,31 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
       24 /
       WadRayMath.RAY;
 
+    uint256 __newPremiumRate = getPremiumRate(
+      //Thao@TODO: avoid storage variable
+      getUtilisationRate(
+        false,
+        position.capitalInsured,
+        totalInsured,
+        availableCapital
+      )
+    );
+
     totalInsured -= position.capitalInsured;
 
-    uint256 newUseRate = myGetUseRate(false, true);
     slot0.emissionRate = getEmissionRate(
       slot0.emissionRate - ownerCurrentEmissionRate,
       slot0.useRate,
-      newUseRate
+      __newPremiumRate
     );
 
     slot0.hoursPerTick = getHoursPerTick(
       slot0.hoursPerTick,
       slot0.useRate,
-      newUseRate
+      __newPremiumRate
     );
 
-    slot0.useRate = newUseRate;
+    slot0.useRate = __newPremiumRate;
 
     if (ticks.getOwnerNumber(lastTick) > 1) {
       ticks.removeOwner(position.ownerIndex, lastTick);
@@ -510,7 +519,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     emit WithdrawPolicy(owner, remainedAmount);
   }
 
-  function remainedDay(uint256 newUseRate, uint24 lastTick)
+  function remainedDay(uint256 __newPremiumRate, uint24 lastTick)
     internal
     view
     returns (uint256)
@@ -519,7 +528,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     console.log(oldUseRate);
 
     uint256 newHoursPerTick = slot0.hoursPerTick.rayMul(oldUseRate).rayDiv(
-      newUseRate
+      __newPremiumRate
     );
     console.log(newHoursPerTick);
     uint256 numberRemainedTick = lastTick - slot0.tick;
