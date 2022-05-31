@@ -12,6 +12,11 @@ const USDT = "0xdac17f958d2ee523a2206206994597c13d831ec7"; //USDT
 
 const OneRay = BN("1000000000000000000000000000");
 
+const uOptimal = OneRay.mul(75);
+const r0 = OneRay;
+const rSlope1 = OneRay.mul(5);
+const rSlope2 = OneRay.mul(11).div(10);
+
 let allSigners: ethers_ethers.Signer[];
 let owner: ethers_ethers.Signer;
 let user1: ethers_ethers.Signer;
@@ -34,7 +39,9 @@ describe("Policy cover contract", function () {
 
   it("Should deploy contract", async function () {
     const factory = await ethers_hardhat.getContractFactory("PolicyCoverTest");
-    POLICY_COVER_CONTRACT_TEST = await factory.connect(owner).deploy(USDT);
+    POLICY_COVER_CONTRACT_TEST = await factory
+      .connect(owner)
+      .deploy(USDT, uOptimal, r0, rSlope1, rSlope2);
 
     await POLICY_COVER_CONTRACT_TEST.deployed();
 

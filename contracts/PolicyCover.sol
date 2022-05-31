@@ -57,25 +57,32 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     uint256 rSlope1;
     uint256 rSlope2;
   }
-  Formula internal f;
-  Slot0 internal slot0;
 
   mapping(uint24 => address[]) internal ticks;
   mapping(uint16 => uint256) internal tickBitmap;
   mapping(address => Position.Info) internal positions;
+
+  Formula internal f;
+  Slot0 internal slot0;
 
   uint256 internal availableCapital;
   uint256 internal totalInsured;
 
   address public underlyingAsset;
 
-  constructor(address _underlyingAsset) {
+  constructor(
+    address _underlyingAsset,
+    uint256 _uOptimal,
+    uint256 _r0,
+    uint256 _rSlope1,
+    uint256 _rSlope2
+  ) {
     underlyingAsset = _underlyingAsset;
     f = Formula({
-      uOptimal: 75 * WadRayMath.RAY,
-      r0: WadRayMath.RAY,
-      rSlope1: 5 * WadRayMath.RAY,
-      rSlope2: (11 * WadRayMath.RAY) / 10
+      uOptimal: _uOptimal,
+      r0: _r0,
+      rSlope1: _rSlope1,
+      rSlope2: _rSlope2
     });
     availableCapital = 730000 * WadRayMath.RAY;
     slot0.emissionRate = 0;

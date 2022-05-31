@@ -18,9 +18,16 @@ contract ProtocolPool is IProtocolPool, ERC20, PolicyCover {
   constructor(
     address _core,
     address _underlyingAsset,
+    uint256 _uOptimal,
+    uint256 _r0,
+    uint256 _rSlope1,
+    uint256 _rSlope2,
     string memory _name,
     string memory _symbol
-  ) ERC20(_name, _symbol) PolicyCover(_underlyingAsset) {
+  )
+    ERC20(_name, _symbol)
+    PolicyCover(_underlyingAsset, _uOptimal, _r0, _rSlope1, _rSlope2)
+  {
     core = _core;
   }
 

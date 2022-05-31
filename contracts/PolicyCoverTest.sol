@@ -8,7 +8,13 @@ import "hardhat/console.sol";
 contract PolicyCoverTest is PolicyCover {
   using TickBitmap for mapping(uint16 => uint256);
 
-  constructor(address _underlyingAsset) PolicyCover(_underlyingAsset) {}
+  constructor(
+    address _underlyingAsset,
+    uint256 _uOptimal,
+    uint256 _r0,
+    uint256 _rSlope1,
+    uint256 _rSlope2
+  ) PolicyCover(_underlyingAsset, _uOptimal, _r0, _rSlope1, _rSlope2) {}
 
   function addTotalInsured(uint256 capital) public {
     totalInsured += capital;

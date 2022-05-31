@@ -18,11 +18,19 @@ contract ProtocolFactory {
   function deployProtocol(
     string calldata name,
     address stablecoin,
-    uint128 newProtocolId
+    uint128 newProtocolId,
+    uint256 _uOptimal,
+    uint256 _r0,
+    uint256 _rSlope1,
+    uint256 _rSlope2
   ) external onlyCore returns (address _protocolDeployed) {
     ProtocolPool protocolDeployed = new ProtocolPool(
       core,
       stablecoin,
+      _uOptimal,
+      _r0,
+      _rSlope1,
+      _rSlope2,
       name,
       // A P P = Athena Protocol Pool
       string(abi.encodePacked("APP_", Strings.toString(newProtocolId)))
