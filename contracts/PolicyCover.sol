@@ -4,12 +4,12 @@ pragma solidity ^0.8;
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import "./univ3-like/libraries/Tick.sol";
-import "./univ3-like/libraries/TickBitmap.sol";
-import "./univ3-like/libraries/Position.sol";
-import "./libraries/RayMath.sol";
-
 import "./interfaces/IPolicyCover.sol";
+
+import "./libraries/RayMath.sol";
+import "./libraries/Tick.sol";
+import "./libraries/TickBitmap.sol";
+import "./libraries/PremiumPosition.sol";
 
 import "hardhat/console.sol";
 
@@ -17,8 +17,8 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
   using RayMath for uint256;
   using Tick for mapping(uint24 => address[]);
   using TickBitmap for mapping(uint16 => uint256);
-  using Position for mapping(address => Position.Info);
-  using Position for Position.Info;
+  using PremiumPosition for mapping(address => PremiumPosition.Info);
+  using PremiumPosition for PremiumPosition.Info;
 
   event TouchInitializedTick(string msg, uint24 tick, bool initialized);
   event HoursToDay(string msg, uint256 nbrHours, uint256 nbrDays);
@@ -63,7 +63,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
 
   mapping(uint24 => address[]) internal ticks;
   mapping(uint16 => uint256) internal tickBitmap;
-  mapping(address => Position.Info) internal positions;
+  mapping(address => PremiumPosition.Info) internal positions;
 
   Formula internal f;
   Slot0 internal slot0;
@@ -98,7 +98,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     uint256 _beginPremiumRate,
     uint24 _tick
   ) internal {
-    positions[_owner] = Position.Info(
+    positions[_owner] = PremiumPosition.Info(
       _capitalInsured,
       _beginPremiumRate,
       ticks.addOwner(_owner, _tick),
@@ -481,7 +481,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
   function withdrawPolicy(address _owner) external {
     require(positions.hasOwner(_owner), "Owner Not Exist");
 
-    Position.Info storage __position = positions.get(_owner);
+    PremiumPosition.Info storage __position = positions.get(_owner);
     uint24 __lastTick = __position.lastTick;
 
     actualizing();

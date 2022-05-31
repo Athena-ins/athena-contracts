@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8;
 
-import "./Position.sol";
+import "./PremiumPosition.sol";
 
 library Tick {
   using RayMath for uint256;
-  using Position for mapping(address => Position.Info);
-  using Position for Position.Info;
+  using PremiumPosition for mapping(address => PremiumPosition.Info);
+  using PremiumPosition for PremiumPosition.Info;
 
   function addOwner(
     mapping(uint24 => address[]) storage self,
@@ -50,7 +50,7 @@ library Tick {
 
   function cross(
     mapping(uint24 => address[]) storage self,
-    mapping(address => Position.Info) storage positions,
+    mapping(address => PremiumPosition.Info) storage positions,
     uint24 tick,
     uint256 currentUseRate
   )
@@ -60,7 +60,7 @@ library Tick {
   {
     address[] memory owners = self[tick];
     for (uint256 i = 0; i < owners.length; i++) {
-      Position.Info storage position = positions.get(owners[i]);
+      PremiumPosition.Info storage position = positions.get(owners[i]);
       capitalToRemove += position.capitalInsured;
       emissionRateToRemove += position
         .getBeginEmissionRate()

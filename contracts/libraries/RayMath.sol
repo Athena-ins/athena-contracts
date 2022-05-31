@@ -35,10 +35,6 @@ library RayMath {
     return (a * b + halfRAY) / RAY;
   }
 
-  function rayMulDown(uint256 a, uint256 b) internal pure returns (uint256) {
-    return (a * b) / RAY;
-  }
-
   /**
    * @dev Divides two ray, rounding half up to the nearest ray
    * @param a Ray
@@ -47,9 +43,5 @@ library RayMath {
    **/
   function rayDiv(uint256 a, uint256 b) internal pure returns (uint256) {
     return ((a * RAY) + (b / 2)) / b;
-  }
-
-  function rayDivDown(uint256 a, uint256 b) internal pure returns (uint256) {
-    return (a * RAY) / b;
   }
 }

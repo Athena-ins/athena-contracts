@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8;
 
-import "../../libraries/RayMath.sol";
+import "./RayMath.sol";
 
-library Position {
+library PremiumPosition {
   using RayMath for uint256;
 
   struct Info {
@@ -14,16 +14,15 @@ library Position {
     uint24 lastTick;
   }
 
-  function get(mapping(address => Position.Info) storage self, address owner)
-    internal
-    view
-    returns (Position.Info storage)
-  {
+  function get(
+    mapping(address => PremiumPosition.Info) storage self,
+    address owner
+  ) internal view returns (PremiumPosition.Info storage) {
     return self[owner];
   }
 
   function replaceAndRemoveOwner(
-    mapping(address => Position.Info) storage self,
+    mapping(address => PremiumPosition.Info) storage self,
     address ownerToRemove,
     address ownerToReplace
   ) internal {
@@ -32,13 +31,13 @@ library Position {
   }
 
   function removeOwner(
-    mapping(address => Position.Info) storage self,
+    mapping(address => PremiumPosition.Info) storage self,
     address owner
   ) internal {
     delete self[owner];
   }
 
-  function getBeginEmissionRate(Position.Info storage self)
+  function getBeginEmissionRate(PremiumPosition.Info storage self)
     internal
     view
     returns (uint256)
@@ -50,7 +49,7 @@ library Position {
   }
 
   function hasOwner(
-    mapping(address => Position.Info) storage self,
+    mapping(address => PremiumPosition.Info) storage self,
     address owner
   ) internal view returns (bool) {
     return self[owner].capitalInsured > 0;
