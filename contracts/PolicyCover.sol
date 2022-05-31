@@ -51,6 +51,13 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     uint256 lastUpdateTimestamp;
   }
 
+  struct Formula {
+    uint256 uOptimal;
+    uint256 r0;
+    uint256 rSlope1;
+    uint256 rSlope2;
+  }
+  Formula internal f;
   Slot0 internal slot0;
 
   mapping(uint24 => address[]) internal ticks;
@@ -60,11 +67,6 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
   uint256 internal availableCapital;
   uint256 internal totalInsured;
 
-  uint256 internal _uOptimal = 75 * WadRayMath.RAY;
-  uint256 internal _r0 = WadRayMath.RAY;
-  uint256 internal _rSlope1 = 5 * WadRayMath.RAY;
-  uint256 internal _rSlope2 = 11 * 1e26;
-
   address public underlyingAsset;
 
   //Thao@TODO: remove
@@ -72,6 +74,12 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
 
   constructor(address _underlyingAsset) {
     underlyingAsset = _underlyingAsset;
+    f = Formula({
+      uOptimal: 75 * WadRayMath.RAY,
+      r0: WadRayMath.RAY,
+      rSlope1: 5 * WadRayMath.RAY,
+      rSlope2: (11 * WadRayMath.RAY) / 10
+    });
     availableCapital = 730000 * WadRayMath.RAY;
     slot0.emissionRate = 0;
     slot0.useRate = WadRayMath.RAY; //Thao@NOTE: taux initiale = 1%
@@ -124,14 +132,14 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
   {
     // returns actual rate for insurance
     console.log("Utilisation rate:", _utilisationRate);
-    if (_utilisationRate < _uOptimal) {
-      return _r0 + _rSlope1.rayMul(_utilisationRate.rayDiv(_uOptimal));
+    if (_utilisationRate < f.uOptimal) {
+      return f.r0 + f.rSlope1.rayMul(_utilisationRate.rayDiv(f.uOptimal));
     } else {
       return
-        _r0 +
-        _rSlope1 +
-        (_rSlope2 * (_utilisationRate - _uOptimal)) /
-        (100 * WadRayMath.RAY - _uOptimal) /
+        f.r0 +
+        f.rSlope1 +
+        (f.rSlope2 * (_utilisationRate - f.uOptimal)) /
+        (100 * WadRayMath.RAY - f.uOptimal) /
         100;
     }
   }
