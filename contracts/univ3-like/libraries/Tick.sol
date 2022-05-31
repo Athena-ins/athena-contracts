@@ -4,7 +4,7 @@ pragma solidity ^0.8;
 import "./Position.sol";
 
 library Tick {
-  using WadRayMath for uint256;
+  using RayMath for uint256;
   using Position for mapping(address => Position.Info);
   using Position for Position.Info;
 

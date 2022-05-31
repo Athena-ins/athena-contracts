@@ -7,14 +7,14 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./univ3-like/libraries/Tick.sol";
 import "./univ3-like/libraries/TickBitmap.sol";
 import "./univ3-like/libraries/Position.sol";
-import "./libraries/WadRayMath.sol";
+import "./libraries/RayMath.sol";
 
 import "./interfaces/IPolicyCover.sol";
 
 import "hardhat/console.sol";
 
 contract PolicyCover is IPolicyCover, ReentrancyGuard {
-  using WadRayMath for uint256;
+  using RayMath for uint256;
   using Tick for mapping(uint24 => address[]);
   using TickBitmap for mapping(uint16 => uint256);
   using Position for mapping(address => Position.Info);
@@ -85,10 +85,10 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
       rSlope2: _rSlope2
     });
 
-    slot0.availableCapital = 730000 * WadRayMath.RAY; //Thao@TODO: remove from constructor
+    slot0.availableCapital = 730000 * RayMath.RAY; //Thao@TODO: remove from constructor
 
-    slot0.premiumRate = WadRayMath.RAY; //Thao@NOTE: taux initiale = 1%
-    slot0.hoursPerTick = 48 * WadRayMath.RAY;
+    slot0.premiumRate = RayMath.RAY; //Thao@NOTE: taux initiale = 1%
+    slot0.hoursPerTick = 48 * RayMath.RAY;
     slot0.lastUpdateTimestamp = block.timestamp;
   }
 
@@ -147,7 +147,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
         f.r0 +
         f.rSlope1 +
         (f.rSlope2 * (_utilisationRate - f.uOptimal)) /
-        (100 * WadRayMath.RAY - f.uOptimal) /
+        (100 * RayMath.RAY - f.uOptimal) /
         100;
     }
   }
@@ -198,7 +198,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     uint256 _insuredCapital,
     uint256 _premiumRate
   ) internal pure returns (uint256) {
-    //876000000000000000000000000000000 = 24 * 100 * 365 * WadRayMath.RAY
+    //876000000000000000000000000000000 = 24 * 100 * 365 * RayMath.RAY
     return
       _premium
         .rayMul(876000000000000000000000000000000)
@@ -225,7 +225,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     });
 
     uint256 __hoursGaps = ((_dateInSecond - __slot0.lastUpdateTimestamp) /
-      3600) * WadRayMath.RAY; //3600 = 60 * 60
+      3600) * RayMath.RAY; //3600 = 60 * 60
     uint256 __hoursPassed;
 
     while (__hoursPassed < __hoursGaps) {
@@ -237,7 +237,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
         __slot0.hoursPerTick;
 
       if (__nextHoursPassed < __hoursGaps) {
-        //24000000000000000000000000000 = 24 * WadRayMath.RAY
+        //24000000000000000000000000000 = 24 * RayMath.RAY
         __slot0.premiumSpent += ((__tickNext - __slot0.tick) *
           __slot0.hoursPerTick.rayMul(__slot0.emissionRate)).rayDiv(
             24000000000000000000000000000
@@ -305,7 +305,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     });
 
     uint256 __hoursGaps = ((block.timestamp - __step.lastUpdateTimestamp) /
-      3600) * WadRayMath.RAY; //3600 = 60 * 60
+      3600) * RayMath.RAY; //3600 = 60 * 60
 
     // console.log("__hoursGaps:", __hoursGaps);
 
@@ -456,7 +456,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
       __newPremiumRate
     );
 
-    uint256 __addingEmissionRate = _premium.rayMul(24 * WadRayMath.RAY).rayDiv(
+    uint256 __addingEmissionRate = _premium.rayMul(24 * RayMath.RAY).rayDiv(
       __durationInHour
     );
     slot0.emissionRate =
@@ -510,7 +510,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
       slot0.hoursPerTick *
       __ownerCurrentEmissionRate) /
       24 /
-      WadRayMath.RAY;
+      RayMath.RAY;
 
     uint256 __newPremiumRate = getPremiumRate(
       //Thao@NOTE: can we do better ?
@@ -565,6 +565,6 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     console.log(newHoursPerTick);
     uint256 numberRemainedTick = lastTick - slot0.tick;
     console.log(numberRemainedTick);
-    return (numberRemainedTick * newHoursPerTick) / 24 / WadRayMath.RAY;
+    return (numberRemainedTick * newHoursPerTick) / 24 / RayMath.RAY;
   }
 }

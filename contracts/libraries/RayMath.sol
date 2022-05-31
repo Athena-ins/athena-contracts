@@ -7,7 +7,7 @@ pragma solidity ^0.8;
  * @dev Provides mul and div function for wads (decimal numbers with 18 digits precision) and rays (decimals with 27 digits)
  **/
 
-library WadRayMath {
+library RayMath {
   uint256 internal constant RAY = 1e27;
   uint256 internal constant halfRAY = RAY / 2;
 

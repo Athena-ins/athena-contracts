@@ -3,16 +3,14 @@ pragma solidity ^0.8;
 
 import "./interfaces/IProtocolPool.sol";
 import "./PolicyCover.sol";
-import "./libraries/WadRayMath.sol";
 import "hardhat/console.sol";
 
 contract ProtocolPool is IProtocolPool, ERC20, PolicyCover {
-  using WadRayMath for uint256;
+  using RayMath for uint256;
   using SafeERC20 for IERC20;
 
   address private immutable core;
-  uint256 internal constant RAY = 1e27;
-  uint256 private liquidityIndex = RAY;
+  uint256 private liquidityIndex = RayMath.RAY;
 
   //@dev constructs Pool LP Tokens, decimals defaults to 18
   constructor(
@@ -38,7 +36,7 @@ contract ProtocolPool is IProtocolPool, ERC20, PolicyCover {
 
   function mint(address _account, uint256 _amount) external onlyCore {
     actualizing();
-    _mint(_account, (_amount.rayMul(liquidityIndex)).rayDiv(RAY));
+    _mint(_account, (_amount.rayMul(liquidityIndex)).rayDiv(RayMath.RAY));
     slot0.availableCapital += _amount;
     updateLiquidityIndex();
   }
@@ -46,7 +44,7 @@ contract ProtocolPool is IProtocolPool, ERC20, PolicyCover {
   function updateLiquidityIndex() internal override {
     uint256 _totalSupply = totalSupply();
     if (_totalSupply == 0) {
-      liquidityIndex = RAY;
+      liquidityIndex = RayMath.RAY;
     } else
       liquidityIndex = (_totalSupply).rayDiv(
         slot0.availableCapital + slot0.totalInsuredCapital

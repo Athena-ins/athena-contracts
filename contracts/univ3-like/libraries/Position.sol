@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8;
 
-import "../../libraries/WadRayMath.sol";
+import "../../libraries/RayMath.sol";
 
 library Position {
-  using WadRayMath for uint256;
+  using RayMath for uint256;
 
   struct Info {
     uint256 capitalInsured;
@@ -45,8 +45,8 @@ library Position {
   {
     return
       self.capitalInsured.rayMul(self.beginUseRate).rayDiv(
-        36500 * WadRayMath.RAY
-      ); //36500 = 100 * 365
+        36500000000000000000000000000000
+      ); //36500000000000000000000000000000 = 100 * 365 * 1e27
   }
 
   function hasOwner(
