@@ -39,7 +39,7 @@ contract ProtocolPool is IProtocolPool, ERC20, PolicyCover {
   function mint(address _account, uint256 _amount) external onlyCore {
     actualizing();
     _mint(_account, (_amount.rayMul(liquidityIndex)).rayDiv(RAY));
-    availableCapital += _amount;
+    slot0.availableCapital += _amount;
     updateLiquidityIndex();
   }
 
@@ -49,7 +49,7 @@ contract ProtocolPool is IProtocolPool, ERC20, PolicyCover {
       liquidityIndex = RAY;
     } else
       liquidityIndex = (_totalSupply).rayDiv(
-        availableCapital + slot0.totalInsuredCapital
+        slot0.availableCapital + slot0.totalInsuredCapital
       );
   }
 
@@ -71,7 +71,7 @@ contract ProtocolPool is IProtocolPool, ERC20, PolicyCover {
       _transferToTreasury((_redeem * _discount) / 1000);
     }
     slot0.totalInsuredCapital -= _redeem;
-    availableCapital -= _userCapital;
+    slot0.availableCapital -= _userCapital;
     updateLiquidityIndex();
   }
 

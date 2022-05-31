@@ -81,11 +81,11 @@ contract PolicyCoverTest is PolicyCover {
   }
 
   function getAvailableCapital() public view returns (uint256) {
-    return availableCapital;
+    return slot0.availableCapital;
   }
 
   function setAvailableCapital(uint256 _availableCapital) public {
-    availableCapital = _availableCapital;
+    slot0.availableCapital = _availableCapital;
   }
 
   function testIsInitializedTick(uint24 tick) public view returns (bool) {

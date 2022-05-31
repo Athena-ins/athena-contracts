@@ -48,7 +48,8 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     uint256 emissionRate; //RAY
     uint256 hoursPerTick; //RAY
     uint256 premiumSpent; //RAY
-    uint256 totalInsuredCapital;
+    uint256 totalInsuredCapital; //RAY
+    uint256 availableCapital; //RAY
     uint256 lastUpdateTimestamp;
   }
 
@@ -65,8 +66,6 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
 
   Formula internal f;
   Slot0 internal slot0;
-
-  uint256 internal availableCapital;
 
   address public underlyingAsset;
 
@@ -85,7 +84,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
       rSlope2: _rSlope2
     });
 
-    availableCapital = 730000 * WadRayMath.RAY; //Thao@TODO: remove from constructor
+    slot0.availableCapital = 730000 * WadRayMath.RAY; //Thao@TODO: remove from constructor
 
     slot0.premiumRate = WadRayMath.RAY; //Thao@NOTE: taux initiale = 1%
     slot0.hoursPerTick = 48 * WadRayMath.RAY;
@@ -94,13 +93,13 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
 
   //Thao@TODO: move in ProtocolPool.sol
   function addCapital(uint256 _capital) public {
-    availableCapital += _capital;
+    slot0.availableCapital += _capital;
     //event
   }
 
   //Thao@TODO: move in ProtocolPool.sol
   function removeCapital(uint256 _capital) public {
-    availableCapital -= _capital;
+    slot0.availableCapital -= _capital;
     //event
   }
 
@@ -204,7 +203,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     view
     returns (Slot0 memory __slot0)
   {
-    uint256 __availableCapital = availableCapital;
+    // uint256 __availableCapital = availableCapital;
 
     __slot0 = Slot0({
       tick: slot0.tick,
@@ -213,6 +212,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
       hoursPerTick: slot0.hoursPerTick,
       premiumSpent: slot0.premiumSpent,
       totalInsuredCapital: slot0.totalInsuredCapital,
+      availableCapital: slot0.availableCapital,
       lastUpdateTimestamp: slot0.lastUpdateTimestamp
     });
 
@@ -259,7 +259,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
             false,
             __capitalToRemove,
             __slot0.totalInsuredCapital,
-            __availableCapital
+            __slot0.availableCapital
           )
         );
 
@@ -292,6 +292,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
       hoursPerTick: slot0.hoursPerTick,
       premiumSpent: slot0.premiumSpent,
       totalInsuredCapital: slot0.totalInsuredCapital,
+      availableCapital: slot0.availableCapital,
       lastUpdateTimestamp: slot0.lastUpdateTimestamp
     });
 
@@ -350,7 +351,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
             false,
             __capitalToRemove,
             slot0.totalInsuredCapital,
-            availableCapital
+            slot0.availableCapital
           )
         );
 
@@ -427,7 +428,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
         true,
         capitalInsured,
         slot0.totalInsuredCapital,
-        availableCapital
+        slot0.availableCapital
       )
     );
 
@@ -506,7 +507,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
         false,
         position.capitalInsured,
         slot0.totalInsuredCapital,
-        availableCapital
+        slot0.availableCapital
       )
     );
 
