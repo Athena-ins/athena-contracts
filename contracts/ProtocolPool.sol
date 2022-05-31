@@ -49,7 +49,7 @@ contract ProtocolPool is IProtocolPool, ERC20, PolicyCover {
       liquidityIndex = RAY;
     } else
       liquidityIndex = (_totalSupply).rayDiv(
-        availableCapital + totalInsuredCapital
+        availableCapital + slot0.totalInsuredCapital
       );
   }
 
@@ -70,7 +70,7 @@ contract ProtocolPool is IProtocolPool, ERC20, PolicyCover {
       );
       _transferToTreasury((_redeem * _discount) / 1000);
     }
-    totalInsuredCapital -= _redeem;
+    slot0.totalInsuredCapital -= _redeem;
     availableCapital -= _userCapital;
     updateLiquidityIndex();
   }
@@ -104,7 +104,7 @@ contract ProtocolPool is IProtocolPool, ERC20, PolicyCover {
       // _transferToTreasury(_redeem);
     }
     // availableCapital -= _userCapital;
-    totalInsuredCapital -= _redeem;
+    slot0.totalInsuredCapital -= _redeem;
     // burn some tokens to reflect capital with no rewards
     _burn(_account, _redeem.rayDiv(liquidityIndex));
     updateLiquidityIndex();

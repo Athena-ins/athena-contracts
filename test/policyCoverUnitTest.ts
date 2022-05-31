@@ -176,15 +176,12 @@ describe("Policy cover contract", function () {
     const result1 = await POLICY_COVER_CONTRACT_TEST.actualizingUntilGivenDate(
       givenDate1
     );
-    // console.log(result1);
+    console.log(result1);
 
-    expect(result1.__slot0.premiumRate).to.be.equal(slot0.premiumRate);
-    expect(result1.__slot0.emissionRate).to.be.equal(slot0.emissionRate);
-    expect(result1.__slot0.hoursPerTick).to.be.equal(slot0.hoursPerTick);
-    expect(result1.__slot0.premiumSpent).to.be.equal(slot0.premiumSpent);
-    expect(result1.__totalInsured).to.be.equal(
-      await POLICY_COVER_CONTRACT_TEST.getTotalInsured()
-    );
+    expect(result1.premiumRate).to.be.equal(slot0.premiumRate);
+    expect(result1.emissionRate).to.be.equal(slot0.emissionRate);
+    expect(result1.hoursPerTick).to.be.equal(slot0.hoursPerTick);
+    expect(result1.premiumSpent).to.be.equal(slot0.premiumSpent);
 
     await increaseTimeAndMine(10 * 24 * 60 * 60);
 
@@ -199,7 +196,7 @@ describe("Policy cover contract", function () {
     // expect(result1.__slot0.lastUpdateTimestamp).to.be.equal(
     //   slot0.lastUpdateTimestamp
     // );
-    expect(result1.__slot0.tick).to.be.equal(slot0.tick);
+    expect(result1.tick).to.be.equal(slot0.tick);
 
     const givenDate2 = slot0.lastUpdateTimestamp.add(10 * 24 * 60 * 60);
     const result2 = await POLICY_COVER_CONTRACT_TEST.actualizingUntilGivenDate(
@@ -207,13 +204,10 @@ describe("Policy cover contract", function () {
     );
     // console.log(result2);
 
-    expect(result2.__slot0.premiumRate).to.be.equal(slot0.premiumRate);
-    expect(result2.__slot0.emissionRate).to.be.equal(slot0.emissionRate);
-    expect(result2.__slot0.hoursPerTick).to.be.equal(slot0.hoursPerTick);
-    expect(result2.__slot0.premiumSpent).to.be.equal(OneRay.mul(60));
-    expect(result2.__totalInsured).to.be.equal(
-      await POLICY_COVER_CONTRACT_TEST.getTotalInsured()
-    );
+    expect(result2.premiumRate).to.be.equal(slot0.premiumRate);
+    expect(result2.emissionRate).to.be.equal(slot0.emissionRate);
+    expect(result2.hoursPerTick).to.be.equal(slot0.hoursPerTick);
+    expect(result2.premiumSpent).to.be.equal(OneRay.mul(60));
 
     await increaseTimeAndMine(10 * 24 * 60 * 60);
 
@@ -228,7 +222,7 @@ describe("Policy cover contract", function () {
     // expect(result2.__slot0.lastUpdateTimestamp).to.be.equal(
     //   slot0.lastUpdateTimestamp
     // );
-    expect(result2.__slot0.tick).to.be.equal(slot0.tick);
+    expect(result2.tick).to.be.equal(slot0.tick);
 
     const givenDate3 = slot0.lastUpdateTimestamp.add(1000 * 24 * 60 * 60);
     const result3 = await POLICY_COVER_CONTRACT_TEST.actualizingUntilGivenDate(
@@ -247,17 +241,17 @@ describe("Policy cover contract", function () {
 
     slot0 = await POLICY_COVER_CONTRACT_TEST.getSlot0();
 
-    expect(result3.__slot0.tick).to.be.equal(slot0.tick);
-    expect(result3.__slot0.premiumRate).to.be.equal(slot0.premiumRate);
-    expect(result3.__slot0.emissionRate).to.be.equal(slot0.emissionRate);
-    expect(result3.__slot0.hoursPerTick).to.be.equal(slot0.hoursPerTick);
-    expect(result3.__slot0.premiumSpent).to.be.equal(slot0.premiumSpent);
+    expect(result3.tick).to.be.equal(slot0.tick);
+    expect(result3.premiumRate).to.be.equal(slot0.premiumRate);
+    expect(result3.emissionRate).to.be.equal(slot0.emissionRate);
+    expect(result3.hoursPerTick).to.be.equal(slot0.hoursPerTick);
+    expect(result3.premiumSpent).to.be.equal(slot0.premiumSpent);
     // expect(result3.__slot0.lastUpdateTimestamp).to.be.equal(
     //   slot0.lastUpdateTimestamp
     // );
-    expect(result3.__totalInsured).to.be.equal(
-      await POLICY_COVER_CONTRACT_TEST.getTotalInsured()
-    );
+    // expect(result3.__totalInsured).to.be.equal(
+    //   await POLICY_COVER_CONTRACT_TEST.getTotalInsured()
+    // );
   });
 
   it("Should withdraw policy", async () => {

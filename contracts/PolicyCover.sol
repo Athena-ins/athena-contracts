@@ -48,6 +48,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     uint256 emissionRate; //RAY
     uint256 hoursPerTick; //RAY
     uint256 premiumSpent; //RAY
+    uint256 totalInsuredCapital;
     uint256 lastUpdateTimestamp;
   }
 
@@ -66,7 +67,6 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
   Slot0 internal slot0;
 
   uint256 internal availableCapital;
-  uint256 internal totalInsuredCapital;
 
   address public underlyingAsset;
 
@@ -202,7 +202,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
   function actualizingUntilGivenDate(uint256 _dateInSecond)
     external
     view
-    returns (Slot0 memory __slot0, uint256 __totalInsured)
+    returns (Slot0 memory __slot0)
   {
     uint256 __availableCapital = availableCapital;
 
@@ -212,10 +212,9 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
       emissionRate: slot0.emissionRate,
       hoursPerTick: slot0.hoursPerTick,
       premiumSpent: slot0.premiumSpent,
+      totalInsuredCapital: slot0.totalInsuredCapital,
       lastUpdateTimestamp: slot0.lastUpdateTimestamp
     });
-
-    __totalInsured = totalInsuredCapital;
 
     uint256 __hoursGaps = ((_dateInSecond - __slot0.lastUpdateTimestamp) /
       3600) * WadRayMath.RAY; //3600 = 60 * 60
@@ -259,7 +258,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
           getUtilisationRate(
             false,
             __capitalToRemove,
-            __totalInsured,
+            __slot0.totalInsuredCapital,
             __availableCapital
           )
         );
@@ -278,7 +277,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
 
         __slot0.premiumRate = __newPremiumRate;
 
-        __totalInsured -= __capitalToRemove;
+        __slot0.totalInsuredCapital -= __capitalToRemove;
       }
     }
 
@@ -292,6 +291,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
       emissionRate: slot0.emissionRate,
       hoursPerTick: slot0.hoursPerTick,
       premiumSpent: slot0.premiumSpent,
+      totalInsuredCapital: slot0.totalInsuredCapital,
       lastUpdateTimestamp: slot0.lastUpdateTimestamp
     });
 
@@ -349,7 +349,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
           getUtilisationRate(
             false,
             __capitalToRemove,
-            totalInsuredCapital,
+            slot0.totalInsuredCapital,
             availableCapital
           )
         );
@@ -368,7 +368,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
 
         __step.premiumRate = __newPremiumRate;
 
-        totalInsuredCapital -= __capitalToRemove;
+        slot0.totalInsuredCapital -= __capitalToRemove;
 
         removeTick(__tickNext);
 
@@ -426,12 +426,12 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
       getUtilisationRate(
         true,
         capitalInsured,
-        totalInsuredCapital,
+        slot0.totalInsuredCapital,
         availableCapital
       )
     );
 
-    totalInsuredCapital += capitalInsured;
+    slot0.totalInsuredCapital += capitalInsured;
 
     updateLiquidityIndex();
 
@@ -505,12 +505,12 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
       getUtilisationRate(
         false,
         position.capitalInsured,
-        totalInsuredCapital,
+        slot0.totalInsuredCapital,
         availableCapital
       )
     );
 
-    totalInsuredCapital -= position.capitalInsured;
+    slot0.totalInsuredCapital -= position.capitalInsured;
 
     slot0.emissionRate = getEmissionRate(
       slot0.emissionRate - ownerCurrentEmissionRate,
