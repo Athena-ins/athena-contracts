@@ -92,18 +92,6 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     slot0.lastUpdateTimestamp = block.timestamp;
   }
 
-  //Thao@TODO: move in ProtocolPool.sol
-  function addCapital(uint256 _capital) public {
-    slot0.availableCapital += _capital;
-    //event
-  }
-
-  //Thao@TODO: move in ProtocolPool.sol
-  function removeCapital(uint256 _capital) public {
-    slot0.availableCapital -= _capital;
-    //event
-  }
-
   function addPosition(
     address _owner,
     uint256 _capitalInsured,
