@@ -130,6 +130,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
 
     ticks.clear(_tick);
     tickBitmap.flipTick(_tick);
+    //Thao@TODO: how we remove a key-value when we go out of wordPos
   }
 
   function getPremiumRate(uint256 _utilisationRate)
@@ -138,7 +139,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     returns (uint256)
   {
     // returns actual rate for insurance
-    console.log("Utilisation rate:", _utilisationRate);
+    // console.log("Utilisation rate:", _utilisationRate);
     if (_utilisationRate < f.uOptimal) {
       return f.r0 + f.rSlope1.rayMul(_utilisationRate.rayDiv(f.uOptimal));
     } else {
@@ -156,11 +157,12 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     uint256 _insuredCapital,
     uint256 _totalInsuredCapital,
     uint256 _availableCapital
-  ) public view returns (uint256) {
-    console.log("_isAdded:", _isAdded);
-    console.log("_insuredCapital:", _insuredCapital);
-    console.log("_totalInsuredCapital:", _totalInsuredCapital);
-    console.log("_availableCapital", _availableCapital);
+  ) public pure returns (uint256) {
+    // console.log("_isAdded:", _isAdded);
+    // console.log("_insuredCapital:", _insuredCapital);
+    // console.log("_totalInsuredCapital:", _totalInsuredCapital);
+    // console.log("_availableCapital", _availableCapital);
+
     // returns actual usage rate on capital insured / capital provided for insurance
     if (_availableCapital == 0) {
       return 0;
@@ -305,7 +307,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     uint256 __hoursGaps = ((block.timestamp - __step.lastUpdateTimestamp) /
       3600) * WadRayMath.RAY; //3600 = 60 * 60
 
-    console.log("__hoursGaps:", __hoursGaps);
+    // console.log("__hoursGaps:", __hoursGaps);
 
     uint256 __hoursPassed;
     uint256 __hoursToDay; //Thao@NOTE: remove after testing
@@ -320,27 +322,28 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
         (__tickNext - __step.tick) *
         __step.hoursPerTick;
 
-      console.log("__nextHoursPassed:", __nextHoursPassed);
+      // console.log("__nextHoursPassed:", __nextHoursPassed);
 
       __hoursToDay += (__tickNext - __step.tick) * __step.hoursPerTick;
 
       if (__nextHoursPassed < __hoursGaps) {
-        __step.premiumSpent +=
-          ((__tickNext - __step.tick) *
-            __step.hoursPerTick *
-            __step.emissionRate) /
-          WadRayMath.RAY /
-          24;
+        __step.premiumSpent += ((__tickNext - __step.tick) *
+          __step.hoursPerTick.rayMul(__step.emissionRate)).rayDiv(
+            24000000000000000000000000000
+          );
+
         __step.tick = __tickNext;
+
         __hoursPassed = __nextHoursPassed;
       } else {
-        __step.premiumSpent +=
-          ((__hoursGaps - __hoursPassed) * __step.emissionRate) /
-          WadRayMath.RAY /
-          24;
+        __step.premiumSpent += (__hoursGaps - __hoursPassed)
+          .rayMul(__step.emissionRate)
+          .rayDiv(24000000000000000000000000000);
+
         __step.tick += uint24(
           (__hoursGaps - __hoursPassed) / __step.hoursPerTick
         );
+
         __hoursPassed = __hoursGaps;
       }
 
@@ -348,8 +351,8 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
         (uint256 __capitalToRemove, uint256 __emissionRateToRemove) = ticks
           .cross(positions, __tickNext, __step.premiumRate);
 
-        console.log("__emissionRateToRemove:", __emissionRateToRemove);
-        console.log("-------------------------------");
+        // console.log("__emissionRateToRemove:", __emissionRateToRemove);
+        // console.log("-------------------------------");
 
         uint256 __newPremiumRate = getPremiumRate(
           getUtilisationRate(
@@ -381,9 +384,11 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
         emit HoursToDay(
           "HoursToDay",
           __hoursToDay,
-          __hoursToDay / WadRayMath.RAY / 24
+          __hoursToDay / 24000000000000000000000000000
         );
+
         __hoursToDay = 0;
+
         emit TouchInitializedTick("Touch", __tickNext, __initialized);
       }
 
@@ -466,7 +471,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
 
     uint24 __lastTick = slot0.tick +
       uint24(__durationInHour / __newHoursPerTick);
-    console.log("__durationInHour:", __durationInHour);
+    // console.log("__durationInHour:", __durationInHour);
 
     addPosition(_owner, _insuredCapital, __newPremiumRate, __lastTick);
 

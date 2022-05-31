@@ -176,7 +176,7 @@ describe("Policy cover contract", function () {
     const result1 = await POLICY_COVER_CONTRACT_TEST.actualizingUntilGivenDate(
       givenDate1
     );
-    console.log(result1);
+    // console.log(result1);
 
     expect(result1.premiumRate).to.be.equal(slot0.premiumRate);
     expect(result1.emissionRate).to.be.equal(slot0.emissionRate);
