@@ -41,6 +41,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     uint256 hoursPerTick,
     uint24 tick
   );
+  event WithdrawPolicy(address owner, uint256 remainedAmount);
 
   struct Slot0 {
     uint24 tick;
@@ -152,13 +153,13 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
 
   function getUtilisationRate(
     bool _isAdded,
-    uint256 _capitalInsured,
-    uint256 _totalInsured,
+    uint256 _insuredCapital,
+    uint256 _totalInsuredCapital,
     uint256 _availableCapital
   ) public view returns (uint256) {
     console.log("_isAdded:", _isAdded);
-    console.log("_capitalInsured:", _capitalInsured);
-    console.log("_totalInsured:", _totalInsured);
+    console.log("_insuredCapital:", _insuredCapital);
+    console.log("_totalInsuredCapital:", _totalInsuredCapital);
     console.log("_availableCapital", _availableCapital);
     // returns actual usage rate on capital insured / capital provided for insurance
     if (_availableCapital == 0) {
@@ -166,36 +167,41 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     }
     return
       _isAdded
-        ? ((_totalInsured + _capitalInsured) * 100).rayDiv(_availableCapital)
-        : ((_totalInsured - _capitalInsured) * 100).rayDiv(_availableCapital);
+        ? ((_totalInsuredCapital + _insuredCapital) * 100).rayDiv(
+          _availableCapital
+        )
+        : ((_totalInsuredCapital - _insuredCapital) * 100).rayDiv(
+          _availableCapital
+        );
   }
 
   function getEmissionRate(
     uint256 _oldEmissionRate,
-    uint256 _oldUseRate,
-    uint256 _newUseRate
+    uint256 _oldPremiumRate,
+    uint256 _newPremiumRate
   ) internal pure returns (uint256) {
-    return _oldEmissionRate.rayMul(_newUseRate).rayDiv(_oldUseRate);
+    return _oldEmissionRate.rayMul(_newPremiumRate).rayDiv(_oldPremiumRate);
   }
 
   function getHoursPerTick(
     uint256 _oldHourPerTick,
-    uint256 _oldUseRate,
-    uint256 _newUseRate
+    uint256 _oldPremiumRate,
+    uint256 _newPremiumRate
   ) internal pure returns (uint256) {
-    return _oldHourPerTick.rayMul(_oldUseRate).rayDiv(_newUseRate);
+    return _oldHourPerTick.rayMul(_oldPremiumRate).rayDiv(_newPremiumRate);
   }
 
   function durationHourUnit(
-    uint256 _amount,
-    uint256 _capital,
-    uint256 _useRate
+    uint256 _premium,
+    uint256 _insuredCapital,
+    uint256 _premiumRate
   ) internal pure returns (uint256) {
     //876000000000000000000000000000000 = 24 * 100 * 365 * WadRayMath.RAY
     return
-      _amount.rayMul(876000000000000000000000000000000).rayDiv(_capital).rayDiv(
-        _useRate
-      );
+      _premium
+        .rayMul(876000000000000000000000000000000)
+        .rayDiv(_insuredCapital)
+        .rayDiv(_premiumRate);
   }
 
   function actualizingUntilGivenDate(uint256 _dateInSecond)
@@ -346,12 +352,11 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
         console.log("-------------------------------");
 
         uint256 __newPremiumRate = getPremiumRate(
-          //Thao@TODO: avoid storage variable
           getUtilisationRate(
             false,
             __capitalToRemove,
-            slot0.totalInsuredCapital,
-            slot0.availableCapital
+            __step.totalInsuredCapital,
+            __step.availableCapital
           )
         );
 
@@ -369,7 +374,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
 
         __step.premiumRate = __newPremiumRate;
 
-        slot0.totalInsuredCapital -= __capitalToRemove;
+        __step.totalInsuredCapital -= __capitalToRemove;
 
         removeTick(__tickNext);
 
@@ -398,6 +403,8 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     slot0.emissionRate = __step.emissionRate;
     slot0.hoursPerTick = __step.hoursPerTick;
     slot0.premiumSpent = __step.premiumSpent;
+    slot0.totalInsuredCapital = __step.totalInsuredCapital;
+    slot0.availableCapital = __step.availableCapital;
     slot0.lastUpdateTimestamp = block.timestamp;
 
     emit Actualizing(
@@ -414,11 +421,11 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
   function updateLiquidityIndex() internal virtual {}
 
   function buyPolicy(
-    address owner,
-    uint256 premium,
-    uint256 capitalInsured
+    address _owner,
+    uint256 _premium,
+    uint256 _insuredCapital
   ) external {
-    require(!positions.hasOwner(owner), "Owner exist");
+    require(!positions.hasOwner(_owner), "Owner exist");
 
     actualizing();
 
@@ -426,95 +433,94 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
       //Thao@TODO: avoid storage variable
       getUtilisationRate(
         true,
-        capitalInsured,
+        _insuredCapital,
         slot0.totalInsuredCapital,
         slot0.availableCapital
       )
     );
 
-    slot0.totalInsuredCapital += capitalInsured;
+    slot0.totalInsuredCapital += _insuredCapital;
 
     updateLiquidityIndex();
 
-    uint256 oldPremiumRate = slot0.premiumRate;
+    uint256 __oldPremiumRate = slot0.premiumRate;
 
-    uint256 _durationInHour = durationHourUnit(
-      premium,
-      capitalInsured,
+    uint256 __durationInHour = durationHourUnit(
+      _premium,
+      _insuredCapital,
       __newPremiumRate
     );
 
-    uint256 addingEmissionRate = premium.rayMul(24 * WadRayMath.RAY).rayDiv(
-      _durationInHour
+    uint256 __addingEmissionRate = _premium.rayMul(24 * WadRayMath.RAY).rayDiv(
+      __durationInHour
     );
     slot0.emissionRate =
-      getEmissionRate(slot0.emissionRate, oldPremiumRate, __newPremiumRate) +
-      addingEmissionRate;
+      getEmissionRate(slot0.emissionRate, __oldPremiumRate, __newPremiumRate) +
+      __addingEmissionRate;
 
-    uint256 newHoursPerTick = getHoursPerTick(
+    uint256 __newHoursPerTick = getHoursPerTick(
       slot0.hoursPerTick,
-      oldPremiumRate,
+      __oldPremiumRate,
       __newPremiumRate
     );
 
-    uint24 lastTick = slot0.tick + uint24(_durationInHour / newHoursPerTick);
-    console.log("_durationInHour:", _durationInHour);
+    uint24 __lastTick = slot0.tick +
+      uint24(__durationInHour / __newHoursPerTick);
+    console.log("__durationInHour:", __durationInHour);
 
-    addPosition(owner, capitalInsured, __newPremiumRate, lastTick);
+    addPosition(_owner, _insuredCapital, __newPremiumRate, __lastTick);
 
     slot0.premiumRate = __newPremiumRate;
-    slot0.hoursPerTick = newHoursPerTick;
+    slot0.hoursPerTick = __newHoursPerTick;
 
     emit BuyPolicy(
       "BuyPolicy",
-      owner,
-      premium,
-      capitalInsured,
+      _owner,
+      _premium,
+      _insuredCapital,
       __newPremiumRate,
-      addingEmissionRate,
-      newHoursPerTick,
-      lastTick
+      __addingEmissionRate,
+      __newHoursPerTick,
+      __lastTick
     );
   }
 
-  event WithdrawPolicy(address owner, uint256 remainedAmount);
+  function withdrawPolicy(address _owner) external {
+    require(positions.hasOwner(_owner), "Owner Not Exist");
 
-  function withdrawPolicy(address owner) external {
-    require(positions.hasOwner(owner), "Owner Not Exist");
-
-    Position.Info storage position = positions.get(owner);
-    uint24 lastTick = position.lastTick;
+    Position.Info storage __position = positions.get(_owner);
+    uint24 __lastTick = __position.lastTick;
 
     actualizing();
 
-    require(slot0.tick < lastTick, "Policy Expired");
+    require(slot0.tick < __lastTick, "Policy Expired");
 
-    uint256 ownerCurrentEmissionRate = getEmissionRate(
-      position.getBeginEmissionRate(),
-      position.beginUseRate,
+    uint256 __ownerCurrentEmissionRate = getEmissionRate(
+      __position.getBeginEmissionRate(),
+      __position.beginUseRate,
       slot0.premiumRate
     );
 
-    uint256 remainedAmount = ((lastTick - slot0.tick) *
+    uint256 __remainedPremium = ((__lastTick - slot0.tick) *
       slot0.hoursPerTick *
-      ownerCurrentEmissionRate) /
+      __ownerCurrentEmissionRate) /
       24 /
       WadRayMath.RAY;
 
     uint256 __newPremiumRate = getPremiumRate(
-      //Thao@TODO: avoid storage variable
+      //Thao@NOTE: can we do better ?
       getUtilisationRate(
         false,
-        position.capitalInsured,
+        __position.capitalInsured,
         slot0.totalInsuredCapital,
         slot0.availableCapital
       )
     );
 
-    slot0.totalInsuredCapital -= position.capitalInsured;
+    slot0.totalInsuredCapital -= __position.capitalInsured;
 
     slot0.emissionRate = getEmissionRate(
-      slot0.emissionRate - ownerCurrentEmissionRate,
+      slot0.emissionRate - __ownerCurrentEmissionRate,
       slot0.premiumRate,
       __newPremiumRate
     );
@@ -527,20 +533,20 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
 
     slot0.premiumRate = __newPremiumRate;
 
-    if (ticks.getOwnerNumber(lastTick) > 1) {
-      ticks.removeOwner(position.ownerIndex, lastTick);
+    if (ticks.getOwnerNumber(__lastTick) > 1) {
+      ticks.removeOwner(__position.ownerIndex, __lastTick);
       positions.replaceAndRemoveOwner(
-        owner,
-        ticks.getLastOwnerInTick(lastTick)
+        _owner,
+        ticks.getLastOwnerInTick(__lastTick)
       );
     } else {
-      removeTick(lastTick);
+      removeTick(__lastTick);
     }
 
-    emit WithdrawPolicy(owner, remainedAmount);
+    emit WithdrawPolicy(_owner, __remainedPremium);
   }
 
-  function remainedDay(uint256 __newPremiumRate, uint24 lastTick)
+  function remainedDay(uint256 _newPremiumRate, uint24 lastTick)
     internal
     view
     returns (uint256)
@@ -549,7 +555,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     console.log(oldPremiumRate);
 
     uint256 newHoursPerTick = slot0.hoursPerTick.rayMul(oldPremiumRate).rayDiv(
-      __newPremiumRate
+      _newPremiumRate
     );
     console.log(newHoursPerTick);
     uint256 numberRemainedTick = lastTick - slot0.tick;
