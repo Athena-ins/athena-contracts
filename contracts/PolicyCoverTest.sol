@@ -33,11 +33,11 @@ contract PolicyCoverTest is PolicyCover {
   }
 
   function getRate() public view returns (uint256) {
-    return slot0.useRate;
+    return slot0.premiumRate;
   }
 
   function setRate(uint256 rate) public {
-    slot0.useRate = rate;
+    slot0.premiumRate = rate;
   }
 
   function getEmissionRate() public view returns (uint256) {

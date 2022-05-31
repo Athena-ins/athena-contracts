@@ -44,7 +44,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
 
   struct Slot0 {
     uint24 tick;
-    uint256 useRate; //RAY
+    uint256 premiumRate; //RAY
     uint256 emissionRate; //RAY
     uint256 hoursPerTick; //RAY
     uint256 premiumSpent; //RAY
@@ -84,19 +84,22 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
       rSlope1: _rSlope1,
       rSlope2: _rSlope2
     });
-    availableCapital = 730000 * WadRayMath.RAY;
-    slot0.emissionRate = 0;
-    slot0.useRate = WadRayMath.RAY; //Thao@NOTE: taux initiale = 1%
+
+    availableCapital = 730000 * WadRayMath.RAY; //Thao@TODO: remove from constructor
+
+    slot0.premiumRate = WadRayMath.RAY; //Thao@NOTE: taux initiale = 1%
     slot0.hoursPerTick = 48 * WadRayMath.RAY;
     slot0.lastUpdateTimestamp = block.timestamp;
   }
 
-  function addAvailableCapital(uint256 _capital) public {
+  //Thao@TODO: move in ProtocolPool.sol
+  function addCapital(uint256 _capital) public {
     availableCapital += _capital;
     //event
   }
 
-  function removeAvailableCapital(uint256 _capital) public {
+  //Thao@TODO: move in ProtocolPool.sol
+  function removeCapital(uint256 _capital) public {
     availableCapital -= _capital;
     //event
   }
@@ -205,7 +208,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
 
     __slot0 = Slot0({
       tick: slot0.tick,
-      useRate: slot0.useRate,
+      premiumRate: slot0.premiumRate,
       emissionRate: slot0.emissionRate,
       hoursPerTick: slot0.hoursPerTick,
       premiumSpent: slot0.premiumSpent,
@@ -250,9 +253,9 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
 
       if (__initialized && __nextHoursPassed <= __hoursGaps) {
         (uint256 __capitalToRemove, uint256 __emissionRateToRemove) = ticks
-          .cross(positions, __tickNext, __slot0.useRate);
+          .cross(positions, __tickNext, __slot0.premiumRate);
 
-        uint256 __newUseRate = getPremiumRate(
+        uint256 __newPremiumRate = getPremiumRate(
           getUtilisationRate(
             false,
             __capitalToRemove,
@@ -263,17 +266,17 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
 
         __slot0.emissionRate = getEmissionRate(
           __slot0.emissionRate - __emissionRateToRemove,
-          __slot0.useRate,
-          __newUseRate
+          __slot0.premiumRate,
+          __newPremiumRate
         );
 
         __slot0.hoursPerTick = getHoursPerTick(
           __slot0.hoursPerTick,
-          __slot0.useRate,
-          __newUseRate
+          __slot0.premiumRate,
+          __newPremiumRate
         );
 
-        __slot0.useRate = __newUseRate;
+        __slot0.premiumRate = __newPremiumRate;
 
         __totalInsured -= __capitalToRemove;
       }
@@ -285,7 +288,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
   function actualizing() internal {
     Slot0 memory __step = Slot0({
       tick: slot0.tick,
-      useRate: slot0.useRate,
+      premiumRate: slot0.premiumRate,
       emissionRate: slot0.emissionRate,
       hoursPerTick: slot0.hoursPerTick,
       premiumSpent: slot0.premiumSpent,
@@ -336,7 +339,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
 
       if (__initialized && __nextHoursPassed <= __hoursGaps) {
         (uint256 __capitalToRemove, uint256 __emissionRateToRemove) = ticks
-          .cross(positions, __tickNext, __step.useRate);
+          .cross(positions, __tickNext, __step.premiumRate);
 
         console.log("__emissionRateToRemove:", __emissionRateToRemove);
         console.log("-------------------------------");
@@ -353,17 +356,17 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
 
         __step.emissionRate = getEmissionRate(
           __step.emissionRate - __emissionRateToRemove,
-          __step.useRate,
+          __step.premiumRate,
           __newPremiumRate
         );
 
         __step.hoursPerTick = getHoursPerTick(
           __step.hoursPerTick,
-          __step.useRate,
+          __step.premiumRate,
           __newPremiumRate
         );
 
-        __step.useRate = __newPremiumRate;
+        __step.premiumRate = __newPremiumRate;
 
         totalInsured -= __capitalToRemove;
 
@@ -381,7 +384,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
       emit Actualizing(
         "ActualizingStep",
         __step.tick,
-        __step.useRate,
+        __step.premiumRate,
         __step.emissionRate,
         __step.hoursPerTick,
         __step.premiumSpent,
@@ -390,7 +393,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     }
 
     slot0.tick = __step.tick;
-    slot0.useRate = __step.useRate;
+    slot0.premiumRate = __step.premiumRate;
     slot0.emissionRate = __step.emissionRate;
     slot0.hoursPerTick = __step.hoursPerTick;
     slot0.premiumSpent = __step.premiumSpent;
@@ -399,7 +402,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     emit Actualizing(
       "Actualizing",
       slot0.tick,
-      slot0.useRate,
+      slot0.premiumRate,
       slot0.emissionRate,
       slot0.hoursPerTick,
       slot0.premiumSpent,
@@ -427,7 +430,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
 
     updateLiquidityIndex();
 
-    uint256 oldUseRate = slot0.useRate;
+    uint256 oldPremiumRate = slot0.premiumRate;
 
     uint256 _durationInHour = durationHourUnit(
       premium,
@@ -439,12 +442,12 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
       _durationInHour
     );
     slot0.emissionRate =
-      getEmissionRate(slot0.emissionRate, oldUseRate, __newPremiumRate) +
+      getEmissionRate(slot0.emissionRate, oldPremiumRate, __newPremiumRate) +
       addingEmissionRate;
 
     uint256 newHoursPerTick = getHoursPerTick(
       slot0.hoursPerTick,
-      oldUseRate,
+      oldPremiumRate,
       __newPremiumRate
     );
 
@@ -453,7 +456,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
 
     addPosition(owner, capitalInsured, __newPremiumRate, lastTick);
 
-    slot0.useRate = __newPremiumRate;
+    slot0.premiumRate = __newPremiumRate;
     slot0.hoursPerTick = newHoursPerTick;
 
     emit BuyPolicy(
@@ -483,7 +486,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     uint256 ownerCurrentEmissionRate = getEmissionRate(
       position.getBeginEmissionRate(),
       position.beginUseRate,
-      slot0.useRate
+      slot0.premiumRate
     );
 
     uint256 remainedAmount = ((lastTick - slot0.tick) *
@@ -506,17 +509,17 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
 
     slot0.emissionRate = getEmissionRate(
       slot0.emissionRate - ownerCurrentEmissionRate,
-      slot0.useRate,
+      slot0.premiumRate,
       __newPremiumRate
     );
 
     slot0.hoursPerTick = getHoursPerTick(
       slot0.hoursPerTick,
-      slot0.useRate,
+      slot0.premiumRate,
       __newPremiumRate
     );
 
-    slot0.useRate = __newPremiumRate;
+    slot0.premiumRate = __newPremiumRate;
 
     if (ticks.getOwnerNumber(lastTick) > 1) {
       ticks.removeOwner(position.ownerIndex, lastTick);
@@ -536,10 +539,10 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     view
     returns (uint256)
   {
-    uint256 oldUseRate = slot0.useRate;
-    console.log(oldUseRate);
+    uint256 oldPremiumRate = slot0.premiumRate;
+    console.log(oldPremiumRate);
 
-    uint256 newHoursPerTick = slot0.hoursPerTick.rayMul(oldUseRate).rayDiv(
+    uint256 newHoursPerTick = slot0.hoursPerTick.rayMul(oldPremiumRate).rayDiv(
       __newPremiumRate
     );
     console.log(newHoursPerTick);
