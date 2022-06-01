@@ -19,6 +19,7 @@ const WETH = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2";
 const AAVE_LENDING_POOL = "0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9";
 const AAVE_REGISTRY = "0xb53c1a33016b2dc2ff3653530bff1848a515c8c5";
 const NULL_ADDRESS = "0x" + "0".repeat(40);
+const ARBITRATOR_ADDRESS = "0x988b3A538b618C7A603e1c11Ab82Cd16dbE28069";
 const STAKING_TOKEN = USDT;
 
 const USDT_TOKEN_CONTRACT = new ethers.Contract(USDT, weth_abi);
@@ -152,7 +153,8 @@ describe("Position Manager", function () {
       STAKED_ATENS_CONTRACT.address,
       POLICY_CONTRACT.address,
       USDT_AAVE_ATOKEN,
-      FACTORY_PROTOCOL_CONTRACT.address
+      FACTORY_PROTOCOL_CONTRACT.address,
+      ARBITRATOR_ADDRESS
       // AAVELP_CONTRACT.address
     );
     await init.wait();
