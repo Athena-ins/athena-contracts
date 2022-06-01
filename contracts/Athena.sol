@@ -327,7 +327,15 @@ contract Athena is ReentrancyGuard, Ownable {
   ) public onlyOwner {
     uint128 newProtocolId = uint128(protocols.length);
     address _protocolDeployed = IProtocolFactory(protocolFactory)
-      .deployProtocol(name, stablecoin, newProtocolId);
+      .deployProtocol(
+        name,
+        stablecoin,
+        newProtocolId,
+        75 * 1e27,
+        1e27,
+        5e27,
+        11e26
+      );
     // ProtocolPool _protocolDeployed = new ProtocolPool(
     //   address(this),
     //   rewardsToken,

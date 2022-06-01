@@ -600,7 +600,9 @@ describe("Position Manager", function () {
         .connect(user3)
         .rewardsOf(user3.getAddress(), capitalDeposit);
 
-      expect(rewardsUser3).to.equal(BN(0));
+      expect(rewardsUser3).to.not.equal(BN(0));
+      expect(rewardsUser3.gte(19)).to.be.true;
+      expect(rewardsUser3.lte(21)).to.be.true;
       const balBefore3 = await USDT_TOKEN_CONTRACT.connect(user).balanceOf(
         user3.getAddress()
       );

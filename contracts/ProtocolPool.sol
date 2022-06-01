@@ -36,13 +36,13 @@ contract ProtocolPool is IProtocolPool, ERC20, PolicyCover {
 
   function mint(address _account, uint256 _amount) external onlyCore {
     actualizing();
-    _mint(_account, (_amount.rayMul(liquidityIndex)).rayDiv(RayMath.RAY));
+    _mint(_account, (_amount.rayMul(liquidityIndex)));
     slot0.availableCapital += _amount;
     updateLiquidityIndex();
   }
 
   function updateLiquidityIndex() internal override {
-    uint256 _totalSupply = totalSupply();
+    uint256 _totalSupply = RayMath.RAY * totalSupply();
     if (_totalSupply == 0) {
       liquidityIndex = RayMath.RAY;
     } else
@@ -58,7 +58,6 @@ contract ProtocolPool is IProtocolPool, ERC20, PolicyCover {
   ) external onlyCore {
     // liquidity index is * 1E18
     uint256 _redeem = rewardsOf(_account, _userCapital);
-    // console.log("Redeem : ", _redeem);
     _burn(_account, balanceOf(_account));
     if (_redeem > 0) {
       // sub fees depending on aten staking
@@ -78,14 +77,17 @@ contract ProtocolPool is IProtocolPool, ERC20, PolicyCover {
     view
     returns (uint256 _redeem)
   {
-    uint256 _amount = balanceOf(_account);
-    uint256 _scaledBalance = (_amount).rayDiv(liquidityIndex);
-    // console.log("User : ", _account);
-    // console.log("Protocol : ", name());
-    // console.log("Liquidity Index : ", liquidityIndex);
-    // console.log("Amount balance : ", _amount);
-    // console.log("Amount balance scaled : ", (_amount).rayDiv(liquidityIndex));
-    // console.log("User Capital : ", _userCapital);
+    uint256 __amount = RayMath.RAY * balanceOf(_account);
+    uint256 __totalSupply = RayMath.RAY * (totalSupply());
+
+    Slot0 memory __slot0 = actualizingUntilGivenDate(block.timestamp);
+    uint256 __liquidityIndex = __totalSupply == 0
+      ? RayMath.RAY
+      : (__totalSupply).rayDiv(
+        __slot0.availableCapital + __slot0.totalInsuredCapital
+      );
+
+    uint256 _scaledBalance = (__amount).rayDiv(__liquidityIndex) / RayMath.RAY;
     if (_scaledBalance > _userCapital) {
       _redeem = _scaledBalance - _userCapital;
     } else {

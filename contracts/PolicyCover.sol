@@ -195,7 +195,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
   }
 
   function actualizingUntilGivenDate(uint256 _dateInSecond)
-    external
+    public
     view
     returns (Slot0 memory __slot0)
   {
