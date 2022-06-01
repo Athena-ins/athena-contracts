@@ -67,7 +67,7 @@ describe("Smart Contract STRATEGIC sale whitelist", function () {
     const factory = await ethers.getContractFactory("StrategicSale");
     PRIVATE_SALE_CONTRACT = await factory
       .connect(owner)
-      .deploy(ATEN_TOKEN, ALLOWANCE, [USDT, USDC]);
+      .deploy(ATEN_TOKEN, [USDT, USDC]);
     await PRIVATE_SALE_CONTRACT.deployed();
 
     // console.log("Deployed ICO Contract : ", PRIVATE_SALE_CONTRACT.address);
@@ -75,9 +75,6 @@ describe("Smart Contract STRATEGIC sale whitelist", function () {
     expect(
       await ethers.provider.getCode(PRIVATE_SALE_CONTRACT.address)
     ).to.not.equal("0x");
-    expect((await PRIVATE_SALE_CONTRACT.maxTokensSale()).toString()).to.equal(
-      ALLOWANCE
-    );
     expect((await PRIVATE_SALE_CONTRACT.tokenSold()).toString()).to.equal("0");
     // expect(await PRIVATE_SALE_CONTRACT.authTokens(1)).to.equal(WETH);
   });
@@ -598,7 +595,7 @@ describe("Smart Contract STRATEGIC sale whitelist", function () {
     const factory = await ethers.getContractFactory("StrategicSale");
     PRIVATE_SALE_CONTRACT = await factory
       .connect(owner)
-      .deploy(ATEN_TOKEN, ALLOWANCE, [USDT, USDC]);
+      .deploy(ATEN_TOKEN, [USDT, USDC]);
     await PRIVATE_SALE_CONTRACT.deployed();
 
     // console.log("Deployed ICO Contract : ", PRIVATE_SALE_CONTRACT.address);
@@ -606,9 +603,6 @@ describe("Smart Contract STRATEGIC sale whitelist", function () {
     expect(
       await ethers.provider.getCode(PRIVATE_SALE_CONTRACT.address)
     ).to.not.equal("0x");
-    expect((await PRIVATE_SALE_CONTRACT.maxTokensSale()).toString()).to.equal(
-      ALLOWANCE
-    );
     expect((await PRIVATE_SALE_CONTRACT.tokenSold()).toString()).to.equal("0");
   });
 

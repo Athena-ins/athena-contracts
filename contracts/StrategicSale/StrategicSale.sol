@@ -16,7 +16,6 @@ contract StrategicSale is Ownable {
   address[] private buyers;
   uint128 public constant ATEN_ICO_PRICE = 50;
   uint128 public constant PRICE_DIVISOR = 10000;
-  uint256 public immutable maxTokensSale;
   uint256 public tokenSold = 0;
   uint256 public dateStartVesting = 0;
   // uint256 public distributeIndex = 0;
@@ -54,12 +53,10 @@ contract StrategicSale is Ownable {
   /**
    * @dev Constructs a new ICO pre-sale Contract
    * @param distributeToken The ERC20 to be distributed for ICO
-   * @param maxTokens The maximum amount of ICO token to sell
    * @param tokens The authorized tokens to receive for the ICO
    */
   constructor(
     address distributeToken,
-    uint256 maxTokens,
     address[] memory tokens
   ) {
     // Warning: must only allow stablecoins, no price conversion will be made
@@ -67,7 +64,6 @@ contract StrategicSale is Ownable {
       authTokens[tokens[i]] = true;
     }
     aten = distributeToken;
-    maxTokensSale = maxTokens;
   }
 
   /**
@@ -104,7 +100,6 @@ contract StrategicSale is Ownable {
       PRICE_DIVISOR) /
       1 ether /
       ATEN_ICO_PRICE;
-    require(tokenSold + atenSold <= maxTokensSale, "Too many tokens sold");
     uint256 allowed = whitelist[msg.sender] - presales[msg.sender];
     require(atenSold <= allowed, "Not enough whitelisted tokens");
     tokenSold += atenSold;
