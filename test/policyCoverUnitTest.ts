@@ -109,8 +109,8 @@ describe("Policy cover contract", function () {
 
       const response1 = await POLICY_COVER_CONTRACT_TEST.testBuyPolicy(
         await user1.getAddress(),
-        OneRay.mul(2190),
-        OneRay.mul(109500)
+        2190,
+        109500
       );
 
       const events = (await response1.wait()).events;
@@ -128,8 +128,8 @@ describe("Policy cover contract", function () {
 
       const resultB = await POLICY_COVER_CONTRACT_TEST.testBuyPolicy(
         await user2.getAddress(),
-        OneRay.mul(8760),
-        OneRay.mul(219000)
+        8760,
+        219000
       );
 
       slot0 = await POLICY_COVER_CONTRACT_TEST.getSlot0();
@@ -187,8 +187,8 @@ describe("Policy cover contract", function () {
 
     await POLICY_COVER_CONTRACT_TEST.testBuyPolicy(
       await user1.getAddress(),
-      OneRay.mul(2190),
-      OneRay.mul(109500)
+      2190,
+      109500
     );
 
     slot0 = await POLICY_COVER_CONTRACT_TEST.getSlot0();
@@ -213,8 +213,8 @@ describe("Policy cover contract", function () {
 
     const resultB = await POLICY_COVER_CONTRACT_TEST.testBuyPolicy(
       await user2.getAddress(),
-      OneRay.mul(8760),
-      OneRay.mul(219000)
+      8760,
+      219000
     );
 
     slot0 = await POLICY_COVER_CONTRACT_TEST.getSlot0();
@@ -254,6 +254,39 @@ describe("Policy cover contract", function () {
     // );
   });
 
+  it.skip("Should emis panic with Owner not existe", async () => {
+    await POLICY_COVER_CONTRACT_TEST.setTick(0);
+    await POLICY_COVER_CONTRACT_TEST.setRate(OneRay);
+    await POLICY_COVER_CONTRACT_TEST.setEmissionRate(0);
+    await POLICY_COVER_CONTRACT_TEST.setHoursPerTick(OneRay.mul(24));
+    await POLICY_COVER_CONTRACT_TEST.setPremiumSpent(0);
+    // await POLICY_COVER_CONTRACT_TEST.setLastUpdateTimestamp(1646219106);
+    await POLICY_COVER_CONTRACT_TEST.setTotalInsured(0);
+    await POLICY_COVER_CONTRACT_TEST.setAvailableCapital(OneRay.mul(730000));
+
+    await increaseTimeAndMine(10 * 24 * 60 * 60);
+
+    await POLICY_COVER_CONTRACT_TEST.testBuyPolicy(
+      await user1.getAddress(),
+      2190,
+      109500
+    );
+
+    let slot0 = await POLICY_COVER_CONTRACT_TEST.getSlot0();
+
+    expect(slot0.tick).to.be.equal(10);
+    expect(slot0.premiumRate).to.be.equal(OneRay.mul(2));
+    expect(slot0.emissionRate).to.be.equal(OneRay.mul(6));
+    expect(slot0.hoursPerTick).to.be.equal(OneRay.mul(12));
+    expect(slot0.premiumSpent).to.be.equal(0);
+
+    await increaseTimeAndMine(10 * 24 * 60 * 60);
+
+    expect(
+      await POLICY_COVER_CONTRACT_TEST.withdrawPolicy(await user2.getAddress())
+    ).to.be.above;
+  });
+
   it("Should withdraw policy", async () => {
     // await hre.network.provider.request({
     //   method: "hardhat_reset",
@@ -280,8 +313,8 @@ describe("Policy cover contract", function () {
 
     await POLICY_COVER_CONTRACT_TEST.testBuyPolicy(
       await user1.getAddress(),
-      OneRay.mul(2190),
-      OneRay.mul(109500)
+      2190,
+      109500
     );
 
     let slot0 = await POLICY_COVER_CONTRACT_TEST.getSlot0();
@@ -296,8 +329,8 @@ describe("Policy cover contract", function () {
 
     const resultB = await POLICY_COVER_CONTRACT_TEST.testBuyPolicy(
       await user2.getAddress(),
-      OneRay.mul(8760),
-      OneRay.mul(219000)
+      8760,
+      219000
     );
 
     slot0 = await POLICY_COVER_CONTRACT_TEST.getSlot0();

@@ -61,14 +61,15 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     uint256 rSlope2;
   }
 
+  //Thao@TODO: move in ProtocolPool
+  address public underlyingAsset;
+
   mapping(uint24 => address[]) internal ticks;
   mapping(uint16 => uint256) internal tickBitmap;
   mapping(address => PremiumPosition.Info) internal positions;
 
   Formula internal f;
   Slot0 internal slot0;
-
-  address public underlyingAsset;
 
   constructor(
     address _underlyingAsset,
@@ -85,11 +86,34 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
       rSlope2: _rSlope2
     });
 
-    slot0.availableCapital = 730000 * RayMath.RAY; //Thao@TODO: remove from constructor
+    slot0.availableCapital = RayMath.otherToRay(730000); //Thao@TODO: remove from constructor
 
     slot0.premiumRate = RayMath.RAY; //Thao@NOTE: taux initiale = 1%
     slot0.hoursPerTick = 24000000000000000000000000000;
     slot0.lastUpdateTimestamp = block.timestamp;
+  }
+
+  modifier onlyCore() virtual {
+    _;
+  }
+
+  modifier existedOwner(address _owner) {
+    require(positions.hasOwner(_owner), "Owner Not Exist");
+    _;
+  }
+
+  modifier notExistedOwner(address _owner) {
+    require(!positions.hasOwner(_owner), "Owner exist");
+    _;
+  }
+
+  modifier hasCapital(uint256 _insuredCapital) {
+    require(
+      slot0.availableCapital + slot0.premiumSpent >
+        slot0.totalInsuredCapital + RayMath.otherToRay(_insuredCapital),
+      "Insuffisant capital"
+    );
+    _;
   }
 
   function addPosition(
@@ -194,6 +218,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
         .rayDiv(_premiumRate);
   }
 
+  //Thao@TODO: return des fcts en décimal de token ou Ray
   function actualizingUntilGivenDate(uint256 _dateInSecond)
     public
     view
@@ -212,8 +237,10 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
       lastUpdateTimestamp: slot0.lastUpdateTimestamp
     });
 
-    uint256 __hoursGaps = ((_dateInSecond - __slot0.lastUpdateTimestamp) /
-      3600) * RayMath.RAY; //3600 = 60 * 60
+    uint256 __hoursGaps = RayMath.otherToRay(
+      (_dateInSecond - __slot0.lastUpdateTimestamp) / 3600
+    ); //3600 = 60 * 60
+
     uint256 __hoursPassed;
 
     while (__hoursPassed < __hoursGaps) {
@@ -292,8 +319,9 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
       lastUpdateTimestamp: slot0.lastUpdateTimestamp
     });
 
-    uint256 __hoursGaps = ((block.timestamp - __step.lastUpdateTimestamp) /
-      3600) * RayMath.RAY; //3600 = 60 * 60
+    uint256 __hoursGaps = RayMath.otherToRay(
+      (block.timestamp - __step.lastUpdateTimestamp) / 3600
+    ); //3600 = 60 * 60
 
     // console.log("__hoursGaps:", __hoursGaps);
 
@@ -411,14 +439,15 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     );
   }
 
-  function updateLiquidityIndex() internal virtual {}
-
+  //Thao@TODO: add onlyCore
   function buyPolicy(
     address _owner,
     uint256 _premium,
     uint256 _insuredCapital
-  ) external {
-    require(!positions.hasOwner(_owner), "Owner exist");
+  ) external notExistedOwner(_owner) hasCapital(_insuredCapital) {
+    // require(!positions.hasOwner(_owner), "Owner exist");
+    uint256 __premium = RayMath.otherToRay(_premium);
+    uint256 __insuredCapital = RayMath.otherToRay(_insuredCapital);
 
     actualizing();
 
@@ -426,27 +455,25 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
       //Thao@TODO: avoid storage variable
       getUtilisationRate(
         true,
-        _insuredCapital,
+        __insuredCapital,
         slot0.totalInsuredCapital,
         slot0.availableCapital
       )
     );
 
-    slot0.totalInsuredCapital += _insuredCapital;
-
-    updateLiquidityIndex();
+    slot0.totalInsuredCapital += __insuredCapital;
 
     uint256 __oldPremiumRate = slot0.premiumRate;
 
     uint256 __durationInHour = durationHourUnit(
-      _premium,
-      _insuredCapital,
+      __premium,
+      __insuredCapital,
       __newPremiumRate
     );
 
-    uint256 __addingEmissionRate = _premium.rayMul(24 * RayMath.RAY).rayDiv(
-      __durationInHour
-    );
+    uint256 __addingEmissionRate = __premium
+      .rayMul(24000000000000000000000000000)
+      .rayDiv(__durationInHour);
     slot0.emissionRate =
       getEmissionRate(slot0.emissionRate, __oldPremiumRate, __newPremiumRate) +
       __addingEmissionRate;
@@ -461,7 +488,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
       uint24(__durationInHour / __newHoursPerTick);
     // console.log("__durationInHour:", __durationInHour);
 
-    addPosition(_owner, _insuredCapital, __newPremiumRate, __lastTick);
+    addPosition(_owner, __insuredCapital, __newPremiumRate, __lastTick);
 
     slot0.premiumRate = __newPremiumRate;
     slot0.hoursPerTick = __newHoursPerTick;
@@ -478,8 +505,9 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     );
   }
 
-  function withdrawPolicy(address _owner) external {
-    require(positions.hasOwner(_owner), "Owner Not Exist");
+  //Thao@TODO: add onlyCore
+  function withdrawPolicy(address _owner) external existedOwner(_owner) {
+    // require(positions.hasOwner(_owner), "Owner Not Exist");
 
     PremiumPosition.Info storage __position = positions.get(_owner);
     uint24 __lastTick = __position.lastTick;
@@ -495,13 +523,10 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     );
 
     uint256 __remainedPremium = ((__lastTick - slot0.tick) *
-      slot0.hoursPerTick *
-      __ownerCurrentEmissionRate) /
-      24 /
-      RayMath.RAY;
+      slot0.hoursPerTick.rayMul(__ownerCurrentEmissionRate)) / 24;
 
     uint256 __newPremiumRate = getPremiumRate(
-      //Thao@NOTE: can we do better ?
+      //Thao@NOTE: can we do better: avoid to use storage ?
       getUtilisationRate(
         false,
         __position.capitalInsured,
@@ -539,6 +564,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     emit WithdrawPolicy(_owner, __remainedPremium);
   }
 
+  //Thao@TODO: il faut corriger comme actualizing view
   function remainedDay(uint256 _newPremiumRate, uint24 lastTick)
     internal
     view
@@ -553,6 +579,6 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     console.log(newHoursPerTick);
     uint256 numberRemainedTick = lastTick - slot0.tick;
     console.log(numberRemainedTick);
-    return (numberRemainedTick * newHoursPerTick) / 24 / RayMath.RAY;
+    return RayMath.rayToOther((numberRemainedTick * newHoursPerTick) / 24);
   }
 }
