@@ -240,7 +240,7 @@ describe("Policy cover contract", function () {
     // );
   });
 
-  it.skip("Should emis panic with Owner Not Exist", async () => {
+  it("Should reverted with Owner Not Exist", async () => {
     await POLICY_COVER_CONTRACT_TEST.setTick(0);
     await POLICY_COVER_CONTRACT_TEST.setRate(OneRay);
     await POLICY_COVER_CONTRACT_TEST.setEmissionRate(0);
@@ -249,24 +249,6 @@ describe("Policy cover contract", function () {
     // await POLICY_COVER_CONTRACT_TEST.setLastUpdateTimestamp(1646219106);
     await POLICY_COVER_CONTRACT_TEST.setTotalInsured(0);
     await POLICY_COVER_CONTRACT_TEST.setAvailableCapital(OneRay.mul(730000));
-
-    await increaseTimeAndMine(10 * 24 * 60 * 60);
-
-    // await POLICY_COVER_CONTRACT_TEST.testBuyPolicy(
-    //   await user1.getAddress(),
-    //   2190,
-    //   109500
-    // );
-
-    // let slot0 = await POLICY_COVER_CONTRACT_TEST.getSlot0();
-
-    // expect(slot0.tick).to.be.equal(10);
-    // expect(slot0.premiumRate).to.be.equal(OneRay.mul(2));
-    // expect(slot0.emissionRate).to.be.equal(OneRay.mul(6));
-    // expect(slot0.hoursPerTick).to.be.equal(OneRay.mul(12));
-    // expect(slot0.premiumSpent).to.be.equal(0);
-
-    // await increaseTimeAndMine(10 * 24 * 60 * 60);
 
     await expect(
       POLICY_COVER_CONTRACT_TEST.withdrawPolicy(user2.getAddress())
@@ -278,18 +260,6 @@ describe("Policy cover contract", function () {
   });
 
   it("Should withdraw policy", async () => {
-    // await hre.network.provider.request({
-    //   method: "hardhat_reset",
-    //   params: [
-    //     {
-    //       forking: {
-    //         // jsonRpcUrl: process.env.MAINNET_URL,
-    //         blockNumber: 14307200,
-    //       },
-    //     },
-    //   ],
-    // });
-
     await POLICY_COVER_CONTRACT_TEST.setTick(0);
     await POLICY_COVER_CONTRACT_TEST.setRate(OneRay);
     await POLICY_COVER_CONTRACT_TEST.setEmissionRate(0);
