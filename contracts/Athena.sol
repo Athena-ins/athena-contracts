@@ -106,8 +106,11 @@ contract Athena is ReentrancyGuard, Ownable {
     uint256 _premium,
     uint256 _atensLocked,
     uint128 _protocolId
-  ) public payable {
-    require(_amountGuaranteed > 0, "Amount must be greater than 0");
+  ) public payable nonReentrant {
+    require(
+      _amountGuaranteed > 0 && _premium > 0,
+      "Guarante and premium must be greater than 0"
+    );
     //@dev TODO get rate for price and durationw
     IERC20(stablecoin).safeTransferFrom(
       msg.sender,
@@ -140,7 +143,8 @@ contract Athena is ReentrancyGuard, Ownable {
         IPolicyManager(policyManager).tokenOfOwnerByIndex(msg.sender, _index),
       "Wrong Token Id for Policy"
     );
-    (,uint128 __protocolId,address _owner) = IPolicyManager(policyManager).policies(_policyId);
+    (, uint128 __protocolId, address _owner) = IPolicyManager(policyManager)
+      .policies(_policyId);
     require(_owner == msg.sender, "Policy is not owned");
 
     //@Dev TODO require not expired Policy
@@ -159,19 +163,30 @@ contract Athena is ReentrancyGuard, Ownable {
     );
   }
 
-  function resolveClaim(uint256 _policyId, uint256 _amount, address _account) external {
-    require(msg.sender == claimManager, "Only Claim Manager can resolve claims");
-    (, uint128 __protocolId, address _accountConfirm) = IPolicyManager(policyManager).policies(_policyId);
+  function resolveClaim(
+    uint256 _policyId,
+    uint256 _amount,
+    address _account
+  ) external {
+    require(
+      msg.sender == claimManager,
+      "Only Claim Manager can resolve claims"
+    );
+    (, uint128 __protocolId, address _accountConfirm) = IPolicyManager(
+      policyManager
+    ).policies(_policyId);
     console.log("Account : ", _account);
     console.log("Policy Id : ", _policyId);
     console.log("Account confirm : ", _accountConfirm);
     require(_account == _accountConfirm, "Wrong account");
     protocolsMapping[__protocolId].claimsOngoing -= 1;
-    if(_amount > 0){
-      IProtocolPool(protocolsMapping[__protocolId].deployed).releaseFunds(_account, _amount);
+    if (_amount > 0) {
+      IProtocolPool(protocolsMapping[__protocolId].deployed).releaseFunds(
+        _account,
+        _amount
+      );
     }
   }
-
 
   function deposit(
     uint256 amount,
