@@ -240,7 +240,7 @@ describe("Policy cover contract", function () {
     // );
   });
 
-  it.skip("Should emis panic with Owner not existe", async () => {
+  it.skip("Should emis panic with Owner Not Exist", async () => {
     await POLICY_COVER_CONTRACT_TEST.setTick(0);
     await POLICY_COVER_CONTRACT_TEST.setRate(OneRay);
     await POLICY_COVER_CONTRACT_TEST.setEmissionRate(0);
@@ -252,25 +252,29 @@ describe("Policy cover contract", function () {
 
     await increaseTimeAndMine(10 * 24 * 60 * 60);
 
-    await POLICY_COVER_CONTRACT_TEST.testBuyPolicy(
-      await user1.getAddress(),
-      2190,
-      109500
-    );
+    // await POLICY_COVER_CONTRACT_TEST.testBuyPolicy(
+    //   await user1.getAddress(),
+    //   2190,
+    //   109500
+    // );
 
-    let slot0 = await POLICY_COVER_CONTRACT_TEST.getSlot0();
+    // let slot0 = await POLICY_COVER_CONTRACT_TEST.getSlot0();
 
-    expect(slot0.tick).to.be.equal(10);
-    expect(slot0.premiumRate).to.be.equal(OneRay.mul(2));
-    expect(slot0.emissionRate).to.be.equal(OneRay.mul(6));
-    expect(slot0.hoursPerTick).to.be.equal(OneRay.mul(12));
-    expect(slot0.premiumSpent).to.be.equal(0);
+    // expect(slot0.tick).to.be.equal(10);
+    // expect(slot0.premiumRate).to.be.equal(OneRay.mul(2));
+    // expect(slot0.emissionRate).to.be.equal(OneRay.mul(6));
+    // expect(slot0.hoursPerTick).to.be.equal(OneRay.mul(12));
+    // expect(slot0.premiumSpent).to.be.equal(0);
 
-    await increaseTimeAndMine(10 * 24 * 60 * 60);
+    // await increaseTimeAndMine(10 * 24 * 60 * 60);
 
-    expect(
-      await POLICY_COVER_CONTRACT_TEST.withdrawPolicy(await user2.getAddress())
-    ).to.be.above;
+    await expect(
+      POLICY_COVER_CONTRACT_TEST.withdrawPolicy(user2.getAddress())
+    ).revertedWith("Owner Not Exist");
+
+    await expect(
+      POLICY_COVER_CONTRACT_TEST.withdrawPolicy(user2.getAddress())
+    ).to.eventually.be.rejectedWith("Owner Not Exist");
   });
 
   it("Should withdraw policy", async () => {
