@@ -86,8 +86,6 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
       rSlope2: _rSlope2
     });
 
-    slot0.availableCapital = RayMath.otherToRay(730000); //Thao@TODO: remove from constructor
-
     slot0.premiumRate = RayMath.RAY; //Thao@NOTE: taux initiale = 1%
     slot0.hoursPerTick = 24000000000000000000000000000;
     slot0.lastUpdateTimestamp = block.timestamp;
