@@ -33,7 +33,7 @@ contract ProtocolPool is IProtocolPool, ERC20, PolicyCover {
     core = _core;
   }
 
-  modifier onlyCore() {
+  modifier onlyCore() override {
     require(msg.sender == core, "Only Core");
     _;
   }
@@ -45,7 +45,7 @@ contract ProtocolPool is IProtocolPool, ERC20, PolicyCover {
     updateLiquidityIndex();
   }
 
-  function updateLiquidityIndex() internal override {
+  function updateLiquidityIndex() internal {
     uint256 _totalSupply = RayMath.RAY * totalSupply();
     if (_totalSupply == 0) {
       liquidityIndex = RayMath.RAY;
@@ -124,9 +124,9 @@ contract ProtocolPool is IProtocolPool, ERC20, PolicyCover {
     onlyCore
   {
     Slot0 memory __slot0 = actualizingUntilGivenDate(block.timestamp);
-    if (_amount > __slot0.premiumSpent) {
-      // release funds from AAVE TO REFUND USER
-    }
+    // if (_amount > __slot0.premiumSpent) {
+    // release funds from AAVE TO REFUND USER
+    // }
     console.log("Amount to refund : ", _amount);
     uint256 bal = IERC20(underlyingAsset).balanceOf(address(this));
     console.log("Balance Contract = ", bal);
