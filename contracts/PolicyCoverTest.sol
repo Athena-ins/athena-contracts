@@ -56,13 +56,13 @@ contract PolicyCoverTest is PolicyCover {
     slot0.hoursPerTick = hoursPerTick;
   }
 
-  function getPremiumSpent() public view returns (uint256) {
-    return slot0.premiumSpent;
-  }
+  // function getPremiumSpent() public view returns (uint256) {
+  //   return slot0.premiumSpent;
+  // }
 
-  function setPremiumSpent(uint256 premiumSpent) public {
-    slot0.premiumSpent = premiumSpent;
-  }
+  // function setPremiumSpent(uint256 premiumSpent) public {
+  //   slot0.premiumSpent = premiumSpent;
+  // }
 
   function getLastUpdateTimestamp() public view returns (uint256) {
     return slot0.lastUpdateTimestamp;
@@ -120,12 +120,8 @@ contract PolicyCoverTest is PolicyCover {
     this.buyPolicy(owner, _amount, _capitalInsured);
   }
 
-  function testRemainedDay(uint256 newUseRate, uint24 lastTick)
-    public
-    view
-    returns (uint256)
-  {
-    return remainedDay(newUseRate, lastTick);
+  function testGetInfo(address owner) public view returns (uint256, uint256) {
+    return getInfo(owner);
   }
 
   function testMulOverFlow() public pure returns (uint256) {

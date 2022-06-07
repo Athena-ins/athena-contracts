@@ -65,7 +65,7 @@ library Tick {
       emissionRateToRemove += position
         .getBeginEmissionRate()
         .rayMul(currentUseRate)
-        .rayDiv(position.beginUseRate);
+        .rayDiv(position.beginPremiumRate);
     }
   }
 }

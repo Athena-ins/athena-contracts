@@ -8,7 +8,7 @@ library PremiumPosition {
 
   struct Info {
     uint256 capitalInsured;
-    uint256 beginUseRate;
+    uint256 beginPremiumRate;
     //Thao@TODO: pack ownerIndex and lastTick in uint256 for saving gas
     uint256 ownerIndex;
     uint24 lastTick;
@@ -43,7 +43,7 @@ library PremiumPosition {
     returns (uint256)
   {
     return
-      self.capitalInsured.rayMul(self.beginUseRate).rayDiv(
+      self.capitalInsured.rayMul(self.beginPremiumRate).rayDiv(
         36500000000000000000000000000000
       ); //36500000000000000000000000000000 = 100 * 365 * 1e27
   }
