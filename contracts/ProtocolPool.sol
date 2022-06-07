@@ -12,6 +12,10 @@ contract ProtocolPool is IProtocolPool, ERC20, PolicyCover {
   address private immutable core;
   uint256 private liquidityIndex = RayMath.RAY;
 
+  // @Dev notice rule
+  // external and public functions should use Decimals and convert to RAY, other functions should already use RAY
+  // external function onlyCore convert afterwards to user public view functions
+
   //@dev constructs Pool LP Tokens, decimals defaults to 18
   constructor(
     address _core,
@@ -112,5 +116,23 @@ contract ProtocolPool is IProtocolPool, ERC20, PolicyCover {
 
   function _transferToTreasury(uint256 _amount) internal {
     IERC20(underlyingAsset).safeTransfer(core, _amount);
+  }
+
+  function releaseFunds(address _account, uint256 _amount)
+    external
+    override
+    onlyCore
+  {
+    Slot0 memory __slot0 = actualizingUntilGivenDate(block.timestamp);
+    if (_amount > __slot0.premiumSpent) {
+      // release funds from AAVE TO REFUND USER
+    }
+    console.log("Amount to refund : ", _amount);
+    uint256 bal = IERC20(underlyingAsset).balanceOf(address(this));
+    console.log("Balance Contract = ", bal);
+    console.log("Account to transfer = ", _account);
+    IERC20(underlyingAsset).safeTransfer(_account, _amount);
+    // slot0.premiumSpent -= _amount;
+    actualizing();
   }
 }

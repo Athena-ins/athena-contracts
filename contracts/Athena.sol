@@ -11,6 +11,9 @@ import "./AAVE/ILendingPool.sol";
 import "./interfaces/IStakedAten.sol";
 import "./interfaces/IPolicyManager.sol";
 import "./interfaces/IScaledBalanceToken.sol";
+import "./interfaces/IClaimManager.sol";
+
+import "hardhat/console.sol";
 
 contract Athena is ReentrancyGuard, Ownable {
   using SafeERC20 for IERC20;
@@ -30,6 +33,8 @@ contract Athena is ReentrancyGuard, Ownable {
     uint8 guarantee;
     //is Active or paused
     bool active;
+    // claim ongoing, lock funds when claim is ongoing
+    uint128 claimsOngoing;
   }
 
   mapping(uint128 => mapping(uint128 => bool)) public incompatibilityProtocols;
@@ -40,6 +45,7 @@ contract Athena is ReentrancyGuard, Ownable {
   address public positionsManager;
   address public policyManager;
   address public protocolFactory;
+  address public claimManager;
 
   address public stakedAtensGP;
   address public rewardsToken;
@@ -81,7 +87,8 @@ contract Athena is ReentrancyGuard, Ownable {
     address _policyManagerAddress,
     address _aaveAtoken,
     address _protocolFactory,
-    address _arbitrator
+    address _arbitrator,
+    address _claimManager
   ) external onlyOwner {
     positionsManager = _positionsAddress;
     stakedAtensGP = _stakedAtensGP;
@@ -89,6 +96,7 @@ contract Athena is ReentrancyGuard, Ownable {
     aaveAtoken = _aaveAtoken;
     protocolFactory = _protocolFactory;
     arbitrator = _arbitrator;
+    claimManager = _claimManager;
     approveLendingPool();
     //initialized = true; //@dev required ?
   }
@@ -98,7 +106,7 @@ contract Athena is ReentrancyGuard, Ownable {
     uint256 _premium,
     uint256 _atensLocked,
     uint128 _protocolId
-  ) public payable nonReentrant {
+  ) public payable {
     require(_amountGuaranteed > 0, "Amount must be greater than 0");
     //@dev TODO get rate for price and durationw
     IERC20(stablecoin).safeTransferFrom(
@@ -119,12 +127,58 @@ contract Athena is ReentrancyGuard, Ownable {
     );
   }
 
+  function startClaim(
+    uint256 _policyId,
+    uint256 _index,
+    uint256 _amountClaimed
+  ) external payable {
+    uint256 _policies = IPolicyManager(policyManager).balanceOf(msg.sender);
+    require(_policies > 0, "No Active Policy");
+
+    require(
+      _policyId ==
+        IPolicyManager(policyManager).tokenOfOwnerByIndex(msg.sender, _index),
+      "Wrong Token Id for Policy"
+    );
+    (,uint128 __protocolId,address _owner) = IPolicyManager(policyManager).policies(_policyId);
+    require(_owner == msg.sender, "Policy is not owned");
+
+    //@Dev TODO require not expired Policy
+    // require(
+    //   IProtocolPool(positionsManager).isActive(
+    //     msg.sender,
+    //     _policyId
+    //   ),
+    //   "Policy Not active"
+    // );
+    protocolsMapping[__protocolId].claimsOngoing += 1;
+    IClaimManager(claimManager).claim{ value: msg.value }(
+      msg.sender,
+      _policyId,
+      _amountClaimed
+    );
+  }
+
+  function resolveClaim(uint256 _policyId, uint256 _amount, address _account) external {
+    require(msg.sender == claimManager, "Only Claim Manager can resolve claims");
+    (, uint128 __protocolId, address _accountConfirm) = IPolicyManager(policyManager).policies(_policyId);
+    console.log("Account : ", _account);
+    console.log("Policy Id : ", _policyId);
+    console.log("Account confirm : ", _accountConfirm);
+    require(_account == _accountConfirm, "Wrong account");
+    protocolsMapping[__protocolId].claimsOngoing -= 1;
+    if(_amount > 0){
+      IProtocolPool(protocolsMapping[__protocolId].deployed).releaseFunds(_account, _amount);
+    }
+  }
+
+
   function deposit(
     uint256 amount,
     uint256 atenToStake,
     uint128[] calldata _protocolIds,
     uint256[] calldata _amounts
-  ) public payable nonReentrant {
+  ) public payable {
     require(
       IPositionsManager(positionsManager).balanceOf(msg.sender) == 0,
       "Already have a position"
@@ -160,8 +214,11 @@ contract Athena is ReentrancyGuard, Ownable {
       );
     }
     uint256 _atokens = _transferLiquidity(amount);
-    _stakeAtens(atenToStake, amount);
-    uint128 _discount = getDiscountWithAten(atenToStake);
+    uint128 _discount = 0;
+    if (atenToStake > 0) {
+      _stakeAtens(atenToStake, amount);
+      _discount = getDiscountWithAten(atenToStake);
+    }
     IPositionsManager(positionsManager).mint(
       msg.sender,
       _discount,
@@ -218,10 +275,14 @@ contract Athena is ReentrancyGuard, Ownable {
   ) internal {
     // uint256 amount = IPositionsManager(positionsManager).balanceOf(msg.sender);
     for (uint256 index = 0; index < protocolIds.length; index++) {
-      // Claim rewards / update procotol positions then burn
-      // IProtocolPool(protocolsMapping[protocolIds[index]].deployed).claim(
-      //   msg.sender, _amounts[index]
-      // );
+      require(
+        protocolsMapping[protocolIds[index]].active == true,
+        "Protocol not active"
+      );
+      require(
+        protocolsMapping[protocolIds[index]].claimsOngoing == 0,
+        "Protocol locked"
+      );
       IProtocolPool(protocolsMapping[protocolIds[index]].deployed).withdraw(
         msg.sender,
         _amounts[index],
@@ -350,7 +411,8 @@ contract Athena is ReentrancyGuard, Ownable {
       premiumRate: premium,
       guarantee: guaranteeType,
       deployed: _protocolDeployed,
-      active: true
+      active: true,
+      claimsOngoing: 0
     });
     for (uint256 i = 0; i < protocolsNotCompat.length; i++) {
       incompatibilityProtocols[newProtocolId][protocolsNotCompat[i]] = true;

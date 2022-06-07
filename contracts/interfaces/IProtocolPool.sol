@@ -9,4 +9,5 @@ interface IProtocolPool is IPolicyCover {
     function mint(address _account, uint256 _amount) external;
     function claim(address _account, uint256 _userCapital) external;
     function withdraw(address _account, uint256 _userCapital, uint128 _discount) external;
+    function releaseFunds(address _account, uint256 _amount) external;
 }

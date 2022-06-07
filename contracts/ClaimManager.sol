@@ -4,6 +4,7 @@ pragma solidity ^0.8;
 import "hardhat/console.sol";
 
 import "./interfaces/IArbitrator.sol";
+import "./interfaces/IAthena.sol";
 
 contract ClaimManager is IArbitrable {
   address payable private immutable core;
@@ -24,12 +25,15 @@ contract ClaimManager is IArbitrable {
   }
 
   struct Claim {
-    address from;
+    address payable from;
     uint256 createdAt;
     uint256 disputeId;
+    uint256 klerosId;
     uint256 policyId;
+    uint256 arbitrationCost;
     uint256 amount;
     Status status;
+    address payable challenger;
   }
 
   uint256 public disputesCounter;
@@ -40,10 +44,22 @@ contract ClaimManager is IArbitrable {
     uint256 _policyId,
     uint256 _amount
   );
-  event Challenged(address _challenger, uint256 _disputeId);
+  event Dispute(
+    IArbitrator _arbitrator,
+    uint256 _disputeId,
+    uint256 _policyId,
+    uint256 _amount
+  );
+  event Solved(IArbitrator _arbitrator, uint256 _disputeId, uint256 _policyId);
 
-  mapping(uint256 => Claim) private claims;
-  mapping(address => uint256[]) private ownerClaims;
+  mapping(uint256 => Claim) public claims;
+  mapping(address => uint256[]) public ownerClaims;
+  mapping(uint256 => uint256) private _klerosToDisputeId;
+
+  modifier onlyCore() {
+    require(msg.sender == core, "Only core");
+    _;
+  }
 
   constructor(address _core, IArbitrator _arbitrator) {
     core = payable(_core);
@@ -59,11 +75,7 @@ contract ClaimManager is IArbitrable {
   function rule(uint256 _disputeId, uint256 _ruling) external {
     require(msg.sender == address(arbitrator), "Only Arbitrator can rule");
     // Make action based on ruling
-    _resolve(_disputeId, _ruling);
-    if (_ruling == uint256(RulingOptions.PayerWins))
-      core.send(address(this).balance);
-    else if (_ruling == uint256(RulingOptions.PayeeWins))
-      core.send(address(this).balance);
+    _resolve(_klerosToDisputeId[_disputeId], _ruling);
     emit Ruling(arbitrator, _disputeId, _ruling);
   }
 
@@ -75,7 +87,7 @@ contract ClaimManager is IArbitrable {
     address _account,
     uint256 _policyId,
     uint256 _amount
-  ) external payable {
+  ) external payable onlyCore {
     for (uint256 index = 0; index < ownerClaims[_account].length; index++) {
       if (claims[ownerClaims[_account][index]].policyId == _policyId) {
         require(
@@ -85,30 +97,39 @@ contract ClaimManager is IArbitrable {
         );
       }
     }
-    require(msg.value >= arbitrator.arbitrationCost(""), "Not enough ETH for claim");
+    uint256 __arbitrationCost = arbitrationCost();
+    require(msg.value >= __arbitrationCost, "Not enough ETH for claim");
     //@dev TODO : should lock the capital in protocol pool
     disputesCounter++;
     ownerClaims[_account].push(disputesCounter);
-    claims[disputesCounter] = Claim(
-      msg.sender,
-      block.timestamp,
-      disputesCounter,
-      _policyId,
-      _amount,
-      Status.Initial
-    );
+    claims[disputesCounter] = Claim({
+      from: payable(_account),
+      createdAt: block.timestamp,
+      disputeId: disputesCounter,
+      klerosId: 0,
+      arbitrationCost: __arbitrationCost,
+      policyId: _policyId,
+      amount: _amount,
+      status: Status.Initial,
+      challenger: payable(0x00)
+    });
     emit ClaimCreated(_account, disputesCounter, _policyId, _amount);
   }
 
   function challenge(uint256 _disputeId) external payable {
     require(claims[_disputeId].status == Status.Initial, "Dispute ongoing");
     require(
-      block.timestamp > claims[_disputeId].createdAt + delay,
+      block.timestamp < claims[_disputeId].createdAt + delay,
       "Challenge delay passed"
     );
-    arbitrator.createDispute{ value: msg.value }(2, "");
+    uint256 __arbitrationCost = arbitrationCost();
+    require(msg.value >= __arbitrationCost, "Not enough ETH for challenge");
+    uint256 __klerosId = arbitrator.createDispute{ value: msg.value }(2, "");
     claims[_disputeId].status = Status.Disputed;
-    emit Challenged(msg.sender, _disputeId);
+    claims[_disputeId].klerosId = __klerosId;
+    _klerosToDisputeId[__klerosId] = _disputeId;
+    claims[_disputeId].challenger = payable(msg.sender);
+    emit Dispute(arbitrator, __klerosId, _disputeId, _disputeId);
   }
 
   function remainingTimeToReclaim(uint256 _disputeId)
@@ -116,24 +137,52 @@ contract ClaimManager is IArbitrable {
     view
     returns (uint256)
   {
-    require(claims[_disputeId].status != Status.Initial, "Status not initial");
+    require(claims[_disputeId].status == Status.Initial, "Status not initial");
     return
       (block.timestamp - claims[_disputeId].createdAt) > delay
         ? 0
         : (claims[_disputeId].createdAt + delay - block.timestamp);
   }
 
-  function resolve(uint256 _disputeId) external {
-    require(claims[_disputeId].status == Status.Initial, "Dispute ongoing");
-    require(
-      block.timestamp > claims[_disputeId].createdAt + delay,
-      "Delay is not over"
-    );
-    _resolve(_disputeId, 1);
-  }
+  // function resolve(uint256 _disputeId) external {
+  //   require(claims[_disputeId].status == Status.Initial, "Dispute ongoing");
+  //   require(
+  //     block.timestamp > claims[_disputeId].createdAt + delay,
+  //     "Delay is not over"
+  //   );
+  //   _resolve(_disputeId, 1);
+  // }
 
   function _resolve(uint256 _disputeId, uint256 _ruling) internal {
     //@dev TODO : should unlock the capital in protocol pool
     claims[_disputeId].status = Status.Resolved;
+    // if accepted, send funds from Protocol to claimant
+    uint256 __amount = 0;
+    if (_ruling == 1) {
+      claims[_disputeId].status = Status.Resolved;
+      claims[_disputeId].from.transfer(claims[_disputeId].amount);
+      __amount = claims[_disputeId].amount;
+    } else {
+      claims[_disputeId].status = Status.Resolved;
+      claims[_disputeId].challenger.transfer(claims[_disputeId].amount);
+    }
+    // call Athena core for unlocking the funds
+    IAthena(core).resolveClaim(claims[_disputeId].policyId, __amount, claims[_disputeId].from);
+    emit Solved(arbitrator, _disputeId, _ruling);
+  }
+
+  function releaseFunds(uint256 _disputeId) public {
+    require(
+      claims[_disputeId].status == Status.Initial,
+      "Dispute is not in initial state"
+    );
+    require(
+      block.timestamp - claims[_disputeId].createdAt > delay,
+      "Delay is not over"
+    );
+    claims[_disputeId].status = Status.Resolved;
+    claims[_disputeId].from.transfer(claims[_disputeId].amount);
+    // call Athena core for release funds to claimant
+    IAthena(core).resolveClaim(claims[_disputeId].policyId, claims[_disputeId].amount, claims[_disputeId].from);
   }
 }
