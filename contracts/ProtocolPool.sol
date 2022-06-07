@@ -10,7 +10,7 @@ contract ProtocolPool is IProtocolPool, ERC20, PolicyCover {
   using SafeERC20 for IERC20;
 
   address private immutable core;
-  uint256 private liquidityIndex = RayMath.RAY;
+  mapping(address => uint256) private withdrawReserves;
 
   // @Dev notice rule
   // external and public functions should use Decimals and convert to RAY, other functions should already use RAY
@@ -38,28 +38,47 @@ contract ProtocolPool is IProtocolPool, ERC20, PolicyCover {
     _;
   }
 
+  function getLiquidityIndex(uint256 _totalSupply, uint256 _totalCapital)
+    internal
+    pure
+    returns (uint256)
+  {
+    return _totalSupply == 0 ? RayMath.RAY : _totalSupply.rayDiv(_totalCapital);
+  }
+
   function mint(address _account, uint256 _amount) external onlyCore {
+    uint256 __amount = RayMath.otherToRay(_amount);
+
     actualizing();
-    _mint(_account, (_amount.rayMul(liquidityIndex)));
-    slot0.availableCapital += _amount;
-    updateLiquidityIndex();
+
+    console.log("ProtocolPool:<<_account:", _account);
+    console.log("ProtocolPool:>>totalSupply():", totalSupply());
+
+    _mint(
+      _account,
+      (
+        __amount.rayMul(
+          getLiquidityIndex(totalSupply(), slot0.availableCapital)
+        )
+      )
+    );
+
+    console.log("ProtocolPool:>>totalSupply():", totalSupply());
+
+    slot0.availableCapital += __amount;
   }
 
-  function updateLiquidityIndex() internal {
-    uint256 _totalSupply = RayMath.RAY * totalSupply();
-    if (_totalSupply == 0) {
-      liquidityIndex = RayMath.RAY;
-    } else
-      liquidityIndex = (_totalSupply).rayDiv(
-        slot0.availableCapital + slot0.totalInsuredCapital
-      );
+  function commitWithdraw(address _account) external onlyCore {
+    withdrawReserves[_account] = block.timestamp;
   }
 
+  //Thao@WARN: ce n'est pas bon car rewardsOf renvoie que les rewards, pas total amount
   function withdraw(
     address _account,
     uint256 _userCapital,
     uint128 _discount
   ) external onlyCore {
+    //Thao@TODO: require commitday > 14 and useRate <= 100%
     // liquidity index is * 1E18
     uint256 _redeem = rewardsOf(_account, _userCapital);
     _burn(_account, balanceOf(_account));
@@ -71,47 +90,49 @@ contract ProtocolPool is IProtocolPool, ERC20, PolicyCover {
       );
       _transferToTreasury((_redeem * _discount) / 1000);
     }
-    slot0.totalInsuredCapital -= _redeem;
-    slot0.availableCapital -= _userCapital;
-    updateLiquidityIndex();
+
+    slot0.availableCapital -= RayMath.otherToRay(_userCapital + _redeem);
   }
 
+  //Thao@Question: doit on retirer 10% dans __redeem
   function rewardsOf(address _account, uint256 _userCapital)
     public
     view
-    returns (uint256 _redeem)
+    returns (uint256 __redeem)
   {
-    uint256 __amount = RayMath.RAY * balanceOf(_account);
-    uint256 __totalSupply = RayMath.RAY * (totalSupply());
+    uint256 __userCapital = RayMath.otherToRay(_userCapital);
+    uint256 __amount = balanceOf(_account);
+    uint256 __totalSupply = totalSupply();
 
     Slot0 memory __slot0 = actualizingUntilGivenDate(block.timestamp);
-    uint256 __liquidityIndex = __totalSupply == 0
-      ? RayMath.RAY
-      : (__totalSupply).rayDiv(
-        __slot0.availableCapital + __slot0.totalInsuredCapital
-      );
+    uint256 __liquidityIndex = getLiquidityIndex(
+      __totalSupply,
+      __slot0.availableCapital
+    );
 
-    uint256 _scaledBalance = (__amount).rayDiv(__liquidityIndex) / RayMath.RAY;
-    if (_scaledBalance > _userCapital) {
-      _redeem = _scaledBalance - _userCapital;
+    uint256 __scaledBalance = (__amount).rayDiv(__liquidityIndex);
+
+    console.log("ProtocolPool.rewardsOf:<<block.timestamp:", block.timestamp);
+    console.log("ProtocolPool.rewardsOf:<<_userCapital:", _userCapital);
+    console.log("ProtocolPool.rewardsOf:>>__userCapital:", __userCapital);
+    console.log("ProtocolPool.rewardsOf:>>__amount:", __amount);
+    console.log("ProtocolPool.rewardsOf:>>__totalSupply:", __totalSupply);
+    console.log(
+      "ProtocolPool.rewardsOf:>>__slot0.availableCapital:",
+      __slot0.availableCapital
+    );
+    console.log("ProtocolPool.rewardsOf:>>__liquidityIndex:", __liquidityIndex);
+    console.log("ProtocolPool.rewardsOf:>>__scaledBalance:", __scaledBalance);
+    console.log(
+      "ProtocolPool.rewardsOf:>>__scaledBalance > __userCapital:",
+      __scaledBalance > __userCapital
+    );
+
+    if (__scaledBalance > __userCapital) {
+      __redeem = RayMath.rayToOther(__scaledBalance - __userCapital);
     } else {
-      _redeem = 0;
+      __redeem = 0;
     }
-  }
-
-  function claim(address _account, uint256 _userCapital) external onlyCore {
-    uint256 _redeem = rewardsOf(_account, _userCapital);
-
-    if (_redeem > 0) {
-      // sub fees depending on aten staking
-      IERC20(underlyingAsset).safeTransfer(_account, _redeem);
-      // _transferToTreasury(_redeem);
-    }
-    // availableCapital -= _userCapital;
-    slot0.totalInsuredCapital -= _redeem;
-    // burn some tokens to reflect capital with no rewards
-    _burn(_account, _redeem.rayDiv(liquidityIndex));
-    updateLiquidityIndex();
   }
 
   function _transferToTreasury(uint256 _amount) internal {
