@@ -154,7 +154,8 @@ describe("Position Manager", function () {
       POLICY_CONTRACT.address,
       USDT_AAVE_ATOKEN,
       FACTORY_PROTOCOL_CONTRACT.address,
-      ARBITRATOR_ADDRESS
+      ARBITRATOR_ADDRESS,
+      NULL_ADDRESS
       // AAVELP_CONTRACT.address
     );
     await init.wait();
@@ -411,7 +412,7 @@ describe("Position Manager", function () {
         (
           await getATokenBalance(AAVE_LENDING_POOL, ATHENA_CONTRACT, USDT, user)
         ).toNumber()
-      ).to.be.greaterThanOrEqual(10000);
+      ).to.be.greaterThanOrEqual(9999);
     });
 
     it("Should fail depositing funds for earlier position", async function () {
@@ -521,6 +522,13 @@ describe("Position Manager", function () {
 
   describe("USD Premium rewards", () => {
     it("Should get 0 premium rewards", async function () {});
+    it("Should fail to buy Policy not enough capital", async function () {
+      //user already approved Contract to provide funds
+      const PROTOCOL_ID = 0;
+      await expect(
+        ATHENA_CONTRACT.connect(user).buyPolicy(2222000, 1000, 0, PROTOCOL_ID)
+      ).to.eventually.be.rejectedWith("Insufficient capital");
+    });
     it("Should buy Policy on 1 year protocol 0", async function () {
       //user already approved Contract to provide funds
       const PROTOCOL_ID = 0;
@@ -536,7 +544,7 @@ describe("Position Manager", function () {
       const tokenId = await POLICY_CONTRACT.tokenOfOwnerByIndex(userAddress, 0);
       expect(tokenId).to.equal(BN(0));
       const policy = await POLICY_CONTRACT.policies(tokenId);
-      expect(policy.amountGuaranteed).to.equal(BN(10000));
+      expect(policy.liquidity).to.equal(BN(10000));
       expect(policy.protocolId).to.equal(BN(PROTOCOL_ID));
       const protocol = await ATHENA_CONTRACT.connect(user).protocolsMapping(
         PROTOCOL_ID

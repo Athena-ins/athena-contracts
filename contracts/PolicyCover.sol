@@ -106,9 +106,9 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
 
   modifier hasCapital(uint256 _insuredCapital) {
     require(
-      slot0.availableCapital >
+      slot0.availableCapital >=
         slot0.totalInsuredCapital + RayMath.otherToRay(_insuredCapital),
-      "Insuffisant capital"
+      "Insufficient capital"
     );
     _;
   }
