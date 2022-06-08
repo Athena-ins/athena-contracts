@@ -75,8 +75,20 @@ contract ClaimManager is IArbitrable {
   function rule(uint256 _disputeId, uint256 _ruling) external {
     require(msg.sender == address(arbitrator), "Only Arbitrator can rule");
     // Make action based on ruling
-    _resolve(_klerosToDisputeId[_disputeId], _ruling);
-    emit Ruling(arbitrator, _disputeId, _ruling);
+    Claim storage __dispute = claims[_klerosToDisputeId[_disputeId]];
+    __dispute.status = Status.Resolved;
+    // if accepted, send funds from Protocol to claimant
+    uint256 __amount = 0;
+    if (_ruling == 1) {
+      __dispute.from.transfer(__dispute.amount);
+      __amount = __dispute.amount;
+    } else {
+      __dispute.challenger.transfer(__dispute.amount);
+    }
+    // call Athena core for unlocking the funds
+    IAthena(core).resolveClaim(__dispute.policyId, __amount, __dispute.from);
+    emit Solved(arbitrator, __dispute.disputeId, _ruling);
+    emit Ruling(arbitrator, __dispute.disputeId, _ruling);
   }
 
   function arbitrationCost() public view returns (uint256) {
@@ -153,24 +165,6 @@ contract ClaimManager is IArbitrable {
   //   _resolve(_disputeId, 1);
   // }
 
-  function _resolve(uint256 _disputeId, uint256 _ruling) internal {
-    //@dev TODO : should unlock the capital in protocol pool
-    claims[_disputeId].status = Status.Resolved;
-    // if accepted, send funds from Protocol to claimant
-    uint256 __amount = 0;
-    if (_ruling == 1) {
-      claims[_disputeId].status = Status.Resolved;
-      claims[_disputeId].from.transfer(claims[_disputeId].amount);
-      __amount = claims[_disputeId].amount;
-    } else {
-      claims[_disputeId].status = Status.Resolved;
-      claims[_disputeId].challenger.transfer(claims[_disputeId].amount);
-    }
-    // call Athena core for unlocking the funds
-    IAthena(core).resolveClaim(claims[_disputeId].policyId, __amount, claims[_disputeId].from);
-    emit Solved(arbitrator, _disputeId, _ruling);
-  }
-
   function releaseFunds(uint256 _disputeId) public {
     require(
       claims[_disputeId].status == Status.Initial,
@@ -183,6 +177,10 @@ contract ClaimManager is IArbitrable {
     claims[_disputeId].status = Status.Resolved;
     claims[_disputeId].from.transfer(claims[_disputeId].amount);
     // call Athena core for release funds to claimant
-    IAthena(core).resolveClaim(claims[_disputeId].policyId, claims[_disputeId].amount, claims[_disputeId].from);
+    IAthena(core).resolveClaim(
+      claims[_disputeId].policyId,
+      claims[_disputeId].amount,
+      claims[_disputeId].from
+    );
   }
 }
