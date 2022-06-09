@@ -48,7 +48,7 @@ describe("Policy cover contract", function () {
     const factory = await ethers_hardhat.getContractFactory("PolicyCoverTest");
     POLICY_COVER_CONTRACT_TEST = await factory
       .connect(owner)
-      .deploy(USDT, uOptimal, r0, rSlope1, rSlope2);
+      .deploy(uOptimal, r0, rSlope1, rSlope2);
 
     await POLICY_COVER_CONTRACT_TEST.deployed();
 

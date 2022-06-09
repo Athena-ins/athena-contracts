@@ -11,6 +11,7 @@ contract ProtocolPool is IProtocolPool, ERC20, PolicyCover {
 
   address private immutable core;
   mapping(address => uint256) private withdrawReserves;
+  address public underlyingAsset;
 
   // @Dev notice rule
   // external and public functions should use Decimals and convert to RAY, other functions should already use RAY
@@ -26,11 +27,9 @@ contract ProtocolPool is IProtocolPool, ERC20, PolicyCover {
     uint256 _rSlope2,
     string memory _name,
     string memory _symbol
-  )
-    ERC20(_name, _symbol)
-    PolicyCover(_underlyingAsset, _uOptimal, _r0, _rSlope1, _rSlope2)
-  {
+  ) ERC20(_name, _symbol) PolicyCover(_uOptimal, _r0, _rSlope1, _rSlope2) {
     core = _core;
+    underlyingAsset = _underlyingAsset;
   }
 
   modifier onlyCore() override {
@@ -80,18 +79,38 @@ contract ProtocolPool is IProtocolPool, ERC20, PolicyCover {
   ) external onlyCore {
     //Thao@TODO: require commitday > 14 and useRate <= 100%
     // liquidity index is * 1E18
-    uint256 _redeem = rewardsOf(_account, _userCapital);
+    uint256 __redeem = rewardsOf(_account, _userCapital);
     _burn(_account, balanceOf(_account));
-    if (_redeem > 0) {
+    if (__redeem > 0) {
       // sub fees depending on aten staking
       IERC20(underlyingAsset).safeTransfer(
         _account,
-        (_redeem * (1000 - _discount)) / 1000
+        (__redeem * (1000 - _discount)) / 1000
       );
-      _transferToTreasury((_redeem * _discount) / 1000);
+      _transferToTreasury((__redeem * _discount) / 1000);
     }
 
-    slot0.availableCapital -= RayMath.otherToRay(_userCapital + _redeem);
+    console.log(
+      "ProtocolPool.withdraw:>>slot0.availableCapital:",
+      slot0.availableCapital
+    );
+
+    console.log("ProtocolPool.withdraw:>>_userCapital:", _userCapital);
+    console.log("ProtocolPool.withdraw:>>__redeem:", __redeem);
+    console.log(
+      "ProtocolPool.withdraw:>>_userCapital + __redeem:",
+      _userCapital + __redeem
+    );
+    console.log(
+      "ProtocolPool.withdraw:>>Ray(_userCapital + __redeem):",
+      RayMath.otherToRay(_userCapital + __redeem)
+    );
+    console.log(
+      "ProtocolPool.withdraw:>>slot0.availableCapital - Ray(_userCapital + __redeem):",
+      slot0.availableCapital - RayMath.otherToRay(_userCapital + __redeem)
+    );
+
+    slot0.availableCapital -= RayMath.otherToRay(_userCapital + __redeem);
   }
 
   //Thao@Question: doit on retirer 10% dans __redeem

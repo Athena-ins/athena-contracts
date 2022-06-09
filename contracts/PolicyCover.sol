@@ -60,9 +60,6 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     uint256 rSlope2;
   }
 
-  //Thao@TODO: move in ProtocolPool
-  address public underlyingAsset;
-
   mapping(uint24 => address[]) internal ticks;
   mapping(uint16 => uint256) internal tickBitmap;
   mapping(address => PremiumPosition.Info) internal positions;
@@ -71,13 +68,11 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
   Slot0 internal slot0;
 
   constructor(
-    address _underlyingAsset,
     uint256 _uOptimal,
     uint256 _r0,
     uint256 _rSlope1,
     uint256 _rSlope2
   ) {
-    underlyingAsset = _underlyingAsset;
     f = Formula({
       uOptimal: _uOptimal,
       r0: _r0,
@@ -85,7 +80,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
       rSlope2: _rSlope2
     });
 
-    slot0.premiumRate = RayMath.RAY; //Thao@NOTE: taux initiale = 1%
+    slot0.premiumRate = getPremiumRate(0);
     slot0.hoursPerTick = 24000000000000000000000000000;
     slot0.lastUpdateTimestamp = block.timestamp;
   }
@@ -347,16 +342,15 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     );
   }
 
-  //Thao@TODO: add onlyCore
   function buyPolicy(
     address _owner,
     uint256 _premium,
     uint256 _insuredCapital
-  ) external notExistedOwner(_owner) hasCapital(_insuredCapital) {
+  ) external onlyCore notExistedOwner(_owner) hasCapital(_insuredCapital) {
+    actualizing();
+
     uint256 __premium = RayMath.otherToRay(_premium);
     uint256 __insuredCapital = RayMath.otherToRay(_insuredCapital);
-
-    actualizing();
 
     uint256 __newPremiumRate = getPremiumRate(
       //Thao@TODO: avoid storage variable
@@ -412,12 +406,15 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     );
   }
 
-  //Thao@TODO: add onlyCore
-  function withdrawPolicy(address _owner) external existedOwner(_owner) {
+  function withdrawPolicy(address _owner)
+    external
+    onlyCore
+    existedOwner(_owner)
+  {
+    actualizing();
+
     PremiumPosition.Info storage __position = positions.get(_owner);
     uint24 __lastTick = __position.lastTick;
-
-    actualizing();
 
     require(slot0.tick < __lastTick, "Policy Expired");
 
@@ -496,16 +493,13 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
       (uint24 __tickNext, bool __initialized) = tickBitmap
         .nextInitializedTickInTheRightWithinOneWord(__slot0.tick);
 
-      uint256 __nextHoursPassed = __hoursPassed +
-        (__tickNext - __slot0.tick) *
-        __slot0.hoursPerTick;
+      uint256 __hoursStep = (__tickNext - __slot0.tick) * __slot0.hoursPerTick;
+      uint256 __nextHoursPassed = __hoursPassed + __hoursStep;
 
       if (__nextHoursPassed < __hoursGaps) {
         //24000000000000000000000000000 = 24 * RayMath.RAY
-        __slot0.availableCapital += ((__tickNext - __slot0.tick) *
-          __slot0.hoursPerTick.rayMul(__slot0.emissionRate)).rayDiv(
-            24000000000000000000000000000
-          );
+        __slot0.availableCapital += (__hoursStep.rayMul(__slot0.emissionRate))
+          .rayDiv(24000000000000000000000000000);
 
         __slot0.tick = __tickNext;
 
