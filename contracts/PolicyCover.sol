@@ -557,42 +557,42 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
   {
     Slot0 memory __slot0 = actualizingUntilGivenDate(block.timestamp);
 
-    console.log("PolicyCover.getInfo:>>__slot0.tick:", __slot0.tick);
-    console.log(
-      "PolicyCover.getInfo:>>__slot0.premiumRate:",
-      __slot0.premiumRate
-    );
-    console.log(
-      "PolicyCover.getInfo:>>__slot0.emissionRate:",
-      __slot0.emissionRate
-    );
-    console.log(
-      "PolicyCover.getInfo:>>__slot0.hoursPerTick:",
-      __slot0.hoursPerTick
-    );
-    console.log(
-      "PolicyCover.getInfo:>>__slot0.totalInsuredCapital:",
-      __slot0.totalInsuredCapital
-    );
-    console.log(
-      "PolicyCover.getInfo:>>__slot0.availableCapital:",
-      __slot0.availableCapital
-    );
-    console.log(
-      "PolicyCover.getInfo:>>__slot0.lastUpdateTimestamp:",
-      __slot0.lastUpdateTimestamp
-    );
+    // console.log("PolicyCover.getInfo >>> __slot0.tick:", __slot0.tick);
+    // console.log(
+    //   "PolicyCover.getInfo >>> __slot0.premiumRate:",
+    //   __slot0.premiumRate
+    // );
+    // console.log(
+    //   "PolicyCover.getInfo >>> __slot0.emissionRate:",
+    //   __slot0.emissionRate
+    // );
+    // console.log(
+    //   "PolicyCover.getInfo >>> __slot0.hoursPerTick:",
+    //   __slot0.hoursPerTick
+    // );
+    // console.log(
+    //   "PolicyCover.getInfo >>> __slot0.totalInsuredCapital:",
+    //   __slot0.totalInsuredCapital
+    // );
+    // console.log(
+    //   "PolicyCover.getInfo >>> __slot0.availableCapital:",
+    //   __slot0.availableCapital
+    // );
+    // console.log(
+    //   "PolicyCover.getInfo >>> __slot0.lastUpdateTimestamp:",
+    //   __slot0.lastUpdateTimestamp
+    // );
 
     PremiumPosition.Info storage __position = positions.get(_owner);
 
-    console.log(
-      "PolicyCover.getInfo:>>__position.lastTick:",
-      __position.lastTick
-    );
-    console.log(
-      "PolicyCover.getInfo:>>__position.beginEmissionRate:",
-      __position.getBeginEmissionRate()
-    );
+    // console.log(
+    //   "PolicyCover.getInfo >>> __position.lastTick:",
+    //   __position.lastTick
+    // );
+    // console.log(
+    //   "PolicyCover.getInfo >>> __position.beginEmissionRate:",
+    //   __position.getBeginEmissionRate()
+    // );
 
     require(__slot0.tick < __position.lastTick, "Policy Expired");
 
@@ -602,10 +602,10 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
       __slot0.premiumRate
     );
 
-    console.log(
-      "PolicyCover.getInfo:>>__ownerCurrentEmissionRate:",
-      __ownerCurrentEmissionRate
-    );
+    // console.log(
+    //   "PolicyCover.getInfo >>> __ownerCurrentEmissionRate:",
+    //   __ownerCurrentEmissionRate
+    // );
 
     uint256 __remainingHours;
 
@@ -665,10 +665,10 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
           __slot0.premiumRate
         );
 
-        console.log(
-          "PolicyCover.getInfo:>>__ownerCurrentEmissionRate:",
-          __ownerCurrentEmissionRate
-        );
+        // console.log(
+        //   "PolicyCover.getInfo >>> __ownerCurrentEmissionRate:",
+        //   __ownerCurrentEmissionRate
+        // );
       }
     }
 
