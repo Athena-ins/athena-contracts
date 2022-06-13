@@ -16,7 +16,7 @@ interface IProtocolPool is IPolicyCover {
     address _account,
     uint256 _userCapital,
     uint128 _discount
-  ) external;
+  ) external returns (int256);
 
   function releaseFunds(address _account, uint256 _amount) external;
 }

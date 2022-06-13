@@ -49,9 +49,6 @@ contract ProtocolPool is IProtocolPool, ERC20, PolicyCover {
     actualizing();
     uint256 __amount = RayMath.otherToRay(_amount);
 
-    // console.log("ProtocolPool.mint <<< _account:", _account);
-    // console.log("ProtocolPool.mint >>> totalSupply():", totalSupply());
-
     _mint(
       _account,
       (
@@ -61,8 +58,6 @@ contract ProtocolPool is IProtocolPool, ERC20, PolicyCover {
       )
     );
 
-    // console.log("ProtocolPool.mint >>> totalSupply():", totalSupply());
-
     slot0.availableCapital += __amount;
     //Thao@TODO: event
   }
@@ -71,11 +66,12 @@ contract ProtocolPool is IProtocolPool, ERC20, PolicyCover {
   //tout les public ou external fct va convertir Ray en decimal et inversement
   //@param _useCapital est en Ray
   //@return __redeem est en Ray et 100%
+  //Thao@NOTE: il faut changer le nom de fct
   function _rewardsOf(
     address _account,
     uint256 _userCapital,
     uint256 _dateInSecond
-  ) internal view returns (uint256 __redeem) {
+  ) internal view returns (int256) {
     Slot0 memory __slot0 = actualizingUntilGivenDate(_dateInSecond);
     uint256 __liquidityIndex = getLiquidityIndex(
       totalSupply(),
@@ -84,49 +80,32 @@ contract ProtocolPool is IProtocolPool, ERC20, PolicyCover {
 
     uint256 __scaledBalance = balanceOf(_account).rayDiv(__liquidityIndex);
 
-    // console.log("ProtocolPool._rewardsOf <<< _dateInSecond:", _dateInSecond);
-    // console.log("ProtocolPool._rewardsOf <<< _userCapital:", _userCapital);
-    // console.log("ProtocolPool._rewardsOf >>> __amount:", balanceOf(_account));
-    // console.log("ProtocolPool._rewardsOf >>> __totalSupply:", totalSupply());
-    // console.log(
-    //   "ProtocolPool._rewardsOf >>> __slot0.availableCapital:",
-    //   __slot0.availableCapital
-    // );
-    // console.log(
-    //   "ProtocolPool._rewardsOf >>> __liquidityIndex:",
-    //   __liquidityIndex
-    // );
-    // console.log(
-    //   "ProtocolPool._rewardsOf >>> __scaledBalance:",
-    //   __scaledBalance
-    // );
-    // console.log(
-    //   "ProtocolPool._rewardsOf >>> __scaledBalance > _userCapital:",
-    //   __scaledBalance > _userCapital
-    // );
-
-    if (__scaledBalance > _userCapital) {
-      __redeem = __scaledBalance - _userCapital;
-    } else {
-      __redeem = 0;
-    }
+    return int256(__scaledBalance) - int256(_userCapital);
   }
 
   function rewardsOf(
     address _account,
     uint256 _userCapital,
     uint256 _discount
-  ) public view returns (uint256 __redeem) {
-    __redeem = _rewardsOf(
+  ) public view returns (int256) {
+    int256 __difference = _rewardsOf(
       _account,
       RayMath.otherToRay(_userCapital),
       block.timestamp
     );
 
-    __redeem = RayMath.rayToOther((__redeem * (1000 - _discount)) / 1000);
+    if (__difference < 0) return __difference;
+    else
+      return
+        int256(
+          RayMath.rayToOther(
+            (uint256(__difference) * (1000 - _discount)) / 1000
+          )
+        );
   }
 
   function committingWithdraw(address _account) external onlyCore {
+    //Thao@TODO: require have any claim in progress
     withdrawReserves[_account] = block.timestamp;
   }
 
@@ -138,19 +117,8 @@ contract ProtocolPool is IProtocolPool, ERC20, PolicyCover {
     address _account,
     uint256 _userCapital,
     uint128 _discount
-  ) external onlyCore {
+  ) external onlyCore returns (int256 __difference) {
     uint256 __userCapital = RayMath.otherToRay(_userCapital);
-
-    console.log("ProtocolPool.withdraw <<< _userCapital:", _userCapital);
-    console.log("ProtocolPool.withdraw >>> __userCapital:", __userCapital);
-    console.log(
-      "ProtocolPool.withdraw >>> slot0.totalInsuredCapital:",
-      slot0.totalInsuredCapital
-    );
-    console.log(
-      "ProtocolPool.withdraw >>> slot0.availableCapital:",
-      slot0.availableCapital
-    );
 
     require(
       withdrawReserves[_account] != 0 &&
@@ -168,71 +136,46 @@ contract ProtocolPool is IProtocolPool, ERC20, PolicyCover {
       string(abi.encodePacked(name(), ": use rate > 100%"))
     );
 
-    uint256 __redeem = RayMath.rayToOther(
-      _rewardsOf(_account, __userCapital, block.timestamp)
-    );
+    __difference = _rewardsOf(_account, __userCapital, block.timestamp);
 
     _burn(_account, balanceOf(_account));
-    if (__redeem > 0) {
-      // sub fees depending on aten staking
+    if (__difference > 0) {
       IERC20(underlyingAsset).safeTransfer(
         _account,
-        (__redeem * (1000 - _discount)) / 1000
+        RayMath.rayToOther((uint256(__difference) * (1000 - _discount)) / 1000)
       );
-      _transferToTreasury((__redeem * _discount) / 1000);
+
+      _transferToTreasury(
+        RayMath.rayToOther((uint256(__difference) * _discount) / 1000)
+      );
+
+      slot0.availableCapital -= __userCapital + uint256(__difference);
+    } else {
+      slot0.availableCapital -= uint256(int256(__userCapital) + __difference);
     }
-
-    // console.log(
-    //   "ProtocolPool.withdraw >> slot0.availableCapital:",
-    //   slot0.availableCapital
-    // );
-
-    // console.log("ProtocolPool.withdraw >> _userCapital:", _userCapital);
-    console.log("ProtocolPool.withdraw >> __redeem:", __redeem);
-    // console.log(
-    //   "ProtocolPool.withdraw >> _userCapital + __redeem:",
-    //   _userCapital + __redeem
-    // );
-    // console.log(
-    //   "ProtocolPool.withdraw >> Ray(_userCapital + __redeem):",
-    //   RayMath.otherToRay(_userCapital + __redeem)
-    // );
-    // console.log(
-    //   "ProtocolPool.withdraw >> slot0.availableCapital - Ray(_userCapital + __redeem):",
-    //   slot0.availableCapital - RayMath.otherToRay(_userCapital + __redeem)
-    // );
-    console.log(
-      "ProtocolPool.withdraw >> slot0.availableCapital before:",
-      slot0.availableCapital
-    );
-
-    slot0.availableCapital -= __userCapital + RayMath.otherToRay(__redeem);
-
-    console.log(
-      "ProtocolPool.withdraw >> slot0.availableCapital after:",
-      slot0.availableCapital
-    );
   }
 
   function _transferToTreasury(uint256 _amount) internal {
     IERC20(underlyingAsset).safeTransfer(core, _amount);
   }
 
+  //THao@TODO: pas sure de marcher comme il faut
   function releaseFunds(address _account, uint256 _amount)
     external
     override
     onlyCore
   {
-    Slot0 memory __slot0 = actualizingUntilGivenDate(block.timestamp);
+    // Slot0 memory __slot0 = actualizingUntilGivenDate(block.timestamp);
     // if (_amount > __slot0.premiumSpent) {
     // release funds from AAVE TO REFUND USER
     // }
+    actualizing();
     console.log("Amount to refund : ", _amount);
     uint256 bal = IERC20(underlyingAsset).balanceOf(address(this));
     console.log("Balance Contract = ", bal);
     console.log("Account to transfer = ", _account);
     IERC20(underlyingAsset).safeTransfer(_account, _amount);
-    // slot0.premiumSpent -= _amount;
-    actualizing();
+    slot0.availableCapital -= RayMath.otherToRay(_amount);
+    //Thao@TODO: recalculer slot0 car availableCapital est changé
   }
 }

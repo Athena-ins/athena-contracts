@@ -300,41 +300,43 @@ contract Athena is ReentrancyGuard, Ownable {
   // @Dev TODO should add selected protocols & amounts to withdraw
   function withdraw(
     uint256[] memory _amounts,
-    uint128[] memory protocolIds,
-    uint256 atokens
+    uint128[] memory _protocolIds,
+    uint256 _atokens
   ) external {
     require(
       IPositionsManager(positionsManager).balanceOf(msg.sender) > 0,
       "No position to withdraw"
     );
-    _withdraw(_amounts, protocolIds, atokens, 0);
+    _withdraw(_amounts, _protocolIds, _atokens, 0);
   }
 
   function _withdraw(
     uint256[] memory _amounts,
-    uint128[] memory protocolIds,
-    uint256 atokens,
-    uint128 discount
+    uint128[] memory _protocolIds,
+    uint256 _atokens,
+    uint128 _discount
   ) internal {
     // uint256 amount = IPositionsManager(positionsManager).balanceOf(msg.sender);
-    for (uint256 index = 0; index < protocolIds.length; index++) {
+    int256 __claimedAmount;
+    for (uint256 index = 0; index < _protocolIds.length; index++) {
       require(
-        protocolsMapping[protocolIds[index]].active == true,
+        protocolsMapping[_protocolIds[index]].active == true,
         "Protocol not active"
       );
       require(
-        protocolsMapping[protocolIds[index]].claimsOngoing == 0,
+        protocolsMapping[_protocolIds[index]].claimsOngoing == 0,
         "Protocol locked"
       );
-      IProtocolPool(protocolsMapping[protocolIds[index]].deployed).withdraw(
-        msg.sender,
-        _amounts[index],
-        discount
-      );
+
+      int256 __difference = IProtocolPool(
+        protocolsMapping[_protocolIds[index]].deployed
+      ).withdraw(msg.sender, _amounts[index], _discount);
+
+      if (__difference < int256(0)) __claimedAmount += __difference;
     }
     // SHOULD Update if not max withdraw ?
     IPositionsManager(positionsManager).burn(msg.sender);
-    _withdrawLiquidity(atokens);
+    _withdrawLiquidity(_atokens, uint256(-__claimedAmount));
   }
 
   function _stakeAtens(uint256 atenToStake, uint256 amount) internal {
@@ -407,15 +409,18 @@ contract Athena is ReentrancyGuard, Ownable {
     return balAtokenAfter - balAtoken;
   }
 
-  function _withdrawLiquidity(uint256 _atokens) internal {
+  function _withdrawLiquidity(uint256 _atokens, uint256 _claimedAmount)
+    internal
+  {
     //@dev TODO Transfer from AAVE, burn LP
-    address lendingPool = ILendingPoolAddressesProvider(aaveAddressesRegistry)
+    address _lendingPool = ILendingPoolAddressesProvider(aaveAddressesRegistry)
       .getLendingPool();
     uint256 _amountToWithdraw = (_atokens *
       IERC20(aaveAtoken).balanceOf(address(this))) /
-      IScaledBalanceToken(aaveAtoken).scaledBalanceOf(address(this));
+      IScaledBalanceToken(aaveAtoken).scaledBalanceOf(address(this)) -
+      _claimedAmount;
     // No need to transfer Stable, lending pool will do it
-    ILendingPool(lendingPool).withdraw(
+    ILendingPool(_lendingPool).withdraw(
       stablecoin,
       _amountToWithdraw,
       msg.sender
