@@ -228,12 +228,14 @@ contract Athena is ReentrancyGuard, Ownable {
         _amounts[index]
       );
     }
+
     uint256 _atokens = _transferLiquidity(amount);
     uint128 _discount = 0;
     if (atenToStake > 0) {
       _stakeAtens(atenToStake, amount);
       _discount = getDiscountWithAten(atenToStake);
     }
+
     IPositionsManager(positionsManager).mint(
       msg.sender,
       _discount,
@@ -242,6 +244,28 @@ contract Athena is ReentrancyGuard, Ownable {
       atenToStake,
       _protocolIds
     );
+  }
+
+  function committingWithdrawAll() external {
+    require(
+      IPositionsManager(positionsManager).balanceOf(msg.sender) > 0,
+      "No position to reserving withdraw"
+    );
+
+    uint256 _tokenId = IPositionsManager(positionsManager).tokenOfOwnerByIndex(
+      msg.sender,
+      0
+    );
+    (
+      uint256 _liquidity,
+      uint128[] memory _protocolIds,
+      uint256 _atokens,
+      uint128 _discount
+    ) = IPositionsManager(positionsManager).positions(_tokenId);
+
+    for (uint256 index = 0; index < _protocolIds.length; index++)
+      IProtocolPool(protocolsMapping[_protocolIds[index]].deployed)
+        .committingWithdraw(msg.sender);
   }
 
   function withdrawAll() external {
@@ -267,6 +291,10 @@ contract Athena is ReentrancyGuard, Ownable {
     }
     // amounts[0] = uint256(0);
     _withdraw(amounts, protocolIds, atokens, discount);
+    for (uint256 index = 0; index < protocolIds.length; index++) {
+      IProtocolPool(protocolsMapping[protocolIds[index]].deployed)
+        .removeCommittedWithdraw(msg.sender);
+    }
   }
 
   // @Dev TODO should add selected protocols & amounts to withdraw

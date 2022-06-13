@@ -8,6 +8,10 @@ import "./IPolicyCover.sol";
 interface IProtocolPool is IPolicyCover {
   function mint(address _account, uint256 _amount) external;
 
+  function committingWithdraw(address _account) external;
+
+  function removeCommittedWithdraw(address _account) external;
+
   function withdraw(
     address _account,
     uint256 _userCapital,

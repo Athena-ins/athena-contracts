@@ -64,6 +64,7 @@ contract ProtocolPool is IProtocolPool, ERC20, PolicyCover {
     // console.log("ProtocolPool.mint >>> totalSupply():", totalSupply());
 
     slot0.availableCapital += __amount;
+    //Thao@TODO: event
   }
 
   //Thao@Dev: cette fct utilise à intérieur du contrat
@@ -122,12 +123,15 @@ contract ProtocolPool is IProtocolPool, ERC20, PolicyCover {
       block.timestamp
     );
 
-    //Thao@TODO: fees depending on aten staking ?
     __redeem = RayMath.rayToOther((__redeem * (1000 - _discount)) / 1000);
   }
 
-  function commitWithdraw(address _account) external onlyCore {
+  function committingWithdraw(address _account) external onlyCore {
     withdrawReserves[_account] = block.timestamp;
+  }
+
+  function removeCommittedWithdraw(address _account) external onlyCore {
+    delete withdrawReserves[_account];
   }
 
   function withdraw(
@@ -149,8 +153,8 @@ contract ProtocolPool is IProtocolPool, ERC20, PolicyCover {
     );
 
     require(
-      // withdrawReserves[_account] != 0 &&
-      block.timestamp - withdrawReserves[_account] >= 14 days,
+      withdrawReserves[_account] != 0 &&
+        block.timestamp - withdrawReserves[_account] >= 14 days,
       "withdraw reserve"
     );
 
@@ -161,7 +165,7 @@ contract ProtocolPool is IProtocolPool, ERC20, PolicyCover {
         slot0.totalInsuredCapital,
         slot0.availableCapital - __userCapital
       ) <= RayMath.otherToRay(100),
-      "use rate > 100%"
+      string(abi.encodePacked(name(), ": use rate > 100%"))
     );
 
     uint256 __redeem = RayMath.rayToOther(
@@ -184,7 +188,7 @@ contract ProtocolPool is IProtocolPool, ERC20, PolicyCover {
     // );
 
     // console.log("ProtocolPool.withdraw >> _userCapital:", _userCapital);
-    // console.log("ProtocolPool.withdraw >> __redeem:", __redeem);
+    console.log("ProtocolPool.withdraw >> __redeem:", __redeem);
     // console.log(
     //   "ProtocolPool.withdraw >> _userCapital + __redeem:",
     //   _userCapital + __redeem
@@ -197,8 +201,17 @@ contract ProtocolPool is IProtocolPool, ERC20, PolicyCover {
     //   "ProtocolPool.withdraw >> slot0.availableCapital - Ray(_userCapital + __redeem):",
     //   slot0.availableCapital - RayMath.otherToRay(_userCapital + __redeem)
     // );
+    console.log(
+      "ProtocolPool.withdraw >> slot0.availableCapital before:",
+      slot0.availableCapital
+    );
 
-    slot0.availableCapital -= __userCapital + __redeem;
+    slot0.availableCapital -= __userCapital + RayMath.otherToRay(__redeem);
+
+    console.log(
+      "ProtocolPool.withdraw >> slot0.availableCapital after:",
+      slot0.availableCapital
+    );
   }
 
   function _transferToTreasury(uint256 _amount) internal {
