@@ -65,7 +65,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
   mapping(address => PremiumPosition.Info) internal positions;
 
   Formula internal f;
-  Slot0 internal slot0;
+  Slot0 public slot0;
 
   constructor(
     uint256 _uOptimal,
