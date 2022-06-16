@@ -20,8 +20,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
   using PremiumPosition for mapping(address => PremiumPosition.Info);
   using PremiumPosition for PremiumPosition.Info;
 
-  event TouchInitializedTick(string msg, uint24 tick, bool initialized);
-  event HoursToDay(string msg, uint256 nbrHours, uint256 nbrDays);
+  //Thao@TODO: add event expiredPolicy
   event Actualizing(
     string msg,
     uint24 tick,
@@ -143,7 +142,6 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     returns (uint256)
   {
     // returns actual rate for insurance
-    // console.log("Utilisation rate:", _utilisationRate);
     if (_utilisationRate < f.uOptimal) {
       return f.r0 + f.rSlope1.rayMul(_utilisationRate.rayDiv(f.uOptimal));
     } else {
@@ -162,11 +160,6 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     uint256 _totalInsuredCapital,
     uint256 _availableCapital
   ) public pure returns (uint256) {
-    // console.log("_isAdded:", _isAdded);
-    // console.log("_insuredCapital:", _insuredCapital);
-    // console.log("_totalInsuredCapital:", _totalInsuredCapital);
-    // console.log("_availableCapital", _availableCapital);
-
     // returns actual usage rate on capital insured / capital provided for insurance
     if (_availableCapital == 0) {
       return 0;
@@ -243,6 +236,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     __slot0.totalInsuredCapital -= __insuredCapitalToRemove;
   }
 
+  //Thao@TODO: refactor with other actualizing and remove ticks after update __slot0
   function actualizing() internal {
     Slot0 memory __step = Slot0({
       tick: slot0.tick,
@@ -254,42 +248,25 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
       lastUpdateTimestamp: slot0.lastUpdateTimestamp
     });
 
-    // uint256 __hoursGaps = RayMath.otherToRay(
-    //   (block.timestamp - __step.lastUpdateTimestamp) / 3600
-    // ); //3600 = 60 * 60
-
     uint256 __hoursGaps = RayMath
       .otherToRay((block.timestamp - __step.lastUpdateTimestamp))
-      .rayDiv(RayMath.otherToRay(3600)); //3600 = 60 * 60
-
-    // console.log("__hoursGaps:", __hoursGaps);
+      .rayDiv(3600000000000000000000000000000);
 
     uint256 __hoursPassed;
-    uint256 __hoursToDay; //Thao@NOTE: remove after testing
 
     while (__hoursPassed < __hoursGaps) {
       (uint24 __tickNext, bool __initialized) = tickBitmap
         .nextInitializedTickInTheRightWithinOneWord(__step.tick);
 
-      emit TouchInitializedTick("Tick", __tickNext, __initialized);
-
-      uint256 __nextHoursPassed = __hoursPassed +
-        (__tickNext - __step.tick) *
-        __step.hoursPerTick;
-
-      // console.log("__nextHoursPassed:", __nextHoursPassed);
-
-      // __hoursToDay += (__tickNext - __step.tick) * __step.hoursPerTick;
+      uint256 __hoursStep = (__tickNext - __step.tick) * __step.hoursPerTick;
+      uint256 __nextHoursPassed = __hoursPassed + __hoursStep;
 
       if (__nextHoursPassed < __hoursGaps) {
-        __step.availableCapital += ((__tickNext - __step.tick) *
-          __step.hoursPerTick.rayMul(__step.emissionRate)).rayDiv(
-            24000000000000000000000000000
-          );
+        __step.availableCapital += (__hoursStep.rayMul(__step.emissionRate))
+          .rayDiv(24000000000000000000000000000);
 
         __step.tick = __tickNext;
 
-        __hoursToDay = __nextHoursPassed;
         __hoursPassed = __nextHoursPassed;
       } else {
         __step.availableCapital += (__hoursGaps - __hoursPassed)
@@ -300,34 +277,13 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
           (__hoursGaps - __hoursPassed) / __step.hoursPerTick
         );
 
-        __hoursToDay += __hoursGaps - __hoursPassed;
         __hoursPassed = __hoursGaps;
       }
 
       if (__initialized && __nextHoursPassed <= __hoursGaps) {
         crossingInitializedTick(__step, __tickNext);
         removeTick(__tickNext);
-
-        emit HoursToDay(
-          "HoursToDay",
-          __hoursToDay,
-          __hoursToDay / 24000000000000000000000000000
-        );
-
-        __hoursToDay = 0;
-
-        emit TouchInitializedTick("Touch", __tickNext, __initialized);
       }
-
-      emit Actualizing(
-        "ActualizingStep",
-        __step.tick,
-        __step.premiumRate,
-        __step.emissionRate,
-        __step.hoursPerTick,
-        __step.availableCapital,
-        __step.lastUpdateTimestamp
-      );
     }
 
     slot0.tick = __step.tick;
@@ -495,52 +451,44 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
       lastUpdateTimestamp: slot0.lastUpdateTimestamp
     });
 
-    if (_dateInSecond > __slot0.lastUpdateTimestamp) {
-      // uint256 __hoursGaps = RayMath.otherToRay(
-      //   (_dateInSecond - __slot0.lastUpdateTimestamp) / 3600
-      // ); //3600 = 60 * 60
+    uint256 __hoursGaps = RayMath
+      .otherToRay((_dateInSecond - __slot0.lastUpdateTimestamp))
+      .rayDiv(3600000000000000000000000000000); //3600 = 60 * 60
 
-      uint256 __hoursGaps = RayMath
-        .otherToRay((_dateInSecond - __slot0.lastUpdateTimestamp))
-        .rayDiv(RayMath.otherToRay(3600)); //3600 = 60 * 60
+    uint256 __hoursPassed;
 
-      uint256 __hoursPassed;
+    while (__hoursPassed < __hoursGaps) {
+      (uint24 __tickNext, bool __initialized) = tickBitmap
+        .nextInitializedTickInTheRightWithinOneWord(__slot0.tick);
 
-      while (__hoursPassed < __hoursGaps) {
-        (uint24 __tickNext, bool __initialized) = tickBitmap
-          .nextInitializedTickInTheRightWithinOneWord(__slot0.tick);
+      uint256 __hoursStep = (__tickNext - __slot0.tick) * __slot0.hoursPerTick;
+      uint256 __nextHoursPassed = __hoursPassed + __hoursStep;
 
-        uint256 __hoursStep = (__tickNext - __slot0.tick) *
-          __slot0.hoursPerTick;
-        uint256 __nextHoursPassed = __hoursPassed + __hoursStep;
+      if (__nextHoursPassed < __hoursGaps) {
+        __slot0.availableCapital += (__hoursStep.rayMul(__slot0.emissionRate))
+          .rayDiv(24000000000000000000000000000);
 
-        if (__nextHoursPassed < __hoursGaps) {
-          //24000000000000000000000000000 = 24 * RayMath.RAY
-          __slot0.availableCapital += (__hoursStep.rayMul(__slot0.emissionRate))
-            .rayDiv(24000000000000000000000000000);
+        __slot0.tick = __tickNext;
 
-          __slot0.tick = __tickNext;
+        __hoursPassed = __nextHoursPassed;
+      } else {
+        __slot0.availableCapital += (__hoursGaps - __hoursPassed)
+          .rayMul(__slot0.emissionRate)
+          .rayDiv(24000000000000000000000000000);
 
-          __hoursPassed = __nextHoursPassed;
-        } else {
-          __slot0.availableCapital += (__hoursGaps - __hoursPassed)
-            .rayMul(__slot0.emissionRate)
-            .rayDiv(24000000000000000000000000000);
+        __slot0.tick += uint24(
+          (__hoursGaps - __hoursPassed) / __slot0.hoursPerTick
+        );
 
-          __slot0.tick += uint24(
-            (__hoursGaps - __hoursPassed) / __slot0.hoursPerTick
-          );
-
-          __hoursPassed = __hoursGaps;
-        }
-
-        if (__initialized && __nextHoursPassed <= __hoursGaps) {
-          crossingInitializedTick(__slot0, __tickNext);
-        }
+        __hoursPassed = __hoursGaps;
       }
 
-      __slot0.lastUpdateTimestamp = _dateInSecond;
+      if (__initialized && __nextHoursPassed <= __hoursGaps) {
+        crossingInitializedTick(__slot0, __tickNext);
+      }
     }
+
+    __slot0.lastUpdateTimestamp = _dateInSecond;
   }
 
   function getInfo(address _owner)
@@ -550,43 +498,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     returns (uint256 __remainingPremium, uint256 __remainingDay)
   {
     Slot0 memory __slot0 = actualizingUntilGivenDate(block.timestamp);
-
-    // console.log("PolicyCover.getInfo >>> __slot0.tick:", __slot0.tick);
-    // console.log(
-    //   "PolicyCover.getInfo >>> __slot0.premiumRate:",
-    //   __slot0.premiumRate
-    // );
-    // console.log(
-    //   "PolicyCover.getInfo >>> __slot0.emissionRate:",
-    //   __slot0.emissionRate
-    // );
-    // console.log(
-    //   "PolicyCover.getInfo >>> __slot0.hoursPerTick:",
-    //   __slot0.hoursPerTick
-    // );
-    // console.log(
-    //   "PolicyCover.getInfo >>> __slot0.totalInsuredCapital:",
-    //   __slot0.totalInsuredCapital
-    // );
-    // console.log(
-    //   "PolicyCover.getInfo >>> __slot0.availableCapital:",
-    //   __slot0.availableCapital
-    // );
-    // console.log(
-    //   "PolicyCover.getInfo >>> __slot0.lastUpdateTimestamp:",
-    //   __slot0.lastUpdateTimestamp
-    // );
-
     PremiumPosition.Info storage __position = positions.get(_owner);
-
-    // console.log(
-    //   "PolicyCover.getInfo >>> __position.lastTick:",
-    //   __position.lastTick
-    // );
-    // console.log(
-    //   "PolicyCover.getInfo >>> __position.beginEmissionRate:",
-    //   __position.getBeginEmissionRate()
-    // );
 
     require(__slot0.tick < __position.lastTick, "Policy Expired");
 
@@ -595,11 +507,6 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
       __position.beginPremiumRate,
       __slot0.premiumRate
     );
-
-    // console.log(
-    //   "PolicyCover.getInfo >>> __ownerCurrentEmissionRate:",
-    //   __ownerCurrentEmissionRate
-    // );
 
     uint256 __remainingHours;
 
@@ -632,20 +539,9 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
           __position.beginPremiumRate,
           __slot0.premiumRate
         );
-
-        // console.log(
-        //   "PolicyCover.getInfo >>> __slot0.availableCapital:",
-        //   __slot0.availableCapital
-        // );
-
-        // console.log(
-        //   "PolicyCover.getInfo >>> __ownerCurrentEmissionRate:",
-        //   __ownerCurrentEmissionRate
-        // );
       }
     }
 
     __remainingDay = __remainingHours / 24000000000000000000000000000;
-    // console.log(__remainingHours);
   }
 }
