@@ -227,7 +227,7 @@ describe("Simulation", () => {
         expect(protocol.name).to.equal("Test protocol 0");
       });
 
-      it("Shoud check slot0 in protocol 0", async () => {
+      it("Should check slot0 in protocol 0", async () => {
         const protocolContract = await getProtocolContract(
           owner,
           PROTOCOL_ZERO
@@ -409,7 +409,7 @@ describe("Simulation", () => {
         expect(tx).to.haveOwnProperty("hash");
       });
 
-      it("Shoud check slot0 in protocol 0", async () => {
+      it("Should check slot0 in protocol 0", async () => {
         const protocolContract = await getProtocolContract(
           liquidityProvider1,
           PROTOCOL_ZERO
@@ -426,10 +426,10 @@ describe("Simulation", () => {
         );
         expect(slot0.lastUpdateTimestamp).to.be.equal(currentTime);
 
-        console.log(
-          "Simulate user actions >>> LP1 >> check slot0 >>> slot0:",
-          getSlot0Info(slot0)
-        );
+        // console.log(
+        //   "Simulate user actions >>> LP1 >> check slot0 >>> slot0:",
+        //   getSlot0Info(slot0)
+        // );
       });
 
       it("Should check funs and NFT", async () => {
@@ -538,7 +538,7 @@ describe("Simulation", () => {
         expect(tx).to.haveOwnProperty("hash");
       });
 
-      it("Shoud check slot0 in protocol 0", async () => {
+      it("Should check slot0 in protocol 0", async () => {
         const protocolContract = await getProtocolContract(
           liquidityProvider2,
           PROTOCOL_ZERO
@@ -555,10 +555,10 @@ describe("Simulation", () => {
         );
         expect(slot0.lastUpdateTimestamp).to.be.equal(currentTime);
 
-        console.log(
-          "Simulate user actions >>> LP2 >> check slot0 >>> slot0:",
-          getSlot0Info(slot0)
-        );
+        // console.log(
+        //   "Simulate user actions >>> LP2 >> check slot0 >>> slot0:",
+        //   getSlot0Info(slot0)
+        // );
       });
 
       it("Should check funs and NFT", async () => {
@@ -638,7 +638,47 @@ describe("Simulation", () => {
         totalPremium = totalPremium.add(premium);
       });
 
-      it("Shoud check slot0 in protocol 0", async () => {
+      it("Should check policy info", async () => {
+        const protocolContract = await getProtocolContract(
+          policyTaker1,
+          PROTOCOL_ZERO
+        );
+        const policyInfo = await protocolContract.positions(
+          await policyTaker1.getAddress()
+        );
+
+        expect(policyInfo.capitalInsured).to.be.equal(
+          "109500000000000000000000000000000"
+        );
+        expect(policyInfo.beginPremiumRate).to.be.equal(
+          "2000000000000000000000000000"
+        );
+        expect(policyInfo.ownerIndex).to.be.equal("0");
+        expect(policyInfo.lastTick).to.be.equal(765);
+
+        // console.log(
+        //   "Simulate user actions >>> PT1 >> check policy info >>> policyInfo:",
+        //   policyInfo
+        // );
+      });
+
+      it("Should get info", async () => {
+        const protocolContract = await getProtocolContract(
+          policyTaker1,
+          PROTOCOL_ZERO
+        );
+
+        const response = await protocolContract.getInfo(
+          await policyTaker1.getAddress()
+        );
+
+        expect(response.__remainingPremium).to.be.equal("2190");
+        expect(response.__remainingDay).to.be.equal("365");
+
+        // console.log( "Simulate user actions >>> PT1 >> get info >>> response:", response);
+      });
+
+      it("Should check slot0 in protocol 0", async () => {
         const protocolContract = await getProtocolContract(
           policyTaker1,
           PROTOCOL_ZERO
@@ -657,10 +697,10 @@ describe("Simulation", () => {
         );
         expect(slot0.lastUpdateTimestamp).to.be.equal(currentTime);
 
-        console.log(
-          "Simulate user actions >>> PT1 >> check slot0 >>> slot0:",
-          getSlot0Info(slot0)
-        );
+        // console.log(
+        //   "Simulate user actions >>> PT1 >> check slot0 >>> slot0:",
+        //   getSlot0Info(slot0)
+        // );
       });
 
       it("Should check NFT", async () => {
@@ -738,7 +778,48 @@ describe("Simulation", () => {
         totalPremium = totalPremium.add(premium);
       });
 
-      it("Shoud check slot0 in protocol 0", async () => {
+      it("Should check policy info", async () => {
+        const protocolContract = await getProtocolContract(
+          policyTaker2,
+          PROTOCOL_ZERO
+        );
+        const policyInfo = await protocolContract.positions(
+          await policyTaker2.getAddress()
+        );
+
+        expect(policyInfo.capitalInsured).to.be.equal(
+          "219000000000000000000000000000000"
+        );
+        expect(policyInfo.beginPremiumRate).to.be.equal(
+          "3999753444922335150535572420"
+        );
+        expect(policyInfo.ownerIndex).to.be.equal("0");
+        expect(policyInfo.lastTick).to.be.equal(1515);
+
+        // console.log(
+        //   "Simulate user actions >>> PT2 >> check policy info >>> policyInfo:",
+        //   policyInfo
+        // );
+      });
+
+      it("Should get info", async () => {
+        const protocolContract = await getProtocolContract(
+          policyTaker2,
+          PROTOCOL_ZERO
+        );
+
+        const response = await protocolContract.getInfo(
+          await policyTaker2.getAddress()
+        );
+
+        expect(response.__remainingPremium).to.be.equal("8760");
+        //remainingDay == 428 and not 365 because of expired policy of PT1
+        expect(response.__remainingDay).to.be.equal("428");
+
+        // console.log( "Simulate user actions >>> PT2 >> get info >>> response:", response);
+      });
+
+      it("Should check slot0 in protocol 0", async () => {
         const protocolContract = await getProtocolContract(
           policyTaker2,
           PROTOCOL_ZERO
@@ -757,10 +838,10 @@ describe("Simulation", () => {
         );
         expect(slot0.lastUpdateTimestamp).to.be.equal(currentTime);
 
-        console.log(
-          "Simulate user actions >>> PT2 >> check slot0 >>> slot0:",
-          getSlot0Info(slot0)
-        );
+        // console.log(
+        //   "Simulate user actions >>> PT2 >> check slot0 >>> slot0:",
+        //   getSlot0Info(slot0)
+        // );
       });
 
       it("Should check NFT", async () => {
@@ -794,5 +875,62 @@ describe("Simulation", () => {
         expect(balanceProtocol).to.equal(totalPremium);
       });
     });
+
+    describe("Should view actualize", () => {
+      it("Should get vSlot0 after 10 days", async () => {
+        const protocolContract = await getProtocolContract(
+          owner,
+          PROTOCOL_ZERO
+        );
+
+        const vSlot0 = await protocolContract.actualizingUntilGivenDate(
+          currentTime + 10 * 24 * 60 * 60
+        );
+
+        expect(vSlot0.tick).to.be.equal(94);
+        expect(vSlot0.premiumRate).to.be.equal("3999753444922335150535572420");
+        expect(vSlot0.emissionRate).to.be.equal(
+          "35997781004301016354820151780"
+        );
+        expect(vSlot0.hoursPerTick).to.be.equal("6000369855413929850756491303");
+        expect(vSlot0.totalInsuredCapital).to.be.equal(
+          "328500000000000000000000000000000"
+        );
+        expect(vSlot0.availableCapital).to.be.equal(
+          "730419977810043010163548201517800"
+        );
+        expect(vSlot0.lastUpdateTimestamp).to.be.equal(
+          currentTime + 10 * 24 * 60 * 60
+        );
+
+        // console.log(
+        //   "Simulate user actions >>> actualize view after 10 days >>> vslot0:",
+        //   getSlot0Info(vSlot0)
+        // );
+      });
+    });
+
+    describe("Should view info of PT1 after 10 days and arriving of PT2", () => {
+      it("Should get info", async () => {
+        const protocolContract = await getProtocolContract(
+          policyTaker1,
+          PROTOCOL_ZERO
+        );
+
+        const response = await protocolContract.getInfo(
+          await policyTaker1.getAddress()
+        );
+
+        expect(response.__remainingPremium).to.be.equal("2130");
+        expect(response.__remainingDay).to.be.equal("177");
+
+        // console.log(
+        //   "Simulate user actions >>> Should view info of PT1 after arriving of PT2 >> get info >>> response:",
+        //   response
+        // );
+      });
+    });
+
+    //Thao@TODO: rewardsOf and withdraw
   });
 });
