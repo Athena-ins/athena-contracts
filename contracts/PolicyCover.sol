@@ -236,9 +236,12 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     __slot0.totalInsuredCapital -= __insuredCapitalToRemove;
   }
 
-  //Thao@TODO: refactor with other actualizing and remove ticks after update __slot0
-  function actualizing() internal {
-    Slot0 memory __step = Slot0({
+  function actualizingSlot0(uint256 _dateInSecond)
+    internal
+    view
+    returns (Slot0 memory __slot0)
+  {
+    __slot0 = Slot0({
       tick: slot0.tick,
       premiumRate: slot0.premiumRate,
       emissionRate: slot0.emissionRate,
@@ -249,50 +252,67 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     });
 
     uint256 __hoursGaps = RayMath
-      .otherToRay((block.timestamp - __step.lastUpdateTimestamp))
+      .otherToRay((_dateInSecond - __slot0.lastUpdateTimestamp))
       .rayDiv(3600000000000000000000000000000);
 
     uint256 __hoursPassed;
 
     while (__hoursPassed < __hoursGaps) {
       (uint24 __tickNext, bool __initialized) = tickBitmap
-        .nextInitializedTickInTheRightWithinOneWord(__step.tick);
+        .nextInitializedTickInTheRightWithinOneWord(__slot0.tick);
 
-      uint256 __hoursStep = (__tickNext - __step.tick) * __step.hoursPerTick;
+      uint256 __hoursStep = (__tickNext - __slot0.tick) * __slot0.hoursPerTick;
       uint256 __nextHoursPassed = __hoursPassed + __hoursStep;
 
       if (__nextHoursPassed < __hoursGaps) {
-        __step.availableCapital += (__hoursStep.rayMul(__step.emissionRate))
+        __slot0.availableCapital += (__hoursStep.rayMul(__slot0.emissionRate))
           .rayDiv(24000000000000000000000000000);
 
-        __step.tick = __tickNext;
+        __slot0.tick = __tickNext;
 
         __hoursPassed = __nextHoursPassed;
       } else {
-        __step.availableCapital += (__hoursGaps - __hoursPassed)
-          .rayMul(__step.emissionRate)
+        __slot0.availableCapital += (__hoursGaps - __hoursPassed)
+          .rayMul(__slot0.emissionRate)
           .rayDiv(24000000000000000000000000000);
 
-        __step.tick += uint24(
-          (__hoursGaps - __hoursPassed) / __step.hoursPerTick
+        __slot0.tick += uint24(
+          (__hoursGaps - __hoursPassed) / __slot0.hoursPerTick
         );
 
         __hoursPassed = __hoursGaps;
       }
 
       if (__initialized && __nextHoursPassed <= __hoursGaps) {
-        crossingInitializedTick(__step, __tickNext);
-        removeTick(__tickNext);
+        crossingInitializedTick(__slot0, __tickNext);
       }
     }
 
-    slot0.tick = __step.tick;
-    slot0.premiumRate = __step.premiumRate;
-    slot0.emissionRate = __step.emissionRate;
-    slot0.hoursPerTick = __step.hoursPerTick;
-    slot0.totalInsuredCapital = __step.totalInsuredCapital;
-    slot0.availableCapital = __step.availableCapital;
-    slot0.lastUpdateTimestamp = block.timestamp;
+    __slot0.lastUpdateTimestamp = _dateInSecond;
+  }
+
+  function actualizing() internal {
+    Slot0 memory __slot0 = actualizingSlot0(block.timestamp);
+
+    //now, we remove crossed ticks
+    uint24 __observedTick = slot0.tick;
+    bool __initialized;
+    while (__observedTick < __slot0.tick) {
+      (__observedTick, __initialized) = tickBitmap
+        .nextInitializedTickInTheRightWithinOneWord(__observedTick);
+
+      if (__initialized && __observedTick <= __slot0.tick) {
+        removeTick(__observedTick);
+      }
+    }
+
+    slot0.tick = __slot0.tick;
+    slot0.premiumRate = __slot0.premiumRate;
+    slot0.emissionRate = __slot0.emissionRate;
+    slot0.hoursPerTick = __slot0.hoursPerTick;
+    slot0.totalInsuredCapital = __slot0.totalInsuredCapital;
+    slot0.availableCapital = __slot0.availableCapital;
+    slot0.lastUpdateTimestamp = __slot0.lastUpdateTimestamp;
 
     emit Actualizing(
       "Actualizing",
@@ -429,8 +449,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     emit WithdrawPolicy(_owner, __remainedPremium);
   }
 
-  //Thao@TODO: factoriser code comme getInfo
-  //Thao@WARN: __slot0 doit être en Ray ?
+  //__slot0 not in Ray
   function actualizingUntilGivenDate(uint256 _dateInSecond)
     public
     view
@@ -441,54 +460,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
       "Target timestamp less than last update timestamp"
     );
 
-    __slot0 = Slot0({
-      tick: slot0.tick,
-      premiumRate: slot0.premiumRate,
-      emissionRate: slot0.emissionRate,
-      hoursPerTick: slot0.hoursPerTick,
-      totalInsuredCapital: slot0.totalInsuredCapital,
-      availableCapital: slot0.availableCapital,
-      lastUpdateTimestamp: slot0.lastUpdateTimestamp
-    });
-
-    uint256 __hoursGaps = RayMath
-      .otherToRay((_dateInSecond - __slot0.lastUpdateTimestamp))
-      .rayDiv(3600000000000000000000000000000); //3600 = 60 * 60
-
-    uint256 __hoursPassed;
-
-    while (__hoursPassed < __hoursGaps) {
-      (uint24 __tickNext, bool __initialized) = tickBitmap
-        .nextInitializedTickInTheRightWithinOneWord(__slot0.tick);
-
-      uint256 __hoursStep = (__tickNext - __slot0.tick) * __slot0.hoursPerTick;
-      uint256 __nextHoursPassed = __hoursPassed + __hoursStep;
-
-      if (__nextHoursPassed < __hoursGaps) {
-        __slot0.availableCapital += (__hoursStep.rayMul(__slot0.emissionRate))
-          .rayDiv(24000000000000000000000000000);
-
-        __slot0.tick = __tickNext;
-
-        __hoursPassed = __nextHoursPassed;
-      } else {
-        __slot0.availableCapital += (__hoursGaps - __hoursPassed)
-          .rayMul(__slot0.emissionRate)
-          .rayDiv(24000000000000000000000000000);
-
-        __slot0.tick += uint24(
-          (__hoursGaps - __hoursPassed) / __slot0.hoursPerTick
-        );
-
-        __hoursPassed = __hoursGaps;
-      }
-
-      if (__initialized && __nextHoursPassed <= __hoursGaps) {
-        crossingInitializedTick(__slot0, __tickNext);
-      }
-    }
-
-    __slot0.lastUpdateTimestamp = _dateInSecond;
+    __slot0 = actualizingSlot0(_dateInSecond);
   }
 
   function getInfo(address _owner)
@@ -497,7 +469,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     existedOwner(_owner)
     returns (uint256 __remainingPremium, uint256 __remainingDay)
   {
-    Slot0 memory __slot0 = actualizingUntilGivenDate(block.timestamp);
+    Slot0 memory __slot0 = actualizingSlot0(block.timestamp);
     PremiumPosition.Info storage __position = positions.get(_owner);
 
     require(__slot0.tick < __position.lastTick, "Policy Expired");
