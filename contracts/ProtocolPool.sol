@@ -9,6 +9,15 @@ contract ProtocolPool is IProtocolPool, ERC20, PolicyCover {
   using RayMath for uint256;
   using SafeERC20 for IERC20;
 
+  struct Claim {
+    uint256 createdAt;
+    uint256 disputeId;
+    uint256 amount;
+    uint256 percentage; // RAY
+  }
+
+  Claim[] public claims;
+
   address private immutable core;
   mapping(address => uint256) private withdrawReserves;
   address public underlyingAsset;
@@ -116,8 +125,9 @@ contract ProtocolPool is IProtocolPool, ERC20, PolicyCover {
   function withdraw(
     address _account,
     uint256 _userCapital,
-    uint128 _discount
-  ) external onlyCore returns (int256 __difference) {
+    uint128 _discount,
+    uint256 _accountTimestamp
+  ) external override onlyCore returns (uint256) {
     uint256 __userCapital = RayMath.otherToRay(_userCapital);
 
     require(
@@ -136,7 +146,7 @@ contract ProtocolPool is IProtocolPool, ERC20, PolicyCover {
       string(abi.encodePacked(name(), ": use rate > 100%"))
     );
 
-    __difference = _rewardsOf(_account, __userCapital, block.timestamp);
+    int256 __difference = _rewardsOf(_account, __userCapital, block.timestamp);
 
     _burn(_account, balanceOf(_account));
     if (__difference > 0) {
@@ -153,6 +163,17 @@ contract ProtocolPool is IProtocolPool, ERC20, PolicyCover {
     } else {
       slot0.availableCapital -= uint256(int256(__userCapital) + __difference);
     }
+    //@Dev TODO check for gas when large amount of claims and when/if needed to clean
+    for (uint256 i = 0; i < claims.length; i++) {
+      if (claims[i].createdAt > _accountTimestamp) {
+        _userCapital -= claims[i].percentage * _userCapital;
+      }
+    }
+    return (
+      __difference > 0
+        ? (_userCapital + uint256(__difference))
+        : (_userCapital - uint256(-__difference))
+    );
   }
 
   function _transferToTreasury(uint256 _amount) internal {
@@ -170,6 +191,14 @@ contract ProtocolPool is IProtocolPool, ERC20, PolicyCover {
     // release funds from AAVE TO REFUND USER
     // }
     actualizing();
+    claims.push(
+      Claim(
+        block.timestamp,
+        0,
+        RayMath.otherToRay(_amount).rayDiv(slot0.availableCapital),
+        RayMath.otherToRay(_amount)
+      )
+    );
     console.log("Amount to refund : ", _amount);
     uint256 bal = IERC20(underlyingAsset).balanceOf(address(this));
     console.log("Balance Contract = ", bal);

@@ -15,8 +15,9 @@ interface IProtocolPool is IPolicyCover {
   function withdraw(
     address _account,
     uint256 _userCapital,
-    uint128 _discount
-  ) external returns (int256);
+    uint128 _discount,
+    uint256 _accountTimestamp
+  ) external returns (uint256);
 
   function releaseFunds(address _account, uint256 _amount) external;
 }
