@@ -166,7 +166,8 @@ contract Athena is ReentrancyGuard, Ownable {
   function resolveClaim(
     uint256 _policyId,
     uint256 _amount,
-    address _account
+    address _account,
+    uint256 _index
   ) external {
     require(
       msg.sender == claimManager,
@@ -249,19 +250,16 @@ contract Athena is ReentrancyGuard, Ownable {
   function committingWithdrawAll() external {
     require(
       IPositionsManager(positionsManager).balanceOf(msg.sender) > 0,
-      "No position to reserving withdraw"
+      "No position to commit withdraw"
     );
 
     uint256 _tokenId = IPositionsManager(positionsManager).tokenOfOwnerByIndex(
       msg.sender,
       0
     );
-    (
-      uint256 _liquidity,
-      uint128[] memory _protocolIds,
-      uint256 _atokens,
-      uint128 _discount
-    ) = IPositionsManager(positionsManager).positions(_tokenId);
+    (, uint128[] memory _protocolIds, , , ) = IPositionsManager(
+      positionsManager
+    ).positions(_tokenId);
 
     for (uint256 index = 0; index < _protocolIds.length; index++)
       IProtocolPool(protocolsMapping[_protocolIds[index]].deployed)
@@ -283,14 +281,11 @@ contract Athena is ReentrancyGuard, Ownable {
       uint256 liquidity,
       uint128[] memory protocolIds,
       uint256 atokens,
-      uint128 discount
+      uint128 discount,
+      uint256 createdAt
     ) = IPositionsManager(positionsManager).positions(_tokenId);
-    uint256[] memory amounts = new uint256[](protocolIds.length);
-    for (uint256 index = 0; index < protocolIds.length; index++) {
-      amounts[index] = liquidity;
-    }
     // amounts[0] = uint256(0);
-    _withdraw(amounts, protocolIds, atokens, discount);
+    _withdraw(liquidity, protocolIds, atokens, discount, createdAt);
     for (uint256 index = 0; index < protocolIds.length; index++) {
       IProtocolPool(protocolsMapping[protocolIds[index]].deployed)
         .removeCommittedWithdraw(msg.sender);
@@ -299,7 +294,7 @@ contract Athena is ReentrancyGuard, Ownable {
 
   // @Dev TODO should add selected protocols & amounts to withdraw
   function withdraw(
-    uint256[] memory _amounts,
+    uint256 _amount,
     uint128[] memory _protocolIds,
     uint256 _atokens
   ) external {
@@ -307,17 +302,18 @@ contract Athena is ReentrancyGuard, Ownable {
       IPositionsManager(positionsManager).balanceOf(msg.sender) > 0,
       "No position to withdraw"
     );
-    _withdraw(_amounts, _protocolIds, _atokens, 0);
+    _withdraw(_amount, _protocolIds, _atokens, 0, 0);
   }
 
   function _withdraw(
-    uint256[] memory _amounts,
+    uint256 _amount,
     uint128[] memory _protocolIds,
     uint256 _atokens,
-    uint128 _discount
+    uint128 _discount,
+    uint256 createdAt
   ) internal {
     // uint256 amount = IPositionsManager(positionsManager).balanceOf(msg.sender);
-    int256 __claimedAmount;
+    uint256 __claimedAmount;
     for (uint256 index = 0; index < _protocolIds.length; index++) {
       require(
         protocolsMapping[_protocolIds[index]].active == true,
@@ -328,15 +324,15 @@ contract Athena is ReentrancyGuard, Ownable {
         "Protocol locked"
       );
 
-      int256 __difference = IProtocolPool(
+      uint256 _maxCapital = IProtocolPool(
         protocolsMapping[_protocolIds[index]].deployed
-      ).withdraw(msg.sender, _amounts[index], _discount);
+      ).withdraw(msg.sender, _amount, _discount, createdAt);
 
-      if (__difference < int256(0)) __claimedAmount += __difference;
+      if (_maxCapital < _amount) __claimedAmount += _amount - _maxCapital;
     }
     // SHOULD Update if not max withdraw ?
     IPositionsManager(positionsManager).burn(msg.sender);
-    _withdrawLiquidity(_atokens, uint256(-__claimedAmount));
+    _withdrawLiquidity(_atokens, _amount - __claimedAmount);
   }
 
   function _stakeAtens(uint256 atenToStake, uint256 amount) internal {
@@ -352,7 +348,7 @@ contract Athena is ReentrancyGuard, Ownable {
     (
       uint256 liquidity,
       uint128[] memory protocolsId,
-      uint256 atokens,
+      uint256 atokens,,
 
     ) = IPositionsManager(positionsManager).positions(tokenId);
     uint128 _discount = getDiscountWithAten(liquidity);
