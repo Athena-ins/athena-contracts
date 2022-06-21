@@ -18,7 +18,6 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
   using Tick for mapping(uint24 => address[]);
   using TickBitmap for mapping(uint16 => uint256);
   using PremiumPosition for mapping(address => PremiumPosition.Info);
-  using PremiumPosition for PremiumPosition.Info;
 
   //Thao@TODO: add event expiredPolicy
   event Actualizing(
@@ -62,6 +61,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
   mapping(uint24 => address[]) internal ticks;
   mapping(uint16 => uint256) internal tickBitmap;
   mapping(address => PremiumPosition.Info) public positions;
+  //Thao@TODO: add remainingPositions and using in actualizing
 
   Formula internal f;
   Slot0 public slot0;
@@ -291,7 +291,10 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     __slot0.lastUpdateTimestamp = _dateInSecond;
   }
 
+  //Thao@TODO: actualizing only when existe policy
   function actualizing() internal {
+    //if no policy, update only timesstamp
+    //else do the reste
     Slot0 memory __slot0 = actualizingSlot0(block.timestamp);
 
     //now, we remove crossed ticks
@@ -391,23 +394,22 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
 
   function withdrawPolicy(address _owner)
     external
-    onlyCore
+    // onlyCore
     existedOwner(_owner)
   {
     actualizing();
 
-    PremiumPosition.Info storage __position = positions.get(_owner);
-    uint24 __lastTick = __position.lastTick;
+    PremiumPosition.Info memory __position = positions.get(_owner);
 
-    require(slot0.tick < __lastTick, "Policy Expired");
+    require(slot0.tick <= __position.lastTick, "Policy Expired");
 
     uint256 __ownerCurrentEmissionRate = getEmissionRate(
-      __position.getBeginEmissionRate(),
+      PremiumPosition.getBeginEmissionRate(__position),
       __position.beginPremiumRate,
       slot0.premiumRate
     );
 
-    uint256 __remainedPremium = ((__lastTick - slot0.tick) *
+    uint256 __remainedPremium = ((__position.lastTick - slot0.tick) *
       slot0.hoursPerTick.rayMul(__ownerCurrentEmissionRate)) / 24;
 
     uint256 __newPremiumRate = getPremiumRate(
@@ -436,14 +438,14 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
 
     slot0.premiumRate = __newPremiumRate;
 
-    if (ticks.getOwnerNumber(__lastTick) > 1) {
-      ticks.removeOwner(__position.ownerIndex, __lastTick);
+    if (ticks.getOwnerNumber(__position.lastTick) > 1) {
+      ticks.removeOwner(__position.ownerIndex, __position.lastTick);
       positions.replaceAndRemoveOwner(
         _owner,
-        ticks.getLastOwnerInTick(__lastTick)
+        ticks.getLastOwnerInTick(__position.lastTick)
       );
     } else {
-      removeTick(__lastTick);
+      removeTick(__position.lastTick);
     }
 
     emit WithdrawPolicy(_owner, __remainedPremium);
@@ -470,12 +472,16 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     returns (uint256 __remainingPremium, uint256 __remainingDay)
   {
     Slot0 memory __slot0 = actualizingSlot0(block.timestamp);
-    PremiumPosition.Info storage __position = positions.get(_owner);
+    PremiumPosition.Info memory __position = positions.get(_owner);
 
-    require(__slot0.tick < __position.lastTick, "Policy Expired");
+    require(__slot0.tick <= __position.lastTick, "Policy Expired");
 
-    uint256 __ownerCurrentEmissionRate = getEmissionRate(
-      __position.getBeginEmissionRate(),
+    uint256 __beginOwnerEmissionRate = PremiumPosition.getBeginEmissionRate(
+      __position
+    );
+
+    uint256 __currentOwnerEmissionRate = getEmissionRate(
+      __beginOwnerEmissionRate,
       __position.beginPremiumRate,
       __slot0.premiumRate
     );
@@ -492,7 +498,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
       uint256 __hoursPassed = (__tick - __slot0.tick) * __slot0.hoursPerTick;
 
       __remainingPremium += RayMath.rayToOther(
-        __hoursPassed.rayMul(__ownerCurrentEmissionRate).rayDiv(
+        __hoursPassed.rayMul(__currentOwnerEmissionRate).rayDiv(
           24000000000000000000000000000
         )
       );
@@ -506,8 +512,8 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
       if (__initialized && __tickNext < __position.lastTick) {
         crossingInitializedTick(__slot0, __tickNext);
 
-        __ownerCurrentEmissionRate = getEmissionRate(
-          __position.getBeginEmissionRate(),
+        __currentOwnerEmissionRate = getEmissionRate(
+          __beginOwnerEmissionRate,
           __position.beginPremiumRate,
           __slot0.premiumRate
         );

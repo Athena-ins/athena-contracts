@@ -6,7 +6,6 @@ import "./PremiumPosition.sol";
 library Tick {
   using RayMath for uint256;
   using PremiumPosition for mapping(address => PremiumPosition.Info);
-  using PremiumPosition for PremiumPosition.Info;
 
   function addOwner(
     mapping(uint24 => address[]) storage self,
@@ -60,10 +59,10 @@ library Tick {
   {
     address[] memory owners = self[tick];
     for (uint256 i = 0; i < owners.length; i++) {
-      PremiumPosition.Info storage position = positions.get(owners[i]);
+      PremiumPosition.Info memory position = positions.get(owners[i]);
       capitalToRemove += position.capitalInsured;
-      emissionRateToRemove += position
-        .getBeginEmissionRate()
+      emissionRateToRemove += PremiumPosition
+        .getBeginEmissionRate(position)
         .rayMul(currentUseRate)
         .rayDiv(position.beginPremiumRate);
     }
