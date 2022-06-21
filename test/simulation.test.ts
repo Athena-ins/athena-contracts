@@ -911,7 +911,7 @@ describe("Simulation", () => {
     });
 
     describe("Should view info of PT1 after 10 days and arriving of PT2", () => {
-      it("Should get info", async () => {
+      it("Should get info via protocol contract", async () => {
         const protocolContract = await getProtocolContract(
           policyTaker1,
           PROTOCOL_ZERO
@@ -931,6 +931,92 @@ describe("Simulation", () => {
       });
     });
 
-    //Thao@TODO: rewardsOf and withdraw
+    describe("Should withdraw policy of PT1 after 1 days arriving of PT2", () => {
+      it("Should withdraw via protocol contract", async () => {
+        //Thao@TODO: time to reserved withdraw ?
+        const protocolContract = await getProtocolContract(
+          policyTaker1,
+          PROTOCOL_ZERO
+        );
+
+        await setNextBlockTimestamp(1 * 24 * 60 * 60);
+        const tx = await protocolContract.withdrawPolicy(
+          await policyTaker1.getAddress()
+        );
+        const result = await tx.wait();
+        const decodedData = result.events[1].decode(result.events[1].data);
+        // console.log(decodedData);
+
+        expect(decodedData.owner).to.be.equal(await policyTaker1.getAddress());
+        expect(decodedData.remainedAmount).to.be.equal(
+          "2121000000000000000000000000000"
+        );
+      });
+
+      it("Should check slot0 after PT1 quit", async () => {
+        const protocolContract = await getProtocolContract(
+          owner,
+          PROTOCOL_ZERO
+        );
+
+        const slot0 = await protocolContract.slot0();
+
+        expect(slot0.tick).to.be.equal(58);
+        expect(slot0.premiumRate).to.be.equal("2999737026962766351176722275");
+        expect(slot0.emissionRate).to.be.equal("17998422161776598107060333650");
+        expect(slot0.hoursPerTick).to.be.equal("8000701322908961547247363358");
+        expect(slot0.totalInsuredCapital).to.be.equal(
+          "219000000000000000000000000000000"
+        );
+        expect(slot0.availableCapital).to.be.equal(
+          "730095997781004301016354820151780"
+        );
+        expect(slot0.lastUpdateTimestamp).to.be.equal(currentTime);
+      });
+    });
+
+    describe("Should withdraw policy of PT2 after 10 days withdrawed of PT1", () => {
+      it("Should withdraw via protocol contract", async () => {
+        //Thao@TODO: time to reserved withdraw ?
+        const protocolContract = await getProtocolContract(
+          policyTaker1,
+          PROTOCOL_ZERO
+        );
+
+        await setNextBlockTimestamp(10 * 24 * 60 * 60);
+        const tx = await protocolContract.withdrawPolicy(
+          await policyTaker2.getAddress()
+        );
+        const result = await tx.wait();
+        const decodedData = result.events[1].decode(result.events[1].data);
+        // console.log(decodedData);
+
+        expect(decodedData.owner).to.be.equal(await policyTaker2.getAddress());
+        expect(decodedData.remainedAmount).to.be.equal(
+          "8567999999999999999999999999762"
+        );
+      });
+
+      it("Should check slot0 after PT2 quit", async () => {
+        const protocolContract = await getProtocolContract(
+          owner,
+          PROTOCOL_ZERO
+        );
+
+        const slot0 = await protocolContract.slot0();
+
+        expect(slot0.tick).to.be.equal(87);
+        expect(slot0.premiumRate).to.be.equal("1000000000000000000000000000");
+        expect(slot0.emissionRate).to.be.equal("0");
+        expect(slot0.hoursPerTick).to.be.equal("23999999999999999999999999999");
+        expect(slot0.totalInsuredCapital).to.be.equal("0");
+        expect(slot0.availableCapital).to.be.equal(
+          "730275982002622066997425423488280"
+        );
+        expect(slot0.lastUpdateTimestamp).to.be.equal(currentTime);
+      });
+    });
+
+    //Thao@TODO: rewardsOf and withdraw position
   });
 });
