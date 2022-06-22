@@ -105,7 +105,7 @@ contract ProtocolPool is IProtocolPool, ERC20, PolicyCover {
 
   //Thao@Dev: cette fct utilise à intérieur du contrat
   //tout les public ou external fct va convertir Ray en decimal et inversement
-  //@param _useCapital est en Ray
+  //@param _userCapital est en Ray
   //@return __redeem est en Ray et 100%
   //Thao@NOTE: il faut changer le nom de fct
   function _rewardsOf(
@@ -192,7 +192,7 @@ contract ProtocolPool is IProtocolPool, ERC20, PolicyCover {
       );
     }
 
-    //Thao@TODO: à vérifier ici jusqu'à la fin
+    //Thao@TODO: à VERIFIER ici jusqu'à la fin
     slot0.availableCapital -= uint256(int256(__userCapital) + __difference);
 
     //@Dev TODO check for gas when large amount of claims and when/if needed to clean
@@ -213,7 +213,6 @@ contract ProtocolPool is IProtocolPool, ERC20, PolicyCover {
     IERC20(underlyingAsset).safeTransfer(core, _amount);
   }
 
-  //Thao@TODO: pas sure de marcher comme il faut
   function releaseFunds(address _account, uint256 _amount)
     external
     override
