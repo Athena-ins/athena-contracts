@@ -3,6 +3,7 @@ import hre from "hardhat";
 import weth_abi from "../abis/weth.json";
 import ico_abi from "../artifacts/contracts/ICO/AthenaICO.sol/AthenaICO.json";
 import dotenv from "dotenv";
+import generateEtherAccountsForMnemonic from "./generator";
 
 dotenv.config();
 
@@ -21,26 +22,47 @@ const main = async () => {
   // new ethers.providers.JsonRpcProvider(
   //  // WARNING --- process.env.MAINNET_URL
   // );
-  console.log("Bal test", wallet.address);
-  console.log("Bal test", await provider.getBalance(wallet.address));
+  // console.log("Bal test", wallet.address);
+  // console.log("Bal test", await provider.getBalance(wallet.address));
 
-  const WETH_Contract = new ethers.Contract(
-    WETH_RINKEBY_ADDRESS,
-    weth_abi,
-    wallet.connect(provider)
+  // const WETH_Contract = new ethers.Contract(
+  //   WETH_RINKEBY_ADDRESS,
+  //   weth_abi,
+  //   wallet.connect(provider)
+  // );
+
+  // const bal = await WETH_Contract.balanceOf(wallet.address);
+
+  // console.log("Balance : ", ethers.utils.formatEther(bal));
+
+  // const tx = await WETH_Contract.withdraw(
+  //   bal
+  //   // ethers.BigNumber.from(2).pow(256).sub(1)
+  // ); //ethers.utils.parseEther("9.9994")
+
+  // console.log("TX : ", tx.hash);
+  // await tx.wait();
+
+  /**
+   * RECOVER Wallets
+   *
+  const accounts = generateEtherAccountsForMnemonic(
+    "SEEED HERE",
+    10
   );
 
-  const bal = await WETH_Contract.balanceOf(wallet.address);
+  for (let index = 0; index < accounts.length; index++) {
+    const element = accounts[index];
+    console.log("Address : ", element);
+    console.log(
+      "Balance : ",
+      await hre.ethers.provider.getBalance("0x" + element.address)
+    );
+    console.log("_-_-_--___----___----");
+  }
 
-  console.log("Balance : ", ethers.utils.formatEther(bal));
-
-  const tx = await WETH_Contract.withdraw(
-    bal
-    // ethers.BigNumber.from(2).pow(256).sub(1)
-  ); //ethers.utils.parseEther("9.9994")
-
-  console.log("TX : ", tx.hash);
-  await tx.wait();
+   * 
+   */
 
   // const allowance = await WETH_Contract.allowance(
   //   "0x5AA3393e361C2EB342408559309b3e873CD876d6",
