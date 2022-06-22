@@ -19,8 +19,11 @@ contract ProtocolPool is IProtocolPool, ERC20, PolicyCover {
   Claim[] public claims;
 
   address private immutable core;
-  mapping(address => uint256) private withdrawReserves;
   address public underlyingAsset;
+
+  mapping(address => uint256) private withdrawReserves;
+  mapping(address => uint256) public lastActionsTimestamp;
+  mapping(uint128 => uint256) public intersectingAmounts;
 
   // @Dev notice rule
   // external and public functions should use Decimals and convert to RAY, other functions should already use RAY
@@ -158,17 +161,18 @@ contract ProtocolPool is IProtocolPool, ERC20, PolicyCover {
       _transferToTreasury(
         RayMath.rayToOther((uint256(__difference) * _discount) / 1000)
       );
-
-      slot0.availableCapital -= __userCapital + uint256(__difference);
-    } else {
-      slot0.availableCapital -= uint256(int256(__userCapital) + __difference);
     }
+
+    //Thao@TODO: à vérifier ici jusqu'à la fin
+    slot0.availableCapital -= uint256(int256(__userCapital) + __difference);
+
     //@Dev TODO check for gas when large amount of claims and when/if needed to clean
     for (uint256 i = 0; i < claims.length; i++) {
       if (claims[i].createdAt > _accountTimestamp) {
-        _userCapital -= claims[i].percentage * _userCapital;
+        __userCapital -= claims[i].percentage * __userCapital;
       }
     }
+
     return (
       __difference > 0
         ? (_userCapital + uint256(__difference))
@@ -180,7 +184,7 @@ contract ProtocolPool is IProtocolPool, ERC20, PolicyCover {
     IERC20(underlyingAsset).safeTransfer(core, _amount);
   }
 
-  //THao@TODO: pas sure de marcher comme il faut
+  //Thao@TODO: pas sure de marcher comme il faut
   function releaseFunds(address _account, uint256 _amount)
     external
     override
@@ -206,5 +210,28 @@ contract ProtocolPool is IProtocolPool, ERC20, PolicyCover {
     IERC20(underlyingAsset).safeTransfer(_account, _amount);
     slot0.availableCapital -= RayMath.otherToRay(_amount);
     //Thao@TODO: recalculer slot0 car availableCapital est changé
+  }
+
+  function addClaim(Claim calldata _newClaim) external onlyCore {
+    claims.push(_newClaim);
+  }
+
+  function addIntersectingAmount(
+    uint256 _amount,
+    uint128 _protocolId,
+    bool _isAdded
+  ) external onlyCore {
+    intersectingAmounts[_protocolId] = _isAdded
+      ? intersectingAmounts[_protocolId] + _amount
+      : intersectingAmounts[_protocolId] - _amount;
+  }
+
+  function getIntersectingAmountRatio(uint128 _protocolId)
+    external
+    view
+    returns (uint256)
+  {
+    //Thao@QUESTION: capital est calculé sur un seul pool ou plusieurs pools ?
+    return intersectingAmounts[_protocolId].rayDiv(slot0.availableCapital);
   }
 }
