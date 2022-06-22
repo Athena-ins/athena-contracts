@@ -55,7 +55,11 @@ library Tick {
   )
     internal
     view
-    returns (uint256 capitalToRemove, uint256 emissionRateToRemove)
+    returns (
+      uint256 numberPolicyToRemove,
+      uint256 capitalToRemove,
+      uint256 emissionRateToRemove
+    )
   {
     address[] memory owners = self[tick];
     for (uint256 i = 0; i < owners.length; i++) {
@@ -66,5 +70,7 @@ library Tick {
         .rayMul(currentUseRate)
         .rayDiv(position.beginPremiumRate);
     }
+
+    numberPolicyToRemove = owners.length;
   }
 }

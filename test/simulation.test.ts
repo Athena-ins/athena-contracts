@@ -119,6 +119,8 @@ describe("Simulation", () => {
       hoursPerTick: slot0.hoursPerTick.toString(),
       totalInsuredCapital: slot0.totalInsuredCapital.toString(),
       availableCapital: slot0.availableCapital.toString(),
+      premiumSpent: slot0.premiumSpent.toString(),
+      remainingPolicy: slot0.remainingPolicy.toString(),
       lastUpdateTimestamp: slot0.lastUpdateTimestamp.toString(),
     };
 
@@ -227,7 +229,7 @@ describe("Simulation", () => {
         expect(protocol.name).to.equal("Test protocol 0");
       });
 
-      it("Should check slot0 in protocol 0", async () => {
+      it("Should check slot0 in Protocol 0", async () => {
         const protocolContract = await getProtocolContract(
           owner,
           PROTOCOL_ZERO
@@ -240,6 +242,8 @@ describe("Simulation", () => {
         expect(slot0.hoursPerTick).to.be.equal("24000000000000000000000000000");
         expect(slot0.totalInsuredCapital).to.be.equal("0");
         expect(slot0.availableCapital).to.be.equal("0");
+        expect(slot0.premiumSpent).to.be.equal("0");
+        expect(slot0.remainingPolicy).to.be.equal("0");
         expect(slot0.lastUpdateTimestamp).to.be.equal(currentTime);
       });
     });
@@ -416,7 +420,7 @@ describe("Simulation", () => {
         );
         const slot0 = await protocolContract.slot0();
 
-        expect(slot0.tick).to.be.equal(5);
+        expect(slot0.tick).to.be.equal(0);
         expect(slot0.premiumRate).to.be.equal("1000000000000000000000000000");
         expect(slot0.emissionRate).to.be.equal("0");
         expect(slot0.hoursPerTick).to.be.equal("24000000000000000000000000000");
@@ -424,6 +428,8 @@ describe("Simulation", () => {
         expect(slot0.availableCapital).to.be.equal(
           "400000000000000000000000000000000"
         );
+        expect(slot0.premiumSpent).to.be.equal("0");
+        expect(slot0.remainingPolicy).to.be.equal("0");
         expect(slot0.lastUpdateTimestamp).to.be.equal(currentTime);
 
         // console.log(
@@ -545,7 +551,7 @@ describe("Simulation", () => {
         );
         const slot0 = await protocolContract.slot0();
 
-        expect(slot0.tick).to.be.equal(15);
+        expect(slot0.tick).to.be.equal(0);
         expect(slot0.premiumRate).to.be.equal("1000000000000000000000000000");
         expect(slot0.emissionRate).to.be.equal("0");
         expect(slot0.hoursPerTick).to.be.equal("24000000000000000000000000000");
@@ -553,6 +559,8 @@ describe("Simulation", () => {
         expect(slot0.availableCapital).to.be.equal(
           "730000000000000000000000000000000"
         );
+        expect(slot0.premiumSpent).to.be.equal("0");
+        expect(slot0.remainingPolicy).to.be.equal("0");
         expect(slot0.lastUpdateTimestamp).to.be.equal(currentTime);
 
         // console.log(
@@ -654,7 +662,7 @@ describe("Simulation", () => {
           "2000000000000000000000000000"
         );
         expect(policyInfo.ownerIndex).to.be.equal("0");
-        expect(policyInfo.lastTick).to.be.equal(765);
+        expect(policyInfo.lastTick).to.be.equal(730);
 
         // console.log(
         //   "Simulate user actions >>> PT1 >> check policy info >>> policyInfo:",
@@ -672,8 +680,8 @@ describe("Simulation", () => {
           await policyTaker1.getAddress()
         );
 
-        expect(response.__remainingPremium).to.be.equal("2190");
-        expect(response.__remainingDay).to.be.equal("365");
+        expect(response.__remainingPremium).to.be.equal(2190);
+        expect(response.__remainingDay).to.be.equal(365);
 
         // console.log( "Simulate user actions >>> PT1 >> get info >>> response:", response);
       });
@@ -685,7 +693,7 @@ describe("Simulation", () => {
         );
         const slot0 = await protocolContract.slot0();
 
-        expect(slot0.tick).to.be.equal(35);
+        expect(slot0.tick).to.be.equal(0);
         expect(slot0.premiumRate).to.be.equal("2000000000000000000000000000");
         expect(slot0.emissionRate).to.be.equal("6000000000000000000000000000");
         expect(slot0.hoursPerTick).to.be.equal("12000000000000000000000000000");
@@ -695,6 +703,8 @@ describe("Simulation", () => {
         expect(slot0.availableCapital).to.be.equal(
           "730000000000000000000000000000000"
         );
+        expect(slot0.premiumSpent).to.be.equal("0");
+        expect(slot0.remainingPolicy).to.be.equal("1");
         expect(slot0.lastUpdateTimestamp).to.be.equal(currentTime);
 
         // console.log(
@@ -791,10 +801,10 @@ describe("Simulation", () => {
           "219000000000000000000000000000000"
         );
         expect(policyInfo.beginPremiumRate).to.be.equal(
-          "3999753444922335150535572420"
+          "4000000000000000000000000000"
         );
         expect(policyInfo.ownerIndex).to.be.equal("0");
-        expect(policyInfo.lastTick).to.be.equal(1515);
+        expect(policyInfo.lastTick).to.be.equal(1480);
 
         // console.log(
         //   "Simulate user actions >>> PT2 >> check policy info >>> policyInfo:",
@@ -814,7 +824,7 @@ describe("Simulation", () => {
 
         expect(response.__remainingPremium).to.be.equal("8760");
         //remainingDay == 428 and not 365 because of expired policy of PT1
-        expect(response.__remainingDay).to.be.equal("428");
+        expect(response.__remainingDay).to.be.equal("427");
 
         // console.log( "Simulate user actions >>> PT2 >> get info >>> response:", response);
       });
@@ -826,16 +836,18 @@ describe("Simulation", () => {
         );
         const slot0 = await protocolContract.slot0();
 
-        expect(slot0.tick).to.be.equal(55);
-        expect(slot0.premiumRate).to.be.equal("3999753444922335150535572420");
-        expect(slot0.emissionRate).to.be.equal("35997781004301016354820151780");
-        expect(slot0.hoursPerTick).to.be.equal("6000369855413929850756491303");
+        expect(slot0.tick).to.be.equal(20);
+        expect(slot0.premiumRate).to.be.equal("4000000000000000000000000000");
+        expect(slot0.emissionRate).to.be.equal("36000000000000000000000000000");
+        expect(slot0.hoursPerTick).to.be.equal("6000000000000000000000000000");
         expect(slot0.totalInsuredCapital).to.be.equal(
           "328500000000000000000000000000000"
         );
         expect(slot0.availableCapital).to.be.equal(
-          "730060000000000000000000000000000"
+          "730000000000000000000000000000000"
         );
+        expect(slot0.premiumSpent).to.be.equal("60000000000000000000000000000");
+        expect(slot0.remainingPolicy).to.be.equal("2");
         expect(slot0.lastUpdateTimestamp).to.be.equal(currentTime);
 
         // console.log(
@@ -887,24 +899,78 @@ describe("Simulation", () => {
           currentTime + 10 * 24 * 60 * 60
         );
 
-        expect(vSlot0.tick).to.be.equal(94);
-        expect(vSlot0.premiumRate).to.be.equal("3999753444922335150535572420");
-        expect(vSlot0.emissionRate).to.be.equal(
-          "35997781004301016354820151780"
-        );
-        expect(vSlot0.hoursPerTick).to.be.equal("6000369855413929850756491303");
-        expect(vSlot0.totalInsuredCapital).to.be.equal(
-          "328500000000000000000000000000000"
-        );
-        expect(vSlot0.availableCapital).to.be.equal(
-          "730419977810043010163548201517800"
-        );
+        expect(vSlot0.tick).to.be.equal(60);
+        expect(vSlot0.premiumRate).to.be.equal(4);
+        expect(vSlot0.emissionRate).to.be.equal(36);
+        expect(vSlot0.hoursPerTick).to.be.equal(6);
+        expect(vSlot0.totalInsuredCapital).to.be.equal(328500);
+        expect(vSlot0.availableCapital).to.be.equal(730000);
+        expect(vSlot0.premiumSpent).to.be.equal(420);
+        expect(vSlot0.remainingPolicy).to.be.equal(2);
         expect(vSlot0.lastUpdateTimestamp).to.be.equal(
           currentTime + 10 * 24 * 60 * 60
         );
 
         // console.log(
         //   "Simulate user actions >>> actualize view after 10 days >>> vslot0:",
+        //   getSlot0Info(vSlot0)
+        // );
+      });
+
+      it("Should get vSlot0 after 178 days", async () => {
+        const protocolContract = await getProtocolContract(
+          owner,
+          PROTOCOL_ZERO
+        );
+
+        const days = 178;
+        const vSlot0 = await protocolContract.actualizingUntilGivenDate(
+          currentTime + days * 24 * 60 * 60
+        );
+
+        expect(vSlot0.tick).to.be.equal(731);
+        expect(vSlot0.premiumRate).to.be.equal(3);
+        expect(vSlot0.emissionRate).to.be.equal(18);
+        expect(vSlot0.hoursPerTick).to.be.equal(8);
+        expect(vSlot0.totalInsuredCapital).to.be.equal(219000);
+        expect(vSlot0.availableCapital).to.be.equal(730000);
+        expect(vSlot0.premiumSpent).to.be.equal(6459); //Thao@TODO: check why ???
+        expect(vSlot0.remainingPolicy).to.be.equal(1);
+        expect(vSlot0.lastUpdateTimestamp).to.be.equal(
+          currentTime + days * 24 * 60 * 60
+        );
+
+        // console.log(
+        //   "Simulate user actions >>> actualize view after 178 days >>> vslot0:",
+        //   getSlot0Info(vSlot0)
+        // );
+      });
+
+      it("Should get vSlot0 after 428 days", async () => {
+        const protocolContract = await getProtocolContract(
+          owner,
+          PROTOCOL_ZERO
+        );
+
+        const days = 428;
+        const vSlot0 = await protocolContract.actualizingUntilGivenDate(
+          currentTime + days * 24 * 60 * 60
+        );
+
+        expect(vSlot0.tick).to.be.equal(1480);
+        expect(vSlot0.premiumRate).to.be.equal(1);
+        expect(vSlot0.emissionRate).to.be.equal(0);
+        expect(vSlot0.hoursPerTick).to.be.equal(24);
+        expect(vSlot0.totalInsuredCapital).to.be.equal(0);
+        expect(vSlot0.availableCapital).to.be.equal(730000);
+        expect(vSlot0.premiumSpent).to.be.equal(10950);
+        expect(vSlot0.remainingPolicy).to.be.equal(0);
+        expect(vSlot0.lastUpdateTimestamp).to.be.equal(
+          currentTime + days * 24 * 60 * 60
+        );
+
+        // console.log(
+        //   "Simulate user actions >>> actualize view after 428 days >>> vslot0:",
         //   getSlot0Info(vSlot0)
         // );
       });
@@ -949,7 +1015,7 @@ describe("Simulation", () => {
 
         expect(decodedData.owner).to.be.equal(await policyTaker1.getAddress());
         expect(decodedData.remainedAmount).to.be.equal(
-          "2121000000000000000000000000000"
+          "2118000000000000000000000000000"
         );
       });
 
@@ -961,16 +1027,18 @@ describe("Simulation", () => {
 
         const slot0 = await protocolContract.slot0();
 
-        expect(slot0.tick).to.be.equal(58);
-        expect(slot0.premiumRate).to.be.equal("2999737026962766351176722275");
-        expect(slot0.emissionRate).to.be.equal("17998422161776598107060333650");
-        expect(slot0.hoursPerTick).to.be.equal("8000701322908961547247363358");
+        expect(slot0.tick).to.be.equal(24);
+        expect(slot0.premiumRate).to.be.equal("3000000000000000000000000000");
+        expect(slot0.emissionRate).to.be.equal("18000000000000000000000000000");
+        expect(slot0.hoursPerTick).to.be.equal("8000000000000000000000000000");
         expect(slot0.totalInsuredCapital).to.be.equal(
           "219000000000000000000000000000000"
         );
         expect(slot0.availableCapital).to.be.equal(
-          "730095997781004301016354820151780"
+          "730000000000000000000000000000000"
         );
+        expect(slot0.premiumSpent).to.be.equal("96000000000000000000000000000");
+        expect(slot0.remainingPolicy).to.be.equal(1);
         expect(slot0.lastUpdateTimestamp).to.be.equal(currentTime);
       });
     });
@@ -993,7 +1061,7 @@ describe("Simulation", () => {
 
         expect(decodedData.owner).to.be.equal(await policyTaker2.getAddress());
         expect(decodedData.remainedAmount).to.be.equal(
-          "8567999999999999999999999999762"
+          "8556000000000000000000000000000"
         );
       });
 
@@ -1005,14 +1073,18 @@ describe("Simulation", () => {
 
         const slot0 = await protocolContract.slot0();
 
-        expect(slot0.tick).to.be.equal(87);
+        expect(slot0.tick).to.be.equal(54);
         expect(slot0.premiumRate).to.be.equal("1000000000000000000000000000");
         expect(slot0.emissionRate).to.be.equal("0");
-        expect(slot0.hoursPerTick).to.be.equal("23999999999999999999999999999");
+        expect(slot0.hoursPerTick).to.be.equal("24000000000000000000000000000");
         expect(slot0.totalInsuredCapital).to.be.equal("0");
         expect(slot0.availableCapital).to.be.equal(
-          "730275982002622066997425423488280"
+          "730000000000000000000000000000000"
         );
+        expect(slot0.premiumSpent).to.be.equal(
+          "276000000000000000000000000000"
+        );
+        expect(slot0.remainingPolicy).to.be.equal(0);
         expect(slot0.lastUpdateTimestamp).to.be.equal(currentTime);
       });
     });
