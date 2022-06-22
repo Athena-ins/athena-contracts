@@ -10,7 +10,8 @@ interface IPositionsManager is IERC721Enumerable {
       uint256 liquidity,
       uint128[] memory protocolsId,
       uint256 atokens,
-      uint128 discount
+      uint128 discount,
+      uint256 createdAt
     );
 
   function mint(

@@ -37,15 +37,15 @@ library PremiumPosition {
     delete self[owner];
   }
 
-  function getBeginEmissionRate(PremiumPosition.Info storage self)
+  function getBeginEmissionRate(PremiumPosition.Info memory positionInfo)
     internal
-    view
+    pure
     returns (uint256)
   {
     return
-      self.capitalInsured.rayMul(self.beginPremiumRate).rayDiv(
+      positionInfo.capitalInsured.rayMul(positionInfo.beginPremiumRate).rayDiv(
         36500000000000000000000000000000
-      ); //36500000000000000000000000000000 = 100 * 365 * 1e27
+      );
   }
 
   function hasOwner(

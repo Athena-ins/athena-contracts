@@ -606,7 +606,7 @@ describe("Position Manager", function () {
 
       const rewardsUser3 = await protocolContract
         .connect(user3)
-        .rewardsOf(user3.getAddress(), capitalDeposit);
+        .rewardsOf(user3.getAddress(), capitalDeposit, 0);
 
       expect(rewardsUser3).to.not.equal(BN(0));
       expect(rewardsUser3.gte(19)).to.be.true;
@@ -654,7 +654,7 @@ describe("Position Manager", function () {
 
       const rewardsUser2 = await protocolContract0
         .connect(user2)
-        .rewardsOf(user2.getAddress(), nftUser2.liquidity);
+        .rewardsOf(user2.getAddress(), nftUser2.liquidity, 0);
       console.log("Rewards user 2 : ", rewardsUser2.toString());
 
       expect(rewardsUser2.toNumber()).to.be.greaterThanOrEqual(1);
