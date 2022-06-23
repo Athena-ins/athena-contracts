@@ -56,7 +56,7 @@ library Tick {
     internal
     view
     returns (
-      uint256 numberPolicyToRemove,
+      uint256 policiesToRemove,
       uint256 capitalToRemove,
       uint256 emissionRateToRemove
     )
@@ -71,6 +71,6 @@ library Tick {
         .rayDiv(position.beginPremiumRate);
     }
 
-    numberPolicyToRemove = owners.length;
+    policiesToRemove = owners.length;
   }
 }

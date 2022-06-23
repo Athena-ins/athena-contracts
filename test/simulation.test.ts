@@ -120,7 +120,7 @@ describe("Simulation", () => {
       totalInsuredCapital: slot0.totalInsuredCapital.toString(),
       availableCapital: slot0.availableCapital.toString(),
       premiumSpent: slot0.premiumSpent.toString(),
-      remainingPolicy: slot0.remainingPolicy.toString(),
+      remainingPolicies: slot0.remainingPolicies.toString(),
       lastUpdateTimestamp: slot0.lastUpdateTimestamp.toString(),
     };
 
@@ -243,7 +243,7 @@ describe("Simulation", () => {
         expect(slot0.totalInsuredCapital).to.be.equal("0");
         expect(slot0.availableCapital).to.be.equal("0");
         expect(slot0.premiumSpent).to.be.equal("0");
-        expect(slot0.remainingPolicy).to.be.equal("0");
+        expect(slot0.remainingPolicies).to.be.equal("0");
         expect(slot0.lastUpdateTimestamp).to.be.equal(currentTime);
       });
     });
@@ -429,7 +429,7 @@ describe("Simulation", () => {
           "400000000000000000000000000000000"
         );
         expect(slot0.premiumSpent).to.be.equal("0");
-        expect(slot0.remainingPolicy).to.be.equal("0");
+        expect(slot0.remainingPolicies).to.be.equal("0");
         expect(slot0.lastUpdateTimestamp).to.be.equal(currentTime);
 
         // console.log(
@@ -560,7 +560,7 @@ describe("Simulation", () => {
           "730000000000000000000000000000000"
         );
         expect(slot0.premiumSpent).to.be.equal("0");
-        expect(slot0.remainingPolicy).to.be.equal("0");
+        expect(slot0.remainingPolicies).to.be.equal("0");
         expect(slot0.lastUpdateTimestamp).to.be.equal(currentTime);
 
         // console.log(
@@ -704,7 +704,7 @@ describe("Simulation", () => {
           "730000000000000000000000000000000"
         );
         expect(slot0.premiumSpent).to.be.equal("0");
-        expect(slot0.remainingPolicy).to.be.equal("1");
+        expect(slot0.remainingPolicies).to.be.equal("1");
         expect(slot0.lastUpdateTimestamp).to.be.equal(currentTime);
 
         // console.log(
@@ -847,7 +847,7 @@ describe("Simulation", () => {
           "730000000000000000000000000000000"
         );
         expect(slot0.premiumSpent).to.be.equal("60000000000000000000000000000");
-        expect(slot0.remainingPolicy).to.be.equal("2");
+        expect(slot0.remainingPolicies).to.be.equal("2");
         expect(slot0.lastUpdateTimestamp).to.be.equal(currentTime);
 
         // console.log(
@@ -906,7 +906,7 @@ describe("Simulation", () => {
         expect(vSlot0.totalInsuredCapital).to.be.equal(328500);
         expect(vSlot0.availableCapital).to.be.equal(730000);
         expect(vSlot0.premiumSpent).to.be.equal(420);
-        expect(vSlot0.remainingPolicy).to.be.equal(2);
+        expect(vSlot0.remainingPolicies).to.be.equal(2);
         expect(vSlot0.lastUpdateTimestamp).to.be.equal(
           currentTime + 10 * 24 * 60 * 60
         );
@@ -935,7 +935,7 @@ describe("Simulation", () => {
         expect(vSlot0.totalInsuredCapital).to.be.equal(219000);
         expect(vSlot0.availableCapital).to.be.equal(730000);
         expect(vSlot0.premiumSpent).to.be.equal(6459); //Thao@TODO: check why ???
-        expect(vSlot0.remainingPolicy).to.be.equal(1);
+        expect(vSlot0.remainingPolicies).to.be.equal(1);
         expect(vSlot0.lastUpdateTimestamp).to.be.equal(
           currentTime + days * 24 * 60 * 60
         );
@@ -964,7 +964,7 @@ describe("Simulation", () => {
         expect(vSlot0.totalInsuredCapital).to.be.equal(0);
         expect(vSlot0.availableCapital).to.be.equal(730000);
         expect(vSlot0.premiumSpent).to.be.equal(10950);
-        expect(vSlot0.remainingPolicy).to.be.equal(0);
+        expect(vSlot0.remainingPolicies).to.be.equal(0);
         expect(vSlot0.lastUpdateTimestamp).to.be.equal(
           currentTime + days * 24 * 60 * 60
         );
@@ -1038,7 +1038,7 @@ describe("Simulation", () => {
           "730000000000000000000000000000000"
         );
         expect(slot0.premiumSpent).to.be.equal("96000000000000000000000000000");
-        expect(slot0.remainingPolicy).to.be.equal(1);
+        expect(slot0.remainingPolicies).to.be.equal(1);
         expect(slot0.lastUpdateTimestamp).to.be.equal(currentTime);
       });
     });
@@ -1084,7 +1084,7 @@ describe("Simulation", () => {
         expect(slot0.premiumSpent).to.be.equal(
           "276000000000000000000000000000"
         );
-        expect(slot0.remainingPolicy).to.be.equal(0);
+        expect(slot0.remainingPolicies).to.be.equal(0);
         expect(slot0.lastUpdateTimestamp).to.be.equal(currentTime);
       });
     });

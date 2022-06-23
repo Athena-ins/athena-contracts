@@ -2,14 +2,12 @@
 pragma solidity ^0.8;
 
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-
-import "./interfaces/IPolicyCover.sol";
 
 import "./libraries/RayMath.sol";
 import "./libraries/Tick.sol";
 import "./libraries/TickBitmap.sol";
 import "./libraries/PremiumPosition.sol";
+import "./interfaces/IPolicyCover.sol";
 
 import "hardhat/console.sol";
 
@@ -18,39 +16,6 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
   using Tick for mapping(uint24 => address[]);
   using TickBitmap for mapping(uint16 => uint256);
   using PremiumPosition for mapping(address => PremiumPosition.Info);
-
-  //Thao@TODO: add event expiredPolicy
-  event Actualizing(
-    uint24 tick,
-    uint256 useRate,
-    uint256 emissionRate,
-    uint256 hoursPerTick,
-    uint256 availableCapital,
-    uint256 premiumSpent,
-    uint256 remainingPolicy,
-    uint256 lastUpdateTimestamp
-  );
-  event BuyPolicy(address owner, uint256 premium, uint256 capitalInsured);
-  event WithdrawPolicy(address owner, uint256 remainedAmount);
-
-  struct Slot0 {
-    uint24 tick;
-    uint256 premiumRate; //RAY
-    uint256 emissionRate; //RAY
-    uint256 hoursPerTick; //RAY
-    uint256 totalInsuredCapital; //RAY
-    uint256 availableCapital; //RAY
-    uint256 premiumSpent; //RAY
-    uint256 remainingPolicy;
-    uint256 lastUpdateTimestamp;
-  }
-
-  struct Formula {
-    uint256 uOptimal;
-    uint256 r0;
-    uint256 rSlope1;
-    uint256 rSlope2;
-  }
 
   mapping(uint24 => address[]) internal ticks;
   mapping(uint16 => uint256) internal tickBitmap;
@@ -202,7 +167,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     view
   {
     (
-      uint256 __numberPolicyToRemove,
+      uint256 __policiesToRemove,
       uint256 __insuredCapitalToRemove,
       uint256 __emissionRateToRemove
     ) = ticks.cross(positions, __tickNext, __slot0.premiumRate);
@@ -232,7 +197,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
 
     __slot0.totalInsuredCapital -= __insuredCapitalToRemove;
 
-    __slot0.remainingPolicy -= __numberPolicyToRemove;
+    __slot0.remainingPolicies -= __policiesToRemove;
   }
 
   function actualizingSlot0(uint256 _dateInSecond)
@@ -248,7 +213,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
       totalInsuredCapital: slot0.totalInsuredCapital,
       availableCapital: slot0.availableCapital,
       premiumSpent: slot0.premiumSpent,
-      remainingPolicy: slot0.remainingPolicy,
+      remainingPolicies: slot0.remainingPolicies,
       lastUpdateTimestamp: slot0.lastUpdateTimestamp
     });
 
@@ -293,7 +258,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
   }
 
   function actualizing() internal {
-    if (slot0.remainingPolicy == 0) {
+    if (slot0.remainingPolicies == 0) {
       slot0.lastUpdateTimestamp = block.timestamp;
     } else {
       Slot0 memory __slot0 = actualizingSlot0(block.timestamp);
@@ -317,7 +282,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
       slot0.totalInsuredCapital = __slot0.totalInsuredCapital;
       slot0.availableCapital = __slot0.availableCapital;
       slot0.premiumSpent = __slot0.premiumSpent;
-      slot0.remainingPolicy = __slot0.remainingPolicy;
+      slot0.remainingPolicies = __slot0.remainingPolicies;
       slot0.lastUpdateTimestamp = __slot0.lastUpdateTimestamp;
     }
 
@@ -328,7 +293,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
       slot0.hoursPerTick,
       slot0.availableCapital,
       slot0.premiumSpent,
-      slot0.remainingPolicy,
+      slot0.remainingPolicies,
       slot0.lastUpdateTimestamp
     );
   }
@@ -384,7 +349,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     slot0.premiumRate = __newPremiumRate;
     slot0.hoursPerTick = __newHoursPerTick;
 
-    slot0.remainingPolicy++;
+    slot0.remainingPolicies++;
     emit BuyPolicy(_owner, _premium, _insuredCapital);
   }
 
@@ -444,7 +409,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
       removeTick(__position.lastTick);
     }
 
-    slot0.remainingPolicy--;
+    slot0.remainingPolicies--;
 
     emit WithdrawPolicy(_owner, __remainedPremium);
   }
