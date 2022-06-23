@@ -123,7 +123,7 @@ contract Athena is ReentrancyGuard, Ownable {
       _atensLocked,
       _protocolId
     );
-    IPolicyCover(protocolsMapping[_protocolId].deployed).buyPolicy(
+    IProtocolPool(protocolsMapping[_protocolId].deployed).buyPolicy(
       msg.sender,
       _premium,
       _amountGuaranteed
@@ -348,7 +348,8 @@ contract Athena is ReentrancyGuard, Ownable {
     (
       uint256 liquidity,
       uint128[] memory protocolsId,
-      uint256 atokens,,
+      uint256 atokens,
+      ,
 
     ) = IPositionsManager(positionsManager).positions(tokenId);
     uint128 _discount = getDiscountWithAten(liquidity);

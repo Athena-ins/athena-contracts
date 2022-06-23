@@ -53,6 +53,28 @@ contract ProtocolPool is IProtocolPool, ERC20, PolicyCover {
     _;
   }
 
+  function addClaim(Claim calldata _newClaim) external onlyCore {
+    claims.push(_newClaim);
+  }
+
+  function addIntersectingAmount(
+    uint256 _amount,
+    uint128 _protocolId,
+    bool _isAdded
+  ) external onlyCore {
+    intersectingAmounts[_protocolId] = _isAdded
+      ? intersectingAmounts[_protocolId] + _amount
+      : intersectingAmounts[_protocolId] - _amount;
+  }
+
+  function getIntersectingAmountRatio(uint128 _protocolId)
+    external
+    view
+    returns (uint256)
+  {
+    return intersectingAmounts[_protocolId].rayDiv(slot0.availableCapital);
+  }
+
   function getLiquidityIndex(uint256 _totalSupply, uint256 _totalCapital)
     internal
     pure
@@ -69,7 +91,10 @@ contract ProtocolPool is IProtocolPool, ERC20, PolicyCover {
       _account,
       (
         __amount.rayMul(
-          getLiquidityIndex(totalSupply(), slot0.availableCapital)
+          getLiquidityIndex(
+            totalSupply(),
+            slot0.availableCapital + slot0.premiumSpent
+          )
         )
       )
     );
@@ -91,7 +116,7 @@ contract ProtocolPool is IProtocolPool, ERC20, PolicyCover {
     Slot0 memory __slot0 = actualizingSlot0(_dateInSecond);
     uint256 __liquidityIndex = getLiquidityIndex(
       totalSupply(),
-      __slot0.availableCapital
+      __slot0.availableCapital + __slot0.premiumSpent
     );
 
     uint256 __scaledBalance = balanceOf(_account).rayDiv(__liquidityIndex);
@@ -214,28 +239,5 @@ contract ProtocolPool is IProtocolPool, ERC20, PolicyCover {
     IERC20(underlyingAsset).safeTransfer(_account, _amount);
     slot0.availableCapital -= RayMath.otherToRay(_amount);
     //Thao@TODO: recalculer slot0 car availableCapital est changé
-  }
-
-  function addClaim(Claim calldata _newClaim) external onlyCore {
-    claims.push(_newClaim);
-  }
-
-  function addIntersectingAmount(
-    uint256 _amount,
-    uint128 _protocolId,
-    bool _isAdded
-  ) external onlyCore {
-    intersectingAmounts[_protocolId] = _isAdded
-      ? intersectingAmounts[_protocolId] + _amount
-      : intersectingAmounts[_protocolId] - _amount;
-  }
-
-  function getIntersectingAmountRatio(uint128 _protocolId)
-    external
-    view
-    returns (uint256)
-  {
-    //Thao@QUESTION: capital est calculé sur un seul pool ou plusieurs pools ?
-    return intersectingAmounts[_protocolId].rayDiv(slot0.availableCapital);
   }
 }
