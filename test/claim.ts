@@ -210,12 +210,16 @@ updateDepositAmount("user1", 0);
 //neu claim dans Px thi chi tru storage capital trong Px
 //Py co claim cua Px thi chi dung de tinh toan memory capital de lay premium spent
 
-//actualiser can phai tinh toan voi tat ca claim.
-
 //su dung bitmap de chua claim, key = claim.timestamp
-
-//sau khi tru di tat ca cho 1 claim thi tinh toan lai liquidityIndex moi va chay den gap thang claim khac. trc khi traiter claim phai rewards trc
 
 //amountToRemoveFromDeposit(pn) = claim_x(p1) / capital_x(p1) * deposit(pn)
 
-//Warn: trc khi claim, phai actualiser ==>> lam the nao de intégrer claim vao system tick (co cach nao de dua tren lastUpdateTimestamp ko?)
+//actualiser can phai tinh toan voi tat ca claim.
+//tinh capital va premiumSpent roi nho vao cho LP doc va tinh toan
+
+//sau khi tru di tat ca cho 1 claim thi tinh toan lai liquidityIndex moi va chay den gap thang claim khac. trc khi traiter claim phai rewards trc
+
+//dans Px, claim Py, Pz, ... est enregistré pour actualiser plus tard.
+//si claim viens de Px, actualiser avant de traiter claim mais ne l'enregistrer pas dans sys ticks, ne l'enregistrer que dans ticks claim pour LP peut calculer sa récompense
+
+//khong the add claim vao ticks dc vi claim co thoi gian cu the con ticks thi co time giao dong. Can luu claim o 1 cho khac va thuc hien trong actualizing

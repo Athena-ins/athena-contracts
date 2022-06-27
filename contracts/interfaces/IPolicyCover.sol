@@ -24,7 +24,7 @@ interface IPolicyCover {
     uint256 hoursPerTick; //RAY
     uint256 totalInsuredCapital; //RAY
     uint256 availableCapital; //RAY
-    uint256 premiumSpent; //RAY
+    uint256 premiumSpent; //RAY //Thao@TODO: van can thiet nhung moi lan gap claim lai reset tu dau
     uint256 remainingPolicies;
     uint256 lastUpdateTimestamp;
   }

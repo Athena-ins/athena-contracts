@@ -113,7 +113,7 @@ contract ProtocolPool is IProtocolPool, ERC20, PolicyCover {
     uint256 _userCapital,
     uint256 _dateInSecond
   ) internal view returns (int256) {
-    Slot0 memory __slot0 = actualizingSlot0(_dateInSecond);
+    Slot0 memory __slot0 = actualizingSlot0WithClaims(_dateInSecond);
     uint256 __liquidityIndex = getLiquidityIndex(
       totalSupply(),
       __slot0.availableCapital + __slot0.premiumSpent
@@ -218,7 +218,7 @@ contract ProtocolPool is IProtocolPool, ERC20, PolicyCover {
     override
     onlyCore
   {
-    // Slot0 memory __slot0 = actualizingSlot0(block.timestamp);
+    // Slot0 memory __slot0 = actualizingSlot0WithClaims(block.timestamp);
     // if (_amount > __slot0.premiumSpent) {
     // release funds from AAVE TO REFUND USER
     // }
