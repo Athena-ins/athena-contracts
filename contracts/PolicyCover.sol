@@ -20,7 +20,7 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover, ReentrancyGuard {
 
   mapping(uint24 => address[]) internal ticks;
   mapping(uint16 => uint256) internal tickBitmap;
-  mapping(address => PremiumPosition.Info) public positions;
+  mapping(address => PremiumPosition.Info) public premiumPositions;
 
   Formula internal f;
   Slot0 public slot0;
@@ -49,12 +49,12 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover, ReentrancyGuard {
   }
 
   modifier existedOwner(address _owner) {
-    require(positions.hasOwner(_owner), "Owner Not Exist");
+    require(premiumPositions.hasOwner(_owner), "Owner Not Exist");
     _;
   }
 
   modifier notExistedOwner(address _owner) {
-    require(!positions.hasOwner(_owner), "Owner exist");
+    require(!premiumPositions.hasOwner(_owner), "Owner exist");
     _;
   }
 
@@ -64,7 +64,7 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover, ReentrancyGuard {
     uint256 _beginPremiumRate,
     uint24 _tick
   ) internal {
-    positions[_owner] = PremiumPosition.Info(
+    premiumPositions[_owner] = PremiumPosition.Info(
       _capitalInsured,
       _beginPremiumRate,
       ticks.addOwner(_owner, _tick),
@@ -79,7 +79,7 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover, ReentrancyGuard {
   function removeTick(uint24 _tick) internal {
     address[] memory __owners = ticks[_tick];
     for (uint256 i = 0; i < __owners.length; i++) {
-      positions.removeOwner(__owners[i]);
+      premiumPositions.removeOwner(__owners[i]);
     }
 
     ticks.clear(_tick);
@@ -102,26 +102,6 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover, ReentrancyGuard {
         (100 * RayMath.RAY - f.uOptimal) /
         100;
     }
-  }
-
-  function getUtilisationRate(
-    bool _isAdded,
-    uint256 _insuredCapital,
-    uint256 _totalInsuredCapital,
-    uint256 _availableCapital
-  ) public pure returns (uint256) {
-    // returns actual usage rate on capital insured / capital provided for insurance
-    if (_availableCapital == 0) {
-      return 0;
-    }
-    return
-      _isAdded
-        ? ((_totalInsuredCapital + _insuredCapital) * 100).rayDiv(
-          _availableCapital
-        )
-        : ((_totalInsuredCapital - _insuredCapital) * 100).rayDiv(
-          _availableCapital
-        );
   }
 
   function getEmissionRate(
@@ -162,7 +142,7 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover, ReentrancyGuard {
       uint256 __policiesToRemove,
       uint256 __insuredCapitalToRemove,
       uint256 __emissionRateToRemove
-    ) = ticks.cross(positions, _tickNext, _slot0.premiumRate);
+    ) = ticks.cross(premiumPositions, _tickNext, _slot0.premiumRate);
 
     uint256 __newPremiumRate = getPremiumRate(
       getUtilisationRate(
@@ -241,7 +221,11 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover, ReentrancyGuard {
   function actualizingSlot0WithClaims(uint256 _dateInSecond)
     internal
     view
-    returns (Slot0 memory __slot0, uint256 __availableCapital)
+    returns (
+      Slot0 memory __slot0,
+      uint256 __availableCapital,
+      Claim[] memory __claims
+    )
   {
     __slot0 = Slot0({
       tick: slot0.tick,
@@ -256,18 +240,49 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover, ReentrancyGuard {
 
     __availableCapital = availableCapital;
 
-    Claim[] storage __claims = getClaims();
+    __claims = getClaims();
     for (uint256 i = claimIndex; i < __claims.length; i++) {
       actualizingSlot0WithInterval(
         __slot0,
         __availableCapital,
-        claims[i].createdAt
+        __claims[i].createdAt
       );
-      // __claims[i].availableCapitalBefore = __slot0.availableCapital;
-      // __claims[i].premiumSpentBefore = __slot0.premiumSpent;
+
+      __claims[i].availableCapitalBefore = __availableCapital;
+      __claims[i].premiumSpentBefore = __slot0.premiumSpent;
+
+      //Thao@NOTE: il faut garder 'amountToRemoveByClaim' pour calculer amountToRemoveFromDeposit (LP)
+      //Thao@NOTE: il faut update aussi intersectingAmounts
+      uint256 amountToRemoveByClaim = amountToRemoveFromIntersecAndCapital(
+        intersectingAmounts[__claims[i].disputeId],
+        __claims[i].ratio
+      );
+
+      uint256 __newPremiumRate = getPremiumRate(
+        getUtilisationRate(
+          false,
+          0,
+          __slot0.totalInsuredCapital,
+          __availableCapital - amountToRemoveByClaim
+        )
+      );
+
+      __slot0.emissionRate = getEmissionRate(
+        __slot0.emissionRate,
+        __slot0.premiumRate,
+        __newPremiumRate
+      );
+
+      __slot0.hoursPerTick = getHoursPerTick(
+        __slot0.hoursPerTick,
+        __slot0.premiumRate,
+        __newPremiumRate
+      );
+
+      __slot0.premiumRate = __newPremiumRate;
       __slot0.premiumSpent = 0;
-      //get amout to remove from slot0.availableCapital and sub
-      //recalculer __slot0 avec claim : premiumRate, emissionRate, hoursPertick
+
+      __availableCapital -= amountToRemoveByClaim;
     }
 
     actualizingSlot0WithInterval(__slot0, __availableCapital, _dateInSecond);
@@ -280,8 +295,16 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover, ReentrancyGuard {
     } else {
       (
         Slot0 memory __slot0,
-        uint256 __availableCapital
+        uint256 __availableCapital,
+        Claim[] memory __claims
       ) = actualizingSlot0WithClaims(block.timestamp);
+
+      for (uint256 i = claimIndex; i < __claims.length; i++) {
+        claims[i].availableCapitalBefore = __claims[i].availableCapitalBefore;
+        claims[i].premiumSpentBefore = __claims[i].premiumSpentBefore;
+      }
+
+      claimIndex = __claims.length;
 
       //now, we remove all crossed ticks
       uint24 __observedTick = slot0.tick;
@@ -387,7 +410,7 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover, ReentrancyGuard {
   {
     actualizing();
 
-    PremiumPosition.Info memory __position = positions.get(_owner);
+    PremiumPosition.Info memory __position = premiumPositions.get(_owner);
 
     require(slot0.tick <= __position.lastTick, "Policy Expired");
 
@@ -427,7 +450,7 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover, ReentrancyGuard {
 
     if (ticks.getOwnerNumber(__position.lastTick) > 1) {
       ticks.removeOwner(__position.ownerIndex, __position.lastTick);
-      positions.replaceAndRemoveOwner(
+      premiumPositions.replaceAndRemoveOwner(
         _owner,
         ticks.getLastOwnerInTick(__position.lastTick)
       );
@@ -447,7 +470,7 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover, ReentrancyGuard {
   {
     require(_dateInSecond >= slot0.lastUpdateTimestamp, "date is not valide");
 
-    (__slot0, __availableCapital) = actualizingSlot0WithClaims(_dateInSecond);
+    (__slot0, __availableCapital, ) = actualizingSlot0WithClaims(_dateInSecond);
 
     __slot0.premiumRate = RayMath.rayToOther(__slot0.premiumRate);
     __slot0.emissionRate = RayMath.rayToOther(__slot0.emissionRate);
@@ -467,9 +490,10 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover, ReentrancyGuard {
   {
     (
       Slot0 memory __slot0,
-      uint256 __availableCapital
+      uint256 __availableCapital,
+
     ) = actualizingSlot0WithClaims(block.timestamp);
-    PremiumPosition.Info memory __position = positions.get(_owner);
+    PremiumPosition.Info memory __position = premiumPositions.get(_owner);
 
     require(__slot0.tick <= __position.lastTick, "Policy Expired");
 

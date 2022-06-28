@@ -2,13 +2,11 @@
 pragma solidity ^0.8;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import "./libraries/RayMath.sol";
 
 abstract contract LiquidityCover is ERC20 {
   using RayMath for uint256;
-  using SafeERC20 for IERC20;
 
   mapping(uint128 => uint256) public intersectingAmounts;
   //Thao@ADD:
@@ -31,6 +29,26 @@ abstract contract LiquidityCover is ERC20 {
     uint256 _availableCapital
   ) external view returns (uint256) {
     return intersectingAmounts[_protocolId].rayDiv(_availableCapital);
+  }
+
+  function getUtilisationRate(
+    bool _isAdded,
+    uint256 _insuredCapital,
+    uint256 _totalInsuredCapital,
+    uint256 _availableCapital
+  ) public pure returns (uint256) {
+    // returns actual usage rate on capital insured / capital provided for insurance
+    if (_availableCapital == 0) {
+      return 0;
+    }
+    return
+      _isAdded
+        ? ((_totalInsuredCapital + _insuredCapital) * 100).rayDiv(
+          _availableCapital
+        )
+        : ((_totalInsuredCapital - _insuredCapital) * 100).rayDiv(
+          _availableCapital
+        );
   }
 
   function getLiquidityIndex(uint256 _totalSupply, uint256 _totalCapital)

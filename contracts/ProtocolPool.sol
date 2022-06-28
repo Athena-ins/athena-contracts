@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import "./interfaces/IProtocolPool.sol";
@@ -12,7 +11,7 @@ import "hardhat/console.sol";
 //Thao@NOTE:
 // tout les contrats: liquidityCover, ClaimCover et PolicyCover ne implémentent que la logique.
 // ProtocolPool assemble les logiques et les checks: onlyCore, ...
-contract ProtocolPool is IProtocolPool, ERC20, PolicyCover {
+contract ProtocolPool is IProtocolPool, PolicyCover {
   using RayMath for uint256;
   using SafeERC20 for IERC20;
 
@@ -89,9 +88,13 @@ contract ProtocolPool is IProtocolPool, ERC20, PolicyCover {
   ) internal view returns (int256) {
     (
       Slot0 memory __slot0,
-      uint256 __availableCapital
+      uint256 __availableCapital,
+      Claim[] memory __claims
     ) = actualizingSlot0WithClaims(_dateInSecond);
-
+    //Thao@TODO: il faut parcourir __claims et recalculer totalSupply et liquidityIndex dans chaque interval entre deux claims
+    //Thao@TODO: il faut trouver comment recalculer totalSupply car plusieurs LP concerner par un claim
+    //il faut faire une boucle ici
+    //check aussi id de protocol dans claim pour retirer amount de LP concerné
     uint256 __liquidityIndex = getLiquidityIndex(
       totalSupply(),
       __availableCapital + __slot0.premiumSpent

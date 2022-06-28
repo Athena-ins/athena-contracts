@@ -658,7 +658,7 @@ describe("Simulation", () => {
           policyTaker1,
           PROTOCOL_ZERO
         );
-        const policyInfo = await protocolContract.positions(
+        const policyInfo = await protocolContract.premiumPositions(
           await policyTaker1.getAddress()
         );
 
@@ -803,7 +803,7 @@ describe("Simulation", () => {
           policyTaker2,
           PROTOCOL_ZERO
         );
-        const policyInfo = await protocolContract.positions(
+        const policyInfo = await protocolContract.premiumPositions(
           await policyTaker2.getAddress()
         );
 
