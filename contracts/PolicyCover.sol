@@ -8,10 +8,11 @@ import "./libraries/Tick.sol";
 import "./libraries/TickBitmap.sol";
 import "./libraries/PremiumPosition.sol";
 import "./interfaces/IPolicyCover.sol";
+import "./ClaimCover.sol";
 
 import "hardhat/console.sol";
 
-contract PolicyCover is IPolicyCover, ReentrancyGuard {
+abstract contract PolicyCover is IPolicyCover, ClaimCover, ReentrancyGuard {
   using RayMath for uint256;
   using Tick for mapping(uint24 => address[]);
   using TickBitmap for mapping(uint16 => uint256);
@@ -42,6 +43,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     slot0.lastUpdateTimestamp = block.timestamp;
   }
 
+  //Thao@TODO: move modifier fct into protocolPool
   modifier onlyCore() virtual {
     _;
   }
@@ -151,46 +153,48 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
         .rayDiv(_premiumRate);
   }
 
-  function crossingInitializedTick(Slot0 memory __slot0, uint24 __tickNext)
-    private
-    view
-  {
+  function crossingInitializedTick(
+    Slot0 memory _slot0,
+    uint256 _availableCapital,
+    uint24 _tickNext
+  ) private view {
     (
       uint256 __policiesToRemove,
       uint256 __insuredCapitalToRemove,
       uint256 __emissionRateToRemove
-    ) = ticks.cross(positions, __tickNext, __slot0.premiumRate);
+    ) = ticks.cross(positions, _tickNext, _slot0.premiumRate);
 
     uint256 __newPremiumRate = getPremiumRate(
       getUtilisationRate(
         false,
         __insuredCapitalToRemove,
-        __slot0.totalInsuredCapital,
-        __slot0.availableCapital
+        _slot0.totalInsuredCapital,
+        _availableCapital
       )
     );
 
-    __slot0.emissionRate = getEmissionRate(
-      __slot0.emissionRate - __emissionRateToRemove,
-      __slot0.premiumRate,
+    _slot0.emissionRate = getEmissionRate(
+      _slot0.emissionRate - __emissionRateToRemove,
+      _slot0.premiumRate,
       __newPremiumRate
     );
 
-    __slot0.hoursPerTick = getHoursPerTick(
-      __slot0.hoursPerTick,
-      __slot0.premiumRate,
+    _slot0.hoursPerTick = getHoursPerTick(
+      _slot0.hoursPerTick,
+      _slot0.premiumRate,
       __newPremiumRate
     );
 
-    __slot0.premiumRate = __newPremiumRate;
+    _slot0.premiumRate = __newPremiumRate;
 
-    __slot0.totalInsuredCapital -= __insuredCapitalToRemove;
+    _slot0.totalInsuredCapital -= __insuredCapitalToRemove;
 
-    __slot0.remainingPolicies -= __policiesToRemove;
+    _slot0.remainingPolicies -= __policiesToRemove;
   }
 
   function actualizingSlot0WithInterval(
     Slot0 memory _slot0,
+    uint256 _availableCapital,
     uint256 _dateInSecond
   ) internal view {
     uint256 __hoursGaps = RayMath
@@ -227,7 +231,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
       }
 
       if (__initialized && __nextHoursPassed <= __hoursGaps) {
-        crossingInitializedTick(_slot0, __tickNext);
+        crossingInitializedTick(_slot0, _availableCapital, __tickNext);
       }
     }
 
@@ -237,7 +241,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
   function actualizingSlot0WithClaims(uint256 _dateInSecond)
     internal
     view
-    returns (Slot0 memory __slot0)
+    returns (Slot0 memory __slot0, uint256 __availableCapital)
   {
     __slot0 = Slot0({
       tick: slot0.tick,
@@ -245,18 +249,28 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
       emissionRate: slot0.emissionRate,
       hoursPerTick: slot0.hoursPerTick,
       totalInsuredCapital: slot0.totalInsuredCapital,
-      availableCapital: slot0.availableCapital,
       premiumSpent: slot0.premiumSpent,
       remainingPolicies: slot0.remainingPolicies,
       lastUpdateTimestamp: slot0.lastUpdateTimestamp
     });
-    //Thao@NOTE: parcourrir claims
-    // for(claim of claims) {
-    //  Slot0 memory __slot0 = actualizingSlot0WithInterval(claim.timestamp);
-    //  recalculer __slot0 avec claim
-    // }
 
-    actualizingSlot0WithInterval(__slot0, _dateInSecond);
+    __availableCapital = availableCapital;
+
+    Claim[] storage __claims = getClaims();
+    for (uint256 i = claimIndex; i < __claims.length; i++) {
+      actualizingSlot0WithInterval(
+        __slot0,
+        __availableCapital,
+        claims[i].createdAt
+      );
+      // __claims[i].availableCapitalBefore = __slot0.availableCapital;
+      // __claims[i].premiumSpentBefore = __slot0.premiumSpent;
+      __slot0.premiumSpent = 0;
+      //get amout to remove from slot0.availableCapital and sub
+      //recalculer __slot0 avec claim : premiumRate, emissionRate, hoursPertick
+    }
+
+    actualizingSlot0WithInterval(__slot0, __availableCapital, _dateInSecond);
   }
 
   function actualizing() internal {
@@ -264,7 +278,10 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     if (slot0.remainingPolicies == 0) {
       slot0.lastUpdateTimestamp = block.timestamp;
     } else {
-      Slot0 memory __slot0 = actualizingSlot0WithClaims(block.timestamp);
+      (
+        Slot0 memory __slot0,
+        uint256 __availableCapital
+      ) = actualizingSlot0WithClaims(block.timestamp);
 
       //now, we remove all crossed ticks
       uint24 __observedTick = slot0.tick;
@@ -283,10 +300,11 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
       slot0.emissionRate = __slot0.emissionRate;
       slot0.hoursPerTick = __slot0.hoursPerTick;
       slot0.totalInsuredCapital = __slot0.totalInsuredCapital;
-      slot0.availableCapital = __slot0.availableCapital;
       slot0.premiumSpent = __slot0.premiumSpent;
       slot0.remainingPolicies = __slot0.remainingPolicies;
       slot0.lastUpdateTimestamp = __slot0.lastUpdateTimestamp;
+
+      availableCapital = __availableCapital;
     }
 
     emit Actualizing(
@@ -294,7 +312,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
       slot0.premiumRate,
       slot0.emissionRate,
       slot0.hoursPerTick,
-      slot0.availableCapital,
+      availableCapital,
       slot0.premiumSpent,
       slot0.remainingPolicies,
       slot0.lastUpdateTimestamp
@@ -309,7 +327,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     actualizing();
 
     require(
-      slot0.availableCapital >=
+      availableCapital >=
         slot0.totalInsuredCapital + RayMath.otherToRay(_insuredCapital),
       "Insufficient capital"
     );
@@ -323,7 +341,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
         true,
         __insuredCapital,
         slot0.totalInsuredCapital,
-        slot0.availableCapital
+        availableCapital
       )
     );
 
@@ -387,7 +405,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
         false,
         __position.capitalInsured,
         slot0.totalInsuredCapital,
-        slot0.availableCapital
+        availableCapital
       )
     );
 
@@ -425,11 +443,11 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
   function actualizingUntilGivenDate(uint256 _dateInSecond)
     public
     view
-    returns (Slot0 memory __slot0)
+    returns (Slot0 memory __slot0, uint256 __availableCapital)
   {
     require(_dateInSecond >= slot0.lastUpdateTimestamp, "date is not valide");
 
-    __slot0 = actualizingSlot0WithClaims(_dateInSecond);
+    (__slot0, __availableCapital) = actualizingSlot0WithClaims(_dateInSecond);
 
     __slot0.premiumRate = RayMath.rayToOther(__slot0.premiumRate);
     __slot0.emissionRate = RayMath.rayToOther(__slot0.emissionRate);
@@ -437,8 +455,8 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     __slot0.totalInsuredCapital = RayMath.rayToOther(
       __slot0.totalInsuredCapital
     );
-    __slot0.availableCapital = RayMath.rayToOther(__slot0.availableCapital);
     __slot0.premiumSpent = RayMath.rayToOther(__slot0.premiumSpent);
+    __availableCapital = RayMath.rayToOther(__availableCapital);
   }
 
   function getInfo(address _owner)
@@ -447,7 +465,10 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
     existedOwner(_owner)
     returns (uint256 __remainingPremium, uint256 __remainingDay)
   {
-    Slot0 memory __slot0 = actualizingSlot0WithClaims(block.timestamp);
+    (
+      Slot0 memory __slot0,
+      uint256 __availableCapital
+    ) = actualizingSlot0WithClaims(block.timestamp);
     PremiumPosition.Info memory __position = positions.get(_owner);
 
     require(__slot0.tick <= __position.lastTick, "Policy Expired");
@@ -486,7 +507,7 @@ contract PolicyCover is IPolicyCover, ReentrancyGuard {
       __slot0.tick = __tick;
 
       if (__initialized && __tickNext < __position.lastTick) {
-        crossingInitializedTick(__slot0, __tickNext);
+        crossingInitializedTick(__slot0, __availableCapital, __tickNext);
 
         __currentOwnerEmissionRate = getEmissionRate(
           __beginOwnerEmissionRate,

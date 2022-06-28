@@ -23,7 +23,7 @@ interface IPolicyCover {
     uint256 emissionRate; //RAY
     uint256 hoursPerTick; //RAY
     uint256 totalInsuredCapital; //RAY
-    uint256 availableCapital; //RAY
+    // uint256 availableCapital; //RAY
     uint256 premiumSpent; //RAY //Thao@TODO: van can thiet nhung moi lan gap claim lai reset tu dau
     uint256 remainingPolicies;
     uint256 lastUpdateTimestamp;
@@ -52,7 +52,7 @@ interface IPolicyCover {
   function actualizingUntilGivenDate(uint256 dateInSecond)
     external
     view
-    returns (Slot0 memory slot0);
+    returns (Slot0 memory slot0, uint256 availableCapital);
 
   function getInfo(address owner)
     external

@@ -241,10 +241,13 @@ describe("Simulation", () => {
         expect(slot0.emissionRate).to.be.equal("0");
         expect(slot0.hoursPerTick).to.be.equal("24000000000000000000000000000");
         expect(slot0.totalInsuredCapital).to.be.equal("0");
-        expect(slot0.availableCapital).to.be.equal("0");
         expect(slot0.premiumSpent).to.be.equal("0");
         expect(slot0.remainingPolicies).to.be.equal("0");
         expect(slot0.lastUpdateTimestamp).to.be.equal(currentTime);
+
+        const availableCapital = await protocolContract.availableCapital();
+
+        expect(availableCapital).to.be.equal("0");
       });
     });
 
@@ -425,12 +428,14 @@ describe("Simulation", () => {
         expect(slot0.emissionRate).to.be.equal("0");
         expect(slot0.hoursPerTick).to.be.equal("24000000000000000000000000000");
         expect(slot0.totalInsuredCapital).to.be.equal("0");
-        expect(slot0.availableCapital).to.be.equal(
-          "400000000000000000000000000000000"
-        );
         expect(slot0.premiumSpent).to.be.equal("0");
         expect(slot0.remainingPolicies).to.be.equal("0");
         expect(slot0.lastUpdateTimestamp).to.be.equal(currentTime);
+
+        const availableCapital = await protocolContract.availableCapital();
+        expect(availableCapital).to.be.equal(
+          "400000000000000000000000000000000"
+        );
 
         // console.log(
         //   "Simulate user actions >>> LP1 >> check slot0 >>> slot0:",
@@ -556,12 +561,14 @@ describe("Simulation", () => {
         expect(slot0.emissionRate).to.be.equal("0");
         expect(slot0.hoursPerTick).to.be.equal("24000000000000000000000000000");
         expect(slot0.totalInsuredCapital).to.be.equal("0");
-        expect(slot0.availableCapital).to.be.equal(
-          "730000000000000000000000000000000"
-        );
         expect(slot0.premiumSpent).to.be.equal("0");
         expect(slot0.remainingPolicies).to.be.equal("0");
         expect(slot0.lastUpdateTimestamp).to.be.equal(currentTime);
+
+        const availableCapital = await protocolContract.availableCapital();
+        expect(availableCapital).to.be.equal(
+          "730000000000000000000000000000000"
+        );
 
         // console.log(
         //   "Simulate user actions >>> LP2 >> check slot0 >>> slot0:",
@@ -700,12 +707,15 @@ describe("Simulation", () => {
         expect(slot0.totalInsuredCapital).to.be.equal(
           "109500000000000000000000000000000"
         );
-        expect(slot0.availableCapital).to.be.equal(
-          "730000000000000000000000000000000"
-        );
         expect(slot0.premiumSpent).to.be.equal("0");
         expect(slot0.remainingPolicies).to.be.equal("1");
         expect(slot0.lastUpdateTimestamp).to.be.equal(currentTime);
+
+        const availableCapital = await protocolContract.availableCapital();
+
+        expect(availableCapital).to.be.equal(
+          "730000000000000000000000000000000"
+        );
 
         // console.log(
         //   "Simulate user actions >>> PT1 >> check slot0 >>> slot0:",
@@ -843,12 +853,15 @@ describe("Simulation", () => {
         expect(slot0.totalInsuredCapital).to.be.equal(
           "328500000000000000000000000000000"
         );
-        expect(slot0.availableCapital).to.be.equal(
-          "730000000000000000000000000000000"
-        );
         expect(slot0.premiumSpent).to.be.equal("60000000000000000000000000000");
         expect(slot0.remainingPolicies).to.be.equal("2");
         expect(slot0.lastUpdateTimestamp).to.be.equal(currentTime);
+
+        const availableCapital = await protocolContract.availableCapital();
+
+        expect(availableCapital).to.be.equal(
+          "730000000000000000000000000000000"
+        );
 
         // console.log(
         //   "Simulate user actions >>> PT2 >> check slot0 >>> slot0:",
@@ -895,21 +908,22 @@ describe("Simulation", () => {
           PROTOCOL_ZERO
         );
 
-        const vSlot0 = await protocolContract.actualizingUntilGivenDate(
+        const view = await protocolContract.actualizingUntilGivenDate(
           currentTime + 10 * 24 * 60 * 60
         );
 
-        expect(vSlot0.tick).to.be.equal(60);
-        expect(vSlot0.premiumRate).to.be.equal(4);
-        expect(vSlot0.emissionRate).to.be.equal(36);
-        expect(vSlot0.hoursPerTick).to.be.equal(6);
-        expect(vSlot0.totalInsuredCapital).to.be.equal(328500);
-        expect(vSlot0.availableCapital).to.be.equal(730000);
-        expect(vSlot0.premiumSpent).to.be.equal(420);
-        expect(vSlot0.remainingPolicies).to.be.equal(2);
-        expect(vSlot0.lastUpdateTimestamp).to.be.equal(
+        expect(view.__slot0.tick).to.be.equal(60);
+        expect(view.__slot0.premiumRate).to.be.equal(4);
+        expect(view.__slot0.emissionRate).to.be.equal(36);
+        expect(view.__slot0.hoursPerTick).to.be.equal(6);
+        expect(view.__slot0.totalInsuredCapital).to.be.equal(328500);
+        expect(view.__slot0.premiumSpent).to.be.equal(420);
+        expect(view.__slot0.remainingPolicies).to.be.equal(2);
+        expect(view.__slot0.lastUpdateTimestamp).to.be.equal(
           currentTime + 10 * 24 * 60 * 60
         );
+
+        expect(view.__availableCapital).to.be.equal(730000);
 
         // console.log(
         //   "Simulate user actions >>> actualize view after 10 days >>> vslot0:",
@@ -924,21 +938,22 @@ describe("Simulation", () => {
         );
 
         const days = 178;
-        const vSlot0 = await protocolContract.actualizingUntilGivenDate(
+        const view = await protocolContract.actualizingUntilGivenDate(
           currentTime + days * 24 * 60 * 60
         );
 
-        expect(vSlot0.tick).to.be.equal(731);
-        expect(vSlot0.premiumRate).to.be.equal(3);
-        expect(vSlot0.emissionRate).to.be.equal(18);
-        expect(vSlot0.hoursPerTick).to.be.equal(8);
-        expect(vSlot0.totalInsuredCapital).to.be.equal(219000);
-        expect(vSlot0.availableCapital).to.be.equal(730000);
-        expect(vSlot0.premiumSpent).to.be.equal(6459); //Thao@TODO: check why ???
-        expect(vSlot0.remainingPolicies).to.be.equal(1);
-        expect(vSlot0.lastUpdateTimestamp).to.be.equal(
+        expect(view.__slot0.tick).to.be.equal(731);
+        expect(view.__slot0.premiumRate).to.be.equal(3);
+        expect(view.__slot0.emissionRate).to.be.equal(18);
+        expect(view.__slot0.hoursPerTick).to.be.equal(8);
+        expect(view.__slot0.totalInsuredCapital).to.be.equal(219000);
+        expect(view.__slot0.premiumSpent).to.be.equal(6459); //Thao@TODO: check why ???
+        expect(view.__slot0.remainingPolicies).to.be.equal(1);
+        expect(view.__slot0.lastUpdateTimestamp).to.be.equal(
           currentTime + days * 24 * 60 * 60
         );
+
+        expect(view.__availableCapital).to.be.equal(730000);
 
         // console.log(
         //   "Simulate user actions >>> actualize view after 178 days >>> vslot0:",
@@ -953,21 +968,22 @@ describe("Simulation", () => {
         );
 
         const days = 428;
-        const vSlot0 = await protocolContract.actualizingUntilGivenDate(
+        const view = await protocolContract.actualizingUntilGivenDate(
           currentTime + days * 24 * 60 * 60
         );
 
-        expect(vSlot0.tick).to.be.equal(1480);
-        expect(vSlot0.premiumRate).to.be.equal(1);
-        expect(vSlot0.emissionRate).to.be.equal(0);
-        expect(vSlot0.hoursPerTick).to.be.equal(24);
-        expect(vSlot0.totalInsuredCapital).to.be.equal(0);
-        expect(vSlot0.availableCapital).to.be.equal(730000);
-        expect(vSlot0.premiumSpent).to.be.equal(10950);
-        expect(vSlot0.remainingPolicies).to.be.equal(0);
-        expect(vSlot0.lastUpdateTimestamp).to.be.equal(
+        expect(view.__slot0.tick).to.be.equal(1480);
+        expect(view.__slot0.premiumRate).to.be.equal(1);
+        expect(view.__slot0.emissionRate).to.be.equal(0);
+        expect(view.__slot0.hoursPerTick).to.be.equal(24);
+        expect(view.__slot0.totalInsuredCapital).to.be.equal(0);
+        expect(view.__slot0.premiumSpent).to.be.equal(10950);
+        expect(view.__slot0.remainingPolicies).to.be.equal(0);
+        expect(view.__slot0.lastUpdateTimestamp).to.be.equal(
           currentTime + days * 24 * 60 * 60
         );
+
+        expect(view.__availableCapital).to.be.equal(730000);
 
         // console.log(
         //   "Simulate user actions >>> actualize view after 428 days >>> vslot0:",
@@ -1034,12 +1050,15 @@ describe("Simulation", () => {
         expect(slot0.totalInsuredCapital).to.be.equal(
           "219000000000000000000000000000000"
         );
-        expect(slot0.availableCapital).to.be.equal(
-          "730000000000000000000000000000000"
-        );
         expect(slot0.premiumSpent).to.be.equal("96000000000000000000000000000");
         expect(slot0.remainingPolicies).to.be.equal(1);
         expect(slot0.lastUpdateTimestamp).to.be.equal(currentTime);
+
+        const availableCapital = await protocolContract.availableCapital();
+
+        expect(availableCapital).to.be.equal(
+          "730000000000000000000000000000000"
+        );
       });
     });
 
@@ -1078,14 +1097,17 @@ describe("Simulation", () => {
         expect(slot0.emissionRate).to.be.equal("0");
         expect(slot0.hoursPerTick).to.be.equal("24000000000000000000000000000");
         expect(slot0.totalInsuredCapital).to.be.equal("0");
-        expect(slot0.availableCapital).to.be.equal(
-          "730000000000000000000000000000000"
-        );
         expect(slot0.premiumSpent).to.be.equal(
           "276000000000000000000000000000"
         );
         expect(slot0.remainingPolicies).to.be.equal(0);
         expect(slot0.lastUpdateTimestamp).to.be.equal(currentTime);
+
+        const availableCapital = await protocolContract.availableCapital();
+
+        expect(availableCapital).to.be.equal(
+          "730000000000000000000000000000000"
+        );
       });
     });
 

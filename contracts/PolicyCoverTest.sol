@@ -13,7 +13,7 @@ contract PolicyCoverTest is PolicyCover {
     uint256 _r0,
     uint256 _rSlope1,
     uint256 _rSlope2
-  ) PolicyCover(_uOptimal, _r0, _rSlope1, _rSlope2) {}
+  ) ERC20("", "") PolicyCover(_uOptimal, _r0, _rSlope1, _rSlope2) {}
 
   function addTotalInsured(uint256 capital) public {
     slot0.totalInsuredCapital += capital;
@@ -80,11 +80,11 @@ contract PolicyCoverTest is PolicyCover {
   }
 
   function getAvailableCapital() public view returns (uint256) {
-    return slot0.availableCapital;
+    return availableCapital;
   }
 
   function setAvailableCapital(uint256 _availableCapital) public {
-    slot0.availableCapital = _availableCapital;
+    availableCapital = _availableCapital;
   }
 
   function testIsInitializedTick(uint24 tick) public view returns (bool) {

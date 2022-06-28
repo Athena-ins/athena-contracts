@@ -6,24 +6,31 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import "./libraries/RayMath.sol";
 
-contract LiquidityCover is ERC20 {
+abstract contract LiquidityCover is ERC20 {
   using RayMath for uint256;
   using SafeERC20 for IERC20;
 
-  mapping(address => uint256) public withdrawReserves;
+  mapping(uint128 => uint256) public intersectingAmounts;
+  //Thao@ADD:
+  uint128[] public compatibilityProtocols;
+
   uint256 public availableCapital;
 
-  constructor(string memory _name, string memory _symbol)
-    ERC20(_name, _symbol)
-  {}
-
-  function committingWithdraw(address _account) external {
-    //Thao@TODO: require have any claim in progress
-    withdrawReserves[_account] = block.timestamp;
+  function addIntersectingAmount(
+    uint256 _amount,
+    uint128 _protocolId,
+    bool _isAdded
+  ) external {
+    intersectingAmounts[_protocolId] = _isAdded
+      ? intersectingAmounts[_protocolId] + _amount
+      : intersectingAmounts[_protocolId] - _amount;
   }
 
-  function removeCommittedWithdraw(address _account) external {
-    delete withdrawReserves[_account];
+  function getIntersectingAmountRatio(
+    uint128 _protocolId,
+    uint256 _availableCapital
+  ) external view returns (uint256) {
+    return intersectingAmounts[_protocolId].rayDiv(_availableCapital);
   }
 
   function getLiquidityIndex(uint256 _totalSupply, uint256 _totalCapital)
@@ -64,4 +71,8 @@ contract LiquidityCover is ERC20 {
 
     return balanceOf(_account).rayDiv(__liquidityIndex);
   }
+
+  //Thao@TODO:
+  // - il faut une fct 'burn' pour retirer de totalSupply afin de recalculer liquidité index
+  // - pour ça, il faut garder supply d'un LP
 }

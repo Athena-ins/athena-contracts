@@ -9,25 +9,20 @@ import "./PolicyCover.sol";
 
 import "hardhat/console.sol";
 
+//Thao@NOTE:
+// tout les contrats: liquidityCover, ClaimCover et PolicyCover ne implémentent que la logique.
+// ProtocolPool assemble les logiques et les checks: onlyCore, ...
 contract ProtocolPool is IProtocolPool, ERC20, PolicyCover {
   using RayMath for uint256;
   using SafeERC20 for IERC20;
 
-  struct Claim {
-    uint256 createdAt;
-    uint256 disputeId;
-    uint256 amount;
-    uint256 percentage; // RAY
-  }
-
-  Claim[] public claims;
-
   address private immutable core;
   address public underlyingAsset;
+  //Thao@NOTE: ajouter id pour traiter des claims;
+  uint128 public id;
 
-  mapping(address => uint256) private withdrawReserves;
+  mapping(address => uint256) public withdrawReserves;
   mapping(address => uint256) public lastActionsTimestamp;
-  mapping(uint128 => uint256) public intersectingAmounts;
 
   // @Dev notice rule
   // external and public functions should use Decimals and convert to RAY, other functions should already use RAY
@@ -53,34 +48,13 @@ contract ProtocolPool is IProtocolPool, ERC20, PolicyCover {
     _;
   }
 
-  function addClaim(Claim calldata _newClaim) external onlyCore {
-    claims.push(_newClaim);
+  function committingWithdraw(address _account) external onlyCore {
+    //Thao@TODO: require have any claim in progress
+    withdrawReserves[_account] = block.timestamp;
   }
 
-  function addIntersectingAmount(
-    uint256 _amount,
-    uint128 _protocolId,
-    bool _isAdded
-  ) external onlyCore {
-    intersectingAmounts[_protocolId] = _isAdded
-      ? intersectingAmounts[_protocolId] + _amount
-      : intersectingAmounts[_protocolId] - _amount;
-  }
-
-  function getIntersectingAmountRatio(uint128 _protocolId)
-    external
-    view
-    returns (uint256)
-  {
-    return intersectingAmounts[_protocolId].rayDiv(slot0.availableCapital);
-  }
-
-  function getLiquidityIndex(uint256 _totalSupply, uint256 _totalCapital)
-    internal
-    pure
-    returns (uint256)
-  {
-    return _totalSupply == 0 ? RayMath.RAY : _totalSupply.rayDiv(_totalCapital);
+  function removeCommittedWithdraw(address _account) external {
+    delete withdrawReserves[_account];
   }
 
   function mint(address _account, uint256 _amount) external onlyCore {
@@ -93,13 +67,13 @@ contract ProtocolPool is IProtocolPool, ERC20, PolicyCover {
         __amount.rayMul(
           getLiquidityIndex(
             totalSupply(),
-            slot0.availableCapital + slot0.premiumSpent
+            availableCapital + slot0.premiumSpent
           )
         )
       )
     );
 
-    slot0.availableCapital += __amount;
+    availableCapital += __amount;
     //Thao@TODO: event
   }
 
@@ -113,10 +87,14 @@ contract ProtocolPool is IProtocolPool, ERC20, PolicyCover {
     uint256 _userCapital,
     uint256 _dateInSecond
   ) internal view returns (int256) {
-    Slot0 memory __slot0 = actualizingSlot0WithClaims(_dateInSecond);
+    (
+      Slot0 memory __slot0,
+      uint256 __availableCapital
+    ) = actualizingSlot0WithClaims(_dateInSecond);
+
     uint256 __liquidityIndex = getLiquidityIndex(
       totalSupply(),
-      __slot0.availableCapital + __slot0.premiumSpent
+      __availableCapital + __slot0.premiumSpent
     );
 
     uint256 __scaledBalance = balanceOf(_account).rayDiv(__liquidityIndex);
@@ -145,15 +123,6 @@ contract ProtocolPool is IProtocolPool, ERC20, PolicyCover {
         );
   }
 
-  function committingWithdraw(address _account) external onlyCore {
-    //Thao@TODO: require have any claim in progress
-    withdrawReserves[_account] = block.timestamp;
-  }
-
-  function removeCommittedWithdraw(address _account) external onlyCore {
-    delete withdrawReserves[_account];
-  }
-
   function withdraw(
     address _account,
     uint256 _userCapital,
@@ -173,7 +142,7 @@ contract ProtocolPool is IProtocolPool, ERC20, PolicyCover {
         false,
         0,
         slot0.totalInsuredCapital,
-        slot0.availableCapital - __userCapital
+        availableCapital - __userCapital
       ) <= RayMath.otherToRay(100),
       string(abi.encodePacked(name(), ": use rate > 100%"))
     );
@@ -193,12 +162,12 @@ contract ProtocolPool is IProtocolPool, ERC20, PolicyCover {
     }
 
     //Thao@TODO: à VERIFIER ici jusqu'à la fin
-    slot0.availableCapital -= uint256(int256(__userCapital) + __difference);
+    availableCapital -= uint256(int256(__userCapital) + __difference);
 
     //@Dev TODO check for gas when large amount of claims and when/if needed to clean
     for (uint256 i = 0; i < claims.length; i++) {
       if (claims[i].createdAt > _accountTimestamp) {
-        __userCapital -= claims[i].percentage * __userCapital;
+        __userCapital -= claims[i].ratio * __userCapital;
       }
     }
 
@@ -223,20 +192,23 @@ contract ProtocolPool is IProtocolPool, ERC20, PolicyCover {
     // release funds from AAVE TO REFUND USER
     // }
     actualizing();
-    claims.push(
+    addClaim(
       Claim(
+        id,
+        RayMath.otherToRay(_amount),
+        RayMath.otherToRay(_amount).rayDiv(availableCapital),
         block.timestamp,
         0,
-        RayMath.otherToRay(_amount).rayDiv(slot0.availableCapital),
-        RayMath.otherToRay(_amount)
+        0
       )
     );
+
     console.log("Amount to refund : ", _amount);
     uint256 bal = IERC20(underlyingAsset).balanceOf(address(this));
     console.log("Balance Contract = ", bal);
     console.log("Account to transfer = ", _account);
     IERC20(underlyingAsset).safeTransfer(_account, _amount);
-    slot0.availableCapital -= RayMath.otherToRay(_amount);
+    availableCapital -= RayMath.otherToRay(_amount);
     //Thao@TODO: recalculer slot0 car availableCapital est changé
   }
 }
