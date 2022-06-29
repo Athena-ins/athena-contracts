@@ -8,27 +8,17 @@ import "./libraries/RayMath.sol";
 abstract contract LiquidityCover is ERC20 {
   using RayMath for uint256;
 
-  mapping(uint128 => uint256) public intersectingAmounts;
-  //Thao@ADD:
+  //Thao@ADD: nous avons besoin pour ajouter des claims dans d'autre protocols compatifs
   uint128[] public compatibilityProtocols;
+
+  //ce même protocol est à l'indice 0 mais il faut enlever pour gas
+  mapping(uint128 => uint256) public intersectingAmountIndexes;
+  uint256[] public intersectingAmounts;
 
   uint256 public availableCapital;
 
-  function addIntersectingAmount(
-    uint256 _amount,
-    uint128 _protocolId,
-    bool _isAdded
-  ) external {
-    intersectingAmounts[_protocolId] = _isAdded
-      ? intersectingAmounts[_protocolId] + _amount
-      : intersectingAmounts[_protocolId] - _amount;
-  }
-
-  function getIntersectingAmountRatio(
-    uint128 _protocolId,
-    uint256 _availableCapital
-  ) external view returns (uint256) {
-    return intersectingAmounts[_protocolId].rayDiv(_availableCapital);
+  function getIntersectingAmounts() internal view returns (uint256[] memory) {
+    return intersectingAmounts;
   }
 
   function getUtilisationRate(

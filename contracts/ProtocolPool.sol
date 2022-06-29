@@ -86,10 +86,12 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     uint256 _userCapital,
     uint256 _dateInSecond
   ) internal view returns (int256) {
+    //Thao@TODO: il faut uint256[] memory __intersectingAmounts pour ce calcul ?
     (
       Slot0 memory __slot0,
       uint256 __availableCapital,
-      Claim[] memory __claims
+      Claim[] memory __claims,
+
     ) = actualizingSlot0WithClaims(_dateInSecond);
     //Thao@TODO: il faut parcourir __claims et recalculer totalSupply et liquidityIndex dans chaque interval entre deux claims
     //Thao@TODO: il faut trouver comment recalculer totalSupply car plusieurs LP concerner par un claim
