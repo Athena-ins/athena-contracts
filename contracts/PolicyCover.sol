@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8;
 
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-
 import "./libraries/RayMath.sol";
 import "./libraries/Tick.sol";
 import "./libraries/TickBitmap.sol";
@@ -12,7 +10,7 @@ import "./ClaimCover.sol";
 
 import "hardhat/console.sol";
 
-abstract contract PolicyCover is IPolicyCover, ClaimCover, ReentrancyGuard {
+abstract contract PolicyCover is IPolicyCover, ClaimCover {
   using RayMath for uint256;
   using Tick for mapping(uint24 => address[]);
   using TickBitmap for mapping(uint16 => uint256);

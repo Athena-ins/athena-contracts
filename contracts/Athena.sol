@@ -130,6 +130,13 @@ contract Athena is ReentrancyGuard, Ownable {
     );
   }
 
+  //Thao@TODO: à compléter
+  function withdrawPolicy(uint128 _protocolId) public payable nonReentrant {
+    IProtocolPool(protocolsMapping[_protocolId].deployed).withdrawPolicy(
+      msg.sender
+    );
+  }
+
   function startClaim(
     uint256 _policyId,
     uint256 _index,

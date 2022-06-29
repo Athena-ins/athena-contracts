@@ -1014,20 +1014,24 @@ describe("Simulation", () => {
     });
 
     describe("Should withdraw policy of PT1 after 1 days arriving of PT2", () => {
-      it("Should withdraw via protocol contract", async () => {
-        //Thao@TODO: time to reserved withdraw ?
+      it("Should withdraw policy", async () => {
+        await setNextBlockTimestamp(1 * 24 * 60 * 60);
+        const tx = await ATHENA_CONTRACT.connect(policyTaker1).withdrawPolicy(
+          PROTOCOL_ZERO
+        );
+
+        const result = await tx.wait();
+        const event = result.events[1];
+
         const protocolContract = await getProtocolContract(
           policyTaker1,
           PROTOCOL_ZERO
         );
 
-        await setNextBlockTimestamp(1 * 24 * 60 * 60);
-        const tx = await protocolContract.withdrawPolicy(
-          await policyTaker1.getAddress()
+        const decodedData = protocolContract.interface.decodeEventLog(
+          event.topics[0],
+          event.data
         );
-        const result = await tx.wait();
-        const decodedData = result.events[1].decode(result.events[1].data);
-        // console.log(decodedData);
 
         expect(decodedData.owner).to.be.equal(await policyTaker1.getAddress());
         expect(decodedData.remainedAmount).to.be.equal("2118");
@@ -1061,20 +1065,24 @@ describe("Simulation", () => {
     });
 
     describe("Should withdraw policy of PT2 after 10 days withdrawed of PT1", () => {
-      it("Should withdraw via protocol contract", async () => {
-        //Thao@TODO: time to reserved withdraw ?
-        const protocolContract = await getProtocolContract(
-          policyTaker1,
+      it("Should withdraw policy", async () => {
+        await setNextBlockTimestamp(10 * 24 * 60 * 60);
+        const tx = await ATHENA_CONTRACT.connect(policyTaker2).withdrawPolicy(
           PROTOCOL_ZERO
         );
 
-        await setNextBlockTimestamp(10 * 24 * 60 * 60);
-        const tx = await protocolContract.withdrawPolicy(
-          await policyTaker2.getAddress()
-        );
         const result = await tx.wait();
-        const decodedData = result.events[1].decode(result.events[1].data);
-        // console.log(decodedData);
+        const event = result.events[1];
+
+        const protocolContract = await getProtocolContract(
+          policyTaker2,
+          PROTOCOL_ZERO
+        );
+
+        const decodedData = protocolContract.interface.decodeEventLog(
+          event.topics[0],
+          event.data
+        );
 
         expect(decodedData.owner).to.be.equal(await policyTaker2.getAddress());
         expect(decodedData.remainedAmount).to.be.equal("8556");

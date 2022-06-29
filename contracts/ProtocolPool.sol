@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8;
 
+//Thao@NOTE: comme tous les fcts qui modifient l'état est appeler par core, du coup nous n'avons pas besoins ReentrancyGuard.sol ici
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import "./interfaces/IProtocolPool.sol";
 import "./PolicyCover.sol";
 
-import "hardhat/console.sol";
-
 //Thao@NOTE:
 // tout les contrats: liquidityCover, ClaimCover et PolicyCover ne implémentent que la logique.
 // ProtocolPool assemble les logiques et les checks: onlyCore, ...
-contract ProtocolPool is IProtocolPool, PolicyCover {
+contract ProtocolPool is IProtocolPool, PolicyCover, ReentrancyGuard {
   using RayMath for uint256;
   using SafeERC20 for IERC20;
 
@@ -59,7 +59,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
   function mint(address _account, uint256 _amount) external onlyCore {
     _actualizing();
     _mintLiquidity(_account, RayMath.otherToRay(_amount), slot0.premiumSpent);
-    //Thao@TODO: event
+    emit Mint(_account, _amount);
   }
 
   function buyPolicy(
@@ -78,7 +78,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
 
   function withdrawPolicy(address _owner)
     external
-    // onlyCore
+    onlyCore
     existedOwner(_owner)
   {
     _actualizing();

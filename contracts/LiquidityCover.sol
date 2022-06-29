@@ -8,6 +8,8 @@ import "./libraries/RayMath.sol";
 abstract contract LiquidityCover is ERC20 {
   using RayMath for uint256;
 
+  event Mint(address owner, uint256 amount);
+
   //Thao@ADD: nous avons besoin pour ajouter des claims dans d'autre protocols compatifs
   uint128[] public compatibilityProtocols;
 
