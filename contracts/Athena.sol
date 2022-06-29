@@ -3,15 +3,19 @@ pragma solidity ^0.8;
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+
+import "./AAVE/ILendingPoolAddressesProvider.sol";
+import "./AAVE/ILendingPool.sol";
+
 import "./interfaces/IPositionsManager.sol";
 import "./interfaces/IProtocolFactory.sol";
 import "./interfaces/IProtocolPool.sol";
-import "./AAVE/ILendingPoolAddressesProvider.sol";
-import "./AAVE/ILendingPool.sol";
 import "./interfaces/IStakedAten.sol";
 import "./interfaces/IPolicyManager.sol";
 import "./interfaces/IScaledBalanceToken.sol";
 import "./interfaces/IClaimManager.sol";
+
+import "./ClaimCover.sol";
 
 import "hardhat/console.sol";
 
@@ -137,6 +141,28 @@ contract Athena is ReentrancyGuard, Ownable {
     );
   }
 
+  //Thao@TODO: can we use delegateCall here ?
+  //Thao@NOTE: for testing
+  function addClaim(
+    address _account,
+    uint128 _protocolId,
+    uint256 _amount
+  ) public nonReentrant {
+    IProtocolPool __protocolPool = IProtocolPool(
+      protocolsMapping[_protocolId].deployed
+    );
+
+    ClaimCover.Claim memory __newClaim = __protocolPool.buildClaim(_amount);
+    uint128[] memory __relatedProtocols = __protocolPool.getRelatedProtocols();
+
+    for (uint256 i = 0; i < __relatedProtocols.length; i++) {
+      IProtocolPool(protocolsMapping[__relatedProtocols[i]].deployed).addClaim(
+        _account,
+        __newClaim
+      );
+    }
+  }
+
   function startClaim(
     uint256 _policyId,
     uint256 _index,
@@ -196,6 +222,7 @@ contract Athena is ReentrancyGuard, Ownable {
     }
   }
 
+  //Thao@TODO: il faut add relatedProtocol
   function deposit(
     uint256 amount,
     uint256 atenToStake,

@@ -2,6 +2,7 @@
 pragma solidity ^0.8;
 
 import "./IPolicyCover.sol";
+import "../ClaimCover.sol";
 
 //Thao@TODO: remove IPolicyCover
 interface IProtocolPool is IPolicyCover {
@@ -27,4 +28,13 @@ interface IProtocolPool is IPolicyCover {
   ) external;
 
   function withdrawPolicy(address _owner) external;
+
+  function buildClaim(uint256 _amount)
+    external
+    view
+    returns (ClaimCover.Claim memory);
+
+  function addClaim(address _account, ClaimCover.Claim memory _claim) external;
+
+  function getRelatedProtocols() external view returns (uint128[] memory);
 }

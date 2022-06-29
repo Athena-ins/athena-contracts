@@ -18,7 +18,7 @@ abstract contract ClaimCover is LiquidityCover {
   Claim[] public claims;
   uint256 public claimIndex;
 
-  function addClaim(Claim memory _newClaim) internal {
+  function _addClaim(Claim memory _newClaim) internal {
     claims.push(_newClaim);
   }
 

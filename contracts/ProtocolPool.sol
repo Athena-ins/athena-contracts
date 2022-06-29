@@ -207,7 +207,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover, ReentrancyGuard {
     // release funds from AAVE TO REFUND USER
     // }
     _actualizing();
-    addClaim(
+    _addClaim(
       Claim(
         id,
         RayMath.otherToRay(_amount),
@@ -225,5 +225,54 @@ contract ProtocolPool is IProtocolPool, PolicyCover, ReentrancyGuard {
     IERC20(underlyingAsset).safeTransfer(_account, _amount);
     availableCapital -= RayMath.otherToRay(_amount);
     //Thao@TODO: recalculer slot0 car availableCapital est changé
+  }
+
+  function getRelatedProtocols()
+    external
+    view
+    override
+    returns (uint128[] memory)
+  {
+    return relatedProtocols;
+  }
+
+  function buildClaim(uint256 _amount)
+    external
+    view
+    override
+    onlyCore
+    returns (ClaimCover.Claim memory)
+  {
+    uint256 __amount = RayMath.otherToRay(_amount);
+    return
+      Claim(
+        id,
+        __amount,
+        __amount.rayDiv(availableCapital),
+        block.timestamp,
+        0,
+        0
+      );
+  }
+
+  function addClaim(address _account, Claim memory _claim)
+    external
+    override
+    onlyCore
+  {
+    _actualizing();
+    _addClaim(_claim);
+
+    console.log("ProtocolPool.addClaim <<< _account:", _account);
+    console.log(
+      "ProtocolPool.addClaim <<< _claim.disputeId:",
+      _claim.disputeId
+    );
+    console.log("ProtocolPool.addClaim <<< _claim.amount:", _claim.amount);
+    console.log("ProtocolPool.addClaim <<< _claim.ratio:", _claim.ratio);
+    console.log(
+      "ProtocolPool.addClaim <<< _claim.createdAt:",
+      _claim.createdAt
+    );
   }
 }

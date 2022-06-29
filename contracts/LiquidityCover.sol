@@ -11,7 +11,7 @@ abstract contract LiquidityCover is ERC20 {
   event Mint(address owner, uint256 amount);
 
   //Thao@ADD: nous avons besoin pour ajouter des claims dans d'autre protocols compatifs
-  uint128[] public compatibilityProtocols;
+  uint128[] public relatedProtocols;
 
   //ce même protocol est à l'indice 0 mais il faut enlever pour gas
   mapping(uint128 => uint256) public intersectingAmountIndexes;
