@@ -22,13 +22,13 @@ abstract contract ClaimCover is LiquidityCover {
     claims.push(_newClaim);
   }
 
-  function getClaims() internal view returns (Claim[] memory) {
+  function _claims() internal view returns (Claim[] memory) {
     return claims;
   }
 
   //_claimAmount is Claim.amount
   //use for calculing Claim.ratio
-  function claimAmountRatio(uint256 _claimAmount)
+  function _claimAmountRatio(uint256 _claimAmount)
     internal
     view
     returns (uint256)
@@ -36,7 +36,7 @@ abstract contract ClaimCover is LiquidityCover {
     return _claimAmount.rayDiv(availableCapital);
   }
 
-  function amountToRemoveFromIntersecAndCapital(
+  function _amountToRemoveFromIntersecAndCapital(
     uint256 _intersecAmount,
     uint256 _claimRatio
   ) internal pure returns (uint256) {
@@ -44,7 +44,7 @@ abstract contract ClaimCover is LiquidityCover {
   }
 
   //Thao@TODO: use later for rewardsOf LP
-  function ratioBetweenDepositAndIntersec(
+  function _ratioBetweenDepositAndIntersec(
     uint256 _depositAmount,
     uint256 _intersecAmount
   ) internal pure returns (uint256) {
@@ -52,15 +52,10 @@ abstract contract ClaimCover is LiquidityCover {
   }
 
   //Thao@TODO: use later for rewardsOf LP
-  function amountToRemoveFromDeposit(
+  function _amountToRemoveFromDeposit(
     uint256 _amountToRemoveFromIntersec,
     uint256 _depositRatio
   ) internal pure returns (uint256) {
     return _amountToRemoveFromIntersec.rayMul(_depositRatio);
-  }
-
-  //Thao@TODO: to remove
-  function removeAmountFromCapital(uint256 _amountToRemove) internal {
-    availableCapital -= _amountToRemove;
   }
 }

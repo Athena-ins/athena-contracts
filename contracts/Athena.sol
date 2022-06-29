@@ -263,7 +263,7 @@ contract Athena is ReentrancyGuard, Ownable {
 
     for (uint256 index = 0; index < _protocolIds.length; index++)
       IProtocolPool(protocolsMapping[_protocolIds[index]].deployed)
-        .committingWithdraw(msg.sender);
+        .committingWithdrawLiquidity(msg.sender);
   }
 
   function withdrawAll() external {
@@ -288,7 +288,7 @@ contract Athena is ReentrancyGuard, Ownable {
     _withdraw(liquidity, protocolIds, atokens, discount, createdAt);
     for (uint256 index = 0; index < protocolIds.length; index++) {
       IProtocolPool(protocolsMapping[protocolIds[index]].deployed)
-        .removeCommittedWithdraw(msg.sender);
+        .removeCommittedWithdrawLiquidity(msg.sender);
     }
   }
 
@@ -326,7 +326,7 @@ contract Athena is ReentrancyGuard, Ownable {
 
       uint256 _maxCapital = IProtocolPool(
         protocolsMapping[_protocolIds[index]].deployed
-      ).withdraw(msg.sender, _amount, _discount, createdAt);
+      ).withdrawLiquidity(msg.sender, _amount, _discount, createdAt);
 
       if (_maxCapital < _amount) __claimedAmount += _amount - _maxCapital;
     }

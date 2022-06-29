@@ -1030,9 +1030,7 @@ describe("Simulation", () => {
         // console.log(decodedData);
 
         expect(decodedData.owner).to.be.equal(await policyTaker1.getAddress());
-        expect(decodedData.remainedAmount).to.be.equal(
-          "2118000000000000000000000000000"
-        );
+        expect(decodedData.remainedAmount).to.be.equal("2118");
       });
 
       it("Should check slot0 after PT1 quit", async () => {
@@ -1079,9 +1077,7 @@ describe("Simulation", () => {
         // console.log(decodedData);
 
         expect(decodedData.owner).to.be.equal(await policyTaker2.getAddress());
-        expect(decodedData.remainedAmount).to.be.equal(
-          "8556000000000000000000000000000"
-        );
+        expect(decodedData.remainedAmount).to.be.equal("8556");
       });
 
       it("Should check slot0 after PT2 quit", async () => {

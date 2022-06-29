@@ -17,17 +17,17 @@ abstract contract LiquidityCover is ERC20 {
 
   uint256 public availableCapital;
 
-  function getIntersectingAmounts() internal view returns (uint256[] memory) {
+  function _intersectingAmounts() internal view returns (uint256[] memory) {
     return intersectingAmounts;
   }
 
-  function getUtilisationRate(
+  // returns actual usage rate on capital insured / capital provided for insurance
+  function _utilisationRate(
     bool _isAdded,
     uint256 _insuredCapital,
     uint256 _totalInsuredCapital,
     uint256 _availableCapital
-  ) public pure returns (uint256) {
-    // returns actual usage rate on capital insured / capital provided for insurance
+  ) internal pure returns (uint256) {
     if (_availableCapital == 0) {
       return 0;
     }
@@ -41,7 +41,7 @@ abstract contract LiquidityCover is ERC20 {
         );
   }
 
-  function getLiquidityIndex(uint256 _totalSupply, uint256 _totalCapital)
+  function _liquidityIndex(uint256 _totalSupply, uint256 _totalCapital)
     internal
     pure
     returns (uint256)
@@ -49,30 +49,29 @@ abstract contract LiquidityCover is ERC20 {
     return _totalSupply == 0 ? RayMath.RAY : _totalSupply.rayDiv(_totalCapital);
   }
 
-  function mintLiquidity(
+  function _mintLiquidity(
     address _account,
     uint256 _amount,
     uint256 _premiumSpent
-  ) external {
+  ) internal {
     _mint(
       _account,
       (
         _amount.rayMul(
-          getLiquidityIndex(totalSupply(), availableCapital + _premiumSpent)
+          _liquidityIndex(totalSupply(), availableCapital + _premiumSpent)
         )
       )
     );
 
     availableCapital += _amount;
-    //Thao@TODO: event
   }
 
-  function getScaledBalance(address _account, uint256 _premiumSpent)
+  function _scaledBalance(address _account, uint256 _premiumSpent)
     internal
     view
     returns (uint256)
   {
-    uint256 __liquidityIndex = getLiquidityIndex(
+    uint256 __liquidityIndex = _liquidityIndex(
       totalSupply(),
       availableCapital + _premiumSpent
     );

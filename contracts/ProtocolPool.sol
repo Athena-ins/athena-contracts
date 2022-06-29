@@ -42,38 +42,48 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     underlyingAsset = _underlyingAsset;
   }
 
-  modifier onlyCore() override {
+  modifier onlyCore() {
     require(msg.sender == core, "Only Core");
     _;
   }
 
-  function committingWithdraw(address _account) external onlyCore {
+  function committingWithdrawLiquidity(address _account) external onlyCore {
     //Thao@TODO: require have any claim in progress
     withdrawReserves[_account] = block.timestamp;
   }
 
-  function removeCommittedWithdraw(address _account) external {
+  function removeCommittedWithdrawLiquidity(address _account) external {
     delete withdrawReserves[_account];
   }
 
   function mint(address _account, uint256 _amount) external onlyCore {
-    actualizing();
-    uint256 __amount = RayMath.otherToRay(_amount);
-
-    _mint(
-      _account,
-      (
-        __amount.rayMul(
-          getLiquidityIndex(
-            totalSupply(),
-            availableCapital + slot0.premiumSpent
-          )
-        )
-      )
-    );
-
-    availableCapital += __amount;
+    _actualizing();
+    _mintLiquidity(_account, RayMath.otherToRay(_amount), slot0.premiumSpent);
     //Thao@TODO: event
+  }
+
+  function buyPolicy(
+    address _owner,
+    uint256 _premium,
+    uint256 _insuredCapital
+  ) external onlyCore notExistedOwner(_owner) {
+    _actualizing();
+    _buyPolicy(
+      _owner,
+      RayMath.otherToRay(_premium),
+      RayMath.otherToRay(_insuredCapital)
+    );
+    emit BuyPolicy(_owner, _premium, _insuredCapital);
+  }
+
+  function withdrawPolicy(address _owner)
+    external
+    // onlyCore
+    existedOwner(_owner)
+  {
+    _actualizing();
+    uint256 __remainedPremium = _withdrawPolicy(_owner);
+    emit WithdrawPolicy(_owner, RayMath.rayToOther(__remainedPremium));
   }
 
   //Thao@Dev: cette fct utilise à intérieur du contrat
@@ -92,12 +102,12 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
       uint256 __availableCapital,
       Claim[] memory __claims,
 
-    ) = actualizingSlot0WithClaims(_dateInSecond);
+    ) = _actualizingSlot0WithClaims(_dateInSecond);
     //Thao@TODO: il faut parcourir __claims et recalculer totalSupply et liquidityIndex dans chaque interval entre deux claims
     //Thao@TODO: il faut trouver comment recalculer totalSupply car plusieurs LP concerner par un claim
     //il faut faire une boucle ici
     //check aussi id de protocol dans claim pour retirer amount de LP concerné
-    uint256 __liquidityIndex = getLiquidityIndex(
+    uint256 __liquidityIndex = _liquidityIndex(
       totalSupply(),
       __availableCapital + __slot0.premiumSpent
     );
@@ -128,7 +138,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
         );
   }
 
-  function withdraw(
+  function withdrawLiquidity(
     address _account,
     uint256 _userCapital,
     uint128 _discount,
@@ -143,7 +153,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     );
 
     require(
-      getUtilisationRate(
+      _utilisationRate(
         false,
         0,
         slot0.totalInsuredCapital,
@@ -192,11 +202,11 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     override
     onlyCore
   {
-    // Slot0 memory __slot0 = actualizingSlot0WithClaims(block.timestamp);
+    // Slot0 memory __slot0 = _actualizingSlot0WithClaims(block.timestamp);
     // if (_amount > __slot0.premiumSpent) {
     // release funds from AAVE TO REFUND USER
     // }
-    actualizing();
+    _actualizing();
     addClaim(
       Claim(
         id,

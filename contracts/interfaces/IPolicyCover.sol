@@ -3,6 +3,7 @@ pragma solidity ^0.8;
 
 interface IPolicyCover {
   //Thao@TODO: add event expiredPolicy
+  //Thao@TODO: move view fcts into another contract
 
   event Actualizing(
     uint24 tick,
@@ -23,8 +24,7 @@ interface IPolicyCover {
     uint256 emissionRate; //RAY
     uint256 hoursPerTick; //RAY
     uint256 totalInsuredCapital; //RAY
-    // uint256 availableCapital; //RAY
-    uint256 premiumSpent; //RAY //Thao@TODO: van can thiet nhung moi lan gap claim lai reset tu dau
+    uint256 premiumSpent; //RAY
     uint256 remainingPolicies;
     uint256 lastUpdateTimestamp;
   }
@@ -35,19 +35,6 @@ interface IPolicyCover {
     uint256 rSlope1;
     uint256 rSlope2;
   }
-
-  function getPremiumRate(uint256 utilisationRate)
-    external
-    view
-    returns (uint256);
-
-  function buyPolicy(
-    address owner,
-    uint256 amount,
-    uint256 capitalInsured
-  ) external;
-
-  function withdrawPolicy(address owner) external;
 
   function actualizingUntilGivenDate(uint256 dateInSecond)
     external
