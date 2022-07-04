@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8;
 
-//Thao@NOTE: comme tous les fcts qui modifient l'état est appeler par core, du coup nous n'avons pas besoins ReentrancyGuard.sol ici
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import "./interfaces/IProtocolPool.sol";
@@ -11,13 +9,12 @@ import "./PolicyCover.sol";
 //Thao@NOTE:
 // tout les contrats: liquidityCover, ClaimCover et PolicyCover ne implémentent que la logique.
 // ProtocolPool assemble les logiques et les checks: onlyCore, ...
-contract ProtocolPool is IProtocolPool, PolicyCover, ReentrancyGuard {
+contract ProtocolPool is IProtocolPool, PolicyCover {
   using RayMath for uint256;
   using SafeERC20 for IERC20;
 
   address private immutable core;
   address public underlyingAsset;
-  //Thao@NOTE: ajouter id pour traiter des claims;
   uint128 public id;
 
   mapping(address => uint256) public withdrawReserves;
@@ -31,6 +28,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover, ReentrancyGuard {
   constructor(
     address _core,
     address _underlyingAsset,
+    uint128 _id,
     uint256 _uOptimal,
     uint256 _r0,
     uint256 _rSlope1,
@@ -40,6 +38,11 @@ contract ProtocolPool is IProtocolPool, PolicyCover, ReentrancyGuard {
   ) ERC20(_name, _symbol) PolicyCover(_uOptimal, _r0, _rSlope1, _rSlope2) {
     core = _core;
     underlyingAsset = _underlyingAsset;
+
+    id = _id;
+    relatedProtocols.push(_id);
+    // intersectingAmountIndexes[_id] = 0;
+    intersectingAmounts.push();
   }
 
   modifier onlyCore() {
@@ -263,6 +266,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover, ReentrancyGuard {
     _actualizing();
     _addClaim(_claim);
 
+    console.log("Protocol:", id);
     console.log("ProtocolPool.addClaim <<< _account:", _account);
     console.log(
       "ProtocolPool.addClaim <<< _claim.disputeId:",
@@ -274,5 +278,20 @@ contract ProtocolPool is IProtocolPool, PolicyCover, ReentrancyGuard {
       "ProtocolPool.addClaim <<< _claim.createdAt:",
       _claim.createdAt
     );
+  }
+
+  //Thao@NOTE: _amount est 100% de déposit
+  function addRelatedProtocol(uint128 _protocolId, uint256 _amount)
+    external
+    onlyCore
+  {
+    if (intersectingAmountIndexes[_protocolId] == 0 && _protocolId != id) {
+      intersectingAmountIndexes[_protocolId] = intersectingAmounts.length;
+      relatedProtocols.push(_protocolId);
+      intersectingAmounts.push();
+    }
+
+    intersectingAmounts[intersectingAmountIndexes[_protocolId]] += RayMath
+      .otherToRay(_amount);
   }
 }

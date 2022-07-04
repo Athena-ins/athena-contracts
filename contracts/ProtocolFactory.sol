@@ -23,18 +23,21 @@ contract ProtocolFactory {
     uint256 _r0,
     uint256 _rSlope1,
     uint256 _rSlope2
-  ) external onlyCore returns (address _protocolDeployed) {
-    ProtocolPool protocolDeployed = new ProtocolPool(
-      core,
-      stablecoin,
-      _uOptimal,
-      _r0,
-      _rSlope1,
-      _rSlope2,
-      name,
-      // A P P = Athena Protocol Pool
-      string(abi.encodePacked("APP_", Strings.toString(newProtocolId)))
-    );
-    _protocolDeployed = address(protocolDeployed);
+  ) external onlyCore returns (address) {
+    return
+      address(
+        new ProtocolPool(
+          core,
+          stablecoin,
+          newProtocolId,
+          _uOptimal,
+          _r0,
+          _rSlope1,
+          _rSlope2,
+          name,
+          // A P P = Athena Protocol Pool
+          string(abi.encodePacked("APP_", Strings.toString(newProtocolId)))
+        )
+      );
   }
 }

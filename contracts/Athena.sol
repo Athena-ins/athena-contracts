@@ -141,13 +141,13 @@ contract Athena is ReentrancyGuard, Ownable {
     );
   }
 
-  //Thao@TODO: can we use delegateCall here ?
   //Thao@NOTE: for testing
   function addClaim(
     address _account,
     uint128 _protocolId,
     uint256 _amount
   ) public nonReentrant {
+    //Thao@TODO: check si _account est dans _protocolId
     IProtocolPool __protocolPool = IProtocolPool(
       protocolsMapping[_protocolId].deployed
     );
@@ -253,6 +253,14 @@ contract Athena is ReentrancyGuard, Ownable {
             false,
           "Protocol not compatible"
         );
+
+        //Thao@NOTE: _amount est 100% de déposit
+        //Thao@TODO: need to check amounts[index?]
+        IProtocolPool(protocolsMapping[_protocolIds[index]].deployed)
+          .addRelatedProtocol(_protocolIds[index2], _amounts[index2]);
+
+        IProtocolPool(protocolsMapping[_protocolIds[index2]].deployed)
+          .addRelatedProtocol(_protocolIds[index], _amounts[index]);
       }
       require(
         _amounts[index] <= amount,
@@ -262,6 +270,10 @@ contract Athena is ReentrancyGuard, Ownable {
         msg.sender,
         _amounts[index]
       );
+
+      //Thao@NOTE: mint can addRelatedProtocol too
+      IProtocolPool(protocolsMapping[_protocolIds[index]].deployed)
+        .addRelatedProtocol(_protocolIds[index], _amounts[index]);
     }
 
     uint256 _atokens = _transferLiquidity(amount);

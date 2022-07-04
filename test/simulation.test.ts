@@ -1,10 +1,12 @@
 import chai, { expect } from "chai";
-import hre, { ethers as hre_ethers } from "hardhat";
+import { ethers as hre_ethers } from "hardhat";
 import { ethers } from "ethers";
 import weth_abi from "../abis/weth.json";
 import chaiAsPromised from "chai-as-promised";
 import { getATokenBalance } from "./helpers";
-import protocolPoolAbi from "../artifacts/contracts/ProtocolPool.sol/ProtocolPool.json";
+
+import HardhatHelper from "./helpers/HardhatHelper";
+import ContractHelper from "./helpers/ContractHelper";
 
 chai.use(chaiAsPromised);
 
@@ -14,14 +16,8 @@ const BINANCE_WALLET = "0xF977814e90dA44bFA03b6295A0616a897441aceC"; //1Md2 USDT
 const ATEN_OWNER_ADDRESS = "0x967d98e659f2787A38d928B9B7a49a2E4701B30C";
 
 const AAVE_LENDING_POOL = "0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9";
-const AAVE_REGISTRY = "0xb53c1a33016b2dc2ff3653530bff1848a515c8c5";
-const NULL_ADDRESS = "0x" + "0".repeat(40);
-const ARBITRATOR_ADDRESS = "0x988b3A538b618C7A603e1c11Ab82Cd16dbE28069";
-
-const USDT_AAVE_ATOKEN = "0x3Ed3B47Dd13EC9a98b44e6204A523E766B225811";
 const USDT = "0xdac17f958d2ee523a2206206994597c13d831ec7";
 const ATEN_TOKEN = "0x86ceb9fa7f5ac373d275d328b7aca1c05cfb0283";
-const WETH = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2";
 
 let allSigners: ethers.Signer[],
   owner: ethers.Signer,
@@ -42,25 +38,14 @@ let allSigners: ethers.Signer[],
   ATEN_TOKEN_CONTRACT: ethers.Contract;
 
 const PROTOCOL_ZERO = 0;
-let currentTime = 1646220000;
 const USDT_AMOUNT = "1000000";
 const ATEN_AMOUNT = "10000000";
 
 describe("Simulation", () => {
   before(async () => {
-    await hre.network.provider.request({
-      method: "hardhat_reset",
-      params: [
-        {
-          forking: {
-            jsonRpcUrl: process.env.MAINNET_URL,
-            blockNumber: 14307200,
-          },
-        },
-      ],
-    });
+    await HardhatHelper.reset();
 
-    allSigners = await hre_ethers.getSigners();
+    allSigners = await HardhatHelper.allSigners();
     owner = allSigners[0];
     liquidityProvider1 = allSigners[1];
     liquidityProvider2 = allSigners[2];
@@ -69,19 +54,11 @@ describe("Simulation", () => {
     policyTaker2 = allSigners[101];
     policyTaker3 = allSigners[102];
 
-    await hre.network.provider.request({
-      method: "hardhat_impersonateAccount",
-      params: [BINANCE_WALLET],
-    });
+    binanceSigner = await HardhatHelper.impersonateAccount(BINANCE_WALLET);
 
-    binanceSigner = await hre_ethers.getSigner(BINANCE_WALLET);
-
-    await hre.network.provider.request({
-      method: "hardhat_impersonateAccount",
-      params: [ATEN_OWNER_ADDRESS],
-    });
-
-    atenOwnerSigner = await hre_ethers.getSigner(ATEN_OWNER_ADDRESS);
+    atenOwnerSigner = await HardhatHelper.impersonateAccount(
+      ATEN_OWNER_ADDRESS
+    );
 
     USDT_TOKEN_CONTRACT = new hre_ethers.Contract(
       USDT,
@@ -94,22 +71,6 @@ describe("Simulation", () => {
       atenOwnerSigner
     );
   });
-
-  async function setNextBlockTimestamp(addingTime: number) {
-    currentTime += addingTime;
-    await hre.network.provider.request({
-      method: "evm_setNextBlockTimestamp",
-      params: [currentTime],
-    });
-  }
-
-  async function getProtocolContract(user: ethers.Signer, protocolId: number) {
-    const protocol = await ATHENA_CONTRACT.connect(user).protocolsMapping(
-      protocolId
-    );
-
-    return new ethers.Contract(protocol.deployed, protocolPoolAbi.abi, user);
-  }
 
   function getSlot0Info(slot0: any) {
     const info = {
@@ -130,25 +91,18 @@ describe("Simulation", () => {
   describe("Should prepare Protocol", () => {
     describe("Should deploy all Contracts and initialize Protocol", () => {
       it("Should deploy Athena contract", async () => {
-        ATHENA_CONTRACT = await (await hre_ethers.getContractFactory("Athena"))
-          .connect(owner)
-          .deploy(USDT, ATEN_TOKEN, AAVE_REGISTRY);
-
-        await ATHENA_CONTRACT.deployed();
-
+        await ContractHelper.deployAthenaContract(owner);
+        ATHENA_CONTRACT = ContractHelper.getAthenaContract();
         expect(
-          await hre_ethers.provider.getCode(ATHENA_CONTRACT.address)
+          await hre_ethers.provider.getCode(
+            ContractHelper.getAthenaContract().address
+          )
         ).to.not.equal("0x");
       });
 
       it("Should deploy PositionsManager contract", async () => {
-        POSITIONS_MANAGER_CONTRACT = await (
-          await hre_ethers.getContractFactory("PositionsManager")
-        )
-          .connect(owner)
-          .deploy(ATHENA_CONTRACT.address);
-
-        await POSITIONS_MANAGER_CONTRACT.deployed();
+        POSITIONS_MANAGER_CONTRACT =
+          await ContractHelper.deployPositionManagerContract(owner);
 
         expect(
           await hre_ethers.provider.getCode(POSITIONS_MANAGER_CONTRACT.address)
@@ -156,13 +110,9 @@ describe("Simulation", () => {
       });
 
       it("Should deploy StakedAten contract", async () => {
-        STAKED_ATENS_CONTRACT = await (
-          await hre_ethers.getContractFactory("StakedAten")
-        )
-          .connect(owner)
-          .deploy(ATEN_TOKEN, ATHENA_CONTRACT.address);
-
-        await STAKED_ATENS_CONTRACT.deployed();
+        STAKED_ATENS_CONTRACT = await ContractHelper.deployStakedAtenContract(
+          owner
+        );
 
         expect(
           await hre_ethers.provider.getCode(STAKED_ATENS_CONTRACT.address)
@@ -170,13 +120,8 @@ describe("Simulation", () => {
       });
 
       it("Should deploy ProtocolFactory contract", async () => {
-        FACTORY_PROTOCOL_CONTRACT = await (
-          await hre_ethers.getContractFactory("ProtocolFactory")
-        )
-          .connect(owner)
-          .deploy(ATHENA_CONTRACT.address);
-
-        await FACTORY_PROTOCOL_CONTRACT.deployed();
+        FACTORY_PROTOCOL_CONTRACT =
+          await ContractHelper.deployProtocolFactoryContract(owner);
 
         expect(
           await hre_ethers.provider.getCode(FACTORY_PROTOCOL_CONTRACT.address)
@@ -184,13 +129,8 @@ describe("Simulation", () => {
       });
 
       it("Should deploy PolicyManager contract", async () => {
-        POLICY_MANAGER_CONTRACT = await (
-          await hre_ethers.getContractFactory("PolicyManager")
-        )
-          .connect(owner)
-          .deploy(ATHENA_CONTRACT.address);
-
-        await POLICY_MANAGER_CONTRACT.deployed();
+        POLICY_MANAGER_CONTRACT =
+          await ContractHelper.deployPolicyManagerContract(owner);
 
         expect(
           await hre_ethers.provider.getCode(POLICY_MANAGER_CONTRACT.address)
@@ -198,39 +138,25 @@ describe("Simulation", () => {
       });
 
       it("Should initialize protocol with required values", async () => {
-        const init = await ATHENA_CONTRACT.initialize(
-          POSITIONS_MANAGER_CONTRACT.address,
-          STAKED_ATENS_CONTRACT.address,
-          POLICY_MANAGER_CONTRACT.address,
-          USDT_AAVE_ATOKEN,
-          FACTORY_PROTOCOL_CONTRACT.address,
-          ARBITRATOR_ADDRESS,
-          NULL_ADDRESS
-        );
+        const init = await ContractHelper.initializeProtocol();
 
         expect(init).to.haveOwnProperty("hash");
       });
     });
 
-    describe("Set new active protocol", () => {
-      it("Should set new active Protocol 0", async () => {
-        await setNextBlockTimestamp(0 * 24 * 60 * 60);
-        const tx = await ATHENA_CONTRACT.addNewProtocol(
-          "Test protocol 0",
-          0,
-          30,
-          WETH,
-          []
-        );
+    describe("Set new active protocol 0", () => {
+      it("Should set new active protocol", async () => {
+        await HardhatHelper.setNextBlockTimestamp(0 * 24 * 60 * 60);
+        const tx = await ContractHelper.addNewProtocolPool("Test protocol 0");
 
         expect(tx).to.haveOwnProperty("hash");
 
-        const protocol = await ATHENA_CONTRACT.protocolsMapping(0);
+        const protocol = await ContractHelper.getProtocolPoolById(0);
         expect(protocol.name).to.equal("Test protocol 0");
       });
 
-      it("Should check slot0 in Protocol 0", async () => {
-        const protocolContract = await getProtocolContract(
+      it("Should check slot0", async () => {
+        const protocolContract = await ContractHelper.getProtocolPoolContract(
           owner,
           PROTOCOL_ZERO
         );
@@ -243,11 +169,134 @@ describe("Simulation", () => {
         expect(slot0.totalInsuredCapital).to.be.equal("0");
         expect(slot0.premiumSpent).to.be.equal("0");
         expect(slot0.remainingPolicies).to.be.equal("0");
-        expect(slot0.lastUpdateTimestamp).to.be.equal(currentTime);
+        expect(slot0.lastUpdateTimestamp).to.be.equal(
+          HardhatHelper.getCurrentTime()
+        );
 
         const availableCapital = await protocolContract.availableCapital();
 
         expect(availableCapital).to.be.equal("0");
+      });
+
+      it("Should check relatedProtocols", async () => {
+        const protocolContract = await ContractHelper.getProtocolPoolContract(
+          owner,
+          PROTOCOL_ZERO
+        );
+
+        const relatedProtocol = await protocolContract.relatedProtocols(0);
+
+        expect(relatedProtocol).to.be.equal(0);
+
+        const intersectingAmounts = await protocolContract.intersectingAmounts(
+          0
+        );
+
+        expect(intersectingAmounts).to.be.equal(0);
+      });
+    });
+
+    describe("Set new active protocol 1", () => {
+      it("Should set new active protocol", async () => {
+        await HardhatHelper.setNextBlockTimestamp(1 * 24 * 60 * 60);
+        const tx = await ContractHelper.addNewProtocolPool("Test protocol 1");
+
+        expect(tx).to.haveOwnProperty("hash");
+
+        const protocol = await ContractHelper.getProtocolPoolById(1);
+        expect(protocol.name).to.equal("Test protocol 1");
+      });
+
+      it("Should check slot0", async () => {
+        const protocolContract = await ContractHelper.getProtocolPoolContract(
+          owner,
+          1
+        );
+        const slot0 = await protocolContract.slot0();
+
+        expect(slot0.tick).to.be.equal(0);
+        expect(slot0.premiumRate).to.be.equal("1000000000000000000000000000");
+        expect(slot0.emissionRate).to.be.equal("0");
+        expect(slot0.hoursPerTick).to.be.equal("24000000000000000000000000000");
+        expect(slot0.totalInsuredCapital).to.be.equal("0");
+        expect(slot0.premiumSpent).to.be.equal("0");
+        expect(slot0.remainingPolicies).to.be.equal("0");
+        expect(slot0.lastUpdateTimestamp).to.be.equal(
+          HardhatHelper.getCurrentTime()
+        );
+
+        const availableCapital = await protocolContract.availableCapital();
+
+        expect(availableCapital).to.be.equal("0");
+      });
+
+      it("Should check relatedProtocols", async () => {
+        const protocolContract = await ContractHelper.getProtocolPoolContract(
+          owner,
+          1
+        );
+
+        const relatedProtocol = await protocolContract.relatedProtocols(0);
+
+        expect(relatedProtocol).to.be.equal(1);
+
+        const intersectingAmounts = await protocolContract.intersectingAmounts(
+          0
+        );
+
+        expect(intersectingAmounts).to.be.equal(0);
+      });
+    });
+
+    describe("Set new active protocol 2", () => {
+      it("Should set new active protocol", async () => {
+        await HardhatHelper.setNextBlockTimestamp(1 * 24 * 60 * 60);
+        const tx = await ContractHelper.addNewProtocolPool("Test protocol 2");
+
+        expect(tx).to.haveOwnProperty("hash");
+
+        const protocol = await ContractHelper.getProtocolPoolById(2);
+        expect(protocol.name).to.equal("Test protocol 2");
+      });
+
+      it("Should check slot0", async () => {
+        const protocolContract = await ContractHelper.getProtocolPoolContract(
+          owner,
+          2
+        );
+        const slot0 = await protocolContract.slot0();
+
+        expect(slot0.tick).to.be.equal(0);
+        expect(slot0.premiumRate).to.be.equal("1000000000000000000000000000");
+        expect(slot0.emissionRate).to.be.equal("0");
+        expect(slot0.hoursPerTick).to.be.equal("24000000000000000000000000000");
+        expect(slot0.totalInsuredCapital).to.be.equal("0");
+        expect(slot0.premiumSpent).to.be.equal("0");
+        expect(slot0.remainingPolicies).to.be.equal("0");
+        expect(slot0.lastUpdateTimestamp).to.be.equal(
+          HardhatHelper.getCurrentTime()
+        );
+
+        const availableCapital = await protocolContract.availableCapital();
+
+        expect(availableCapital).to.be.equal("0");
+      });
+
+      it("Should check relatedProtocols", async () => {
+        const protocolContract = await ContractHelper.getProtocolPoolContract(
+          owner,
+          2
+        );
+
+        const relatedProtocol = await protocolContract.relatedProtocols(0);
+
+        expect(relatedProtocol).to.be.equal(2);
+
+        const intersectingAmounts = await protocolContract.intersectingAmounts(
+          0
+        );
+
+        expect(intersectingAmounts).to.be.equal(0);
       });
     });
 
@@ -385,7 +434,7 @@ describe("Simulation", () => {
         ).to.be.equal(hre_ethers.utils.parseEther(ATEN_amount));
       });
 
-      it("Should success deposit funds into protocol 0", async () => {
+      it("Should success deposit funds into the protocols 0 and 2", async () => {
         const USDT_Approved = await USDT_TOKEN_CONTRACT.connect(
           liquidityProvider1
         ).approve(
@@ -404,20 +453,20 @@ describe("Simulation", () => {
 
         expect(ATEN_Approved).to.haveOwnProperty("hash");
 
-        await setNextBlockTimestamp(5 * 24 * 60 * 60);
+        await HardhatHelper.setNextBlockTimestamp(5 * 24 * 60 * 60);
 
         const tx = await ATHENA_CONTRACT.connect(liquidityProvider1).deposit(
           USDT_amount,
           ATEN_amount,
-          [PROTOCOL_ZERO],
-          [USDT_amount]
+          [PROTOCOL_ZERO, 2],
+          [USDT_amount, USDT_amount]
         );
 
         expect(tx).to.haveOwnProperty("hash");
       });
 
       it("Should check slot0 in protocol 0", async () => {
-        const protocolContract = await getProtocolContract(
+        const protocolContract = await ContractHelper.getProtocolPoolContract(
           liquidityProvider1,
           PROTOCOL_ZERO
         );
@@ -430,7 +479,9 @@ describe("Simulation", () => {
         expect(slot0.totalInsuredCapital).to.be.equal("0");
         expect(slot0.premiumSpent).to.be.equal("0");
         expect(slot0.remainingPolicies).to.be.equal("0");
-        expect(slot0.lastUpdateTimestamp).to.be.equal(currentTime);
+        expect(slot0.lastUpdateTimestamp).to.be.equal(
+          HardhatHelper.getCurrentTime()
+        );
 
         const availableCapital = await protocolContract.availableCapital();
         expect(availableCapital).to.be.equal(
@@ -460,7 +511,7 @@ describe("Simulation", () => {
           userNFTindex
         );
         expect(position.liquidity).to.equal(bn(USDT_amount));
-        expect(position.protocolsId).to.deep.equal([bn(0)]);
+        expect(position.protocolsId).to.deep.equal([bn(0), bn(2)]);
 
         // we check AAVE aToken balance
         atokenBalance = atokenBalance.add(USDT_amount);
@@ -474,6 +525,39 @@ describe("Simulation", () => {
             )
           ).gte(atokenBalance)
         ).to.be.true;
+      });
+
+      it("Should check relatedProtocols of Protocol 0", async () => {
+        const protocolContract = await ContractHelper.getProtocolPoolContract(
+          owner,
+          PROTOCOL_ZERO
+        );
+
+        const protocol0Index = await protocolContract.intersectingAmountIndexes(
+          PROTOCOL_ZERO
+        );
+
+        expect(protocol0Index).to.be.equal(0);
+
+        expect(
+          await protocolContract.relatedProtocols(protocol0Index)
+        ).to.be.equal(0);
+
+        expect(
+          await protocolContract.intersectingAmounts(protocol0Index)
+        ).to.be.equal("400000000000000000000000000000000");
+
+        const protocol2Index = await protocolContract.intersectingAmountIndexes(
+          2
+        );
+
+        expect(
+          await protocolContract.relatedProtocols(protocol2Index)
+        ).to.be.equal(2);
+
+        expect(
+          await protocolContract.intersectingAmounts(protocol2Index)
+        ).to.be.equal("400000000000000000000000000000000");
       });
     });
 
@@ -518,7 +602,7 @@ describe("Simulation", () => {
         ).to.be.equal(hre_ethers.utils.parseEther(ATEN_amount));
       });
 
-      it("Should success deposit funds into protocol 0", async () => {
+      it("Should success deposit funds into protocol 0, 1 and 2", async () => {
         const USDT_Approved = await USDT_TOKEN_CONTRACT.connect(
           liquidityProvider2
         ).approve(
@@ -537,20 +621,20 @@ describe("Simulation", () => {
 
         expect(ATEN_Approved).to.haveOwnProperty("hash");
 
-        await setNextBlockTimestamp(10 * 24 * 60 * 60);
+        await HardhatHelper.setNextBlockTimestamp(10 * 24 * 60 * 60);
 
         const tx = await ATHENA_CONTRACT.connect(liquidityProvider2).deposit(
           USDT_amount,
           ATEN_amount,
-          [PROTOCOL_ZERO],
-          [USDT_amount]
+          [PROTOCOL_ZERO, 1, 2],
+          [USDT_amount, USDT_amount, USDT_amount]
         );
 
         expect(tx).to.haveOwnProperty("hash");
       });
 
       it("Should check slot0 in protocol 0", async () => {
-        const protocolContract = await getProtocolContract(
+        const protocolContract = await ContractHelper.getProtocolPoolContract(
           liquidityProvider2,
           PROTOCOL_ZERO
         );
@@ -563,7 +647,9 @@ describe("Simulation", () => {
         expect(slot0.totalInsuredCapital).to.be.equal("0");
         expect(slot0.premiumSpent).to.be.equal("0");
         expect(slot0.remainingPolicies).to.be.equal("0");
-        expect(slot0.lastUpdateTimestamp).to.be.equal(currentTime);
+        expect(slot0.lastUpdateTimestamp).to.be.equal(
+          HardhatHelper.getCurrentTime()
+        );
 
         const availableCapital = await protocolContract.availableCapital();
         expect(availableCapital).to.be.equal(
@@ -593,7 +679,7 @@ describe("Simulation", () => {
           userNFTindex
         );
         expect(position.liquidity).to.equal(bn(USDT_amount));
-        expect(position.protocolsId).to.deep.equal([bn(0)]);
+        expect(position.protocolsId).to.deep.equal([bn(0), bn(1), bn(2)]);
 
         // we check AAVE aToken balance
         atokenBalance = atokenBalance.add(USDT_amount);
@@ -607,6 +693,55 @@ describe("Simulation", () => {
             )
           ).gte(atokenBalance)
         ).to.be.true;
+      });
+
+      it("Should check relatedProtocols of Protocol 0", async () => {
+        const protocolContract = await ContractHelper.getProtocolPoolContract(
+          owner,
+          PROTOCOL_ZERO
+        );
+
+        const protocol0Index = await protocolContract.intersectingAmountIndexes(
+          PROTOCOL_ZERO
+        );
+
+        expect(protocol0Index).to.be.equal(0);
+
+        expect(
+          await protocolContract.relatedProtocols(protocol0Index)
+        ).to.be.equal(0);
+
+        expect(
+          await protocolContract.intersectingAmounts(protocol0Index)
+        ).to.be.equal("730000000000000000000000000000000");
+
+        const protocol1Index = await protocolContract.intersectingAmountIndexes(
+          1
+        );
+
+        expect(protocol1Index).to.be.equal(2);
+
+        expect(
+          await protocolContract.relatedProtocols(protocol1Index)
+        ).to.be.equal(1);
+
+        expect(
+          await protocolContract.intersectingAmounts(protocol1Index)
+        ).to.be.equal("330000000000000000000000000000000");
+
+        const protocol2Index = await protocolContract.intersectingAmountIndexes(
+          2
+        );
+
+        expect(protocol2Index).to.be.equal(1);
+
+        expect(
+          await protocolContract.relatedProtocols(protocol2Index)
+        ).to.be.equal(2);
+
+        expect(
+          await protocolContract.intersectingAmounts(protocol2Index)
+        ).to.be.equal("730000000000000000000000000000000");
       });
     });
 
@@ -640,7 +775,7 @@ describe("Simulation", () => {
 
         expect(USDT_Approved).to.haveOwnProperty("hash");
 
-        await setNextBlockTimestamp(20 * 24 * 60 * 60);
+        await HardhatHelper.setNextBlockTimestamp(20 * 24 * 60 * 60);
 
         const tx = await ATHENA_CONTRACT.connect(policyTaker1).buyPolicy(
           capital,
@@ -654,7 +789,7 @@ describe("Simulation", () => {
       });
 
       it("Should check policy info", async () => {
-        const protocolContract = await getProtocolContract(
+        const protocolContract = await ContractHelper.getProtocolPoolContract(
           policyTaker1,
           PROTOCOL_ZERO
         );
@@ -678,7 +813,7 @@ describe("Simulation", () => {
       });
 
       it("Should get info", async () => {
-        const protocolContract = await getProtocolContract(
+        const protocolContract = await ContractHelper.getProtocolPoolContract(
           policyTaker1,
           PROTOCOL_ZERO
         );
@@ -694,7 +829,7 @@ describe("Simulation", () => {
       });
 
       it("Should check slot0 in protocol 0", async () => {
-        const protocolContract = await getProtocolContract(
+        const protocolContract = await ContractHelper.getProtocolPoolContract(
           policyTaker1,
           PROTOCOL_ZERO
         );
@@ -709,7 +844,9 @@ describe("Simulation", () => {
         );
         expect(slot0.premiumSpent).to.be.equal("0");
         expect(slot0.remainingPolicies).to.be.equal("1");
-        expect(slot0.lastUpdateTimestamp).to.be.equal(currentTime);
+        expect(slot0.lastUpdateTimestamp).to.be.equal(
+          HardhatHelper.getCurrentTime()
+        );
 
         const availableCapital = await protocolContract.availableCapital();
 
@@ -739,7 +876,7 @@ describe("Simulation", () => {
         expect(policy.liquidity).to.equal(capital);
         expect(policy.protocolId).to.equal(bn(PROTOCOL_ZERO));
 
-        const protocolContract = await getProtocolContract(
+        const protocolContract = await ContractHelper.getProtocolPoolContract(
           policyTaker1,
           PROTOCOL_ZERO
         );
@@ -785,7 +922,7 @@ describe("Simulation", () => {
 
         expect(USDT_Approved).to.haveOwnProperty("hash");
 
-        await setNextBlockTimestamp(10 * 24 * 60 * 60);
+        await HardhatHelper.setNextBlockTimestamp(10 * 24 * 60 * 60);
 
         const tx = await ATHENA_CONTRACT.connect(policyTaker2).buyPolicy(
           capital,
@@ -799,7 +936,7 @@ describe("Simulation", () => {
       });
 
       it("Should check policy info", async () => {
-        const protocolContract = await getProtocolContract(
+        const protocolContract = await ContractHelper.getProtocolPoolContract(
           policyTaker2,
           PROTOCOL_ZERO
         );
@@ -823,7 +960,7 @@ describe("Simulation", () => {
       });
 
       it("Should get info", async () => {
-        const protocolContract = await getProtocolContract(
+        const protocolContract = await ContractHelper.getProtocolPoolContract(
           policyTaker2,
           PROTOCOL_ZERO
         );
@@ -840,7 +977,7 @@ describe("Simulation", () => {
       });
 
       it("Should check slot0 in protocol 0", async () => {
-        const protocolContract = await getProtocolContract(
+        const protocolContract = await ContractHelper.getProtocolPoolContract(
           policyTaker2,
           PROTOCOL_ZERO
         );
@@ -855,7 +992,9 @@ describe("Simulation", () => {
         );
         expect(slot0.premiumSpent).to.be.equal("60000000000000000000000000000");
         expect(slot0.remainingPolicies).to.be.equal("2");
-        expect(slot0.lastUpdateTimestamp).to.be.equal(currentTime);
+        expect(slot0.lastUpdateTimestamp).to.be.equal(
+          HardhatHelper.getCurrentTime()
+        );
 
         const availableCapital = await protocolContract.availableCapital();
 
@@ -885,7 +1024,7 @@ describe("Simulation", () => {
         expect(policy.liquidity).to.equal(capital);
         expect(policy.protocolId).to.equal(bn(PROTOCOL_ZERO));
 
-        const protocolContract = await getProtocolContract(
+        const protocolContract = await ContractHelper.getProtocolPoolContract(
           policyTaker2,
           PROTOCOL_ZERO
         );
@@ -903,13 +1042,13 @@ describe("Simulation", () => {
 
     describe("Should view actualize", () => {
       it("Should get vSlot0 after 10 days", async () => {
-        const protocolContract = await getProtocolContract(
+        const protocolContract = await ContractHelper.getProtocolPoolContract(
           owner,
           PROTOCOL_ZERO
         );
 
         const view = await protocolContract.actualizingUntilGivenDate(
-          currentTime + 10 * 24 * 60 * 60
+          HardhatHelper.getCurrentTime() + 10 * 24 * 60 * 60
         );
 
         expect(view.__slot0.tick).to.be.equal(60);
@@ -920,7 +1059,7 @@ describe("Simulation", () => {
         expect(view.__slot0.premiumSpent).to.be.equal(420);
         expect(view.__slot0.remainingPolicies).to.be.equal(2);
         expect(view.__slot0.lastUpdateTimestamp).to.be.equal(
-          currentTime + 10 * 24 * 60 * 60
+          HardhatHelper.getCurrentTime() + 10 * 24 * 60 * 60
         );
 
         expect(view.__availableCapital).to.be.equal(730000);
@@ -932,14 +1071,14 @@ describe("Simulation", () => {
       });
 
       it("Should get vSlot0 after 178 days", async () => {
-        const protocolContract = await getProtocolContract(
+        const protocolContract = await ContractHelper.getProtocolPoolContract(
           owner,
           PROTOCOL_ZERO
         );
 
         const days = 178;
         const view = await protocolContract.actualizingUntilGivenDate(
-          currentTime + days * 24 * 60 * 60
+          HardhatHelper.getCurrentTime() + days * 24 * 60 * 60
         );
 
         expect(view.__slot0.tick).to.be.equal(731);
@@ -950,7 +1089,7 @@ describe("Simulation", () => {
         expect(view.__slot0.premiumSpent).to.be.equal(6459); //Thao@TODO: check why ???
         expect(view.__slot0.remainingPolicies).to.be.equal(1);
         expect(view.__slot0.lastUpdateTimestamp).to.be.equal(
-          currentTime + days * 24 * 60 * 60
+          HardhatHelper.getCurrentTime() + days * 24 * 60 * 60
         );
 
         expect(view.__availableCapital).to.be.equal(730000);
@@ -962,14 +1101,14 @@ describe("Simulation", () => {
       });
 
       it("Should get vSlot0 after 428 days", async () => {
-        const protocolContract = await getProtocolContract(
+        const protocolContract = await ContractHelper.getProtocolPoolContract(
           owner,
           PROTOCOL_ZERO
         );
 
         const days = 428;
         const view = await protocolContract.actualizingUntilGivenDate(
-          currentTime + days * 24 * 60 * 60
+          HardhatHelper.getCurrentTime() + days * 24 * 60 * 60
         );
 
         expect(view.__slot0.tick).to.be.equal(1480);
@@ -980,7 +1119,7 @@ describe("Simulation", () => {
         expect(view.__slot0.premiumSpent).to.be.equal(10950);
         expect(view.__slot0.remainingPolicies).to.be.equal(0);
         expect(view.__slot0.lastUpdateTimestamp).to.be.equal(
-          currentTime + days * 24 * 60 * 60
+          HardhatHelper.getCurrentTime() + days * 24 * 60 * 60
         );
 
         expect(view.__availableCapital).to.be.equal(730000);
@@ -994,7 +1133,7 @@ describe("Simulation", () => {
 
     describe("Should view info of PT1 after 10 days and arriving of PT2", () => {
       it("Should get info via protocol contract", async () => {
-        const protocolContract = await getProtocolContract(
+        const protocolContract = await ContractHelper.getProtocolPoolContract(
           policyTaker1,
           PROTOCOL_ZERO
         );
@@ -1015,7 +1154,7 @@ describe("Simulation", () => {
 
     describe("Should withdraw policy of PT1 after 1 days arriving of PT2", () => {
       it("Should withdraw policy", async () => {
-        await setNextBlockTimestamp(1 * 24 * 60 * 60);
+        await HardhatHelper.setNextBlockTimestamp(1 * 24 * 60 * 60);
         const tx = await ATHENA_CONTRACT.connect(policyTaker1).withdrawPolicy(
           PROTOCOL_ZERO
         );
@@ -1023,7 +1162,7 @@ describe("Simulation", () => {
         const result = await tx.wait();
         const event = result.events[1];
 
-        const protocolContract = await getProtocolContract(
+        const protocolContract = await ContractHelper.getProtocolPoolContract(
           policyTaker1,
           PROTOCOL_ZERO
         );
@@ -1038,7 +1177,7 @@ describe("Simulation", () => {
       });
 
       it("Should check slot0 after PT1 quit", async () => {
-        const protocolContract = await getProtocolContract(
+        const protocolContract = await ContractHelper.getProtocolPoolContract(
           owner,
           PROTOCOL_ZERO
         );
@@ -1054,7 +1193,9 @@ describe("Simulation", () => {
         );
         expect(slot0.premiumSpent).to.be.equal("96000000000000000000000000000");
         expect(slot0.remainingPolicies).to.be.equal(1);
-        expect(slot0.lastUpdateTimestamp).to.be.equal(currentTime);
+        expect(slot0.lastUpdateTimestamp).to.be.equal(
+          HardhatHelper.getCurrentTime()
+        );
 
         const availableCapital = await protocolContract.availableCapital();
 
@@ -1066,7 +1207,7 @@ describe("Simulation", () => {
 
     describe("Should withdraw policy of PT2 after 10 days withdrawed of PT1", () => {
       it("Should withdraw policy", async () => {
-        await setNextBlockTimestamp(10 * 24 * 60 * 60);
+        await HardhatHelper.setNextBlockTimestamp(10 * 24 * 60 * 60);
         const tx = await ATHENA_CONTRACT.connect(policyTaker2).withdrawPolicy(
           PROTOCOL_ZERO
         );
@@ -1074,7 +1215,7 @@ describe("Simulation", () => {
         const result = await tx.wait();
         const event = result.events[1];
 
-        const protocolContract = await getProtocolContract(
+        const protocolContract = await ContractHelper.getProtocolPoolContract(
           policyTaker2,
           PROTOCOL_ZERO
         );
@@ -1089,7 +1230,7 @@ describe("Simulation", () => {
       });
 
       it("Should check slot0 after PT2 quit", async () => {
-        const protocolContract = await getProtocolContract(
+        const protocolContract = await ContractHelper.getProtocolPoolContract(
           owner,
           PROTOCOL_ZERO
         );
@@ -1105,7 +1246,9 @@ describe("Simulation", () => {
           "276000000000000000000000000000"
         );
         expect(slot0.remainingPolicies).to.be.equal(0);
-        expect(slot0.lastUpdateTimestamp).to.be.equal(currentTime);
+        expect(slot0.lastUpdateTimestamp).to.be.equal(
+          HardhatHelper.getCurrentTime()
+        );
 
         const availableCapital = await protocolContract.availableCapital();
 
@@ -1115,6 +1258,161 @@ describe("Simulation", () => {
       });
     });
 
-    //Thao@TODO: rewardsOf and withdraw position
+    describe("Claims", async () => {
+      it("Should success rebuy policy for policyTaker1 in protocol 0 for 1 year", async () => {
+        const capital = "109500";
+        const premium = "2190";
+        const atensLocked = "0";
+
+        await HardhatHelper.setNextBlockTimestamp(20 * 24 * 60 * 60);
+
+        const tx = await ATHENA_CONTRACT.connect(policyTaker1).buyPolicy(
+          capital,
+          premium,
+          atensLocked,
+          PROTOCOL_ZERO
+        );
+        expect(tx).to.haveOwnProperty("hash");
+      });
+
+      it("Should success rebuy policy for policyTaker2 in protocol 0 for 1 year", async () => {
+        const capital = "219000";
+        const premium = "8760";
+        const atensLocked = "0";
+
+        await HardhatHelper.setNextBlockTimestamp(10 * 24 * 60 * 60);
+
+        const tx = await ATHENA_CONTRACT.connect(policyTaker2).buyPolicy(
+          capital,
+          premium,
+          atensLocked,
+          PROTOCOL_ZERO
+        );
+        expect(tx).to.haveOwnProperty("hash");
+      });
+
+      it("Should check slot0 in protocol 0 before claim", async () => {
+        const protocolContract = await ContractHelper.getProtocolPoolContract(
+          policyTaker2,
+          PROTOCOL_ZERO
+        );
+        const slot0 = await protocolContract.slot0();
+
+        // expect(slot0.tick).to.be.equal(20);
+        expect(slot0.premiumRate).to.be.equal("4000000000000000000000000000");
+        expect(slot0.emissionRate).to.be.equal("36000000000000000000000000000");
+        expect(slot0.hoursPerTick).to.be.equal("6000000000000000000000000000");
+        expect(slot0.totalInsuredCapital).to.be.equal(
+          "328500000000000000000000000000000"
+        );
+        expect(slot0.premiumSpent).to.be.equal(
+          "336000000000000000000000000000"
+        );
+        expect(slot0.remainingPolicies).to.be.equal("2");
+        expect(slot0.lastUpdateTimestamp).to.be.equal(
+          HardhatHelper.getCurrentTime()
+        );
+
+        const availableCapital = await protocolContract.availableCapital();
+
+        expect(availableCapital).to.be.equal(
+          "730000000000000000000000000000000"
+        );
+
+        // console.log(
+        //   "Simulate user actions >>> PT2 >> check slot0 >>> slot0:",
+        //   getSlot0Info(slot0)
+        // );
+      });
+
+      it("Should add claim of policyTaker3 in Protocol 2", async () => {
+        HardhatHelper.setNextBlockTimestamp(1 * 24 * 60 * 60);
+
+        await ATHENA_CONTRACT.connect(owner).addClaim(
+          await policyTaker3.getAddress(),
+          2,
+          182500
+        );
+
+        const protocolPool0 = await ContractHelper.getProtocolPoolContract(
+          owner,
+          0
+        );
+        const claim = await protocolPool0.claims(0);
+
+        expect(claim.disputeId).to.be.equal(2);
+        expect(claim.amount).to.be.equal("182500000000000000000000000000000");
+        expect(claim.ratio).to.be.equal("250000000000000000000000000");
+        expect(claim.createdAt).to.be.equal(HardhatHelper.getCurrentTime());
+        expect(claim.availableCapitalBefore).to.be.equal(0);
+        expect(claim.premiumSpentBefore).to.be.equal(0);
+      });
+
+      it("Should check slot0 in Protocol 0", async () => {
+        const protocolContract = await ContractHelper.getProtocolPoolContract(
+          policyTaker2,
+          PROTOCOL_ZERO
+        );
+        const slot0 = await protocolContract.slot0();
+
+        // expect(slot0.tick).to.be.equal(24);
+        expect(slot0.premiumRate).to.be.equal("4000000000000000000000000000");
+        expect(slot0.emissionRate).to.be.equal("36000000000000000000000000000");
+        expect(slot0.hoursPerTick).to.be.equal("6000000000000000000000000000");
+        expect(slot0.totalInsuredCapital).to.be.equal(
+          "328500000000000000000000000000000"
+        );
+        expect(slot0.premiumSpent).to.be.equal(
+          "372000000000000000000000000000"
+        );
+        expect(slot0.remainingPolicies).to.be.equal("2");
+        expect(slot0.lastUpdateTimestamp).to.be.equal(
+          HardhatHelper.getCurrentTime()
+        );
+
+        const availableCapital = await protocolContract.availableCapital();
+
+        expect(availableCapital).to.be.equal(
+          "730000000000000000000000000000000"
+        );
+
+        // console.log(
+        //   "Simulate user actions >>> PT2 >> check slot0 >>> slot0:",
+        //   getSlot0Info(slot0)
+        // );
+      });
+
+      it("Should get vSlot0 of Protocol 0 after claim 1 day ", async () => {
+        const protocolContract = await ContractHelper.getProtocolPoolContract(
+          owner,
+          PROTOCOL_ZERO
+        );
+
+        const days = 1;
+        const view = await protocolContract.actualizingUntilGivenDate(
+          HardhatHelper.getCurrentTime() + days * 24 * 60 * 60
+        );
+
+        // expect(view.__slot0.tick).to.be.equal(29);
+        expect(view.__slot0.premiumRate).to.be.equal(5);
+        expect(view.__slot0.emissionRate).to.be.equal(45);
+        expect(view.__slot0.hoursPerTick).to.be.equal(5); //Thao@NOTE: la vrai valeur est 4,8 mais arrondi par RayMath
+        expect(view.__slot0.totalInsuredCapital).to.be.equal(328500);
+        // expect(view.__slot0.premiumSpent).to.be.equal(10950);
+        expect(view.__slot0.remainingPolicies).to.be.equal(2);
+        expect(view.__slot0.lastUpdateTimestamp).to.be.equal(
+          HardhatHelper.getCurrentTime() + days * 24 * 60 * 60
+        );
+
+        expect(view.__availableCapital).to.be.equal(730000 - 182500);
+
+        // console.log(
+        //   "Simulate user actions >>> actualize view after 428 days >>> vslot0:",
+        //   getSlot0Info(vSlot0)
+        // );
+      });
+
+      //Thao@TODO: check intersecAmounts too
+    });
   });
 });
