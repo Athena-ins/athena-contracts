@@ -30,10 +30,6 @@ let allSigners: ethers.Signer[],
   binanceSigner: ethers.Signer,
   atenOwnerSigner: ethers.Signer,
   ATHENA_CONTRACT: ethers.Contract,
-  POSITIONS_MANAGER_CONTRACT: ethers.Contract,
-  STAKED_ATENS_CONTRACT: ethers.Contract,
-  FACTORY_PROTOCOL_CONTRACT: ethers.Contract,
-  POLICY_MANAGER_CONTRACT: ethers.Contract,
   USDT_TOKEN_CONTRACT: ethers.Contract,
   ATEN_TOKEN_CONTRACT: ethers.Contract;
 
@@ -101,39 +97,42 @@ describe("Simulation", () => {
       });
 
       it("Should deploy PositionsManager contract", async () => {
-        POSITIONS_MANAGER_CONTRACT =
-          await ContractHelper.deployPositionManagerContract(owner);
+        await ContractHelper.deployPositionManagerContract(owner);
 
         expect(
-          await hre_ethers.provider.getCode(POSITIONS_MANAGER_CONTRACT.address)
+          await hre_ethers.provider.getCode(
+            ContractHelper.getPositionManagerContract().address
+          )
         ).to.not.equal("0x");
       });
 
       it("Should deploy StakedAten contract", async () => {
-        STAKED_ATENS_CONTRACT = await ContractHelper.deployStakedAtenContract(
-          owner
-        );
+        await ContractHelper.deployStakedAtenContract(owner);
 
         expect(
-          await hre_ethers.provider.getCode(STAKED_ATENS_CONTRACT.address)
+          await hre_ethers.provider.getCode(
+            ContractHelper.getStakedAtenContract().address
+          )
         ).to.not.equal("0x");
       });
 
       it("Should deploy ProtocolFactory contract", async () => {
-        FACTORY_PROTOCOL_CONTRACT =
-          await ContractHelper.deployProtocolFactoryContract(owner);
+        await ContractHelper.deployProtocolFactoryContract(owner);
 
         expect(
-          await hre_ethers.provider.getCode(FACTORY_PROTOCOL_CONTRACT.address)
+          await hre_ethers.provider.getCode(
+            ContractHelper.getProtocolFactoryContract().address
+          )
         ).to.not.equal("0x");
       });
 
       it("Should deploy PolicyManager contract", async () => {
-        POLICY_MANAGER_CONTRACT =
-          await ContractHelper.deployPolicyManagerContract(owner);
+        await ContractHelper.deployPolicyManagerContract(owner);
 
         expect(
-          await hre_ethers.provider.getCode(POLICY_MANAGER_CONTRACT.address)
+          await hre_ethers.provider.getCode(
+            ContractHelper.getPolicyManagerContract().address
+          )
         ).to.not.equal("0x");
       });
 
@@ -355,6 +354,8 @@ describe("Simulation", () => {
       });
 
       it("Should set reward Rates ATEN with USD", async () => {
+        const STAKED_ATENS_CONTRACT = ContractHelper.getStakedAtenContract();
+
         await expect(
           STAKED_ATENS_CONTRACT.connect(owner).setStakeRewards([
             [1000, 1000],
@@ -447,7 +448,7 @@ describe("Simulation", () => {
         const ATEN_Approved = await ATEN_TOKEN_CONTRACT.connect(
           liquidityProvider1
         ).approve(
-          STAKED_ATENS_CONTRACT.address,
+          ContractHelper.getStakedAtenContract().address,
           hre_ethers.utils.parseUnits(ATEN_AMOUNT, 18)
         );
 
@@ -495,6 +496,9 @@ describe("Simulation", () => {
       });
 
       it("Should check funs and NFT", async () => {
+        const POSITIONS_MANAGER_CONTRACT =
+          ContractHelper.getPositionManagerContract();
+
         const balNFT = await POSITIONS_MANAGER_CONTRACT.balanceOf(
           await liquidityProvider1.getAddress()
         );
@@ -615,7 +619,7 @@ describe("Simulation", () => {
         const ATEN_Approved = await ATEN_TOKEN_CONTRACT.connect(
           liquidityProvider2
         ).approve(
-          STAKED_ATENS_CONTRACT.address,
+          ContractHelper.getStakedAtenContract().address,
           hre_ethers.utils.parseUnits(ATEN_AMOUNT, 18)
         );
 
@@ -663,6 +667,9 @@ describe("Simulation", () => {
       });
 
       it("Should check funs and NFT", async () => {
+        const POSITIONS_MANAGER_CONTRACT =
+          ContractHelper.getPositionManagerContract();
+
         const balNFT = await POSITIONS_MANAGER_CONTRACT.balanceOf(
           await liquidityProvider2.getAddress()
         );
@@ -861,6 +868,9 @@ describe("Simulation", () => {
       });
 
       it("Should check NFT", async () => {
+        const POLICY_MANAGER_CONTRACT =
+          ContractHelper.getPolicyManagerContract();
+
         const balance = await POLICY_MANAGER_CONTRACT.balanceOf(
           await policyTaker1.getAddress()
         );
@@ -1009,6 +1019,9 @@ describe("Simulation", () => {
       });
 
       it("Should check NFT", async () => {
+        const POLICY_MANAGER_CONTRACT =
+          ContractHelper.getPolicyManagerContract();
+
         const balance = await POLICY_MANAGER_CONTRACT.balanceOf(
           await policyTaker2.getAddress()
         );

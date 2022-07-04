@@ -1,5 +1,6 @@
 import { ethers } from "ethers";
 import hre, { ethers as hre_ethers } from "hardhat";
+import weth_abi from "../../abis/weth.json";
 import protocolPoolAbi from "../../artifacts/contracts/ProtocolPool.sol/ProtocolPool.json";
 
 const WETH = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2";
@@ -15,6 +16,14 @@ let POSITIONS_MANAGER_CONTRACT: ethers.Contract;
 let STAKED_ATENS_CONTRACT: ethers.Contract;
 let FACTORY_PROTOCOL_CONTRACT: ethers.Contract;
 let POLICY_MANAGER_CONTRACT: ethers.Contract;
+
+function USDT_contract() {
+  return new hre_ethers.Contract(USDT, weth_abi);
+}
+
+function ATEN_contract() {
+  return new hre_ethers.Contract(ATEN_TOKEN, weth_abi);
+}
 
 async function deployAthenaContract(owner: ethers.Signer) {
   ATHENA_CONTRACT = await (await hre_ethers.getContractFactory("Athena"))
@@ -37,6 +46,9 @@ async function deployPositionManagerContract(owner: ethers.Signer) {
     .deploy(ATHENA_CONTRACT.address);
 
   await POSITIONS_MANAGER_CONTRACT.deployed();
+}
+
+function getPositionManagerContract() {
   return POSITIONS_MANAGER_CONTRACT;
 }
 
@@ -48,6 +60,9 @@ async function deployStakedAtenContract(owner: ethers.Signer) {
     .deploy(ATEN_TOKEN, ATHENA_CONTRACT.address);
 
   await STAKED_ATENS_CONTRACT.deployed();
+}
+
+function getStakedAtenContract() {
   return STAKED_ATENS_CONTRACT;
 }
 
@@ -59,6 +74,9 @@ async function deployProtocolFactoryContract(owner: ethers.Signer) {
     .deploy(ATHENA_CONTRACT.address);
 
   await FACTORY_PROTOCOL_CONTRACT.deployed();
+}
+
+function getProtocolFactoryContract() {
   return FACTORY_PROTOCOL_CONTRACT;
 }
 
@@ -70,6 +88,9 @@ async function deployPolicyManagerContract(owner: ethers.Signer) {
     .deploy(ATHENA_CONTRACT.address);
 
   await POLICY_MANAGER_CONTRACT.deployed();
+}
+
+function getPolicyManagerContract() {
   return POLICY_MANAGER_CONTRACT;
 }
 
@@ -120,12 +141,18 @@ async function getProtocolPoolContract(
 }
 
 export default {
+  USDT_contract,
+  ATEN_contract,
   deployAthenaContract,
   getAthenaContract,
   deployPositionManagerContract,
+  getPositionManagerContract,
   deployStakedAtenContract,
+  getStakedAtenContract,
   deployProtocolFactoryContract,
+  getProtocolFactoryContract,
   deployPolicyManagerContract,
+  getPolicyManagerContract,
   initializeProtocol,
   deployAllContractsAndInitializeProtocol,
   addNewProtocolPool,
