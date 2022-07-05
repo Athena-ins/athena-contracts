@@ -89,6 +89,10 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     emit WithdrawPolicy(_owner, RayMath.rayToOther(__remainedPremium));
   }
 
+  function actualizingTest() external {
+    _actualizing();
+  }
+
   //Thao@Dev: cette fct utilise à intérieur du contrat
   //tout les public ou external fct va convertir Ray en decimal et inversement
   //@param _userCapital est en Ray
@@ -266,18 +270,18 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     _actualizing();
     _addClaim(_claim);
 
-    console.log("Protocol:", id);
-    console.log("ProtocolPool.addClaim <<< _account:", _account);
-    console.log(
-      "ProtocolPool.addClaim <<< _claim.disputeId:",
-      _claim.disputeId
-    );
-    console.log("ProtocolPool.addClaim <<< _claim.amount:", _claim.amount);
-    console.log("ProtocolPool.addClaim <<< _claim.ratio:", _claim.ratio);
-    console.log(
-      "ProtocolPool.addClaim <<< _claim.createdAt:",
-      _claim.createdAt
-    );
+    // console.log("Protocol:", id);
+    // console.log("ProtocolPool.addClaim <<< _account:", _account);
+    // console.log(
+    //   "ProtocolPool.addClaim <<< _claim.disputeId:",
+    //   _claim.disputeId
+    // );
+    // console.log("ProtocolPool.addClaim <<< _claim.amount:", _claim.amount);
+    // console.log("ProtocolPool.addClaim <<< _claim.ratio:", _claim.ratio);
+    // console.log(
+    //   "ProtocolPool.addClaim <<< _claim.createdAt:",
+    //   _claim.createdAt
+    // );
   }
 
   //Thao@NOTE: _amount est 100% de déposit
