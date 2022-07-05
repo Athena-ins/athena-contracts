@@ -1,136 +1,282 @@
 import chai, { expect } from "chai";
-import hre, { ethers } from "hardhat";
-import { ethers as ethersOriginal } from "ethers";
+import hre from "hardhat";
+import { BigNumber, Contract, ethers, ethers as ethersOriginal } from "ethers";
 import weth_abi from "../abis/weth.json";
 import chaiAsPromised from "chai-as-promised";
 
+import {
+  ATEN_TOKEN,
+  ATEN_OWNER_ADDRESS,
+  USDT,
+  USDT_AAVE_ATOKEN,
+  USDT_Wrong,
+  WETH,
+  AAVE_LENDING_POOL,
+  AAVE_REGISTRY,
+  NULL_ADDRESS,
+  ARBITRATOR_ADDRESS,
+  deployAndInitProtocol,
+  increaseTimeAndMine,
+} from "./helpers";
+
 chai.use(chaiAsPromised);
 
-const ATEN_TOKEN = "0x86ceb9fa7f5ac373d275d328b7aca1c05cfb0283";
-const USDT = "0xdac17f958d2ee523a2206206994597c13d831ec7"; //USDT
-const WETH = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2";
-const STAKING_TOKEN = WETH;
+let ATHENA_CONTRACT: ethersOriginal.Contract,
+  POS_CONTRACT: ethersOriginal.Contract,
+  STAKED_ATENS_CONTRACT: ethersOriginal.Contract,
+  VAULT_ATENS_CONTRACT: ethersOriginal.Contract,
+  STAKED_ATENS_CONTRACT_POLICY: ethersOriginal.Contract,
+  FACTORY_PROTOCOL_CONTRACT: ethersOriginal.Contract,
+  // AAVELP_CONTRACT: ethersOriginal.Contract,
+  ATEN_TOKEN_CONTRACT: ethersOriginal.Contract = new Contract(
+    ATEN_TOKEN,
+    weth_abi
+  ),
+  POLICY_CONTRACT: ethersOriginal.Contract,
+  allSigners: ethers.Signer[];
 
-const STAKING_TOKEN_CONTRACT = new ethers.Contract(
-  STAKING_TOKEN,
-  weth_abi
-).connect(ethers.provider.getSigner());
+const USDT_TOKEN_CONTRACT = new ethers.Contract(USDT, weth_abi);
 
-const signer = ethers.provider.getSigner();
-let signerAddress: string;
-let ATHENA_CONTRACT: ethersOriginal.Contract;
-
-describe("Staking Rewards", function () {
-  const ETH_VALUE = "5000";
-  let DATE_NOW: number;
-
-  before(async () => {
-    signerAddress = await signer.getAddress();
-    await hre.network.provider.request({
-      method: "hardhat_reset",
-      params: [
-        {
-          forking: {
-            jsonRpcUrl: process.env.MAINNET_URL,
-            blockNumber: 14307200,
-          },
-        },
-      ],
-    });
-    DATE_NOW = Number.parseInt(((Date.now() + 1000) / 1000).toString());
-    await hre.network.provider.request({
-      method: "evm_setNextBlockTimestamp",
-      params: [DATE_NOW],
-    });
-  });
-
-  it("Should deposit ETH", async function () {
-    const [owner] = await ethers.getSigners();
-    console.log("Signer : ", signerAddress);
-    console.log("Owner : ", owner.address);
-
-    const deposit = await STAKING_TOKEN_CONTRACT.deposit({
-      value: ethers.utils.parseEther(ETH_VALUE),
-    });
-    await deposit.wait();
-    expect(
-      (await STAKING_TOKEN_CONTRACT.balanceOf(owner.address)).toString()
-    ).to.equal(ethers.utils.parseEther(ETH_VALUE));
-  });
-
-  /**
-   *
-   * CONTRACT DEPLOYMENT
-   *
-   */
-
-  it("Should deploy contract", async function () {
-    const factory = await ethers.getContractFactory("Athena");
-    ATHENA_CONTRACT = await factory.deploy(STAKING_TOKEN, ATEN_TOKEN, USDT);
-    //await factory.deploy(STAKING_TOKEN, ATEN_TOKEN);
-    await ATHENA_CONTRACT.deployed();
-
-    expect(await ethers.provider.getCode(ATHENA_CONTRACT.address)).to.not.equal(
-      "0x"
-    );
-  });
-
-  /**
-   *
-   * STAKING
-   *
-   */
-
-  it.skip("Should stake & return the staking amount", async function () {
-    const approve = await STAKING_TOKEN_CONTRACT.approve(
+describe("Staking Policy Rewards", function () {
+  before(async function () {
+    allSigners = await hre.ethers.getSigners();
+    [
+      ATHENA_CONTRACT,
+      POS_CONTRACT,
+      STAKED_ATENS_CONTRACT,
+      STAKED_ATENS_CONTRACT_POLICY,
+      VAULT_ATENS_CONTRACT,
+    ] = await deployAndInitProtocol(allSigners);
+    console.log(
+      "Address : ",
       ATHENA_CONTRACT.address,
-      ethers.utils.parseEther("1000000")
+      STAKED_ATENS_CONTRACT.address
     );
-    await approve.wait();
-    const multi = await ATHENA_CONTRACT.multicall([
-      ATHENA_CONTRACT.interface.encodeFunctionData("stake", [
-        ethers.utils.parseEther("2000"),
-      ]),
-      ATHENA_CONTRACT.interface.encodeFunctionData("stake", [
-        ethers.utils.parseEther("3000"),
-      ]),
-    ]);
-    // const oneMore = await ATHENA_CONTRACT.stake(ethers.utils.parseEther("1000"));
-    // await hre.network.provider.request({
-    //   method: "evm_increaseTime",
-    //   params: [Number.parseInt(((1000 * 60 * 60 * 24) / 1000).toString())],
-    // });
+
     await hre.network.provider.request({
-      method: "evm_setNextBlockTimestamp",
-      params: [DATE_NOW + 60 * 60 * 24],
+      method: "hardhat_impersonateAccount",
+      params: ["0xf977814e90da44bfa03b6295a0616a897441acec"],
     });
-    await hre.network.provider.send("evm_mine");
-
-    expect(await ethers.provider.getBlock("latest")).to.contain({
-      timestamp: Number.parseInt((DATE_NOW + 60 * 60 * 24).toString()),
-    });
-
-    // await ATHENA_CONTRACT.stake(ethers.utils.parseEther("5"));
-    // await ATHENA_CONTRACT.stake(ethers.utils.parseEther("5"));
-    expect(
-      (await ATHENA_CONTRACT.balanceOf(signerAddress)).toString()
-    ).to.equal(ethers.utils.parseEther(ETH_VALUE));
-    expect(await ATHENA_CONTRACT.earned(signerAddress)).to.equal(
-      ethers.utils.parseEther("85000") // should be 86400 ?? See google doc sheet
+    const binanceSigner = await hre.ethers.getSigner(
+      "0xF977814e90dA44bFA03b6295A0616a897441aceC"
     );
-  });
-  it.skip("Should get reward per token", async function () {
-    expect(await ethers.provider.getBlock("latest")).to.contain({
-      timestamp: Number.parseInt((DATE_NOW + 60 * 60 * 24).toString()),
-    });
-    expect((await ATHENA_CONTRACT.rewardPerToken()).toString()).to.equal(
-      "17" // Should be 17.28 ?? => INT FOR EVM
+
+    const transfer = await USDT_TOKEN_CONTRACT.connect(binanceSigner).transfer(
+      allSigners[1].getAddress(),
+      ethers.utils.parseUnits("100000", 6)
     );
     expect(
-      Number(
-        ethers.utils.formatEther(await ATHENA_CONTRACT.earned(signerAddress))
+      await USDT_TOKEN_CONTRACT.connect(allSigners[1]).balanceOf(
+        allSigners[1].getAddress()
       )
-    ).to.be.greaterThan(0);
+    ).to.be.not.equal(BigNumber.from("0"));
+
+    const transfer2 = await USDT_TOKEN_CONTRACT.connect(binanceSigner).transfer(
+      allSigners[2].getAddress(),
+      ethers.utils.parseUnits("100000", 6)
+    );
+    expect(
+      await USDT_TOKEN_CONTRACT.connect(allSigners[2]).balanceOf(
+        allSigners[2].getAddress()
+      )
+    ).to.equal(ethers.utils.parseUnits("100000", 6));
+
+    const transfer3 = await USDT_TOKEN_CONTRACT.connect(binanceSigner).transfer(
+      allSigners[3].getAddress(),
+      ethers.utils.parseUnits("100000", 6)
+    );
+    expect(
+      await USDT_TOKEN_CONTRACT.connect(allSigners[2]).balanceOf(
+        allSigners[3].getAddress()
+      )
+    ).to.equal(ethers.utils.parseUnits("100000", 6));
+
+    /** ATEN TOKENS  */
+    await hre.network.provider.request({
+      method: "hardhat_impersonateAccount",
+      params: [ATEN_OWNER_ADDRESS],
+    });
+    const atenOwnerSigner = await hre.ethers.getSigner(ATEN_OWNER_ADDRESS);
+    const ATEN_TOKEN_CONTRACT = new ethers.Contract(
+      ATEN_TOKEN,
+      weth_abi,
+      atenOwnerSigner
+    );
+    await ATEN_TOKEN_CONTRACT.transfer(
+      allSigners[0].getAddress(),
+      ethers.utils.parseEther("10000000")
+    );
+    await ATEN_TOKEN_CONTRACT.transfer(
+      allSigners[1].getAddress(),
+      ethers.utils.parseEther("10000000")
+    );
+    await ATEN_TOKEN_CONTRACT.transfer(
+      allSigners[2].getAddress(),
+      ethers.utils.parseEther("10000000")
+    );
+
+    await ATEN_TOKEN_CONTRACT.transfer(
+      allSigners[3].getAddress(),
+      ethers.utils.parseEther("10000000")
+    );
+    await ATEN_TOKEN_CONTRACT.connect(allSigners[1]).approve(
+      STAKED_ATENS_CONTRACT_POLICY.address,
+      ethers.utils.parseEther("10000000")
+    );
+    await ATEN_TOKEN_CONTRACT.connect(allSigners[2]).approve(
+      STAKED_ATENS_CONTRACT_POLICY.address,
+      ethers.utils.parseEther("10000000")
+    );
+
+    await ATEN_TOKEN_CONTRACT.connect(allSigners[3]).approve(
+      STAKED_ATENS_CONTRACT_POLICY.address,
+      ethers.utils.parseEther("10000000")
+    );
+    await USDT_TOKEN_CONTRACT.connect(allSigners[1]).approve(
+      ATHENA_CONTRACT.address,
+      ethers.utils.parseEther("10000000")
+    );
+    await USDT_TOKEN_CONTRACT.connect(allSigners[2]).approve(
+      ATHENA_CONTRACT.address,
+      ethers.utils.parseEther("10000000")
+    );
+
+    await USDT_TOKEN_CONTRACT.connect(allSigners[3]).approve(
+      ATHENA_CONTRACT.address,
+      ethers.utils.parseEther("10000000")
+    );
   });
 
+  it("Should deposit ATENS in Vault", async function () {
+    await ATEN_TOKEN_CONTRACT.connect(allSigners[0]).approve(
+      VAULT_ATENS_CONTRACT.address,
+      ethers.utils.parseEther("10000000")
+    );
+    await VAULT_ATENS_CONTRACT.connect(allSigners[0]).deposit(
+      ethers.utils.parseEther("100000")
+    );
+  });
+
+  it("Should set new active Protocol 0", async function () {
+    const tx = await ATHENA_CONTRACT.connect(allSigners[0]).addNewProtocol(
+      "Test protocol 0",
+      0,
+      30,
+      WETH,
+      []
+    );
+    expect(tx).to.haveOwnProperty("hash");
+    const prot = await ATHENA_CONTRACT.connect(allSigners[0]).protocolsMapping(
+      0
+    );
+    expect(prot.name).to.equal("Test protocol 0");
+
+    const tx2 = await STAKED_ATENS_CONTRACT.connect(
+      allSigners[0]
+    ).setStakeRewards([
+      ["1", "1000"],
+      ["10000", "1200"],
+      ["100000", "1600"],
+      ["1000000", "2000"],
+    ]);
+  });
+
+  it("should deposit capital for policy", async function () {
+    const deposit = await ATHENA_CONTRACT.connect(allSigners[1]).deposit(
+      ethers.utils.parseUnits("10000", 6),
+      0,
+      [0]
+    );
+    await deposit.wait();
+    expect(deposit).to.haveOwnProperty("hash");
+  });
+
+  it.skip("Should buy Policy", async function () {
+    const policy = await ATHENA_CONTRACT.connect(allSigners[2]).buyPolicy(
+      ethers.utils.parseUnits("1000", 6),
+      ethers.utils.parseUnits("100", 6),
+      0,
+      0
+    );
+    await policy.wait();
+    expect(policy).to.haveOwnProperty("hash");
+  });
+
+  it("Should fail to buy Policy with Atens cause too many ATENS", async function () {
+    await expect(
+      ATHENA_CONTRACT.connect(allSigners[2]).buyPolicy(
+        ethers.utils.parseUnits("1000", 6),
+        ethers.utils.parseUnits("100", 6),
+        ethers.utils.parseEther("20000"),
+        0
+      )
+    ).to.eventually.be.rejectedWith("Too many ATENS");
+  });
+
+  it("Should buy Policy with Atens", async function () {
+    const policy = await ATHENA_CONTRACT.connect(allSigners[2]).buyPolicy(
+      ethers.utils.parseUnits("1000", 6),
+      ethers.utils.parseUnits("100", 6),
+      ethers.utils.parseEther("10000"),
+      0
+    );
+    await policy.wait();
+    expect(policy).to.haveOwnProperty("hash");
+  });
+
+  it("Should reject invalid withdraw Atens amount", async function () {
+    await expect(
+      ATHENA_CONTRACT.connect(allSigners[2]).withdrawAtensPolicy(
+        ethers.utils.parseEther("20000")
+      )
+    ).to.eventually.be.rejectedWith("Invalid amount");
+  });
+
+  it("Should lock ATENS on 1 year", async function () {
+    await expect(
+      ATHENA_CONTRACT.connect(allSigners[2]).withdrawAtensPolicy(
+        ethers.utils.parseEther("10000")
+      )
+    ).to.eventually.be.rejectedWith("Locked window");
+  });
+
+  it("Expect 12 months rewards for 100% APR", async function () {
+    const rewards = await STAKED_ATENS_CONTRACT_POLICY.connect(
+      allSigners[2]
+    ).rewardsOf(allSigners[2].getAddress());
+    expect(rewards.toNumber()).to.be.lessThanOrEqual(
+      ethers.utils.parseEther("0.001").toNumber()
+    );
+    increaseTimeAndMine(60 * 60 * 24 * 365);
+    const rewards2 = await STAKED_ATENS_CONTRACT_POLICY.connect(
+      allSigners[2]
+    ).rewardsOf(allSigners[2].getAddress());
+    expect(rewards2.toString()).to.equal(
+      ethers.utils.parseEther("10000").toString()
+    );
+  });
+  it("Should unlock ATENS and withdraw after 1 year", async function () {
+    await ATEN_TOKEN_CONTRACT.connect(allSigners[0]).transfer(
+      STAKED_ATENS_CONTRACT_POLICY.address,
+      ethers.utils.parseEther("100")
+    );
+    await ATEN_TOKEN_CONTRACT.connect(allSigners[0]).transfer(
+      STAKED_ATENS_CONTRACT_POLICY.address,
+      ethers.utils.parseEther("100")
+    );
+    const balBefore = await ATEN_TOKEN_CONTRACT.connect(
+      allSigners[0]
+    ).balanceOf(allSigners[2].getAddress());
+    await expect(
+      ATHENA_CONTRACT.connect(allSigners[2]).withdrawAtensPolicy(
+        ethers.utils.parseEther("10000")
+      )
+    ).to.eventually.haveOwnProperty("hash");
+    const balAfter = await ATEN_TOKEN_CONTRACT.connect(allSigners[0]).balanceOf(
+      allSigners[2].getAddress()
+    );
+    expect(balAfter.sub(balBefore).toString()).to.equal(
+      ethers.utils.parseEther("10000").mul(99975).div(100000).mul(2).toString()
+    );
+  });
 });
