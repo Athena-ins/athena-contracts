@@ -176,11 +176,41 @@ async function deposit(
     hre_ethers.utils.parseUnits(ATEN_amount, 18)
   );
 
+  //Thao@TODO: timelapse here ?
   await ATHENA_CONTRACT.connect(user).deposit(
     USDT_amount,
     ATEN_amount,
     protocols,
     protocolAmounts
+  );
+}
+
+async function buyPolicy(
+  user: ethers.Signer,
+  capital: string,
+  premium: string,
+  atensLocked: string,
+  protocolId: number,
+  timeLapse: number
+) {
+  await HardhatHelper.USDT_transfer(
+    await user.getAddress(),
+    hre_ethers.utils.parseUnits(premium, 6)
+  );
+
+  await HardhatHelper.USDT_approve(
+    user,
+    ATHENA_CONTRACT.address,
+    hre_ethers.utils.parseUnits(premium, 6)
+  );
+
+  await HardhatHelper.setNextBlockTimestamp(timeLapse);
+
+  await ATHENA_CONTRACT.connect(user).buyPolicy(
+    capital,
+    premium,
+    atensLocked,
+    protocolId
   );
 }
 
@@ -203,4 +233,5 @@ export default {
   getProtocolPoolDataById,
   getProtocolPoolContract,
   deposit,
+  buyPolicy,
 };
