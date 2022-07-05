@@ -272,10 +272,10 @@ contract Athena is ReentrancyGuard, Ownable {
         //Thao@NOTE: _amount est 100% de déposit
         //Thao@TODO: need to check amounts[index?]
         IProtocolPool(protocolsMapping[_protocolIds[index]].deployed)
-          .addRelatedProtocol(_protocolIds[index2], _amounts[index2]);
+          .addRelatedProtocol(_protocolIds[index2], amount);
 
         IProtocolPool(protocolsMapping[_protocolIds[index2]].deployed)
-          .addRelatedProtocol(_protocolIds[index], _amounts[index]);
+          .addRelatedProtocol(_protocolIds[index], amount);
       }
       IProtocolPool(protocolsMapping[_protocolIds[index]].deployed).mint(
         msg.sender,
@@ -284,7 +284,7 @@ contract Athena is ReentrancyGuard, Ownable {
 
       //Thao@NOTE: mint can addRelatedProtocol too
       IProtocolPool(protocolsMapping[_protocolIds[index]].deployed)
-        .addRelatedProtocol(_protocolIds[index], _amounts[index]);
+        .addRelatedProtocol(_protocolIds[index], amount);
     }
 
     uint256 _atokens = _transferLiquidity(amount);
