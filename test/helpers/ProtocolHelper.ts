@@ -147,6 +147,43 @@ async function getProtocolPoolContract(
   return new ethers.Contract(protocol.deployed, protocolPoolAbi.abi, user);
 }
 
+async function deposit(
+  user: ethers.Signer,
+  USDT_amount: string,
+  ATEN_amount: string,
+  protocols: number[],
+  protocolAmounts: string[]
+) {
+  await HardhatHelper.USDT_transfer(
+    await user.getAddress(),
+    hre_ethers.utils.parseUnits(USDT_amount, 6)
+  );
+
+  await HardhatHelper.USDT_approve(
+    user,
+    ATHENA_CONTRACT.address,
+    hre_ethers.utils.parseUnits(USDT_amount, 6)
+  );
+
+  await HardhatHelper.ATEN_transfer(
+    await user.getAddress(),
+    hre_ethers.utils.parseEther(ATEN_amount)
+  );
+
+  await HardhatHelper.ATEN_approve(
+    user,
+    STAKED_ATENS_CONTRACT.address,
+    hre_ethers.utils.parseUnits(ATEN_amount, 18)
+  );
+
+  await ATHENA_CONTRACT.connect(user).deposit(
+    USDT_amount,
+    ATEN_amount,
+    protocols,
+    protocolAmounts
+  );
+}
+
 export default {
   deployAthenaContract,
   getAthenaContract,
@@ -165,4 +202,5 @@ export default {
   addNewProtocolPool,
   getProtocolPoolDataById,
   getProtocolPoolContract,
+  deposit,
 };

@@ -17,7 +17,7 @@ let owner: ethers.Signer;
 let liquidityProvider1: ethers.Signer;
 let liquidityProvider2: ethers.Signer;
 
-describe("liquidity provider deposit", () => {
+describe("Liquidity provider deposit", () => {
   before(async () => {
     await HardhatHelper.reset();
     const allSigners = await HardhatHelper.allSigners();
