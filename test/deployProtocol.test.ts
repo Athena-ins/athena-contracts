@@ -4,7 +4,7 @@ import { ethers } from "ethers";
 import chaiAsPromised from "chai-as-promised";
 
 import HardhatHelper from "./helpers/HardhatHelper";
-import ContractHelper from "./helpers/ContractHelper";
+import ProtocolHelper from "./helpers/ProtocolHelper";
 
 chai.use(chaiAsPromised);
 
@@ -21,57 +21,57 @@ describe("Deploy protocol", () => {
   describe("Should prepare Protocol", () => {
     describe("Should deploy all Contracts and initialize Protocol", () => {
       it("Should deploy Athena contract", async () => {
-        await ContractHelper.deployAthenaContract(owner);
+        await ProtocolHelper.deployAthenaContract(owner);
 
         expect(
           await hre_ethers.provider.getCode(
-            ContractHelper.getAthenaContract().address
+            ProtocolHelper.getAthenaContract().address
           )
         ).to.not.equal("0x");
       });
 
       it("Should deploy PositionsManager contract", async () => {
-        await ContractHelper.deployPositionManagerContract(owner);
+        await ProtocolHelper.deployPositionManagerContract(owner);
 
         expect(
           await hre_ethers.provider.getCode(
-            ContractHelper.getPositionManagerContract().address
+            ProtocolHelper.getPositionManagerContract().address
           )
         ).to.not.equal("0x");
       });
 
       it("Should deploy StakedAten contract", async () => {
-        await ContractHelper.deployStakedAtenContract(owner);
+        await ProtocolHelper.deployStakedAtenContract(owner);
 
         expect(
           await hre_ethers.provider.getCode(
-            ContractHelper.getStakedAtenContract().address
+            ProtocolHelper.getStakedAtenContract().address
           )
         ).to.not.equal("0x");
       });
 
       it("Should deploy ProtocolFactory contract", async () => {
-        await ContractHelper.deployProtocolFactoryContract(owner);
+        await ProtocolHelper.deployProtocolFactoryContract(owner);
 
         expect(
           await hre_ethers.provider.getCode(
-            ContractHelper.getProtocolFactoryContract().address
+            ProtocolHelper.getProtocolFactoryContract().address
           )
         ).to.not.equal("0x");
       });
 
       it("Should deploy PolicyManager contract", async () => {
-        await ContractHelper.deployPolicyManagerContract(owner);
+        await ProtocolHelper.deployPolicyManagerContract(owner);
 
         expect(
           await hre_ethers.provider.getCode(
-            ContractHelper.getPolicyManagerContract().address
+            ProtocolHelper.getPolicyManagerContract().address
           )
         ).to.not.equal("0x");
       });
 
       it("Should initialize protocol with required values", async () => {
-        const init = await ContractHelper.initializeProtocol();
+        const init = await ProtocolHelper.initializeProtocol();
 
         expect(init).to.haveOwnProperty("hash");
       });
@@ -80,16 +80,16 @@ describe("Deploy protocol", () => {
     describe("Set new active protocol 0", () => {
       it("Should set new active protocol", async () => {
         await HardhatHelper.setNextBlockTimestamp(0 * 24 * 60 * 60);
-        const tx = await ContractHelper.addNewProtocolPool("Test protocol 0");
+        const tx = await ProtocolHelper.addNewProtocolPool("Test protocol 0");
 
         expect(tx).to.haveOwnProperty("hash");
 
-        const protocol = await ContractHelper.getProtocolPoolById(0);
+        const protocol = await ProtocolHelper.getProtocolPoolDataById(0);
         expect(protocol.name).to.equal("Test protocol 0");
       });
 
       it("Should check slot0", async () => {
-        const protocolContract = await ContractHelper.getProtocolPoolContract(
+        const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           owner,
           0
         );
@@ -112,7 +112,7 @@ describe("Deploy protocol", () => {
       });
 
       it("Should check relatedProtocols", async () => {
-        const protocolContract = await ContractHelper.getProtocolPoolContract(
+        const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           owner,
           0
         );
@@ -132,16 +132,16 @@ describe("Deploy protocol", () => {
     describe("Set new active protocol 1", () => {
       it("Should set new active protocol", async () => {
         await HardhatHelper.setNextBlockTimestamp(1 * 24 * 60 * 60);
-        const tx = await ContractHelper.addNewProtocolPool("Test protocol 1");
+        const tx = await ProtocolHelper.addNewProtocolPool("Test protocol 1");
 
         expect(tx).to.haveOwnProperty("hash");
 
-        const protocol = await ContractHelper.getProtocolPoolById(1);
+        const protocol = await ProtocolHelper.getProtocolPoolDataById(1);
         expect(protocol.name).to.equal("Test protocol 1");
       });
 
       it("Should check slot0", async () => {
-        const protocolContract = await ContractHelper.getProtocolPoolContract(
+        const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           owner,
           1
         );
@@ -164,7 +164,7 @@ describe("Deploy protocol", () => {
       });
 
       it("Should check relatedProtocols", async () => {
-        const protocolContract = await ContractHelper.getProtocolPoolContract(
+        const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           owner,
           1
         );
@@ -184,16 +184,16 @@ describe("Deploy protocol", () => {
     describe("Set new active protocol 2", () => {
       it("Should set new active protocol", async () => {
         await HardhatHelper.setNextBlockTimestamp(1 * 24 * 60 * 60);
-        const tx = await ContractHelper.addNewProtocolPool("Test protocol 2");
+        const tx = await ProtocolHelper.addNewProtocolPool("Test protocol 2");
 
         expect(tx).to.haveOwnProperty("hash");
 
-        const protocol = await ContractHelper.getProtocolPoolById(2);
+        const protocol = await ProtocolHelper.getProtocolPoolDataById(2);
         expect(protocol.name).to.equal("Test protocol 2");
       });
 
       it("Should check slot0", async () => {
-        const protocolContract = await ContractHelper.getProtocolPoolContract(
+        const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           owner,
           2
         );
@@ -216,7 +216,7 @@ describe("Deploy protocol", () => {
       });
 
       it("Should check relatedProtocols", async () => {
-        const protocolContract = await ContractHelper.getProtocolPoolContract(
+        const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           owner,
           2
         );
@@ -235,12 +235,8 @@ describe("Deploy protocol", () => {
 
     describe("Set discounts with Aten", () => {
       it("Should set discounts with Aten", async () => {
-        const ATHENA_CONTRACT = ContractHelper.getAthenaContract();
-        const tx = await ATHENA_CONTRACT.connect(owner).setDiscountWithAten([
-          [1000, 200],
-          [100000, 150],
-          [1000000, 50],
-        ]);
+        const ATHENA_CONTRACT = ProtocolHelper.getAthenaContract();
+        const tx = await ProtocolHelper.setDiscountWithAten(owner);
 
         expect(tx).to.haveOwnProperty("hash");
 
@@ -272,24 +268,24 @@ describe("Deploy protocol", () => {
 
       it("Should get discount amount with Aten", async () => {
         expect(
-          await ContractHelper.getAthenaContract()
+          await ProtocolHelper.getAthenaContract()
             .connect(owner)
             .getDiscountWithAten(999)
         ).to.equal(0);
         expect(
-          await ContractHelper.getAthenaContract()
+          await ProtocolHelper.getAthenaContract()
             .connect(owner)
             .getDiscountWithAten(1000)
         ).to.equal(200);
         expect(
-          await ContractHelper.getAthenaContract()
+          await ProtocolHelper.getAthenaContract()
             .connect(owner)
             .getDiscountWithAten(10000000)
         ).to.equal(50);
       });
 
       it("Should set reward Rates ATEN with USD", async () => {
-        const STAKED_ATENS_CONTRACT = ContractHelper.getStakedAtenContract();
+        const STAKED_ATENS_CONTRACT = ProtocolHelper.getStakedAtenContract();
 
         await expect(
           STAKED_ATENS_CONTRACT.connect(owner).setStakeRewards([
@@ -298,12 +294,8 @@ describe("Deploy protocol", () => {
           ])
         ).to.be.rejectedWith("Rate must be in ascending order");
 
-        const tx = await STAKED_ATENS_CONTRACT.connect(owner).setStakeRewards([
-          ["1", "1000"],
-          ["10000", "1200"],
-          ["100000", "1600"],
-          ["1000000", "2000"],
-        ]);
+        const tx = await ProtocolHelper.setStakeRewards(owner);
+
         expect(tx).to.haveOwnProperty("hash");
         const discountFirst = await STAKED_ATENS_CONTRACT.connect(
           owner

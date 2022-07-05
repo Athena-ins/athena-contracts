@@ -1,11 +1,8 @@
 import { ethers } from "ethers";
-import hre, { ethers as hre_ethers } from "hardhat";
-import weth_abi from "../../abis/weth.json";
+import { ethers as hre_ethers } from "hardhat";
+import HardhatHelper from "./HardhatHelper";
 import protocolPoolAbi from "../../artifacts/contracts/ProtocolPool.sol/ProtocolPool.json";
 
-const WETH = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2";
-const USDT = "0xdac17f958d2ee523a2206206994597c13d831ec7";
-const ATEN_TOKEN = "0x86ceb9fa7f5ac373d275d328b7aca1c05cfb0283";
 const AAVE_REGISTRY = "0xb53c1a33016b2dc2ff3653530bff1848a515c8c5";
 const USDT_AAVE_ATOKEN = "0x3Ed3B47Dd13EC9a98b44e6204A523E766B225811";
 const ARBITRATOR_ADDRESS = "0x988b3A538b618C7A603e1c11Ab82Cd16dbE28069";
@@ -17,21 +14,12 @@ let STAKED_ATENS_CONTRACT: ethers.Contract;
 let FACTORY_PROTOCOL_CONTRACT: ethers.Contract;
 let POLICY_MANAGER_CONTRACT: ethers.Contract;
 
-function USDT_contract() {
-  return new hre_ethers.Contract(USDT, weth_abi);
-}
-
-function ATEN_contract() {
-  return new hre_ethers.Contract(ATEN_TOKEN, weth_abi);
-}
-
 async function deployAthenaContract(owner: ethers.Signer) {
   ATHENA_CONTRACT = await (await hre_ethers.getContractFactory("Athena"))
     .connect(owner)
-    .deploy(USDT, ATEN_TOKEN, AAVE_REGISTRY);
+    .deploy(HardhatHelper.USDT, HardhatHelper.ATEN, AAVE_REGISTRY);
 
   await ATHENA_CONTRACT.deployed();
-  return ATHENA_CONTRACT;
 }
 
 function getAthenaContract() {
@@ -57,7 +45,7 @@ async function deployStakedAtenContract(owner: ethers.Signer) {
     await hre_ethers.getContractFactory("StakedAten")
   )
     .connect(owner)
-    .deploy(ATEN_TOKEN, ATHENA_CONTRACT.address);
+    .deploy(HardhatHelper.ATEN, ATHENA_CONTRACT.address);
 
   await STAKED_ATENS_CONTRACT.deployed();
 }
@@ -106,6 +94,23 @@ async function initializeProtocol() {
   );
 }
 
+async function setDiscountWithAten(owner: ethers.Signer) {
+  return await ATHENA_CONTRACT.connect(owner).setDiscountWithAten([
+    [1000, 200],
+    [100000, 150],
+    [1000000, 50],
+  ]);
+}
+
+async function setStakeRewards(owner: ethers.Signer) {
+  return await STAKED_ATENS_CONTRACT.connect(owner).setStakeRewards([
+    ["1", "1000"],
+    ["10000", "1200"],
+    ["100000", "1600"],
+    ["1000000", "2000"],
+  ]);
+}
+
 async function deployAllContractsAndInitializeProtocol(owner: ethers.Signer) {
   await deployAthenaContract(owner);
   await deployPositionManagerContract(owner);
@@ -113,6 +118,8 @@ async function deployAllContractsAndInitializeProtocol(owner: ethers.Signer) {
   await deployProtocolFactoryContract(owner);
   await deployPolicyManagerContract(owner);
   await initializeProtocol();
+  await setDiscountWithAten(owner);
+  await setStakeRewards(owner);
 }
 
 async function addNewProtocolPool(protocolPoolName: string) {
@@ -120,12 +127,12 @@ async function addNewProtocolPool(protocolPoolName: string) {
     protocolPoolName,
     0,
     30,
-    WETH,
+    HardhatHelper.WETH,
     []
   );
 }
 
-async function getProtocolPoolById(protocolPoolId: number) {
+async function getProtocolPoolDataById(protocolPoolId: number) {
   return await ATHENA_CONTRACT.protocolsMapping(protocolPoolId);
 }
 
@@ -141,8 +148,6 @@ async function getProtocolPoolContract(
 }
 
 export default {
-  USDT_contract,
-  ATEN_contract,
   deployAthenaContract,
   getAthenaContract,
   deployPositionManagerContract,
@@ -154,8 +159,10 @@ export default {
   deployPolicyManagerContract,
   getPolicyManagerContract,
   initializeProtocol,
+  setDiscountWithAten,
+  setStakeRewards,
   deployAllContractsAndInitializeProtocol,
   addNewProtocolPool,
-  getProtocolPoolById,
+  getProtocolPoolDataById,
   getProtocolPoolContract,
 };

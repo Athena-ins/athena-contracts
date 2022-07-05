@@ -6,7 +6,7 @@ import chaiAsPromised from "chai-as-promised";
 import { getATokenBalance } from "./helpers";
 
 import HardhatHelper from "./helpers/HardhatHelper";
-import ContractHelper from "./helpers/ContractHelper";
+import ProtocolHelper from "./helpers/ProtocolHelper";
 
 chai.use(chaiAsPromised);
 
@@ -87,57 +87,57 @@ describe("Simulation", () => {
   describe("Should prepare Protocol", () => {
     describe("Should deploy all Contracts and initialize Protocol", () => {
       it("Should deploy Athena contract", async () => {
-        await ContractHelper.deployAthenaContract(owner);
-        ATHENA_CONTRACT = ContractHelper.getAthenaContract();
+        await ProtocolHelper.deployAthenaContract(owner);
+        ATHENA_CONTRACT = ProtocolHelper.getAthenaContract();
         expect(
           await hre_ethers.provider.getCode(
-            ContractHelper.getAthenaContract().address
+            ProtocolHelper.getAthenaContract().address
           )
         ).to.not.equal("0x");
       });
 
       it("Should deploy PositionsManager contract", async () => {
-        await ContractHelper.deployPositionManagerContract(owner);
+        await ProtocolHelper.deployPositionManagerContract(owner);
 
         expect(
           await hre_ethers.provider.getCode(
-            ContractHelper.getPositionManagerContract().address
+            ProtocolHelper.getPositionManagerContract().address
           )
         ).to.not.equal("0x");
       });
 
       it("Should deploy StakedAten contract", async () => {
-        await ContractHelper.deployStakedAtenContract(owner);
+        await ProtocolHelper.deployStakedAtenContract(owner);
 
         expect(
           await hre_ethers.provider.getCode(
-            ContractHelper.getStakedAtenContract().address
+            ProtocolHelper.getStakedAtenContract().address
           )
         ).to.not.equal("0x");
       });
 
       it("Should deploy ProtocolFactory contract", async () => {
-        await ContractHelper.deployProtocolFactoryContract(owner);
+        await ProtocolHelper.deployProtocolFactoryContract(owner);
 
         expect(
           await hre_ethers.provider.getCode(
-            ContractHelper.getProtocolFactoryContract().address
+            ProtocolHelper.getProtocolFactoryContract().address
           )
         ).to.not.equal("0x");
       });
 
       it("Should deploy PolicyManager contract", async () => {
-        await ContractHelper.deployPolicyManagerContract(owner);
+        await ProtocolHelper.deployPolicyManagerContract(owner);
 
         expect(
           await hre_ethers.provider.getCode(
-            ContractHelper.getPolicyManagerContract().address
+            ProtocolHelper.getPolicyManagerContract().address
           )
         ).to.not.equal("0x");
       });
 
       it("Should initialize protocol with required values", async () => {
-        const init = await ContractHelper.initializeProtocol();
+        const init = await ProtocolHelper.initializeProtocol();
 
         expect(init).to.haveOwnProperty("hash");
       });
@@ -146,16 +146,16 @@ describe("Simulation", () => {
     describe("Set new active protocol 0", () => {
       it("Should set new active protocol", async () => {
         await HardhatHelper.setNextBlockTimestamp(0 * 24 * 60 * 60);
-        const tx = await ContractHelper.addNewProtocolPool("Test protocol 0");
+        const tx = await ProtocolHelper.addNewProtocolPool("Test protocol 0");
 
         expect(tx).to.haveOwnProperty("hash");
 
-        const protocol = await ContractHelper.getProtocolPoolById(0);
+        const protocol = await ProtocolHelper.getProtocolPoolDataById(0);
         expect(protocol.name).to.equal("Test protocol 0");
       });
 
       it("Should check slot0", async () => {
-        const protocolContract = await ContractHelper.getProtocolPoolContract(
+        const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           owner,
           PROTOCOL_ZERO
         );
@@ -178,7 +178,7 @@ describe("Simulation", () => {
       });
 
       it("Should check relatedProtocols", async () => {
-        const protocolContract = await ContractHelper.getProtocolPoolContract(
+        const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           owner,
           PROTOCOL_ZERO
         );
@@ -198,16 +198,16 @@ describe("Simulation", () => {
     describe("Set new active protocol 1", () => {
       it("Should set new active protocol", async () => {
         await HardhatHelper.setNextBlockTimestamp(1 * 24 * 60 * 60);
-        const tx = await ContractHelper.addNewProtocolPool("Test protocol 1");
+        const tx = await ProtocolHelper.addNewProtocolPool("Test protocol 1");
 
         expect(tx).to.haveOwnProperty("hash");
 
-        const protocol = await ContractHelper.getProtocolPoolById(1);
+        const protocol = await ProtocolHelper.getProtocolPoolDataById(1);
         expect(protocol.name).to.equal("Test protocol 1");
       });
 
       it("Should check slot0", async () => {
-        const protocolContract = await ContractHelper.getProtocolPoolContract(
+        const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           owner,
           1
         );
@@ -230,7 +230,7 @@ describe("Simulation", () => {
       });
 
       it("Should check relatedProtocols", async () => {
-        const protocolContract = await ContractHelper.getProtocolPoolContract(
+        const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           owner,
           1
         );
@@ -250,16 +250,16 @@ describe("Simulation", () => {
     describe("Set new active protocol 2", () => {
       it("Should set new active protocol", async () => {
         await HardhatHelper.setNextBlockTimestamp(1 * 24 * 60 * 60);
-        const tx = await ContractHelper.addNewProtocolPool("Test protocol 2");
+        const tx = await ProtocolHelper.addNewProtocolPool("Test protocol 2");
 
         expect(tx).to.haveOwnProperty("hash");
 
-        const protocol = await ContractHelper.getProtocolPoolById(2);
+        const protocol = await ProtocolHelper.getProtocolPoolDataById(2);
         expect(protocol.name).to.equal("Test protocol 2");
       });
 
       it("Should check slot0", async () => {
-        const protocolContract = await ContractHelper.getProtocolPoolContract(
+        const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           owner,
           2
         );
@@ -282,7 +282,7 @@ describe("Simulation", () => {
       });
 
       it("Should check relatedProtocols", async () => {
-        const protocolContract = await ContractHelper.getProtocolPoolContract(
+        const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           owner,
           2
         );
@@ -354,7 +354,7 @@ describe("Simulation", () => {
       });
 
       it("Should set reward Rates ATEN with USD", async () => {
-        const STAKED_ATENS_CONTRACT = ContractHelper.getStakedAtenContract();
+        const STAKED_ATENS_CONTRACT = ProtocolHelper.getStakedAtenContract();
 
         await expect(
           STAKED_ATENS_CONTRACT.connect(owner).setStakeRewards([
@@ -448,7 +448,7 @@ describe("Simulation", () => {
         const ATEN_Approved = await ATEN_TOKEN_CONTRACT.connect(
           liquidityProvider1
         ).approve(
-          ContractHelper.getStakedAtenContract().address,
+          ProtocolHelper.getStakedAtenContract().address,
           hre_ethers.utils.parseUnits(ATEN_AMOUNT, 18)
         );
 
@@ -467,7 +467,7 @@ describe("Simulation", () => {
       });
 
       it("Should check slot0 in protocol 0", async () => {
-        const protocolContract = await ContractHelper.getProtocolPoolContract(
+        const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           liquidityProvider1,
           PROTOCOL_ZERO
         );
@@ -497,7 +497,7 @@ describe("Simulation", () => {
 
       it("Should check funs and NFT", async () => {
         const POSITIONS_MANAGER_CONTRACT =
-          ContractHelper.getPositionManagerContract();
+          ProtocolHelper.getPositionManagerContract();
 
         const balNFT = await POSITIONS_MANAGER_CONTRACT.balanceOf(
           await liquidityProvider1.getAddress()
@@ -532,7 +532,7 @@ describe("Simulation", () => {
       });
 
       it("Should check relatedProtocols of Protocol 0", async () => {
-        const protocolContract = await ContractHelper.getProtocolPoolContract(
+        const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           owner,
           PROTOCOL_ZERO
         );
@@ -619,7 +619,7 @@ describe("Simulation", () => {
         const ATEN_Approved = await ATEN_TOKEN_CONTRACT.connect(
           liquidityProvider2
         ).approve(
-          ContractHelper.getStakedAtenContract().address,
+          ProtocolHelper.getStakedAtenContract().address,
           hre_ethers.utils.parseUnits(ATEN_AMOUNT, 18)
         );
 
@@ -638,7 +638,7 @@ describe("Simulation", () => {
       });
 
       it("Should check slot0 in protocol 0", async () => {
-        const protocolContract = await ContractHelper.getProtocolPoolContract(
+        const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           liquidityProvider2,
           PROTOCOL_ZERO
         );
@@ -668,7 +668,7 @@ describe("Simulation", () => {
 
       it("Should check funs and NFT", async () => {
         const POSITIONS_MANAGER_CONTRACT =
-          ContractHelper.getPositionManagerContract();
+          ProtocolHelper.getPositionManagerContract();
 
         const balNFT = await POSITIONS_MANAGER_CONTRACT.balanceOf(
           await liquidityProvider2.getAddress()
@@ -703,7 +703,7 @@ describe("Simulation", () => {
       });
 
       it("Should check relatedProtocols of Protocol 0", async () => {
-        const protocolContract = await ContractHelper.getProtocolPoolContract(
+        const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           owner,
           PROTOCOL_ZERO
         );
@@ -796,7 +796,7 @@ describe("Simulation", () => {
       });
 
       it("Should check policy info", async () => {
-        const protocolContract = await ContractHelper.getProtocolPoolContract(
+        const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           policyTaker1,
           PROTOCOL_ZERO
         );
@@ -820,7 +820,7 @@ describe("Simulation", () => {
       });
 
       it("Should get info", async () => {
-        const protocolContract = await ContractHelper.getProtocolPoolContract(
+        const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           policyTaker1,
           PROTOCOL_ZERO
         );
@@ -836,7 +836,7 @@ describe("Simulation", () => {
       });
 
       it("Should check slot0 in protocol 0", async () => {
-        const protocolContract = await ContractHelper.getProtocolPoolContract(
+        const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           policyTaker1,
           PROTOCOL_ZERO
         );
@@ -869,7 +869,7 @@ describe("Simulation", () => {
 
       it("Should check NFT", async () => {
         const POLICY_MANAGER_CONTRACT =
-          ContractHelper.getPolicyManagerContract();
+          ProtocolHelper.getPolicyManagerContract();
 
         const balance = await POLICY_MANAGER_CONTRACT.balanceOf(
           await policyTaker1.getAddress()
@@ -886,7 +886,7 @@ describe("Simulation", () => {
         expect(policy.liquidity).to.equal(capital);
         expect(policy.protocolId).to.equal(bn(PROTOCOL_ZERO));
 
-        const protocolContract = await ContractHelper.getProtocolPoolContract(
+        const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           policyTaker1,
           PROTOCOL_ZERO
         );
@@ -946,7 +946,7 @@ describe("Simulation", () => {
       });
 
       it("Should check policy info", async () => {
-        const protocolContract = await ContractHelper.getProtocolPoolContract(
+        const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           policyTaker2,
           PROTOCOL_ZERO
         );
@@ -970,7 +970,7 @@ describe("Simulation", () => {
       });
 
       it("Should get info", async () => {
-        const protocolContract = await ContractHelper.getProtocolPoolContract(
+        const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           policyTaker2,
           PROTOCOL_ZERO
         );
@@ -987,7 +987,7 @@ describe("Simulation", () => {
       });
 
       it("Should check slot0 in protocol 0", async () => {
-        const protocolContract = await ContractHelper.getProtocolPoolContract(
+        const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           policyTaker2,
           PROTOCOL_ZERO
         );
@@ -1020,7 +1020,7 @@ describe("Simulation", () => {
 
       it("Should check NFT", async () => {
         const POLICY_MANAGER_CONTRACT =
-          ContractHelper.getPolicyManagerContract();
+          ProtocolHelper.getPolicyManagerContract();
 
         const balance = await POLICY_MANAGER_CONTRACT.balanceOf(
           await policyTaker2.getAddress()
@@ -1037,7 +1037,7 @@ describe("Simulation", () => {
         expect(policy.liquidity).to.equal(capital);
         expect(policy.protocolId).to.equal(bn(PROTOCOL_ZERO));
 
-        const protocolContract = await ContractHelper.getProtocolPoolContract(
+        const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           policyTaker2,
           PROTOCOL_ZERO
         );
@@ -1055,7 +1055,7 @@ describe("Simulation", () => {
 
     describe("Should view actualize", () => {
       it("Should get vSlot0 after 10 days", async () => {
-        const protocolContract = await ContractHelper.getProtocolPoolContract(
+        const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           owner,
           PROTOCOL_ZERO
         );
@@ -1084,7 +1084,7 @@ describe("Simulation", () => {
       });
 
       it("Should get vSlot0 after 178 days", async () => {
-        const protocolContract = await ContractHelper.getProtocolPoolContract(
+        const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           owner,
           PROTOCOL_ZERO
         );
@@ -1114,7 +1114,7 @@ describe("Simulation", () => {
       });
 
       it("Should get vSlot0 after 428 days", async () => {
-        const protocolContract = await ContractHelper.getProtocolPoolContract(
+        const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           owner,
           PROTOCOL_ZERO
         );
@@ -1146,7 +1146,7 @@ describe("Simulation", () => {
 
     describe("Should view info of PT1 after 10 days and arriving of PT2", () => {
       it("Should get info via protocol contract", async () => {
-        const protocolContract = await ContractHelper.getProtocolPoolContract(
+        const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           policyTaker1,
           PROTOCOL_ZERO
         );
@@ -1175,7 +1175,7 @@ describe("Simulation", () => {
         const result = await tx.wait();
         const event = result.events[1];
 
-        const protocolContract = await ContractHelper.getProtocolPoolContract(
+        const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           policyTaker1,
           PROTOCOL_ZERO
         );
@@ -1190,7 +1190,7 @@ describe("Simulation", () => {
       });
 
       it("Should check slot0 after PT1 quit", async () => {
-        const protocolContract = await ContractHelper.getProtocolPoolContract(
+        const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           owner,
           PROTOCOL_ZERO
         );
@@ -1228,7 +1228,7 @@ describe("Simulation", () => {
         const result = await tx.wait();
         const event = result.events[1];
 
-        const protocolContract = await ContractHelper.getProtocolPoolContract(
+        const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           policyTaker2,
           PROTOCOL_ZERO
         );
@@ -1243,7 +1243,7 @@ describe("Simulation", () => {
       });
 
       it("Should check slot0 after PT2 quit", async () => {
-        const protocolContract = await ContractHelper.getProtocolPoolContract(
+        const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           owner,
           PROTOCOL_ZERO
         );
@@ -1305,7 +1305,7 @@ describe("Simulation", () => {
       });
 
       it("Should check slot0 in protocol 0 before claim", async () => {
-        const protocolContract = await ContractHelper.getProtocolPoolContract(
+        const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           policyTaker2,
           PROTOCOL_ZERO
         );
@@ -1347,7 +1347,7 @@ describe("Simulation", () => {
           182500
         );
 
-        const protocolPool0 = await ContractHelper.getProtocolPoolContract(
+        const protocolPool0 = await ProtocolHelper.getProtocolPoolContract(
           owner,
           0
         );
@@ -1362,7 +1362,7 @@ describe("Simulation", () => {
       });
 
       it("Should check slot0 in Protocol 0", async () => {
-        const protocolContract = await ContractHelper.getProtocolPoolContract(
+        const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           policyTaker2,
           PROTOCOL_ZERO
         );
@@ -1396,7 +1396,7 @@ describe("Simulation", () => {
       });
 
       it("Should get vSlot0 of Protocol 0 after claim 1 day ", async () => {
-        const protocolContract = await ContractHelper.getProtocolPoolContract(
+        const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           owner,
           PROTOCOL_ZERO
         );

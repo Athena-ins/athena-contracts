@@ -8,7 +8,8 @@
   },
   "scripts": {
     "test": "mocha --watch",
-    "verify": "npx hardhat verify --network mainnet --constructor-args arguments.js CONTRACT_ADDRESS"
+    "verify": "npx hardhat verify --network mainnet --constructor-args arguments.js CONTRACT_ADDRESS",
+    "testNTT": "npx hardhat test ./test/deployProtocol.test.ts ./test/liquidityProvider.test.ts"
   },
   "repository": {
     "type": "git",
