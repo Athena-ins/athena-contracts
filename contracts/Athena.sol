@@ -11,9 +11,11 @@ import "./interfaces/IPositionsManager.sol";
 import "./interfaces/IProtocolFactory.sol";
 import "./interfaces/IProtocolPool.sol";
 import "./interfaces/IStakedAten.sol";
+import "./interfaces/IStakedAtenPolicy.sol";
 import "./interfaces/IPolicyManager.sol";
 import "./interfaces/IScaledBalanceToken.sol";
 import "./interfaces/IClaimManager.sol";
+import "./interfaces/IVaultERC20.sol";
 
 import "./ClaimCover.sol";
 
@@ -52,8 +54,10 @@ contract Athena is ReentrancyGuard, Ownable {
   address public claimManager;
 
   address public stakedAtensGP;
+  address public stakedAtensPo;
   address public rewardsToken;
   address public aaveAtoken;
+  address public atensVault;
 
   address public arbitrator;
 
@@ -88,6 +92,8 @@ contract Athena is ReentrancyGuard, Ownable {
   function initialize(
     address _positionsAddress,
     address _stakedAtensGP,
+    address _stakedAtensPo,
+    address _atensVault,
     address _policyManagerAddress,
     address _aaveAtoken,
     address _protocolFactory,
@@ -101,6 +107,8 @@ contract Athena is ReentrancyGuard, Ownable {
     protocolFactory = _protocolFactory;
     arbitrator = _arbitrator;
     claimManager = _claimManager;
+    stakedAtensPo = _stakedAtensPo;
+    atensVault = _atensVault;
     approveLendingPool();
     //initialized = true; //@dev required ?
   }
@@ -121,6 +129,18 @@ contract Athena is ReentrancyGuard, Ownable {
       protocolsMapping[_protocolId].deployed,
       _premium
     );
+    if (_atensLocked > 0) {
+      //@dev TODO get oracle price !
+      uint256 pricePrecision = 10000;
+      uint256 __price = 100; // = 100 / 10.000 = 0.01 USDT
+      uint256 __decimalsRatio = 10**18 / 10**ERC20(stablecoin).decimals();
+      require(
+        (__price * _atensLocked) / pricePrecision <=
+          (_premium * __decimalsRatio),
+        "Too many ATENS"
+      );
+      IStakedAtenPolicy(stakedAtensPo).stake(msg.sender, _atensLocked);
+    }
     IPolicyManager(policyManager).mint(
       msg.sender,
       _amountGuaranteed,
@@ -226,16 +246,11 @@ contract Athena is ReentrancyGuard, Ownable {
   function deposit(
     uint256 amount,
     uint256 atenToStake,
-    uint128[] calldata _protocolIds,
-    uint256[] calldata _amounts
+    uint128[] calldata _protocolIds
   ) public payable {
     require(
       IPositionsManager(positionsManager).balanceOf(msg.sender) == 0,
       "Already have a position"
-    );
-    require(
-      _protocolIds.length == _amounts.length,
-      "Invalid deposit protocol length"
     );
     for (uint256 index = 0; index < _protocolIds.length; index++) {
       require(
@@ -262,13 +277,9 @@ contract Athena is ReentrancyGuard, Ownable {
         IProtocolPool(protocolsMapping[_protocolIds[index2]].deployed)
           .addRelatedProtocol(_protocolIds[index], _amounts[index]);
       }
-      require(
-        _amounts[index] <= amount,
-        "Protocol amount must be less than deposit amount"
-      );
       IProtocolPool(protocolsMapping[_protocolIds[index]].deployed).mint(
         msg.sender,
-        _amounts[index]
+        amount
       );
 
       //Thao@NOTE: mint can addRelatedProtocol too
@@ -411,6 +422,19 @@ contract Athena is ReentrancyGuard, Ownable {
       protocolsId,
       tokenId
     );
+  }
+
+  function withdrawAtensPolicy(uint256 _atenToWithdraw) external {
+    uint256 __rewards = IStakedAtenPolicy(stakedAtensPo).withdraw(
+      msg.sender,
+      _atenToWithdraw
+    );
+    if (
+      __rewards > 0 && __rewards <= IERC20(rewardsToken).balanceOf(atensVault)
+    ) {
+      IVaultERC20(atensVault).transfer(msg.sender, __rewards);
+      //IERC20(rewardsToken).transferFrom(atensVault, msg.sender, __rewards);
+    }
   }
 
   function setDiscountWithAten(AtenDiscount[] calldata _discountToSet)
