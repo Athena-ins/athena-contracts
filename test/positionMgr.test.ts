@@ -5,22 +5,27 @@ import { ethers as ethersOriginal, utils } from "ethers";
 import weth_abi from "../abis/weth.json";
 import atoken_abi from "../abis/AToken.json";
 import chaiAsPromised from "chai-as-promised";
-import { getATokenBalance, increaseTimeAndMine } from "./helpers";
+import {
+  deployAndInitProtocol,
+  getATokenBalance,
+  increaseTimeAndMine,
+} from "./helpers";
 import protocolPoolAbi from "../artifacts/contracts/ProtocolPool.sol/ProtocolPool.json";
 
 chai.use(chaiAsPromised);
 
-const ATEN_TOKEN = "0x86ceb9fa7f5ac373d275d328b7aca1c05cfb0283";
-const ATEN_OWNER_ADDRESS = "0x967d98e659f2787A38d928B9B7a49a2E4701B30C";
-const USDT = "0xdac17f958d2ee523a2206206994597c13d831ec7"; //USDT
-const USDT_AAVE_ATOKEN = "0x3Ed3B47Dd13EC9a98b44e6204A523E766B225811";
-const USDT_Wrong = "0xdac17f958d2ee523a2206206994597c13d831ec8"; //USDT
-const WETH = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2";
-const AAVE_LENDING_POOL = "0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9";
-const AAVE_REGISTRY = "0xb53c1a33016b2dc2ff3653530bff1848a515c8c5";
-const NULL_ADDRESS = "0x" + "0".repeat(40);
-const ARBITRATOR_ADDRESS = "0x988b3A538b618C7A603e1c11Ab82Cd16dbE28069";
-const STAKING_TOKEN = USDT;
+import {
+  ATEN_TOKEN,
+  ATEN_OWNER_ADDRESS,
+  USDT,
+  USDT_AAVE_ATOKEN,
+  USDT_Wrong,
+  WETH,
+  AAVE_LENDING_POOL,
+  AAVE_REGISTRY,
+  NULL_ADDRESS,
+  ARBITRATOR_ADDRESS,
+} from "./helpers";
 
 const USDT_TOKEN_CONTRACT = new ethers.Contract(USDT, weth_abi);
 
@@ -84,82 +89,8 @@ describe("Position Manager", function () {
    */
 
   it("Should deploy contract", async function () {
-    const factory = await ethers.getContractFactory("Athena");
-    ATHENA_CONTRACT = await factory
-      .connect(owner)
-      .deploy(USDT, ATEN_TOKEN, AAVE_REGISTRY);
-    //await factory.deploy(STAKING_TOKEN, ATEN_TOKEN);
-    await ATHENA_CONTRACT.deployed();
-
-    expect(await ethers.provider.getCode("0x" + "0".repeat(40))).to.equal("0x");
-
-    expect(await ethers.provider.getCode(ATHENA_CONTRACT.address)).to.not.equal(
-      "0x"
-    );
-    /** Positions Manager */
-    const factoryPos = await ethers.getContractFactory("PositionsManager");
-    POS_CONTRACT = await factoryPos
-      .connect(owner)
-      .deploy(ATHENA_CONTRACT.address);
-    await POS_CONTRACT.deployed();
-    expect(await ethers.provider.getCode(POS_CONTRACT.address)).to.not.equal(
-      "0x"
-    );
-    const factoryStakedAtens = await ethers.getContractFactory("StakedAten");
-    STAKED_ATENS_CONTRACT = await factoryStakedAtens
-      .connect(owner)
-      .deploy(ATEN_TOKEN, ATHENA_CONTRACT.address);
-    await STAKED_ATENS_CONTRACT.deployed();
-    expect(
-      await ethers.provider.getCode(STAKED_ATENS_CONTRACT.address)
-    ).to.not.equal("0x");
-
-    const factoryProtocol = await ethers.getContractFactory("ProtocolFactory");
-    FACTORY_PROTOCOL_CONTRACT = await factoryProtocol
-      .connect(owner)
-      .deploy(ATHENA_CONTRACT.address);
-    await FACTORY_PROTOCOL_CONTRACT.deployed();
-    expect(
-      await ethers.provider.getCode(FACTORY_PROTOCOL_CONTRACT.address)
-    ).to.not.equal("0x");
-
-    // const wrappedAAVE = await ethers.getContractFactory("AAVELPToken");
-    // //AAVE USDT ATOKEN ?
-    // AAVELP_CONTRACT = await wrappedAAVE
-    //   .connect(owner)
-    //   .deploy(AUSDT_TOKEN, ATHENA_CONTRACT.address);
-    // await AAVELP_CONTRACT.deployed();
-    // expect(await ethers.provider.getCode(AAVELP_CONTRACT.address)).to.not.equal(
-    //   "0x"
-    // );
-
-    /** Policy Manager */
-    const factoryPolicy = await ethers.getContractFactory("PolicyManager");
-    POLICY_CONTRACT = await factoryPolicy
-      .connect(owner)
-      .deploy(ATHENA_CONTRACT.address);
-    await POLICY_CONTRACT.deployed();
-    expect(await ethers.provider.getCode(POLICY_CONTRACT.address)).to.not.equal(
-      "0x"
-    );
-  });
-
-  it("Should initialize Protocol", async () => {
-    /**
-     * Initialize protocol with required values
-     */
-    const init = await ATHENA_CONTRACT.initialize(
-      POS_CONTRACT.address,
-      STAKED_ATENS_CONTRACT.address,
-      POLICY_CONTRACT.address,
-      USDT_AAVE_ATOKEN,
-      FACTORY_PROTOCOL_CONTRACT.address,
-      ARBITRATOR_ADDRESS,
-      NULL_ADDRESS
-      // AAVELP_CONTRACT.address
-    );
-    await init.wait();
-    expect(init).to.haveOwnProperty("hash");
+    [ATHENA_CONTRACT, POS_CONTRACT, STAKED_ATENS_CONTRACT, POLICY_CONTRACT] =
+      await deployAndInitProtocol(allSigners);
   });
 
   it("Should prepare balances ", async () => {
@@ -345,6 +276,12 @@ describe("Position Manager", function () {
 
   it("Should set reward Rates ATEN with USD", async function () {
     await expect(
+      STAKED_ATENS_CONTRACT.connect(allSigners[1]).setStakeRewards([
+        [1, 1000],
+        [10, 1200],
+      ])
+    ).to.be.rejectedWith("Ownable: caller is not the owner");
+    await expect(
       STAKED_ATENS_CONTRACT.connect(owner).setStakeRewards([
         [1000, 1000],
         [10, 1200],
@@ -383,27 +320,21 @@ describe("Position Manager", function () {
       await approved.wait();
       expect(approved).to.haveOwnProperty("hash");
     });
-    it("Should revert for wrong length of args", async function () {
-      await expect(
-        ATHENA_CONTRACT.connect(user).deposit(10000, USDT, [0, 2], [1])
-      ).revertedWith("Invalid deposit protocol length");
-    });
     it("Should revert for wrong compatibility protocols for depositing funds", async function () {
       await expect(
-        ATHENA_CONTRACT.connect(user).deposit(10000, USDT, [0, 2], [1, 1])
+        ATHENA_CONTRACT.connect(user).deposit(10000, USDT, [0, 2])
       ).revertedWith("Protocol not compatible");
     });
     it("Should revert for wrong compatibility protocols for depositing funds, inverted numbers", async function () {
       await expect(
-        ATHENA_CONTRACT.connect(user).deposit(10000, USDT, [2, 0], [1, 1])
+        ATHENA_CONTRACT.connect(user).deposit(10000, USDT, [2, 0])
       ).revertedWith("Protocol not compatible");
     });
     it("Should success deposit funds user 1", async function () {
       const tx = await ATHENA_CONTRACT.connect(user).deposit(
         10000,
         100000,
-        [0, 1],
-        [10000, 10000]
+        [0, 1]
       );
       expect(tx).to.haveOwnProperty("hash");
 
@@ -427,12 +358,9 @@ describe("Position Manager", function () {
         user2
       ).approve(ATHENA_CONTRACT.address, utils.parseEther("100000000000"));
       await approved2.wait();
-      const tx2 = await ATHENA_CONTRACT.connect(user2).deposit(
-        1001,
-        9000000,
-        [0],
-        [1001]
-      );
+      const tx2 = await ATHENA_CONTRACT.connect(user2).deposit(1001, 9000000, [
+        0,
+      ]);
       expect(tx2).to.haveOwnProperty("hash");
     });
     it("Should check funds and NFT", async function () {
@@ -583,8 +511,7 @@ describe("Position Manager", function () {
       const tx3 = await ATHENA_CONTRACT.connect(user3).deposit(
         capitalDeposit,
         9000000,
-        [PROTOCOL_ID],
-        [capitalDeposit]
+        [PROTOCOL_ID]
       );
       await tx3.wait();
       expect(tx3).to.haveOwnProperty("hash");
