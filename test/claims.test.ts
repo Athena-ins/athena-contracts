@@ -139,6 +139,9 @@ describe("Claims", () => {
       expect(claim.createdAt).to.be.equal(HardhatHelper.getCurrentTime());
       expect(claim.availableCapitalBefore).to.be.equal(0);
       expect(claim.premiumSpentBefore).to.be.equal(0);
+
+      const claimIndex = await protocolPool0.claimIndex();
+      expect(claimIndex).to.be.equal(0);
     });
 
     it("Should check slot0 in Protocol 0 at the moment of adding claim in Protocol 2", async () => {
@@ -246,6 +249,9 @@ describe("Claims", () => {
       expect(claim.premiumSpentBefore).to.be.equal(
         "96000000000000000000000000000"
       );
+
+      const claimIndex = await protocolPool0.claimIndex();
+      expect(claimIndex).to.be.equal(1);
     });
   });
 });
