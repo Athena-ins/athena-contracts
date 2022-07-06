@@ -86,6 +86,8 @@ async function initializeProtocol() {
   return await ATHENA_CONTRACT.initialize(
     POSITIONS_MANAGER_CONTRACT.address,
     STAKED_ATENS_CONTRACT.address,
+    NULL_ADDRESS,
+    NULL_ADDRESS,
     POLICY_MANAGER_CONTRACT.address,
     USDT_AAVE_ATOKEN,
     FACTORY_PROTOCOL_CONTRACT.address,
@@ -151,8 +153,7 @@ async function deposit(
   user: ethers.Signer,
   USDT_amount: string,
   ATEN_amount: string,
-  protocols: number[],
-  protocolAmounts: string[]
+  protocols: number[]
 ) {
   await HardhatHelper.USDT_transfer(
     await user.getAddress(),
@@ -180,8 +181,7 @@ async function deposit(
   await ATHENA_CONTRACT.connect(user).deposit(
     USDT_amount,
     ATEN_amount,
-    protocols,
-    protocolAmounts
+    protocols
   );
 }
 

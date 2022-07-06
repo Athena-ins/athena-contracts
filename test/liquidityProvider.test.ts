@@ -96,12 +96,7 @@ describe("Liquidity provider deposit", () => {
 
         const tx = await ProtocolHelper.getAthenaContract()
           .connect(liquidityProvider1)
-          .deposit(
-            USDT_amount,
-            ATEN_amount,
-            [0, 2],
-            [USDT_amount, USDT_amount]
-          );
+          .deposit(USDT_amount, ATEN_amount, [0, 2]);
 
         expect(tx).to.haveOwnProperty("hash");
       });
@@ -261,12 +256,7 @@ describe("Liquidity provider deposit", () => {
 
         const tx = await ProtocolHelper.getAthenaContract()
           .connect(liquidityProvider2)
-          .deposit(
-            USDT_amount,
-            ATEN_amount,
-            [0, 1, 2],
-            [USDT_amount, USDT_amount, USDT_amount]
-          );
+          .deposit(USDT_amount, ATEN_amount, [0, 1, 2]);
 
         expect(tx).to.haveOwnProperty("hash");
       });

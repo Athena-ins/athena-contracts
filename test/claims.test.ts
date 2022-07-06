@@ -39,8 +39,7 @@ describe("Claims", () => {
       liquidityProvider1,
       USDT_amount1,
       ATEN_amount1,
-      [0, 2],
-      [USDT_amount1, USDT_amount1]
+      [0, 2]
     );
 
     const USDT_amount2 = "330000";
@@ -49,8 +48,7 @@ describe("Claims", () => {
       liquidityProvider2,
       USDT_amount2,
       ATEN_amount2,
-      [0, 1, 2],
-      [USDT_amount2, USDT_amount2, USDT_amount2]
+      [0, 1, 2]
     );
 
     const capital1 = "109500";
