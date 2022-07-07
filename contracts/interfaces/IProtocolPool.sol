@@ -34,7 +34,7 @@ interface IProtocolPool is IPolicyCover {
     view
     returns (ClaimCover.Claim memory);
 
-  function addClaim(address _account, ClaimCover.Claim memory _claim) external;
+  function addClaim(ClaimCover.Claim memory _claim) external;
 
   function getRelatedProtocols() external view returns (uint128[] memory);
 

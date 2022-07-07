@@ -18,6 +18,30 @@ abstract contract LiquidityCover is ERC20 {
 
   uint256 public availableCapital;
 
+  function _intersectingAmount(uint128 _protocolId)
+    internal
+    view
+    returns (uint256)
+  {
+    return intersectingAmounts[intersectingAmountIndexes[_protocolId]];
+  }
+
+  function _removeIntersectingAmount(
+    uint128 _protocolId,
+    uint256 _amountToRemove
+  ) internal {
+    intersectingAmounts[
+      intersectingAmountIndexes[_protocolId]
+    ] -= _amountToRemove;
+  }
+
+  function _addIntersectingAmount(uint128 _protocolId, uint256 _amountToAdd)
+    internal
+  {
+    intersectingAmounts[intersectingAmountIndexes[_protocolId]] += _amountToAdd;
+  }
+
+  //Thao@QUESTION: we need this fct ?
   function _intersectingAmounts() internal view returns (uint256[] memory) {
     return intersectingAmounts;
   }

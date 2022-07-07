@@ -177,7 +177,6 @@ contract Athena is ReentrancyGuard, Ownable {
 
     for (uint256 i = 0; i < __relatedProtocols.length; i++) {
       IProtocolPool(protocolsMapping[__relatedProtocols[i]].deployed).addClaim(
-        _account,
         __newClaim
       );
     }
@@ -235,6 +234,21 @@ contract Athena is ReentrancyGuard, Ownable {
     require(_account == _accountConfirm, "Wrong account");
     protocolsMapping[__protocolId].claimsOngoing -= 1;
     if (_amount > 0) {
+      //calcul claim for all protocols
+      IProtocolPool __protocolPool = IProtocolPool(
+        protocolsMapping[__protocolId].deployed
+      );
+
+      ClaimCover.Claim memory __newClaim = __protocolPool.buildClaim(_amount);
+      uint128[] memory __relatedProtocols = __protocolPool
+        .getRelatedProtocols();
+
+      for (uint256 i = 0; i < __relatedProtocols.length; i++) {
+        IProtocolPool(protocolsMapping[__relatedProtocols[i]].deployed)
+          .addClaim(__newClaim);
+      }
+
+      //transfer token
       IProtocolPool(protocolsMapping[__protocolId].deployed).releaseFunds(
         _account,
         _amount

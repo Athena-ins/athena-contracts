@@ -6,9 +6,6 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./interfaces/IProtocolPool.sol";
 import "./PolicyCover.sol";
 
-//Thao@NOTE:
-// tout les contrats: liquidityCover, ClaimCover et PolicyCover ne implémentent que la logique.
-// ProtocolPool assemble les logiques et les checks: onlyCore, ...
 contract ProtocolPool is IProtocolPool, PolicyCover {
   using RayMath for uint256;
   using SafeERC20 for IERC20;
@@ -51,7 +48,6 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
   }
 
   function committingWithdrawLiquidity(address _account) external onlyCore {
-    //Thao@TODO: require have any claim in progress
     withdrawReserves[_account] = block.timestamp;
   }
 
@@ -103,25 +99,35 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     uint256 _userCapital,
     uint256 _dateInSecond
   ) internal view returns (int256) {
-    //Thao@TODO: il faut uint256[] memory __intersectingAmounts pour ce calcul ?
-    (
-      Slot0 memory __slot0,
-      uint256 __availableCapital,
-      Claim[] memory __claims,
+    //Thao@TODO: il faut diviser en 2 cas:
+    // - il y a pas de claim: actualizingSlot0WithInterval()
+    // - il y a un claim: _actualizingSlot0WithClaims
 
-    ) = _actualizingSlot0WithClaims(_dateInSecond);
+    //Thao@TODO: il faut uint256[] memory __intersectingAmounts pour ce calcul ?
+    (Slot0 memory __slot0, uint256 __availableCapital) = _actualizingUntil(
+      _dateInSecond
+    );
+
+    Claim[] memory __claims = _claims();
     //Thao@TODO: il faut parcourir __claims et recalculer totalSupply et liquidityIndex dans chaque interval entre deux claims
     //Thao@TODO: il faut trouver comment recalculer totalSupply car plusieurs LP concerner par un claim
     //il faut faire une boucle ici
     //check aussi id de protocol dans claim pour retirer amount de LP concerné
-    uint256 __liquidityIndex = _liquidityIndex(
-      totalSupply(),
-      __availableCapital + __slot0.premiumSpent
-    );
 
-    uint256 __scaledBalance = balanceOf(_account).rayDiv(__liquidityIndex);
+    //Thao@TODO: i n'est pas tj commencer de 0
+    for (uint256 i = 0; i < __claims.length; i++) {
+      Claim memory __claim = __claims[i];
+      //calcul
+      uint256 __liquidityIndex = _liquidityIndex(
+        totalSupply(),
+        __claim.availableCapitalBefore + __claim.premiumSpentBefore
+      );
 
-    return int256(__scaledBalance) - int256(_userCapital);
+      uint256 __scaledBalance = balanceOf(_account).rayDiv(__liquidityIndex);
+      int256(__scaledBalance) - int256(_userCapital);
+    }
+
+    return 0; //TODO
   }
 
   function rewardsOf(
@@ -230,8 +236,6 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     console.log("Balance Contract = ", bal);
     console.log("Account to transfer = ", _account);
     IERC20(underlyingAsset).safeTransfer(_account, _amount);
-    availableCapital -= RayMath.otherToRay(_amount);
-    //Thao@TODO: recalculer slot0 car availableCapital est changé
   }
 
   function getRelatedProtocols()
@@ -262,40 +266,67 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
       );
   }
 
-  function addClaim(address _account, Claim memory _claim)
-    external
-    override
-    onlyCore
-  {
+  //releaseFunds calls this fct for updating protocol pool
+  function addClaim(Claim memory _claim) external override {
     _actualizing();
+
+    uint256 __availableCapital = availableCapital;
+
+    require(__availableCapital > _claim.amount, "Capital not enought");
+
+    Slot0 memory __slot0 = Slot0({
+      tick: slot0.tick,
+      premiumRate: slot0.premiumRate,
+      emissionRate: slot0.emissionRate,
+      hoursPerTick: slot0.hoursPerTick,
+      totalInsuredCapital: slot0.totalInsuredCapital,
+      premiumSpent: slot0.premiumSpent,
+      remainingPolicies: slot0.remainingPolicies,
+      lastUpdateTimestamp: slot0.lastUpdateTimestamp
+    });
+
+    // save info in claim
+    _claim.availableCapitalBefore = __availableCapital;
+    _claim.premiumSpentBefore = __slot0.premiumSpent;
+
+    //compute slot0 and capital with claim:
+    uint256 __amountToRemoveByClaim = _amountToRemoveFromIntersecAndCapital(
+      _intersectingAmount(_claim.disputeId),
+      _claim.ratio
+    );
+
+    _updateSlot0WithClaimAmount(_claim.disputeId, __amountToRemoveByClaim);
+
     _addClaim(_claim);
 
-    // console.log("Protocol:", id);
-    // console.log("ProtocolPool.addClaim <<< _account:", _account);
-    // console.log(
-    //   "ProtocolPool.addClaim <<< _claim.disputeId:",
-    //   _claim.disputeId
-    // );
-    // console.log("ProtocolPool.addClaim <<< _claim.amount:", _claim.amount);
-    // console.log("ProtocolPool.addClaim <<< _claim.ratio:", _claim.ratio);
-    // console.log(
-    //   "ProtocolPool.addClaim <<< _claim.createdAt:",
-    //   _claim.createdAt
-    // );
+    {
+      // console.log("Protocol:", id);
+      // console.log("ProtocolPool.addClaim <<< _account:", _account);
+      // console.log(
+      //   "ProtocolPool.addClaim <<< _claim.disputeId:",
+      //   _claim.disputeId
+      // );
+      // console.log("ProtocolPool.addClaim <<< _claim.amount:", _claim.amount);
+      // console.log("ProtocolPool.addClaim <<< _claim.ratio:", _claim.ratio);
+      // console.log(
+      //   "ProtocolPool.addClaim <<< _claim.createdAt:",
+      //   _claim.createdAt
+      // );
+    }
   }
 
-  //Thao@NOTE: _amount est 100% de déposit
   function addRelatedProtocol(uint128 _protocolId, uint256 _amount)
     external
     onlyCore
   {
     if (intersectingAmountIndexes[_protocolId] == 0 && _protocolId != id) {
       intersectingAmountIndexes[_protocolId] = intersectingAmounts.length;
+
       relatedProtocols.push(_protocolId);
+
       intersectingAmounts.push();
     }
 
-    intersectingAmounts[intersectingAmountIndexes[_protocolId]] += RayMath
-      .otherToRay(_amount);
+    _addIntersectingAmount(_protocolId, RayMath.otherToRay(_amount));
   }
 }

@@ -135,11 +135,12 @@ describe("Claims", () => {
       expect(claim.amount).to.be.equal("182500000000000000000000000000000");
       expect(claim.ratio).to.be.equal("250000000000000000000000000");
       expect(claim.createdAt).to.be.equal(HardhatHelper.getCurrentTime());
-      expect(claim.availableCapitalBefore).to.be.equal(0);
-      expect(claim.premiumSpentBefore).to.be.equal(0);
-
-      const claimIndex = await protocolPool0.claimIndex();
-      expect(claimIndex).to.be.equal(0);
+      expect(claim.availableCapitalBefore).to.be.equal(
+        "730000000000000000000000000000000"
+      );
+      expect(claim.premiumSpentBefore).to.be.equal(
+        "96000000000000000000000000000"
+      );
     });
 
     it("Should check slot0 in Protocol 0 at the moment of adding claim in Protocol 2", async () => {
@@ -150,13 +151,13 @@ describe("Claims", () => {
       const slot0 = await protocolContract.slot0();
 
       expect(slot0.tick).to.be.equal(24);
-      expect(slot0.premiumRate).to.be.equal("4000000000000000000000000000");
-      expect(slot0.emissionRate).to.be.equal("36000000000000000000000000000");
-      expect(slot0.hoursPerTick).to.be.equal("6000000000000000000000000000");
+      expect(slot0.premiumRate).to.be.equal("5000000000000000000000000000");
+      expect(slot0.emissionRate).to.be.equal("45000000000000000000000000000");
+      expect(slot0.hoursPerTick).to.be.equal("4800000000000000000000000000");
       expect(slot0.totalInsuredCapital).to.be.equal(
         "328500000000000000000000000000000"
       );
-      expect(slot0.premiumSpent).to.be.equal("96000000000000000000000000000");
+      expect(slot0.premiumSpent).to.be.equal("0");
       expect(slot0.remainingPolicies).to.be.equal("2");
       expect(slot0.lastUpdateTimestamp).to.be.equal(
         HardhatHelper.getCurrentTime()
@@ -164,7 +165,7 @@ describe("Claims", () => {
 
       const availableCapital = await protocolContract.availableCapital();
 
-      expect(availableCapital).to.be.equal("730000000000000000000000000000000");
+      expect(availableCapital).to.be.equal("547500000000000000000000000000000");
     });
 
     it("Should get vSlot0 of Protocol 0 after 1 day claimed in Protocol 2", async () => {
@@ -247,9 +248,6 @@ describe("Claims", () => {
       expect(claim.premiumSpentBefore).to.be.equal(
         "96000000000000000000000000000"
       );
-
-      const claimIndex = await protocolPool0.claimIndex();
-      expect(claimIndex).to.be.equal(1);
     });
   });
 });
