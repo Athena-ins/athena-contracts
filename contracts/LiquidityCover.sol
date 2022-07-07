@@ -80,7 +80,23 @@ abstract contract LiquidityCover is ERC20 {
     return balanceOf(_account).rayDiv(__liquidityIndex);
   }
 
-  //Thao@TODO:
-  // - il faut une fct 'burn' pour retirer de totalSupply afin de recalculer liquidité index
-  // - pour ça, il faut garder supply d'un LP
+  /**
+   * @dev burn some LP tokens corresponding to the _amount in capital
+   * @param _account account to burn capital from
+   * @param _amount amount of capital to burn, will be converted to LP tokens
+   * @param _premiumSpent amount of actual premium spent
+   */
+  function _burnCapital(
+    address _account,
+    uint256 _amount,
+    uint256 _premiumSpent
+  ) internal {
+    // Need to remove from gobal capital ? availableCapital -= _amount;
+    _burn(
+      _account,
+      _amount.rayMul(
+        _liquidityIndex(totalSupply(), availableCapital + _premiumSpent)
+      )
+    );
+  }
 }
