@@ -70,6 +70,26 @@ describe("Deploy protocol", () => {
         ).to.not.equal("0x");
       });
 
+      it("Should deploy StakedAtensPolicy contract", async () => {
+        await ProtocolHelper.deployStakedAtensPolicyContract(owner);
+
+        expect(
+          await hre_ethers.provider.getCode(
+            ProtocolHelper.getStakedAtensPolicyContract().address
+          )
+        ).to.not.equal("0x");
+      });
+
+      it("Should deploy VaultAtens contract", async () => {
+        await ProtocolHelper.deployVaultAtenContract(owner);
+
+        expect(
+          await hre_ethers.provider.getCode(
+            ProtocolHelper.getVaultAtenContract().address
+          )
+        ).to.not.equal("0x");
+      });
+
       it("Should initialize protocol with required values", async () => {
         const init = await ProtocolHelper.initializeProtocol();
 
