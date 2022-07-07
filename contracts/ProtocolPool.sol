@@ -15,7 +15,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
   uint128 public id;
 
   mapping(address => uint256) public withdrawReserves;
-  mapping(address => uint256) public lastActionsTimestamp;
+  mapping(address => uint256) public lastIndexClaims;
 
   // @Dev notice rule
   // external and public functions should use Decimals and convert to RAY, other functions should already use RAY
@@ -149,6 +149,8 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
             (uint256(__difference) * (1000 - _discount)) / 1000
           )
         );
+
+    //Thao@TODO: il faut save lastIndexClaims ici
   }
 
   function withdrawLiquidity(
@@ -291,11 +293,11 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
 
     //compute slot0 and capital with claim:
     uint256 __amountToRemoveByClaim = _amountToRemoveFromIntersecAndCapital(
-      _intersectingAmount(_claim.disputeId),
+      _intersectingAmount(_claim.fromProtocolId),
       _claim.ratio
     );
 
-    _updateSlot0WithClaimAmount(_claim.disputeId, __amountToRemoveByClaim);
+    _updateSlot0WithClaimAmount(_claim.fromProtocolId, __amountToRemoveByClaim);
 
     _addClaim(_claim);
 
@@ -303,8 +305,8 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
       // console.log("Protocol:", id);
       // console.log("ProtocolPool.addClaim <<< _account:", _account);
       // console.log(
-      //   "ProtocolPool.addClaim <<< _claim.disputeId:",
-      //   _claim.disputeId
+      //   "ProtocolPool.addClaim <<< _claim.fromProtocolId:",
+      //   _claim.fromProtocolId
       // );
       // console.log("ProtocolPool.addClaim <<< _claim.amount:", _claim.amount);
       // console.log("ProtocolPool.addClaim <<< _claim.ratio:", _claim.ratio);

@@ -131,7 +131,7 @@ describe("Claims", () => {
       );
       const claim = await protocolPool0.claims(0);
 
-      expect(claim.disputeId).to.be.equal(2);
+      expect(claim.fromProtocolId).to.be.equal(2);
       expect(claim.amount).to.be.equal("182500000000000000000000000000000");
       expect(claim.ratio).to.be.equal("250000000000000000000000000");
       expect(claim.createdAt).to.be.equal(HardhatHelper.getCurrentTime());
@@ -236,7 +236,7 @@ describe("Claims", () => {
       );
       const claim = await protocolPool0.claims(0);
 
-      expect(claim.disputeId).to.be.equal(2);
+      expect(claim.fromProtocolId).to.be.equal(2);
       expect(claim.amount).to.be.equal("182500000000000000000000000000000");
       expect(claim.ratio).to.be.equal("250000000000000000000000000");
       expect(claim.createdAt).to.be.equal(
