@@ -162,12 +162,7 @@ contract Athena is ReentrancyGuard, Ownable {
   }
 
   //Thao@NOTE: for testing
-  function addClaim(
-    address _account,
-    uint128 _protocolId,
-    uint256 _amount
-  ) public nonReentrant {
-    //Thao@TODO: check si _account est dans _protocolId
+  function addClaim(uint128 _protocolId, uint256 _amount) public nonReentrant {
     IProtocolPool __protocolPool = IProtocolPool(
       protocolsMapping[_protocolId].deployed
     );
