@@ -272,7 +272,10 @@ contract Athena is ReentrancyGuard, Ownable {
         "Protocol not active"
       );
       for (uint256 index2 = index + 1; index2 < _protocolIds.length; index2++) {
-        //@Dev TODO WARNING issue here with protocols inverted ??
+        require(
+          _protocolIds[index] != _protocolIds[index2],
+          "Cannot deposit twice on same protocol"
+        );
         require(
           incompatibilityProtocols[_protocolIds[index2]][_protocolIds[index]] ==
             false &&
