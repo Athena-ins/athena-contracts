@@ -6,13 +6,16 @@ import "./LiquidityCover.sol";
 abstract contract ClaimCover is LiquidityCover {
   using RayMath for uint256;
 
+  //Claim peut utiliser pour withdraw aussi
   struct Claim {
     uint128 fromProtocolId;
     uint256 amount; // Ray
     uint256 ratio; // Ray
     uint256 createdAt;
-    uint256 availableCapitalBefore; // Ray
-    uint256 premiumSpentBefore; // Ray
+    uint256 totalSupplyRealBefore; // Ray
+    uint256 availableCapitalBefore; // Ray: contient capital + cumulatedPremiumSpent avant claim
+    uint256 currentPremiumSpentBefore; // Ray //Thao@NOTE: currentPremiumSpent pour calculer les rewards
+    uint256 cumulatedPremiumSpentBefore; // Ray //Thao@NOTE: cumulatedPremiumSpentBefore pour calculer liquidityIndex ???
   }
 
   Claim[] public claims;
@@ -21,8 +24,17 @@ abstract contract ClaimCover is LiquidityCover {
     claims.push(_newClaim);
   }
 
-  function _claims() internal view returns (Claim[] memory) {
-    return claims;
+  function _claims(uint256 beginIndex) internal view returns (Claim[] memory) {
+    uint256 __length = claims.length;
+    if (__length == beginIndex) return new Claim[](0);
+
+    __length = claims.length - beginIndex;
+    Claim[] memory __claims = new Claim[](__length);
+    for (uint256 i = 0; i < __length; i++) {
+      __claims[i] = claims[beginIndex + i];
+    }
+
+    return __claims;
   }
 
   //_claimAmount is Claim.amount

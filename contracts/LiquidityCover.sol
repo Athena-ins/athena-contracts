@@ -5,6 +5,8 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 import "./libraries/RayMath.sol";
 
+import "hardhat/console.sol";
+
 abstract contract LiquidityCover is ERC20 {
   using RayMath for uint256;
 
@@ -12,11 +14,14 @@ abstract contract LiquidityCover is ERC20 {
 
   uint128[] public relatedProtocols;
 
+  //Thao@TODO: nous n'avons pas besoin de intersecting amount
   //ce même protocol est à l'indice 0 mais il faut enlever pour gas
   mapping(uint128 => uint256) public intersectingAmountIndexes;
   uint256[] public intersectingAmounts;
 
   uint256 public availableCapital;
+
+  uint256 public totalSupplyReal;
 
   function _intersectingAmount(uint128 _protocolId)
     internal
@@ -66,6 +71,10 @@ abstract contract LiquidityCover is ERC20 {
         );
   }
 
+  function _removeAmountFromAvailableCapital(uint256 _amountToRemove) internal {
+    availableCapital -= _amountToRemove;
+  }
+
   function _liquidityIndex(uint256 _totalSupply, uint256 _totalCapital)
     internal
     pure
@@ -74,20 +83,23 @@ abstract contract LiquidityCover is ERC20 {
     return _totalSupply == 0 ? RayMath.RAY : _totalSupply.rayDiv(_totalCapital);
   }
 
+  function _setTotalSupplyReal(uint256 _totalSupply) internal {
+    totalSupplyReal = _totalSupply;
+  }
+
   function _mintLiquidity(
     address _account,
     uint256 _amount,
     uint256 _premiumSpent
   ) internal {
-    _mint(
-      _account,
-      (
-        _amount.rayMul(
-          _liquidityIndex(totalSupply(), availableCapital + _premiumSpent)
-        )
-      )
+    uint256 __amountToSupply = _amount.rayMul(
+      _liquidityIndex(totalSupplyReal, availableCapital + _premiumSpent)
     );
+    // console.log("__amountToSupply:", __amountToSupply);
 
+    _mint(_account, __amountToSupply);
+
+    totalSupplyReal += __amountToSupply;
     availableCapital += _amount;
   }
 
@@ -97,7 +109,7 @@ abstract contract LiquidityCover is ERC20 {
     returns (uint256)
   {
     uint256 __liquidityIndex = _liquidityIndex(
-      totalSupply(),
+      totalSupplyReal,
       availableCapital + _premiumSpent
     );
 
@@ -119,8 +131,19 @@ abstract contract LiquidityCover is ERC20 {
     _burn(
       _account,
       _amount.rayMul(
-        _liquidityIndex(totalSupply(), availableCapital + _premiumSpent)
+        _liquidityIndex(totalSupplyReal, availableCapital + _premiumSpent)
       )
     );
+    //Thao@TODO: il faut voir quand retirer de totalSupplyReal
   }
+
+  // function _burnTotalSupplyWithClaimAmount(
+  //   uint256 _amountToRemoveByClaim,
+  //   uint256 _availableCapital,
+  //   uint256 _premiumSpent
+  // ) internal {
+  //   totalSupplyReal -= _amountToRemoveByClaim.rayMul(
+  //     _liquidityIndex(totalSupplyReal, _availableCapital + _premiumSpent)
+  //   );
+  // }
 }

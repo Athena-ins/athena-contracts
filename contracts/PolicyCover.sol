@@ -166,10 +166,9 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
     _slot0.remainingPolicies -= __policiesToRemove;
   }
 
-  function _updateSlot0WithClaimAmount(
-    uint128 _disputeId,
-    uint256 _amountToRemoveByClaim
-  ) internal {
+  function _updateSlot0WithClaimAmount(uint256 _amountToRemoveByClaim)
+    internal
+  {
     uint256 __newPremiumRate = getPremiumRate(
       _utilisationRate(
         false,
@@ -192,17 +191,13 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
     );
 
     slot0.premiumRate = __newPremiumRate;
-    slot0.premiumSpent = 0;
-
-    availableCapital -= _amountToRemoveByClaim;
-
-    _removeIntersectingAmount(_disputeId, _amountToRemoveByClaim);
+    slot0.currentPremiumSpent = 0;
   }
 
   function _actualizingUntil(uint256 _dateInSecond)
     internal
     view
-    returns (Slot0 memory __slot0, uint256 __availableCapital)
+    returns (Slot0 memory __slot0)
   {
     __slot0 = Slot0({
       tick: slot0.tick,
@@ -210,50 +205,51 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
       emissionRate: slot0.emissionRate,
       hoursPerTick: slot0.hoursPerTick,
       totalInsuredCapital: slot0.totalInsuredCapital,
-      premiumSpent: slot0.premiumSpent,
+      currentPremiumSpent: slot0.currentPremiumSpent,
+      cumulatedPremiumSpent: slot0.cumulatedPremiumSpent,
       remainingPolicies: slot0.remainingPolicies,
       lastUpdateTimestamp: slot0.lastUpdateTimestamp
     });
 
-    __availableCapital = availableCapital;
+    uint256 __availableCapital = availableCapital;
+    uint256 __hoursGaps = RayMath
+      .otherToRay((_dateInSecond - __slot0.lastUpdateTimestamp))
+      .rayDiv(3600000000000000000000000000000);
 
-    if (__slot0.remainingPolicies > 0) {
-      uint256 __hoursGaps = RayMath
-        .otherToRay((_dateInSecond - __slot0.lastUpdateTimestamp))
-        .rayDiv(3600000000000000000000000000000);
+    uint256 __hoursPassed;
 
-      uint256 __hoursPassed;
+    while (__hoursPassed < __hoursGaps) {
+      (uint24 __tickNext, bool __initialized) = tickBitmap
+        .nextInitializedTickInTheRightWithinOneWord(__slot0.tick);
 
-      while (__hoursPassed < __hoursGaps) {
-        (uint24 __tickNext, bool __initialized) = tickBitmap
-          .nextInitializedTickInTheRightWithinOneWord(__slot0.tick);
+      uint256 __hoursStep = (__tickNext - __slot0.tick) * __slot0.hoursPerTick;
+      uint256 __nextHoursPassed = __hoursPassed + __hoursStep;
 
-        uint256 __hoursStep = (__tickNext - __slot0.tick) *
-          __slot0.hoursPerTick;
-        uint256 __nextHoursPassed = __hoursPassed + __hoursStep;
+      if (__nextHoursPassed < __hoursGaps) {
+        uint256 __premiumSpent = (__hoursStep.rayMul(__slot0.emissionRate))
+          .rayDiv(24000000000000000000000000000);
 
-        if (__nextHoursPassed < __hoursGaps) {
-          __slot0.premiumSpent += (__hoursStep.rayMul(__slot0.emissionRate))
-            .rayDiv(24000000000000000000000000000);
+        __slot0.currentPremiumSpent += __premiumSpent;
+        __slot0.cumulatedPremiumSpent += __premiumSpent;
+        __slot0.tick = __tickNext;
 
-          __slot0.tick = __tickNext;
+        __hoursPassed = __nextHoursPassed;
+      } else {
+        uint256 __premiumSpent = (__hoursGaps - __hoursPassed)
+          .rayMul(__slot0.emissionRate)
+          .rayDiv(24000000000000000000000000000);
 
-          __hoursPassed = __nextHoursPassed;
-        } else {
-          __slot0.premiumSpent += (__hoursGaps - __hoursPassed)
-            .rayMul(__slot0.emissionRate)
-            .rayDiv(24000000000000000000000000000);
+        __slot0.currentPremiumSpent += __premiumSpent;
+        __slot0.cumulatedPremiumSpent += __premiumSpent;
+        __slot0.tick += uint24(
+          (__hoursGaps - __hoursPassed) / __slot0.hoursPerTick
+        );
 
-          __slot0.tick += uint24(
-            (__hoursGaps - __hoursPassed) / __slot0.hoursPerTick
-          );
+        __hoursPassed = __hoursGaps;
+      }
 
-          __hoursPassed = __hoursGaps;
-        }
-
-        if (__initialized && __nextHoursPassed <= __hoursGaps) {
-          crossingInitializedTick(__slot0, __availableCapital, __tickNext);
-        }
+      if (__initialized && __nextHoursPassed <= __hoursGaps) {
+        crossingInitializedTick(__slot0, __availableCapital, __tickNext);
       }
     }
 
@@ -261,11 +257,9 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
   }
 
   function _actualizing() internal {
-    (Slot0 memory __slot0, uint256 __availableCapital) = _actualizingUntil(
-      block.timestamp
-    );
-
     if (slot0.remainingPolicies > 0) {
+      Slot0 memory __slot0 = _actualizingUntil(block.timestamp);
+
       //now, we remove all crossed ticks
       uint24 __observedTick = slot0.tick;
       bool __initialized;
@@ -283,21 +277,20 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
       slot0.emissionRate = __slot0.emissionRate;
       slot0.hoursPerTick = __slot0.hoursPerTick;
       slot0.totalInsuredCapital = __slot0.totalInsuredCapital;
-      slot0.premiumSpent = __slot0.premiumSpent;
+      slot0.currentPremiumSpent = __slot0.currentPremiumSpent;
+      slot0.cumulatedPremiumSpent = __slot0.cumulatedPremiumSpent;
       slot0.remainingPolicies = __slot0.remainingPolicies;
-
-      availableCapital = __availableCapital;
     }
 
-    slot0.lastUpdateTimestamp = __slot0.lastUpdateTimestamp;
+    slot0.lastUpdateTimestamp = block.timestamp;
 
     emit Actualizing(
       slot0.tick,
       slot0.premiumRate,
       slot0.emissionRate,
       slot0.hoursPerTick,
-      availableCapital,
-      slot0.premiumSpent,
+      availableCapital, //Thao@TODO: remove from event
+      slot0.currentPremiumSpent, //Thao@TODO: il faut ajouter cumulatedPremiumSpent aussi
       slot0.remainingPolicies,
       slot0.lastUpdateTimestamp
     );
@@ -420,11 +413,16 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
   function actualizingUntilGivenDate(uint256 _dateInSecond)
     public
     view
-    returns (Slot0 memory __slot0, uint256 __availableCapital)
+    returns (Slot0 memory __slot0)
   {
     require(_dateInSecond >= slot0.lastUpdateTimestamp, "date is not valide");
 
-    (__slot0, __availableCapital) = _actualizingUntil(_dateInSecond);
+    if (slot0.remainingPolicies > 0) {
+      __slot0 = _actualizingUntil(_dateInSecond);
+    } else {
+      __slot0 = slot0;
+      __slot0.lastUpdateTimestamp = _dateInSecond;
+    }
 
     __slot0.premiumRate = RayMath.rayToOther(__slot0.premiumRate);
     __slot0.emissionRate = RayMath.rayToOther(__slot0.emissionRate);
@@ -432,8 +430,12 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
     __slot0.totalInsuredCapital = RayMath.rayToOther(
       __slot0.totalInsuredCapital
     );
-    __slot0.premiumSpent = RayMath.rayToOther(__slot0.premiumSpent);
-    __availableCapital = RayMath.rayToOther(__availableCapital);
+    __slot0.currentPremiumSpent = RayMath.rayToOther(
+      __slot0.currentPremiumSpent
+    );
+    __slot0.cumulatedPremiumSpent = RayMath.rayToOther(
+      __slot0.cumulatedPremiumSpent
+    );
   }
 
   function getInfo(address _owner)
@@ -442,9 +444,8 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
     existedOwner(_owner)
     returns (uint256 __remainingPremium, uint256 __remainingDay)
   {
-    (Slot0 memory __slot0, uint256 __availableCapital) = _actualizingUntil(
-      block.timestamp
-    );
+    uint256 __availableCapital = availableCapital;
+    Slot0 memory __slot0 = _actualizingUntil(block.timestamp);
     PremiumPosition.Info memory __position = premiumPositions.get(_owner);
 
     require(__slot0.tick <= __position.lastTick, "Policy Expired");
@@ -477,9 +478,13 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
       );
 
       __remainingHours += __hoursPassed;
-      __slot0.premiumSpent += __hoursPassed.rayMul(__slot0.emissionRate).rayDiv(
-        24000000000000000000000000000
-      );
+
+      uint256 __premiumSpent = __hoursPassed
+        .rayMul(__slot0.emissionRate)
+        .rayDiv(24000000000000000000000000000);
+
+      __slot0.currentPremiumSpent += __premiumSpent;
+      __slot0.cumulatedPremiumSpent += __premiumSpent;
       __slot0.tick = __tick;
 
       if (__initialized && __tickNext < __position.lastTick) {

@@ -20,11 +20,12 @@ interface IPolicyCover {
 
   struct Slot0 {
     uint24 tick;
-    uint256 premiumRate; //RAY
-    uint256 emissionRate; //RAY
-    uint256 hoursPerTick; //RAY
-    uint256 totalInsuredCapital; //RAY
-    uint256 premiumSpent; //RAY
+    uint256 premiumRate; //Ray
+    uint256 emissionRate; //Ray
+    uint256 hoursPerTick; //Ray
+    uint256 totalInsuredCapital; //Ray
+    uint256 currentPremiumSpent; //Ray //Thao@NOTE: pour calculer rewards dans un interval (entre deux claims) et remettre à 0 à chaque fois on touche un claim
+    uint256 cumulatedPremiumSpent; //Ray //Thao@NOTE: pour calculer liquidityIndex et jamais remettre à 0
     uint256 remainingPolicies;
     uint256 lastUpdateTimestamp;
   }
@@ -39,7 +40,7 @@ interface IPolicyCover {
   function actualizingUntilGivenDate(uint256 dateInSecond)
     external
     view
-    returns (Slot0 memory slot0, uint256 availableCapital);
+    returns (Slot0 memory slot0);
 
   function getInfo(address owner)
     external

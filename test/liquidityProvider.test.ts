@@ -113,7 +113,8 @@ describe("Liquidity provider deposit", () => {
         expect(slot0.emissionRate).to.be.equal("0");
         expect(slot0.hoursPerTick).to.be.equal("24000000000000000000000000000");
         expect(slot0.totalInsuredCapital).to.be.equal("0");
-        expect(slot0.premiumSpent).to.be.equal("0");
+        expect(slot0.currentPremiumSpent).to.be.equal("0");
+        expect(slot0.cumulatedPremiumSpent).to.be.equal("0");
         expect(slot0.remainingPolicies).to.be.equal("0");
         expect(slot0.lastUpdateTimestamp).to.be.equal(
           HardhatHelper.getCurrentTime()
@@ -273,7 +274,8 @@ describe("Liquidity provider deposit", () => {
         expect(slot0.emissionRate).to.be.equal("0");
         expect(slot0.hoursPerTick).to.be.equal("24000000000000000000000000000");
         expect(slot0.totalInsuredCapital).to.be.equal("0");
-        expect(slot0.premiumSpent).to.be.equal("0");
+        expect(slot0.currentPremiumSpent).to.be.equal("0");
+        expect(slot0.cumulatedPremiumSpent).to.be.equal("0");
         expect(slot0.remainingPolicies).to.be.equal("0");
         expect(slot0.lastUpdateTimestamp).to.be.equal(
           HardhatHelper.getCurrentTime()

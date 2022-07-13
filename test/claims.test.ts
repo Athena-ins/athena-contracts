@@ -1,5 +1,4 @@
 import chai, { expect } from "chai";
-import { ethers as hre_ethers } from "hardhat";
 import { ethers } from "ethers";
 import chaiAsPromised from "chai-as-promised";
 
@@ -7,8 +6,6 @@ import HardhatHelper from "./helpers/HardhatHelper";
 import ProtocolHelper from "./helpers/ProtocolHelper";
 
 chai.use(chaiAsPromised);
-
-const bn = (num: string | number) => hre_ethers.BigNumber.from(num);
 
 let owner: ethers.Signer;
 let liquidityProvider1: ethers.Signer;
@@ -39,7 +36,8 @@ describe("Claims", () => {
       liquidityProvider1,
       USDT_amount1,
       ATEN_amount1,
-      [0, 2]
+      [0, 2],
+      1 * 24 * 60 * 60
     );
 
     const USDT_amount2 = "330000";
@@ -48,7 +46,8 @@ describe("Claims", () => {
       liquidityProvider2,
       USDT_amount2,
       ATEN_amount2,
-      [0, 1, 2]
+      [0, 1, 2],
+      1 * 24 * 60 * 60
     );
 
     const capital1 = "109500";
@@ -91,7 +90,12 @@ describe("Claims", () => {
       expect(slot0.totalInsuredCapital).to.be.equal(
         "328500000000000000000000000000000"
       );
-      expect(slot0.premiumSpent).to.be.equal("60000000000000000000000000000");
+      expect(slot0.currentPremiumSpent).to.be.equal(
+        "60000000000000000000000000000"
+      );
+      expect(slot0.cumulatedPremiumSpent).to.be.equal(
+        "60000000000000000000000000000"
+      );
       expect(slot0.remainingPolicies).to.be.equal("2");
       expect(slot0.lastUpdateTimestamp).to.be.equal(
         HardhatHelper.getCurrentTime()
@@ -100,6 +104,9 @@ describe("Claims", () => {
       const availableCapital = await protocolContract.availableCapital();
 
       expect(availableCapital).to.be.equal("730000000000000000000000000000000");
+
+      // const totalSupplyReal = await protocolContract.totalSupplyReal();
+      // console.log("totalSupplyReal:", totalSupplyReal);
     });
 
     it("Should check intersectingAmounts in protocol 0 before claim", async () => {
@@ -118,12 +125,8 @@ describe("Claims", () => {
       expect(intersecAmounts2).to.be.equal("730000000000000000000000000000000");
     });
 
-    it("Should add claim of policyTaker3 in Protocol 2", async () => {
-      HardhatHelper.setNextBlockTimestamp(1 * 24 * 60 * 60);
-
-      await ProtocolHelper.getAthenaContract()
-        .connect(owner)
-        .addClaim(await policyTaker3.getAddress(), 2, 182500);
+    it("Should add claim in Protocol 2", async () => {
+      await ProtocolHelper.claim(owner, 2, "182500", 1 * 24 * 60 * 60);
 
       const protocolPool0 = await ProtocolHelper.getProtocolPoolContract(
         owner,
@@ -135,10 +138,16 @@ describe("Claims", () => {
       expect(claim.amount).to.be.equal("182500000000000000000000000000000");
       expect(claim.ratio).to.be.equal("250000000000000000000000000");
       expect(claim.createdAt).to.be.equal(HardhatHelper.getCurrentTime());
+      expect(claim.totalSupplyRealBefore).to.be.equal(
+        "730000000000000000000000000000000"
+      );
       expect(claim.availableCapitalBefore).to.be.equal(
         "730000000000000000000000000000000"
       );
-      expect(claim.premiumSpentBefore).to.be.equal(
+      expect(claim.currentPremiumSpentBefore).to.be.equal(
+        "96000000000000000000000000000"
+      );
+      expect(claim.cumulatedPremiumSpentBefore).to.be.equal(
         "96000000000000000000000000000"
       );
     });
@@ -157,7 +166,10 @@ describe("Claims", () => {
       expect(slot0.totalInsuredCapital).to.be.equal(
         "328500000000000000000000000000000"
       );
-      expect(slot0.premiumSpent).to.be.equal("0");
+      expect(slot0.currentPremiumSpent).to.be.equal("0");
+      expect(slot0.cumulatedPremiumSpent).to.be.equal(
+        "96000000000000000000000000000"
+      );
       expect(slot0.remainingPolicies).to.be.equal("2");
       expect(slot0.lastUpdateTimestamp).to.be.equal(
         HardhatHelper.getCurrentTime()
@@ -166,6 +178,12 @@ describe("Claims", () => {
       const availableCapital = await protocolContract.availableCapital();
 
       expect(availableCapital).to.be.equal("547500000000000000000000000000000");
+
+      const totalSupplyReal = await protocolContract.totalSupplyReal();
+      expect(totalSupplyReal).to.be.equal(
+        availableCapital.add(slot0.cumulatedPremiumSpent)
+      );
+      // console.log("totalSupplyReal:", totalSupplyReal);
     });
 
     it("Should get vSlot0 of Protocol 0 after 1 day claimed in Protocol 2", async () => {
@@ -175,22 +193,21 @@ describe("Claims", () => {
       );
 
       const days = 1;
-      const view = await protocolContract.actualizingUntilGivenDate(
+      const slot0 = await protocolContract.actualizingUntilGivenDate(
         HardhatHelper.getCurrentTime() + days * 24 * 60 * 60
       );
 
-      expect(view.__slot0.tick).to.be.equal(29);
-      expect(view.__slot0.premiumRate).to.be.equal(5);
-      expect(view.__slot0.emissionRate).to.be.equal(45);
-      expect(view.__slot0.hoursPerTick).to.be.equal(5); //Thao@NOTE: la vrai valeur est 4,8 mais arrondi par RayMath
-      expect(view.__slot0.totalInsuredCapital).to.be.equal(328500);
-      expect(view.__slot0.premiumSpent).to.be.equal(45);
-      expect(view.__slot0.remainingPolicies).to.be.equal(2);
-      expect(view.__slot0.lastUpdateTimestamp).to.be.equal(
+      expect(slot0.tick).to.be.equal(29);
+      expect(slot0.premiumRate).to.be.equal(5);
+      expect(slot0.emissionRate).to.be.equal(45);
+      expect(slot0.hoursPerTick).to.be.equal(5); //Thao@NOTE: la vrai valeur est 4,8 mais arrondi par RayMath
+      expect(slot0.totalInsuredCapital).to.be.equal(328500);
+      expect(slot0.currentPremiumSpent).to.be.equal(45);
+      expect(slot0.cumulatedPremiumSpent).to.be.equal(141);
+      expect(slot0.remainingPolicies).to.be.equal(2);
+      expect(slot0.lastUpdateTimestamp).to.be.equal(
         HardhatHelper.getCurrentTime() + days * 24 * 60 * 60
       );
-
-      expect(view.__availableCapital).to.be.equal(730000 - 182500);
     });
 
     it("Should actualizing after 1 day of adding claim, checking intersectingAmounts and slot0", async () => {
@@ -219,7 +236,12 @@ describe("Claims", () => {
       expect(slot0.totalInsuredCapital).to.be.equal(
         "328500000000000000000000000000000"
       );
-      expect(slot0.premiumSpent).to.be.equal("45000000000000000000000000000");
+      expect(slot0.currentPremiumSpent).to.be.equal(
+        "45000000000000000000000000000"
+      );
+      expect(slot0.cumulatedPremiumSpent).to.be.equal(
+        "141000000000000000000000000000"
+      );
       expect(slot0.remainingPolicies).to.be.equal(2);
       expect(slot0.lastUpdateTimestamp).to.be.equal(
         HardhatHelper.getCurrentTime()
@@ -229,7 +251,7 @@ describe("Claims", () => {
       expect(availableCapital).to.be.equal("547500000000000000000000000000000");
     });
 
-    it("Should check availableCapitalBefore and premiumSpentBefore", async () => {
+    it("Should check totalSupplyRealBefore, availableCapitalBefore, currentPremiumSpentBefore and cumulatedPremiumSpentBefore", async () => {
       const protocolPool0 = await ProtocolHelper.getProtocolPoolContract(
         owner,
         0
@@ -242,10 +264,16 @@ describe("Claims", () => {
       expect(claim.createdAt).to.be.equal(
         HardhatHelper.getCurrentTime() - 1 * 24 * 60 * 60
       );
+      expect(claim.totalSupplyRealBefore).to.be.equal(
+        "730000000000000000000000000000000"
+      );
       expect(claim.availableCapitalBefore).to.be.equal(
         "730000000000000000000000000000000"
       );
-      expect(claim.premiumSpentBefore).to.be.equal(
+      expect(claim.currentPremiumSpentBefore).to.be.equal(
+        "96000000000000000000000000000"
+      );
+      expect(claim.cumulatedPremiumSpentBefore).to.be.equal(
         "96000000000000000000000000000"
       );
     });

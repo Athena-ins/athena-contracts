@@ -15,7 +15,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
   uint128 public id;
 
   mapping(address => uint256) public withdrawReserves;
-  mapping(address => uint256) public lastIndexClaims;
+  mapping(address => uint256) public beginIndexClaims;
 
   // @Dev notice rule
   // external and public functions should use Decimals and convert to RAY, other functions should already use RAY
@@ -57,7 +57,11 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
 
   function mint(address _account, uint256 _amount) external onlyCore {
     _actualizing();
-    _mintLiquidity(_account, RayMath.otherToRay(_amount), slot0.premiumSpent);
+    _mintLiquidity(
+      _account,
+      RayMath.otherToRay(_amount),
+      slot0.cumulatedPremiumSpent
+    );
     emit Mint(_account, _amount);
   }
 
@@ -89,70 +93,72 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     _actualizing();
   }
 
-  //Thao@Dev: cette fct utilise à intérieur du contrat
-  //tout les public ou external fct va convertir Ray en decimal et inversement
-  //@param _userCapital est en Ray
-  //@return __redeem est en Ray et 100%
-  //Thao@NOTE: il faut changer le nom de fct
   function _rewardsOf(
     address _account,
     uint256 _userCapital,
+    uint128[] calldata _protocolIds,
     uint256 _dateInSecond
-  ) internal view returns (int256) {
-    //Thao@TODO: il faut diviser en 2 cas:
-    // - il y a pas de claim: actualizingSlot0WithInterval()
-    // - il y a un claim: _actualizingSlot0WithClaims
+  ) public view returns (uint256 __userCapital, uint256 __totalRewards) {
+    __userCapital = RayMath.otherToRay(_userCapital);
+    //si il n'y a pas de claim, __balance est le début quand _account deposit
+    //sinon __balance est déjà màj après des claims passés
+    uint256 __balance = balanceOf(_account);
+    Claim[] memory __claims = _claims(beginIndexClaims[_account]);
 
-    //Thao@TODO: il faut uint256[] memory __intersectingAmounts pour ce calcul ?
-    (Slot0 memory __slot0, uint256 __availableCapital) = _actualizingUntil(
-      _dateInSecond
-    );
-
-    Claim[] memory __claims = _claims();
-    //Thao@TODO: il faut parcourir __claims et recalculer totalSupply et liquidityIndex dans chaque interval entre deux claims
-    //Thao@TODO: il faut trouver comment recalculer totalSupply car plusieurs LP concerner par un claim
-    //il faut faire une boucle ici
-    //check aussi id de protocol dans claim pour retirer amount de LP concerné
-
-    //Thao@TODO: i n'est pas tj commencer de 0
     for (uint256 i = 0; i < __claims.length; i++) {
       Claim memory __claim = __claims[i];
-      //calcul
-      uint256 __liquidityIndex = _liquidityIndex(
-        totalSupply(),
-        __claim.availableCapitalBefore + __claim.premiumSpentBefore
-      );
 
-      uint256 __scaledBalance = balanceOf(_account).rayDiv(__liquidityIndex);
-      int256(__scaledBalance) - int256(_userCapital);
+      uint256 __liquidityIndex = _liquidityIndex(
+        __claim.totalSupplyRealBefore,
+        __claim.availableCapitalBefore + __claim.currentPremiumSpentBefore
+      );
+      uint256 __scaledBalance = __balance.rayDiv(__liquidityIndex);
+      uint256 __currentRewards = __scaledBalance - __balance;
+      __totalRewards += __currentRewards;
+
+      for (uint256 j = 0; j < _protocolIds.length; j++) {
+        if (_protocolIds[j] == __claim.fromProtocolId) {
+          uint256 __userCapitalToRemove = __userCapital.rayMul(__claim.ratio);
+          __userCapital -= __userCapitalToRemove;
+          break;
+        }
+      }
+
+      __balance = __userCapital + __currentRewards;
     }
 
-    return 0; //TODO
+    // beginIndexClaims[_account] += __claims.length;
+
+    if (slot0.remainingPolicies > 0) {
+      Slot0 memory __slot0 = _actualizingUntil(_dateInSecond);
+      uint256 __scaledBalance = __balance.rayDiv(
+        _liquidityIndex(
+          totalSupplyReal,
+          availableCapital + __slot0.cumulatedPremiumSpent
+        )
+      );
+
+      __totalRewards += __scaledBalance - __balance;
+    }
   }
 
   function rewardsOf(
     address _account,
     uint256 _userCapital,
+    uint128[] calldata _protocolIds,
     uint256 _discount
-  ) public view returns (int256) {
-    int256 __difference = _rewardsOf(
+  ) public view returns (uint256) {
+    (, uint256 __totalRewards) = _rewardsOf(
       _account,
       RayMath.otherToRay(_userCapital),
+      _protocolIds,
       block.timestamp
     );
 
-    if (__difference < 0) return __difference;
-    else
-      return
-        int256(
-          RayMath.rayToOther(
-            (uint256(__difference) * (1000 - _discount)) / 1000
-          )
-        );
-
-    //Thao@TODO: il faut save lastIndexClaims ici
+    return RayMath.rayToOther(__totalRewards * (1000 - _discount)) / 1000;
   }
 
+  //Thao@TODO: il faut voir si withdraw doit enregistrer pour calcul ???
   function withdrawLiquidity(
     address _account,
     uint256 _userCapital,
@@ -177,35 +183,35 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
       string(abi.encodePacked(name(), ": use rate > 100%"))
     );
 
-    int256 __difference = _rewardsOf(_account, __userCapital, block.timestamp);
+    // int256 __difference = _rewardsOf(_account, __userCapital, block.timestamp);
 
-    _burn(_account, balanceOf(_account));
-    if (__difference > 0) {
-      IERC20(underlyingAsset).safeTransfer(
-        _account,
-        RayMath.rayToOther((uint256(__difference) * (1000 - _discount)) / 1000)
-      );
+    // _burn(_account, balanceOf(_account));
+    // if (__difference > 0) {
+    //   IERC20(underlyingAsset).safeTransfer(
+    //     _account,
+    //     RayMath.rayToOther((uint256(__difference) * (1000 - _discount)) / 1000)
+    //   );
 
-      _transferToTreasury(
-        RayMath.rayToOther((uint256(__difference) * _discount) / 1000)
-      );
-    }
+    //   _transferToTreasury(
+    //     RayMath.rayToOther((uint256(__difference) * _discount) / 1000)
+    //   );
+    // }
 
-    //Thao@TODO: à VERIFIER ici jusqu'à la fin
-    availableCapital -= uint256(int256(__userCapital) + __difference);
+    // //Thao@TODO: à VERIFIER ici jusqu'à la fin
+    // availableCapital -= uint256(int256(__userCapital) + __difference);
 
-    //@Dev TODO check for gas when large amount of claims and when/if needed to clean
-    for (uint256 i = 0; i < claims.length; i++) {
-      if (claims[i].createdAt > _accountTimestamp) {
-        __userCapital -= claims[i].ratio * __userCapital;
-      }
-    }
+    // //@Dev TODO check for gas when large amount of claims and when/if needed to clean
+    // for (uint256 i = 0; i < claims.length; i++) {
+    //   if (claims[i].createdAt > _accountTimestamp) {
+    //     __userCapital -= claims[i].ratio * __userCapital;
+    //   }
+    // }
 
-    return (
-      __difference > 0
-        ? (_userCapital + uint256(__difference))
-        : (_userCapital - uint256(-__difference))
-    );
+    // return (
+    //   __difference > 0
+    //     ? (_userCapital + uint256(__difference))
+    //     : (_userCapital - uint256(-__difference))
+    // );
   }
 
   function _transferToTreasury(uint256 _amount) internal {
@@ -228,6 +234,8 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
         RayMath.otherToRay(_amount),
         RayMath.otherToRay(_amount).rayDiv(availableCapital),
         block.timestamp,
+        0,
+        0,
         0,
         0
       )
@@ -264,6 +272,8 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
         __amount.rayDiv(availableCapital),
         block.timestamp,
         0,
+        0,
+        0,
         0
       );
   }
@@ -282,39 +292,33 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
       emissionRate: slot0.emissionRate,
       hoursPerTick: slot0.hoursPerTick,
       totalInsuredCapital: slot0.totalInsuredCapital,
-      premiumSpent: slot0.premiumSpent,
+      currentPremiumSpent: slot0.currentPremiumSpent,
+      cumulatedPremiumSpent: slot0.cumulatedPremiumSpent,
       remainingPolicies: slot0.remainingPolicies,
       lastUpdateTimestamp: slot0.lastUpdateTimestamp
     });
 
     // save info in claim
+    _claim.totalSupplyRealBefore = totalSupplyReal;
     _claim.availableCapitalBefore = __availableCapital;
-    _claim.premiumSpentBefore = __slot0.premiumSpent;
+    _claim.currentPremiumSpentBefore = __slot0.currentPremiumSpent;
+    _claim.cumulatedPremiumSpentBefore = __slot0.cumulatedPremiumSpent; //at the begin of interval
 
-    //compute slot0 and capital with claim:
+    //compute totalSupplyReal, capital, slot0 and intersectingAmount with claim:
     uint256 __amountToRemoveByClaim = _amountToRemoveFromIntersecAndCapital(
       _intersectingAmount(_claim.fromProtocolId),
       _claim.ratio
     );
 
-    _updateSlot0WithClaimAmount(_claim.fromProtocolId, __amountToRemoveByClaim);
+    _updateSlot0WithClaimAmount(__amountToRemoveByClaim);
+    _removeAmountFromAvailableCapital(__amountToRemoveByClaim);
+    _setTotalSupplyReal(
+      (__availableCapital - __amountToRemoveByClaim) +
+        __slot0.cumulatedPremiumSpent
+    );
+    _removeIntersectingAmount(_claim.fromProtocolId, __amountToRemoveByClaim);
 
     _addClaim(_claim);
-
-    {
-      // console.log("Protocol:", id);
-      // console.log("ProtocolPool.addClaim <<< _account:", _account);
-      // console.log(
-      //   "ProtocolPool.addClaim <<< _claim.fromProtocolId:",
-      //   _claim.fromProtocolId
-      // );
-      // console.log("ProtocolPool.addClaim <<< _claim.amount:", _claim.amount);
-      // console.log("ProtocolPool.addClaim <<< _claim.ratio:", _claim.ratio);
-      // console.log(
-      //   "ProtocolPool.addClaim <<< _claim.createdAt:",
-      //   _claim.createdAt
-      // );
-    }
   }
 
   function addRelatedProtocol(uint128 _protocolId, uint256 _amount)
@@ -330,5 +334,25 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     }
 
     _addIntersectingAmount(_protocolId, RayMath.otherToRay(_amount));
+  }
+
+  //test test
+  function setCurrentPremiumSpent(uint256 _amount) public {
+    slot0.currentPremiumSpent = _amount;
+  }
+
+  //test test
+  function setCumulatedPremiumSpent(uint256 _amount) public {
+    slot0.cumulatedPremiumSpent = _amount;
+  }
+
+  //test test
+  function setAvailableCapital(uint256 _amount) public {
+    availableCapital = _amount;
+  }
+
+  //test test
+  function setTotalSupplyReal(uint256 _amount) public {
+    totalSupplyReal = _amount;
   }
 }

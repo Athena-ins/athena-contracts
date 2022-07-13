@@ -140,7 +140,8 @@ describe("Buy policy", () => {
       expect(slot0.totalInsuredCapital).to.be.equal(
         "109500000000000000000000000000000"
       );
-      expect(slot0.premiumSpent).to.be.equal("0");
+      expect(slot0.currentPremiumSpent).to.be.equal("0");
+      expect(slot0.cumulatedPremiumSpent).to.be.equal("0");
       expect(slot0.remainingPolicies).to.be.equal("1");
       expect(slot0.lastUpdateTimestamp).to.be.equal(
         HardhatHelper.getCurrentTime()
@@ -270,7 +271,12 @@ describe("Buy policy", () => {
       expect(slot0.totalInsuredCapital).to.be.equal(
         "328500000000000000000000000000000"
       );
-      expect(slot0.premiumSpent).to.be.equal("60000000000000000000000000000");
+      expect(slot0.currentPremiumSpent).to.be.equal(
+        "60000000000000000000000000000"
+      );
+      expect(slot0.cumulatedPremiumSpent).to.be.equal(
+        "60000000000000000000000000000"
+      );
       expect(slot0.remainingPolicies).to.be.equal("2");
       expect(slot0.lastUpdateTimestamp).to.be.equal(
         HardhatHelper.getCurrentTime()
