@@ -1,150 +1,246 @@
-const T_YEAR = 31536000;
-function delta_t_year(delta_t: number) {
-  return delta_t / T_YEAR;
+import { BigNumber, BigNumberish } from "ethers";
+
+const bn = (n: BigNumberish) => BigNumber.from(n);
+
+const RAY = bn(10).pow(27); //27 decimal
+const halfRAY = RAY.div(2);
+
+function ray(n: BigNumberish) {
+  return RAY.mul(n);
 }
+
+function rayMul(a: BigNumberish, b: BigNumberish) {
+  return bn(a).mul(b).add(halfRAY).div(RAY);
+}
+
+function rayDiv(a: BigNumberish, b: BigNumberish) {
+  return bn(a).mul(RAY).add(bn(b).div(2)).div(b);
+}
+
+const T_YEAR = 31536000;
 
 function utilisationRate(
   totalInsuredLiquidity: number,
   totalAvailableLiquidity: number
 ) {
   return totalAvailableLiquidity === 0
-    ? 0
-    : totalInsuredLiquidity / totalAvailableLiquidity;
+    ? bn(0)
+    : rayDiv(ray(totalInsuredLiquidity), ray(totalAvailableLiquidity));
 }
 
-function premiumRate(utilisationRate: number) {
-  return 0.01 + (5 * utilisationRate) / 75;
+const f = {
+  r0: RAY,
+  rSlope1: ray(5),
+  uOptimal: ray(75).div(100), // 75% = 0.75
+};
+
+function premiumRate(utilisationRate: BigNumber) {
+  return f.r0
+    .add(rayMul(f.rSlope1, rayDiv(utilisationRate, f.uOptimal)))
+    .div(100);
 }
 
-function currentLiquidityRate(
-  currentPremiumRate: number,
-  currentUtilisationRate: number
+function liquidityRate(
+  currentPremiumRate: BigNumber,
+  currentUtilisationRate: BigNumber
 ) {
-  return currentPremiumRate * currentUtilisationRate;
+  return rayMul(currentPremiumRate, currentUtilisationRate);
 }
 
-function currentLiquidityIndex(
-  currentLiquidityRate: number,
+function liquidityIndex(
+  currentLiquidityRate: BigNumber,
   delta_t: number,
-  previosLiquidityIndex: number
+  previosLiquidityIndex: BigNumber
 ) {
-  return (
-    (currentLiquidityRate * delta_t_year(delta_t) + 1) * previosLiquidityIndex
+  return rayMul(
+    currentLiquidityRate.mul(delta_t).div(T_YEAR),
+    previosLiquidityIndex
+  ).add(previosLiquidityIndex);
+}
+
+const reserve = {
+  availableCapital: 0,
+  totalInsuredCapital: 0,
+  utilisationRate: bn(0),
+  premiumRate: bn(0),
+  liquidityRate: bn(0),
+  liquidityIndex: ray(1),
+};
+
+function updateReserve(delta_t: number) {
+  reserve.utilisationRate = utilisationRate(
+    reserve.totalInsuredCapital,
+    reserve.availableCapital
   );
+  console.log("reserve.utilisationRate:", reserve.utilisationRate.toString());
+
+  reserve.premiumRate = premiumRate(reserve.utilisationRate);
+  console.log("reserve.premiumRate:", reserve.premiumRate.toString());
+
+  reserve.liquidityRate = liquidityRate(
+    reserve.premiumRate,
+    reserve.utilisationRate
+  );
+  console.log("reserve.liquidityRate:", reserve.liquidityRate.toString());
+
+  reserve.liquidityIndex = liquidityIndex(
+    reserve.liquidityRate,
+    delta_t,
+    reserve.liquidityIndex
+  );
+  console.log("reserve.liquidityIndex:", reserve.liquidityIndex.toString());
 }
 
 function testLI() {
-  let availableCapital: number = 0;
-  let totalInsuredCapital: number = 0;
-  let premiumSpent: number = 0;
+  //Depositor1
+  const depositor1 = {
+    depositedAmount: 100000,
+    scaledBalance: bn(0),
+    currentBalance: bn(0),
+    income: bn(0),
+  };
 
-  //Deposit1
-  const dAmount1 = (730000 * 3) / 4;
-  const scBal1 = dAmount1;
-  availableCapital += dAmount1;
+  console.log("depositor1.depositedAmount:", depositor1.depositedAmount);
 
-  console.log("dAmount1:", dAmount1);
-  console.log("scBal1:", scBal1);
-  console.log("availableCapital:", availableCapital);
+  depositor1.scaledBalance = rayDiv(
+    depositor1.depositedAmount,
+    reserve.liquidityIndex
+  );
+  console.log("depositor1.scaledBalance:", depositor1.scaledBalance.toString());
+
+  reserve.availableCapital += depositor1.depositedAmount;
+  console.log("reserve.availableCapital:", reserve.availableCapital);
+
   console.log("-----------------------------");
 
   //Policy1
-  const amount1 = 109500;
-  totalInsuredCapital += amount1;
+  const policyAmount1 = 30000;
+  reserve.totalInsuredCapital += policyAmount1;
 
-  const _utilisationRate1 = utilisationRate(
-    totalInsuredCapital,
-    availableCapital + premiumSpent
+  updateReserve(10 * 24 * 60 * 60);
+  //après 10 jours, delta_premiumSpent = 25
+
+  depositor1.currentBalance = rayMul(
+    depositor1.scaledBalance,
+    reserve.liquidityIndex
+  );
+  console.log(
+    "depositor1.currentBalance:",
+    depositor1.currentBalance.toString()
   );
 
-  const _premiumRate1 = premiumRate(_utilisationRate1);
+  depositor1.income = depositor1.currentBalance.sub(depositor1.depositedAmount);
+  console.log("depositor1.income:", depositor1.income.toString());
 
-  const _liquidityRate1 = currentLiquidityRate(
-    _premiumRate1,
-    _utilisationRate1
-  );
-
-  const _liquidityIndex1 = currentLiquidityIndex(
-    _liquidityRate1,
-    10 * 24 * 60 * 60,
-    1
-  );
-
-  console.log("_utilisationRate1:", _utilisationRate1);
-  console.log("_premiumRate1:", _premiumRate1);
-  console.log("_liquidityRate1:", _liquidityRate1);
-  console.log("_liquidityIndex1:", _liquidityIndex1);
-  console.log("_currentBalance1:", scBal1 * _liquidityIndex1);
-  console.log("income1:", scBal1 * _liquidityIndex1 - scBal1);
   console.log("-----------------------------");
 
-  //Deposit2
-  const dAmount2 = 730000 / 4;
-  const scBal2 = dAmount2 / _liquidityIndex1;
-  availableCapital += dAmount2;
+  //Depositor2
+  const depositor2 = {
+    depositedAmount: 100000,
+    scaledBalance: bn(0),
+    currentBalance: bn(0),
+    income: bn(0),
+  };
 
-  console.log("dAmount2:", dAmount2);
-  console.log("scBal2:", scBal2);
-  console.log("availableCapital:", availableCapital);
+  console.log("depositor2.depositedAmount:", depositor2.depositedAmount);
+
+  depositor2.scaledBalance = rayDiv(
+    depositor2.depositedAmount,
+    reserve.liquidityIndex
+  );
+  console.log("depositor2.scaledBalance:", depositor2.scaledBalance.toString());
+
+  reserve.availableCapital += depositor2.depositedAmount;
+  console.log("reserve.availableCapital:", reserve.availableCapital);
+
+  updateReserve(10 * 24 * 60 * 60);
+  //après 10 jours, delta_premiumSpent = 16
+
+  depositor1.currentBalance = rayMul(
+    depositor1.scaledBalance,
+    reserve.liquidityIndex
+  );
+  console.log(
+    "depositor1.currentBalance:",
+    depositor1.currentBalance.toString()
+  );
+
+  //income = currentBalance - depositedAmount
+  //or
+  //income = currentBalance - scaledBalance
+  //???
+  depositor1.income = depositor1.currentBalance.sub(depositor1.depositedAmount);
+  console.log(
+    "depositor1.income:",
+    " ".repeat(7),
+    depositor1.income.toString()
+  );
+
+  depositor2.currentBalance = rayMul(
+    depositor2.scaledBalance,
+    reserve.liquidityIndex
+  );
+  console.log(
+    "depositor2.currentBalance:",
+    depositor2.currentBalance.toString()
+  );
+
+  depositor2.income = depositor2.currentBalance.sub(depositor2.depositedAmount);
+  console.log("depositor2.income:", depositor2.income.toString());
+
   console.log("-----------------------------");
 
   //Policy2
-  const amount2 = 219000;
-  totalInsuredCapital += amount2;
-  // premiumSpent += _currentBalance1 - 730000;
+  const amount2 = 30000;
+  reserve.totalInsuredCapital += amount2;
 
-  const _utilisationRate2 = utilisationRate(
-    totalInsuredCapital,
-    availableCapital + premiumSpent
+  updateReserve(10 * 24 * 60 * 60);
+  //après 10 jours, delta_premiumSpent = 50
+
+  depositor1.currentBalance = rayMul(
+    depositor1.scaledBalance,
+    reserve.liquidityIndex
+  );
+  console.log(
+    "depositor1.currentBalance:",
+    depositor1.currentBalance.toString()
   );
 
-  const _premiumRate2 = premiumRate(_utilisationRate2);
-  const _liquidityRate2 = currentLiquidityRate(
-    _premiumRate2,
-    _utilisationRate2
+  depositor1.income = depositor1.currentBalance.sub(depositor1.depositedAmount);
+  console.log("depositor1.income:", depositor1.income.toString());
+
+  depositor2.currentBalance = rayMul(
+    depositor2.scaledBalance,
+    reserve.liquidityIndex
+  );
+  console.log(
+    "depositor2.currentBalance:",
+    depositor2.currentBalance.toString()
   );
 
-  const _liquidityIndex2 = currentLiquidityIndex(
-    _liquidityRate2,
-    10 * 24 * 60 * 60,
-    _liquidityIndex1
-  );
+  depositor2.income = depositor2.currentBalance.sub(depositor2.depositedAmount);
+  console.log("depositor2.income:", depositor2.income.toString());
 
-  console.log("_utilisationRate2:", _utilisationRate2);
-  console.log("_premiumRate2:", _premiumRate2);
-  console.log("_liquidityRate2:", _liquidityRate2);
-  console.log("_liquidityIndex2:", _liquidityIndex2);
-  console.log("_currentBalance2:", scBal1 * _liquidityIndex2);
-  console.log("income2:", scBal1 * _liquidityIndex2 - scBal1);
-  console.log("current balance deposit2", scBal2 * _liquidityIndex2);
   console.log("-----------------------------");
 
-  //Deposit2 out
-  availableCapital -= dAmount2;
+  //Depositor2 out
+  reserve.availableCapital -= depositor2.depositedAmount;
+  console.log("reserve.availableCapital:", reserve.availableCapital);
 
-  const _utilisationRate3 = utilisationRate(
-    totalInsuredCapital,
-    availableCapital + premiumSpent
+  updateReserve(10 * 24 * 60 * 60);
+  //après 10 jours, delta_premiumSpent = 82
+
+  depositor1.currentBalance = rayMul(
+    depositor1.scaledBalance,
+    reserve.liquidityIndex
+  );
+  console.log(
+    "depositor1.currentBalance:",
+    depositor1.currentBalance.toString()
   );
 
-  const _premiumRate3 = premiumRate(_utilisationRate3);
-  const _liquidityRate3 = currentLiquidityRate(
-    _premiumRate3,
-    _utilisationRate3
-  );
-
-  const _liquidityIndex3 = currentLiquidityIndex(
-    _liquidityRate3,
-    10 * 24 * 60 * 60,
-    _liquidityIndex2
-  );
-
-  console.log("_utilisationRate3:", _utilisationRate3);
-  console.log("_premiumRate3:", _premiumRate3);
-  console.log("_liquidityRate3:", _liquidityRate3);
-  console.log("_liquidityIndex3:", _liquidityIndex3);
-  console.log("_currentBalance3:", scBal1 * _liquidityIndex3);
-  console.log("-----------------------------");
+  depositor1.income = depositor1.currentBalance.sub(depositor1.depositedAmount);
+  console.log("depositor1.income:", depositor1.income.toString());
 }
 
 testLI();
