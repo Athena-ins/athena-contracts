@@ -5,7 +5,9 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 interface IStakedAtenPolicy is IERC20 {
   function stake(address _account, uint256 _amount) external;
 
-  function withdraw(address _account, uint256 _amount)
-    external
-    returns (uint256);
+  function withdraw(
+    address _account,
+    uint256 _amount,
+    uint128 _index
+  ) external returns (uint256);
 }

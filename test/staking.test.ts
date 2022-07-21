@@ -170,6 +170,13 @@ describe("Staking Policy Rewards", function () {
       0
     );
     expect(prot.name).to.equal("Test protocol 0");
+    const tx1bis = await ATHENA_CONTRACT.connect(allSigners[0]).addNewProtocol(
+      "Test protocol 1",
+      0,
+      30,
+      WETH,
+      []
+    );
 
     const tx2 = await STAKED_ATENS_CONTRACT.connect(
       allSigners[0]
@@ -185,7 +192,7 @@ describe("Staking Policy Rewards", function () {
     const deposit = await ATHENA_CONTRACT.connect(allSigners[1]).deposit(
       ethers.utils.parseUnits("10000", 6),
       0,
-      [0]
+      [0, 1]
     );
     await deposit.wait();
     expect(deposit).to.haveOwnProperty("hash");
@@ -224,10 +231,30 @@ describe("Staking Policy Rewards", function () {
     expect(policy).to.haveOwnProperty("hash");
   });
 
+  it("Should buy Policy 2 with Atens", async function () {
+    const policy = await ATHENA_CONTRACT.connect(allSigners[2]).buyPolicy(
+      ethers.utils.parseUnits("1000", 6),
+      ethers.utils.parseUnits("100", 6),
+      ethers.utils.parseEther("6000"),
+      1
+    );
+    await policy.wait();
+    expect(policy).to.haveOwnProperty("hash");
+  });
+  it("Should return remaining lock time ", async function () {
+    const userStakes = await STAKED_ATENS_CONTRACT_POLICY.connect(
+      allSigners[2]
+    ).userStakes(allSigners[2].getAddress());
+    console.log("User stakes", userStakes);
+
+    expect(userStakes[1].timestamp.toNumber()).to.not.equal(0);
+  });
+
   it("Should reject invalid withdraw Atens amount", async function () {
     await expect(
       ATHENA_CONTRACT.connect(allSigners[2]).withdrawAtensPolicy(
-        ethers.utils.parseEther("20000")
+        ethers.utils.parseEther("20000"),
+        1
       )
     ).to.eventually.be.rejectedWith("Invalid amount");
   });
@@ -235,7 +262,8 @@ describe("Staking Policy Rewards", function () {
   it("Should lock ATENS on 1 year", async function () {
     await expect(
       ATHENA_CONTRACT.connect(allSigners[2]).withdrawAtensPolicy(
-        ethers.utils.parseEther("10000")
+        ethers.utils.parseEther("10000"),
+        0
       )
     ).to.eventually.be.rejectedWith("Locked window");
   });
@@ -243,17 +271,23 @@ describe("Staking Policy Rewards", function () {
   it("Expect 12 months rewards for 100% APR", async function () {
     const rewards = await STAKED_ATENS_CONTRACT_POLICY.connect(
       allSigners[2]
-    ).rewardsOf(allSigners[2].getAddress());
+    ).rewardsOf(allSigners[2].getAddress(), 0);
     expect(rewards.toNumber()).to.be.lessThanOrEqual(
       ethers.utils.parseEther("0.001").toNumber()
     );
     increaseTimeAndMine(60 * 60 * 24 * 365);
     const rewards2 = await STAKED_ATENS_CONTRACT_POLICY.connect(
       allSigners[2]
-    ).rewardsOf(allSigners[2].getAddress());
+    ).rewardsOf(allSigners[2].getAddress(), 0);
     expect(rewards2.toString()).to.equal(
       ethers.utils.parseEther("10000").toString()
     );
+  });
+  it("Should return 2 staking Policy ", async function () {
+    const indexUser = await STAKED_ATENS_CONTRACT_POLICY.connect(
+      allSigners[2]
+    ).stakes(allSigners[2].getAddress());
+    expect(indexUser.index.toNumber()).to.equal(2);
   });
   it("Should unlock ATENS and withdraw after 1 year", async function () {
     await ATEN_TOKEN_CONTRACT.connect(allSigners[0]).transfer(
@@ -269,7 +303,8 @@ describe("Staking Policy Rewards", function () {
     ).balanceOf(allSigners[2].getAddress());
     await expect(
       ATHENA_CONTRACT.connect(allSigners[2]).withdrawAtensPolicy(
-        ethers.utils.parseEther("10000")
+        ethers.utils.parseEther("10000"),
+        0
       )
     ).to.eventually.haveOwnProperty("hash");
     const balAfter = await ATEN_TOKEN_CONTRACT.connect(allSigners[0]).balanceOf(
@@ -278,5 +313,11 @@ describe("Staking Policy Rewards", function () {
     expect(balAfter.sub(balBefore).toString()).to.equal(
       ethers.utils.parseEther("10000").mul(99975).div(100000).mul(2).toString()
     );
+    await expect(
+      ATHENA_CONTRACT.connect(allSigners[2]).withdrawAtensPolicy(
+        ethers.utils.parseEther("6000"),
+        1
+      )
+    ).to.eventually.haveOwnProperty("hash");
   });
 });

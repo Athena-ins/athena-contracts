@@ -436,10 +436,13 @@ contract Athena is ReentrancyGuard, Ownable {
     );
   }
 
-  function withdrawAtensPolicy(uint256 _atenToWithdraw) external {
+  function withdrawAtensPolicy(uint256 _atenToWithdraw, uint128 _index)
+    external
+  {
     uint256 __rewards = IStakedAtenPolicy(stakedAtensPo).withdraw(
       msg.sender,
-      _atenToWithdraw
+      _atenToWithdraw,
+      _index
     );
     if (
       __rewards > 0 && __rewards <= IERC20(rewardsToken).balanceOf(atensVault)
