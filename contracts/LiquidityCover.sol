@@ -53,8 +53,8 @@ abstract contract LiquidityCover is ERC20 {
 
   // returns actual usage rate on capital insured / capital provided for insurance
   function _utilisationRate(
-    bool _isAdded,
-    uint256 _insuredCapital,
+    uint256 _insuredCapitalToAdd,
+    uint256 _insuredCapitalToRemove,
     uint256 _totalInsuredCapital,
     uint256 _availableCapital
   ) internal pure returns (uint256) {
@@ -62,13 +62,8 @@ abstract contract LiquidityCover is ERC20 {
       return 0;
     }
     return
-      _isAdded
-        ? ((_totalInsuredCapital + _insuredCapital) * 100).rayDiv(
-          _availableCapital
-        )
-        : ((_totalInsuredCapital - _insuredCapital) * 100).rayDiv(
-          _availableCapital
-        );
+      ((_totalInsuredCapital + _insuredCapitalToAdd - _insuredCapitalToRemove) *
+        100).rayDiv(_availableCapital);
   }
 
   function _removeAmountFromAvailableCapital(uint256 _amountToRemove) internal {

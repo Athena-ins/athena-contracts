@@ -140,7 +140,7 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
 
     uint256 __newPremiumRate = getPremiumRate(
       _utilisationRate(
-        false,
+        0,
         __insuredCapitalToRemove,
         _slot0.totalInsuredCapital,
         _availableCapital
@@ -171,7 +171,7 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
   {
     uint256 __newPremiumRate = getPremiumRate(
       _utilisationRate(
-        false,
+        0,
         0,
         slot0.totalInsuredCapital,
         availableCapital - _amountToRemoveByClaim
@@ -311,8 +311,8 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
 
     uint256 __newPremiumRate = getPremiumRate(
       _utilisationRate(
-        true,
         _insuredCapital,
+        0,
         __totalInsuredCapital,
         __availableCapital
       )
@@ -374,7 +374,7 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
 
     uint256 __newPremiumRate = getPremiumRate(
       _utilisationRate(
-        false,
+        0,
         __position.capitalInsured,
         slot0.totalInsuredCapital,
         availableCapital

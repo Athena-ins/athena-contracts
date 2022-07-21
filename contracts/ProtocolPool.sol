@@ -175,7 +175,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
 
     require(
       _utilisationRate(
-        false,
+        0,
         0,
         slot0.totalInsuredCapital,
         availableCapital - __userCapital
