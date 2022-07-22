@@ -3,6 +3,7 @@ import hre from "hardhat";
 import lendingPoolAbi from "../abis/lendingPool.json";
 import weth_abi from "../abis/weth.json";
 
+// MAINNET ADDRESSES
 export const ATEN_TOKEN = "0x86ceb9fa7f5ac373d275d328b7aca1c05cfb0283",
   ATEN_OWNER_ADDRESS = "0x967d98e659f2787A38d928B9B7a49a2E4701B30C",
   USDT = "0xdac17f958d2ee523a2206206994597c13d831ec7", //USD
@@ -47,13 +48,34 @@ export const getATokenBalance: (
   return bal;
 };
 
-export const deployAndInitProtocol = async (allSigners: ethers.Signer[]) => {
+export const deployAndInitProtocol = async (
+  allSigners: ethers.Signer[],
+  opts?: {
+    ATEN?: string;
+    USDT?: string;
+    USDT_AAVE_TOKEN?: string;
+    AAVE_REGISTRY?: string;
+    ARBITRATOR_ADDRESS?: string;
+    confirmations?: number;
+  }
+) => {
   const factory = await hre.ethers.getContractFactory("Athena");
   const ATHENA_CONTRACT = await factory
     .connect(allSigners[0])
-    .deploy(USDT, ATEN_TOKEN, AAVE_REGISTRY);
-  //await factory.deploy(STAKING_TOKEN, ATEN_TOKEN);
+    .deploy(
+      opts?.USDT || USDT,
+      opts?.ATEN || ATEN_TOKEN,
+      opts?.AAVE_REGISTRY || AAVE_REGISTRY
+    );
+
+  // hre.ethers.getContractAt(
+  //   "Athena",
+  //   "0x1a0636fEa7b40Bae8C93226cE87786CC497460bb",
+  //   allSigners[0]
+  // );
   await ATHENA_CONTRACT.deployed();
+
+  console.log("Contract ATHENA OK.");
 
   /** Positions Manager */
   const factoryPos = await hre.ethers.getContractFactory("PositionsManager");
@@ -61,20 +83,23 @@ export const deployAndInitProtocol = async (allSigners: ethers.Signer[]) => {
     .connect(allSigners[0])
     .deploy(ATHENA_CONTRACT.address);
   await POS_CONTRACT.deployed();
+  console.log("Deployed PositionsManager");
 
   const factoryStakedAtens = await hre.ethers.getContractFactory("StakedAten");
   const STAKED_ATENS_CONTRACT = await factoryStakedAtens
     .connect(allSigners[0])
-    .deploy(ATEN_TOKEN, ATHENA_CONTRACT.address);
+    .deploy(opts?.ATEN || ATEN_TOKEN, ATHENA_CONTRACT.address);
   await STAKED_ATENS_CONTRACT.deployed();
+  console.log("Deployed Staked Atens");
 
   const factoryStakedAtensPolicy = await hre.ethers.getContractFactory(
     "FixedRateStakeablePolicy"
   );
   const STAKED_ATENS_CONTRACT_POLICY = await factoryStakedAtensPolicy
     .connect(allSigners[0])
-    .deploy(ATEN_TOKEN, ATHENA_CONTRACT.address);
+    .deploy(opts?.ATEN || ATEN_TOKEN, ATHENA_CONTRACT.address);
   await STAKED_ATENS_CONTRACT_POLICY.deployed();
+  console.log("Deployed Staked Atens Policy");
 
   const factoryProtocol = await hre.ethers.getContractFactory(
     "ProtocolFactory"
@@ -83,22 +108,14 @@ export const deployAndInitProtocol = async (allSigners: ethers.Signer[]) => {
     .connect(allSigners[0])
     .deploy(ATHENA_CONTRACT.address);
   await FACTORY_PROTOCOL_CONTRACT.deployed();
+  console.log("Deployed Factory Protocol");
 
   const vaultFactory = await hre.ethers.getContractFactory("AtensVault");
   const VAULT_ATENS_CONTRACT = await vaultFactory
     .connect(allSigners[0])
-    .deploy(ATEN_TOKEN, ATHENA_CONTRACT.address);
+    .deploy(opts?.ATEN || ATEN_TOKEN, ATHENA_CONTRACT.address);
   await VAULT_ATENS_CONTRACT.deployed();
-
-  // const wrappedAAVE = await hre.ethers.getContractFactory("AAVELPToken");
-  // //AAVE USDT ATOKEN ?
-  // AAVELP_CONTRACT = await wrappedAAVE
-  //   .connect(allSigners[0])
-  //   .deploy(AUSDT_TOKEN, ATHENA_CONTRACT.address);
-  // await AAVELP_CONTRACT.deployed();
-  // expect(await hre.ethers.provider.getCode(AAVELP_CONTRACT.address)).to.not.equal(
-  //   "0x"
-  // );
+  console.log("Deployed Vault Atens");
 
   /** Policy Manager */
   const factoryPolicy = await hre.ethers.getContractFactory("PolicyManager");
@@ -106,6 +123,7 @@ export const deployAndInitProtocol = async (allSigners: ethers.Signer[]) => {
     .connect(allSigners[0])
     .deploy(ATHENA_CONTRACT.address);
   await POLICY_CONTRACT.deployed();
+  console.log("Deployed Policy Manager");
   /**
    * Initialize protocol with required values
    */
@@ -115,13 +133,13 @@ export const deployAndInitProtocol = async (allSigners: ethers.Signer[]) => {
     STAKED_ATENS_CONTRACT_POLICY.address,
     VAULT_ATENS_CONTRACT.address,
     POLICY_CONTRACT.address,
-    USDT_AAVE_ATOKEN,
+    opts?.USDT_AAVE_TOKEN || USDT_AAVE_ATOKEN,
     FACTORY_PROTOCOL_CONTRACT.address,
-    ARBITRATOR_ADDRESS,
+    opts?.ARBITRATOR_ADDRESS || ARBITRATOR_ADDRESS,
     NULL_ADDRESS
     // AAVELP_CONTRACT.address
   );
-  await init.wait();
+  await init.wait(opts?.confirmations);
   return [
     ATHENA_CONTRACT,
     POS_CONTRACT,

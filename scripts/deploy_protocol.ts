@@ -7,84 +7,87 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import hre, { ethers } from "hardhat";
 import readline from "readline";
 import abiERC20 from "../abis/weth.json";
-import abi from "../artifacts/contracts/ICO/AthenaICO.sol/AthenaICO.json";
+import abi from "../artifacts/contracts/Athena.sol/Athena.json";
+import { deployAndInitProtocol } from "../test/helpers";
 
 const ETH = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
 
-const chainId: number = 4;
+const chainId: number = 80001;
 const contractAddress =
   chainId === 1
     ? "0x8bFad5636BBf29F75208acE134dD23257C245391"
     : "0xd6D479596061326F6caF486921441ED44Ea0076b";
 const ATEN_MAINNET_OWNER = "0x967d98e659f2787A38d928B9B7a49a2E4701B30C";
-const ATEN_CONTRACT = {
-  address:
-    chainId === 1
-      ? "0x86cEB9FA7f5ac373d275d328B7aCA1c05CFb0283"
-      : "0x2da9F0DF7DC5f9F6e024B4ABf97148B405D9b4F8", // RINKEBY
+const ATEN_CONTRACT: { address: { [chainId: number]: string | undefined } } = {
+  address: {
+    1: "0x86cEB9FA7f5ac373d275d328B7aCA1c05CFb0283",
+    42: "0xd3c5ccB0Ef0c87D989d63A04C5C8f3cf2cB0d726", // KOVAN
+    80001: "0xB3C3f5b5e4dfA2E94c714c67d30c8148272CCACD",
+  },
 };
-const USDT =
-  chainId === 1
-    ? "0xdac17f958d2ee523a2206206994597c13d831ec7"
-    : "0xD92E713d051C37EbB2561803a3b5FBAbc4962431"; //USDT
+const USDT: { [chainId: number]: string } = {
+  1: "0xdac17f958d2ee523a2206206994597c13d831ec7",
+  42: "0xD92E713d051C37EbB2561803a3b5FBAbc4962431", //USDT KOVAN MINTABLE
+  80001: "0xBD21A10F619BE90d6066c941b04e340841F1F989", // MUMBAI
+};
+
+const AAVE_REGISTRY: { [chainId: number]: string | undefined } = {
+  1: undefined,
+  42: "0x88757f2f99175387aB4C6a4b3067c77A695b0349",
+  80001: "0x178113104fEcbcD7fF8669a0150721e231F0FD4B",
+};
+
+const USDT_AAVE_ATOKEN: { [chainId: number]: string | undefined } = {
+  1: undefined,
+  42: "0xfe3E41Db9071458e39104711eF1Fa668bae44e85",
+  80001: "0xF8744C0bD8C7adeA522d6DDE2298b17284A79D1b",
+};
 
 const USDC = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
 
-async function deploy(
-  signer: SignerWithAddress,
-  tokenSigner?: SignerWithAddress
-) {
+async function deploy(signer: SignerWithAddress) {
   try {
     // Hardhat always runs the compile task when running scripts with its command
     // line interface.
     //
     // If this script is run directly using `node` you may want to call compile
     // manually to make sure everything is compiled
-    await hre.run("compile");
+    // await hre.run("compile");
 
-    let ATEN_CONTRACT_LOCAL;
-    if (chainId !== 1 && tokenSigner) {
+    // console.log("Deploying ATEN TOKEN WITH SIGNER : ", signer.address);
+    // const ATENfactory = (await ethers.getContractFactory("ATEN")).connect(
+    //   signer
+    // );
+    // let ATEN_CONTRACT_LOCAL = await ATENfactory.deploy();
+    // await ATEN_CONTRACT_LOCAL.deployed();
+
+    // console.log("Deployed ATEN Contract : ", ATEN_CONTRACT_LOCAL.address);
+    if (chainId !== 1) {
       // throw new Error("Should not deploy ATEN on Mainnet !");
-      console.log("Deploying ATEN TOKEN WITH ADDRESS : ", tokenSigner?.address);
-      const ATENfactory = (await ethers.getContractFactory("ATEN")).connect(
-        tokenSigner || signer
-      );
-      ATEN_CONTRACT_LOCAL = await ATENfactory.deploy();
-      await ATEN_CONTRACT_LOCAL.deployed();
+      console.log("Deploying PROTOCOL WITH SIGNER : ", signer.address);
 
-      console.log("Deployed ATEN Contract : ", ATEN_CONTRACT_LOCAL.address);
+      const deployed = await deployAndInitProtocol([signer], {
+        ATEN: ATEN_CONTRACT.address[chainId],
+        USDT: USDT[chainId],
+        USDT_AAVE_TOKEN: USDT_AAVE_ATOKEN[chainId],
+        AAVE_REGISTRY: AAVE_REGISTRY[chainId],
+        confirmations: 3,
+      });
+
+      console.log(
+        "Deployed Contracts : ",
+        deployed.map((cont) => cont.address)
+      );
     }
 
-    const factory = await ethers.getContractFactory("AthenaICO", signer);
-    const ATHENA_CONTRACT = await factory.deploy(
-      chainId === 1
-        ? "0x86cEB9FA7f5ac373d275d328B7aCA1c05CFb0283"
-        : ATEN_CONTRACT_LOCAL?.address
-        ? ATEN_CONTRACT_LOCAL.address
-        : "0x86ceb9fa7f5ac373d275d328b7aca1c05cfb0283",
-      // Wallet tokens to take from
-      chainId === 1
-        ? ATEN_MAINNET_OWNER
-        : tokenSigner?.address || ATEN_MAINNET_OWNER,
-      ethers.utils.parseEther("100000000"),
-      [ETH, USDT, USDC],
-      chainId === 1
-        ? "0xEe9F2375b4bdF6387aa8265dD4FB8F16512A1d46" // Chainlink MAINNET USDT/ETH
-        : "0xdCA36F27cbC4E38aE16C4E9f99D39b42337F6dcf" // CHAINLINK RINKEBY USDC/ETH
-    );
-    const rec = await ATHENA_CONTRACT.deployed();
-
-    console.log("Deployed ICO Contract : ", ATHENA_CONTRACT.address);
-    const owner = await ATHENA_CONTRACT.owner();
-
-    console.log("Done, owner = ", owner);
+    console.log("Done. ");
     process.exit(0);
   } catch (error) {
     console.error(error);
   }
 }
 
-const activeSale = async (signer: SignerWithAddress, starting = true) => {
+const addNewProtocol = async (signer: SignerWithAddress) => {
   const ATHENA_CONTRACT = new ethers.Contract(contractAddress, abi.abi, signer);
   const code = await ethers.provider.getCode(contractAddress);
   console.log("Contract code : ", code.substring(0, 40));
@@ -92,22 +95,8 @@ const activeSale = async (signer: SignerWithAddress, starting = true) => {
   if (!code || code === "0x00")
     throw new Error("No contract at this address !");
   console.log("WITH SIGNER : ", signer.address);
-  const start = await ATHENA_CONTRACT.startSale(starting);
-  const receipt = await start.wait();
-  console.log("Done, hash ; ", receipt.transactionHash);
-  process.exit(0);
-};
-
-const activeClaim = async (signer: SignerWithAddress) => {
-  const ATHENA_CONTRACT = new ethers.Contract(contractAddress, abi.abi, signer);
-  const code = await ethers.provider.getCode(contractAddress);
-  console.log("Contract code : ", code.substring(0, 40));
-
-  if (!code || code === "0x00")
-    throw new Error("No contract at this address !");
-  console.log("WITH SIGNER : ", signer.address);
-  const start = await ATHENA_CONTRACT.startClaim(true, true);
-  const receipt = await start.wait();
+  const start = await ATHENA_CONTRACT.addNewProtocol(true, true);
+  const receipt = await start.wait(5);
   console.log("Done, hash ; ", receipt.transactionHash);
   process.exit(0);
 };
@@ -128,7 +117,7 @@ const withdraw = async (signer: SignerWithAddress) => {
 
 const approve = async (signer: SignerWithAddress) => {
   const contractAten = new ethers.Contract(
-    ATEN_CONTRACT.address,
+    ATEN_CONTRACT.address[chainId]!,
     abiERC20,
     signer
   );
@@ -170,41 +159,13 @@ async function main() {
       process.exit();
     } else if (input.toLowerCase() === "deploy") {
       console.log(`Going to deploy... Sending TX...`);
-      await deploy(signer, chainId === 1 ? undefined : signer2);
+      await deploy(signer);
     } else if (
       // input.toLowerCase() === "y" ||
-      input.toLowerCase() === "sale"
+      input.toLowerCase() === "newprotocol"
     ) {
-      console.log(`Going to open sale... Sending TX...`);
-      await activeSale(signer);
-      process.exit(0);
-    } else if (
-      // input.toLowerCase() === "y" ||
-      input.toLowerCase() === "stopsale"
-    ) {
-      console.log(`Going to open sale... Sending TX...`);
-      await activeSale(signer, false);
-      process.exit(0);
-    } else if (
-      // input.toLowerCase() === "y" ||
-      input.toLowerCase() === "claim"
-    ) {
-      console.log(`Going to open Claim... Sending TX...`);
-      await activeClaim(signer);
-      process.exit(0);
-    } else if (
-      // input.toLowerCase() === "y" ||
-      input.toLowerCase() === "withdraw"
-    ) {
-      console.log(`Going to open withdraw... Sending TX...`);
-      await withdraw(signer);
-      process.exit(0);
-    } else if (
-      // input.toLowerCase() === "y" ||
-      input.toLowerCase() === "approve"
-    ) {
-      console.log(`Going to approve... Sending TX...`);
-      await approve(signer2);
+      console.log(`Going to add new Protocol... Sending TX...`);
+      await addNewProtocol(signer);
       process.exit(0);
     } else {
       console.error("You cancelled...");
