@@ -552,6 +552,10 @@ contract Athena is ReentrancyGuard, Ownable {
     emit NewProtocol(newProtocolId);
   }
 
+  function protocolsLength() external view returns (uint256) {
+    return protocols.length;
+  }
+
   function pauseProtocol(uint128 protocolId, bool pause) external onlyOwner {
     protocolsMapping[protocolId].active = pause;
   }
