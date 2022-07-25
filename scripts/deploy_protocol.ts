@@ -13,10 +13,7 @@ import { deployAndInitProtocol } from "../test/helpers";
 const ETH = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
 
 const chainId: number = 80001;
-const contractAddress =
-  chainId === 1
-    ? "0x8bFad5636BBf29F75208acE134dD23257C245391"
-    : "0xd6D479596061326F6caF486921441ED44Ea0076b";
+
 const ATEN_MAINNET_OWNER = "0x967d98e659f2787A38d928B9B7a49a2E4701B30C";
 const ATEN_CONTRACT: { address: { [chainId: number]: string | undefined } } = {
   address: {
@@ -25,6 +22,14 @@ const ATEN_CONTRACT: { address: { [chainId: number]: string | undefined } } = {
     80001: "0xB3C3f5b5e4dfA2E94c714c67d30c8148272CCACD",
   },
 };
+const ATHENA_CONTRACT: { address: { [chainId: number]: string | undefined } } =
+  {
+    address: {
+      1: undefined,
+      42: undefined,
+      80001: "0x1a0636fEa7b40Bae8C93226cE87786CC497460bb",
+    },
+  };
 const USDT: { [chainId: number]: string } = {
   1: "0xdac17f958d2ee523a2206206994597c13d831ec7",
   42: "0xD92E713d051C37EbB2561803a3b5FBAbc4962431", //USDT KOVAN MINTABLE
@@ -43,6 +48,11 @@ const USDT_AAVE_ATOKEN: { [chainId: number]: string | undefined } = {
   80001: "0xF8744C0bD8C7adeA522d6DDE2298b17284A79D1b",
 };
 
+const FACTORY_PROTOCOL: { [chainId: number]: string | undefined } = {
+  1: undefined,
+  42: undefined,
+  80001: "0xd3c5ccB0Ef0c87D989d63A04C5C8f3cf2cB0d726",
+};
 const USDC = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
 
 async function deploy(signer: SignerWithAddress) {
@@ -88,21 +98,35 @@ async function deploy(signer: SignerWithAddress) {
 }
 
 const addNewProtocol = async (signer: SignerWithAddress) => {
-  const ATHENA_CONTRACT = new ethers.Contract(contractAddress, abi.abi, signer);
-  const code = await ethers.provider.getCode(contractAddress);
+  const contract = new ethers.Contract(
+    ATHENA_CONTRACT.address[chainId]!,
+    abi.abi,
+    signer
+  );
+  const code = await ethers.provider.getCode(ATHENA_CONTRACT.address[chainId]!);
   console.log("Contract code : ", code.substring(0, 40));
 
   if (!code || code === "0x00")
     throw new Error("No contract at this address !");
   console.log("WITH SIGNER : ", signer.address);
-  const start = await ATHENA_CONTRACT.addNewProtocol(true, true);
+  const start = await contract.addNewProtocol(
+    "Beefy Polygon",
+    0,
+    0,
+    "0xfbdd194376de19a88118e84e279b977f165d01b8",
+    [1]
+  );
   const receipt = await start.wait(5);
   console.log("Done, hash ; ", receipt.transactionHash);
   process.exit(0);
 };
 
 const withdraw = async (signer: SignerWithAddress) => {
-  const oldContract = new ethers.Contract(contractAddress, abi.abi, signer);
+  const oldContract = new ethers.Contract(
+    ATHENA_CONTRACT.address[chainId]!,
+    abi.abi,
+    signer
+  );
 
   const withdraw = await oldContract.withdraw([ETH, USDT], signer.address);
 
@@ -123,7 +147,7 @@ const approve = async (signer: SignerWithAddress) => {
   );
 
   const approved = await contractAten.approve(
-    contractAddress,
+    ATHENA_CONTRACT.address[chainId]!,
     ethers.utils.parseEther("100000000")
   );
 
@@ -142,7 +166,10 @@ async function main() {
   console.log("NETWORK IS : ", hre.network.config);
   console.log("NETWORK : ", hre.network.name);
   console.log("SIGNER IS : ", signer.address);
-  console.log("Contract IS (if applicable) : ", contractAddress);
+  console.log(
+    "Contract IS (if applicable) : ",
+    ATHENA_CONTRACT.address[chainId]
+  );
 
   const net = await hre.ethers.provider.getNetwork();
   if (chainId !== net.chainId)
