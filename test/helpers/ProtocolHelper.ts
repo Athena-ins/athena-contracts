@@ -60,7 +60,7 @@ async function deployProtocolFactoryContract(owner: ethers.Signer) {
     await hre_ethers.getContractFactory("ProtocolFactory")
   )
     .connect(owner)
-    .deploy(ATHENA_CONTRACT.address);
+    .deploy(ATHENA_CONTRACT.address, 14 * 24 * 60 * 60);
 
   await FACTORY_PROTOCOL_CONTRACT.deployed();
 }

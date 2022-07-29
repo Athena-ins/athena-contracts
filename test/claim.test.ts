@@ -120,7 +120,7 @@ describe("Claim Manager", function () {
     const factoryProtocol = await ethers.getContractFactory("ProtocolFactory");
     FACTORY_PROTOCOL_CONTRACT = await factoryProtocol
       .connect(owner)
-      .deploy(ATHENA_CONTRACT.address);
+      .deploy(ATHENA_CONTRACT.address, 14 * 24 * 60 * 60);
     await FACTORY_PROTOCOL_CONTRACT.deployed();
     expect(
       await ethers.provider.getCode(FACTORY_PROTOCOL_CONTRACT.address)

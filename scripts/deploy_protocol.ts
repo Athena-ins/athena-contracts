@@ -82,6 +82,7 @@ async function deploy(signer: SignerWithAddress) {
         USDT_AAVE_TOKEN: USDT_AAVE_ATOKEN[chainId],
         AAVE_REGISTRY: AAVE_REGISTRY[chainId],
         confirmations: 3,
+        commitDelayForWithdraw: 2 * 60 * 60, //2 hours delay only for testnet !!
       });
 
       console.log(

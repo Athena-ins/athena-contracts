@@ -13,6 +13,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
   address private immutable core;
   address public underlyingAsset;
   uint128 public id;
+  uint256 public immutable commitDelay;
 
   mapping(address => uint256) public withdrawReserves;
   mapping(address => uint256) public beginIndexClaims;
@@ -31,11 +32,12 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     uint256 _rSlope1,
     uint256 _rSlope2,
     string memory _name,
-    string memory _symbol
+    string memory _symbol,
+    uint256 _commitDelay
   ) ERC20(_name, _symbol) PolicyCover(_uOptimal, _r0, _rSlope1, _rSlope2) {
     core = _core;
     underlyingAsset = _underlyingAsset;
-
+    commitDelay = _commitDelay;
     id = _id;
     relatedProtocols.push(_id);
     // intersectingAmountIndexes[_id] = 0;
@@ -169,7 +171,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
 
     require(
       withdrawReserves[_account] != 0 &&
-        block.timestamp - withdrawReserves[_account] >= 14 days,
+        block.timestamp - withdrawReserves[_account] >= commitDelay,
       "withdraw reserve"
     );
 

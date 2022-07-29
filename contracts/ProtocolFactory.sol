@@ -5,9 +5,11 @@ import "@openzeppelin/contracts/utils/Strings.sol";
 
 contract ProtocolFactory {
   address private immutable core;
+  uint256 public immutable commitDelay;
 
-  constructor(address _core) {
+  constructor(address _core, uint256 _commitDelay) {
     core = _core;
+    commitDelay = _commitDelay;
   }
 
   modifier onlyCore() {
@@ -36,7 +38,8 @@ contract ProtocolFactory {
           _rSlope2,
           name,
           // A P P = Athena Protocol Pool
-          string(abi.encodePacked("APP_", Strings.toString(newProtocolId)))
+          string(abi.encodePacked("APP_", Strings.toString(newProtocolId))),
+          commitDelay
         )
       );
   }

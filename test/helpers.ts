@@ -57,6 +57,7 @@ export const deployAndInitProtocol = async (
     AAVE_REGISTRY?: string;
     ARBITRATOR_ADDRESS?: string;
     confirmations?: number;
+    commitDelayForWithdraw?: number;
   }
 ) => {
   const factory = await hre.ethers.getContractFactory("Athena");
@@ -106,7 +107,10 @@ export const deployAndInitProtocol = async (
   );
   const FACTORY_PROTOCOL_CONTRACT = await factoryProtocol
     .connect(allSigners[0])
-    .deploy(ATHENA_CONTRACT.address);
+    .deploy(
+      ATHENA_CONTRACT.address,
+      opts?.commitDelayForWithdraw || 14 * 24 * 60 * 60
+    );
   await FACTORY_PROTOCOL_CONTRACT.deployed();
   console.log("Deployed Factory Protocol");
 
