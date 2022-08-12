@@ -24,10 +24,10 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
   Slot0 public slot0;
 
   constructor(
-    uint256 _uOptimal,
-    uint256 _r0,
-    uint256 _rSlope1,
-    uint256 _rSlope2
+    uint256 _uOptimal, //Ray
+    uint256 _r0, //Ray
+    uint256 _rSlope1, //Ray
+    uint256 _rSlope2 //Ray
   ) {
     f = Formula({
       uOptimal: _uOptimal,
@@ -37,7 +37,7 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
     });
 
     slot0.premiumRate = getPremiumRate(0);
-    slot0.hoursPerTick = 24000000000000000000000000000;
+    slot0.secondsPerTick = 86400;
     slot0.lastUpdateTimestamp = block.timestamp;
   }
 
@@ -106,37 +106,30 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
     return _oldEmissionRate.rayMul(_newPremiumRate).rayDiv(_oldPremiumRate);
   }
 
-  function getHoursPerTick(
-    uint256 _oldHourPerTick,
+  function getSecondsPerTick(
+    uint256 _oldSecondsPerTick,
     uint256 _oldPremiumRate,
     uint256 _newPremiumRate
   ) private pure returns (uint256) {
-    return _oldHourPerTick.rayMul(_oldPremiumRate).rayDiv(_newPremiumRate);
+    return _oldSecondsPerTick.rayMul(_oldPremiumRate).rayDiv(_newPremiumRate);
   }
 
-  function durationHourUnit(
+  function durationSecondsUnit(
     uint256 _premium,
     uint256 _insuredCapital,
-    uint256 _premiumRate
+    uint256 _premiumRate //Ray
   ) private pure returns (uint256) {
-    //876000000000000000000000000000000 = 24 * 100 * 365 * RayMath.RAY
-    return
-      _premium
-        .rayMul(876000000000000000000000000000000)
-        .rayDiv(_insuredCapital)
-        .rayDiv(_premiumRate);
+    //31536000 * 100 = (365 * 24 * 60 * 60) * 100 // total seconds per year * 100
+    return ((_premium * 3153600000) / _insuredCapital).rayDiv(_premiumRate);
   }
 
   function crossingInitializedTick(
     Slot0 memory _slot0,
     uint256 _availableCapital,
-    uint24 _tickNext
+    uint24 _tick
   ) private view {
-    (
-      uint256 __policiesToRemove,
-      uint256 __insuredCapitalToRemove,
-      uint256 __emissionRateToRemove
-    ) = ticks.cross(premiumPositions, _tickNext, _slot0.premiumRate);
+    (uint256 __policiesToRemove, uint256 __insuredCapitalToRemove) = ticks
+      .cross(premiumPositions, _tick);
 
     uint256 __newPremiumRate = getPremiumRate(
       _utilisationRate(
@@ -147,14 +140,8 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
       )
     );
 
-    _slot0.emissionRate = getEmissionRate(
-      _slot0.emissionRate - __emissionRateToRemove,
-      _slot0.premiumRate,
-      __newPremiumRate
-    );
-
-    _slot0.hoursPerTick = getHoursPerTick(
-      _slot0.hoursPerTick,
+    _slot0.secondsPerTick = getSecondsPerTick(
+      _slot0.secondsPerTick,
       _slot0.premiumRate,
       __newPremiumRate
     );
@@ -178,87 +165,77 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
       )
     );
 
-    slot0.emissionRate = getEmissionRate(
-      slot0.emissionRate,
-      slot0.premiumRate,
-      __newPremiumRate
-    );
-
-    slot0.hoursPerTick = getHoursPerTick(
-      slot0.hoursPerTick,
+    slot0.secondsPerTick = getSecondsPerTick(
+      slot0.secondsPerTick,
       slot0.premiumRate,
       __newPremiumRate
     );
 
     slot0.premiumRate = __newPremiumRate;
-    slot0.currentPremiumSpent = 0;
   }
 
-  function _actualizingUntil(uint256 _dateInSecond)
+  function _actualizingUntil(uint256 _dateInSeconds)
     internal
     view
-    returns (Slot0 memory __slot0)
+    returns (Slot0 memory __slot0, uint256 __liquidityIndex)
   {
     __slot0 = Slot0({
       tick: slot0.tick,
       premiumRate: slot0.premiumRate,
-      emissionRate: slot0.emissionRate,
-      hoursPerTick: slot0.hoursPerTick,
+      secondsPerTick: slot0.secondsPerTick,
       totalInsuredCapital: slot0.totalInsuredCapital,
-      currentPremiumSpent: slot0.currentPremiumSpent,
-      cumulatedPremiumSpent: slot0.cumulatedPremiumSpent,
       remainingPolicies: slot0.remainingPolicies,
       lastUpdateTimestamp: slot0.lastUpdateTimestamp
     });
 
+    __liquidityIndex = liquidityIndex;
+
     uint256 __availableCapital = availableCapital;
-    uint256 __hoursGaps = RayMath
-      .otherToRay((_dateInSecond - __slot0.lastUpdateTimestamp))
-      .rayDiv(3600000000000000000000000000000);
+    uint256 __secondsGap = _dateInSeconds - __slot0.lastUpdateTimestamp;
 
-    uint256 __hoursPassed;
+    uint256 __deltaT;
 
-    while (__hoursPassed < __hoursGaps) {
+    while (__secondsGap > 0) {
       (uint24 __tickNext, bool __initialized) = tickBitmap
         .nextInitializedTickInTheRightWithinOneWord(__slot0.tick);
 
-      uint256 __hoursStep = (__tickNext - __slot0.tick) * __slot0.hoursPerTick;
-      uint256 __nextHoursPassed = __hoursPassed + __hoursStep;
+      uint256 secondsStep = (__tickNext - __slot0.tick) *
+        __slot0.secondsPerTick;
 
-      if (__nextHoursPassed < __hoursGaps) {
-        uint256 __premiumSpent = (__hoursStep.rayMul(__slot0.emissionRate))
-          .rayDiv(24000000000000000000000000000);
+      __deltaT += secondsStep;
 
-        __slot0.currentPremiumSpent += __premiumSpent;
-        __slot0.cumulatedPremiumSpent += __premiumSpent;
+      if (secondsStep <= __secondsGap) {
         __slot0.tick = __tickNext;
+        __secondsGap -= secondsStep;
 
-        __hoursPassed = __nextHoursPassed;
+        if (__initialized) {
+          uint256 __uRate = _utilisationRate(
+            0,
+            0,
+            __slot0.totalInsuredCapital,
+            __availableCapital
+          ) / 100;
+
+          uint256 __pRate = getPremiumRate(__uRate) / 100;
+          __liquidityIndex += (__uRate.rayMul(__pRate) * __deltaT) / 31536000;
+          __deltaT = 0;
+
+          crossingInitializedTick(__slot0, __availableCapital, __tickNext);
+        }
       } else {
-        uint256 __premiumSpent = (__hoursGaps - __hoursPassed)
-          .rayMul(__slot0.emissionRate)
-          .rayDiv(24000000000000000000000000000);
-
-        __slot0.currentPremiumSpent += __premiumSpent;
-        __slot0.cumulatedPremiumSpent += __premiumSpent;
-        __slot0.tick += uint24(
-          (__hoursGaps - __hoursPassed) / __slot0.hoursPerTick
-        );
-
-        __hoursPassed = __hoursGaps;
-      }
-
-      if (__initialized && __nextHoursPassed <= __hoursGaps) {
-        crossingInitializedTick(__slot0, __availableCapital, __tickNext);
+        __slot0.tick += uint24(__secondsGap / __slot0.secondsPerTick);
+        __secondsGap = 0;
       }
     }
 
-    __slot0.lastUpdateTimestamp = _dateInSecond;
+    __slot0.lastUpdateTimestamp = _dateInSeconds;
   }
 
   function _actualizing() internal {
     if (slot0.remainingPolicies > 0) {
-      Slot0 memory __slot0 = _actualizingUntil(block.timestamp);
+      (Slot0 memory __slot0, uint256 __liquidityIndex) = _actualizingUntil(
+        block.timestamp
+      );
 
       //now, we remove all crossed ticks
       uint24 __observedTick = slot0.tick;
@@ -273,13 +250,10 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
       }
 
       slot0.tick = __slot0.tick;
-      slot0.premiumRate = __slot0.premiumRate;
-      slot0.emissionRate = __slot0.emissionRate;
-      slot0.hoursPerTick = __slot0.hoursPerTick;
+      slot0.secondsPerTick = __slot0.secondsPerTick;
       slot0.totalInsuredCapital = __slot0.totalInsuredCapital;
-      slot0.currentPremiumSpent = __slot0.currentPremiumSpent;
-      slot0.cumulatedPremiumSpent = __slot0.cumulatedPremiumSpent;
       slot0.remainingPolicies = __slot0.remainingPolicies;
+      liquidityIndex = __liquidityIndex;
     }
 
     slot0.lastUpdateTimestamp = block.timestamp;
@@ -287,11 +261,9 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
     emit Actualizing(
       slot0.tick,
       slot0.premiumRate,
-      slot0.emissionRate,
-      slot0.hoursPerTick,
-      availableCapital, //Thao@TODO: remove from event
-      slot0.currentPremiumSpent, //Thao@TODO: il faut ajouter cumulatedPremiumSpent aussi
+      slot0.secondsPerTick,
       slot0.remainingPolicies,
+      liquidityIndex,
       slot0.lastUpdateTimestamp
     );
   }
@@ -320,34 +292,26 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
 
     uint256 __oldPremiumRate = slot0.premiumRate;
 
-    uint256 __durationInHour = durationHourUnit(
+    uint256 __durationInSeconds = durationSecondsUnit(
       _premium,
       _insuredCapital,
       __newPremiumRate
     );
 
-    uint256 __addingEmissionRate = _premium
-      .rayMul(24000000000000000000000000000)
-      .rayDiv(__durationInHour);
-
-    slot0.emissionRate =
-      getEmissionRate(slot0.emissionRate, __oldPremiumRate, __newPremiumRate) +
-      __addingEmissionRate;
-
-    uint256 __newHoursPerTick = getHoursPerTick(
-      slot0.hoursPerTick,
+    uint256 __newSecondsPerTick = getSecondsPerTick(
+      slot0.secondsPerTick,
       __oldPremiumRate,
       __newPremiumRate
     );
 
     uint24 __lastTick = slot0.tick +
-      uint24(__durationInHour / __newHoursPerTick);
+      uint24(__durationInSeconds / __newSecondsPerTick);
 
     addPremiumPosition(_owner, _insuredCapital, __newPremiumRate, __lastTick);
 
     slot0.totalInsuredCapital += _insuredCapital;
     slot0.premiumRate = __newPremiumRate;
-    slot0.hoursPerTick = __newHoursPerTick;
+    slot0.secondsPerTick = __newSecondsPerTick;
 
     slot0.remainingPolicies++;
   }
@@ -369,8 +333,9 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
 
     __remainedPremium =
       ((__position.lastTick - __currentTick) *
-        slot0.hoursPerTick.rayMul(__ownerCurrentEmissionRate)) /
-      24;
+        slot0.secondsPerTick *
+        __ownerCurrentEmissionRate) /
+      86400;
 
     uint256 __newPremiumRate = getPremiumRate(
       _utilisationRate(
@@ -383,14 +348,8 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
 
     slot0.totalInsuredCapital -= __position.capitalInsured;
 
-    slot0.emissionRate = getEmissionRate(
-      slot0.emissionRate - __ownerCurrentEmissionRate,
-      slot0.premiumRate,
-      __newPremiumRate
-    );
-
-    slot0.hoursPerTick = getHoursPerTick(
-      slot0.hoursPerTick,
+    slot0.secondsPerTick = getSecondsPerTick(
+      slot0.secondsPerTick,
       slot0.premiumRate,
       __newPremiumRate
     );
@@ -410,32 +369,19 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
     slot0.remainingPolicies--;
   }
 
-  function actualizingUntilGivenDate(uint256 _dateInSecond)
+  function actualizingUntilGivenDate(uint256 _dateInSeconds)
     public
     view
-    returns (Slot0 memory __slot0)
+    returns (Slot0 memory __slot0, uint256 __liquidityIndex)
   {
-    require(_dateInSecond >= slot0.lastUpdateTimestamp, "date is not valide");
+    require(_dateInSeconds >= slot0.lastUpdateTimestamp, "date is not valide");
 
     if (slot0.remainingPolicies > 0) {
-      __slot0 = _actualizingUntil(_dateInSecond);
+      (__slot0, __liquidityIndex) = _actualizingUntil(_dateInSeconds);
     } else {
       __slot0 = slot0;
-      __slot0.lastUpdateTimestamp = _dateInSecond;
+      __slot0.lastUpdateTimestamp = _dateInSeconds;
     }
-
-    __slot0.premiumRate = RayMath.rayToOther(__slot0.premiumRate);
-    __slot0.emissionRate = RayMath.rayToOther(__slot0.emissionRate);
-    __slot0.hoursPerTick = RayMath.rayToOther(__slot0.hoursPerTick);
-    __slot0.totalInsuredCapital = RayMath.rayToOther(
-      __slot0.totalInsuredCapital
-    );
-    __slot0.currentPremiumSpent = RayMath.rayToOther(
-      __slot0.currentPremiumSpent
-    );
-    __slot0.cumulatedPremiumSpent = RayMath.rayToOther(
-      __slot0.cumulatedPremiumSpent
-    );
   }
 
   function getInfo(address _owner)
@@ -445,7 +391,7 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
     returns (uint256 __remainingPremium, uint256 __remainingDay)
   {
     uint256 __availableCapital = availableCapital;
-    Slot0 memory __slot0 = _actualizingUntil(block.timestamp);
+    (Slot0 memory __slot0, ) = _actualizingUntil(block.timestamp);
     PremiumPosition.Info memory __position = premiumPositions.get(_owner);
 
     require(__slot0.tick <= __position.lastTick, "Policy Expired");
@@ -460,7 +406,7 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
       __slot0.premiumRate
     );
 
-    uint256 __remainingHours;
+    uint256 __remainingSeconds;
 
     while (__slot0.tick < __position.lastTick) {
       (uint24 __tickNext, bool __initialized) = tickBitmap
@@ -469,22 +415,15 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
       uint24 __tick = __tickNext < __position.lastTick
         ? __tickNext
         : __position.lastTick;
-      uint256 __hoursPassed = (__tick - __slot0.tick) * __slot0.hoursPerTick;
+      uint256 __secondsPassed = (__tick - __slot0.tick) *
+        __slot0.secondsPerTick;
 
-      __remainingPremium += RayMath.rayToOther(
-        __hoursPassed.rayMul(__currentOwnerEmissionRate).rayDiv(
-          24000000000000000000000000000
-        )
-      );
+      __remainingPremium +=
+        (__secondsPassed * __currentOwnerEmissionRate) /
+        86400;
 
-      __remainingHours += __hoursPassed;
+      __remainingSeconds += __secondsPassed;
 
-      uint256 __premiumSpent = __hoursPassed
-        .rayMul(__slot0.emissionRate)
-        .rayDiv(24000000000000000000000000000);
-
-      __slot0.currentPremiumSpent += __premiumSpent;
-      __slot0.cumulatedPremiumSpent += __premiumSpent;
       __slot0.tick = __tick;
 
       if (__initialized && __tickNext < __position.lastTick) {
@@ -498,6 +437,6 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
       }
     }
 
-    __remainingDay = __remainingHours / 24000000000000000000000000000;
+    __remainingDay = __remainingSeconds / 86400;
   }
 }

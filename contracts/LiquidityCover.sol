@@ -15,6 +15,7 @@ abstract contract LiquidityCover is ERC20 {
   uint128[] public relatedProtocols;
 
   //Thao@TODO: nous n'avons pas besoin de intersecting amount
+  // et pourquoi ?
   //ce même protocol est à l'indice 0 mais il faut enlever pour gas
   mapping(uint128 => uint256) public intersectingAmountIndexes;
   uint256[] public intersectingAmounts;
@@ -22,6 +23,16 @@ abstract contract LiquidityCover is ERC20 {
   uint256 public availableCapital;
 
   uint256 public totalSupplyReal;
+
+  uint256 public liquidityIndex;
+
+  function updateLiquidityIndex(
+    uint256 _uRate,
+    uint256 _pRate,
+    uint256 _deltaT
+  ) internal {
+    liquidityIndex += (_uRate.rayMul(_pRate) * _deltaT) / 31536000;
+  }
 
   function _intersectingAmount(uint128 _protocolId)
     internal
@@ -82,13 +93,9 @@ abstract contract LiquidityCover is ERC20 {
     totalSupplyReal = _totalSupply;
   }
 
-  function _mintLiquidity(
-    address _account,
-    uint256 _amount,
-    uint256 _premiumSpent
-  ) internal {
+  function _mintLiquidity(address _account, uint256 _amount) internal {
     uint256 __amountToSupply = _amount.rayMul(
-      _liquidityIndex(totalSupplyReal, availableCapital + _premiumSpent)
+      _liquidityIndex(totalSupplyReal, availableCapital)
     );
     // console.log("__amountToSupply:", __amountToSupply);
 

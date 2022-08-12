@@ -80,22 +80,20 @@ describe("View policy", () => {
         0
       );
 
-      const slot0 = await protocolContract.actualizingUntilGivenDate(
-        HardhatHelper.getCurrentTime() + 10 * 24 * 60 * 60
+      const days = 10;
+      const result = await protocolContract.actualizingUntilGivenDate(
+        HardhatHelper.getCurrentTime() + days * 24 * 60 * 60
       );
 
-      // console.log(slot0);
-
-      expect(slot0.tick).to.be.equal(60);
-      expect(slot0.premiumRate).to.be.equal(4);
-      expect(slot0.emissionRate).to.be.equal(36);
-      expect(slot0.hoursPerTick).to.be.equal(6);
-      expect(slot0.totalInsuredCapital).to.be.equal(328500);
-      expect(slot0.currentPremiumSpent).to.be.equal(420);
-      expect(slot0.cumulatedPremiumSpent).to.be.equal(420);
-      expect(slot0.remainingPolicies).to.be.equal(2);
-      expect(slot0.lastUpdateTimestamp).to.be.equal(
-        HardhatHelper.getCurrentTime() + 10 * 24 * 60 * 60
+      expect(result.__slot0.tick).to.be.equal(60);
+      expect(result.__slot0.premiumRate).to.be.equal(
+        "4000000000000000000000000000"
+      );
+      expect(result.__slot0.secondsPerTick).to.be.equal(6 * 60 * 60);
+      expect(result.__slot0.totalInsuredCapital).to.be.equal(328500);
+      expect(result.__slot0.remainingPolicies).to.be.equal(2);
+      expect(result.__slot0.lastUpdateTimestamp).to.be.equal(
+        HardhatHelper.getCurrentTime() + days * 24 * 60 * 60
       );
     });
 
@@ -106,21 +104,24 @@ describe("View policy", () => {
       );
 
       const days = 178;
-      const slot0 = await protocolContract.actualizingUntilGivenDate(
+      const result = await protocolContract.actualizingUntilGivenDate(
         HardhatHelper.getCurrentTime() + days * 24 * 60 * 60
       );
 
-      expect(slot0.tick).to.be.equal(731);
-      expect(slot0.premiumRate).to.be.equal(3);
-      expect(slot0.emissionRate).to.be.equal(18);
-      expect(slot0.hoursPerTick).to.be.equal(8);
-      expect(slot0.totalInsuredCapital).to.be.equal(219000);
-      expect(slot0.currentPremiumSpent).to.be.equal(6459); //Thao@TODO: check why ???
-      expect(slot0.cumulatedPremiumSpent).to.be.equal(6459); //Thao@TODO: check why ???
-      expect(slot0.remainingPolicies).to.be.equal(1);
-      expect(slot0.lastUpdateTimestamp).to.be.equal(
+      // console.log("vSlot0 178:", result);
+
+      expect(result.__slot0.tick).to.be.equal(731);
+      expect(result.__slot0.premiumRate).to.be.equal(
+        "3000000000000000000000000000"
+      );
+      expect(result.__slot0.secondsPerTick).to.be.equal(28800);
+      expect(result.__slot0.totalInsuredCapital).to.be.equal(219000);
+      expect(result.__slot0.remainingPolicies).to.be.equal(1);
+      expect(result.__slot0.lastUpdateTimestamp).to.be.equal(
         HardhatHelper.getCurrentTime() + days * 24 * 60 * 60
       );
+
+      expect(result.__liquidityIndex).to.be.equal("2254006849315068493150684"); //TODO: check __liquidityIndex
     });
 
     it("Should get vSlot0 after 428 days", async () => {
@@ -130,19 +131,18 @@ describe("View policy", () => {
       );
 
       const days = 428;
-      const slot0 = await protocolContract.actualizingUntilGivenDate(
+      const result = await protocolContract.actualizingUntilGivenDate(
         HardhatHelper.getCurrentTime() + days * 24 * 60 * 60
       );
 
-      expect(slot0.tick).to.be.equal(1480);
-      expect(slot0.premiumRate).to.be.equal(1);
-      expect(slot0.emissionRate).to.be.equal(0);
-      expect(slot0.hoursPerTick).to.be.equal(24);
-      expect(slot0.totalInsuredCapital).to.be.equal(0);
-      expect(slot0.currentPremiumSpent).to.be.equal(10950);
-      expect(slot0.cumulatedPremiumSpent).to.be.equal(10950);
-      expect(slot0.remainingPolicies).to.be.equal(0);
-      expect(slot0.lastUpdateTimestamp).to.be.equal(
+      expect(result.__slot0.tick).to.be.equal(1480);
+      expect(result.__slot0.premiumRate).to.be.equal(
+        "1000000000000000000000000000"
+      );
+      expect(result.__slot0.secondsPerTick).to.be.equal(24 * 60 * 60);
+      expect(result.__slot0.totalInsuredCapital).to.be.equal(0);
+      expect(result.__slot0.remainingPolicies).to.be.equal(0);
+      expect(result.__slot0.lastUpdateTimestamp).to.be.equal(
         HardhatHelper.getCurrentTime() + days * 24 * 60 * 60
       );
     });
@@ -172,6 +172,7 @@ describe("View policy", () => {
         .withdrawPolicy(0);
 
       const result = await tx.wait();
+      console.log(result);
       const event = result.events[1];
 
       const protocolContract = await ProtocolHelper.getProtocolPoolContract(
@@ -198,17 +199,8 @@ describe("View policy", () => {
 
       expect(slot0.tick).to.be.equal(24);
       expect(slot0.premiumRate).to.be.equal("3000000000000000000000000000");
-      expect(slot0.emissionRate).to.be.equal("18000000000000000000000000000");
-      expect(slot0.hoursPerTick).to.be.equal("8000000000000000000000000000");
-      expect(slot0.totalInsuredCapital).to.be.equal(
-        "219000000000000000000000000000000"
-      );
-      expect(slot0.currentPremiumSpent).to.be.equal(
-        "96000000000000000000000000000"
-      );
-      expect(slot0.cumulatedPremiumSpent).to.be.equal(
-        "96000000000000000000000000000"
-      );
+      expect(slot0.secondsPerTick).to.be.equal(8 * 60 * 60);
+      expect(slot0.totalInsuredCapital).to.be.equal("219000");
       expect(slot0.remainingPolicies).to.be.equal(1);
       expect(slot0.lastUpdateTimestamp).to.be.equal(
         HardhatHelper.getCurrentTime()
@@ -216,7 +208,7 @@ describe("View policy", () => {
 
       const availableCapital = await protocolContract.availableCapital();
 
-      expect(availableCapital).to.be.equal("730000000000000000000000000000000");
+      expect(availableCapital).to.be.equal("730000");
     });
   });
 
@@ -254,15 +246,8 @@ describe("View policy", () => {
 
       expect(slot0.tick).to.be.equal(54);
       expect(slot0.premiumRate).to.be.equal("1000000000000000000000000000");
-      expect(slot0.emissionRate).to.be.equal("0");
-      expect(slot0.hoursPerTick).to.be.equal("24000000000000000000000000000");
+      expect(slot0.secondsPerTick).to.be.equal(24 * 60 * 60);
       expect(slot0.totalInsuredCapital).to.be.equal("0");
-      expect(slot0.currentPremiumSpent).to.be.equal(
-        "276000000000000000000000000000"
-      );
-      expect(slot0.cumulatedPremiumSpent).to.be.equal(
-        "276000000000000000000000000000"
-      );
       expect(slot0.remainingPolicies).to.be.equal(0);
       expect(slot0.lastUpdateTimestamp).to.be.equal(
         HardhatHelper.getCurrentTime()
@@ -270,7 +255,7 @@ describe("View policy", () => {
 
       const availableCapital = await protocolContract.availableCapital();
 
-      expect(availableCapital).to.be.equal("730000000000000000000000000000000");
+      expect(availableCapital).to.be.equal("730000");
     });
   });
 });

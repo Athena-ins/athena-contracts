@@ -102,9 +102,7 @@ describe("Buy policy", () => {
         await policyTaker1.getAddress()
       );
 
-      expect(policyInfo.capitalInsured).to.be.equal(
-        "109500000000000000000000000000000"
-      );
+      expect(policyInfo.capitalInsured).to.be.equal("109500");
       expect(policyInfo.beginPremiumRate).to.be.equal(
         "2000000000000000000000000000"
       );
@@ -135,13 +133,8 @@ describe("Buy policy", () => {
 
       expect(slot0.tick).to.be.equal(0);
       expect(slot0.premiumRate).to.be.equal("2000000000000000000000000000");
-      expect(slot0.emissionRate).to.be.equal("6000000000000000000000000000");
-      expect(slot0.hoursPerTick).to.be.equal("12000000000000000000000000000");
-      expect(slot0.totalInsuredCapital).to.be.equal(
-        "109500000000000000000000000000000"
-      );
-      expect(slot0.currentPremiumSpent).to.be.equal("0");
-      expect(slot0.cumulatedPremiumSpent).to.be.equal("0");
+      expect(slot0.secondsPerTick).to.be.equal("43200");
+      expect(slot0.totalInsuredCapital).to.be.equal("109500");
       expect(slot0.remainingPolicies).to.be.equal("1");
       expect(slot0.lastUpdateTimestamp).to.be.equal(
         HardhatHelper.getCurrentTime()
@@ -149,7 +142,7 @@ describe("Buy policy", () => {
 
       const availableCapital = await protocolContract.availableCapital();
 
-      expect(availableCapital).to.be.equal("730000000000000000000000000000000");
+      expect(availableCapital).to.be.equal("730000");
     });
 
     it("Should check NFT", async () => {
@@ -232,9 +225,7 @@ describe("Buy policy", () => {
         await policyTaker2.getAddress()
       );
 
-      expect(policyInfo.capitalInsured).to.be.equal(
-        "219000000000000000000000000000000"
-      );
+      expect(policyInfo.capitalInsured).to.be.equal("219000");
       expect(policyInfo.beginPremiumRate).to.be.equal(
         "4000000000000000000000000000"
       );
@@ -266,17 +257,8 @@ describe("Buy policy", () => {
 
       expect(slot0.tick).to.be.equal(20);
       expect(slot0.premiumRate).to.be.equal("4000000000000000000000000000");
-      expect(slot0.emissionRate).to.be.equal("36000000000000000000000000000");
-      expect(slot0.hoursPerTick).to.be.equal("6000000000000000000000000000");
-      expect(slot0.totalInsuredCapital).to.be.equal(
-        "328500000000000000000000000000000"
-      );
-      expect(slot0.currentPremiumSpent).to.be.equal(
-        "60000000000000000000000000000"
-      );
-      expect(slot0.cumulatedPremiumSpent).to.be.equal(
-        "60000000000000000000000000000"
-      );
+      expect(slot0.secondsPerTick).to.be.equal("21600");
+      expect(slot0.totalInsuredCapital).to.be.equal("328500");
       expect(slot0.remainingPolicies).to.be.equal("2");
       expect(slot0.lastUpdateTimestamp).to.be.equal(
         HardhatHelper.getCurrentTime()
@@ -284,7 +266,7 @@ describe("Buy policy", () => {
 
       const availableCapital = await protocolContract.availableCapital();
 
-      expect(availableCapital).to.be.equal("730000000000000000000000000000000");
+      expect(availableCapital).to.be.equal("730000");
     });
 
     it("Should check NFT", async () => {
@@ -316,6 +298,22 @@ describe("Buy policy", () => {
         protocolContract.address
       );
       expect(balanceProtocol).to.equal(totalPremium);
+    });
+  });
+
+  describe("Should check PolicyTaker1's info", () => {
+    it("Should get info", async () => {
+      const protocolContract = await ProtocolHelper.getProtocolPoolContract(
+        policyTaker1,
+        0
+      );
+
+      const response = await protocolContract.getInfo(
+        await policyTaker1.getAddress()
+      );
+
+      expect(response.__remainingPremium).to.be.equal(2130);
+      expect(response.__remainingDay).to.be.equal(177);
     });
   });
 });

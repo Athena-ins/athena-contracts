@@ -59,11 +59,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
 
   function mint(address _account, uint256 _amount) external onlyCore {
     _actualizing();
-    _mintLiquidity(
-      _account,
-      RayMath.otherToRay(_amount),
-      slot0.cumulatedPremiumSpent
-    );
+    _mintLiquidity(_account, _amount);
     emit Mint(_account, _amount);
   }
 
@@ -73,11 +69,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     uint256 _insuredCapital
   ) external onlyCore notExistedOwner(_owner) {
     _actualizing();
-    _buyPolicy(
-      _owner,
-      RayMath.otherToRay(_premium),
-      RayMath.otherToRay(_insuredCapital)
-    );
+    _buyPolicy(_owner, _premium, _insuredCapital);
     emit BuyPolicy(_owner, _premium, _insuredCapital);
   }
 
@@ -88,7 +80,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
   {
     _actualizing();
     uint256 __remainedPremium = _withdrawPolicy(_owner);
-    emit WithdrawPolicy(_owner, RayMath.rayToOther(__remainedPremium));
+    emit WithdrawPolicy(_owner, __remainedPremium);
   }
 
   function actualizingTest() external {
@@ -132,12 +124,9 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     // beginIndexClaims[_account] += __claims.length;
 
     if (slot0.remainingPolicies > 0) {
-      Slot0 memory __slot0 = _actualizingUntil(_dateInSecond);
+      (Slot0 memory __slot0, ) = _actualizingUntil(_dateInSecond);
       uint256 __scaledBalance = __balance.rayDiv(
-        _liquidityIndex(
-          totalSupplyReal,
-          availableCapital + __slot0.cumulatedPremiumSpent
-        )
+        _liquidityIndex(totalSupplyReal, availableCapital)
       );
 
       __totalRewards += __scaledBalance - __balance;
@@ -291,11 +280,8 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     Slot0 memory __slot0 = Slot0({
       tick: slot0.tick,
       premiumRate: slot0.premiumRate,
-      emissionRate: slot0.emissionRate,
-      hoursPerTick: slot0.hoursPerTick,
+      secondsPerTick: slot0.secondsPerTick,
       totalInsuredCapital: slot0.totalInsuredCapital,
-      currentPremiumSpent: slot0.currentPremiumSpent,
-      cumulatedPremiumSpent: slot0.cumulatedPremiumSpent,
       remainingPolicies: slot0.remainingPolicies,
       lastUpdateTimestamp: slot0.lastUpdateTimestamp
     });
@@ -303,8 +289,6 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     // save info in claim
     _claim.totalSupplyRealBefore = totalSupplyReal;
     _claim.availableCapitalBefore = __availableCapital;
-    _claim.currentPremiumSpentBefore = __slot0.currentPremiumSpent;
-    _claim.cumulatedPremiumSpentBefore = __slot0.cumulatedPremiumSpent; //at the begin of interval
 
     //compute totalSupplyReal, capital, slot0 and intersectingAmount with claim:
     uint256 __amountToRemoveByClaim = _amountToRemoveFromIntersecAndCapital(
@@ -314,10 +298,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
 
     _updateSlot0WithClaimAmount(__amountToRemoveByClaim);
     _removeAmountFromAvailableCapital(__amountToRemoveByClaim);
-    _setTotalSupplyReal(
-      (__availableCapital - __amountToRemoveByClaim) +
-        __slot0.cumulatedPremiumSpent
-    );
+    _setTotalSupplyReal((__availableCapital - __amountToRemoveByClaim));
     _removeIntersectingAmount(_claim.fromProtocolId, __amountToRemoveByClaim);
 
     _addClaim(_claim);
@@ -336,16 +317,6 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     }
 
     _addIntersectingAmount(_protocolId, RayMath.otherToRay(_amount));
-  }
-
-  //test test
-  function setCurrentPremiumSpent(uint256 _amount) public {
-    slot0.currentPremiumSpent = _amount;
-  }
-
-  //test test
-  function setCumulatedPremiumSpent(uint256 _amount) public {
-    slot0.cumulatedPremiumSpent = _amount;
   }
 
   //test test
