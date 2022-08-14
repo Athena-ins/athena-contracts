@@ -243,4 +243,11 @@ function testLI() {
   console.log("depositor1.income:", depositor1.income.toString());
 }
 
-testLI();
+const capital = 200000;
+const [lr1, lr2] = testLI(capital);
+
+const li =
+  (lr1 * 10 * 24 * 60 * 60) / T_YEAR + (lr2 * 10 * 24 * 60 * 60) / T_YEAR;
+console.log(capital * li);
+console.log((16.438356164406287 * (lr2 * 10 * 24 * 60 * 60)) / T_YEAR);
+console.log(65.75747795088682 - 65.75342465753425);
