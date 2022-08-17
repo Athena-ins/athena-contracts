@@ -9,13 +9,10 @@ abstract contract ClaimCover is LiquidityCover {
   //Claim peut utiliser pour withdraw aussi
   struct Claim {
     uint128 fromProtocolId;
-    uint256 amount; // Ray
-    uint256 ratio; // Ray
+    uint256 amount; // Ray //cai nay ko can thiet
+    uint256 ratio; // Ray //ratio = claimAmount / capital
+    //uint256 liquidityIndexBeforeClaim;
     uint256 createdAt;
-    uint256 totalSupplyRealBefore; // Ray
-    uint256 availableCapitalBefore; // Ray: contient capital + cumulatedPremiumSpent avant claim
-    uint256 currentPremiumSpentBefore; // Ray //Thao@NOTE: currentPremiumSpent pour calculer les rewards
-    uint256 cumulatedPremiumSpentBefore; // Ray //Thao@NOTE: cumulatedPremiumSpentBefore pour calculer liquidityIndex ???
   }
 
   Claim[] public claims;

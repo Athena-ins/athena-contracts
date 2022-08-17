@@ -93,7 +93,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     uint128[] calldata _protocolIds,
     uint256 _dateInSecond
   ) public view returns (uint256 __userCapital, uint256 __totalRewards) {
-    __userCapital = RayMath.otherToRay(_userCapital);
+    __userCapital = _userCapital;
     //si il n'y a pas de claim, __balance est le début quand _account deposit
     //sinon __balance est déjà màj après des claims passés
     uint256 __balance = balanceOf(_account);
@@ -102,23 +102,23 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     for (uint256 i = 0; i < __claims.length; i++) {
       Claim memory __claim = __claims[i];
 
-      uint256 __liquidityIndex = _liquidityIndex(
-        __claim.totalSupplyRealBefore,
-        __claim.availableCapitalBefore + __claim.currentPremiumSpentBefore
-      );
-      uint256 __scaledBalance = __balance.rayDiv(__liquidityIndex);
-      uint256 __currentRewards = __scaledBalance - __balance;
-      __totalRewards += __currentRewards;
+      // uint256 __liquidityIndex = _liquidityIndex(
+      //   __claim.totalSupplyRealBefore,
+      //   __claim.availableCapitalBefore + __claim.currentPremiumSpentBefore
+      // );
+      // uint256 __scaledBalance = __balance.rayDiv(__liquidityIndex);
+      // uint256 __currentRewards = __scaledBalance - __balance;
+      // __totalRewards += __currentRewards;
 
-      for (uint256 j = 0; j < _protocolIds.length; j++) {
-        if (_protocolIds[j] == __claim.fromProtocolId) {
-          uint256 __userCapitalToRemove = __userCapital.rayMul(__claim.ratio);
-          __userCapital -= __userCapitalToRemove;
-          break;
-        }
-      }
+      // for (uint256 j = 0; j < _protocolIds.length; j++) {
+      //   if (_protocolIds[j] == __claim.fromProtocolId) {
+      //     uint256 __userCapitalToRemove = __userCapital.rayMul(__claim.ratio);
+      //     __userCapital -= __userCapitalToRemove;
+      //     break;
+      //   }
+      // }
 
-      __balance = __userCapital + __currentRewards;
+      // __balance = __userCapital + __currentRewards;
     }
 
     // beginIndexClaims[_account] += __claims.length;
@@ -141,12 +141,12 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
   ) public view returns (uint256) {
     (, uint256 __totalRewards) = _rewardsOf(
       _account,
-      RayMath.otherToRay(_userCapital),
+      _userCapital,
       _protocolIds,
       block.timestamp
     );
 
-    return RayMath.rayToOther(__totalRewards * (1000 - _discount)) / 1000;
+    return (__totalRewards * (1000 - _discount)) / 1000;
   }
 
   //Thao@TODO: il faut voir si withdraw doit enregistrer pour calcul ???
@@ -156,7 +156,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     uint128 _discount,
     uint256 _accountTimestamp
   ) external override onlyCore returns (uint256) {
-    uint256 __userCapital = RayMath.otherToRay(_userCapital);
+    uint256 __userCapital = _userCapital;
 
     require(
       withdrawReserves[_account] != 0 &&
@@ -222,13 +222,9 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     _addClaim(
       Claim(
         id,
-        RayMath.otherToRay(_amount),
+        _amount,
         RayMath.otherToRay(_amount).rayDiv(availableCapital),
-        block.timestamp,
-        0,
-        0,
-        0,
-        0
+        block.timestamp
       )
     );
 
@@ -255,18 +251,8 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     onlyCore
     returns (ClaimCover.Claim memory)
   {
-    uint256 __amount = RayMath.otherToRay(_amount);
     return
-      Claim(
-        id,
-        __amount,
-        __amount.rayDiv(availableCapital),
-        block.timestamp,
-        0,
-        0,
-        0,
-        0
-      );
+      Claim(id, _amount, _amount.rayDiv(availableCapital), block.timestamp);
   }
 
   //releaseFunds calls this fct for updating protocol pool
@@ -277,19 +263,6 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
 
     require(__availableCapital > _claim.amount, "Capital not enought");
 
-    Slot0 memory __slot0 = Slot0({
-      tick: slot0.tick,
-      premiumRate: slot0.premiumRate,
-      secondsPerTick: slot0.secondsPerTick,
-      totalInsuredCapital: slot0.totalInsuredCapital,
-      remainingPolicies: slot0.remainingPolicies,
-      lastUpdateTimestamp: slot0.lastUpdateTimestamp
-    });
-
-    // save info in claim
-    _claim.totalSupplyRealBefore = totalSupplyReal;
-    _claim.availableCapitalBefore = __availableCapital;
-
     //compute totalSupplyReal, capital, slot0 and intersectingAmount with claim:
     uint256 __amountToRemoveByClaim = _amountToRemoveFromIntersecAndCapital(
       _intersectingAmount(_claim.fromProtocolId),
@@ -298,7 +271,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
 
     _updateSlot0WithClaimAmount(__amountToRemoveByClaim);
     _removeAmountFromAvailableCapital(__amountToRemoveByClaim);
-    _setTotalSupplyReal((__availableCapital - __amountToRemoveByClaim));
+    // _setTotalSupplyReal((__availableCapital - __amountToRemoveByClaim));
     _removeIntersectingAmount(_claim.fromProtocolId, __amountToRemoveByClaim);
 
     _addClaim(_claim);
@@ -316,7 +289,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
       intersectingAmounts.push();
     }
 
-    _addIntersectingAmount(_protocolId, RayMath.otherToRay(_amount));
+    _addIntersectingAmount(_protocolId, _amount);
   }
 
   //test test

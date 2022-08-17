@@ -172,7 +172,7 @@ describe("View policy", () => {
         .withdrawPolicy(0);
 
       const result = await tx.wait();
-      console.log(result);
+      // console.log(result);
       const event = result.events[1];
 
       const protocolContract = await ProtocolHelper.getProtocolPoolContract(

@@ -174,7 +174,7 @@ describe("Liquidity provider deposit", () => {
 
         expect(
           await protocolContract.intersectingAmounts(protocol0Index)
-        ).to.be.equal("400000000000000000000000000000000");
+        ).to.be.equal("400000");
 
         const protocol2Index = await protocolContract.intersectingAmountIndexes(
           2
@@ -186,7 +186,7 @@ describe("Liquidity provider deposit", () => {
 
         expect(
           await protocolContract.intersectingAmounts(protocol2Index)
-        ).to.be.equal("400000000000000000000000000000000");
+        ).to.be.equal("400000");
       });
     });
 
@@ -330,7 +330,7 @@ describe("Liquidity provider deposit", () => {
 
         expect(
           await protocolContract.intersectingAmounts(protocol0Index)
-        ).to.be.equal("730000000000000000000000000000000");
+        ).to.be.equal("730000");
 
         const protocol1Index = await protocolContract.intersectingAmountIndexes(
           1
@@ -344,7 +344,7 @@ describe("Liquidity provider deposit", () => {
 
         expect(
           await protocolContract.intersectingAmounts(protocol1Index)
-        ).to.be.equal("330000000000000000000000000000000");
+        ).to.be.equal("330000");
 
         const protocol2Index = await protocolContract.intersectingAmountIndexes(
           2
@@ -358,7 +358,7 @@ describe("Liquidity provider deposit", () => {
 
         expect(
           await protocolContract.intersectingAmounts(protocol2Index)
-        ).to.be.equal("730000000000000000000000000000000");
+        ).to.be.equal("730000");
       });
     });
   });
