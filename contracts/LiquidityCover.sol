@@ -29,6 +29,10 @@ abstract contract LiquidityCover is ERC20 {
     liquidityIndex += (_uRate.rayMul(_pRate) * _deltaT) / 31536000;
   }
 
+  function resetLiquidityIndex() internal {
+    liquidityIndex = 0;
+  }
+
   function _intersectingAmount(uint128 _protocolId)
     internal
     view
@@ -69,14 +73,6 @@ abstract contract LiquidityCover is ERC20 {
 
   function _removeAmountFromAvailableCapital(uint256 _amountToRemove) internal {
     availableCapital -= _amountToRemove;
-  }
-
-  function _liquidityIndex(uint256 _totalSupply, uint256 _totalCapital)
-    internal
-    pure
-    returns (uint256)
-  {
-    return _totalSupply == 0 ? RayMath.RAY : _totalSupply.rayDiv(_totalCapital);
   }
 
   function _mintLiquidity(address _account, uint256 _amount) internal {

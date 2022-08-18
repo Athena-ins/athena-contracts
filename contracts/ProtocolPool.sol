@@ -204,6 +204,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     IERC20(underlyingAsset).safeTransfer(core, _amount);
   }
 
+  //TODO: this fct is actualy not used
   function releaseFunds(address _account, uint256 _amount)
     external
     override
@@ -218,7 +219,8 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
       Claim(
         id,
         _amount,
-        RayMath.otherToRay(_amount).rayDiv(availableCapital),
+        _amount.rayDiv(availableCapital),
+        liquidityIndex,
         block.timestamp
       )
     );
@@ -247,18 +249,25 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     returns (ClaimCover.Claim memory)
   {
     return
-      Claim(id, _amount, _amount.rayDiv(availableCapital), block.timestamp);
+      Claim(
+        id,
+        _amount,
+        _amount.rayDiv(availableCapital),
+        liquidityIndex,
+        block.timestamp
+      );
   }
 
   //releaseFunds calls this fct for updating protocol pool
   function addClaim(Claim memory _claim) external override {
     _actualizing();
 
-    uint256 __availableCapital = availableCapital;
+    // uint256 __availableCapital = availableCapital;
 
-    require(__availableCapital > _claim.amount, "Capital not enought");
+    //we don't need this condition because we use only 30% of availableCapital
+    // require(__availableCapital > _claim.amount, "Capital not enought");
 
-    //compute totalSupplyReal, capital, slot0 and intersectingAmount with claim:
+    //compute capital, slot0 and intersectingAmount with claim:
     uint256 __amountToRemoveByClaim = _amountToRemoveFromIntersecAndCapital(
       _intersectingAmount(_claim.fromProtocolId),
       _claim.ratio

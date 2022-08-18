@@ -9,9 +9,9 @@ abstract contract ClaimCover is LiquidityCover {
   //Claim peut utiliser pour withdraw aussi
   struct Claim {
     uint128 fromProtocolId;
-    uint256 amount; // Ray //cai nay ko can thiet
+    uint256 amount; //TODO: remove after done, we don't need this field
     uint256 ratio; // Ray //ratio = claimAmount / capital
-    //uint256 liquidityIndexBeforeClaim;
+    uint256 liquidityIndexBeforeClaim;
     uint256 createdAt;
   }
 
