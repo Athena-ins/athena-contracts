@@ -25,14 +25,6 @@ library RayMath {
     return halfRAY;
   }
 
-  function otherToRay(uint256 a) internal pure returns (uint256) {
-    return a * RAY;
-  }
-
-  function rayToOther(uint256 a) internal pure returns (uint256) {
-    return (a + halfRAY) / RAY;
-  }
-
   /**
    * @dev Multiplies two ray, rounding half up to the nearest ray
    * @param a Ray

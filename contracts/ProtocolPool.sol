@@ -165,7 +165,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
         0,
         slot0.totalInsuredCapital,
         availableCapital - __userCapital
-      ) <= RayMath.otherToRay(100),
+      ) <= RayMath.RAY * 100,
       string(abi.encodePacked(name(), ": use rate > 100%"))
     );
 

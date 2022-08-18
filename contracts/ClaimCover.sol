@@ -34,8 +34,6 @@ abstract contract ClaimCover is LiquidityCover {
     return __claims;
   }
 
-  //_claimAmount is Claim.amount
-  //use for calculing Claim.ratio
   function _claimAmountRatio(uint256 _claimAmount)
     internal
     view
