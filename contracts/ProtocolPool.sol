@@ -125,11 +125,6 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
 
     if (slot0.remainingPolicies > 0) {
       (Slot0 memory __slot0, ) = _actualizingUntil(_dateInSecond);
-      uint256 __scaledBalance = __balance.rayDiv(
-        _liquidityIndex(totalSupplyReal, availableCapital)
-      );
-
-      __totalRewards += __scaledBalance - __balance;
     }
   }
 
@@ -290,15 +285,5 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     }
 
     _addIntersectingAmount(_protocolId, _amount);
-  }
-
-  //test test
-  function setAvailableCapital(uint256 _amount) public {
-    availableCapital = _amount;
-  }
-
-  //test test
-  function setTotalSupplyReal(uint256 _amount) public {
-    totalSupplyReal = _amount;
   }
 }
