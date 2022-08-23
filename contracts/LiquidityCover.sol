@@ -29,31 +29,12 @@ abstract contract LiquidityCover is ERC20 {
     liquidityIndex += (_uRate.rayMul(_pRate) * _deltaT) / 31536000;
   }
 
-  function resetLiquidityIndex() internal {
-    liquidityIndex = 0;
-  }
-
   function _intersectingAmount(uint128 _protocolId)
     internal
     view
     returns (uint256)
   {
     return intersectingAmounts[intersectingAmountIndexes[_protocolId]];
-  }
-
-  function _removeIntersectingAmount(
-    uint128 _protocolId,
-    uint256 _amountToRemove
-  ) internal {
-    intersectingAmounts[
-      intersectingAmountIndexes[_protocolId]
-    ] -= _amountToRemove;
-  }
-
-  function _addIntersectingAmount(uint128 _protocolId, uint256 _amountToAdd)
-    internal
-  {
-    intersectingAmounts[intersectingAmountIndexes[_protocolId]] += _amountToAdd;
   }
 
   // returns actual usage rate on capital insured / capital provided for insurance
@@ -69,10 +50,6 @@ abstract contract LiquidityCover is ERC20 {
     return
       ((_totalInsuredCapital + _insuredCapitalToAdd - _insuredCapitalToRemove) *
         100).rayDiv(_availableCapital);
-  }
-
-  function _removeAmountFromAvailableCapital(uint256 _amountToRemove) internal {
-    availableCapital -= _amountToRemove;
   }
 
   function _mintLiquidity(address _account, uint256 _amount) internal {

@@ -121,7 +121,7 @@ describe("View policy", () => {
         HardhatHelper.getCurrentTime() + days * 24 * 60 * 60
       );
 
-      expect(result.__liquidityIndex).to.be.equal("2254006849315068493150684"); //TODO: check __liquidityIndex
+      expect(result.__liquidityIndex).to.be.equal("8847945205479452054794519");
     });
 
     it("Should get vSlot0 after 428 days", async () => {

@@ -8,25 +8,6 @@ import ProtocolHelper from "./helpers/ProtocolHelper";
 
 chai.use(chaiAsPromised);
 
-const bn = (num: string | number) => hre_ethers.BigNumber.from(num);
-
-import { BigNumber, BigNumberish } from "ethers";
-
-const RAY = bn(10).pow(27);
-const halfRAY = RAY.div(2);
-
-function ray(n: BigNumberish) {
-  return RAY.mul(n);
-}
-
-function rayMul(a: BigNumberish, b: BigNumberish) {
-  return bn(a.toString()).mul(b).add(halfRAY).div(RAY);
-}
-
-function rayDiv(a: BigNumberish, b: BigNumberish) {
-  return bn(a.toString()).mul(RAY).add(bn(b.toString()).div(2)).div(b);
-}
-
 let owner: ethers.Signer;
 let liquidityProvider1: ethers.Signer;
 let liquidityProvider2: ethers.Signer;
@@ -50,7 +31,7 @@ describe("Liquidity provider rewards", () => {
     await ProtocolHelper.addNewProtocolPool("Test protocol 1");
     await ProtocolHelper.addNewProtocolPool("Test protocol 2");
 
-    const USDT_amount1 = "400000";
+    const USDT_amount1 = "365000";
     const ATEN_amount1 = "100000";
     await ProtocolHelper.deposit(
       liquidityProvider1,
@@ -61,7 +42,7 @@ describe("Liquidity provider rewards", () => {
     );
 
     // console.log("deposit lp2");
-    const USDT_amount2 = "330000";
+    const USDT_amount2 = "365000";
     const ATEN_amount2 = "9000000";
     await ProtocolHelper.deposit(
       liquidityProvider2,
@@ -96,68 +77,121 @@ describe("Liquidity provider rewards", () => {
     );
   });
 
-  describe("Rewards of LP1", async () => {
-    it("Should call rewardsOf and check data", async () => {
+  describe("LP1", async () => {
+    it("Should check LPInfo", async () => {
       let protocolPool0 = await ProtocolHelper.getProtocolPoolContract(
         owner,
         0
       );
 
-      let reponse = await protocolPool0._rewardsOf(
+      let lpInfo = await protocolPool0.LPsInfo(liquidityProvider1.getAddress());
+      expect(lpInfo.beginLiquidityIndex).to.be.equal(0);
+      expect(lpInfo.beginClaimIndex).to.be.equal(0);
+    });
+
+    it("Should call _rewardsOf and check data", async () => {
+      let protocolPool0 = await ProtocolHelper.getProtocolPoolContract(
+        owner,
+        0
+      );
+
+      let result = await protocolPool0._rewardsOf(
         await liquidityProvider1.getAddress(),
-        400000,
+        365000,
         [0, 2],
         HardhatHelper.getCurrentTime() + 1 * 24 * 60 * 60
       );
 
-      console.log("avant claim");
-      console.log("slot0:", await protocolPool0.slot0());
-      console.log("reward:", reponse);
+      expect(result.__finalUserCapital).to.be.equal(365000);
+      expect(result.__totalRewards).to.be.equal(48);
+    });
+  });
 
+  describe("LP2", async () => {
+    it("Should check LPInfo", async () => {
+      let protocolPool0 = await ProtocolHelper.getProtocolPoolContract(
+        owner,
+        0
+      );
+
+      let lpInfo = await protocolPool0.LPsInfo(liquidityProvider2.getAddress());
+      expect(lpInfo.beginLiquidityIndex).to.be.equal(0);
+      expect(lpInfo.beginClaimIndex).to.be.equal(0);
+    });
+
+    it("Should call _rewardsOf and check data", async () => {
+      let protocolPool0 = await ProtocolHelper.getProtocolPoolContract(
+        owner,
+        0
+      );
+
+      let result = await protocolPool0._rewardsOf(
+        await liquidityProvider2.getAddress(),
+        365000,
+        [0, 2],
+        HardhatHelper.getCurrentTime() + 2 * 24 * 60 * 60
+      );
+
+      expect(result.__finalUserCapital).to.be.equal(365000);
+      expect(result.__totalRewards).to.be.equal(66);
+    });
+  });
+
+  describe("Claim", async () => {
+    it("Should add a claim in protocol2 and check claim info in protocol0", async () => {
       await ProtocolHelper.claim(owner, 2, "182500", 1 * 24 * 60 * 60);
 
-      const claim = await protocolPool0.claims(0);
-      console.log("claim:", claim);
+      let protocolPool0 = await ProtocolHelper.getProtocolPoolContract(
+        owner,
+        0
+      );
 
-      reponse = await protocolPool0._rewardsOf(
+      const claim = await protocolPool0.claims(0);
+
+      expect(claim.fromProtocolId).to.be.equal(2);
+      expect(claim.ratio).to.be.equal("500000000000000000000000000");
+      expect(claim.liquidityIndexBeforeClaim).to.not.be.equal(0);
+      expect(claim.liquidityIndexBeforeClaim).to.be.equal(
+        "131506849315068493150684"
+      );
+      expect(claim.createdAt).to.be.equal(HardhatHelper.getCurrentTime());
+    });
+
+    it("Should call _rewardsOf for LP1 after added claim and check result", async () => {
+      let protocolPool0 = await ProtocolHelper.getProtocolPoolContract(
+        owner,
+        0
+      );
+
+      const result = await protocolPool0._rewardsOf(
         await liquidityProvider1.getAddress(),
-        400000,
+        365000,
         [0, 2],
         HardhatHelper.getCurrentTime() + 1 * 24 * 60 * 60
       );
 
-      //   console.log("apres claim");
-      //   console.log(await protocolPool0.slot0());
-      console.log("reward:", reponse);
+      // console.log("reward:", result);
+      expect(result.__finalUserCapital).to.be.equal(182500);
+      expect(result.__totalRewards).to.be.equal(63);
+    });
 
-      const capital1 = bn("400000000000000000000000000000000");
-      const rewards1 = bn("52602739726027397260273920160");
-
-      const capital2 = bn("330000000000000000000000000000000");
-      const rewards2 = bn("96000000000000000000000000000").sub(rewards1); //43397260273972602739726079840
-      console.log("rewards2:", rewards2);
-
-      const removeFromCapital1 = bn("182500000000000000000000000000000");
-      const capital1AfterRemove = capital1.sub(removeFromCapital1);
-      console.log("capital1AfterRemove:", capital1AfterRemove);
-
-      const totalSupplyReal = capital1AfterRemove
-        .add(rewards1)
-        .add(capital2)
-        .add(rewards2);
-
-      console.log("totalSupplyReal:", totalSupplyReal);
-
-      const rewards1AfterClaim = rayDiv(
-        rayMul(
-          bn("45000000000000000000000000000"),
-          capital1AfterRemove.add(rewards1)
-        ),
-        totalSupplyReal
+    it("Should call _rewardsOf for LP2 after added claim and check result", async () => {
+      let protocolPool0 = await ProtocolHelper.getProtocolPoolContract(
+        owner,
+        0
       );
-      console.log("rewards1 after claim:", rewards1AfterClaim);
 
-      console.log("totalRewards1:", rewards1.add(rewards1AfterClaim));
+      const result = await protocolPool0._rewardsOf(
+        await liquidityProvider2.getAddress(),
+        365000,
+        [0, 1],
+        HardhatHelper.getCurrentTime() + 1 * 24 * 60 * 60
+      );
+
+      // console.log("slot0:", await protocolPool0.slot0());
+      // console.log("reward:", result);
+      expect(result.__finalUserCapital).to.be.equal(365000);
+      expect(result.__totalRewards).to.be.equal(78);
     });
   });
 });

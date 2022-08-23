@@ -254,7 +254,11 @@ async function claim(
 ) {
   await HardhatHelper.setNextBlockTimestamp(timeLapse);
 
-  await ATHENA_CONTRACT.connect(user).addClaim(protocolId, amount);
+  await ATHENA_CONTRACT.connect(user).addClaim(
+    protocolId,
+    await user.getAddress(),
+    amount
+  );
 }
 
 export default {

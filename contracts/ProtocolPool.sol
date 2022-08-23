@@ -10,13 +10,18 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
   using RayMath for uint256;
   using SafeERC20 for IERC20;
 
+  struct LPInfo {
+    uint256 beginLiquidityIndex;
+    uint256 beginClaimIndex; //when a LP enter in pool, save the length of claims
+  }
+
   address private immutable core;
   address public underlyingAsset;
   uint128 public id;
   uint256 public immutable commitDelay;
 
   mapping(address => uint256) public withdrawReserves;
-  mapping(address => uint256) public beginIndexClaims;
+  mapping(address => LPInfo) public LPsInfo;
 
   // @Dev notice rule
   // external and public functions should use Decimals and convert to RAY, other functions should already use RAY
@@ -47,6 +52,30 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
   modifier onlyCore() {
     require(msg.sender == core, "Only Core");
     _;
+  }
+
+  function getRelatedProtocols()
+    external
+    view
+    override
+    returns (uint128[] memory)
+  {
+    return relatedProtocols;
+  }
+
+  function addRelatedProtocol(uint128 _protocolId, uint256 _amount)
+    external
+    onlyCore
+  {
+    if (intersectingAmountIndexes[_protocolId] == 0 && _protocolId != id) {
+      intersectingAmountIndexes[_protocolId] = intersectingAmounts.length;
+
+      relatedProtocols.push(_protocolId);
+
+      intersectingAmounts.push();
+    }
+
+    intersectingAmounts[intersectingAmountIndexes[_protocolId]] += _amount;
   }
 
   function committingWithdrawLiquidity(address _account) external onlyCore {
@@ -83,57 +112,64 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     emit WithdrawPolicy(_owner, __remainedPremium);
   }
 
-  function actualizingTest() external {
-    _actualizing();
-  }
-
   function _rewardsOf(
     address _account,
     uint256 _userCapital,
     uint128[] calldata _protocolIds,
     uint256 _dateInSecond
-  ) public view returns (uint256 __userCapital, uint256 __totalRewards) {
-    __userCapital = _userCapital;
-    //si il n'y a pas de claim, __balance est le début quand _account deposit
-    //sinon __balance est déjà màj après des claims passés
-    uint256 __balance = balanceOf(_account);
-    Claim[] memory __claims = _claims(beginIndexClaims[_account]);
+  ) public view returns (uint256 __finalUserCapital, uint256 __totalRewards) {
+    __finalUserCapital = _userCapital;
+    LPInfo memory lpInfo = LPsInfo[_account];
+    Claim[] memory __claims = _claims(lpInfo.beginClaimIndex);
 
     for (uint256 i = 0; i < __claims.length; i++) {
       Claim memory __claim = __claims[i];
 
-      // uint256 __liquidityIndex = _liquidityIndex(
-      //   __claim.totalSupplyRealBefore,
-      //   __claim.availableCapitalBefore + __claim.currentPremiumSpentBefore
-      // );
-      // uint256 __scaledBalance = __balance.rayDiv(__liquidityIndex);
-      // uint256 __currentRewards = __scaledBalance - __balance;
-      // __totalRewards += __currentRewards;
+      __totalRewards += __finalUserCapital.rayMul(
+        __claim.liquidityIndexBeforeClaim - lpInfo.beginLiquidityIndex
+      );
 
-      // for (uint256 j = 0; j < _protocolIds.length; j++) {
-      //   if (_protocolIds[j] == __claim.fromProtocolId) {
-      //     uint256 __userCapitalToRemove = __userCapital.rayMul(__claim.ratio);
-      //     __userCapital -= __userCapitalToRemove;
-      //     break;
-      //   }
-      // }
+      for (uint256 j = 0; j < _protocolIds.length; j++) {
+        if (_protocolIds[j] == __claim.fromProtocolId) {
+          uint256 __userCapitalToRemove = __finalUserCapital.rayMul(
+            __claim.ratio
+          );
+          __finalUserCapital -= __userCapitalToRemove;
 
-      // __balance = __userCapital + __currentRewards;
+          //or: __finalUserCapital = __finalUserCapital.rayMul(RayMath.RAY - __claim.ratio);
+          break;
+        }
+      }
+
+      lpInfo.beginLiquidityIndex = __claim.liquidityIndexBeforeClaim;
     }
 
-    // beginIndexClaims[_account] += __claims.length;
+    __totalRewards += __finalUserCapital.rayMul(
+      liquidityIndex - lpInfo.beginLiquidityIndex
+    );
+
+    lpInfo.beginLiquidityIndex = liquidityIndex;
 
     if (slot0.remainingPolicies > 0) {
-      (Slot0 memory __slot0, ) = _actualizingUntil(_dateInSecond);
+      (, uint256 __liquidityIndex) = _actualizingUntil(_dateInSecond);
+
+      __totalRewards += __finalUserCapital.rayMul(
+        __liquidityIndex - lpInfo.beginLiquidityIndex
+      );
+
+      lpInfo.beginLiquidityIndex = __liquidityIndex;
     }
+
+    lpInfo.beginClaimIndex += __claims.length;
   }
 
+  //Thao@TODO: need to test
   function rewardsOf(
     address _account,
     uint256 _userCapital,
     uint128[] calldata _protocolIds,
     uint256 _discount
-  ) public view returns (uint256) {
+  ) public view returns (uint256 totalRewards) {
     (, uint256 __totalRewards) = _rewardsOf(
       _account,
       _userCapital,
@@ -144,15 +180,14 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     return (__totalRewards * (1000 - _discount)) / 1000;
   }
 
-  //Thao@TODO: il faut voir si withdraw doit enregistrer pour calcul ???
+  //Thao@TODO: need to test
   function withdrawLiquidity(
     address _account,
     uint256 _userCapital,
+    uint128[] calldata _protocolIds,
     uint128 _discount,
-    uint256 _accountTimestamp
-  ) external override onlyCore returns (uint256) {
-    uint256 __userCapital = _userCapital;
-
+    uint256 _accountTimestamp //Thao@WARN: don't need this arg
+  ) external override onlyCore returns (uint256 totalRewards) {
     require(
       withdrawReserves[_account] != 0 &&
         block.timestamp - withdrawReserves[_account] >= commitDelay,
@@ -164,135 +199,89 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
         0,
         0,
         slot0.totalInsuredCapital,
-        availableCapital - __userCapital
+        availableCapital - _userCapital
       ) <= RayMath.RAY * 100,
       string(abi.encodePacked(name(), ": use rate > 100%"))
     );
 
-    // int256 __difference = _rewardsOf(_account, __userCapital, block.timestamp);
+    (uint256 __finalUserCapital, uint256 __totalRewards) = _rewardsOf(
+      _account,
+      _userCapital,
+      _protocolIds,
+      block.timestamp
+    );
 
-    // _burn(_account, balanceOf(_account));
-    // if (__difference > 0) {
-    //   IERC20(underlyingAsset).safeTransfer(
-    //     _account,
-    //     RayMath.rayToOther((uint256(__difference) * (1000 - _discount)) / 1000)
-    //   );
+    _burn(_account, balanceOf(_account));
+    //or: _burn(_account, _userCapital);
+    if (__totalRewards > 0) {
+      IERC20(underlyingAsset).safeTransfer(
+        _account,
+        (__totalRewards * (1000 - _discount)) / 1000
+      );
 
-    //   _transferToTreasury(
-    //     RayMath.rayToOther((uint256(__difference) * _discount) / 1000)
-    //   );
-    // }
+      _transferToTreasury((uint256(__totalRewards) * _discount) / 1000);
+    }
 
-    // //Thao@TODO: à VERIFIER ici jusqu'à la fin
-    // availableCapital -= uint256(int256(__userCapital) + __difference);
+    _updateSlot0WhenRemoveAmountFromAvailableCapital(__finalUserCapital);
 
-    // //@Dev TODO check for gas when large amount of claims and when/if needed to clean
-    // for (uint256 i = 0; i < claims.length; i++) {
-    //   if (claims[i].createdAt > _accountTimestamp) {
-    //     __userCapital -= claims[i].ratio * __userCapital;
-    //   }
-    // }
+    availableCapital -= __finalUserCapital;
 
-    // return (
-    //   __difference > 0
-    //     ? (_userCapital + uint256(__difference))
-    //     : (_userCapital - uint256(-__difference))
-    // );
+    for (uint256 i = 0; i < _protocolIds.length; i++) {
+      intersectingAmounts[
+        intersectingAmountIndexes[_protocolIds[i]]
+      ] -= __finalUserCapital;
+    }
+
+    return __finalUserCapital + ((__totalRewards * (1000 - _discount)) / 1000);
   }
 
   function _transferToTreasury(uint256 _amount) internal {
     IERC20(underlyingAsset).safeTransfer(core, _amount);
   }
 
-  //TODO: this fct is actualy not used
+  function processClaim(uint128 _fromProtocolId, uint256 _ratio)
+    public
+    override
+  {
+    _actualizing();
+
+    uint256 __amountToRemoveByClaim = _amountToRemoveFromIntersecAndCapital(
+      _intersectingAmount(_fromProtocolId),
+      _ratio
+    );
+
+    _updateSlot0WhenRemoveAmountFromAvailableCapital(__amountToRemoveByClaim);
+
+    availableCapital -= __amountToRemoveByClaim;
+
+    intersectingAmounts[
+      intersectingAmountIndexes[_fromProtocolId]
+    ] -= __amountToRemoveByClaim;
+
+    claims.push(
+      Claim(_fromProtocolId, _ratio, liquidityIndex, block.timestamp)
+    );
+  }
+
+  //somethings missing  or not???
   function releaseFunds(address _account, uint256 _amount)
     external
     override
     onlyCore
+    returns (uint256 ratio)
   {
-    // Slot0 memory __slot0 = _actualizingSlot0WithClaims(block.timestamp);
-    // if (_amount > __slot0.premiumSpent) {
-    // release funds from AAVE TO REFUND USER
-    // }
-    _actualizing();
-    _addClaim(
-      Claim(
-        id,
-        _amount,
-        _amount.rayDiv(availableCapital),
-        liquidityIndex,
-        block.timestamp
-      )
-    );
+    ratio = _amount.rayDiv(availableCapital);
+    processClaim(id, ratio);
 
     console.log("Amount to refund : ", _amount);
     uint256 bal = IERC20(underlyingAsset).balanceOf(address(this));
     console.log("Balance Contract = ", bal);
     console.log("Account to transfer = ", _account);
-    IERC20(underlyingAsset).safeTransfer(_account, _amount);
+    // IERC20(underlyingAsset).safeTransfer(_account, _amount);
   }
 
-  function getRelatedProtocols()
-    external
-    view
-    override
-    returns (uint128[] memory)
-  {
-    return relatedProtocols;
-  }
-
-  function buildClaim(uint256 _amount)
-    external
-    view
-    override
-    onlyCore
-    returns (ClaimCover.Claim memory)
-  {
-    return
-      Claim(
-        id,
-        _amount,
-        _amount.rayDiv(availableCapital),
-        liquidityIndex,
-        block.timestamp
-      );
-  }
-
-  //releaseFunds calls this fct for updating protocol pool
-  function addClaim(Claim memory _claim) external override {
+  //Thao@NOTE: for testing
+  function actualizingTest() external {
     _actualizing();
-
-    // uint256 __availableCapital = availableCapital;
-
-    //we don't need this condition because we use only 30% of availableCapital
-    // require(__availableCapital > _claim.amount, "Capital not enought");
-
-    //compute capital, slot0 and intersectingAmount with claim:
-    uint256 __amountToRemoveByClaim = _amountToRemoveFromIntersecAndCapital(
-      _intersectingAmount(_claim.fromProtocolId),
-      _claim.ratio
-    );
-
-    _updateSlot0WithClaimAmount(__amountToRemoveByClaim);
-    _removeAmountFromAvailableCapital(__amountToRemoveByClaim);
-    // _setTotalSupplyReal((__availableCapital - __amountToRemoveByClaim));
-    _removeIntersectingAmount(_claim.fromProtocolId, __amountToRemoveByClaim);
-
-    _addClaim(_claim);
-  }
-
-  function addRelatedProtocol(uint128 _protocolId, uint256 _amount)
-    external
-    onlyCore
-  {
-    if (intersectingAmountIndexes[_protocolId] == 0 && _protocolId != id) {
-      intersectingAmountIndexes[_protocolId] = intersectingAmounts.length;
-
-      relatedProtocols.push(_protocolId);
-
-      intersectingAmounts.push();
-    }
-
-    _addIntersectingAmount(_protocolId, _amount);
   }
 }

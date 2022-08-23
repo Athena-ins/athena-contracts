@@ -15,11 +15,14 @@ interface IProtocolPool is IPolicyCover {
   function withdrawLiquidity(
     address _account,
     uint256 _userCapital,
+    uint128[] calldata _protocolIds,
     uint128 _discount,
     uint256 _accountTimestamp
-  ) external returns (uint256);
+  ) external returns (uint256 totalRewards);
 
-  function releaseFunds(address _account, uint256 _amount) external;
+  function releaseFunds(address _account, uint256 _amount)
+    external
+    returns (uint256);
 
   function buyPolicy(
     address _owner,
@@ -29,12 +32,7 @@ interface IProtocolPool is IPolicyCover {
 
   function withdrawPolicy(address _owner) external;
 
-  function buildClaim(uint256 _amount)
-    external
-    view
-    returns (ClaimCover.Claim memory);
-
-  function addClaim(ClaimCover.Claim memory _claim) external;
+  function processClaim(uint128 fromProtocolId, uint256 ratio) external;
 
   function getRelatedProtocols() external view returns (uint128[] memory);
 

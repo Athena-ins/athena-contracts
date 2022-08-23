@@ -153,9 +153,9 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
     _slot0.remainingPolicies -= __policiesToRemove;
   }
 
-  function _updateSlot0WithClaimAmount(uint256 _amountToRemoveByClaim)
-    internal
-  {
+  function _updateSlot0WhenRemoveAmountFromAvailableCapital(
+    uint256 _amountToRemoveByClaim
+  ) internal {
     uint256 __newPremiumRate = getPremiumRate(
       _utilisationRate(
         0,
@@ -193,37 +193,46 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
     uint256 __availableCapital = availableCapital;
     uint256 __secondsGap = _dateInSeconds - __slot0.lastUpdateTimestamp;
 
-    uint256 __deltaT;
+    uint256 __uRate = _utilisationRate(
+      0,
+      0,
+      __slot0.totalInsuredCapital,
+      __availableCapital
+    ) / 100;
+
+    uint256 __pRate = getPremiumRate(__uRate * 100) / 100;
 
     while (__secondsGap > 0) {
       (uint24 __tickNext, bool __initialized) = tickBitmap
         .nextInitializedTickInTheRightWithinOneWord(__slot0.tick);
 
-      uint256 secondsStep = (__tickNext - __slot0.tick) *
+      uint256 __secondsStep = (__tickNext - __slot0.tick) *
         __slot0.secondsPerTick;
 
-      __deltaT += secondsStep;
-
-      if (secondsStep <= __secondsGap) {
+      if (__secondsStep <= __secondsGap) {
         __slot0.tick = __tickNext;
-        __secondsGap -= secondsStep;
+        __liquidityIndex +=
+          (__uRate.rayMul(__pRate) * __secondsStep) /
+          31536000;
+        __secondsGap -= __secondsStep;
 
         if (__initialized) {
-          uint256 __uRate = _utilisationRate(
-            0,
-            0,
-            __slot0.totalInsuredCapital,
-            __availableCapital
-          ) / 100;
-
-          uint256 __pRate = getPremiumRate(__uRate) / 100;
-          __liquidityIndex += (__uRate.rayMul(__pRate) * __deltaT) / 31536000;
-          __deltaT = 0;
-
           crossingInitializedTick(__slot0, __availableCapital, __tickNext);
+
+          __uRate =
+            _utilisationRate(
+              0,
+              0,
+              __slot0.totalInsuredCapital,
+              __availableCapital
+            ) /
+            100;
+
+          __pRate = getPremiumRate(__uRate * 100) / 100;
         }
       } else {
         __slot0.tick += uint24(__secondsGap / __slot0.secondsPerTick);
+        __liquidityIndex += (__uRate.rayMul(__pRate) * __secondsGap) / 31536000;
         __secondsGap = 0;
       }
     }

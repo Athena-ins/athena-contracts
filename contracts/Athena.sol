@@ -162,18 +162,21 @@ contract Athena is ReentrancyGuard, Ownable {
   }
 
   //Thao@NOTE: for testing
-  function addClaim(uint128 _protocolId, uint256 _amount) public nonReentrant {
+  function addClaim(
+    uint128 _protocolId,
+    address _account,
+    uint256 _amount
+  ) public nonReentrant {
     IProtocolPool __protocolPool = IProtocolPool(
       protocolsMapping[_protocolId].deployed
     );
 
-    ClaimCover.Claim memory __newClaim = __protocolPool.buildClaim(_amount);
+    uint256 ratio = __protocolPool.releaseFunds(_account, _amount);
     uint128[] memory __relatedProtocols = __protocolPool.getRelatedProtocols();
 
     for (uint256 i = 0; i < __relatedProtocols.length; i++) {
-      IProtocolPool(protocolsMapping[__relatedProtocols[i]].deployed).addClaim(
-        __newClaim
-      );
+      IProtocolPool(protocolsMapping[__relatedProtocols[i]].deployed)
+        .processClaim(_protocolId, ratio);
     }
   }
 
@@ -210,6 +213,7 @@ contract Athena is ReentrancyGuard, Ownable {
     );
   }
 
+  //TODO: call releaseFunds fct in __protocolId and add claim to __relatedProtocols
   function resolveClaim(
     uint256 _policyId,
     uint256 _amount,
@@ -228,30 +232,30 @@ contract Athena is ReentrancyGuard, Ownable {
     console.log("Account confirm : ", _accountConfirm);
     require(_account == _accountConfirm, "Wrong account");
     protocolsMapping[__protocolId].claimsOngoing -= 1;
+    //TODO: we don't need this condition here, we need to check before the vote
     if (_amount > 0) {
       //calcul claim for all protocols
       IProtocolPool __protocolPool = IProtocolPool(
         protocolsMapping[__protocolId].deployed
       );
 
-      ClaimCover.Claim memory __newClaim = __protocolPool.buildClaim(_amount);
-      uint128[] memory __relatedProtocols = __protocolPool
-        .getRelatedProtocols();
+      //   ClaimCover.Claim memory __newClaim = __protocolPool.buildClaim(_amount);
+      //   uint128[] memory __relatedProtocols = __protocolPool
+      //     .getRelatedProtocols();
 
-      for (uint256 i = 0; i < __relatedProtocols.length; i++) {
-        IProtocolPool(protocolsMapping[__relatedProtocols[i]].deployed)
-          .addClaim(__newClaim);
-      }
+      //   for (uint256 i = 0; i < __relatedProtocols.length; i++) {
+      //     IProtocolPool(protocolsMapping[__relatedProtocols[i]].deployed)
+      //       .addClaim(__newClaim);
+      //   }
 
-      //transfer token
-      IProtocolPool(protocolsMapping[__protocolId].deployed).releaseFunds(
-        _account,
-        _amount
-      );
+      //   //transfer token
+      //   IProtocolPool(protocolsMapping[__protocolId].deployed).releaseFunds(
+      //     _account,
+      //     _amount
+      //   );
     }
   }
 
-  //Thao@TODO: il faut add relatedProtocol
   function deposit(
     uint256 amount,
     uint256 atenToStake,
@@ -281,8 +285,6 @@ contract Athena is ReentrancyGuard, Ownable {
           "Protocol not compatible"
         );
 
-        //Thao@NOTE: _amount est 100% de déposit
-        //Thao@TODO: need to check amounts[index?]
         IProtocolPool(protocolsMapping[_protocolIds[index]].deployed)
           .addRelatedProtocol(_protocolIds[index2], amount);
 
@@ -294,7 +296,6 @@ contract Athena is ReentrancyGuard, Ownable {
         amount
       );
 
-      //Thao@NOTE: mint can addRelatedProtocol too
       IProtocolPool(protocolsMapping[_protocolIds[index]].deployed)
         .addRelatedProtocol(_protocolIds[index], amount);
     }
@@ -395,7 +396,13 @@ contract Athena is ReentrancyGuard, Ownable {
 
       uint256 _maxCapital = IProtocolPool(
         protocolsMapping[_protocolIds[index]].deployed
-      ).withdrawLiquidity(msg.sender, _amount, _discount, createdAt);
+      ).withdrawLiquidity(
+          msg.sender,
+          _amount,
+          _protocolIds,
+          _discount,
+          createdAt
+        );
 
       if (_maxCapital < _amount) __claimedAmount += _amount - _maxCapital;
     }

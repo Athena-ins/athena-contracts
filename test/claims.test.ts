@@ -114,7 +114,7 @@ describe("Claims", () => {
     });
 
     it("Should add claim in Protocol 2", async () => {
-      await ProtocolHelper.claim(owner, 2, "182500", 1 * 24 * 60 * 60);
+      await ProtocolHelper.claim(policyTaker1, 2, "182500", 1 * 24 * 60 * 60);
 
       const protocolPool0 = await ProtocolHelper.getProtocolPoolContract(
         owner,
@@ -123,8 +123,10 @@ describe("Claims", () => {
       const claim = await protocolPool0.claims(0);
 
       expect(claim.fromProtocolId).to.be.equal(2);
-      expect(claim.amount).to.be.equal("182500");
       expect(claim.ratio).to.be.equal("250000000000000000000000000");
+      expect(claim.liquidityIndexBeforeClaim).to.be.equal(
+        "131506849315068493150684"
+      );
       expect(claim.createdAt).to.be.equal(HardhatHelper.getCurrentTime());
     });
 
@@ -204,7 +206,7 @@ describe("Claims", () => {
       expect(availableCapital).to.be.equal("547500");
     });
 
-    it("Should check totalSupplyRealBefore, availableCapitalBefore, currentPremiumSpentBefore and cumulatedPremiumSpentBefore", async () => {
+    it("Should check added claim in protocol 0", async () => {
       const protocolPool0 = await ProtocolHelper.getProtocolPoolContract(
         owner,
         0
@@ -212,8 +214,10 @@ describe("Claims", () => {
       const claim = await protocolPool0.claims(0);
 
       expect(claim.fromProtocolId).to.be.equal(2);
-      expect(claim.amount).to.be.equal("182500");
       expect(claim.ratio).to.be.equal("250000000000000000000000000");
+      expect(claim.liquidityIndexBeforeClaim).to.be.equal(
+        "131506849315068493150684"
+      );
       expect(claim.createdAt).to.be.equal(
         HardhatHelper.getCurrentTime() - 1 * 24 * 60 * 60
       );
