@@ -10,7 +10,6 @@ abstract contract ClaimCover is LiquidityCover {
     uint128 fromProtocolId;
     uint256 ratio; // Ray //ratio = claimAmount / capital
     uint256 liquidityIndexBeforeClaim;
-    uint256 createdAt;
   }
 
   Claim[] public claims;

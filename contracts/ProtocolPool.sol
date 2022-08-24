@@ -188,8 +188,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     address _account,
     uint256 _userCapital,
     uint128[] calldata _protocolIds,
-    uint128 _discount,
-    uint256 _accountTimestamp //Thao@WARN: don't need this arg
+    uint128 _discount
   ) external override onlyCore returns (uint256 totalRewards) {
     require(
       withdrawReserves[_account] != 0 &&
@@ -261,9 +260,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
       intersectingAmountIndexes[_fromProtocolId]
     ] -= __amountToRemoveByClaim;
 
-    claims.push(
-      Claim(_fromProtocolId, _ratio, liquidityIndex, block.timestamp)
-    );
+    claims.push(Claim(_fromProtocolId, _ratio, liquidityIndex));
   }
 
   //somethings missing  or not???

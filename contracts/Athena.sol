@@ -175,8 +175,9 @@ contract Athena is ReentrancyGuard, Ownable {
     uint128[] memory __relatedProtocols = __protocolPool.getRelatedProtocols();
 
     for (uint256 i = 0; i < __relatedProtocols.length; i++) {
-      IProtocolPool(protocolsMapping[__relatedProtocols[i]].deployed)
-        .processClaim(_protocolId, ratio);
+      if (__relatedProtocols[i] != _protocolId)
+        IProtocolPool(protocolsMapping[__relatedProtocols[i]].deployed)
+          .processClaim(_protocolId, ratio);
     }
   }
 
@@ -352,10 +353,10 @@ contract Athena is ReentrancyGuard, Ownable {
       uint128[] memory protocolIds,
       uint256 atokens,
       uint128 discount,
-      uint256 createdAt
+
     ) = IPositionsManager(positionsManager).positions(_tokenId);
     // amounts[0] = uint256(0);
-    _withdraw(liquidity, protocolIds, atokens, discount, createdAt);
+    _withdraw(liquidity, protocolIds, atokens, discount);
     for (uint256 index = 0; index < protocolIds.length; index++) {
       IProtocolPool(protocolsMapping[protocolIds[index]].deployed)
         .removeCommittedWithdrawLiquidity(msg.sender);
@@ -372,15 +373,14 @@ contract Athena is ReentrancyGuard, Ownable {
       IPositionsManager(positionsManager).balanceOf(msg.sender) > 0,
       "No position to withdraw"
     );
-    _withdraw(_amount, _protocolIds, _atokens, 0, 0);
+    _withdraw(_amount, _protocolIds, _atokens, 0);
   }
 
   function _withdraw(
     uint256 _amount,
     uint128[] memory _protocolIds,
     uint256 _atokens,
-    uint128 _discount,
-    uint256 createdAt
+    uint128 _discount
   ) internal {
     // uint256 amount = IPositionsManager(positionsManager).balanceOf(msg.sender);
     uint256 __claimedAmount;
@@ -396,13 +396,7 @@ contract Athena is ReentrancyGuard, Ownable {
 
       uint256 _maxCapital = IProtocolPool(
         protocolsMapping[_protocolIds[index]].deployed
-      ).withdrawLiquidity(
-          msg.sender,
-          _amount,
-          _protocolIds,
-          _discount,
-          createdAt
-        );
+      ).withdrawLiquidity(msg.sender, _amount, _protocolIds, _discount);
 
       if (_maxCapital < _amount) __claimedAmount += _amount - _maxCapital;
     }

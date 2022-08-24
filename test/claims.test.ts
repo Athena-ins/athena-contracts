@@ -127,7 +127,6 @@ describe("Claims", () => {
       expect(claim.liquidityIndexBeforeClaim).to.be.equal(
         "131506849315068493150684"
       );
-      expect(claim.createdAt).to.be.equal(HardhatHelper.getCurrentTime());
     });
 
     it("Should check slot0 in Protocol 0 at the moment of adding claim in Protocol 2", async () => {
@@ -217,9 +216,6 @@ describe("Claims", () => {
       expect(claim.ratio).to.be.equal("250000000000000000000000000");
       expect(claim.liquidityIndexBeforeClaim).to.be.equal(
         "131506849315068493150684"
-      );
-      expect(claim.createdAt).to.be.equal(
-        HardhatHelper.getCurrentTime() - 1 * 24 * 60 * 60
       );
     });
   });
