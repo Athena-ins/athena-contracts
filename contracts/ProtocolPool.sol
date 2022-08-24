@@ -88,6 +88,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
 
   function mint(address _account, uint256 _amount) external onlyCore {
     _actualizing();
+    LPsInfo[_account] = LPInfo(liquidityIndex, claims.length);
     _mintLiquidity(_account, _amount);
     emit Mint(_account, _amount);
   }
@@ -118,10 +119,10 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     uint128[] calldata _protocolIds,
     uint256 _dateInSecond
   ) public view returns (uint256 __finalUserCapital, uint256 __totalRewards) {
-    __finalUserCapital = _userCapital;
     LPInfo memory lpInfo = LPsInfo[_account];
     Claim[] memory __claims = _claims(lpInfo.beginClaimIndex);
 
+    __finalUserCapital = _userCapital;
     for (uint256 i = 0; i < __claims.length; i++) {
       Claim memory __claim = __claims[i];
 
@@ -144,23 +145,25 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
       lpInfo.beginLiquidityIndex = __claim.liquidityIndexBeforeClaim;
     }
 
+    uint256 __liquidityIndex = liquidityIndex;
+
     __totalRewards += __finalUserCapital.rayMul(
-      liquidityIndex - lpInfo.beginLiquidityIndex
+      __liquidityIndex - lpInfo.beginLiquidityIndex
     );
 
-    lpInfo.beginLiquidityIndex = liquidityIndex;
+    lpInfo.beginLiquidityIndex = __liquidityIndex;
 
     if (slot0.remainingPolicies > 0) {
-      (, uint256 __liquidityIndex) = _actualizingUntil(_dateInSecond);
+      (, __liquidityIndex) = _actualizingUntil(_dateInSecond);
 
       __totalRewards += __finalUserCapital.rayMul(
         __liquidityIndex - lpInfo.beginLiquidityIndex
       );
 
-      lpInfo.beginLiquidityIndex = __liquidityIndex;
+      // lpInfo.beginLiquidityIndex = __liquidityIndex;
     }
 
-    lpInfo.beginClaimIndex += __claims.length;
+    // lpInfo.beginClaimIndex += __claims.length;
   }
 
   //Thao@TODO: need to test

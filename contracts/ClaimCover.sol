@@ -19,7 +19,7 @@ abstract contract ClaimCover is LiquidityCover {
     uint256 __length = claims.length;
     if (__length == beginIndex) return new Claim[](0);
 
-    __length = claims.length - beginIndex;
+    __length = __length - beginIndex;
     Claim[] memory __claims = new Claim[](__length);
     for (uint256 i = 0; i < __length; i++) {
       __claims[i] = claims[beginIndex + i];
