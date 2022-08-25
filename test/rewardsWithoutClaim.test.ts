@@ -256,6 +256,74 @@ describe("Liquidity provider rewards", () => {
         [0, 1],
         1 * 24 * 60 * 60
       );
+
+      //PT1: UR = 30%; PR = 3%; ER = 9, (PT1 -> 9)
+      //10 days => LP1 <- 9 * 10 = 90; PT1 <- 2190 - 90 = 2100
+      //PT2: UR = 60%; PR = 5%; ER = 30, (PT1 -> 15; PT2 -> 15)
+      //1 day => LP1 <- 30 + 90 = 120; PT1 <- 2100 - 15 = 2085; PT2 <- 4380 - 15 = 4365
+      //LP2: UR = 30%; PR = 3%; ER = 18 (PT1 -> 9; PT2 -> 9)
+    });
+
+    it("Should check policy1 initial info", async () => {
+      const protocolContract = await ProtocolHelper.getProtocolPoolContract(
+        policyTaker1,
+        0
+      );
+      const policyInfo = await protocolContract.premiumPositions(
+        await policyTaker1.getAddress()
+      );
+
+      expect(policyInfo.capitalInsured).to.be.equal("109500");
+      expect(policyInfo.beginPremiumRate).to.be.equal(
+        "3000000000000000000000000000"
+      );
+      expect(policyInfo.ownerIndex).to.be.equal("0");
+      expect(policyInfo.lastTick).to.be.equal(730);
+    });
+
+    it("Should get policy1 remaning info", async () => {
+      const protocolContract = await ProtocolHelper.getProtocolPoolContract(
+        policyTaker1,
+        0
+      );
+
+      const response = await protocolContract.getInfo(
+        await policyTaker1.getAddress()
+      );
+
+      expect(response.__remainingPremium).to.be.equal(2085);
+      expect(response.__remainingDay).to.be.equal(231);
+    });
+
+    it("Should check policy2 initial info", async () => {
+      const protocolContract = await ProtocolHelper.getProtocolPoolContract(
+        policyTaker2,
+        0
+      );
+      const policyInfo = await protocolContract.premiumPositions(
+        await policyTaker2.getAddress()
+      );
+
+      expect(policyInfo.capitalInsured).to.be.equal("109500");
+      expect(policyInfo.beginPremiumRate).to.be.equal(
+        "5000000000000000000000000000"
+      );
+      expect(policyInfo.ownerIndex).to.be.equal("0");
+      expect(policyInfo.lastTick).to.be.equal(1490);
+    });
+
+    it("Should get policy2 remaning info", async () => {
+      const protocolContract = await ProtocolHelper.getProtocolPoolContract(
+        policyTaker1,
+        0
+      );
+
+      const response = await protocolContract.getInfo(
+        await policyTaker2.getAddress()
+      );
+
+      expect(response.__remainingPremium).to.be.equal(4365);
+      expect(response.__remainingDay).to.be.equal(611);
     });
 
     it("Should check LP1's info", async () => {
@@ -280,124 +348,304 @@ describe("Liquidity provider rewards", () => {
       expect(lpInfo.beginClaimIndex).to.be.equal(0);
     });
 
-    let days = 1;
+    describe("rewards after 1 days", async () => {
+      const days = 1;
 
-    it(`Should call _rewardsOf for LP1 after ${days} days of LP2 deposit`, async () => {
-      days = 1;
+      it(`Should call _rewardsOf for LP1`, async () => {
+        let protocolPool0 = await ProtocolHelper.getProtocolPoolContract(
+          owner,
+          0
+        );
 
-      let protocolPool0 = await ProtocolHelper.getProtocolPoolContract(
-        owner,
-        0
-      );
+        let result = await protocolPool0._rewardsOf(
+          await liquidityProvider1.getAddress(),
+          365000,
+          [0, 2],
+          HardhatHelper.getCurrentTime() + days * 24 * 60 * 60
+        );
 
-      let result = await protocolPool0._rewardsOf(
-        await liquidityProvider1.getAddress(),
-        365000,
-        [0, 2],
-        HardhatHelper.getCurrentTime() + days * 24 * 60 * 60
-      );
+        expect(result.__finalUserCapital).to.be.equal(365000);
+        expect(result.__totalRewards).to.be.equal(90 + 30 + 9 * days);
+      });
 
-      expect(result.__finalUserCapital).to.be.equal(365000);
-      expect(result.__totalRewards).to.be.equal(90 + 30 + 9 * days);
+      it(`Should call _rewardsOf for LP2`, async () => {
+        let protocolPool0 = await ProtocolHelper.getProtocolPoolContract(
+          owner,
+          0
+        );
+
+        let result = await protocolPool0._rewardsOf(
+          await liquidityProvider2.getAddress(),
+          365000,
+          [0, 1],
+          HardhatHelper.getCurrentTime() + days * 24 * 60 * 60
+        );
+
+        expect(result.__finalUserCapital).to.be.equal(365000);
+        expect(result.__totalRewards).to.be.equal(9 * days);
+      });
     });
 
-    it(`Should call _rewardsOf for LP2 after ${days} days of LP2 deposit`, async () => {
-      days = 1;
+    describe("rewards after 2 days", async () => {
+      const days = 2;
 
-      let protocolPool0 = await ProtocolHelper.getProtocolPoolContract(
-        owner,
-        0
-      );
+      it(`Should call _rewardsOf for LP1`, async () => {
+        let protocolPool0 = await ProtocolHelper.getProtocolPoolContract(
+          owner,
+          0
+        );
 
-      let result = await protocolPool0._rewardsOf(
-        await liquidityProvider2.getAddress(),
-        365000,
-        [0, 1],
-        HardhatHelper.getCurrentTime() + days * 24 * 60 * 60
-      );
+        let result = await protocolPool0._rewardsOf(
+          await liquidityProvider1.getAddress(),
+          365000,
+          [0, 2],
+          HardhatHelper.getCurrentTime() + days * 24 * 60 * 60
+        );
 
-      expect(result.__finalUserCapital).to.be.equal(365000);
-      expect(result.__totalRewards).to.be.equal(9 * days);
+        expect(result.__finalUserCapital).to.be.equal(365000);
+        expect(result.__totalRewards).to.be.equal(90 + 30 + 9 * days);
+      });
+
+      it(`Should call _rewardsOf for LP2`, async () => {
+        let protocolPool0 = await ProtocolHelper.getProtocolPoolContract(
+          owner,
+          0
+        );
+
+        let result = await protocolPool0._rewardsOf(
+          await liquidityProvider2.getAddress(),
+          365000,
+          [0, 1],
+          HardhatHelper.getCurrentTime() + days * 24 * 60 * 60
+        );
+
+        expect(result.__finalUserCapital).to.be.equal(365000);
+        expect(result.__totalRewards).to.be.equal(9 * days);
+      });
     });
 
-    days = 2;
+    describe("rewards after 10 days", async () => {
+      const days = 10;
 
-    it(`Should call _rewardsOf for LP1 after ${days} days of LP2 deposit`, async () => {
-      days = 2;
+      it(`Should call _rewardsOf for LP1`, async () => {
+        let protocolPool0 = await ProtocolHelper.getProtocolPoolContract(
+          owner,
+          0
+        );
 
-      let protocolPool0 = await ProtocolHelper.getProtocolPoolContract(
-        owner,
-        0
-      );
+        let result = await protocolPool0._rewardsOf(
+          await liquidityProvider1.getAddress(),
+          365000,
+          [0, 2],
+          HardhatHelper.getCurrentTime() + days * 24 * 60 * 60
+        );
 
-      let result = await protocolPool0._rewardsOf(
-        await liquidityProvider1.getAddress(),
-        365000,
-        [0, 2],
-        HardhatHelper.getCurrentTime() + days * 24 * 60 * 60
-      );
+        expect(result.__finalUserCapital).to.be.equal(365000);
+        expect(result.__totalRewards).to.be.equal(90 + 30 + 9 * days);
+      });
 
-      expect(result.__finalUserCapital).to.be.equal(365000);
-      expect(result.__totalRewards).to.be.equal(90 + 30 + 9 * days);
+      it(`Should call _rewardsOf for LP2`, async () => {
+        let protocolPool0 = await ProtocolHelper.getProtocolPoolContract(
+          owner,
+          0
+        );
+
+        let result = await protocolPool0._rewardsOf(
+          await liquidityProvider2.getAddress(),
+          365000,
+          [0, 1],
+          HardhatHelper.getCurrentTime() + days * 24 * 60 * 60
+        );
+
+        expect(result.__finalUserCapital).to.be.equal(365000);
+        expect(result.__totalRewards).to.be.equal(9 * days);
+      });
     });
 
-    it(`Should call _rewardsOf for LP2 after ${days} days of LP2 deposit`, async () => {
-      days = 2;
+    describe("rewards after 122 days", async () => {
+      const days = 122;
 
-      let protocolPool0 = await ProtocolHelper.getProtocolPoolContract(
-        owner,
-        0
-      );
+      it(`Should call _rewardsOf for LP1`, async () => {
+        let protocolPool0 = await ProtocolHelper.getProtocolPoolContract(
+          owner,
+          0
+        );
 
-      let result = await protocolPool0._rewardsOf(
-        await liquidityProvider2.getAddress(),
-        365000,
-        [0, 1],
-        HardhatHelper.getCurrentTime() + days * 24 * 60 * 60
-      );
+        let result = await protocolPool0._rewardsOf(
+          await liquidityProvider1.getAddress(),
+          365000,
+          [0, 2],
+          HardhatHelper.getCurrentTime() + days * 24 * 60 * 60
+        );
 
-      expect(result.__finalUserCapital).to.be.equal(365000);
-      expect(result.__totalRewards).to.be.equal(9 * days);
+        expect(result.__finalUserCapital).to.be.equal(365000);
+        expect(result.__totalRewards).to.be.equal(90 + 30 + 9 * days);
+      });
+
+      it(`Should call _rewardsOf for LP2`, async () => {
+        let protocolPool0 = await ProtocolHelper.getProtocolPoolContract(
+          owner,
+          0
+        );
+
+        let result = await protocolPool0._rewardsOf(
+          await liquidityProvider2.getAddress(),
+          365000,
+          [0, 1],
+          HardhatHelper.getCurrentTime() + days * 24 * 60 * 60
+        );
+
+        expect(result.__finalUserCapital).to.be.equal(365000);
+        expect(result.__totalRewards).to.be.equal(9 * days);
+      });
     });
 
-    days = 10;
+    describe("rewards after 611 days (the expired day of the last policy)", async () => {
+      const days = 611;
+      it(`Should call _rewardsOf for LP1`, async () => {
+        let protocolPool0 = await ProtocolHelper.getProtocolPoolContract(
+          owner,
+          0
+        );
 
-    it(`Should call _rewardsOf for LP1 after ${days} days of LP2 deposit`, async () => {
-      days = 10;
+        let result = await protocolPool0._rewardsOf(
+          await liquidityProvider1.getAddress(),
+          365000,
+          [0, 2],
+          HardhatHelper.getCurrentTime() + days * 24 * 60 * 60
+        );
 
-      let protocolPool0 = await ProtocolHelper.getProtocolPoolContract(
-        owner,
-        0
-      );
+        expect(result.__finalUserCapital).to.be.equal(365000);
+        expect(result.__totalRewards).to.be.equal(90 + 30 + 3223);
+      });
 
-      let result = await protocolPool0._rewardsOf(
-        await liquidityProvider1.getAddress(),
-        365000,
-        [0, 2],
-        HardhatHelper.getCurrentTime() + days * 24 * 60 * 60
-      );
+      it(`Should call _rewardsOf for LP2`, async () => {
+        let protocolPool0 = await ProtocolHelper.getProtocolPoolContract(
+          owner,
+          0
+        );
 
-      expect(result.__finalUserCapital).to.be.equal(365000);
-      expect(result.__totalRewards).to.be.equal(90 + 30 + 9 * days);
+        let result = await protocolPool0._rewardsOf(
+          await liquidityProvider2.getAddress(),
+          365000,
+          [0, 1],
+          HardhatHelper.getCurrentTime() + days * 24 * 60 * 60
+        );
+
+        expect(result.__finalUserCapital).to.be.equal(365000);
+        expect(result.__totalRewards).to.be.equal(3223);
+      });
     });
 
-    it(`Should call _rewardsOf for LP2 after ${days} days of LP2 deposit`, async () => {
-      days = 10;
+    describe("rewards after 612 days (after 1 day of all policies expired)", async () => {
+      const days = 612;
+      it(`Should call _rewardsOf for LP1`, async () => {
+        let protocolPool0 = await ProtocolHelper.getProtocolPoolContract(
+          owner,
+          0
+        );
 
-      let protocolPool0 = await ProtocolHelper.getProtocolPoolContract(
-        owner,
-        0
-      );
+        let result = await protocolPool0._rewardsOf(
+          await liquidityProvider1.getAddress(),
+          365000,
+          [0, 2],
+          HardhatHelper.getCurrentTime() + days * 24 * 60 * 60
+        );
 
-      let result = await protocolPool0._rewardsOf(
-        await liquidityProvider2.getAddress(),
-        365000,
-        [0, 1],
-        HardhatHelper.getCurrentTime() + days * 24 * 60 * 60
-      );
+        expect(result.__finalUserCapital).to.be.equal(365000);
+        expect(result.__totalRewards).to.be.equal(90 + 30 + 3225);
+      });
 
-      expect(result.__finalUserCapital).to.be.equal(365000);
-      expect(result.__totalRewards).to.be.equal(9 * days);
+      it(`Should call _rewardsOf for LP2`, async () => {
+        let protocolPool0 = await ProtocolHelper.getProtocolPoolContract(
+          owner,
+          0
+        );
+
+        let result = await protocolPool0._rewardsOf(
+          await liquidityProvider2.getAddress(),
+          365000,
+          [0, 1],
+          HardhatHelper.getCurrentTime() + days * 24 * 60 * 60
+        );
+
+        expect(result.__finalUserCapital).to.be.equal(365000);
+        expect(result.__totalRewards).to.be.equal(3225);
+      });
+    });
+
+    describe("rewards after 613 days (after 2 days of all policies expired)", async () => {
+      const days = 613;
+      it(`Should call _rewardsOf for LP1`, async () => {
+        let protocolPool0 = await ProtocolHelper.getProtocolPoolContract(
+          owner,
+          0
+        );
+
+        let result = await protocolPool0._rewardsOf(
+          await liquidityProvider1.getAddress(),
+          365000,
+          [0, 2],
+          HardhatHelper.getCurrentTime() + days * 24 * 60 * 60
+        );
+
+        expect(result.__finalUserCapital).to.be.equal(365000);
+        expect(result.__totalRewards).to.be.equal(90 + 30 + 3225);
+      });
+
+      it(`Should call _rewardsOf for LP2`, async () => {
+        let protocolPool0 = await ProtocolHelper.getProtocolPoolContract(
+          owner,
+          0
+        );
+
+        let result = await protocolPool0._rewardsOf(
+          await liquidityProvider2.getAddress(),
+          365000,
+          [0, 1],
+          HardhatHelper.getCurrentTime() + days * 24 * 60 * 60
+        );
+
+        expect(result.__finalUserCapital).to.be.equal(365000);
+        expect(result.__totalRewards).to.be.equal(3225);
+      });
+    });
+
+    describe("rewards after 1000 days (after 389 days of all policies expired)", async () => {
+      const days = 1000;
+      it(`Should call _rewardsOf for LP1`, async () => {
+        let protocolPool0 = await ProtocolHelper.getProtocolPoolContract(
+          owner,
+          0
+        );
+
+        let result = await protocolPool0._rewardsOf(
+          await liquidityProvider1.getAddress(),
+          365000,
+          [0, 2],
+          HardhatHelper.getCurrentTime() + days * 24 * 60 * 60
+        );
+
+        expect(result.__finalUserCapital).to.be.equal(365000);
+        expect(result.__totalRewards).to.be.equal(90 + 30 + 3225);
+      });
+
+      it(`Should call _rewardsOf for LP2`, async () => {
+        let protocolPool0 = await ProtocolHelper.getProtocolPoolContract(
+          owner,
+          0
+        );
+
+        let result = await protocolPool0._rewardsOf(
+          await liquidityProvider2.getAddress(),
+          365000,
+          [0, 1],
+          HardhatHelper.getCurrentTime() + days * 24 * 60 * 60
+        );
+
+        expect(result.__finalUserCapital).to.be.equal(365000);
+        expect(result.__totalRewards).to.be.equal(3225);
+      });
     });
   });
 });

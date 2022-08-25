@@ -88,8 +88,12 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
 
   function mint(address _account, uint256 _amount) external onlyCore {
     _actualizing();
+
+    _updateSlot0WhenAvailableCapitalChange(_amount, 0);
+    availableCapital += _amount;
+    _mint(_account, _amount);
     LPsInfo[_account] = LPInfo(liquidityIndex, claims.length);
-    _mintLiquidity(_account, _amount);
+
     emit Mint(_account, _amount);
   }
 
@@ -100,6 +104,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
   ) external onlyCore notExistedOwner(_owner) {
     _actualizing();
     _buyPolicy(_owner, _premium, _insuredCapital);
+
     emit BuyPolicy(_owner, _premium, _insuredCapital);
   }
 
@@ -110,6 +115,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
   {
     _actualizing();
     uint256 __remainedPremium = _withdrawPolicy(_owner);
+
     emit WithdrawPolicy(_owner, __remainedPremium);
   }
 
@@ -224,7 +230,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
       _transferToTreasury((uint256(__totalRewards) * _discount) / 1000);
     }
 
-    _updateSlot0WhenRemoveAmountFromAvailableCapital(__finalUserCapital);
+    _updateSlot0WhenAvailableCapitalChange(0, __finalUserCapital);
 
     availableCapital -= __finalUserCapital;
 
@@ -251,15 +257,11 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
       _intersectingAmount(_fromProtocolId),
       _ratio
     );
-
-    _updateSlot0WhenRemoveAmountFromAvailableCapital(__amountToRemoveByClaim);
-
+    _updateSlot0WhenAvailableCapitalChange(0, __amountToRemoveByClaim);
     availableCapital -= __amountToRemoveByClaim;
-
     intersectingAmounts[
       intersectingAmountIndexes[_fromProtocolId]
     ] -= __amountToRemoveByClaim;
-
     claims.push(Claim(_fromProtocolId, _ratio, liquidityIndex));
   }
 
@@ -278,6 +280,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     console.log("Balance Contract = ", bal);
     console.log("Account to transfer = ", _account);
     // IERC20(underlyingAsset).safeTransfer(_account, _amount);
+    //TODO: event
   }
 
   //Thao@NOTE: for testing

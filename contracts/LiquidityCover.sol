@@ -51,9 +51,4 @@ abstract contract LiquidityCover is ERC20 {
       ((_totalInsuredCapital + _insuredCapitalToAdd - _insuredCapitalToRemove) *
         100).rayDiv(_availableCapital);
   }
-
-  function _mintLiquidity(address _account, uint256 _amount) internal {
-    _mint(_account, _amount);
-    availableCapital += _amount;
-  }
 }

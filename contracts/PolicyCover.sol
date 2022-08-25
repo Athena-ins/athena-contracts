@@ -153,15 +153,16 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
     _slot0.remainingPolicies -= __policiesToRemove;
   }
 
-  function _updateSlot0WhenRemoveAmountFromAvailableCapital(
-    uint256 _amountToRemoveByClaim
+  function _updateSlot0WhenAvailableCapitalChange(
+    uint256 _amountToAdd,
+    uint256 _amountToRemove
   ) internal {
     uint256 __newPremiumRate = getPremiumRate(
       _utilisationRate(
         0,
         0,
         slot0.totalInsuredCapital,
-        availableCapital - _amountToRemoveByClaim
+        availableCapital + _amountToAdd - _amountToRemove
       )
     );
 
@@ -299,8 +300,6 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
       )
     );
 
-    uint256 __oldPremiumRate = slot0.premiumRate;
-
     uint256 __durationInSeconds = durationSecondsUnit(
       _premium,
       _insuredCapital,
@@ -309,7 +308,7 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
 
     uint256 __newSecondsPerTick = getSecondsPerTick(
       slot0.secondsPerTick,
-      __oldPremiumRate,
+      slot0.premiumRate,
       __newPremiumRate
     );
 

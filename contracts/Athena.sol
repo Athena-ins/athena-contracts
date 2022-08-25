@@ -266,16 +266,19 @@ contract Athena is ReentrancyGuard, Ownable {
       IPositionsManager(positionsManager).balanceOf(msg.sender) == 0,
       "Already have a position"
     );
+
     for (uint256 index = 0; index < _protocolIds.length; index++) {
-      require(
-        protocolsMapping[_protocolIds[index]].active == true,
-        "Protocol not active"
-      );
+      Protocol memory protocol1 = protocolsMapping[_protocolIds[index]];
+      IProtocolPool protocolPool1 = IProtocolPool(protocol1.deployed);
+
+      require(protocol1.active == true, "Protocol not active");
+
       for (uint256 index2 = index + 1; index2 < _protocolIds.length; index2++) {
         require(
           _protocolIds[index] != _protocolIds[index2],
           "Cannot deposit twice on same protocol"
         );
+
         require(
           incompatibilityProtocols[_protocolIds[index2]][_protocolIds[index]] ==
             false &&
@@ -286,19 +289,14 @@ contract Athena is ReentrancyGuard, Ownable {
           "Protocol not compatible"
         );
 
-        IProtocolPool(protocolsMapping[_protocolIds[index]].deployed)
-          .addRelatedProtocol(_protocolIds[index2], amount);
+        protocolPool1.addRelatedProtocol(_protocolIds[index2], amount);
 
         IProtocolPool(protocolsMapping[_protocolIds[index2]].deployed)
           .addRelatedProtocol(_protocolIds[index], amount);
       }
-      IProtocolPool(protocolsMapping[_protocolIds[index]].deployed).mint(
-        msg.sender,
-        amount
-      );
 
-      IProtocolPool(protocolsMapping[_protocolIds[index]].deployed)
-        .addRelatedProtocol(_protocolIds[index], amount);
+      protocolPool1.mint(msg.sender, amount);
+      protocolPool1.addRelatedProtocol(_protocolIds[index], amount);
     }
 
     uint256 _atokens = _transferLiquidity(amount);
