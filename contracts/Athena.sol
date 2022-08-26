@@ -167,6 +167,7 @@ contract Athena is ReentrancyGuard, Ownable {
     address _account,
     uint256 _amount
   ) public nonReentrant {
+    //Thao@TODO: avant de ajouter claim, il faut vérifier dans protocolId s'il account existe
     IProtocolPool __protocolPool = IProtocolPool(
       protocolsMapping[_protocolId].deployed
     );
@@ -214,17 +215,18 @@ contract Athena is ReentrancyGuard, Ownable {
     );
   }
 
+  modifier onlyClaimManager() {
+    require(msg.sender == claimManager, "Only Claim Manager");
+    _;
+  }
+
   //TODO: call releaseFunds fct in __protocolId and add claim to __relatedProtocols
   function resolveClaim(
     uint256 _policyId,
     uint256 _amount,
     address _account,
     uint256 _index
-  ) external {
-    require(
-      msg.sender == claimManager,
-      "Only Claim Manager can resolve claims"
-    );
+  ) external onlyClaimManager {
     (, uint128 __protocolId, address _accountConfirm) = IPolicyManager(
       policyManager
     ).policies(_policyId);

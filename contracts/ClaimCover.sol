@@ -14,6 +14,11 @@ abstract contract ClaimCover is LiquidityCover {
 
   Claim[] public claims;
 
+  //Thao@TODO: for testing
+  function claimsCount() public view returns (uint256) {
+    return claims.length;
+  }
+
   function _claims(uint256 beginIndex) internal view returns (Claim[] memory) {
     uint256 __length = claims.length;
     if (__length == beginIndex) return new Claim[](0);

@@ -10,6 +10,7 @@ chai.use(chaiAsPromised);
 let owner: ethers.Signer;
 let liquidityProvider1: ethers.Signer;
 let liquidityProvider2: ethers.Signer;
+let liquidityProvider3: ethers.Signer;
 let policyTaker1: ethers.Signer;
 let policyTaker2: ethers.Signer;
 let policyTaker3: ethers.Signer;
@@ -21,6 +22,7 @@ describe("Claims", () => {
     owner = allSigners[0];
     liquidityProvider1 = allSigners[1];
     liquidityProvider2 = allSigners[2];
+    liquidityProvider3 = allSigners[3];
     policyTaker1 = allSigners[100];
     policyTaker2 = allSigners[101];
     policyTaker3 = allSigners[102];
@@ -29,6 +31,7 @@ describe("Claims", () => {
     await ProtocolHelper.addNewProtocolPool("Test protocol 0");
     await ProtocolHelper.addNewProtocolPool("Test protocol 1");
     await ProtocolHelper.addNewProtocolPool("Test protocol 2");
+    await ProtocolHelper.addNewProtocolPool("Test protocol 3");
 
     const USDT_amount1 = "400000";
     const ATEN_amount1 = "100000";
@@ -47,6 +50,16 @@ describe("Claims", () => {
       USDT_amount2,
       ATEN_amount2,
       [0, 1, 2],
+      1 * 24 * 60 * 60
+    );
+
+    const USDT_amount3 = "365000";
+    const ATEN_amount3 = "9000000";
+    await ProtocolHelper.deposit(
+      liquidityProvider3,
+      USDT_amount3,
+      ATEN_amount3,
+      [1, 3],
       1 * 24 * 60 * 60
     );
 
@@ -127,6 +140,46 @@ describe("Claims", () => {
       expect(claim.liquidityIndexBeforeClaim).to.be.equal(
         "131506849315068493150684"
       );
+    });
+
+    it("Should check number of claim in protocol 0", async () => {
+      const protocolContract = await ProtocolHelper.getProtocolPoolContract(
+        policyTaker2,
+        0
+      );
+
+      const length = await protocolContract.claimsCount();
+      expect(length).to.be.equal(1);
+    });
+
+    it("Should check number of claim in protocol 1", async () => {
+      const protocolContract = await ProtocolHelper.getProtocolPoolContract(
+        policyTaker2,
+        1
+      );
+
+      const length = await protocolContract.claimsCount();
+      expect(length).to.be.equal(1);
+    });
+
+    it("Should check number of claim in protocol 2", async () => {
+      const protocolContract = await ProtocolHelper.getProtocolPoolContract(
+        policyTaker2,
+        2
+      );
+
+      const length = await protocolContract.claimsCount();
+      expect(length).to.be.equal(1);
+    });
+
+    it("Should check number of claim in protocol 3", async () => {
+      const protocolContract = await ProtocolHelper.getProtocolPoolContract(
+        policyTaker2,
+        3
+      );
+
+      const length = await protocolContract.claimsCount();
+      expect(length).to.be.equal(0);
     });
 
     it("Should check slot0 in Protocol 0 at the moment of adding claim in Protocol 2", async () => {
@@ -217,6 +270,21 @@ describe("Claims", () => {
       expect(claim.liquidityIndexBeforeClaim).to.be.equal(
         "131506849315068493150684"
       );
+    });
+
+    //TODO: check claim is the same in protocols
+    it("Should add claim in protocol 3", async () => {
+      await ProtocolHelper.claim(policyTaker1, 3, "182500", 1 * 24 * 60 * 60);
+
+      const protocolPool1 = await ProtocolHelper.getProtocolPoolContract(
+        owner,
+        1
+      );
+      const claim = await protocolPool1.claims(1);
+
+      expect(claim.fromProtocolId).to.be.equal(3);
+      expect(claim.ratio).to.be.equal("500000000000000000000000000");
+      expect(claim.liquidityIndexBeforeClaim).to.be.equal("0");
     });
   });
 });
