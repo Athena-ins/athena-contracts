@@ -12,6 +12,13 @@ interface IProtocolPool is IPolicyCover {
 
   function removeCommittedWithdrawLiquidity(address _account) external;
 
+  function takeInterest(
+    address _account,
+    uint256 _userCapital,
+    uint128[] calldata _protocolIds,
+    uint256 _discount
+  ) external returns (uint256 newUserCapital);
+
   function withdrawLiquidity(
     address _account,
     uint256 _userCapital,

@@ -154,6 +154,31 @@ contract Athena is ReentrancyGuard, Ownable {
     );
   }
 
+  function takeInterest(uint128 _protocolId) public {
+    uint256 __tokenId = IPositionsManager(positionsManager).tokenOfOwnerByIndex(
+      msg.sender,
+      0
+    );
+
+    (
+      uint256 __userCapital,
+      uint128[] memory __protocolIds,
+      ,
+      uint256 __discount,
+
+    ) = IPositionsManager(positionsManager).positions(__tokenId);
+
+    uint256 __newUserCapital = IProtocolPool(
+      protocolsMapping[_protocolId].deployed
+    ).takeInterest(msg.sender, __userCapital, __protocolIds, __discount);
+
+    if (__userCapital != __newUserCapital)
+      IPositionsManager(positionsManager).updateUserCapital(
+        __tokenId,
+        __newUserCapital
+      );
+  }
+
   //Thao@TODO: à compléter
   function withdrawPolicy(uint128 _protocolId) public payable nonReentrant {
     IProtocolPool(protocolsMapping[_protocolId].deployed).withdrawPolicy(

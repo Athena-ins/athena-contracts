@@ -119,21 +119,31 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     emit WithdrawPolicy(_owner, __remainedPremium);
   }
 
+  //Thao@TODO: il faut changer le nom de la fct (computeLPInfoUntil)
   function _rewardsOf(
     address _account,
     uint256 _userCapital,
     uint128[] calldata _protocolIds,
     uint256 _dateInSecond
-  ) public view returns (uint256 __finalUserCapital, uint256 __totalRewards) {
-    LPInfo memory lpInfo = LPsInfo[_account];
-    Claim[] memory __claims = _claims(lpInfo.beginClaimIndex);
+  )
+    public
+    view
+    returns (
+      uint256 __finalUserCapital,
+      uint256 __totalRewards,
+      LPInfo memory __lpInfo
+    )
+  {
+    __lpInfo = LPsInfo[_account];
+    Claim[] memory __claims = _claims(__lpInfo.beginClaimIndex);
 
     __finalUserCapital = _userCapital;
+
     for (uint256 i = 0; i < __claims.length; i++) {
       Claim memory __claim = __claims[i];
 
       __totalRewards += __finalUserCapital.rayMul(
-        __claim.liquidityIndexBeforeClaim - lpInfo.beginLiquidityIndex
+        __claim.liquidityIndexBeforeClaim - __lpInfo.beginLiquidityIndex
       );
 
       for (uint256 j = 0; j < _protocolIds.length; j++) {
@@ -148,38 +158,32 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
         }
       }
 
-      lpInfo.beginLiquidityIndex = __claim.liquidityIndexBeforeClaim;
+      __lpInfo.beginLiquidityIndex = __claim.liquidityIndexBeforeClaim;
     }
 
-    uint256 __liquidityIndex = liquidityIndex;
-
-    __totalRewards += __finalUserCapital.rayMul(
-      __liquidityIndex - lpInfo.beginLiquidityIndex
-    );
-
-    lpInfo.beginLiquidityIndex = __liquidityIndex;
+    uint256 __liquidityIndex;
 
     if (slot0.remainingPolicies > 0) {
       (, __liquidityIndex) = _actualizingUntil(_dateInSecond);
-
-      __totalRewards += __finalUserCapital.rayMul(
-        __liquidityIndex - lpInfo.beginLiquidityIndex
-      );
-
-      // lpInfo.beginLiquidityIndex = __liquidityIndex;
+    } else {
+      __liquidityIndex = liquidityIndex;
     }
 
-    // lpInfo.beginClaimIndex += __claims.length;
+    __totalRewards += __finalUserCapital.rayMul(
+      __liquidityIndex - __lpInfo.beginLiquidityIndex
+    );
+
+    __lpInfo.beginLiquidityIndex = __liquidityIndex;
+    __lpInfo.beginClaimIndex += __claims.length;
   }
 
-  //Thao@TODO: need to test
   function rewardsOf(
     address _account,
     uint256 _userCapital,
     uint128[] calldata _protocolIds,
     uint256 _discount
   ) public view returns (uint256 totalRewards) {
-    (, uint256 __totalRewards) = _rewardsOf(
+    (, uint256 __totalRewards, ) = _rewardsOf(
       _account,
       _userCapital,
       _protocolIds,
@@ -187,6 +191,44 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     );
 
     return (__totalRewards * (1000 - _discount)) / 1000;
+  }
+
+  event TakeInterest(
+    address account,
+    uint256 userCapital,
+    uint256 rewardsGross,
+    uint256 rewardsNet,
+    uint256 fee
+  );
+
+  function takeInterest(
+    address _account,
+    uint256 _userCapital,
+    uint128[] calldata _protocolIds,
+    uint256 _discount
+  ) public onlyCore returns (uint256) {
+    (
+      uint256 __newUserCapital,
+      uint256 __totalRewards,
+      LPInfo memory __lpInfo
+    ) = _rewardsOf(_account, _userCapital, _protocolIds, block.timestamp);
+
+    //transfer to account:
+    uint256 __interestNet = (__totalRewards * (1000 - _discount)) / 1000;
+
+    //transfer to treasury
+    uint256 __fee = __totalRewards - __interestNet;
+
+    LPsInfo[_account] = __lpInfo;
+
+    emit TakeInterest(
+      _account,
+      __newUserCapital,
+      __totalRewards,
+      __interestNet,
+      __fee
+    );
+    return __newUserCapital;
   }
 
   //Thao@TODO: need to test
@@ -212,7 +254,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
       string(abi.encodePacked(name(), ": use rate > 100%"))
     );
 
-    (uint256 __finalUserCapital, uint256 __totalRewards) = _rewardsOf(
+    (uint256 __finalUserCapital, uint256 __totalRewards, ) = _rewardsOf(
       _account,
       _userCapital,
       _protocolIds,

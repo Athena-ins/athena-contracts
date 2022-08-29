@@ -19,7 +19,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
     // like amount for Protocol, ...
     uint128[] protocolsId;
   }
-  
+
   address private core;
 
   /// @dev The token ID position data
@@ -107,6 +107,14 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
     _positions[tokenId].discount = _discount;
     _positions[tokenId].protocolsId = _protocolsIds;
     _positions[tokenId].atens = atenStake;
+  }
+
+  function updateUserCapital(uint256 tokenId, uint256 _amount)
+    external
+    override
+    onlyCore
+  {
+    _positions[tokenId].providedLiquidity = _amount;
   }
 
   // function _safeMint() internal {
