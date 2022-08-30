@@ -187,19 +187,6 @@ describe("Liquidity provider rewards", () => {
   });
 
   it("Should call takeInterest for LP1 after 2 day of his last redeem", async () => {
-    //   let protocolPool0 = await ProtocolHelper.getProtocolPoolContract(
-    //     owner,
-    //     0
-    //   );
-    //   const result = await protocolPool0._rewardsOf(
-    //     await liquidityProvider1.getAddress(),
-    //     365000,
-    //     [0, 2],
-    //     HardhatHelper.getCurrentTime() + 2 * 24 * 60 * 60
-    //   );
-    //   expect(result.__finalUserCapital).to.be.equal(182500);
-    //   expect(result.__totalRewards).to.be.equal(63 + 15);
-
     const protocolContract = await ProtocolHelper.getProtocolPoolContract(
       liquidityProvider1,
       0

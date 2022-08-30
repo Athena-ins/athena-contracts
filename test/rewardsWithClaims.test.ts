@@ -87,13 +87,13 @@ describe("Liquidity provider rewards", () => {
       expect(lpInfo.beginClaimIndex).to.be.equal(0);
     });
 
-    it("Should call _rewardsOf and check data", async () => {
+    it("Should call _getLPInfoUntil and check data", async () => {
       let protocolPool0 = await ProtocolHelper.getProtocolPoolContract(
         owner,
         0
       );
 
-      let result = await protocolPool0._rewardsOf(
+      let result = await protocolPool0._getLPInfoUntil(
         await liquidityProvider1.getAddress(),
         365000,
         [0, 2],
@@ -117,13 +117,13 @@ describe("Liquidity provider rewards", () => {
       expect(lpInfo.beginClaimIndex).to.be.equal(0);
     });
 
-    it("Should call _rewardsOf and check data", async () => {
+    it("Should call _getLPInfoUntil and check data", async () => {
       let protocolPool0 = await ProtocolHelper.getProtocolPoolContract(
         owner,
         0
       );
 
-      let result = await protocolPool0._rewardsOf(
+      let result = await protocolPool0._getLPInfoUntil(
         await liquidityProvider2.getAddress(),
         365000,
         [0, 2],
@@ -154,13 +154,13 @@ describe("Liquidity provider rewards", () => {
       );
     });
 
-    it("Should call _rewardsOf for LP1 after 1 day of added claim and check result", async () => {
+    it("Should call _getLPInfoUntil for LP1 after 1 day of added claim and check result", async () => {
       let protocolPool0 = await ProtocolHelper.getProtocolPoolContract(
         owner,
         0
       );
 
-      const result = await protocolPool0._rewardsOf(
+      const result = await protocolPool0._getLPInfoUntil(
         await liquidityProvider1.getAddress(),
         365000,
         [0, 2],
@@ -171,13 +171,13 @@ describe("Liquidity provider rewards", () => {
       expect(result.__totalRewards).to.be.equal(63);
     });
 
-    it("Should call _rewardsOf for LP2 after 1 day of added claim and check result", async () => {
+    it("Should call _getLPInfoUntil for LP2 after 1 day of added claim and check result", async () => {
       let protocolPool0 = await ProtocolHelper.getProtocolPoolContract(
         owner,
         0
       );
 
-      const result = await protocolPool0._rewardsOf(
+      const result = await protocolPool0._getLPInfoUntil(
         await liquidityProvider2.getAddress(),
         365000,
         [0, 1],
@@ -188,13 +188,13 @@ describe("Liquidity provider rewards", () => {
       expect(result.__totalRewards).to.be.equal(78);
     });
 
-    it("Should call _rewardsOf for LP1 after 2 day of added claim and check result", async () => {
+    it("Should call _getLPInfoUntil for LP1 after 2 day of added claim and check result", async () => {
       let protocolPool0 = await ProtocolHelper.getProtocolPoolContract(
         owner,
         0
       );
 
-      const result = await protocolPool0._rewardsOf(
+      const result = await protocolPool0._getLPInfoUntil(
         await liquidityProvider1.getAddress(),
         365000,
         [0, 2],
@@ -205,13 +205,13 @@ describe("Liquidity provider rewards", () => {
       expect(result.__totalRewards).to.be.equal(63 + 15);
     });
 
-    it("Should call _rewardsOf for LP2 after 2 day of added claim and check result", async () => {
+    it("Should call _getLPInfoUntil for LP2 after 2 day of added claim and check result", async () => {
       let protocolPool0 = await ProtocolHelper.getProtocolPoolContract(
         owner,
         0
       );
 
-      const result = await protocolPool0._rewardsOf(
+      const result = await protocolPool0._getLPInfoUntil(
         await liquidityProvider2.getAddress(),
         365000,
         [0, 1],
@@ -222,13 +222,13 @@ describe("Liquidity provider rewards", () => {
       expect(result.__totalRewards).to.be.equal(78 + 30);
     });
 
-    it("Should call _rewardsOf for LP1 after 10 day of added claim and check result", async () => {
+    it("Should call _getLPInfoUntil for LP1 after 10 day of added claim and check result", async () => {
       let protocolPool0 = await ProtocolHelper.getProtocolPoolContract(
         owner,
         0
       );
 
-      const result = await protocolPool0._rewardsOf(
+      const result = await protocolPool0._getLPInfoUntil(
         await liquidityProvider1.getAddress(),
         365000,
         [0, 2],
@@ -239,13 +239,13 @@ describe("Liquidity provider rewards", () => {
       expect(result.__totalRewards).to.be.equal(63 - 15 + 150);
     });
 
-    it("Should call _rewardsOf for LP2 after 10 day of added claim and check result", async () => {
+    it("Should call _getLPInfoUntil for LP2 after 10 day of added claim and check result", async () => {
       let protocolPool0 = await ProtocolHelper.getProtocolPoolContract(
         owner,
         0
       );
 
-      const result = await protocolPool0._rewardsOf(
+      const result = await protocolPool0._getLPInfoUntil(
         await liquidityProvider2.getAddress(),
         365000,
         [0, 1],

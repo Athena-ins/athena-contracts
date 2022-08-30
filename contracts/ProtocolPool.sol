@@ -119,8 +119,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     emit WithdrawPolicy(_owner, __remainedPremium);
   }
 
-  //Thao@TODO: il faut changer le nom de la fct (computeLPInfoUntil)
-  function _rewardsOf(
+  function _getLPInfoUntil(
     address _account,
     uint256 _userCapital,
     uint128[] calldata _protocolIds,
@@ -183,7 +182,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     uint128[] calldata _protocolIds,
     uint256 _discount
   ) public view returns (uint256 totalRewards) {
-    (, uint256 __totalRewards, ) = _rewardsOf(
+    (, uint256 __totalRewards, ) = _getLPInfoUntil(
       _account,
       _userCapital,
       _protocolIds,
@@ -211,7 +210,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
       uint256 __newUserCapital,
       uint256 __totalRewards,
       LPInfo memory __lpInfo
-    ) = _rewardsOf(_account, _userCapital, _protocolIds, block.timestamp);
+    ) = _getLPInfoUntil(_account, _userCapital, _protocolIds, block.timestamp);
 
     //transfer to account:
     uint256 __interestNet = (__totalRewards * (1000 - _discount)) / 1000;
@@ -254,7 +253,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
       string(abi.encodePacked(name(), ": use rate > 100%"))
     );
 
-    (uint256 __finalUserCapital, uint256 __totalRewards, ) = _rewardsOf(
+    (uint256 __finalUserCapital, uint256 __totalRewards, ) = _getLPInfoUntil(
       _account,
       _userCapital,
       _protocolIds,
@@ -307,7 +306,9 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     claims.push(Claim(_fromProtocolId, _ratio, liquidityIndex));
   }
 
-  //somethings missing  or not???
+  event ReleaseFunds(address account, uint256 amount);
+
+  //TODO:somethings missing  or not???
   function releaseFunds(address _account, uint256 _amount)
     external
     override
@@ -322,7 +323,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     console.log("Balance Contract = ", bal);
     console.log("Account to transfer = ", _account);
     // IERC20(underlyingAsset).safeTransfer(_account, _amount);
-    //TODO: event
+    emit ReleaseFunds(_account, _amount);
   }
 
   //Thao@NOTE: for testing
