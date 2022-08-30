@@ -2,8 +2,8 @@
 pragma solidity ^0.8;
 
 interface IPolicyCover {
-  //Thao@TODO: add event expiredPolicy
-  //Thao@TODO: move view fcts into another contract
+  //Thao@TODO:
+  event ExpiredPolicy();
 
   event Actualizing(
     uint24 tick,
