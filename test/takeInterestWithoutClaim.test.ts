@@ -14,7 +14,7 @@ let policyTaker1: ethers.Signer;
 let policyTaker2: ethers.Signer;
 let policyTaker3: ethers.Signer;
 
-describe("Liquidity provider rewards", () => {
+describe("Liquidity provider takeInterest", () => {
   describe("LP1, LP2 then PT1, PT2 in pool 0", async () => {
     before(async () => {
       await HardhatHelper.reset();

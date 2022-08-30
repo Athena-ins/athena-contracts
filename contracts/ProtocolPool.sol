@@ -206,6 +206,8 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     uint128[] calldata _protocolIds,
     uint256 _discount
   ) public onlyCore returns (uint256) {
+    _actualizing();
+
     (
       uint256 __newUserCapital,
       uint256 __totalRewards,
@@ -230,18 +232,27 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     return __newUserCapital;
   }
 
-  //Thao@TODO: need to test
+  event WithdrawLiquidity(
+    address account,
+    uint256 capital,
+    uint256 rewardsGross,
+    uint256 rewardsNet,
+    uint256 fee
+  );
+
   function withdrawLiquidity(
     address _account,
     uint256 _userCapital,
     uint128[] calldata _protocolIds,
     uint128 _discount
-  ) external override onlyCore returns (uint256 totalRewards) {
+  ) external override onlyCore returns (uint256) {
     require(
       withdrawReserves[_account] != 0 &&
         block.timestamp - withdrawReserves[_account] >= commitDelay,
       "withdraw reserve"
     );
+
+    _actualizing();
 
     require(
       _utilisationRate(
@@ -268,18 +279,26 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
         (__totalRewards * (1000 - _discount)) / 1000
       );
 
-      _transferToTreasury((uint256(__totalRewards) * _discount) / 1000);
+      _transferToTreasury((__totalRewards * _discount) / 1000);
     }
 
     _updateSlot0WhenAvailableCapitalChange(0, __finalUserCapital);
-
-    availableCapital -= __finalUserCapital;
 
     for (uint256 i = 0; i < _protocolIds.length; i++) {
       intersectingAmounts[
         intersectingAmountIndexes[_protocolIds[i]]
       ] -= __finalUserCapital;
     }
+
+    availableCapital -= __finalUserCapital;
+
+    emit WithdrawLiquidity(
+      _account,
+      __finalUserCapital,
+      __totalRewards,
+      (__totalRewards * (1000 - _discount)) / 1000,
+      (__totalRewards * _discount) / 1000
+    );
 
     return __finalUserCapital + ((__totalRewards * (1000 - _discount)) / 1000);
   }
