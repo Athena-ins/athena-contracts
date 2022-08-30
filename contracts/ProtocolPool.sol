@@ -308,7 +308,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
 
   event ReleaseFunds(address account, uint256 amount);
 
-  //TODO:somethings missing  or not???
+  //Thao@TODO:somethings missing  or not???
   function releaseFunds(address _account, uint256 _amount)
     external
     override

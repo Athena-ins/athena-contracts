@@ -272,7 +272,6 @@ describe("Claims", () => {
       );
     });
 
-    //TODO: check claim is the same in protocols
     it("Should add claim in protocol 3", async () => {
       await ProtocolHelper.claim(policyTaker1, 3, "182500", 1 * 24 * 60 * 60);
 

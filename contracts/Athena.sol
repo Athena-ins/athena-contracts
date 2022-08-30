@@ -245,7 +245,7 @@ contract Athena is ReentrancyGuard, Ownable {
     _;
   }
 
-  //TODO: call releaseFunds fct in __protocolId and add claim to __relatedProtocols
+  //Thao@TODO: call releaseFunds fct in __protocolId and add claim to __relatedProtocols
   function resolveClaim(
     uint256 _policyId,
     uint256 _amount,
@@ -260,7 +260,7 @@ contract Athena is ReentrancyGuard, Ownable {
     console.log("Account confirm : ", _accountConfirm);
     require(_account == _accountConfirm, "Wrong account");
     protocolsMapping[__protocolId].claimsOngoing -= 1;
-    //TODO: we don't need this condition here, we need to check before the vote
+    //Thao@TODO: we don't need this condition here, we need to check before the vote
     if (_amount > 0) {
       //calcul claim for all protocols
       IProtocolPool __protocolPool = IProtocolPool(
