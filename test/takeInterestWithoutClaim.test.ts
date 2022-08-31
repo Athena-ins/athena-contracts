@@ -242,9 +242,6 @@ describe("Liquidity provider takeInterest", () => {
         .takeInterest(0);
 
       const result = await tx.wait();
-
-      //   console.log(JSON.stringify(result, null, 2));
-
       const event = result.events[0];
 
       const decodedData = protocolContract.interface.decodeEventLog(

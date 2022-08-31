@@ -122,5 +122,51 @@ describe("Liquidity provider withdraw", () => {
         HardhatHelper.getCurrentTime()
       );
     });
+
+    it("Should call takeInterest for LP2 after 10 day that LP1 withdrawed his capital", async () => {
+      const protocolContract = await ProtocolHelper.getProtocolPoolContract(
+        liquidityProvider2,
+        0
+      );
+
+      const lpInfoBefore = await protocolContract.LPsInfo(
+        liquidityProvider2.getAddress()
+      );
+
+      const days = 10;
+
+      await HardhatHelper.setNextBlockTimestamp(days * 24 * 60 * 60);
+
+      const tx = await ProtocolHelper.getAthenaContract()
+        .connect(liquidityProvider2)
+        .takeInterest(0);
+
+      const result = await tx.wait();
+      const event = result.events[0];
+
+      const decodedData = protocolContract.interface.decodeEventLog(
+        event.topics[0],
+        event.data
+      );
+
+      expect(decodedData.account).to.be.equal(
+        await liquidityProvider2.getAddress()
+      );
+      expect(decodedData.userCapital).to.be.equal(547500);
+      expect(decodedData.rewardsGross).to.be.equal(450 + 450);
+      expect(decodedData.rewardsNet).to.be.equal(450 + 450 - 45);
+      expect(decodedData.fee).to.be.equal(45);
+
+      const lpInfoAfter = await protocolContract.LPsInfo(
+        liquidityProvider2.getAddress()
+      );
+
+      expect(
+        lpInfoAfter.beginLiquidityIndex.gt(lpInfoBefore.beginLiquidityIndex)
+      ).to.be.equal(true);
+      expect(lpInfoAfter.beginClaimIndex).to.be.equal(
+        lpInfoBefore.beginClaimIndex
+      );
+    });
   });
 });
