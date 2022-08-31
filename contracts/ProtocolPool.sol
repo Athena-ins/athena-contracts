@@ -119,46 +119,66 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     emit WithdrawPolicy(_owner, __remainedPremium);
   }
 
-  function _getLPInfoUntil(
+  function _actualizingLPInfoWithClaims(
+    address _account,
+    uint256 _userCapital,
+    uint128[] calldata _protocolIds
+  )
+    internal
+    view
+    returns (
+      uint256 __newUserCapital,
+      uint256 __totalRewards,
+      LPInfo memory __newLPInfo
+    )
+  {
+    __newLPInfo = LPsInfo[_account];
+    Claim[] memory __claims = _claims(__newLPInfo.beginClaimIndex);
+
+    __newUserCapital = _userCapital;
+
+    for (uint256 i = 0; i < __claims.length; i++) {
+      Claim memory __claim = __claims[i];
+
+      __totalRewards += __newUserCapital.rayMul(
+        __claim.liquidityIndexBeforeClaim - __newLPInfo.beginLiquidityIndex
+      );
+
+      for (uint256 j = 0; j < _protocolIds.length; j++) {
+        if (_protocolIds[j] == __claim.fromProtocolId) {
+          __newUserCapital = __newUserCapital.rayMul(
+            RayMath.RAY - __claim.ratio
+          );
+          break;
+        }
+      }
+
+      __newLPInfo.beginLiquidityIndex = __claim.liquidityIndexBeforeClaim;
+    }
+
+    __newLPInfo.beginClaimIndex += __claims.length;
+  }
+
+  function rewardsOf(
     address _account,
     uint256 _userCapital,
     uint128[] calldata _protocolIds,
+    // uint256 _discount,
     uint256 _dateInSecond
   )
     public
     view
     returns (
-      uint256 __finalUserCapital,
+      uint256 __newUserCapital,
       uint256 __totalRewards,
-      LPInfo memory __lpInfo
+      LPInfo memory __newLPInfo
     )
   {
-    __lpInfo = LPsInfo[_account];
-    Claim[] memory __claims = _claims(__lpInfo.beginClaimIndex);
-
-    __finalUserCapital = _userCapital;
-
-    for (uint256 i = 0; i < __claims.length; i++) {
-      Claim memory __claim = __claims[i];
-
-      __totalRewards += __finalUserCapital.rayMul(
-        __claim.liquidityIndexBeforeClaim - __lpInfo.beginLiquidityIndex
-      );
-
-      for (uint256 j = 0; j < _protocolIds.length; j++) {
-        if (_protocolIds[j] == __claim.fromProtocolId) {
-          uint256 __userCapitalToRemove = __finalUserCapital.rayMul(
-            __claim.ratio
-          );
-          __finalUserCapital -= __userCapitalToRemove;
-
-          //or: __finalUserCapital = __finalUserCapital.rayMul(RayMath.RAY - __claim.ratio);
-          break;
-        }
-      }
-
-      __lpInfo.beginLiquidityIndex = __claim.liquidityIndexBeforeClaim;
-    }
+    (
+      __newUserCapital,
+      __totalRewards,
+      __newLPInfo
+    ) = _actualizingLPInfoWithClaims(_account, _userCapital, _protocolIds);
 
     uint256 __liquidityIndex;
 
@@ -168,28 +188,13 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
       __liquidityIndex = liquidityIndex;
     }
 
-    __totalRewards += __finalUserCapital.rayMul(
-      __liquidityIndex - __lpInfo.beginLiquidityIndex
+    __totalRewards += __newUserCapital.rayMul(
+      __liquidityIndex - __newLPInfo.beginLiquidityIndex
     );
 
-    __lpInfo.beginLiquidityIndex = __liquidityIndex;
-    __lpInfo.beginClaimIndex += __claims.length;
-  }
+    __newLPInfo.beginLiquidityIndex = __liquidityIndex;
 
-  function rewardsOf(
-    address _account,
-    uint256 _userCapital,
-    uint128[] calldata _protocolIds,
-    uint256 _discount
-  ) public view returns (uint256 totalRewards) {
-    (, uint256 __totalRewards, ) = _getLPInfoUntil(
-      _account,
-      _userCapital,
-      _protocolIds,
-      block.timestamp
-    );
-
-    return (__totalRewards * (1000 - _discount)) / 1000;
+    //Thao@TODO: use discount to calcul totalRewards
   }
 
   event TakeInterest(
@@ -211,8 +216,16 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     (
       uint256 __newUserCapital,
       uint256 __totalRewards,
-      LPInfo memory __lpInfo
-    ) = _getLPInfoUntil(_account, _userCapital, _protocolIds, block.timestamp);
+      LPInfo memory __newLPInfo
+    ) = _actualizingLPInfoWithClaims(_account, _userCapital, _protocolIds);
+
+    uint256 __liquidityIndex = liquidityIndex;
+
+    __totalRewards += __newUserCapital.rayMul(
+      __liquidityIndex - __newLPInfo.beginLiquidityIndex
+    );
+
+    __newLPInfo.beginLiquidityIndex = __liquidityIndex;
 
     //transfer to account:
     uint256 __interestNet = (__totalRewards * (1000 - _discount)) / 1000;
@@ -220,7 +233,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     //transfer to treasury
     uint256 __fee = __totalRewards - __interestNet;
 
-    LPsInfo[_account] = __lpInfo;
+    LPsInfo[_account] = __newLPInfo;
 
     emit TakeInterest(
       _account,
@@ -229,6 +242,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
       __interestNet,
       __fee
     );
+
     return __newUserCapital;
   }
 
@@ -264,12 +278,19 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
       string(abi.encodePacked(name(), ": use rate > 100%"))
     );
 
-    (uint256 __finalUserCapital, uint256 __totalRewards, ) = _getLPInfoUntil(
-      _account,
-      _userCapital,
-      _protocolIds,
-      block.timestamp
+    (
+      uint256 __newUserCapital,
+      uint256 __totalRewards,
+      LPInfo memory __newLPInfo
+    ) = _actualizingLPInfoWithClaims(_account, _userCapital, _protocolIds);
+
+    uint256 __liquidityIndex = liquidityIndex;
+
+    __totalRewards += __newUserCapital.rayMul(
+      __liquidityIndex - __newLPInfo.beginLiquidityIndex
     );
+
+    __newLPInfo.beginLiquidityIndex = __liquidityIndex;
 
     _burn(_account, balanceOf(_account));
     //or: _burn(_account, _userCapital);
@@ -282,25 +303,25 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
       _transferToTreasury((__totalRewards * _discount) / 1000);
     }
 
-    _updateSlot0WhenAvailableCapitalChange(0, __finalUserCapital);
+    _updateSlot0WhenAvailableCapitalChange(0, __newUserCapital);
 
     for (uint256 i = 0; i < _protocolIds.length; i++) {
       intersectingAmounts[
         intersectingAmountIndexes[_protocolIds[i]]
-      ] -= __finalUserCapital;
+      ] -= __newUserCapital;
     }
 
-    availableCapital -= __finalUserCapital;
+    availableCapital -= __newUserCapital;
 
     emit WithdrawLiquidity(
       _account,
-      __finalUserCapital,
+      __newUserCapital,
       __totalRewards,
       (__totalRewards * (1000 - _discount)) / 1000,
       (__totalRewards * _discount) / 1000
     );
 
-    return __finalUserCapital + ((__totalRewards * (1000 - _discount)) / 1000);
+    return __newUserCapital + ((__totalRewards * (1000 - _discount)) / 1000);
   }
 
   function _transferToTreasury(uint256 _amount) internal {

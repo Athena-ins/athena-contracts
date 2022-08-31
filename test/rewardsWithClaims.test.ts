@@ -87,20 +87,20 @@ describe("Liquidity provider rewards", () => {
       expect(lpInfo.beginClaimIndex).to.be.equal(0);
     });
 
-    it("Should call _getLPInfoUntil and check data", async () => {
+    it("Should call rewardsOf and check data", async () => {
       let protocolPool0 = await ProtocolHelper.getProtocolPoolContract(
         owner,
         0
       );
 
-      let result = await protocolPool0._getLPInfoUntil(
+      let result = await protocolPool0.rewardsOf(
         await liquidityProvider1.getAddress(),
         365000,
         [0, 2],
         HardhatHelper.getCurrentTime() + 1 * 24 * 60 * 60
       );
 
-      expect(result.__finalUserCapital).to.be.equal(365000);
+      expect(result.__newUserCapital).to.be.equal(365000);
       expect(result.__totalRewards).to.be.equal(48);
     });
   });
@@ -117,20 +117,20 @@ describe("Liquidity provider rewards", () => {
       expect(lpInfo.beginClaimIndex).to.be.equal(0);
     });
 
-    it("Should call _getLPInfoUntil and check data", async () => {
+    it("Should call rewardsOf and check data", async () => {
       let protocolPool0 = await ProtocolHelper.getProtocolPoolContract(
         owner,
         0
       );
 
-      let result = await protocolPool0._getLPInfoUntil(
+      let result = await protocolPool0.rewardsOf(
         await liquidityProvider2.getAddress(),
         365000,
         [0, 2],
         HardhatHelper.getCurrentTime() + 2 * 24 * 60 * 60
       );
 
-      expect(result.__finalUserCapital).to.be.equal(365000);
+      expect(result.__newUserCapital).to.be.equal(365000);
       expect(result.__totalRewards).to.be.equal(66);
     });
   });
@@ -154,105 +154,105 @@ describe("Liquidity provider rewards", () => {
       );
     });
 
-    it("Should call _getLPInfoUntil for LP1 after 1 day of added claim and check result", async () => {
+    it("Should call rewardsOf for LP1 after 1 day of added claim and check result", async () => {
       let protocolPool0 = await ProtocolHelper.getProtocolPoolContract(
         owner,
         0
       );
 
-      const result = await protocolPool0._getLPInfoUntil(
+      const result = await protocolPool0.rewardsOf(
         await liquidityProvider1.getAddress(),
         365000,
         [0, 2],
         HardhatHelper.getCurrentTime() + 1 * 24 * 60 * 60
       );
 
-      expect(result.__finalUserCapital).to.be.equal(182500);
+      expect(result.__newUserCapital).to.be.equal(182500);
       expect(result.__totalRewards).to.be.equal(63);
     });
 
-    it("Should call _getLPInfoUntil for LP2 after 1 day of added claim and check result", async () => {
+    it("Should call rewardsOf for LP2 after 1 day of added claim and check result", async () => {
       let protocolPool0 = await ProtocolHelper.getProtocolPoolContract(
         owner,
         0
       );
 
-      const result = await protocolPool0._getLPInfoUntil(
+      const result = await protocolPool0.rewardsOf(
         await liquidityProvider2.getAddress(),
         365000,
         [0, 1],
         HardhatHelper.getCurrentTime() + 1 * 24 * 60 * 60
       );
 
-      expect(result.__finalUserCapital).to.be.equal(365000);
+      expect(result.__newUserCapital).to.be.equal(365000);
       expect(result.__totalRewards).to.be.equal(78);
     });
 
-    it("Should call _getLPInfoUntil for LP1 after 2 day of added claim and check result", async () => {
+    it("Should call rewardsOf for LP1 after 2 day of added claim and check result", async () => {
       let protocolPool0 = await ProtocolHelper.getProtocolPoolContract(
         owner,
         0
       );
 
-      const result = await protocolPool0._getLPInfoUntil(
+      const result = await protocolPool0.rewardsOf(
         await liquidityProvider1.getAddress(),
         365000,
         [0, 2],
         HardhatHelper.getCurrentTime() + 2 * 24 * 60 * 60
       );
 
-      expect(result.__finalUserCapital).to.be.equal(182500);
+      expect(result.__newUserCapital).to.be.equal(182500);
       expect(result.__totalRewards).to.be.equal(63 + 15);
     });
 
-    it("Should call _getLPInfoUntil for LP2 after 2 day of added claim and check result", async () => {
+    it("Should call rewardsOf for LP2 after 2 day of added claim and check result", async () => {
       let protocolPool0 = await ProtocolHelper.getProtocolPoolContract(
         owner,
         0
       );
 
-      const result = await protocolPool0._getLPInfoUntil(
+      const result = await protocolPool0.rewardsOf(
         await liquidityProvider2.getAddress(),
         365000,
         [0, 1],
         HardhatHelper.getCurrentTime() + 2 * 24 * 60 * 60
       );
 
-      expect(result.__finalUserCapital).to.be.equal(365000);
+      expect(result.__newUserCapital).to.be.equal(365000);
       expect(result.__totalRewards).to.be.equal(78 + 30);
     });
 
-    it("Should call _getLPInfoUntil for LP1 after 10 day of added claim and check result", async () => {
+    it("Should call rewardsOf for LP1 after 10 day of added claim and check result", async () => {
       let protocolPool0 = await ProtocolHelper.getProtocolPoolContract(
         owner,
         0
       );
 
-      const result = await protocolPool0._getLPInfoUntil(
+      const result = await protocolPool0.rewardsOf(
         await liquidityProvider1.getAddress(),
         365000,
         [0, 2],
         HardhatHelper.getCurrentTime() + 10 * 24 * 60 * 60
       );
 
-      expect(result.__finalUserCapital).to.be.equal(182500);
+      expect(result.__newUserCapital).to.be.equal(182500);
       expect(result.__totalRewards).to.be.equal(63 - 15 + 150);
     });
 
-    it("Should call _getLPInfoUntil for LP2 after 10 day of added claim and check result", async () => {
+    it("Should call rewardsOf for LP2 after 10 day of added claim and check result", async () => {
       let protocolPool0 = await ProtocolHelper.getProtocolPoolContract(
         owner,
         0
       );
 
-      const result = await protocolPool0._getLPInfoUntil(
+      const result = await protocolPool0.rewardsOf(
         await liquidityProvider2.getAddress(),
         365000,
         [0, 1],
         HardhatHelper.getCurrentTime() + 10 * 24 * 60 * 60
       );
 
-      expect(result.__finalUserCapital).to.be.equal(365000);
+      expect(result.__newUserCapital).to.be.equal(365000);
       expect(result.__totalRewards).to.be.equal(78 - 30 + 300);
     });
   });

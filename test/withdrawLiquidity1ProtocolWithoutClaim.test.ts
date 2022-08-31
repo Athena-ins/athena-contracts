@@ -90,7 +90,7 @@ describe("Liquidity provider withdraw", () => {
         .withdrawLiquidityOneProtocolPoolTest(0, 182500, [0, 2], 200);
 
       const result = await withdraw_tx.wait();
-      console.log(result);
+      // console.log(result);
 
       const event = result.events[3];
 

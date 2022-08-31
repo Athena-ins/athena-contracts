@@ -238,8 +238,9 @@ describe("Liquidity provider takeInterest", () => {
     expect(lpInfoAfter.beginClaimIndex).to.be.equal(1);
   });
 
-  it("Should add a 2 claims into protocol1 and check claim info in protocol0", async () => {
+  it("Should add a 3 claims into protocol1 and check claim info in protocol0", async () => {
     await ProtocolHelper.claim(owner, 1, "500", 1 * 24 * 60 * 60);
+    await ProtocolHelper.claim(owner, 1, "1000", 1 * 24 * 60 * 60);
     await ProtocolHelper.claim(owner, 1, "1000", 1 * 24 * 60 * 60);
 
     let protocolPool0 = await ProtocolHelper.getProtocolPoolContract(owner, 0);
@@ -254,12 +255,20 @@ describe("Liquidity provider takeInterest", () => {
     expect(claim2.fromProtocolId).to.be.equal(1);
     expect(claim2.liquidityIndexBeforeClaim).to.not.be.equal(0);
 
+    const claim3 = await protocolPool0.claims(3);
+
+    expect(claim3.fromProtocolId).to.be.equal(1);
+    expect(claim3.liquidityIndexBeforeClaim).to.not.be.equal(0);
+
     expect(
       claim2.liquidityIndexBeforeClaim.gt(claim1.liquidityIndexBeforeClaim)
     ).to.be.equal(true);
+    expect(
+      claim3.liquidityIndexBeforeClaim.gt(claim2.liquidityIndexBeforeClaim)
+    ).to.be.equal(true);
   });
 
-  it("Should call takeInterest for LP1 in protocol0 after 1 day of adding 2 claims into protocol1 then check ClaimIndex and userCapital", async () => {
+  it("Should call takeInterest for LP1 in protocol0 after 1 day of adding 3 claims into protocol1 then check ClaimIndex and userCapital", async () => {
     const protocolContract = await ProtocolHelper.getProtocolPoolContract(
       liquidityProvider1,
       0
@@ -268,6 +277,8 @@ describe("Liquidity provider takeInterest", () => {
     const lpInfoBefore = await protocolContract.LPsInfo(
       liquidityProvider1.getAddress()
     );
+
+    expect(lpInfoBefore.beginClaimIndex).to.be.equal(1);
 
     const decodedData = await ProtocolHelper.takeInterest(
       liquidityProvider1,
@@ -293,10 +304,10 @@ describe("Liquidity provider takeInterest", () => {
     expect(
       lpInfoAfter.beginClaimIndex.gt(lpInfoBefore.beginClaimIndex)
     ).to.be.equal(true);
-    expect(lpInfoAfter.beginClaimIndex).to.be.equal(3);
+    expect(lpInfoAfter.beginClaimIndex).to.be.equal(4);
   });
 
-  it("Should call takeInterest for LP2 in protocol0 after 2 day of adding 2 claims into protocol1 then check ClaimIndex and userCapital", async () => {
+  it("Should call takeInterest for LP2 in protocol0 after 2 day of adding 3 claims into protocol1 then check ClaimIndex and userCapital", async () => {
     const protocolContract = await ProtocolHelper.getProtocolPoolContract(
       liquidityProvider2,
       0
@@ -305,6 +316,8 @@ describe("Liquidity provider takeInterest", () => {
     const lpInfoBefore = await protocolContract.LPsInfo(
       liquidityProvider2.getAddress()
     );
+
+    expect(lpInfoBefore.beginClaimIndex).to.be.equal(1);
 
     const decodedData = await ProtocolHelper.takeInterest(
       liquidityProvider2,
@@ -320,7 +333,9 @@ describe("Liquidity provider takeInterest", () => {
       await liquidityProvider2.getAddress()
     );
     expect(decodedData.userCapital.lt(365000)).to.be.equal(true);
-    expect(decodedData.userCapital.eq(365000 - 500 - 1000)).to.be.equal(true);
+    expect(decodedData.userCapital.eq(365000 - 500 - 1000 - 1000)).to.be.equal(
+      true
+    );
 
     expect(
       lpInfoAfter.beginLiquidityIndex.gt(lpInfoBefore.beginLiquidityIndex)
@@ -328,6 +343,6 @@ describe("Liquidity provider takeInterest", () => {
     expect(
       lpInfoAfter.beginClaimIndex.gt(lpInfoBefore.beginClaimIndex)
     ).to.be.equal(true);
-    expect(lpInfoAfter.beginClaimIndex).to.be.equal(3);
+    expect(lpInfoAfter.beginClaimIndex).to.be.equal(4);
   });
 });
