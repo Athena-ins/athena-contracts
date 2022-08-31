@@ -100,21 +100,14 @@ describe("Liquidity provider takeInterest", () => {
       liquidityProvider1.getAddress()
     );
 
-    const days = 1;
+    const decodedData = await ProtocolHelper.takeInterest(
+      liquidityProvider1,
+      0,
+      1 * 24 * 60 * 60
+    );
 
-    await HardhatHelper.setNextBlockTimestamp(days * 24 * 60 * 60);
-
-    const tx = await ProtocolHelper.getAthenaContract()
-      .connect(liquidityProvider1)
-      .takeInterest(0);
-
-    const result = await tx.wait();
-
-    const event = result.events[0];
-
-    const decodedData = protocolContract.interface.decodeEventLog(
-      event.topics[0],
-      event.data
+    const lpInfoAfter = await protocolContract.LPsInfo(
+      liquidityProvider1.getAddress()
     );
 
     expect(decodedData.account).to.be.equal(
@@ -124,10 +117,6 @@ describe("Liquidity provider takeInterest", () => {
     expect(decodedData.rewardsGross).to.be.equal(63);
     expect(decodedData.rewardsNet).to.be.equal(53);
     expect(decodedData.fee).to.be.equal(10);
-
-    const lpInfoAfter = await protocolContract.LPsInfo(
-      liquidityProvider1.getAddress()
-    );
 
     expect(
       lpInfoAfter.beginLiquidityIndex.gt(lpInfoBefore.beginLiquidityIndex)
@@ -148,21 +137,14 @@ describe("Liquidity provider takeInterest", () => {
       liquidityProvider2.getAddress()
     );
 
-    const days = 1;
+    const decodedData = await ProtocolHelper.takeInterest(
+      liquidityProvider2,
+      0,
+      1 * 24 * 60 * 60
+    );
 
-    await HardhatHelper.setNextBlockTimestamp(days * 24 * 60 * 60);
-
-    const tx = await ProtocolHelper.getAthenaContract()
-      .connect(liquidityProvider2)
-      .takeInterest(0);
-
-    const result = await tx.wait();
-
-    const event = result.events[0];
-
-    const decodedData = protocolContract.interface.decodeEventLog(
-      event.topics[0],
-      event.data
+    const lpInfoAfter = await protocolContract.LPsInfo(
+      liquidityProvider2.getAddress()
     );
 
     expect(decodedData.account).to.be.equal(
@@ -173,10 +155,6 @@ describe("Liquidity provider takeInterest", () => {
     expect(decodedData.rewardsNet).to.be.equal(102);
     expect(decodedData.fee).to.be.equal(6);
 
-    const lpInfoAfter = await protocolContract.LPsInfo(
-      liquidityProvider2.getAddress()
-    );
-
     expect(
       lpInfoAfter.beginLiquidityIndex.gt(lpInfoBefore.beginLiquidityIndex)
     ).to.be.equal(true);
@@ -186,7 +164,7 @@ describe("Liquidity provider takeInterest", () => {
     expect(lpInfoAfter.beginClaimIndex).to.be.equal(1);
   });
 
-  it("Should call takeInterest for LP1 after 2 day of his last redeem", async () => {
+  it("Should call takeInterest for LP1 after 2 day of his last takeInterest", async () => {
     const protocolContract = await ProtocolHelper.getProtocolPoolContract(
       liquidityProvider1,
       0
@@ -196,21 +174,14 @@ describe("Liquidity provider takeInterest", () => {
       liquidityProvider1.getAddress()
     );
 
-    const days = 1;
+    const decodedData = await ProtocolHelper.takeInterest(
+      liquidityProvider1,
+      0,
+      1 * 24 * 60 * 60
+    );
 
-    await HardhatHelper.setNextBlockTimestamp(days * 24 * 60 * 60);
-
-    const tx = await ProtocolHelper.getAthenaContract()
-      .connect(liquidityProvider1)
-      .takeInterest(0);
-
-    const result = await tx.wait();
-
-    const event = result.events[0];
-
-    const decodedData = protocolContract.interface.decodeEventLog(
-      event.topics[0],
-      event.data
+    const lpInfoAfter = await protocolContract.LPsInfo(
+      liquidityProvider1.getAddress()
     );
 
     expect(decodedData.account).to.be.equal(
@@ -221,10 +192,6 @@ describe("Liquidity provider takeInterest", () => {
     expect(decodedData.rewardsNet).to.be.equal(25);
     expect(decodedData.fee).to.be.equal(5);
 
-    const lpInfoAfter = await protocolContract.LPsInfo(
-      liquidityProvider1.getAddress()
-    );
-
     expect(
       lpInfoAfter.beginLiquidityIndex.gt(lpInfoBefore.beginLiquidityIndex)
     ).to.be.equal(true);
@@ -234,7 +201,7 @@ describe("Liquidity provider takeInterest", () => {
     expect(lpInfoAfter.beginClaimIndex).to.be.equal(1);
   });
 
-  it("Should call takeInterest for LP2 after 2 day of his last redeem", async () => {
+  it("Should call takeInterest for LP2 after 2 day of his last takeInterest", async () => {
     const protocolContract = await ProtocolHelper.getProtocolPoolContract(
       liquidityProvider2,
       0
@@ -244,21 +211,14 @@ describe("Liquidity provider takeInterest", () => {
       liquidityProvider2.getAddress()
     );
 
-    const days = 1;
+    const decodedData = await ProtocolHelper.takeInterest(
+      liquidityProvider2,
+      0,
+      1 * 24 * 60 * 60
+    );
 
-    await HardhatHelper.setNextBlockTimestamp(days * 24 * 60 * 60);
-
-    const tx = await ProtocolHelper.getAthenaContract()
-      .connect(liquidityProvider2)
-      .takeInterest(0);
-
-    const result = await tx.wait();
-
-    const event = result.events[0];
-
-    const decodedData = protocolContract.interface.decodeEventLog(
-      event.topics[0],
-      event.data
+    const lpInfoAfter = await protocolContract.LPsInfo(
+      liquidityProvider2.getAddress()
     );
 
     expect(decodedData.account).to.be.equal(
@@ -268,10 +228,6 @@ describe("Liquidity provider takeInterest", () => {
     expect(decodedData.rewardsGross).to.be.equal(60);
     expect(decodedData.rewardsNet).to.be.equal(57);
     expect(decodedData.fee).to.be.equal(3);
-
-    const lpInfoAfter = await protocolContract.LPsInfo(
-      liquidityProvider2.getAddress()
-    );
 
     expect(
       lpInfoAfter.beginLiquidityIndex.gt(lpInfoBefore.beginLiquidityIndex)
@@ -313,21 +269,14 @@ describe("Liquidity provider takeInterest", () => {
       liquidityProvider1.getAddress()
     );
 
-    const days = 1;
+    const decodedData = await ProtocolHelper.takeInterest(
+      liquidityProvider1,
+      0,
+      1 * 24 * 60 * 60
+    );
 
-    await HardhatHelper.setNextBlockTimestamp(days * 24 * 60 * 60);
-
-    const tx = await ProtocolHelper.getAthenaContract()
-      .connect(liquidityProvider1)
-      .takeInterest(0);
-
-    const result = await tx.wait();
-
-    const event = result.events[0];
-
-    const decodedData = protocolContract.interface.decodeEventLog(
-      event.topics[0],
-      event.data
+    const lpInfoAfter = await protocolContract.LPsInfo(
+      liquidityProvider1.getAddress()
     );
 
     expect(decodedData.account).to.be.equal(
@@ -337,10 +286,6 @@ describe("Liquidity provider takeInterest", () => {
     // expect(decodedData.rewardsGross).to.be.equal(63);
     // expect(decodedData.rewardsNet).to.be.equal(53);
     // expect(decodedData.fee).to.be.equal(10);
-
-    const lpInfoAfter = await protocolContract.LPsInfo(
-      liquidityProvider1.getAddress()
-    );
 
     expect(
       lpInfoAfter.beginLiquidityIndex.gt(lpInfoBefore.beginLiquidityIndex)
@@ -361,21 +306,14 @@ describe("Liquidity provider takeInterest", () => {
       liquidityProvider2.getAddress()
     );
 
-    const days = 1;
+    const decodedData = await ProtocolHelper.takeInterest(
+      liquidityProvider2,
+      0,
+      1 * 24 * 60 * 60
+    );
 
-    await HardhatHelper.setNextBlockTimestamp(days * 24 * 60 * 60);
-
-    const tx = await ProtocolHelper.getAthenaContract()
-      .connect(liquidityProvider2)
-      .takeInterest(0);
-
-    const result = await tx.wait();
-
-    const event = result.events[0];
-
-    const decodedData = protocolContract.interface.decodeEventLog(
-      event.topics[0],
-      event.data
+    const lpInfoAfter = await protocolContract.LPsInfo(
+      liquidityProvider2.getAddress()
     );
 
     expect(decodedData.account).to.be.equal(
@@ -383,10 +321,6 @@ describe("Liquidity provider takeInterest", () => {
     );
     expect(decodedData.userCapital.lt(365000)).to.be.equal(true);
     expect(decodedData.userCapital.eq(365000 - 500 - 1000)).to.be.equal(true);
-
-    const lpInfoAfter = await protocolContract.LPsInfo(
-      liquidityProvider2.getAddress()
-    );
 
     expect(
       lpInfoAfter.beginLiquidityIndex.gt(lpInfoBefore.beginLiquidityIndex)

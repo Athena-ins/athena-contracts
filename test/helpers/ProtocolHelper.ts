@@ -256,8 +256,24 @@ async function claim(
 
   await ATHENA_CONTRACT.connect(user).addClaim(
     protocolId,
-    await user.getAddress(),
+    await user.getAddress(), //Thao@TODO: address can be difference with connect address
     amount
+  );
+}
+
+async function takeInterest(
+  user: ethers.Signer,
+  protocolId: number,
+  timeLapse: number
+) {
+  await HardhatHelper.setNextBlockTimestamp(timeLapse);
+
+  const tx = await ATHENA_CONTRACT.connect(user).takeInterest(protocolId);
+  const event = (await tx.wait()).events[0];
+
+  return (await getProtocolPoolContract(user, 0)).interface.decodeEventLog(
+    event.topics[0],
+    event.data
   );
 }
 
@@ -286,4 +302,5 @@ export default {
   deposit,
   buyPolicy,
   claim,
+  takeInterest,
 };

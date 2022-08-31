@@ -134,19 +134,10 @@ describe("Liquidity provider withdraw", () => {
       );
 
       const days = 10;
-
-      await HardhatHelper.setNextBlockTimestamp(days * 24 * 60 * 60);
-
-      const tx = await ProtocolHelper.getAthenaContract()
-        .connect(liquidityProvider2)
-        .takeInterest(0);
-
-      const result = await tx.wait();
-      const event = result.events[0];
-
-      const decodedData = protocolContract.interface.decodeEventLog(
-        event.topics[0],
-        event.data
+      const decodedData = await ProtocolHelper.takeInterest(
+        liquidityProvider2,
+        0,
+        days * 24 * 60 * 60
       );
 
       expect(decodedData.account).to.be.equal(
