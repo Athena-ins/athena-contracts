@@ -272,15 +272,6 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
     }
 
     slot0.lastUpdateTimestamp = block.timestamp;
-
-    // emit Actualizing(
-    //   slot0.tick,
-    //   slot0.premiumRate,
-    //   slot0.secondsPerTick,
-    //   slot0.remainingPolicies,
-    //   liquidityIndex,
-    //   slot0.lastUpdateTimestamp
-    // );
   }
 
   function _buyPolicy(
