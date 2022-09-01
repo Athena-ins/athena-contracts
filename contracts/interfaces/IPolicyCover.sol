@@ -6,7 +6,7 @@ interface IPolicyCover {
   event ExpiredPolicy();
 
   event Actualizing(
-    uint24 tick,
+    uint32 tick,
     uint256 premiumRate,
     uint256 secondsPerTick,
     uint256 remainingPolicies,
@@ -17,7 +17,7 @@ interface IPolicyCover {
   event WithdrawPolicy(address owner, uint256 remainedAmount);
 
   struct Slot0 {
-    uint24 tick;
+    uint32 tick;
     uint256 secondsPerTick;
     uint256 totalInsuredCapital;
     uint256 remainingPolicies;

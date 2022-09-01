@@ -12,12 +12,12 @@ import "hardhat/console.sol";
 
 abstract contract PolicyCover is IPolicyCover, ClaimCover {
   using RayMath for uint256;
-  using Tick for mapping(uint24 => address[]);
-  using TickBitmap for mapping(uint16 => uint256);
+  using Tick for mapping(uint32 => address[]);
+  using TickBitmap for mapping(uint24 => uint256);
   using PremiumPosition for mapping(address => PremiumPosition.Info);
 
-  mapping(uint24 => address[]) internal ticks;
-  mapping(uint16 => uint256) internal tickBitmap;
+  mapping(uint32 => address[]) internal ticks;
+  mapping(uint24 => uint256) internal tickBitmap;
   mapping(address => PremiumPosition.Info) public premiumPositions;
 
   Formula internal f;
@@ -54,7 +54,7 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
     address _owner,
     uint256 _capitalInsured,
     uint256 _beginPremiumRate,
-    uint24 _tick
+    uint32 _tick
   ) private {
     premiumPositions[_owner] = PremiumPosition.Info(
       _capitalInsured,
@@ -68,7 +68,7 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
     }
   }
 
-  function removeTick(uint24 _tick) private {
+  function removeTick(uint32 _tick) private {
     address[] memory __owners = ticks[_tick];
     for (uint256 i = 0; i < __owners.length; i++) {
       premiumPositions.removeOwner(__owners[i]);
@@ -125,7 +125,7 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
   function crossingInitializedTick(
     Slot0 memory _slot0,
     uint256 _availableCapital,
-    uint24 _tick
+    uint32 _tick
   ) private view {
     (uint256 __policiesToRemove, uint256 __insuredCapitalToRemove) = ticks
       .cross(premiumPositions, _tick);
@@ -209,7 +209,7 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
     uint256 __pRate = getPremiumRate(__uRate * 100) / 100;
 
     while (__secondsGap > 0) {
-      (uint24 __tickNext, bool __initialized) = tickBitmap
+      (uint32 __tickNext, bool __initialized) = tickBitmap
         .nextInitializedTickInTheRightWithinOneWord(__slot0.tick);
 
       uint256 __secondsStep = (__tickNext - __slot0.tick) *
@@ -237,7 +237,7 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
           __pRate = getPremiumRate(__uRate * 100) / 100;
         }
       } else {
-        __slot0.tick += uint24(__secondsGap / __slot0.secondsPerTick);
+        __slot0.tick += uint32(__secondsGap / __slot0.secondsPerTick);
         __liquidityIndex += (__uRate.rayMul(__pRate) * __secondsGap) / 31536000;
         __secondsGap = 0;
       }
@@ -253,7 +253,7 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
       );
 
       //now, we remove all crossed ticks
-      uint24 __observedTick = slot0.tick;
+      uint32 __observedTick = slot0.tick;
       bool __initialized;
       while (__observedTick < __slot0.tick) {
         (__observedTick, __initialized) = tickBitmap
@@ -321,8 +321,8 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
       __newPremiumRate
     );
 
-    uint24 __lastTick = slot0.tick +
-      uint24(__durationInSeconds / __newSecondsPerTick);
+    uint32 __lastTick = slot0.tick +
+      uint32(__durationInSeconds / __newSecondsPerTick);
 
     addPremiumPosition(_owner, _insuredCapital, __newPremiumRate, __lastTick);
 
@@ -337,7 +337,7 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
     returns (uint256 __remainedPremium)
   {
     PremiumPosition.Info memory __position = premiumPositions.get(_owner);
-    uint24 __currentTick = slot0.tick;
+    uint32 __currentTick = slot0.tick;
 
     require(__currentTick <= __position.lastTick, "Policy Expired");
 
@@ -434,10 +434,10 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
     uint256 __remainingSeconds;
 
     while (__slot0.tick < __position.lastTick) {
-      (uint24 __tickNext, bool __initialized) = tickBitmap
+      (uint32 __tickNext, bool __initialized) = tickBitmap
         .nextInitializedTickInTheRightWithinOneWord(__slot0.tick);
 
-      uint24 __tick = __tickNext < __position.lastTick
+      uint32 __tick = __tickNext < __position.lastTick
         ? __tickNext
         : __position.lastTick;
       uint256 __secondsPassed = (__tick - __slot0.tick) *

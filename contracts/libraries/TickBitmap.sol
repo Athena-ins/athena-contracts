@@ -11,31 +11,31 @@ library TickBitmap {
   /// @param tick The tick for which to compute the position
   /// @return wordPos The key in the mapping containing the word in which the bit is stored
   /// @return bitPos The bit position in the word where the flag is stored
-  function position(uint24 tick)
+  function position(uint32 tick)
     private
     pure
-    returns (uint16 wordPos, uint8 bitPos)
+    returns (uint24 wordPos, uint8 bitPos)
   {
-    wordPos = uint16(tick >> 8);
-    bitPos = uint8(uint24(tick % 256));
+    wordPos = uint24(tick >> 8);
+    bitPos = uint8(uint32(tick % 256));
   }
 
   /// @notice Flips the initialized state for a given tick from false to true, or vice versa
   /// @param self The mapping in which to flip the tick
   /// @param tick The tick to flip
-  function flipTick(mapping(uint16 => uint256) storage self, uint24 tick)
+  function flipTick(mapping(uint24 => uint256) storage self, uint32 tick)
     internal
   {
-    (uint16 wordPos, uint8 bitPos) = position(tick);
+    (uint24 wordPos, uint8 bitPos) = position(tick);
     uint256 mask = 1 << bitPos;
     self[wordPos] ^= mask;
   }
 
   function isInitializedTick(
-    mapping(uint16 => uint256) storage self,
-    uint24 tick
+    mapping(uint24 => uint256) storage self,
+    uint32 tick
   ) internal view returns (bool) {
-    (uint16 wordPos, uint8 bitPos) = position(tick);
+    (uint24 wordPos, uint8 bitPos) = position(tick);
     uint256 mask = 1 << bitPos;
     return (self[wordPos] & mask) != 0;
   }
@@ -45,11 +45,11 @@ library TickBitmap {
   /// @param self The mapping in which to compute the next initialized tick
   /// @param tick The starting tick
   function nextInitializedTickInTheRightWithinOneWord(
-    mapping(uint16 => uint256) storage self,
-    uint24 tick
-  ) internal view returns (uint24 next, bool initialized) {
+    mapping(uint24 => uint256) storage self,
+    uint32 tick
+  ) internal view returns (uint32 next, bool initialized) {
     // start from the word of the next tick, since the current tick state doesn't matter
-    (uint16 wordPos, uint8 bitPos) = position(tick + 1);
+    (uint24 wordPos, uint8 bitPos) = position(tick + 1);
     // all the 1s at or to the left of the bitPos
     uint256 mask = ~((1 << bitPos) - 1);
     uint256 masked = self[wordPos] & mask;
@@ -58,7 +58,7 @@ library TickBitmap {
     initialized = masked != 0;
     // overflow/underflow is possible, but prevented externally by limiting both tickSpacing and tick
     next = initialized
-      ? (tick + 1 + uint24(BitMath.leastSignificantBit(masked) - bitPos))
-      : (tick + 1 + uint24(type(uint8).max - bitPos));
+      ? (tick + 1 + uint32(BitMath.leastSignificantBit(masked) - bitPos))
+      : (tick + 1 + uint32(type(uint8).max - bitPos));
   }
 }
