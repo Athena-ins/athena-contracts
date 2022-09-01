@@ -36,7 +36,6 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
       rSlope2: _rSlope2
     });
 
-    slot0.premiumRate = getPremiumRate(0);
     slot0.secondsPerTick = 86400;
     slot0.lastUpdateTimestamp = block.timestamp;
   }
@@ -131,6 +130,10 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
     (uint256 __policiesToRemove, uint256 __insuredCapitalToRemove) = ticks
       .cross(premiumPositions, _tick);
 
+    uint256 __currentPremiumRate = getPremiumRate(
+      _utilisationRate(0, 0, _slot0.totalInsuredCapital, _availableCapital)
+    );
+
     uint256 __newPremiumRate = getPremiumRate(
       _utilisationRate(
         0,
@@ -142,11 +145,9 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
 
     _slot0.secondsPerTick = getSecondsPerTick(
       _slot0.secondsPerTick,
-      _slot0.premiumRate,
+      __currentPremiumRate,
       __newPremiumRate
     );
-
-    _slot0.premiumRate = __newPremiumRate;
 
     _slot0.totalInsuredCapital -= __insuredCapitalToRemove;
 
@@ -157,22 +158,27 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
     uint256 _amountToAdd,
     uint256 _amountToRemove
   ) internal {
+    uint256 __availableCapital = availableCapital;
+    uint256 __totalInsuredCapital = slot0.totalInsuredCapital;
+
+    uint256 __currentPremiumRate = getPremiumRate(
+      _utilisationRate(0, 0, __totalInsuredCapital, __availableCapital)
+    );
+
     uint256 __newPremiumRate = getPremiumRate(
       _utilisationRate(
         0,
         0,
-        slot0.totalInsuredCapital,
-        availableCapital + _amountToAdd - _amountToRemove
+        __totalInsuredCapital,
+        __availableCapital + _amountToAdd - _amountToRemove
       )
     );
 
     slot0.secondsPerTick = getSecondsPerTick(
       slot0.secondsPerTick,
-      slot0.premiumRate,
+      __currentPremiumRate,
       __newPremiumRate
     );
-
-    slot0.premiumRate = __newPremiumRate;
   }
 
   function _actualizingUntil(uint256 _dateInSeconds)
@@ -182,7 +188,6 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
   {
     __slot0 = Slot0({
       tick: slot0.tick,
-      premiumRate: slot0.premiumRate,
       secondsPerTick: slot0.secondsPerTick,
       totalInsuredCapital: slot0.totalInsuredCapital,
       remainingPolicies: slot0.remainingPolicies,
@@ -291,6 +296,10 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
       "Insufficient capital"
     );
 
+    uint256 __currentPremiumRate = getPremiumRate(
+      _utilisationRate(0, 0, __totalInsuredCapital, __availableCapital)
+    );
+
     uint256 __newPremiumRate = getPremiumRate(
       _utilisationRate(
         _insuredCapital,
@@ -308,7 +317,7 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
 
     uint256 __newSecondsPerTick = getSecondsPerTick(
       slot0.secondsPerTick,
-      slot0.premiumRate,
+      __currentPremiumRate,
       __newPremiumRate
     );
 
@@ -318,7 +327,6 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
     addPremiumPosition(_owner, _insuredCapital, __newPremiumRate, __lastTick);
 
     slot0.totalInsuredCapital += _insuredCapital;
-    slot0.premiumRate = __newPremiumRate;
     slot0.secondsPerTick = __newSecondsPerTick;
 
     slot0.remainingPolicies++;
@@ -333,10 +341,17 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
 
     require(__currentTick <= __position.lastTick, "Policy Expired");
 
+    uint256 __totalInsuredCapital = slot0.totalInsuredCapital;
+    uint256 __availableCapital = availableCapital;
+
+    uint256 __currentPremiumRate = getPremiumRate(
+      _utilisationRate(0, 0, __totalInsuredCapital, __availableCapital)
+    );
+
     uint256 __ownerCurrentEmissionRate = getEmissionRate(
       PremiumPosition.getBeginEmissionRate(__position),
       __position.beginPremiumRate,
-      slot0.premiumRate
+      __currentPremiumRate
     );
 
     __remainedPremium =
@@ -349,8 +364,8 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
       _utilisationRate(
         0,
         __position.capitalInsured,
-        slot0.totalInsuredCapital,
-        availableCapital
+        __totalInsuredCapital,
+        __availableCapital
       )
     );
 
@@ -358,11 +373,9 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
 
     slot0.secondsPerTick = getSecondsPerTick(
       slot0.secondsPerTick,
-      slot0.premiumRate,
+      __currentPremiumRate,
       __newPremiumRate
     );
-
-    slot0.premiumRate = __newPremiumRate;
 
     if (ticks.getOwnerNumber(__position.lastTick) > 1) {
       ticks.removeOwner(__position.ownerIndex, __position.lastTick);
@@ -408,10 +421,14 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
       __position
     );
 
+    uint256 __currentPremiumRate = getPremiumRate(
+      _utilisationRate(0, 0, __slot0.totalInsuredCapital, __availableCapital)
+    );
+
     uint256 __currentOwnerEmissionRate = getEmissionRate(
       __beginOwnerEmissionRate,
       __position.beginPremiumRate,
-      __slot0.premiumRate
+      __currentPremiumRate
     );
 
     uint256 __remainingSeconds;
@@ -437,14 +454,30 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
       if (__initialized && __tickNext < __position.lastTick) {
         crossingInitializedTick(__slot0, __availableCapital, __tickNext);
 
+        __currentPremiumRate = getPremiumRate(
+          _utilisationRate(
+            0,
+            0,
+            __slot0.totalInsuredCapital,
+            __availableCapital
+          )
+        );
+
         __currentOwnerEmissionRate = getEmissionRate(
           __beginOwnerEmissionRate,
           __position.beginPremiumRate,
-          __slot0.premiumRate
+          __currentPremiumRate
         );
       }
     }
 
     __remainingDay = __remainingSeconds / 86400;
+  }
+
+  function getCurrentPremiumRate() public view returns (uint256) {
+    return
+      getPremiumRate(
+        _utilisationRate(0, 0, slot0.totalInsuredCapital, availableCapital)
+      );
   }
 }

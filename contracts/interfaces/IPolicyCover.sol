@@ -18,7 +18,6 @@ interface IPolicyCover {
 
   struct Slot0 {
     uint24 tick;
-    uint256 premiumRate; //Ray //cai nay chi can tinh chu ko can luu
     uint256 secondsPerTick;
     uint256 totalInsuredCapital;
     uint256 remainingPolicies;

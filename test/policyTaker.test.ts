@@ -132,13 +132,15 @@ describe("Buy policy", () => {
       const slot0 = await protocolContract.slot0();
 
       expect(slot0.tick).to.be.equal(0);
-      expect(slot0.premiumRate).to.be.equal("2000000000000000000000000000");
       expect(slot0.secondsPerTick).to.be.equal("43200");
       expect(slot0.totalInsuredCapital).to.be.equal("109500");
       expect(slot0.remainingPolicies).to.be.equal("1");
       expect(slot0.lastUpdateTimestamp).to.be.equal(
         HardhatHelper.getCurrentTime()
       );
+
+      const premiumRate = await protocolContract.getCurrentPremiumRate();
+      expect(premiumRate).to.be.equal("2000000000000000000000000000");
 
       const availableCapital = await protocolContract.availableCapital();
 
@@ -256,13 +258,15 @@ describe("Buy policy", () => {
       const slot0 = await protocolContract.slot0();
 
       expect(slot0.tick).to.be.equal(20);
-      expect(slot0.premiumRate).to.be.equal("4000000000000000000000000000");
       expect(slot0.secondsPerTick).to.be.equal("21600");
       expect(slot0.totalInsuredCapital).to.be.equal("328500");
       expect(slot0.remainingPolicies).to.be.equal("2");
       expect(slot0.lastUpdateTimestamp).to.be.equal(
         HardhatHelper.getCurrentTime()
       );
+
+      const premiumRate = await protocolContract.getCurrentPremiumRate();
+      expect(premiumRate).to.be.equal("4000000000000000000000000000");
 
       const availableCapital = await protocolContract.availableCapital();
 

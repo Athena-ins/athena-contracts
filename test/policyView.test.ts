@@ -86,9 +86,9 @@ describe("View policy", () => {
       );
 
       expect(result.__slot0.tick).to.be.equal(60);
-      expect(result.__slot0.premiumRate).to.be.equal(
-        "4000000000000000000000000000"
-      );
+      // expect(result.__slot0.premiumRate).to.be.equal(
+      //   "4000000000000000000000000000"
+      // );
       expect(result.__slot0.secondsPerTick).to.be.equal(6 * 60 * 60);
       expect(result.__slot0.totalInsuredCapital).to.be.equal(328500);
       expect(result.__slot0.remainingPolicies).to.be.equal(2);
@@ -111,9 +111,9 @@ describe("View policy", () => {
       // console.log("vSlot0 178:", result);
 
       expect(result.__slot0.tick).to.be.equal(731);
-      expect(result.__slot0.premiumRate).to.be.equal(
-        "3000000000000000000000000000"
-      );
+      // expect(result.__slot0.premiumRate).to.be.equal(
+      //   "3000000000000000000000000000"
+      // );
       expect(result.__slot0.secondsPerTick).to.be.equal(28800);
       expect(result.__slot0.totalInsuredCapital).to.be.equal(219000);
       expect(result.__slot0.remainingPolicies).to.be.equal(1);
@@ -136,9 +136,9 @@ describe("View policy", () => {
       );
 
       expect(result.__slot0.tick).to.be.equal(1480);
-      expect(result.__slot0.premiumRate).to.be.equal(
-        "1000000000000000000000000000"
-      );
+      // expect(result.__slot0.premiumRate).to.be.equal(
+      //   "1000000000000000000000000000"
+      // );
       expect(result.__slot0.secondsPerTick).to.be.equal(24 * 60 * 60);
       expect(result.__slot0.totalInsuredCapital).to.be.equal(0);
       expect(result.__slot0.remainingPolicies).to.be.equal(0);
@@ -198,13 +198,15 @@ describe("View policy", () => {
       const slot0 = await protocolContract.slot0();
 
       expect(slot0.tick).to.be.equal(24);
-      expect(slot0.premiumRate).to.be.equal("3000000000000000000000000000");
       expect(slot0.secondsPerTick).to.be.equal(8 * 60 * 60);
       expect(slot0.totalInsuredCapital).to.be.equal("219000");
       expect(slot0.remainingPolicies).to.be.equal(1);
       expect(slot0.lastUpdateTimestamp).to.be.equal(
         HardhatHelper.getCurrentTime()
       );
+
+      const premiumRate = await protocolContract.getCurrentPremiumRate();
+      expect(premiumRate).to.be.equal("3000000000000000000000000000");
 
       const availableCapital = await protocolContract.availableCapital();
 
@@ -245,13 +247,15 @@ describe("View policy", () => {
       const slot0 = await protocolContract.slot0();
 
       expect(slot0.tick).to.be.equal(54);
-      expect(slot0.premiumRate).to.be.equal("1000000000000000000000000000");
       expect(slot0.secondsPerTick).to.be.equal(24 * 60 * 60);
       expect(slot0.totalInsuredCapital).to.be.equal("0");
       expect(slot0.remainingPolicies).to.be.equal(0);
       expect(slot0.lastUpdateTimestamp).to.be.equal(
         HardhatHelper.getCurrentTime()
       );
+
+      const premiumRate = await protocolContract.getCurrentPremiumRate();
+      expect(premiumRate).to.be.equal("1000000000000000000000000000");
 
       const availableCapital = await protocolContract.availableCapital();
 
