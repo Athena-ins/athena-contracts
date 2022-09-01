@@ -71,8 +71,8 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
   function removeTick(uint32 _tick) private {
     address[] memory __owners = ticks[_tick];
     for (uint256 i = 0; i < __owners.length; i++) {
-      premiumPositions.removeOwner(__owners[i]);
-      //il faut event PolicyExpired ici
+      uint256 insuredCapital = premiumPositions.removeOwner(__owners[i]);
+      emit ExpiredPolicy(__owners[i], insuredCapital, _tick);
     }
 
     ticks.clear(_tick);

@@ -2,8 +2,7 @@
 pragma solidity ^0.8;
 
 interface IPolicyCover {
-  //Thao@TODO:
-  event ExpiredPolicy();
+  event ExpiredPolicy(address owner, uint256 insuredCapital, uint32 tick);
 
   event Actualizing(
     uint32 tick,

@@ -264,12 +264,13 @@ async function claim(
 async function takeInterest(
   user: ethers.Signer,
   protocolId: number,
-  timeLapse: number
+  timeLapse: number,
+  eventIndex: number = 0
 ) {
   await HardhatHelper.setNextBlockTimestamp(timeLapse);
 
   const tx = await ATHENA_CONTRACT.connect(user).takeInterest(protocolId);
-  const event = (await tx.wait()).events[0];
+  const event = (await tx.wait()).events[eventIndex];
 
   return (await getProtocolPoolContract(user, 0)).interface.decodeEventLog(
     event.topics[0],

@@ -269,7 +269,8 @@ describe("Liquidity provider takeInterest", () => {
       const decodedData = await ProtocolHelper.takeInterest(
         liquidityProvider2,
         0,
-        611 * 24 * 60 * 60
+        611 * 24 * 60 * 60,
+        2
       );
 
       const lpInfoAfter = await protocolContract.LPsInfo(

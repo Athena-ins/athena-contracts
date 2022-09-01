@@ -33,7 +33,8 @@ library PremiumPosition {
   function removeOwner(
     mapping(address => PremiumPosition.Info) storage self,
     address owner
-  ) internal {
+  ) internal returns (uint256 insuredCapital) {
+    insuredCapital = self[owner].capitalInsured;
     delete self[owner];
   }
 
