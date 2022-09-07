@@ -11,14 +11,14 @@ library Tick {
     mapping(uint32 => address[]) storage self,
     address owner,
     uint32 tick
-  ) internal returns (uint256) {
+  ) internal returns (uint224) {
     self[tick].push(owner);
-    return self[tick].length - 1;
+    return uint224(self[tick].length - 1);
   }
 
   function removeOwner(
     mapping(uint32 => address[]) storage self,
-    uint256 ownerIndexToRemove,
+    uint224 ownerIndexToRemove,
     uint32 tick
   ) internal {
     address[] storage owners = self[tick];

@@ -59,8 +59,8 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
     premiumPositions[_owner] = PremiumPosition.Info(
       _capitalInsured,
       _beginPremiumRate,
-      ticks.addOwner(_owner, _tick),
-      _tick
+      _tick,
+      ticks.addOwner(_owner, _tick)
     );
 
     if (!tickBitmap.isInitializedTick(_tick)) {

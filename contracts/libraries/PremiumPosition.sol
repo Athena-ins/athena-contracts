@@ -9,9 +9,8 @@ library PremiumPosition {
   struct Info {
     uint256 capitalInsured;
     uint256 beginPremiumRate;
-    //Thao@TODO: pack ownerIndex and lastTick in uint256 for saving gas
-    uint256 ownerIndex;
     uint32 lastTick;
+    uint224 ownerIndex;
   }
 
   function get(
