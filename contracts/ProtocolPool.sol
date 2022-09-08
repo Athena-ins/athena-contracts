@@ -343,18 +343,21 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     claims.push(Claim(_fromProtocolId, _ratio, liquidityIndex));
   }
 
+  function ratioWithAvailableCapital(uint256 _amount)
+    external
+    view
+    returns (uint256)
+  {
+    return _amount.rayDiv(availableCapital);
+  }
+
   event ReleaseFunds(address account, uint256 amount);
 
-  //Thao@TODO:somethings missing  or not???
   function releaseFunds(address _account, uint256 _amount)
     external
     override
     onlyCore
-    returns (uint256 ratio)
   {
-    ratio = _amount.rayDiv(availableCapital);
-    processClaim(id, ratio);
-
     console.log("Amount to refund : ", _amount);
     uint256 bal = IERC20(underlyingAsset).balanceOf(address(this));
     console.log("Balance Contract = ", bal);

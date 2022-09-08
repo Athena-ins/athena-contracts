@@ -389,6 +389,8 @@ contract Athena is ReentrancyGuard, Ownable {
       "Policy is not owned"
     );
 
+    require(_amountClaimed > 0, "Claimed amount is zero");
+
     (uint256 __liquidity, uint128 __protocolId) = IPolicyManager(policyManager)
       .policies(_policyId);
 
@@ -421,14 +423,48 @@ contract Athena is ReentrancyGuard, Ownable {
       protocolsMapping[_protocolId].deployed
     );
 
-    uint256 ratio = __protocolPool.releaseFunds(_account, _amount);
+    uint256 ratio = __protocolPool.ratioWithAvailableCapital(_amount);
     uint128[] memory __relatedProtocols = __protocolPool.getRelatedProtocols();
 
     for (uint256 i = 0; i < __relatedProtocols.length; i++) {
-      if (__relatedProtocols[i] != _protocolId)
-        IProtocolPool(protocolsMapping[__relatedProtocols[i]].deployed)
-          .processClaim(_protocolId, ratio);
+      IProtocolPool(protocolsMapping[__relatedProtocols[i]].deployed)
+        .processClaim(_protocolId, ratio);
     }
+
+    __protocolPool.releaseFunds(_account, _amount);
+  }
+
+  function resolveClaimPublic(
+    uint256 _policyId,
+    uint256 _amount,
+    address _account
+  ) external {
+    address _accountConfirm = IPolicyManager(policyManager).ownerOf(_policyId);
+    require(_account == _accountConfirm, "Wrong account");
+
+    (, uint128 __protocolId) = IPolicyManager(policyManager).policies(
+      _policyId
+    );
+
+    console.log("Account : ", _account);
+    console.log("Policy Id : ", _policyId);
+    console.log("Account confirm : ", _accountConfirm);
+
+    IProtocolPool __protocolPool = IProtocolPool(
+      protocolsMapping[__protocolId].deployed
+    );
+
+    uint256 ratio = __protocolPool.ratioWithAvailableCapital(_amount);
+
+    uint128[] memory __relatedProtocols = __protocolPool.getRelatedProtocols();
+    for (uint256 i = 0; i < __relatedProtocols.length; i++) {
+      IProtocolPool(protocolsMapping[__relatedProtocols[i]].deployed)
+        .processClaim(__protocolId, ratio);
+    }
+
+    __protocolPool.releaseFunds(_account, _amount);
+
+    // protocolsMapping[__protocolId].claimsOngoing -= 1;//use for later
   }
 
   modifier onlyClaimManager() {

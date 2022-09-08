@@ -246,6 +246,21 @@ async function buyPolicy(
   );
 }
 
+async function resolveClaimPublic(
+  publicSigner: ethers.Signer,
+  policyId: number,
+  amount: string,
+  account: ethers.Signer,
+  timeLapse: number
+) {
+  await HardhatHelper.setNextBlockTimestamp(timeLapse);
+  await ATHENA_CONTRACT.connect(publicSigner).resolveClaimPublic(
+    policyId,
+    amount,
+    await account.getAddress()
+  );
+}
+
 async function claim(
   user: ethers.Signer,
   protocolId: number,
@@ -302,6 +317,7 @@ export default {
   getProtocolPoolContract,
   deposit,
   buyPolicy,
+  resolveClaimPublic,
   claim,
   takeInterest,
 };

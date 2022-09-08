@@ -26,9 +26,11 @@ interface IProtocolPool is IPolicyCover {
     uint128 _discount
   ) external returns (uint256 totalRewards);
 
-  function releaseFunds(address _account, uint256 _amount)
+  function ratioWithAvailableCapital(uint256 _amount)
     external
     returns (uint256);
+
+  function releaseFunds(address _account, uint256 _amount) external;
 
   function buyPolicy(
     address _owner,
