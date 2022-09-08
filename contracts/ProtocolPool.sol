@@ -12,7 +12,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
 
   struct LPInfo {
     uint256 beginLiquidityIndex;
-    uint256 beginClaimIndex; //when a LP enter in pool, save the length of claims
+    uint256 beginClaimIndex;
   }
 
   address private immutable core;
@@ -23,11 +23,6 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
   mapping(address => uint256) public withdrawReserves;
   mapping(address => LPInfo) public LPsInfo;
 
-  // @Dev notice rule
-  // external and public functions should use Decimals and convert to RAY, other functions should already use RAY
-  // external function onlyCore convert afterwards to user public view functions
-
-  //@dev constructs Pool LP Tokens, decimals defaults to 18
   constructor(
     address _core,
     address _underlyingAsset,
@@ -82,7 +77,10 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     withdrawReserves[_account] = block.timestamp;
   }
 
-  function removeCommittedWithdrawLiquidity(address _account) external {
+  function removeCommittedWithdrawLiquidity(address _account)
+    external
+    onlyCore
+  {
     delete withdrawReserves[_account];
   }
 
@@ -115,6 +113,8 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
   {
     _actualizing();
     uint256 __remainedPremium = _withdrawPolicy(_owner);
+
+    //transfert token
 
     emit WithdrawPolicy(_owner, __remainedPremium);
   }
@@ -290,17 +290,14 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
       __liquidityIndex - __newLPInfo.beginLiquidityIndex
     );
 
-    __newLPInfo.beginLiquidityIndex = __liquidityIndex;
-
     _burn(_account, balanceOf(_account));
-    //or: _burn(_account, _userCapital);
-    if (__totalRewards > 0) {
-      IERC20(underlyingAsset).safeTransfer(
-        _account,
-        (__totalRewards * (1000 - _discount)) / 1000
-      );
+    // _burn(_account, _userCapital);
 
-      _transferToTreasury((__totalRewards * _discount) / 1000);
+    uint256 __rewardsNet;
+    if (__totalRewards > 0) {
+      __rewardsNet = (__totalRewards * (1000 - _discount)) / 1000;
+      IERC20(underlyingAsset).safeTransfer(_account, __rewardsNet);
+      _transferToTreasury(__totalRewards - __rewardsNet);
     }
 
     _updateSlot0WhenAvailableCapitalChange(0, __newUserCapital);
@@ -317,11 +314,11 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
       _account,
       __newUserCapital,
       __totalRewards,
-      (__totalRewards * (1000 - _discount)) / 1000,
-      (__totalRewards * _discount) / 1000
+      __rewardsNet,
+      __totalRewards - __rewardsNet
     );
 
-    return __newUserCapital + ((__totalRewards * (1000 - _discount)) / 1000);
+    return __newUserCapital + __rewardsNet;
   }
 
   function _transferToTreasury(uint256 _amount) internal {

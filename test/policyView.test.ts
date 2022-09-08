@@ -169,7 +169,7 @@ describe("View policy", () => {
       await HardhatHelper.setNextBlockTimestamp(1 * 24 * 60 * 60);
       const tx = await ProtocolHelper.getAthenaContract()
         .connect(policyTaker1)
-        .withdrawPolicy(0);
+        .withdrawPolicy(0, 0);
 
       const result = await tx.wait();
       // console.log(result);
@@ -219,7 +219,7 @@ describe("View policy", () => {
       await HardhatHelper.setNextBlockTimestamp(10 * 24 * 60 * 60);
       const tx = await ProtocolHelper.getAthenaContract()
         .connect(policyTaker2)
-        .withdrawPolicy(0);
+        .withdrawPolicy(1, 0);
 
       const result = await tx.wait();
       const event = result.events[1];

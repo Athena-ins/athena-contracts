@@ -81,13 +81,13 @@ describe("Liquidity provider withdraw", () => {
 
       const commit_tx = await ProtocolHelper.getAthenaContract()
         .connect(liquidityProvider1)
-        .commitingWithdrawOneProtocolPoolTest(0);
+        .commitingWithdrawInOneProtocol(0);
 
       await HardhatHelper.setNextBlockTimestamp(14 * 24 * 60 * 60);
 
       const withdraw_tx = await ProtocolHelper.getAthenaContract()
         .connect(liquidityProvider1)
-        .withdrawLiquidityOneProtocolPoolTest(0, 182500, [0, 2], 200);
+        .withdrawLiquidityInOneProtocol(0);
 
       const result = await withdraw_tx.wait();
       // console.log(result);
@@ -109,8 +109,8 @@ describe("Liquidity provider withdraw", () => {
       );
       expect(decodedData.capital).to.be.equal(182500);
       expect(decodedData.rewardsGross).to.be.equal(150);
-      expect(decodedData.rewardsNet).to.be.equal(120);
-      expect(decodedData.fee).to.be.equal(30);
+      expect(decodedData.rewardsNet).to.be.equal(127);
+      expect(decodedData.fee).to.be.equal(23);
 
       const slot0 = await protocolContract.slot0();
 

@@ -6,10 +6,8 @@ import "./interfaces/IPolicyManager.sol";
 
 contract PolicyManager is IPolicyManager, ERC721Enumerable {
   struct Policy {
-    address owner;
-    uint256 amountGuaranteed;
-    //Aten to stake with policy in stable
-    uint256 atensLocked;
+    uint256 amountGuaranteed; //Thao@NOTE: cette variable est 'capitalInsured' de PremiumPosition.Info.capitalInsured. Nous pouvons garder ici pour flash info mais il faut enlever pour save gas.
+    uint256 atensLocked; //Aten to stake with policy in stable
     uint128 protocolId;
   }
 
@@ -41,14 +39,10 @@ contract PolicyManager is IPolicyManager, ERC721Enumerable {
     external
     view
     override
-    returns (
-      uint256 liquidity,
-      uint128 protocolId,
-      address owner
-    )
+    returns (uint256 liquidity, uint128 protocolId)
   {
     Policy memory policy = _policies[_tokenId];
-    return (policy.amountGuaranteed, policy.protocolId, policy.owner);
+    return (policy.amountGuaranteed, policy.protocolId);
   }
 
   function mint(
@@ -58,7 +52,6 @@ contract PolicyManager is IPolicyManager, ERC721Enumerable {
     uint128 _protocolId
   ) external override onlyCore {
     _policies[_nextId] = Policy({
-      owner: to,
       amountGuaranteed: capitalGuaranteed,
       protocolId: _protocolId,
       atensLocked: atensLocked
@@ -68,7 +61,6 @@ contract PolicyManager is IPolicyManager, ERC721Enumerable {
   }
 
   function update(
-    address to,
     uint128 _discount,
     uint256 amount,
     uint256 atenStake,
@@ -76,7 +68,6 @@ contract PolicyManager is IPolicyManager, ERC721Enumerable {
     uint256 tokenId
   ) external override onlyCore {
     _policies[tokenId] = Policy({
-      owner: to,
       amountGuaranteed: amount,
       protocolId: _protocolId,
       atensLocked: atenStake

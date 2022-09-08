@@ -43,9 +43,8 @@ library PremiumPosition {
     returns (uint256)
   {
     return
-      positionInfo.capitalInsured.rayMul(positionInfo.beginPremiumRate).rayDiv(
-        36500000000000000000000000000000
-      );
+      positionInfo.capitalInsured.rayMul(positionInfo.beginPremiumRate / 100) /
+      365;
   }
 
   function hasOwner(

@@ -9,7 +9,6 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
   struct Position {
     address owner;
     uint256 providedLiquidity;
-    uint256 createdAt;
     //AAVE AToken to redeem
     uint256 atokenBalance;
     //Aten to stake with position in stable
@@ -52,8 +51,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
       uint256 liquidity,
       uint128[] memory protocolsId,
       uint256 atokens,
-      uint128 discount,
-      uint256 createdAt
+      uint128 discount
     )
   {
     Position memory position = _positions[_tokenId];
@@ -61,8 +59,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
       position.providedLiquidity,
       position.protocolsId,
       position.atokenBalance,
-      position.discount,
-      position.createdAt
+      position.discount
     );
   }
 
@@ -78,7 +75,6 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
       owner: to,
       providedLiquidity: amount,
       atokenBalance: _atokenBalance,
-      createdAt: block.timestamp,
       discount: _discount,
       protocolsId: _protocolsIds,
       atens: atenStake

@@ -6,11 +6,7 @@ interface IPolicyManager is IERC721Enumerable {
   function policies(uint256 _tokenId)
     external
     view
-    returns (
-      uint256 liquidity,
-      uint128 protocolId,
-      address owner
-    );
+    returns (uint256 liquidity, uint128 protocolId);
 
   function mint(
     address to,
@@ -20,7 +16,6 @@ interface IPolicyManager is IERC721Enumerable {
   ) external;
 
   function update(
-    address to,
     uint128 _discount,
     uint256 amount,
     uint256 atenStake,
