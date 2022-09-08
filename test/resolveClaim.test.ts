@@ -63,6 +63,18 @@ describe("Claims", () => {
       1 * 24 * 60 * 60
     );
 
+    const capital3 = "328500";
+    const premium3 = "8760";
+    const atensLocked3 = "0";
+    await ProtocolHelper.buyPolicy(
+      policyTaker3,
+      capital3,
+      premium3,
+      atensLocked3,
+      3,
+      10 * 24 * 60 * 60
+    );
+
     const capital1 = "109500";
     const premium1 = "2190";
     const atensLocked1 = "0";
@@ -86,18 +98,6 @@ describe("Claims", () => {
       0,
       10 * 24 * 60 * 60
     );
-
-    // const capital3 = "328500";
-    // const premium3 = "8760";
-    // const atensLocked3 = "0";
-    // await ProtocolHelper.buyPolicy(
-    //   policyTaker3,
-    //   capital3,
-    //   premium3,
-    //   atensLocked3,
-    //   2,
-    //   10 * 24 * 60 * 60
-    // );
   });
 
   describe("Claim", async () => {
@@ -143,7 +143,7 @@ describe("Claims", () => {
     it("Should resolve claim in Protocol 0", async () => {
       await ProtocolHelper.resolveClaimPublic(
         owner,
-        0,
+        1,
         "182500",
         policyTaker1,
         1 * 24 * 60 * 60
@@ -296,12 +296,12 @@ describe("Claims", () => {
       );
     });
 
-    it.skip("Should resolve claim in protocol 3", async () => {
+    it("Should resolve claim in protocol 3 and check info in its related protocols", async () => {
       await ProtocolHelper.resolveClaimPublic(
         owner,
         0,
         "182500",
-        policyTaker1,
+        policyTaker3,
         1 * 24 * 60 * 60
       );
 
@@ -314,6 +314,16 @@ describe("Claims", () => {
       expect(claim.fromProtocolId).to.be.equal(3);
       expect(claim.ratio).to.be.equal("500000000000000000000000000");
       expect(claim.liquidityIndexBeforeClaim).to.be.equal("0");
+
+      const protocolPool3 = await ProtocolHelper.getProtocolPoolContract(
+        owner,
+        3
+      );
+      const claim3 = await protocolPool3.claims(0);
+
+      expect(claim3.fromProtocolId).to.be.equal(3);
+      expect(claim3.ratio).to.be.equal("500000000000000000000000000");
+      expect(claim3.liquidityIndexBeforeClaim.gt(0)).to.be.equal(true);
     });
   });
 });
