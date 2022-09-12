@@ -129,7 +129,8 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     returns (
       uint256 __newUserCapital,
       uint256 __totalRewards,
-      LPInfo memory __newLPInfo
+      LPInfo memory __newLPInfo,
+      uint256 __newAaveScaledBalance
     )
   {
     __newLPInfo = LPsInfo[_account];
@@ -174,10 +175,12 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
       LPInfo memory __newLPInfo
     )
   {
+    //Thao@TODO: il faut voir si nous avons besoin aaveScaledBalance
     (
       __newUserCapital,
       __totalRewards,
-      __newLPInfo
+      __newLPInfo,
+
     ) = _actualizingLPInfoWithClaims(_account, _userCapital, _protocolIds);
 
     uint256 __liquidityIndex;
@@ -210,13 +213,14 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     uint256 _userCapital,
     uint128[] calldata _protocolIds,
     uint256 _discount
-  ) public onlyCore returns (uint256) {
+  ) public onlyCore returns (uint256, uint256) {
     _actualizing();
 
     (
       uint256 __newUserCapital,
       uint256 __totalRewards,
-      LPInfo memory __newLPInfo
+      LPInfo memory __newLPInfo,
+      uint256 __newAaveScaledBalance
     ) = _actualizingLPInfoWithClaims(_account, _userCapital, _protocolIds);
 
     uint256 __liquidityIndex = liquidityIndex;
@@ -231,7 +235,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     uint256 __interestNet = (__totalRewards * (1000 - _discount)) / 1000;
 
     //transfer to treasury
-    uint256 __fee = __totalRewards - __interestNet;
+    // uint256 __fee = __totalRewards - __interestNet;
 
     LPsInfo[_account] = __newLPInfo;
 
@@ -240,10 +244,10 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
       __newUserCapital,
       __totalRewards,
       __interestNet,
-      __fee
+      __totalRewards - __interestNet
     );
 
-    return __newUserCapital;
+    return (__newUserCapital, __newAaveScaledBalance);
   }
 
   event WithdrawLiquidity(
@@ -259,7 +263,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     uint256 _userCapital,
     uint128[] calldata _protocolIds,
     uint128 _discount
-  ) external override onlyCore returns (uint256) {
+  ) external override onlyCore returns (uint256, uint256) {
     require(
       withdrawReserves[_account] != 0 &&
         block.timestamp - withdrawReserves[_account] >= commitDelay,
@@ -281,7 +285,8 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     (
       uint256 __newUserCapital,
       uint256 __totalRewards,
-      LPInfo memory __newLPInfo
+      LPInfo memory __newLPInfo,
+      uint256 __newAaveScaledBalance
     ) = _actualizingLPInfoWithClaims(_account, _userCapital, _protocolIds);
 
     uint256 __liquidityIndex = liquidityIndex;
@@ -318,17 +323,18 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
       __totalRewards - __rewardsNet
     );
 
-    return __newUserCapital + __rewardsNet;
+    return (__newUserCapital + __rewardsNet, __newAaveScaledBalance);
   }
 
   function _transferToTreasury(uint256 _amount) internal {
     IERC20(underlyingAsset).safeTransfer(core, _amount);
   }
 
-  function processClaim(uint128 _fromProtocolId, uint256 _ratio)
-    public
-    override
-  {
+  function processClaim(
+    uint128 _fromProtocolId,
+    uint256 _ratio,
+    uint256 _aaveReserveNormalizedIncome
+  ) public override {
     _actualizing();
 
     uint256 __amountToRemoveByClaim = _amountToRemoveFromIntersecAndCapital(
@@ -340,7 +346,14 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     intersectingAmounts[
       intersectingAmountIndexes[_fromProtocolId]
     ] -= __amountToRemoveByClaim;
-    claims.push(Claim(_fromProtocolId, _ratio, liquidityIndex));
+    claims.push(
+      Claim(
+        _fromProtocolId,
+        _ratio,
+        liquidityIndex,
+        _aaveReserveNormalizedIncome
+      )
+    );
   }
 
   function ratioWithAvailableCapital(uint256 _amount)

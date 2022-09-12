@@ -3,13 +3,14 @@ pragma solidity ^0.8;
 import "@openzeppelin/contracts/token/ERC721/extensions/IERC721Enumerable.sol";
 
 interface IPositionsManager is IERC721Enumerable {
+  //Thao@TODO: il faut changer atokens en aaveScaledBalance
   function positions(uint256 _tokenId)
     external
     view
     returns (
       uint256 liquidity,
       uint128[] memory protocolsId,
-      uint256 atokens,
+      uint256 aaveScaledBalance,
       uint128 discount
     );
 
@@ -17,21 +18,25 @@ interface IPositionsManager is IERC721Enumerable {
     address to,
     uint128 discount,
     uint256 amount,
-    uint256 _atokenBalance,
+    uint256 aaveScaledBalance,
     uint256 atenStake,
-    uint128[] calldata _protocolsIds
+    uint128[] calldata protocolsIds
   ) external;
 
   function burn(address to) external;
 
   function update(
-    uint128 _discount,
+    uint128 discount,
     uint256 amount,
-    uint256 _atokenBalance,
+    uint256 aaveScaledBalance,
     uint256 atenStake,
-    uint128[] calldata _protocolsIds,
+    uint128[] calldata protocolsIds,
     uint256 tokenId
   ) external;
 
-  function updateUserCapital(uint256 tokenId, uint256 _amount) external;
+  function updateUserCapital(
+    uint256 tokenId,
+    uint256 amount,
+    uint256 aaveScaledBalance
+  ) external;
 }

@@ -17,14 +17,14 @@ interface IProtocolPool is IPolicyCover {
     uint256 _userCapital,
     uint128[] calldata _protocolIds,
     uint256 _discount
-  ) external returns (uint256 newUserCapital);
+  ) external returns (uint256 newUserCapital, uint256 newAaveScaledBalance);
 
   function withdrawLiquidity(
     address _account,
     uint256 _userCapital,
     uint128[] calldata _protocolIds,
     uint128 _discount
-  ) external returns (uint256 totalRewards);
+  ) external returns (uint256 totalRewards, uint256 newAaveScaledBalance);
 
   function ratioWithAvailableCapital(uint256 _amount)
     external
@@ -40,7 +40,11 @@ interface IProtocolPool is IPolicyCover {
 
   function withdrawPolicy(address _owner) external;
 
-  function processClaim(uint128 fromProtocolId, uint256 ratio) external;
+  function processClaim(
+    uint128 fromProtocolId,
+    uint256 ratio,
+    uint256 aaveReserveNormalizedIncome
+  ) external;
 
   function getRelatedProtocols() external view returns (uint128[] memory);
 

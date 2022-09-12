@@ -6,10 +6,16 @@ import "./LiquidityCover.sol";
 abstract contract ClaimCover is LiquidityCover {
   using RayMath for uint256;
 
+  // struct ClaimComplement {
+  //   uint256 claimId;
+  //   uint256 liquidityIndexBeforeClaim;
+  // }
+
   struct Claim {
     uint128 fromProtocolId;
     uint256 ratio; // Ray //ratio = claimAmount / capital
     uint256 liquidityIndexBeforeClaim;
+    uint256 aaveReserveNormalizedIncomeBeforeClaim;
   }
 
   Claim[] public claims;
@@ -30,14 +36,6 @@ abstract contract ClaimCover is LiquidityCover {
     }
 
     return __claims;
-  }
-
-  function _claimAmountRatio(uint256 _claimAmount)
-    internal
-    view
-    returns (uint256)
-  {
-    return _claimAmount.rayDiv(availableCapital);
   }
 
   function _amountToRemoveFromIntersecAndCapital(

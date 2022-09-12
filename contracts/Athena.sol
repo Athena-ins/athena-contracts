@@ -21,6 +21,7 @@ import "hardhat/console.sol";
 
 contract Athena is ReentrancyGuard, Ownable {
   using SafeERC20 for IERC20;
+  using RayMath for uint256;
 
   struct Protocol {
     uint128 id; //id in mapping
@@ -33,6 +34,15 @@ contract Athena is ReentrancyGuard, Ownable {
     string name; //Protocol name
   }
 
+  // struct Claim {
+  //   uint128 fromProtocolId;
+  //   uint256 ratio;
+  //   uint256 aaveReserveNormalizedIncomeBeforeClaim;
+  // }
+
+  // uint256 public currentClaimId;
+  // mapping(uint256 => Claim) public claims;
+
   event NewProtocol(uint128);
 
   uint256 internal constant MAX_UINT256 = 2**256 - 1;
@@ -40,7 +50,7 @@ contract Athena is ReentrancyGuard, Ownable {
   mapping(uint128 => mapping(uint128 => bool)) public incompatibilityProtocols;
   mapping(uint128 => Protocol) public protocolsMapping;
 
-  address public stablecoin;
+  address public stablecoin; //Thao@???: why stablecoin is here
   address public aaveAddressesRegistry; // AAVE lending pool
   address public positionsManager;
   address public policyManager;
@@ -141,7 +151,7 @@ contract Athena is ReentrancyGuard, Ownable {
       protocolPool1.addRelatedProtocol(_protocolIds[index], amount);
     }
 
-    uint256 _atokens = _transferLiquidity(amount);
+    uint256 __aaveScaledBalance = _transferLiquidity(amount);
     uint128 _discount = 0;
     if (atenToStake > 0) {
       _stakeAtens(atenToStake, amount);
@@ -152,7 +162,7 @@ contract Athena is ReentrancyGuard, Ownable {
       msg.sender,
       _discount,
       amount,
-      _atokens,
+      __aaveScaledBalance,
       atenToStake,
       _protocolIds
     );
@@ -171,14 +181,15 @@ contract Athena is ReentrancyGuard, Ownable {
       uint256 __discount
     ) = IPositionsManager(positionsManager).positions(__tokenId);
 
-    uint256 __newUserCapital = IProtocolPool(
+    (uint256 __newUserCapital, uint256 __newAaveScaledBalance) = IProtocolPool(
       protocolsMapping[_protocolId].deployed
     ).takeInterest(msg.sender, __userCapital, __protocolIds, __discount);
 
     if (__userCapital != __newUserCapital)
       IPositionsManager(positionsManager).updateUserCapital(
         __tokenId,
-        __newUserCapital
+        __newUserCapital,
+        __newAaveScaledBalance
       );
   }
 
@@ -210,14 +221,20 @@ contract Athena is ReentrancyGuard, Ownable {
       uint128 _discount
     ) = IPositionsManager(positionsManager).positions(_tokenId);
 
-    uint256 __amountToTranfers = IProtocolPool(
-      protocolsMapping[_protocolId].deployed
-    ).withdrawLiquidity(msg.sender, _liquidity, _protocolIds, _discount);
+    (
+      uint256 __amountToTranfers,
+      uint256 __newAaveScaledBalance
+    ) = IProtocolPool(protocolsMapping[_protocolId].deployed).withdrawLiquidity(
+        msg.sender,
+        _liquidity,
+        _protocolIds,
+        _discount
+      );
 
     IProtocolPool(protocolsMapping[_protocolId].deployed)
       .removeCommittedWithdrawLiquidity(msg.sender);
 
-    //Thao@TODO: comment récupérer token et payer pour msg.sender ???
+    //Thao@TODO: comment récupérer token de aave et payer pour msg.sender ???
   }
 
   function committingWithdrawAll() external {
@@ -265,20 +282,6 @@ contract Athena is ReentrancyGuard, Ownable {
     }
   }
 
-  // @Dev TODO should add selected protocols & amounts to withdraw
-  //Thao@NOTE: fct is not used
-  // function withdraw(
-  //   uint256 _amount,
-  //   uint128[] memory _protocolIds,
-  //   uint256 _atokens
-  // ) external {
-  //   require(
-  //     IPositionsManager(positionsManager).balanceOf(msg.sender) > 0,
-  //     "No position to withdraw"
-  //   );
-  //   _withdraw(_amount, _protocolIds, _atokens, 0);
-  // }
-
   function _withdraw(
     uint256 _amount,
     uint128[] memory _protocolIds,
@@ -297,7 +300,7 @@ contract Athena is ReentrancyGuard, Ownable {
         "Protocol locked"
       );
 
-      uint256 _maxCapital = IProtocolPool(
+      (uint256 _maxCapital, uint256 __newAaveScaledBalance) = IProtocolPool(
         protocolsMapping[_protocolIds[index]].deployed
       ).withdrawLiquidity(msg.sender, _amount, _protocolIds, _discount);
 
@@ -343,6 +346,7 @@ contract Athena is ReentrancyGuard, Ownable {
       protocolsMapping[_protocolId].deployed,
       _premium
     );
+
     if (_atensLocked > 0) {
       //@dev TODO get oracle price !
       uint256 pricePrecision = 10000;
@@ -404,15 +408,17 @@ contract Athena is ReentrancyGuard, Ownable {
     //   ),
     //   "Policy Not active"
     // );
-    protocolsMapping[__protocolId].claimsOngoing += 1;
+
     IClaimManager(claimManager).claim{ value: msg.value }(
       msg.sender,
       _policyId,
       _amountClaimed
     );
+
+    protocolsMapping[__protocolId].claimsOngoing += 1;
   }
 
-  //Thao@NOTE: for testing
+  //Thao@NOTE: for testing, to remove
   function addClaim(
     uint128 _protocolId,
     address _account,
@@ -424,11 +430,16 @@ contract Athena is ReentrancyGuard, Ownable {
     );
 
     uint256 ratio = __protocolPool.ratioWithAvailableCapital(_amount);
+
+    uint256 __reserveNormalizedIncome = ILendingPool(
+      ILendingPoolAddressesProvider(aaveAddressesRegistry).getLendingPool()
+    ).getReserveNormalizedIncome(stablecoin);
+
     uint128[] memory __relatedProtocols = __protocolPool.getRelatedProtocols();
 
     for (uint256 i = 0; i < __relatedProtocols.length; i++) {
       IProtocolPool(protocolsMapping[__relatedProtocols[i]].deployed)
-        .processClaim(_protocolId, ratio);
+        .processClaim(_protocolId, ratio, __reserveNormalizedIncome);
     }
 
     __protocolPool.releaseFunds(_account, _amount);
@@ -440,26 +451,30 @@ contract Athena is ReentrancyGuard, Ownable {
     address _account
   ) external {
     address _accountConfirm = IPolicyManager(policyManager).ownerOf(_policyId);
+
+    console.log("Account : ", _account);
+    console.log("Policy Id : ", _policyId);
+    console.log("Account confirm : ", _accountConfirm);
+
     require(_account == _accountConfirm, "Wrong account");
 
     (, uint128 __protocolId) = IPolicyManager(policyManager).policies(
       _policyId
     );
 
-    console.log("Account : ", _account);
-    console.log("Policy Id : ", _policyId);
-    console.log("Account confirm : ", _accountConfirm);
-
     IProtocolPool __protocolPool = IProtocolPool(
       protocolsMapping[__protocolId].deployed
     );
 
-    uint256 ratio = __protocolPool.ratioWithAvailableCapital(_amount);
+    uint256 __ratio = __protocolPool.ratioWithAvailableCapital(_amount);
+    uint256 __reserveNormalizedIncome = ILendingPool(
+      ILendingPoolAddressesProvider(aaveAddressesRegistry).getLendingPool()
+    ).getReserveNormalizedIncome(stablecoin);
 
     uint128[] memory __relatedProtocols = __protocolPool.getRelatedProtocols();
     for (uint256 i = 0; i < __relatedProtocols.length; i++) {
       IProtocolPool(protocolsMapping[__relatedProtocols[i]].deployed)
-        .processClaim(__protocolId, ratio);
+        .processClaim(__protocolId, __ratio, __reserveNormalizedIncome);
     }
 
     __protocolPool.releaseFunds(_account, _amount);
@@ -474,6 +489,7 @@ contract Athena is ReentrancyGuard, Ownable {
 
   //Thao@TODO: call releaseFunds fct in __protocolId and add claim to __relatedProtocols
   function resolveClaim(
+    //Thao@NOTE: is resolveClaimPublic
     uint256 _policyId,
     uint256 _amount,
     address _account,
@@ -617,17 +633,17 @@ contract Athena is ReentrancyGuard, Ownable {
   }
 
   function _transferLiquidity(uint256 _amount) internal returns (uint256) {
-    uint256 balAtoken = IScaledBalanceToken(aaveAtoken).scaledBalanceOf(
-      address(this)
-    );
     IERC20(stablecoin).safeTransferFrom(msg.sender, address(this), _amount);
+
     address lendingPool = ILendingPoolAddressesProvider(aaveAddressesRegistry)
       .getLendingPool();
+
     ILendingPool(lendingPool).deposit(stablecoin, _amount, address(this), 0);
-    uint256 balAtokenAfter = IScaledBalanceToken(aaveAtoken).scaledBalanceOf(
-      address(this)
-    );
-    return balAtokenAfter - balAtoken;
+
+    return
+      _amount.rayDiv(
+        ILendingPool(lendingPool).getReserveNormalizedIncome(stablecoin)
+      );
   }
 
   function addNewProtocol(
@@ -678,4 +694,31 @@ contract Athena is ReentrancyGuard, Ownable {
   function pauseProtocol(uint128 protocolId, bool pause) external onlyOwner {
     protocolsMapping[protocolId].active = pause;
   }
+
+  //Thao@NOTE: for testing AAVE's scaledBalance
+  // function testGetReserveNormailizeIncome(uint256 _amount) public {
+  //   console.log("begin testGetReserveNormailizeIncome():");
+  //   address lendingPool = ILendingPoolAddressesProvider(aaveAddressesRegistry)
+  //     .getLendingPool();
+  //   uint256 reserveNormalizeIncome = ILendingPool(lendingPool)
+  //     .getReserveNormalizedIncome(stablecoin);
+
+  //   console.log("reserveNormalizeIncome:", reserveNormalizeIncome);
+
+  //   uint256 scBBefore = IScaledBalanceToken(aaveAtoken).scaledBalanceOf(
+  //     address(this)
+  //   );
+  //   IERC20(stablecoin).safeTransferFrom(msg.sender, address(this), _amount);
+
+  //   ILendingPool(lendingPool).deposit(stablecoin, _amount, address(this), 0);
+  //   uint256 scBAfter = IScaledBalanceToken(aaveAtoken).scaledBalanceOf(
+  //     address(this)
+  //   );
+
+  //   console.log("scBAfter - scBBefore:", scBAfter - scBBefore);
+  //   console.log(
+  //     "_amount.rayDiv(reserveNormalizeIncome):",
+  //     _amount.rayDiv(reserveNormalizeIncome)
+  //   );
+  // }
 }

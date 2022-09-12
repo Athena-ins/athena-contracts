@@ -10,7 +10,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
     address owner;
     uint256 providedLiquidity;
     //AAVE AToken to redeem
-    uint256 atokenBalance;
+    uint256 aaveScaledBalance;
     //Aten to stake with position in stable
     uint256 atens;
     uint128 discount;
@@ -50,7 +50,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
     returns (
       uint256 liquidity,
       uint128[] memory protocolsId,
-      uint256 atokens,
+      uint256 aaveScaledBalance,
       uint128 discount
     )
   {
@@ -58,7 +58,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
     return (
       position.providedLiquidity,
       position.protocolsId,
-      position.atokenBalance,
+      position.aaveScaledBalance,
       position.discount
     );
   }
@@ -67,14 +67,14 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
     address to,
     uint128 _discount,
     uint256 amount,
-    uint256 _atokenBalance,
+    uint256 _aaveScaledBalance,
     uint256 atenStake,
     uint128[] calldata _protocolsIds
   ) external override onlyCore {
     _positions[_nextId] = Position({
       owner: to,
       providedLiquidity: amount,
-      atokenBalance: _atokenBalance,
+      aaveScaledBalance: _aaveScaledBalance,
       discount: _discount,
       protocolsId: _protocolsIds,
       atens: atenStake
@@ -91,26 +91,27 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
   function update(
     uint128 _discount,
     uint256 amount,
-    uint256 _atokenBalance,
+    uint256 _aaveScaledBalance,
     uint256 atenStake,
     uint128[] calldata _protocolsIds,
     uint256 tokenId
   ) external override onlyCore {
     _positions[tokenId].providedLiquidity = amount;
-    if (_atokenBalance != 0) {
-      _positions[tokenId].atokenBalance = _atokenBalance;
+    if (_aaveScaledBalance != 0) {
+      _positions[tokenId].aaveScaledBalance = _aaveScaledBalance;
     }
     _positions[tokenId].discount = _discount;
     _positions[tokenId].protocolsId = _protocolsIds;
     _positions[tokenId].atens = atenStake;
   }
 
-  function updateUserCapital(uint256 tokenId, uint256 _amount)
-    external
-    override
-    onlyCore
-  {
+  function updateUserCapital(
+    uint256 tokenId,
+    uint256 _amount,
+    uint256 _aaveScaledBalance
+  ) external override onlyCore {
     _positions[tokenId].providedLiquidity = _amount;
+    _positions[tokenId].aaveScaledBalance = _aaveScaledBalance;
   }
 
   // function _safeMint() internal {
