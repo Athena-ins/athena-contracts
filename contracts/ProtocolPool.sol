@@ -89,8 +89,6 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
   }
 
   function deposit(address _account, uint256 _amount) external onlyCore {
-    _actualizing();
-
     _updateSlot0WhenAvailableCapitalChange(_amount, 0);
     availableCapital += _amount;
     _mint(_account, _amount);
@@ -104,7 +102,6 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     uint256 _premium,
     uint256 _insuredCapital
   ) external onlyCore notExistedOwner(_owner) {
-    _actualizing();
     _buyPolicy(_owner, _premium, _insuredCapital);
 
     emit BuyPolicy(_owner, _premium, _insuredCapital);
@@ -115,8 +112,6 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     onlyCore
     existedOwner(_owner)
   {
-    _actualizing();
-
     uint256 __remainedPremium = _withdrawPolicy(_owner);
     IERC20(underlyingAsset).safeTransfer(_owner, __remainedPremium);
 
@@ -221,8 +216,6 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     uint128[] calldata _protocolIds,
     uint256 _discount
   ) public onlyCore returns (uint256, uint256) {
-    _actualizing();
-
     (
       uint256 __newUserCapital,
       uint256 __totalRewards,
@@ -282,8 +275,6 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     uint128[] calldata _protocolIds,
     uint128 _discount
   ) external override onlyCore returns (uint256, uint256) {
-    _actualizing();
-
     require(
       _utilisationRate(
         0,
@@ -341,8 +332,6 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     uint256 _ratio,
     uint256 _aaveReserveNormalizedIncome
   ) public override {
-    _actualizing();
-
     uint256 __amountToRemoveByClaim = _amountToRemoveFromIntersecAndCapital(
       _intersectingAmount(_fromProtocolId),
       _ratio
@@ -385,8 +374,8 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     emit ReleaseFunds(_account, _amount);
   }
 
-  //Thao@NOTE: for testing
-  function actualizingTest() external {
+  //onlyCore
+  function actualizing() external returns (address[] memory) {
     _actualizing();
   }
 }

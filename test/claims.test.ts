@@ -237,7 +237,7 @@ describe("Claims", () => {
       );
 
       await HardhatHelper.setNextBlockTimestamp(1 * 24 * 60 * 60);
-      await protocolContract.actualizingTest();
+      await protocolContract.actualizing();
 
       const intersecAmounts0 = await protocolContract.intersectingAmounts(0);
       expect(intersecAmounts0).to.be.equal("730000");

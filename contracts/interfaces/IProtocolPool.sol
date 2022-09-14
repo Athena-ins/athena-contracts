@@ -60,4 +60,6 @@ interface IProtocolPool is IPolicyCover {
   function addRelatedProtocol(uint128 _protocolId, uint256 _amount) external;
 
   function removeLPInfo(address _account) external;
+
+  function actualizing() external returns (address[] memory);
 }

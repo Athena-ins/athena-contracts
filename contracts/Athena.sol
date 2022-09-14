@@ -41,7 +41,7 @@ contract Athena is ReentrancyGuard, Ownable {
   mapping(uint128 => mapping(uint128 => bool)) public incompatibilityProtocols;
   mapping(uint128 => Protocol) public protocolsMapping;
 
-  address public stablecoin; //Thao@???: why stablecoin is here
+  address public stablecoin;
   address public aaveAddressesRegistry; // AAVE lending pool
   address public positionsManager;
   address public policyManager;
@@ -75,6 +75,13 @@ contract Athena is ReentrancyGuard, Ownable {
     aaveAddressesRegistry = _aaveAddressesRegistry;
   }
 
+  function approveLendingPool() internal {
+    IERC20(stablecoin).safeApprove(
+      ILendingPoolAddressesProvider(aaveAddressesRegistry).getLendingPool(),
+      MAX_UINT256
+    );
+  }
+
   function initialize(
     address _positionsAddress,
     address _stakedAtensGP,
@@ -97,6 +104,20 @@ contract Athena is ReentrancyGuard, Ownable {
     atensVault = _atensVault;
     approveLendingPool();
     //initialized = true; //@dev required ?
+  }
+
+  function _transferLiquidity(uint256 _amount) internal returns (uint256) {
+    IERC20(stablecoin).safeTransferFrom(msg.sender, address(this), _amount);
+
+    address lendingPool = ILendingPoolAddressesProvider(aaveAddressesRegistry)
+      .getLendingPool();
+
+    ILendingPool(lendingPool).deposit(stablecoin, _amount, address(this), 0);
+
+    return
+      _amount.rayDiv(
+        ILendingPool(lendingPool).getReserveNormalizedIncome(stablecoin)
+      );
   }
 
   //////Thao@NOTE: LP
@@ -138,6 +159,7 @@ contract Athena is ReentrancyGuard, Ownable {
           .addRelatedProtocol(_protocolIds[index], amount);
       }
 
+      protocolPool1.actualizing();
       protocolPool1.deposit(msg.sender, amount);
       protocolPool1.addRelatedProtocol(_protocolIds[index], amount);
     }
@@ -172,6 +194,7 @@ contract Athena is ReentrancyGuard, Ownable {
       uint256 __discount
     ) = IPositionsManager(positionsManager).positions(__tokenId);
 
+    IProtocolPool(protocolsMapping[_protocolId].deployed).actualizing();
     (
       uint256 __newUserCapital,
       uint256 __aaveScaledBalanceToRemove
@@ -191,28 +214,29 @@ contract Athena is ReentrancyGuard, Ownable {
   }
 
   function commitingWithdrawInOneProtocol(uint128 _protocolId) external {
+    IPositionsManager __positionsManager = IPositionsManager(positionsManager);
+
     require(
-      IPositionsManager(positionsManager).balanceOf(msg.sender) > 0,
+      __positionsManager.balanceOf(msg.sender) > 0,
       "No position to commit withdraw"
     );
 
-    uint256 __tokenId = IPositionsManager(positionsManager).tokenOfOwnerByIndex(
-      msg.sender,
-      0
-    );
+    uint256 __tokenId = __positionsManager.tokenOfOwnerByIndex(msg.sender, 0);
 
-    (, uint128[] memory __protocolIds, , ) = IPositionsManager(positionsManager)
-      .positions(__tokenId);
+    (, uint128[] memory __protocolIds, , ) = __positionsManager.positions(
+      __tokenId
+    );
 
     bool ok;
     for (uint256 i = 0; i < __protocolIds.length; i++) {
       if (__protocolIds[i] == _protocolId) ok = true;
     }
 
-    require(ok, "not in protocol list");
+    require(ok, "Not in protocol list");
+
     require(
       protocolsMapping[_protocolId].claimsOngoing == 0,
-      "has claims on going"
+      "Protocol has claims on going"
     );
 
     IProtocolPool(protocolsMapping[_protocolId].deployed)
@@ -220,69 +244,60 @@ contract Athena is ReentrancyGuard, Ownable {
   }
 
   function withdrawLiquidityInOneProtocol(uint128 _protocolId) external {
+    IProtocolPool __protocol = IProtocolPool(
+      protocolsMapping[_protocolId].deployed
+    );
+
     require(
-      IProtocolPool(protocolsMapping[_protocolId].deployed)
-        .isWithdrawLiquidityDelayOk(msg.sender),
+      __protocol.isWithdrawLiquidityDelayOk(msg.sender),
       "Withdraw reserve"
     );
 
-    uint256 __tokenId = IPositionsManager(positionsManager).tokenOfOwnerByIndex(
-      msg.sender,
-      0
-    );
+    __protocol.removeCommittedWithdrawLiquidity(msg.sender);
+
+    IPositionsManager __positionManager = IPositionsManager(positionsManager);
+
+    uint256 __tokenId = __positionManager.tokenOfOwnerByIndex(msg.sender, 0);
 
     (
       uint256 __userCapital,
       uint128[] memory __protocolIds,
       uint256 __aaveScaledBalance,
       uint128 __discount
-    ) = IPositionsManager(positionsManager).positions(__tokenId);
+    ) = __positionManager.positions(__tokenId);
 
-    (
-      uint256 __newUserCapital,
-      uint256 __aaveScaledBalanceToRemove
-    ) = IProtocolPool(protocolsMapping[_protocolId].deployed).withdrawLiquidity(
-        msg.sender,
-        __userCapital,
-        __protocolIds,
-        __discount
-      );
+    __protocol.actualizing();
+    (uint256 __newUserCapital, uint256 __aaveScaledBalanceToRemove) = __protocol
+      .withdrawLiquidity(msg.sender, __userCapital, __protocolIds, __discount);
 
-    IProtocolPool(protocolsMapping[_protocolId].deployed)
-      .removeCommittedWithdrawLiquidity(msg.sender);
-
-    IProtocolPool(protocolsMapping[_protocolId].deployed).removeLPInfo(
-      msg.sender
-    );
+    __protocol.removeLPInfo(msg.sender);
 
     if (__protocolIds.length == 1) {
-      IPositionsManager(positionsManager).burn(msg.sender);
+      __positionManager.burn(msg.sender);
 
-      address lendingPool = ILendingPoolAddressesProvider(aaveAddressesRegistry)
-        .getLendingPool();
+      address __lendingPool = ILendingPoolAddressesProvider(
+        aaveAddressesRegistry
+      ).getLendingPool();
 
       uint256 _amountToWithdrawFromAAVE = __aaveScaledBalance.rayMul(
-        ILendingPool(lendingPool).getReserveNormalizedIncome(stablecoin)
+        ILendingPool(__lendingPool).getReserveNormalizedIncome(stablecoin)
       );
 
-      ILendingPool(lendingPool).withdraw(
+      ILendingPool(__lendingPool).withdraw(
         stablecoin,
         _amountToWithdrawFromAAVE,
         msg.sender
       );
     } else {
       if (__userCapital != __newUserCapital) {
-        IPositionsManager(positionsManager).updateUserCapital(
+        __positionManager.updateUserCapital(
           __tokenId,
           __newUserCapital,
           __aaveScaledBalanceToRemove
         );
       }
 
-      IPositionsManager(positionsManager).removeProtocolId(
-        __tokenId,
-        _protocolId
-      );
+      __positionManager.removeProtocolId(__tokenId, _protocolId);
     }
 
     //Event
@@ -308,76 +323,54 @@ contract Athena is ReentrancyGuard, Ownable {
   }
 
   function withdrawAll() external {
-    require(
-      IPositionsManager(positionsManager).balanceOf(msg.sender) > 0,
-      "No position to withdraw"
-    );
+    IPositionsManager __positionsManager = IPositionsManager(positionsManager);
+    uint256 _tokenId = __positionsManager.tokenOfOwnerByIndex(msg.sender, 0);
 
-    // uint256 amount = IPositionsManager(positionsManager).balanceOf(msg.sender);
-    // removed because only one position is allowed in protocol
-    uint256 _tokenId = IPositionsManager(positionsManager).tokenOfOwnerByIndex(
-      msg.sender,
-      0
-    );
     (
-      uint256 liquidity,
-      uint128[] memory protocolIds,
-      uint256 atokens,
-      uint128 discount
-    ) = IPositionsManager(positionsManager).positions(_tokenId);
-    // amounts[0] = uint256(0);
-    _withdraw(liquidity, protocolIds, atokens, discount);
-    for (uint256 index = 0; index < protocolIds.length; index++) {
-      IProtocolPool(protocolsMapping[protocolIds[index]].deployed)
-        .removeCommittedWithdrawLiquidity(msg.sender);
-    }
-  }
+      uint256 __userCapital,
+      uint128[] memory __protocolIds,
+      uint256 __aaveScaledBalance,
+      uint128 __discount
+    ) = __positionsManager.positions(_tokenId);
 
-  function _withdraw(
-    uint256 _amount,
-    uint128[] memory _protocolIds,
-    uint256 _atokens,
-    uint128 _discount
-  ) internal {
-    // uint256 amount = IPositionsManager(positionsManager).balanceOf(msg.sender);
-    uint256 __claimedAmount;
-    for (uint256 index = 0; index < _protocolIds.length; index++) {
-      require(
-        protocolsMapping[_protocolIds[index]].active == true,
-        "Protocol not active"
-      );
-      require(
-        protocolsMapping[_protocolIds[index]].claimsOngoing == 0,
-        "Protocol locked"
+    uint256 __newUserCapital;
+    uint256 __aaveScaledBalanceToRemove;
+    for (uint256 index = 0; index < __protocolIds.length; index++) {
+      IProtocolPool __protocol = IProtocolPool(
+        protocolsMapping[__protocolIds[index]].deployed
       );
 
-      (
-        uint256 __newUserCapital,
-        uint256 __aaveScaledBalanceToRemove
-      ) = IProtocolPool(protocolsMapping[_protocolIds[index]].deployed)
-          .withdrawLiquidity(msg.sender, _amount, _protocolIds, _discount);
+      require(
+        __protocol.isWithdrawLiquidityDelayOk(msg.sender),
+        "Withdraw reserve"
+      );
 
-      // if (_maxCapital < _amount) __claimedAmount += _amount - _maxCapital;
+      __protocol.removeCommittedWithdrawLiquidity(msg.sender);
+
+      __protocol.actualizing();
+      (__newUserCapital, __aaveScaledBalanceToRemove) = __protocol
+        .withdrawLiquidity(
+          msg.sender,
+          __userCapital,
+          __protocolIds,
+          __discount
+        );
+
+      __protocol.removeLPInfo(msg.sender);
     }
-    // SHOULD Update if not max withdraw ?
-    // IPositionsManager(positionsManager).burn(msg.sender);
-    // _withdrawLiquidity(_atokens, _amount - __claimedAmount);
-  }
 
-  function _withdrawLiquidity(uint256 _atokens, uint256 _claimedAmount)
-    internal
-  {
-    //@dev TODO Transfer from AAVE, burn LP
-    address _lendingPool = ILendingPoolAddressesProvider(aaveAddressesRegistry)
+    __positionsManager.burn(msg.sender);
+
+    address __lendingPool = ILendingPoolAddressesProvider(aaveAddressesRegistry)
       .getLendingPool();
-    uint256 _amountToWithdraw = (_atokens *
-      IERC20(aaveAtoken).balanceOf(address(this))) /
-      IScaledBalanceToken(aaveAtoken).scaledBalanceOf(address(this)) -
-      _claimedAmount;
-    // No need to transfer Stable, lending pool will do it
-    ILendingPool(_lendingPool).withdraw(
+
+    uint256 _amountToWithdrawFromAAVE = __aaveScaledBalance.rayMul(
+      ILendingPool(__lendingPool).getReserveNormalizedIncome(stablecoin)
+    );
+
+    ILendingPool(__lendingPool).withdraw(
       stablecoin,
-      _amountToWithdraw,
+      _amountToWithdrawFromAAVE,
       msg.sender
     );
   }
@@ -418,6 +411,8 @@ contract Athena is ReentrancyGuard, Ownable {
       _atensLocked,
       _protocolId
     );
+
+    IProtocolPool(protocolsMapping[_protocolId].deployed).actualizing();
     IProtocolPool(protocolsMapping[_protocolId].deployed).buyPolicy(
       msg.sender,
       _premium,
@@ -425,31 +420,31 @@ contract Athena is ReentrancyGuard, Ownable {
     );
   }
 
+  //Thao@TODO: il faut actualizing protocol avant de start claim
   function startClaim(
     uint256 _policyId,
     uint256 _index,
     uint256 _amountClaimed
   ) external payable {
-    require(
-      IPolicyManager(policyManager).balanceOf(msg.sender) > 0,
-      "No Active Policy"
-    );
+    IPolicyManager __policyManager = IPolicyManager(policyManager);
+
+    require(__policyManager.balanceOf(msg.sender) > 0, "No Active Policy");
 
     require(
-      _policyId ==
-        IPolicyManager(policyManager).tokenOfOwnerByIndex(msg.sender, _index),
+      _policyId == __policyManager.tokenOfOwnerByIndex(msg.sender, _index),
       "Wrong Token Id for Policy"
     );
 
     require(
-      msg.sender == IPolicyManager(policyManager).ownerOf(_policyId),
+      msg.sender == __policyManager.ownerOf(_policyId),
       "Policy is not owned"
     );
 
     require(_amountClaimed > 0, "Claimed amount is zero");
 
-    (uint256 __liquidity, uint128 __protocolId) = IPolicyManager(policyManager)
-      .policies(_policyId);
+    (uint256 __liquidity, uint128 __protocolId) = __policyManager.policies(
+      _policyId
+    );
 
     require(__liquidity >= _amountClaimed, "Too big claimed amount");
 
@@ -492,13 +487,15 @@ contract Athena is ReentrancyGuard, Ownable {
 
     for (uint256 i = 0; i < __relatedProtocols.length; i++) {
       IProtocolPool(protocolsMapping[__relatedProtocols[i]].deployed)
+        .actualizing();
+      IProtocolPool(protocolsMapping[__relatedProtocols[i]].deployed)
         .processClaim(_protocolId, ratio, __reserveNormalizedIncome);
     }
 
     __protocolPool.releaseFunds(_account, _amount);
   }
 
-  function resolveClaimPublic(
+  function resolveClaim(
     uint256 _policyId,
     uint256 _amount,
     address _account
@@ -527,10 +524,14 @@ contract Athena is ReentrancyGuard, Ownable {
     uint128[] memory __relatedProtocols = __protocolPool.getRelatedProtocols();
     for (uint256 i = 0; i < __relatedProtocols.length; i++) {
       IProtocolPool(protocolsMapping[__relatedProtocols[i]].deployed)
+        .actualizing();
+      IProtocolPool(protocolsMapping[__relatedProtocols[i]].deployed)
         .processClaim(__protocolId, __ratio, __reserveNormalizedIncome);
     }
 
-    __protocolPool.releaseFunds(_account, _amount);
+    ILendingPool(
+      ILendingPoolAddressesProvider(aaveAddressesRegistry).getLendingPool()
+    ).withdraw(stablecoin, _amount, _account);
 
     // protocolsMapping[__protocolId].claimsOngoing -= 1;//use for later
   }
@@ -538,48 +539,6 @@ contract Athena is ReentrancyGuard, Ownable {
   modifier onlyClaimManager() {
     require(msg.sender == claimManager, "Only Claim Manager");
     _;
-  }
-
-  //Thao@TODO: call releaseFunds fct in __protocolId and add claim to __relatedProtocols
-  function resolveClaim(
-    //Thao@NOTE: is resolveClaimPublic
-    uint256 _policyId,
-    uint256 _amount,
-    address _account,
-    uint256 _index
-  ) external onlyClaimManager {
-    address _accountConfirm = IPolicyManager(policyManager).ownerOf(_policyId);
-
-    (, uint128 __protocolId) = IPolicyManager(policyManager).policies(
-      _policyId
-    );
-    console.log("Account : ", _account);
-    console.log("Policy Id : ", _policyId);
-    console.log("Account confirm : ", _accountConfirm);
-    require(_account == _accountConfirm, "Wrong account");
-    protocolsMapping[__protocolId].claimsOngoing -= 1;
-    //Thao@TODO: we don't need this condition here, we need to check before the vote
-    if (_amount > 0) {
-      //calcul claim for all protocols
-      IProtocolPool __protocolPool = IProtocolPool(
-        protocolsMapping[__protocolId].deployed
-      );
-
-      //   ClaimCover.Claim memory __newClaim = __protocolPool.buildClaim(_amount);
-      //   uint128[] memory __relatedProtocols = __protocolPool
-      //     .getRelatedProtocols();
-
-      //   for (uint256 i = 0; i < __relatedProtocols.length; i++) {
-      //     IProtocolPool(protocolsMapping[__relatedProtocols[i]].deployed)
-      //       .addClaim(__newClaim);
-      //   }
-
-      //   //transfer token
-      //   IProtocolPool(protocolsMapping[__protocolId].deployed).releaseFunds(
-      //     _account,
-      //     _amount
-      //   );
-    }
   }
 
   function withdrawPolicy(uint256 _policyId, uint256 _index)
@@ -607,6 +566,7 @@ contract Athena is ReentrancyGuard, Ownable {
       _policyId
     ); //Thao@Question: on fait quoi avec 'atensLocked' ???
 
+    IProtocolPool(protocolsMapping[__protocolId].deployed).actualizing();
     IProtocolPool(protocolsMapping[__protocolId].deployed).withdrawPolicy(
       msg.sender
     );
@@ -678,27 +638,6 @@ contract Athena is ReentrancyGuard, Ownable {
     return premiumAtenDiscount[premiumAtenDiscount.length - 1].discount;
   }
 
-  function approveLendingPool() internal {
-    IERC20(stablecoin).safeApprove(
-      ILendingPoolAddressesProvider(aaveAddressesRegistry).getLendingPool(),
-      MAX_UINT256
-    );
-  }
-
-  function _transferLiquidity(uint256 _amount) internal returns (uint256) {
-    IERC20(stablecoin).safeTransferFrom(msg.sender, address(this), _amount);
-
-    address lendingPool = ILendingPoolAddressesProvider(aaveAddressesRegistry)
-      .getLendingPool();
-
-    ILendingPool(lendingPool).deposit(stablecoin, _amount, address(this), 0);
-
-    return
-      _amount.rayDiv(
-        ILendingPool(lendingPool).getReserveNormalizedIncome(stablecoin)
-      );
-  }
-
   function addNewProtocol(
     string calldata name,
     uint8 guaranteeType,
@@ -747,31 +686,4 @@ contract Athena is ReentrancyGuard, Ownable {
   function pauseProtocol(uint128 protocolId, bool pause) external onlyOwner {
     protocolsMapping[protocolId].active = pause;
   }
-
-  //Thao@NOTE: for testing AAVE's scaledBalance
-  // function testGetReserveNormailizeIncome(uint256 _amount) public {
-  //   console.log("begin testGetReserveNormailizeIncome():");
-  //   address lendingPool = ILendingPoolAddressesProvider(aaveAddressesRegistry)
-  //     .getLendingPool();
-  //   uint256 reserveNormalizeIncome = ILendingPool(lendingPool)
-  //     .getReserveNormalizedIncome(stablecoin);
-
-  //   console.log("reserveNormalizeIncome:", reserveNormalizeIncome);
-
-  //   uint256 scBBefore = IScaledBalanceToken(aaveAtoken).scaledBalanceOf(
-  //     address(this)
-  //   );
-  //   IERC20(stablecoin).safeTransferFrom(msg.sender, address(this), _amount);
-
-  //   ILendingPool(lendingPool).deposit(stablecoin, _amount, address(this), 0);
-  //   uint256 scBAfter = IScaledBalanceToken(aaveAtoken).scaledBalanceOf(
-  //     address(this)
-  //   );
-
-  //   console.log("scBAfter - scBBefore:", scBAfter - scBBefore);
-  //   console.log(
-  //     "_amount.rayDiv(reserveNormalizeIncome):",
-  //     _amount.rayDiv(reserveNormalizeIncome)
-  //   );
-  // }
 }

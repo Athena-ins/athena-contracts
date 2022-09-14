@@ -254,7 +254,7 @@ async function resolveClaimPublic(
   timeLapse: number
 ) {
   await HardhatHelper.setNextBlockTimestamp(timeLapse);
-  await ATHENA_CONTRACT.connect(publicSigner).resolveClaimPublic(
+  await ATHENA_CONTRACT.connect(publicSigner).resolveClaim(
     policyId,
     amount,
     await account.getAddress()
