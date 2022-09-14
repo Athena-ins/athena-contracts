@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8;
 
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "./interfaces/IPositionsManager.sol";
 import "./libraries/PositionsLibrary.sol";
 
-contract PositionsManager is IPositionsManager, ERC721Enumerable {
+contract PositionsManager is IPositionsManager {
   struct Position {
     address owner;
     uint256 providedLiquidity;
@@ -21,29 +20,18 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
 
   address private core;
 
-  /// @dev The token ID position data
-  mapping(uint256 => Position) private _positions;
-
-  /// @dev The ID of the next token that will be minted.
-  uint176 private _nextId = 0;
+  mapping(address => Position) private _positions;
 
   modifier onlyCore() {
     require(msg.sender == core, "Only core");
     _;
   }
 
-  constructor(address coreAddress) ERC721("ATHENA", "athena-co.io") {
+  constructor(address coreAddress) {
     core = coreAddress;
   }
 
-  // function burn(uint256 tokenId, uint256 amount) external {
-  //     Position storage position = _positions[tokenId];
-  //     require(position.providedLiquidity == 0, "Not cleared");
-  //     delete _positions[tokenId];
-  //     _burn(msg.sender, tokenId, amount);
-  // }
-
-  function positions(uint256 _tokenId)
+  function positions(address _owner)
     external
     view
     override
@@ -54,7 +42,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
       uint128 discount
     )
   {
-    Position memory position = _positions[_tokenId];
+    Position memory position = _positions[_owner];
     return (
       position.providedLiquidity,
       position.protocolsId,
@@ -63,7 +51,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
     );
   }
 
-  function mint(
+  function createPosition(
     address to,
     uint128 _discount,
     uint256 amount,
@@ -71,7 +59,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
     uint256 atenStake,
     uint128[] calldata _protocolsIds
   ) external override onlyCore {
-    _positions[_nextId] = Position({
+    _positions[to] = Position({
       owner: to,
       providedLiquidity: amount,
       aaveScaledBalance: _aaveScaledBalance,
@@ -79,47 +67,44 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
       protocolsId: _protocolsIds,
       atens: atenStake
     });
-    _mint(to, _nextId);
-    _nextId++;
   }
 
-  function burn(address to) external override onlyCore {
-    uint256 tokenId = tokenOfOwnerByIndex(to, 0);
-    _burn(tokenId);
+  function removePosition(address to) external override onlyCore {
+    delete _positions[to];
   }
 
   function update(
+    address to,
     uint128 _discount,
     uint256 amount,
     uint256 _aaveScaledBalance,
     uint256 atenStake,
-    uint128[] calldata _protocolsIds,
-    uint256 tokenId
+    uint128[] calldata _protocolsIds
   ) external override onlyCore {
-    _positions[tokenId].providedLiquidity = amount;
+    _positions[to].providedLiquidity = amount;
     if (_aaveScaledBalance != 0) {
-      _positions[tokenId].aaveScaledBalance = _aaveScaledBalance;
+      _positions[to].aaveScaledBalance = _aaveScaledBalance;
     }
-    _positions[tokenId].discount = _discount;
-    _positions[tokenId].protocolsId = _protocolsIds;
-    _positions[tokenId].atens = atenStake;
+    _positions[to].discount = _discount;
+    _positions[to].protocolsId = _protocolsIds;
+    _positions[to].atens = atenStake;
   }
 
   function updateUserCapital(
-    uint256 tokenId,
+    address to,
     uint256 _amount,
     uint256 _aaveScaledBalanceToRemove
   ) external override onlyCore {
-    _positions[tokenId].providedLiquidity = _amount;
-    _positions[tokenId].aaveScaledBalance -= _aaveScaledBalanceToRemove;
+    _positions[to].providedLiquidity = _amount;
+    _positions[to].aaveScaledBalance -= _aaveScaledBalanceToRemove;
   }
 
-  function removeProtocolId(uint256 tokenId, uint128 _protocolId)
+  function removeProtocolId(address to, uint128 _protocolId)
     external
     override
     onlyCore
   {
-    uint128[] memory __protocolsId = _positions[tokenId].protocolsId;
+    uint128[] memory __protocolsId = _positions[to].protocolsId;
 
     for (uint256 i = 0; i < __protocolsId.length; i++) {
       if (__protocolsId[i] == _protocolId) {
@@ -129,6 +114,10 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
       }
     }
 
-    _positions[tokenId].protocolsId = __protocolsId;
+    _positions[to].protocolsId = __protocolsId;
+  }
+
+  function hasPositionOf(address to) external view override returns (bool) {
+    return _positions[to].protocolsId.length > 0;
   }
 }

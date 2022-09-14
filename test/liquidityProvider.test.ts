@@ -127,20 +127,8 @@ describe("Liquidity provider deposit", () => {
         const POSITIONS_MANAGER_CONTRACT =
           ProtocolHelper.getPositionManagerContract();
 
-        const balNFT = await POSITIONS_MANAGER_CONTRACT.balanceOf(
-          await liquidityProvider1.getAddress()
-        );
-        expect(balNFT).to.equal("1");
-
-        const userNFTindex =
-          await POSITIONS_MANAGER_CONTRACT.tokenOfOwnerByIndex(
-            await liquidityProvider1.getAddress(),
-            0
-          );
-        expect(userNFTindex).to.equal("0"); // tokenid 0
-
         const position = await POSITIONS_MANAGER_CONTRACT.positions(
-          userNFTindex
+          liquidityProvider1.getAddress()
         );
         expect(position.liquidity).to.equal(bn(USDT_amount));
         expect(position.protocolsId).to.deep.equal([bn(0), bn(2)]);
@@ -285,20 +273,8 @@ describe("Liquidity provider deposit", () => {
         const POSITIONS_MANAGER_CONTRACT =
           ProtocolHelper.getPositionManagerContract();
 
-        const balNFT = await POSITIONS_MANAGER_CONTRACT.balanceOf(
-          await liquidityProvider2.getAddress()
-        );
-        expect(balNFT).to.equal("1");
-
-        const userNFTindex =
-          await POSITIONS_MANAGER_CONTRACT.tokenOfOwnerByIndex(
-            await liquidityProvider2.getAddress(),
-            0
-          );
-        expect(userNFTindex).to.equal("1"); // tokenid 1
-
         const position = await POSITIONS_MANAGER_CONTRACT.positions(
-          userNFTindex
+          liquidityProvider2.getAddress()
         );
         expect(position.liquidity).to.equal(bn(USDT_amount));
         expect(position.protocolsId).to.deep.equal([bn(0), bn(1), bn(2)]);
