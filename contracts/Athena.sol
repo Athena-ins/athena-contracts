@@ -210,6 +210,10 @@ contract Athena is ReentrancyGuard, Ownable {
     }
 
     require(ok, "not in protocol list");
+    require(
+      protocolsMapping[_protocolId].claimsOngoing == 0,
+      "has claims on going"
+    );
 
     IProtocolPool(protocolsMapping[_protocolId].deployed)
       .committingWithdrawLiquidity(msg.sender);
