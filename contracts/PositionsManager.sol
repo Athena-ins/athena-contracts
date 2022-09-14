@@ -9,7 +9,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
   struct Position {
     address owner;
     uint256 providedLiquidity;
-    //AAVE AToken to redeem
+    //AAVE scaled balance to redeem
     uint256 aaveScaledBalance;
     //Aten to stake with position in stable
     uint256 atens;

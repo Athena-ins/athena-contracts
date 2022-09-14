@@ -3,7 +3,6 @@ pragma solidity ^0.8;
 import "@openzeppelin/contracts/token/ERC721/extensions/IERC721Enumerable.sol";
 
 interface IPositionsManager is IERC721Enumerable {
-  //Thao@TODO: il faut changer atokens en aaveScaledBalance
   function positions(uint256 _tokenId)
     external
     view
