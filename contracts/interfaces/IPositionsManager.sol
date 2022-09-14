@@ -39,4 +39,6 @@ interface IPositionsManager is IERC721Enumerable {
     uint256 amount,
     uint256 aaveScaledBalance
   ) external;
+
+  function removeProtocolId(uint256 tokenId, uint128 protocolId) external;
 }

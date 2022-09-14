@@ -6,7 +6,7 @@ import "../ClaimCover.sol";
 
 //Thao@TODO: remove IPolicyCover
 interface IProtocolPool is IPolicyCover {
-  function mint(address _account, uint256 _amount) external;
+  function deposit(address _account, uint256 _amount) external;
 
   function committingWithdrawLiquidity(address _account) external;
 
@@ -17,14 +17,23 @@ interface IProtocolPool is IPolicyCover {
     uint256 _userCapital,
     uint128[] calldata _protocolIds,
     uint256 _discount
-  ) external returns (uint256 newUserCapital, uint256 newAaveScaledBalance);
+  )
+    external
+    returns (uint256 newUserCapital, uint256 aaveScaledBalanceToRemove);
+
+  function isWithdrawLiquidityDelayOk(address _account)
+    external
+    view
+    returns (bool);
 
   function withdrawLiquidity(
     address _account,
     uint256 _userCapital,
     uint128[] calldata _protocolIds,
     uint128 _discount
-  ) external returns (uint256 totalRewards, uint256 newAaveScaledBalance);
+  )
+    external
+    returns (uint256 newUserCapital, uint256 aaveScaledBalanceToRemove);
 
   function ratioWithAvailableCapital(uint256 _amount)
     external
@@ -49,4 +58,6 @@ interface IProtocolPool is IPolicyCover {
   function getRelatedProtocols() external view returns (uint128[] memory);
 
   function addRelatedProtocol(uint128 _protocolId, uint256 _amount) external;
+
+  function removeLPInfo(address _account) external;
 }

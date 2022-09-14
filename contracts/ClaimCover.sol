@@ -6,11 +6,6 @@ import "./LiquidityCover.sol";
 abstract contract ClaimCover is LiquidityCover {
   using RayMath for uint256;
 
-  // struct ClaimComplement {
-  //   uint256 claimId;
-  //   uint256 liquidityIndexBeforeClaim;
-  // }
-
   struct Claim {
     uint128 fromProtocolId;
     uint256 ratio; // Ray //ratio = claimAmount / capital

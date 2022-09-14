@@ -84,7 +84,11 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     delete withdrawReserves[_account];
   }
 
-  function mint(address _account, uint256 _amount) external onlyCore {
+  function removeLPInfo(address _account) external onlyCore {
+    delete LPsInfo[_account];
+  }
+
+  function deposit(address _account, uint256 _amount) external onlyCore {
     _actualizing();
 
     _updateSlot0WhenAvailableCapitalChange(_amount, 0);
@@ -112,9 +116,9 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     existedOwner(_owner)
   {
     _actualizing();
-    uint256 __remainedPremium = _withdrawPolicy(_owner);
 
-    //transfert token
+    uint256 __remainedPremium = _withdrawPolicy(_owner);
+    IERC20(underlyingAsset).safeTransfer(_owner, __remainedPremium);
 
     emit WithdrawPolicy(_owner, __remainedPremium);
   }
@@ -130,7 +134,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
       uint256 __newUserCapital,
       uint256 __totalRewards,
       LPInfo memory __newLPInfo,
-      uint256 __newAaveScaledBalance
+      uint256 __aaveScaledBalanceToRemove
     )
   {
     __newLPInfo = LPsInfo[_account];
@@ -147,9 +151,13 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
 
       for (uint256 j = 0; j < _protocolIds.length; j++) {
         if (_protocolIds[j] == __claim.fromProtocolId) {
-          __newUserCapital = __newUserCapital.rayMul(
-            RayMath.RAY - __claim.ratio
+          uint256 capitalToRemove = __newUserCapital.rayMul(__claim.ratio);
+
+          __aaveScaledBalanceToRemove += capitalToRemove.rayDiv(
+            __claim.aaveReserveNormalizedIncomeBeforeClaim
           );
+
+          __newUserCapital = __newUserCapital - capitalToRemove;
           break;
         }
       }
@@ -175,7 +183,6 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
       LPInfo memory __newLPInfo
     )
   {
-    //Thao@TODO: il faut voir si nous avons besoin aaveScaledBalance
     (
       __newUserCapital,
       __totalRewards,
@@ -220,7 +227,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
       uint256 __newUserCapital,
       uint256 __totalRewards,
       LPInfo memory __newLPInfo,
-      uint256 __newAaveScaledBalance
+      uint256 __aaveScaledBalanceToRemove
     ) = _actualizingLPInfoWithClaims(_account, _userCapital, _protocolIds);
 
     uint256 __liquidityIndex = liquidityIndex;
@@ -247,7 +254,18 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
       __totalRewards - __interestNet
     );
 
-    return (__newUserCapital, __newAaveScaledBalance);
+    return (__newUserCapital, __aaveScaledBalanceToRemove);
+  }
+
+  function isWithdrawLiquidityDelayOk(address _account)
+    external
+    view
+    returns (bool)
+  {
+    uint256 withdrawReserveTime = withdrawReserves[_account];
+    return
+      withdrawReserveTime != 0 &&
+      block.timestamp - withdrawReserveTime >= commitDelay;
   }
 
   event WithdrawLiquidity(
@@ -264,12 +282,6 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     uint128[] calldata _protocolIds,
     uint128 _discount
   ) external override onlyCore returns (uint256, uint256) {
-    require(
-      withdrawReserves[_account] != 0 &&
-        block.timestamp - withdrawReserves[_account] >= commitDelay,
-      "withdraw reserve"
-    );
-
     _actualizing();
 
     require(
@@ -286,23 +298,21 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
       uint256 __newUserCapital,
       uint256 __totalRewards,
       LPInfo memory __newLPInfo,
-      uint256 __newAaveScaledBalance
+      uint256 __aaveScaledBalanceToRemove
     ) = _actualizingLPInfoWithClaims(_account, _userCapital, _protocolIds);
 
-    uint256 __liquidityIndex = liquidityIndex;
-
     __totalRewards += __newUserCapital.rayMul(
-      __liquidityIndex - __newLPInfo.beginLiquidityIndex
+      liquidityIndex - __newLPInfo.beginLiquidityIndex
     );
 
+    //Thao@NOTE: _burn diminue totalSupply seulement
     _burn(_account, balanceOf(_account));
-    // _burn(_account, _userCapital);
 
     uint256 __rewardsNet;
     if (__totalRewards > 0) {
       __rewardsNet = (__totalRewards * (1000 - _discount)) / 1000;
       IERC20(underlyingAsset).safeTransfer(_account, __rewardsNet);
-      _transferToTreasury(__totalRewards - __rewardsNet);
+      IERC20(underlyingAsset).safeTransfer(core, __totalRewards - __rewardsNet);
     }
 
     _updateSlot0WhenAvailableCapitalChange(0, __newUserCapital);
@@ -323,11 +333,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
       __totalRewards - __rewardsNet
     );
 
-    return (__newUserCapital + __rewardsNet, __newAaveScaledBalance);
-  }
-
-  function _transferToTreasury(uint256 _amount) internal {
-    IERC20(underlyingAsset).safeTransfer(core, _amount);
+    return (__newUserCapital, __aaveScaledBalanceToRemove);
   }
 
   function processClaim(
