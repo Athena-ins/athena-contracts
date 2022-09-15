@@ -13,6 +13,7 @@ let liquidityProvider2: ethers.Signer;
 let policyTaker1: ethers.Signer;
 let policyTaker2: ethers.Signer;
 let policyTaker3: ethers.Signer;
+let policyTaker4: ethers.Signer;
 
 describe("Liquidity provider takeInterest", () => {
   before(async () => {
@@ -24,6 +25,7 @@ describe("Liquidity provider takeInterest", () => {
     policyTaker1 = allSigners[100];
     policyTaker2 = allSigners[101];
     policyTaker3 = allSigners[102];
+    policyTaker4 = allSigners[103];
 
     await ProtocolHelper.deployAllContractsAndInitializeProtocol(owner);
     await ProtocolHelper.addNewProtocolPool("Test protocol 0");
@@ -48,6 +50,27 @@ describe("Liquidity provider takeInterest", () => {
       ATEN_amount2,
       [0, 1],
       1 * 24 * 60 * 60
+    );
+
+    const capital3 = "219000";
+    const premium3 = "8760";
+    const atensLocked3 = "0";
+    await ProtocolHelper.buyPolicy(
+      policyTaker3,
+      capital3,
+      premium3,
+      atensLocked3,
+      2,
+      10 * 24 * 60 * 60
+    );
+
+    await ProtocolHelper.buyPolicy(
+      policyTaker4,
+      capital3,
+      premium3,
+      atensLocked3,
+      1,
+      10 * 24 * 60 * 60
     );
 
     const capital1 = "109500";
@@ -76,7 +99,13 @@ describe("Liquidity provider takeInterest", () => {
   });
 
   it("Should add a claim in protocol2 and check claim info in protocol0", async () => {
-    await ProtocolHelper.claim(owner, 2, "182500", 1 * 24 * 60 * 60);
+    await ProtocolHelper.resolveClaim(
+      owner,
+      0,
+      "182500",
+      policyTaker3,
+      1 * 24 * 60 * 60
+    );
 
     let protocolPool0 = await ProtocolHelper.getProtocolPoolContract(owner, 0);
 
@@ -239,9 +268,27 @@ describe("Liquidity provider takeInterest", () => {
   });
 
   it("Should add a 3 claims into protocol1 and check claim info in protocol0", async () => {
-    await ProtocolHelper.claim(owner, 1, "500", 1 * 24 * 60 * 60);
-    await ProtocolHelper.claim(owner, 1, "1000", 1 * 24 * 60 * 60);
-    await ProtocolHelper.claim(owner, 1, "1000", 1 * 24 * 60 * 60);
+    await ProtocolHelper.resolveClaim(
+      owner,
+      1,
+      "500",
+      policyTaker4,
+      1 * 24 * 60 * 60
+    );
+    await ProtocolHelper.resolveClaim(
+      owner,
+      1,
+      "1000",
+      policyTaker4,
+      1 * 24 * 60 * 60
+    );
+    await ProtocolHelper.resolveClaim(
+      owner,
+      1,
+      "1000",
+      policyTaker4,
+      1 * 24 * 60 * 60
+    );
 
     let protocolPool0 = await ProtocolHelper.getProtocolPoolContract(owner, 0);
 

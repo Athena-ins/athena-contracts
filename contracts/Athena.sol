@@ -463,37 +463,6 @@ contract Athena is ReentrancyGuard, Ownable {
     protocolsMapping[__protocolId].claimsOngoing += 1;
   }
 
-  //Thao@NOTE: for testing, to remove
-  function addClaim(
-    uint128 _protocolId,
-    address _account,
-    uint256 _amount
-  ) public nonReentrant {
-    //Thao@TODO: avant de ajouter claim, il faut vérifier dans protocolId s'il account existe
-    IProtocolPool __protocolPool = IProtocolPool(
-      protocolsMapping[_protocolId].deployed
-    );
-
-    uint256 ratio = __protocolPool.ratioWithAvailableCapital(_amount);
-
-    uint256 __reserveNormalizedIncome = ILendingPool(
-      ILendingPoolAddressesProvider(aaveAddressesRegistry).getLendingPool()
-    ).getReserveNormalizedIncome(stablecoin);
-
-    uint128[] memory __relatedProtocols = __protocolPool.getRelatedProtocols();
-
-    for (uint256 i = 0; i < __relatedProtocols.length; i++) {
-      actualizingProtocolAndRemoveExpiredPolicies(
-        protocolsMapping[__relatedProtocols[i]].deployed
-      );
-
-      IProtocolPool(protocolsMapping[__relatedProtocols[i]].deployed)
-        .processClaim(_protocolId, ratio, __reserveNormalizedIncome);
-    }
-
-    __protocolPool.releaseFunds(_account, _amount);
-  }
-
   modifier onlyClaimManager() {
     require(msg.sender == claimManager, "Only Claim Manager");
     _;
@@ -507,9 +476,9 @@ contract Athena is ReentrancyGuard, Ownable {
   ) external {
     address _accountConfirm = IPolicyManager(policyManager).ownerOf(_policyId);
 
-    console.log("Account : ", _account);
-    console.log("Policy Id : ", _policyId);
-    console.log("Account confirm : ", _accountConfirm);
+    // console.log("Account : ", _account);
+    // console.log("Policy Id : ", _policyId);
+    // console.log("Account confirm : ", _accountConfirm);
 
     require(_account == _accountConfirm, "Wrong account");
 

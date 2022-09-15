@@ -141,7 +141,7 @@ describe("Claims", () => {
     });
 
     it("Should resolve claim in Protocol 0", async () => {
-      await ProtocolHelper.resolveClaimPublic(
+      await ProtocolHelper.resolveClaim(
         owner,
         1,
         "182500",
@@ -297,7 +297,7 @@ describe("Claims", () => {
     });
 
     it("Should resolve claim in protocol 3 and check info in its related protocols", async () => {
-      await ProtocolHelper.resolveClaimPublic(
+      await ProtocolHelper.resolveClaim(
         owner,
         0,
         "182500",

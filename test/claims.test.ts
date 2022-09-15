@@ -14,6 +14,7 @@ let liquidityProvider3: ethers.Signer;
 let policyTaker1: ethers.Signer;
 let policyTaker2: ethers.Signer;
 let policyTaker3: ethers.Signer;
+let policyTaker4: ethers.Signer;
 
 describe("Claims", () => {
   before(async () => {
@@ -26,6 +27,7 @@ describe("Claims", () => {
     policyTaker1 = allSigners[100];
     policyTaker2 = allSigners[101];
     policyTaker3 = allSigners[102];
+    policyTaker4 = allSigners[103];
 
     await ProtocolHelper.deployAllContractsAndInitializeProtocol(owner);
     await ProtocolHelper.addNewProtocolPool("Test protocol 0");
@@ -61,6 +63,27 @@ describe("Claims", () => {
       ATEN_amount3,
       [1, 3],
       1 * 24 * 60 * 60
+    );
+
+    const capital3 = "182500";
+    const premium3 = "8760";
+    const atensLocked3 = "0";
+    await ProtocolHelper.buyPolicy(
+      policyTaker3,
+      capital3,
+      premium3,
+      atensLocked3,
+      2,
+      10 * 24 * 60 * 60
+    );
+
+    await ProtocolHelper.buyPolicy(
+      policyTaker4,
+      capital3,
+      premium3,
+      atensLocked3,
+      3,
+      10 * 24 * 60 * 60
     );
 
     const capital1 = "109500";
@@ -118,18 +141,24 @@ describe("Claims", () => {
         0
       );
 
-      const intersecAmounts0 = await protocolContract.intersectingAmounts(0);
-      expect(intersecAmounts0).to.be.equal("730000");
+      const intersecAmountsP0 = await protocolContract.intersectingAmounts(0);
+      expect(intersecAmountsP0).to.be.equal("730000");
 
-      const intersecAmounts1 = await protocolContract.intersectingAmounts(2);
-      expect(intersecAmounts1).to.be.equal("330000");
+      const intersecAmountsP1 = await protocolContract.intersectingAmounts(2);
+      expect(intersecAmountsP1).to.be.equal("330000");
 
-      const intersecAmounts2 = await protocolContract.intersectingAmounts(1);
-      expect(intersecAmounts2).to.be.equal("730000");
+      const intersecAmountsP2 = await protocolContract.intersectingAmounts(1); //P2 at index 1
+      expect(intersecAmountsP2).to.be.equal("730000");
     });
 
     it("Should add claim in Protocol 2", async () => {
-      await ProtocolHelper.claim(policyTaker1, 2, "182500", 1 * 24 * 60 * 60);
+      await ProtocolHelper.resolveClaim(
+        owner,
+        0,
+        "182500",
+        policyTaker3,
+        1 * 24 * 60 * 60
+      );
 
       const protocolPool0 = await ProtocolHelper.getProtocolPoolContract(
         owner,
@@ -219,9 +248,6 @@ describe("Claims", () => {
       );
 
       expect(result.__slot0.tick).to.be.equal(29);
-      // expect(result.__slot0.premiumRate).to.be.equal(
-      //   "5000000000000000000000000000"
-      // );
       expect(result.__slot0.secondsPerTick).to.be.equal(48 * 6 * 60);
       expect(result.__slot0.totalInsuredCapital).to.be.equal(328500);
       expect(result.__slot0.remainingPolicies).to.be.equal(2);
@@ -230,7 +256,7 @@ describe("Claims", () => {
       );
     });
 
-    it("Should actualizing after 1 day of adding claim, checking intersectingAmounts and slot0", async () => {
+    it("Should actualizing after 1 day of adding claim, checking intersectingAmounts and slot0 in protocol 0", async () => {
       const protocolContract = await ProtocolHelper.getProtocolPoolContract(
         owner,
         0
@@ -279,7 +305,13 @@ describe("Claims", () => {
     });
 
     it("Should add claim in protocol 3", async () => {
-      await ProtocolHelper.claim(policyTaker1, 3, "182500", 1 * 24 * 60 * 60);
+      await ProtocolHelper.resolveClaim(
+        owner,
+        1,
+        "182500",
+        policyTaker4,
+        1 * 24 * 60 * 60
+      );
 
       const protocolPool1 = await ProtocolHelper.getProtocolPoolContract(
         owner,

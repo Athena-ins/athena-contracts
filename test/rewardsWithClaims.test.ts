@@ -50,6 +50,18 @@ describe("Liquidity provider rewards", () => {
       1 * 24 * 60 * 60
     );
 
+    const capital3 = "219000";
+    const premium3 = "8760";
+    const atensLocked3 = "0";
+    await ProtocolHelper.buyPolicy(
+      policyTaker3,
+      capital3,
+      premium3,
+      atensLocked3,
+      2,
+      10 * 24 * 60 * 60
+    );
+
     const capital1 = "109500";
     const premium1 = "2190";
     const atensLocked1 = "0";
@@ -137,7 +149,13 @@ describe("Liquidity provider rewards", () => {
 
   describe("Claim", async () => {
     it("Should add a claim in protocol2 and check claim info in protocol0", async () => {
-      await ProtocolHelper.claim(owner, 2, "182500", 1 * 24 * 60 * 60);
+      await ProtocolHelper.resolveClaim(
+        owner,
+        0,
+        "182500",
+        policyTaker3,
+        1 * 24 * 60 * 60
+      );
 
       let protocolPool0 = await ProtocolHelper.getProtocolPoolContract(
         owner,
