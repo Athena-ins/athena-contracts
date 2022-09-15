@@ -192,6 +192,18 @@ contract Athena is ReentrancyGuard, Ownable {
     );
   }
 
+  function isProtocolInList(uint128 _protocolId, uint128[] memory _protocolList)
+    private
+    pure
+    returns (bool)
+  {
+    for (uint256 i = 0; i < _protocolList.length; i++) {
+      if (_protocolId == _protocolList[i]) return true;
+    }
+
+    return false;
+  }
+
   function takeInterest(uint128 _protocolId) public {
     (
       uint256 __userCapital,
@@ -199,6 +211,11 @@ contract Athena is ReentrancyGuard, Ownable {
       ,
       uint256 __discount
     ) = IPositionsManager(positionsManager).positions(msg.sender);
+
+    require(
+      isProtocolInList(_protocolId, __protocolIds),
+      "Not in protocol list"
+    );
 
     actualizingProtocolAndRemoveExpiredPolicies(
       protocolsMapping[_protocolId].deployed
@@ -234,13 +251,10 @@ contract Athena is ReentrancyGuard, Ownable {
       msg.sender
     );
 
-    bool ok;
-    for (uint256 i = 0; i < __protocolIds.length; i++) {
-      if (__protocolIds[i] == _protocolId) ok = true;
-    }
-
-    require(ok, "Not in protocol list");
-
+    require(
+      isProtocolInList(_protocolId, __protocolIds),
+      "Not in protocol list"
+    );
     require(
       protocolsMapping[_protocolId].claimsOngoing == 0,
       "Protocol has claims on going"
