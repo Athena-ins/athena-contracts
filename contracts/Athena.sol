@@ -106,6 +106,17 @@ contract Athena is ReentrancyGuard, Ownable {
     //initialized = true; //@dev required ?
   }
 
+  //Thao@WARN: remove atensLocked !!!
+  function actualizingProtocolAndRemoveExpiredPolicies(address protocolAddress)
+    private
+  {
+    uint256[] memory __expiredPoliciesTokens = IProtocolPool(protocolAddress)
+      .actualizing();
+    for (uint256 i = 0; i < __expiredPoliciesTokens.length; i++) {
+      IPolicyManager(policyManager).burn(__expiredPoliciesTokens[i]);
+    }
+  }
+
   function _transferLiquidity(uint256 _amount) internal returns (uint256) {
     IERC20(stablecoin).safeTransferFrom(msg.sender, address(this), _amount);
 
@@ -118,16 +129,6 @@ contract Athena is ReentrancyGuard, Ownable {
       _amount.rayDiv(
         ILendingPool(lendingPool).getReserveNormalizedIncome(stablecoin)
       );
-  }
-
-  function actualizingProtocolAndRemoveExpiredPolicies(address protocolAddress)
-    private
-  {
-    uint256[] memory __expiredPoliciesTokens = IProtocolPool(protocolAddress)
-      .actualizing();
-    for (uint256 i = 0; i < __expiredPoliciesTokens.length; i++) {
-      IPolicyManager(policyManager).burn(__expiredPoliciesTokens[i]);
-    }
   }
 
   //////Thao@NOTE: LP
@@ -517,25 +518,19 @@ contract Athena is ReentrancyGuard, Ownable {
     payable
     nonReentrant
   {
-    require(
-      IPolicyManager(policyManager).balanceOf(msg.sender) > 0,
-      "No Active Policy"
-    );
+    IPolicyManager __policyManager = IPolicyManager(policyManager);
 
+    require(__policyManager.balanceOf(msg.sender) > 0, "No Active Policy");
     require(
-      _policyId ==
-        IPolicyManager(policyManager).tokenOfOwnerByIndex(msg.sender, _index),
+      _policyId == __policyManager.tokenOfOwnerByIndex(msg.sender, _index),
       "Wrong Token Id for Policy"
     );
-
     require(
-      msg.sender == IPolicyManager(policyManager).ownerOf(_policyId),
+      msg.sender == __policyManager.ownerOf(_policyId),
       "Policy is not owned"
     );
 
-    (, uint128 __protocolId) = IPolicyManager(policyManager).policies(
-      _policyId
-    );
+    (, uint128 __protocolId) = __policyManager.policies(_policyId);
     //Thao@Question: on fait quoi avec 'atensLocked' ???
 
     actualizingProtocolAndRemoveExpiredPolicies(
@@ -545,6 +540,8 @@ contract Athena is ReentrancyGuard, Ownable {
     IProtocolPool(protocolsMapping[__protocolId].deployed).withdrawPolicy(
       msg.sender
     );
+
+    __policyManager.burn(_policyId);
   }
 
   //////Thao@NOTE: Protocol
