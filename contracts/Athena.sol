@@ -386,7 +386,7 @@ contract Athena is ReentrancyGuard, Ownable {
       _amountGuaranteed > 0 && _premium > 0,
       "Guarante and premium must be greater than 0"
     );
-    //@dev TODO get rate for price and durationw
+
     IERC20(stablecoin).safeTransferFrom(
       msg.sender,
       protocolsMapping[_protocolId].deployed,
@@ -425,42 +425,34 @@ contract Athena is ReentrancyGuard, Ownable {
     );
   }
 
-  //Thao@TODO: il faut actualizing protocol avant de start claim
   function startClaim(
     uint256 _policyId,
     uint256 _index,
     uint256 _amountClaimed
   ) external payable {
+    require(_amountClaimed > 0, "Claimed amount is zero");
+
     IPolicyManager __policyManager = IPolicyManager(policyManager);
-
-    require(__policyManager.balanceOf(msg.sender) > 0, "No Active Policy");
-
-    require(
-      _policyId == __policyManager.tokenOfOwnerByIndex(msg.sender, _index),
-      "Wrong Token Id for Policy"
-    );
 
     require(
       msg.sender == __policyManager.ownerOf(_policyId),
       "Policy is not owned"
     );
-
-    require(_amountClaimed > 0, "Claimed amount is zero");
+    require(
+      _policyId == __policyManager.tokenOfOwnerByIndex(msg.sender, _index),
+      "Wrong Token Id for Policy"
+    );
 
     (uint256 __liquidity, uint128 __protocolId) = __policyManager.policies(
       _policyId
     );
 
-    require(__liquidity >= _amountClaimed, "Too big claimed amount");
+    actualizingProtocolAndRemoveExpiredPolicies(
+      protocolsMapping[__protocolId].deployed
+    );
 
-    //@Dev TODO require not expired Policy
-    // require(
-    //   IProtocolPool(positionsManager).isActive(
-    //     msg.sender,
-    //     _policyId
-    //   ),
-    //   "Policy Not active"
-    // );
+    require(__policyManager.balanceOf(msg.sender) > 0, "No Active Policy");
+    require(__liquidity >= _amountClaimed, "Too big claimed amount");
 
     IClaimManager(claimManager).claim{ value: msg.value }(
       msg.sender,
