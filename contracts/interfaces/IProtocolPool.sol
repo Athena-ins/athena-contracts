@@ -43,6 +43,7 @@ interface IProtocolPool is IPolicyCover {
 
   function buyPolicy(
     address _owner,
+    uint256 _tokenId,
     uint256 _premium,
     uint256 _insuredCapital
   ) external;
@@ -61,5 +62,5 @@ interface IProtocolPool is IPolicyCover {
 
   function removeLPInfo(address _account) external;
 
-  function actualizing() external returns (address[] memory);
+  function actualizing() external returns (uint256[] memory);
 }

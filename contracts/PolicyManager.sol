@@ -28,18 +28,11 @@ contract PolicyManager is IPolicyManager, ERC721Enumerable {
     core = coreAddress;
   }
 
-  // function burn(uint256 tokenId, uint256 amount) external {
-  //     Position storage position = _policies[tokenId];
-  //     require(position.providedLiquidity == 0, "Not cleared");
-  //     delete _policies[tokenId];
-  //     _burn(msg.sender, tokenId, amount);
-  // }
-
   function policies(uint256 _tokenId)
     external
     view
     override
-    returns (uint256 liquidity, uint128 protocolId)
+    returns (uint256 amountGuaranteed, uint128 protocolId)
   {
     Policy memory policy = _policies[_tokenId];
     return (policy.amountGuaranteed, policy.protocolId);
@@ -50,7 +43,7 @@ contract PolicyManager is IPolicyManager, ERC721Enumerable {
     uint256 capitalGuaranteed,
     uint256 atensLocked,
     uint128 _protocolId
-  ) external override onlyCore {
+  ) external override onlyCore returns (uint256) {
     _policies[_nextId] = Policy({
       amountGuaranteed: capitalGuaranteed,
       protocolId: _protocolId,
@@ -58,6 +51,13 @@ contract PolicyManager is IPolicyManager, ERC721Enumerable {
     });
     _mint(to, _nextId);
     _nextId++;
+
+    return _nextId - 1;
+  }
+
+  function burn(uint256 tokenId) external {
+    _burn(tokenId);
+    delete _policies[tokenId];
   }
 
   function update(

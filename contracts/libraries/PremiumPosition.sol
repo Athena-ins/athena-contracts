@@ -7,6 +7,7 @@ library PremiumPosition {
   using RayMath for uint256;
 
   struct Info {
+    uint256 tokenId;
     uint256 capitalInsured;
     uint256 beginPremiumRate;
     uint32 lastTick;
@@ -32,7 +33,8 @@ library PremiumPosition {
   function removeOwner(
     mapping(address => PremiumPosition.Info) storage self,
     address owner
-  ) internal returns (uint256 insuredCapital) {
+  ) internal returns (uint256 tokenId, uint256 insuredCapital) {
+    tokenId = self[owner].tokenId;
     insuredCapital = self[owner].capitalInsured;
     delete self[owner];
   }

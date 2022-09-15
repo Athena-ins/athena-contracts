@@ -99,10 +99,11 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
 
   function buyPolicy(
     address _owner,
+    uint256 _tokenId,
     uint256 _premium,
     uint256 _insuredCapital
   ) external onlyCore notExistedOwner(_owner) {
-    _buyPolicy(_owner, _premium, _insuredCapital);
+    _buyPolicy(_owner, _tokenId, _premium, _insuredCapital);
 
     emit BuyPolicy(_owner, _premium, _insuredCapital);
   }
@@ -375,7 +376,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
   }
 
   //onlyCore
-  function actualizing() external returns (address[] memory) {
-    _actualizing();
+  function actualizing() external returns (uint256[] memory) {
+    return _actualizing();
   }
 }

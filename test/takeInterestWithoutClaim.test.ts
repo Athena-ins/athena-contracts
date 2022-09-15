@@ -270,7 +270,7 @@ describe("Liquidity provider takeInterest", () => {
         liquidityProvider2,
         0,
         611 * 24 * 60 * 60,
-        2
+        6
       );
 
       const lpInfoAfter = await protocolContract.LPsInfo(

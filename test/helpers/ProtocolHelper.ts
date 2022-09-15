@@ -285,7 +285,8 @@ async function takeInterest(
   await HardhatHelper.setNextBlockTimestamp(timeLapse);
 
   const tx = await ATHENA_CONTRACT.connect(user).takeInterest(protocolId);
-  const event = (await tx.wait()).events[eventIndex];
+  const events = (await tx.wait()).events;
+  const event = events[eventIndex];
 
   return (await getProtocolPoolContract(user, 0)).interface.decodeEventLog(
     event.topics[0],

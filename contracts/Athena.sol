@@ -120,6 +120,16 @@ contract Athena is ReentrancyGuard, Ownable {
       );
   }
 
+  function actualizingProtocolAndRemoveExpiredPolicies(address protocolAddress)
+    private
+  {
+    uint256[] memory __expiredPoliciesTokens = IProtocolPool(protocolAddress)
+      .actualizing();
+    for (uint256 i = 0; i < __expiredPoliciesTokens.length; i++) {
+      IPolicyManager(policyManager).burn(__expiredPoliciesTokens[i]);
+    }
+  }
+
   //////Thao@NOTE: LP
   function deposit(
     uint256 amount,
@@ -133,10 +143,9 @@ contract Athena is ReentrancyGuard, Ownable {
 
     for (uint256 index = 0; index < _protocolIds.length; index++) {
       Protocol memory protocol1 = protocolsMapping[_protocolIds[index]];
-      IProtocolPool protocolPool1 = IProtocolPool(protocol1.deployed);
-
       require(protocol1.active == true, "Protocol not active");
 
+      IProtocolPool protocolPool1 = IProtocolPool(protocol1.deployed);
       for (uint256 index2 = index + 1; index2 < _protocolIds.length; index2++) {
         require(
           _protocolIds[index] != _protocolIds[index2],
@@ -159,7 +168,8 @@ contract Athena is ReentrancyGuard, Ownable {
           .addRelatedProtocol(_protocolIds[index], amount);
       }
 
-      protocolPool1.actualizing();
+      actualizingProtocolAndRemoveExpiredPolicies(protocol1.deployed);
+
       protocolPool1.deposit(msg.sender, amount);
       protocolPool1.addRelatedProtocol(_protocolIds[index], amount);
     }
@@ -189,7 +199,10 @@ contract Athena is ReentrancyGuard, Ownable {
       uint256 __discount
     ) = IPositionsManager(positionsManager).positions(msg.sender);
 
-    IProtocolPool(protocolsMapping[_protocolId].deployed).actualizing();
+    actualizingProtocolAndRemoveExpiredPolicies(
+      protocolsMapping[_protocolId].deployed
+    );
+
     (
       uint256 __newUserCapital,
       uint256 __aaveScaledBalanceToRemove
@@ -257,7 +270,8 @@ contract Athena is ReentrancyGuard, Ownable {
       uint128 __discount
     ) = __positionManager.positions(msg.sender);
 
-    __protocol.actualizing();
+    actualizingProtocolAndRemoveExpiredPolicies(address(__protocol));
+
     (uint256 __newUserCapital, uint256 __aaveScaledBalanceToRemove) = __protocol
       .withdrawLiquidity(msg.sender, __userCapital, __protocolIds, __discount);
 
@@ -291,7 +305,7 @@ contract Athena is ReentrancyGuard, Ownable {
       __positionManager.removeProtocolId(msg.sender, _protocolId);
     }
 
-    //Event
+    //Thao@TODO: Event
   }
 
   function committingWithdrawAll() external {
@@ -332,7 +346,8 @@ contract Athena is ReentrancyGuard, Ownable {
 
       __protocol.removeCommittedWithdrawLiquidity(msg.sender);
 
-      __protocol.actualizing();
+      actualizingProtocolAndRemoveExpiredPolicies(address(__protocol));
+
       (__newUserCapital, __aaveScaledBalanceToRemove) = __protocol
         .withdrawLiquidity(
           msg.sender,
@@ -390,16 +405,21 @@ contract Athena is ReentrancyGuard, Ownable {
       );
       IStakedAtenPolicy(stakedAtensPo).stake(msg.sender, _atensLocked);
     }
-    IPolicyManager(policyManager).mint(
+
+    uint256 __tokenId = IPolicyManager(policyManager).mint(
       msg.sender,
       _amountGuaranteed,
       _atensLocked,
       _protocolId
     );
 
-    IProtocolPool(protocolsMapping[_protocolId].deployed).actualizing();
+    actualizingProtocolAndRemoveExpiredPolicies(
+      protocolsMapping[_protocolId].deployed
+    );
+
     IProtocolPool(protocolsMapping[_protocolId].deployed).buyPolicy(
       msg.sender,
+      __tokenId,
       _premium,
       _amountGuaranteed
     );
@@ -471,8 +491,10 @@ contract Athena is ReentrancyGuard, Ownable {
     uint128[] memory __relatedProtocols = __protocolPool.getRelatedProtocols();
 
     for (uint256 i = 0; i < __relatedProtocols.length; i++) {
-      IProtocolPool(protocolsMapping[__relatedProtocols[i]].deployed)
-        .actualizing();
+      actualizingProtocolAndRemoveExpiredPolicies(
+        protocolsMapping[__relatedProtocols[i]].deployed
+      );
+
       IProtocolPool(protocolsMapping[__relatedProtocols[i]].deployed)
         .processClaim(_protocolId, ratio, __reserveNormalizedIncome);
     }
@@ -480,6 +502,12 @@ contract Athena is ReentrancyGuard, Ownable {
     __protocolPool.releaseFunds(_account, _amount);
   }
 
+  modifier onlyClaimManager() {
+    require(msg.sender == claimManager, "Only Claim Manager");
+    _;
+  }
+
+  //onlyClaimManager
   function resolveClaim(
     uint256 _policyId,
     uint256 _amount,
@@ -508,8 +536,10 @@ contract Athena is ReentrancyGuard, Ownable {
 
     uint128[] memory __relatedProtocols = __protocolPool.getRelatedProtocols();
     for (uint256 i = 0; i < __relatedProtocols.length; i++) {
-      IProtocolPool(protocolsMapping[__relatedProtocols[i]].deployed)
-        .actualizing();
+      actualizingProtocolAndRemoveExpiredPolicies(
+        protocolsMapping[__relatedProtocols[i]].deployed
+      );
+
       IProtocolPool(protocolsMapping[__relatedProtocols[i]].deployed)
         .processClaim(__protocolId, __ratio, __reserveNormalizedIncome);
     }
@@ -519,11 +549,6 @@ contract Athena is ReentrancyGuard, Ownable {
     ).withdraw(stablecoin, _amount, _account);
 
     // protocolsMapping[__protocolId].claimsOngoing -= 1;//use for later
-  }
-
-  modifier onlyClaimManager() {
-    require(msg.sender == claimManager, "Only Claim Manager");
-    _;
   }
 
   function withdrawPolicy(uint256 _policyId, uint256 _index)
@@ -549,9 +574,13 @@ contract Athena is ReentrancyGuard, Ownable {
 
     (, uint128 __protocolId) = IPolicyManager(policyManager).policies(
       _policyId
-    ); //Thao@Question: on fait quoi avec 'atensLocked' ???
+    );
+    //Thao@Question: on fait quoi avec 'atensLocked' ???
 
-    IProtocolPool(protocolsMapping[__protocolId].deployed).actualizing();
+    actualizingProtocolAndRemoveExpiredPolicies(
+      protocolsMapping[__protocolId].deployed
+    );
+
     IProtocolPool(protocolsMapping[__protocolId].deployed).withdrawPolicy(
       msg.sender
     );

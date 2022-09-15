@@ -52,11 +52,13 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
 
   function addPremiumPosition(
     address _owner,
+    uint256 _tokenId,
     uint256 _capitalInsured,
     uint256 _beginPremiumRate,
     uint32 _tick
   ) private {
     premiumPositions[_owner] = PremiumPosition.Info(
+      _tokenId,
       _capitalInsured,
       _beginPremiumRate,
       _tick,
@@ -68,15 +70,23 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
     }
   }
 
-  function removeTick(uint32 _tick) private {
+  function removeTick(uint32 _tick) private returns (uint256[] memory) {
     address[] memory __owners = ticks[_tick];
+    uint256[] memory __tokensId = new uint256[](__owners.length);
+
     for (uint256 i = 0; i < __owners.length; i++) {
-      uint256 insuredCapital = premiumPositions.removeOwner(__owners[i]);
+      (uint256 tokenId, uint256 insuredCapital) = premiumPositions.removeOwner(
+        __owners[i]
+      );
+      __tokensId[i] = tokenId;
+
       emit ExpiredPolicy(__owners[i], insuredCapital, _tick);
     }
 
     ticks.clear(_tick);
     tickBitmap.flipTick(_tick);
+
+    return __tokensId;
   }
 
   function getPremiumRate(uint256 _utilisationRate)
@@ -246,13 +256,18 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
     __slot0.lastUpdateTimestamp = _dateInSeconds;
   }
 
-  function _actualizing() internal {
+  function _actualizing() internal returns (uint256[] memory) {
     if (slot0.remainingPolicies > 0) {
       (Slot0 memory __slot0, uint256 __liquidityIndex) = _actualizingUntil(
         block.timestamp
       );
 
       //now, we remove all crossed ticks
+      uint256[] memory __expiredPoliciesTokens = new uint256[](
+        slot0.remainingPolicies - __slot0.remainingPolicies
+      );
+      uint256 __expiredPoliciesTokenIdCurrentIndex;
+
       uint32 __observedTick = slot0.tick;
       bool __initialized;
       while (__observedTick < __slot0.tick) {
@@ -260,7 +275,17 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
           .nextInitializedTickInTheRightWithinOneWord(__observedTick);
 
         if (__initialized && __observedTick <= __slot0.tick) {
-          removeTick(__observedTick);
+          uint256[] memory __currentExpiredPoliciesTokenId = removeTick(
+            __observedTick
+          );
+
+          for (uint256 i = 0; i < __currentExpiredPoliciesTokenId.length; i++) {
+            __expiredPoliciesTokens[
+              __expiredPoliciesTokenIdCurrentIndex
+            ] = __currentExpiredPoliciesTokenId[i];
+
+            __expiredPoliciesTokenIdCurrentIndex++;
+          }
         }
       }
 
@@ -268,14 +293,19 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
       slot0.secondsPerTick = __slot0.secondsPerTick;
       slot0.totalInsuredCapital = __slot0.totalInsuredCapital;
       slot0.remainingPolicies = __slot0.remainingPolicies;
+      slot0.lastUpdateTimestamp = block.timestamp;
       liquidityIndex = __liquidityIndex;
+
+      return __expiredPoliciesTokens;
     }
 
     slot0.lastUpdateTimestamp = block.timestamp;
+    return new uint256[](0);
   }
 
   function _buyPolicy(
     address _owner,
+    uint256 _tokenId,
     uint256 _premium,
     uint256 _insuredCapital
   ) internal {
@@ -315,7 +345,13 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
     uint32 __lastTick = slot0.tick +
       uint32(__durationInSeconds / __newSecondsPerTick);
 
-    addPremiumPosition(_owner, _insuredCapital, __newPremiumRate, __lastTick);
+    addPremiumPosition(
+      _owner,
+      _tokenId,
+      _insuredCapital,
+      __newPremiumRate,
+      __lastTick
+    );
 
     slot0.totalInsuredCapital += _insuredCapital;
     slot0.secondsPerTick = __newSecondsPerTick;

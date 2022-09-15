@@ -13,7 +13,9 @@ interface IPolicyManager is IERC721Enumerable {
     uint256 capitalGuaranteed,
     uint256 atensLocked,
     uint128 _protocolId
-  ) external;
+  ) external returns (uint256);
+
+  function burn(uint256 tokenId) external;
 
   function update(
     uint128 _discount,
