@@ -36,8 +36,6 @@ contract Athena is ReentrancyGuard, Ownable {
 
   event NewProtocol(uint128);
 
-  uint256 internal constant MAX_UINT256 = 2**256 - 1;
-
   mapping(uint128 => mapping(uint128 => bool)) public incompatibilityProtocols;
   mapping(uint128 => Protocol) public protocolsMapping;
 
@@ -78,7 +76,7 @@ contract Athena is ReentrancyGuard, Ownable {
   function approveLendingPool() internal {
     IERC20(stablecoin).safeApprove(
       ILendingPoolAddressesProvider(aaveAddressesRegistry).getLendingPool(),
-      MAX_UINT256
+      2**256 - 1
     );
   }
 
@@ -106,7 +104,7 @@ contract Athena is ReentrancyGuard, Ownable {
     //initialized = true; //@dev required ?
   }
 
-  //Thao@WARN: remove atensLocked !!!
+  //Thao@WARN: also removing atensLocked !!!
   function actualizingProtocolAndRemoveExpiredPolicies(address protocolAddress)
     private
   {
@@ -239,7 +237,7 @@ contract Athena is ReentrancyGuard, Ownable {
       );
   }
 
-  function commitingWithdrawInOneProtocol(uint128 _protocolId) external {
+  function committingWithdrawInOneProtocol(uint128 _protocolId) external {
     IPositionsManager __positionsManager = IPositionsManager(positionsManager);
 
     require(
@@ -255,6 +253,7 @@ contract Athena is ReentrancyGuard, Ownable {
       isProtocolInList(_protocolId, __protocolIds),
       "Not in protocol list"
     );
+
     require(
       protocolsMapping[_protocolId].claimsOngoing == 0,
       "Protocol has claims on going"

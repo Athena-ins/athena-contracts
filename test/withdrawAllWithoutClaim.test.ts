@@ -47,7 +47,7 @@ describe("Liquidity provider withdraw", () => {
         liquidityProvider2,
         USDT_amount2,
         ATEN_amount2,
-        [0, 1],
+        [0, 2],
         1 * 24 * 60 * 60
       );
 
@@ -71,61 +71,96 @@ describe("Liquidity provider withdraw", () => {
         capital2,
         premium2,
         atensLocked2,
-        0,
+        2,
         10 * 24 * 60 * 60
       );
     });
 
-    it(`Should commit withdraw for LP1 after 1 days of PT2 bought his policy in protocol0 and withdraw liquidity after 14 days of committing`, async () => {
+    it(`Should commit withdraw all for LP1 after 1 days of PT2 bought his policy in protocol2 and withdraw all liquidity after 14 days of committing`, async () => {
       await HardhatHelper.setNextBlockTimestamp(1 * 24 * 60 * 60);
 
       const commit_tx = await ProtocolHelper.getAthenaContract()
         .connect(liquidityProvider1)
-        .committingWithdrawInOneProtocol(0);
+        .committingWithdrawAll();
 
       await HardhatHelper.setNextBlockTimestamp(14 * 24 * 60 * 60);
 
       const withdraw_tx = await ProtocolHelper.getAthenaContract()
         .connect(liquidityProvider1)
-        .withdrawLiquidityInOneProtocol(0);
+        .withdrawAll();
 
       const result = await withdraw_tx.wait();
-      // console.log(result);
+      //   console.log(result);
 
-      const event = result.events[3];
-
-      const protocolContract = await ProtocolHelper.getProtocolPoolContract(
+      //protocol0
+      const p0_contract = await ProtocolHelper.getProtocolPoolContract(
         liquidityProvider1,
         0
       );
 
-      const decodedData = protocolContract.interface.decodeEventLog(
-        event.topics[0],
-        event.data
+      const p0_event = result.events[3];
+
+      const p0_decodedData = p0_contract.interface.decodeEventLog(
+        p0_event.topics[0],
+        p0_event.data
       );
 
-      expect(decodedData.account).to.be.equal(
+      expect(p0_decodedData.account).to.be.equal(
         await liquidityProvider1.getAddress()
       );
-      expect(decodedData.capital).to.be.equal(182500);
-      expect(decodedData.rewardsGross).to.be.equal(150);
-      expect(decodedData.rewardsNet).to.be.equal(127);
-      expect(decodedData.fee).to.be.equal(23);
+      expect(p0_decodedData.capital).to.be.equal(182500);
+      expect(p0_decodedData.rewardsGross).to.be.equal(37);
+      expect(p0_decodedData.rewardsNet).to.be.equal(31);
+      expect(p0_decodedData.fee).to.be.equal(6);
 
-      const slot0 = await protocolContract.slot0();
+      const p0_premiumRate = await p0_contract.getCurrentPremiumRate();
 
-      expect(slot0.secondsPerTick).to.be.equal("17280");
-      expect(slot0.totalInsuredCapital).to.be.equal("328500");
-      expect(slot0.remainingPolicies).to.be.equal("2");
-      expect(slot0.lastUpdateTimestamp).to.be.equal(
+      expect(p0_premiumRate).to.be.equal("2333333333333333333333333335");
+
+      const p0_slot0 = await p0_contract.slot0();
+
+      expect(p0_slot0.secondsPerTick).to.be.equal("37029");
+      expect(p0_slot0.totalInsuredCapital).to.be.equal("109500");
+      expect(p0_slot0.remainingPolicies).to.be.equal("1");
+      expect(p0_slot0.lastUpdateTimestamp).to.be.equal(
         HardhatHelper.getCurrentTime()
       );
 
-      const premiumRate = await protocolContract.getCurrentPremiumRate();
-      expect(premiumRate).to.be.equal("5000000000000000000000000000");
+      //protocol2
+      const p2_contract = await ProtocolHelper.getProtocolPoolContract(
+        liquidityProvider1,
+        2
+      );
+      const p2_event = result.events[7];
+
+      const p2_decodedData = p2_contract.interface.decodeEventLog(
+        p2_event.topics[0],
+        p2_event.data
+      );
+
+      expect(p2_decodedData.account).to.be.equal(
+        await liquidityProvider1.getAddress()
+      );
+      expect(p2_decodedData.capital).to.be.equal(182500);
+      expect(p2_decodedData.rewardsGross).to.be.equal(67);
+      expect(p2_decodedData.rewardsNet).to.be.equal(56);
+      expect(p2_decodedData.fee).to.be.equal(11);
+
+      const p2_premiumRate = await p2_contract.getCurrentPremiumRate();
+
+      expect(p2_premiumRate).to.be.equal("3666666666666666666666666665");
+
+      const p2_slot0 = await p2_contract.slot0();
+
+      expect(p2_slot0.secondsPerTick).to.be.equal("23564");
+      expect(p2_slot0.totalInsuredCapital).to.be.equal("219000");
+      expect(p2_slot0.remainingPolicies).to.be.equal("1");
+      expect(p2_slot0.lastUpdateTimestamp).to.be.equal(
+        HardhatHelper.getCurrentTime()
+      );
     });
 
-    it("Should call takeInterest for LP2 after 10 day that LP1 withdrawed his capital", async () => {
+    it("Should call takeInterest for LP2 after 10 day that LP1 withdrawed his capital in protocol 0", async () => {
       const protocolContract = await ProtocolHelper.getProtocolPoolContract(
         liquidityProvider2,
         0
@@ -146,9 +181,9 @@ describe("Liquidity provider withdraw", () => {
         await liquidityProvider2.getAddress()
       );
       expect(decodedData.userCapital).to.be.equal(547500);
-      expect(decodedData.rewardsGross).to.be.equal(450 + 450);
-      expect(decodedData.rewardsNet).to.be.equal(450 + 450 - 45);
-      expect(decodedData.fee).to.be.equal(45);
+      expect(decodedData.rewardsGross).to.be.equal(112 + 70);
+      expect(decodedData.rewardsNet).to.be.equal(112 + 70 - 10);
+      expect(decodedData.fee).to.be.equal(10);
 
       const lpInfoAfter = await protocolContract.LPsInfo(
         liquidityProvider2.getAddress()
