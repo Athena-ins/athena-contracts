@@ -48,6 +48,11 @@ describe("View policy", () => {
       1 * 24 * 60 * 60
     );
 
+    await HardhatHelper.USDT_maxApprove(
+      policyTaker1,
+      ProtocolHelper.getAthenaContract().address
+    );
+
     const capital1 = "109500";
     const premium1 = "2190";
     const atensLocked1 = "0";
@@ -58,6 +63,11 @@ describe("View policy", () => {
       atensLocked1,
       0,
       20 * 24 * 60 * 60
+    );
+
+    await HardhatHelper.USDT_maxApprove(
+      policyTaker2,
+      ProtocolHelper.getAthenaContract().address
     );
 
     const capital2 = "219000";

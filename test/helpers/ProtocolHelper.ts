@@ -230,12 +230,6 @@ async function buyPolicy(
     hre_ethers.utils.parseUnits(premium, 6)
   );
 
-  await HardhatHelper.USDT_approve(
-    user,
-    ATHENA_CONTRACT.address,
-    hre_ethers.utils.parseUnits(premium, 6)
-  );
-
   await HardhatHelper.setNextBlockTimestamp(timeLapse);
 
   await ATHENA_CONTRACT.connect(user).buyPolicy(

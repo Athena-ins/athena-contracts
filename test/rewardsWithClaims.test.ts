@@ -50,6 +50,11 @@ describe("Liquidity provider rewards", () => {
       1 * 24 * 60 * 60
     );
 
+    await HardhatHelper.USDT_maxApprove(
+      policyTaker3,
+      ProtocolHelper.getAthenaContract().address
+    );
+
     const capital3 = "219000";
     const premium3 = "8760";
     const atensLocked3 = "0";
@@ -62,6 +67,11 @@ describe("Liquidity provider rewards", () => {
       10 * 24 * 60 * 60
     );
 
+    await HardhatHelper.USDT_maxApprove(
+      policyTaker1,
+      ProtocolHelper.getAthenaContract().address
+    );
+
     const capital1 = "109500";
     const premium1 = "2190";
     const atensLocked1 = "0";
@@ -72,6 +82,11 @@ describe("Liquidity provider rewards", () => {
       atensLocked1,
       0,
       20 * 24 * 60 * 60
+    );
+
+    await HardhatHelper.USDT_maxApprove(
+      policyTaker2,
+      ProtocolHelper.getAthenaContract().address
     );
 
     const capital2 = "219000";

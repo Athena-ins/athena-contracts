@@ -65,6 +65,11 @@ describe("Claims", () => {
       1 * 24 * 60 * 60
     );
 
+    await HardhatHelper.USDT_maxApprove(
+      policyTaker3,
+      ProtocolHelper.getAthenaContract().address
+    );
+
     const capital3 = "182500";
     const premium3 = "8760";
     const atensLocked3 = "0";
@@ -77,6 +82,11 @@ describe("Claims", () => {
       10 * 24 * 60 * 60
     );
 
+    await HardhatHelper.USDT_maxApprove(
+      policyTaker4,
+      ProtocolHelper.getAthenaContract().address
+    );
+
     await ProtocolHelper.buyPolicy(
       policyTaker4,
       capital3,
@@ -84,6 +94,11 @@ describe("Claims", () => {
       atensLocked3,
       3,
       10 * 24 * 60 * 60
+    );
+
+    await HardhatHelper.USDT_maxApprove(
+      policyTaker1,
+      ProtocolHelper.getAthenaContract().address
     );
 
     const capital1 = "109500";
@@ -96,6 +111,11 @@ describe("Claims", () => {
       atensLocked1,
       0,
       20 * 24 * 60 * 60
+    );
+
+    await HardhatHelper.USDT_maxApprove(
+      policyTaker2,
+      ProtocolHelper.getAthenaContract().address
     );
 
     const capital2 = "219000";

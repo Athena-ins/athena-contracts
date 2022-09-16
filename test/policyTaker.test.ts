@@ -75,10 +75,9 @@ describe("Buy policy", () => {
     });
 
     it("Should success buy policy in protocol 0 for 1 year", async () => {
-      const USDT_Approved = await HardhatHelper.USDT_approve(
+      const USDT_Approved = await HardhatHelper.USDT_maxApprove(
         policyTaker1,
-        ProtocolHelper.getAthenaContract().address,
-        hre_ethers.utils.parseUnits(premium, 6)
+        ProtocolHelper.getAthenaContract().address
       );
 
       expect(USDT_Approved).to.haveOwnProperty("hash");
@@ -200,10 +199,9 @@ describe("Buy policy", () => {
     });
 
     it("Should success buy policy in protocol 0 for 1 year", async () => {
-      const USDT_Approved = await HardhatHelper.USDT_approve(
+      const USDT_Approved = await HardhatHelper.USDT_maxApprove(
         policyTaker2,
-        ProtocolHelper.getAthenaContract().address,
-        hre_ethers.utils.parseUnits(premium, 6)
+        ProtocolHelper.getAthenaContract().address
       );
 
       expect(USDT_Approved).to.haveOwnProperty("hash");

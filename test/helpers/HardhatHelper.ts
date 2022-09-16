@@ -76,11 +76,18 @@ async function USDT_transfer(address: string, amount: ethers.BigNumber) {
 }
 
 async function USDT_approve(
-  to: ethers.Signer,
-  from: string,
+  sender: ethers.Signer,
+  recipient: string,
   amount: ethers.BigNumber
 ) {
-  return await USDT_TOKEN_CONTRACT.connect(to).approve(from, amount);
+  return await USDT_TOKEN_CONTRACT.connect(sender).approve(recipient, amount);
+}
+
+async function USDT_maxApprove(sender: ethers.Signer, recipient: string) {
+  return await USDT_TOKEN_CONTRACT.connect(sender).approve(
+    recipient,
+    ethers.BigNumber.from(2).pow(256).sub(1)
+  );
 }
 
 async function ATEN_balanceOf(address: string) {
@@ -138,6 +145,7 @@ export default {
   USDT_balanceOf,
   USDT_transfer,
   USDT_approve,
+  USDT_maxApprove,
   ATEN_balanceOf,
   ATEN_transfer,
   ATEN_approve,
