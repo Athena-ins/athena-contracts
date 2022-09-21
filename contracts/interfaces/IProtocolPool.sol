@@ -63,4 +63,16 @@ interface IProtocolPool is IPolicyCover {
   function removeLPInfo(address _account) external;
 
   function actualizing() external returns (uint256[] memory);
+
+  function protocolInfo()
+    external
+    view
+    returns (
+      string memory symbol,
+      string memory name,
+      uint256 totalCouvrageValue,
+      uint256 availableCapacity,
+      uint256 utilizationRate,
+      uint256 premiumRate
+    );
 }

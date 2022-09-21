@@ -111,7 +111,39 @@ contract Athena is ReentrancyGuard, Ownable {
     uint256[] memory __expiredPoliciesTokens = IProtocolPool(protocolAddress)
       .actualizing();
     for (uint256 i = 0; i < __expiredPoliciesTokens.length; i++) {
+      // (uint256 amountGuaranteed, uint128 protocolId) = IPolicyManager(
+      //   policyManager
+      // ).policies(__expiredPoliciesTokens[i]);
+
+      // address owner = IPolicyManager(policyManager).ownerOf(
+      //   __expiredPoliciesTokens[i]
+      // );
+
+      // console.log("***before:");
+      // console.log(
+      //   "balanceOf(",
+      //   owner,
+      //   "):",
+      //   IPolicyManager(policyManager).balanceOf(owner)
+      // );
+      // console.log("amountGuaranteed:", amountGuaranteed);
+      // console.log("protocolId:", protocolId);
+
       IPolicyManager(policyManager).burn(__expiredPoliciesTokens[i]);
+
+      // (amountGuaranteed, protocolId) = IPolicyManager(policyManager).policies(
+      //   __expiredPoliciesTokens[i]
+      // );
+
+      // console.log("***after:");
+      // console.log(
+      //   "balanceOf(",
+      //   owner,
+      //   "):",
+      //   IPolicyManager(policyManager).balanceOf(owner)
+      // );
+      // console.log("amountGuaranteed:", amountGuaranteed);
+      // console.log("protocolId:", protocolId);
     }
   }
 
@@ -237,90 +269,92 @@ contract Athena is ReentrancyGuard, Ownable {
       );
   }
 
-  function committingWithdrawInOneProtocol(uint128 _protocolId) external {
-    IPositionsManager __positionsManager = IPositionsManager(positionsManager);
+  //Thao@Question: we need this function ?
+  // function committingWithdrawInOneProtocol(uint128 _protocolId) external {
+  //   IPositionsManager __positionsManager = IPositionsManager(positionsManager);
 
-    require(
-      __positionsManager.hasPositionOf(msg.sender),
-      "No position to commit withdraw"
-    );
+  //   require(
+  //     __positionsManager.hasPositionOf(msg.sender),
+  //     "No position to commit withdraw"
+  //   );
 
-    (, uint128[] memory __protocolIds, , ) = __positionsManager.positions(
-      msg.sender
-    );
+  //   (, uint128[] memory __protocolIds, , ) = __positionsManager.positions(
+  //     msg.sender
+  //   );
 
-    require(
-      isProtocolInList(_protocolId, __protocolIds),
-      "Not in protocol list"
-    );
+  //   require(
+  //     isProtocolInList(_protocolId, __protocolIds),
+  //     "Not in protocol list"
+  //   );
 
-    require(
-      protocolsMapping[_protocolId].claimsOngoing == 0,
-      "Protocol has claims on going"
-    );
+  //   require(
+  //     protocolsMapping[_protocolId].claimsOngoing == 0,
+  //     "Protocol has claims on going"
+  //   );
 
-    IProtocolPool(protocolsMapping[_protocolId].deployed)
-      .committingWithdrawLiquidity(msg.sender);
-  }
+  //   IProtocolPool(protocolsMapping[_protocolId].deployed)
+  //     .committingWithdrawLiquidity(msg.sender);
+  // }
 
-  function withdrawLiquidityInOneProtocol(uint128 _protocolId) external {
-    IProtocolPool __protocol = IProtocolPool(
-      protocolsMapping[_protocolId].deployed
-    );
+  //Thao@Question: we need this function ?
+  // function withdrawLiquidityInOneProtocol(uint128 _protocolId) external {
+  //   IProtocolPool __protocol = IProtocolPool(
+  //     protocolsMapping[_protocolId].deployed
+  //   );
 
-    require(
-      __protocol.isWithdrawLiquidityDelayOk(msg.sender),
-      "Withdraw reserve"
-    );
+  //   require(
+  //     __protocol.isWithdrawLiquidityDelayOk(msg.sender),
+  //     "Withdraw reserve"
+  //   );
 
-    __protocol.removeCommittedWithdrawLiquidity(msg.sender);
+  //   __protocol.removeCommittedWithdrawLiquidity(msg.sender);
 
-    IPositionsManager __positionManager = IPositionsManager(positionsManager);
+  //   IPositionsManager __positionManager = IPositionsManager(positionsManager);
 
-    (
-      uint256 __userCapital,
-      uint128[] memory __protocolIds,
-      uint256 __aaveScaledBalance,
-      uint128 __discount
-    ) = __positionManager.positions(msg.sender);
+  //   (
+  //     uint256 __userCapital,
+  //     uint128[] memory __protocolIds,
+  //     uint256 __aaveScaledBalance,
+  //     uint128 __discount
+  //   ) = __positionManager.positions(msg.sender);
 
-    actualizingProtocolAndRemoveExpiredPolicies(address(__protocol));
+  //   actualizingProtocolAndRemoveExpiredPolicies(address(__protocol));
 
-    (uint256 __newUserCapital, uint256 __aaveScaledBalanceToRemove) = __protocol
-      .withdrawLiquidity(msg.sender, __userCapital, __protocolIds, __discount);
+  //   (uint256 __newUserCapital, uint256 __aaveScaledBalanceToRemove) = __protocol
+  //     .withdrawLiquidity(msg.sender, __userCapital, __protocolIds, __discount);
 
-    __protocol.removeLPInfo(msg.sender);
+  //   __protocol.removeLPInfo(msg.sender);
 
-    if (__protocolIds.length == 1) {
-      __positionManager.removePosition(msg.sender);
+  //   if (__protocolIds.length == 1) {
+  //     __positionManager.removePosition(msg.sender);
 
-      address __lendingPool = ILendingPoolAddressesProvider(
-        aaveAddressesRegistry
-      ).getLendingPool();
+  //     address __lendingPool = ILendingPoolAddressesProvider(
+  //       aaveAddressesRegistry
+  //     ).getLendingPool();
 
-      uint256 _amountToWithdrawFromAAVE = __aaveScaledBalance.rayMul(
-        ILendingPool(__lendingPool).getReserveNormalizedIncome(stablecoin)
-      );
+  //     uint256 _amountToWithdrawFromAAVE = __aaveScaledBalance.rayMul(
+  //       ILendingPool(__lendingPool).getReserveNormalizedIncome(stablecoin)
+  //     );
 
-      ILendingPool(__lendingPool).withdraw(
-        stablecoin,
-        _amountToWithdrawFromAAVE,
-        msg.sender
-      );
-    } else {
-      if (__userCapital != __newUserCapital) {
-        __positionManager.updateUserCapital(
-          msg.sender,
-          __newUserCapital,
-          __aaveScaledBalanceToRemove
-        );
-      }
+  //     ILendingPool(__lendingPool).withdraw(
+  //       stablecoin,
+  //       _amountToWithdrawFromAAVE,
+  //       msg.sender
+  //     );
+  //   } else {
+  //     if (__userCapital != __newUserCapital) {
+  //       __positionManager.updateUserCapital(
+  //         msg.sender,
+  //         __newUserCapital,
+  //         __aaveScaledBalanceToRemove
+  //       );
+  //     }
 
-      __positionManager.removeProtocolId(msg.sender, _protocolId);
-    }
+  //     __positionManager.removeProtocolId(msg.sender, _protocolId);
+  //   }
 
-    //Thao@TODO: Event
-  }
+  //   //Thao@TODO: Event
+  // }
 
   function committingWithdrawAll() external {
     require(
@@ -667,5 +701,49 @@ contract Athena is ReentrancyGuard, Ownable {
 
   function pauseProtocol(uint128 protocolId, bool pause) external onlyOwner {
     protocolsMapping[protocolId].active = pause;
+  }
+
+  struct ProtocolView {
+    string symbol;
+    string name;
+    uint128 protocolId;
+    uint256 totalCouvrageValue;
+    uint256 availableCapacity;
+    uint256 utilizationRate;
+    uint256 premiumRate;
+  }
+
+  function protocolsView(uint128 beginId, uint256 numberOfProtocols)
+    external
+    view
+    returns (ProtocolView[] memory protocolsInfo)
+  {
+    require(beginId < nextProtocolId, "begin Id is not exist");
+
+    uint256 __numberOfProtocols = nextProtocolId - beginId >= numberOfProtocols
+      ? numberOfProtocols
+      : nextProtocolId - beginId;
+
+    protocolsInfo = new ProtocolView[](__numberOfProtocols);
+    for (uint128 i = 0; i < __numberOfProtocols; i++) {
+      (
+        string memory symbol,
+        string memory name,
+        uint256 totalCouvrageValue,
+        uint256 availableCapacity,
+        uint256 utilizationRate,
+        uint256 premiumRate
+      ) = IProtocolPool(protocolsMapping[beginId + i].deployed).protocolInfo();
+
+      protocolsInfo[i] = ProtocolView(
+        symbol,
+        name,
+        beginId + i,
+        totalCouvrageValue,
+        availableCapacity,
+        utilizationRate,
+        premiumRate
+      );
+    }
   }
 }

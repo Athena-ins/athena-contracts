@@ -360,8 +360,10 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     return _amount.rayDiv(availableCapital);
   }
 
+  //Thao@TODO: use or not ?
   event ReleaseFunds(address account, uint256 amount);
 
+  //Thao@TODO: use or not ?
   function releaseFunds(address _account, uint256 _amount)
     external
     override
@@ -378,5 +380,34 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
   //onlyCore
   function actualizing() external returns (uint256[] memory) {
     return _actualizing();
+  }
+
+  function protocolInfo()
+    external
+    view
+    returns (
+      string memory symbol,
+      string memory name,
+      uint256 totalCouvrageValue,
+      uint256 availableCapacity,
+      uint256 utilizationRate,
+      uint256 premiumRate
+    )
+  {
+    uint256 __uRate = _utilisationRate(
+      0,
+      0,
+      slot0.totalInsuredCapital,
+      availableCapital
+    );
+
+    return (
+      this.symbol(),
+      this.name(),
+      slot0.totalInsuredCapital,
+      availableCapital - slot0.totalInsuredCapital,
+      __uRate,
+      getPremiumRate(__uRate)
+    );
   }
 }

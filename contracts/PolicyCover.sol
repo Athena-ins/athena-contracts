@@ -90,7 +90,7 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
   }
 
   function getPremiumRate(uint256 _utilisationRate)
-    private
+    internal
     view
     returns (uint256)
   {
