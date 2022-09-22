@@ -28,14 +28,14 @@ contract PolicyManager is IPolicyManager, ERC721Enumerable {
     core = coreAddress;
   }
 
-  function policies(uint256 _tokenId)
-    external
+  function policy(uint256 _tokenId)
+    public
     view
     override
     returns (uint256 amountGuaranteed, uint128 protocolId)
   {
-    Policy memory policy = _policies[_tokenId];
-    return (policy.amountGuaranteed, policy.protocolId);
+    Policy memory _policy = _policies[_tokenId];
+    return (_policy.amountGuaranteed, _policy.protocolId);
   }
 
   function mint(
@@ -72,5 +72,24 @@ contract PolicyManager is IPolicyManager, ERC721Enumerable {
       protocolId: _protocolId,
       atensLocked: atenStake
     });
+  }
+
+  function checkAndGetPolicy(
+    address account,
+    uint256 policyId,
+    uint256 index
+  )
+    external
+    view
+    override
+    returns (uint256 amountGuaranteed, uint128 protocolId)
+  {
+    require(account == ownerOf(policyId), "Policy is not owned");
+    require(
+      policyId == tokenOfOwnerByIndex(account, index),
+      "Wrong Token Id for Policy"
+    );
+
+    return policy(policyId);
   }
 }

@@ -270,91 +270,91 @@ contract Athena is ReentrancyGuard, Ownable {
   }
 
   //Thao@Question: we need this function ?
-  // function committingWithdrawInOneProtocol(uint128 _protocolId) external {
-  //   IPositionsManager __positionsManager = IPositionsManager(positionsManager);
+  function committingWithdrawInOneProtocol(uint128 _protocolId) external {
+    IPositionsManager __positionsManager = IPositionsManager(positionsManager);
 
-  //   require(
-  //     __positionsManager.hasPositionOf(msg.sender),
-  //     "No position to commit withdraw"
-  //   );
+    require(
+      __positionsManager.hasPositionOf(msg.sender),
+      "No position to commit withdraw"
+    );
 
-  //   (, uint128[] memory __protocolIds, , ) = __positionsManager.positions(
-  //     msg.sender
-  //   );
+    (, uint128[] memory __protocolIds, , ) = __positionsManager.positions(
+      msg.sender
+    );
 
-  //   require(
-  //     isProtocolInList(_protocolId, __protocolIds),
-  //     "Not in protocol list"
-  //   );
+    require(
+      isProtocolInList(_protocolId, __protocolIds),
+      "Not in protocol list"
+    );
 
-  //   require(
-  //     protocolsMapping[_protocolId].claimsOngoing == 0,
-  //     "Protocol has claims on going"
-  //   );
+    require(
+      protocolsMapping[_protocolId].claimsOngoing == 0,
+      "Protocol has claims on going"
+    );
 
-  //   IProtocolPool(protocolsMapping[_protocolId].deployed)
-  //     .committingWithdrawLiquidity(msg.sender);
-  // }
+    IProtocolPool(protocolsMapping[_protocolId].deployed)
+      .committingWithdrawLiquidity(msg.sender);
+  }
 
   //Thao@Question: we need this function ?
-  // function withdrawLiquidityInOneProtocol(uint128 _protocolId) external {
-  //   IProtocolPool __protocol = IProtocolPool(
-  //     protocolsMapping[_protocolId].deployed
-  //   );
+  function withdrawLiquidityInOneProtocol(uint128 _protocolId) external {
+    IProtocolPool __protocol = IProtocolPool(
+      protocolsMapping[_protocolId].deployed
+    );
 
-  //   require(
-  //     __protocol.isWithdrawLiquidityDelayOk(msg.sender),
-  //     "Withdraw reserve"
-  //   );
+    require(
+      __protocol.isWithdrawLiquidityDelayOk(msg.sender),
+      "Withdraw reserve"
+    );
 
-  //   __protocol.removeCommittedWithdrawLiquidity(msg.sender);
+    __protocol.removeCommittedWithdrawLiquidity(msg.sender);
 
-  //   IPositionsManager __positionManager = IPositionsManager(positionsManager);
+    IPositionsManager __positionManager = IPositionsManager(positionsManager);
 
-  //   (
-  //     uint256 __userCapital,
-  //     uint128[] memory __protocolIds,
-  //     uint256 __aaveScaledBalance,
-  //     uint128 __discount
-  //   ) = __positionManager.positions(msg.sender);
+    (
+      uint256 __userCapital,
+      uint128[] memory __protocolIds,
+      uint256 __aaveScaledBalance,
+      uint128 __discount
+    ) = __positionManager.positions(msg.sender);
 
-  //   actualizingProtocolAndRemoveExpiredPolicies(address(__protocol));
+    actualizingProtocolAndRemoveExpiredPolicies(address(__protocol));
 
-  //   (uint256 __newUserCapital, uint256 __aaveScaledBalanceToRemove) = __protocol
-  //     .withdrawLiquidity(msg.sender, __userCapital, __protocolIds, __discount);
+    (uint256 __newUserCapital, uint256 __aaveScaledBalanceToRemove) = __protocol
+      .withdrawLiquidity(msg.sender, __userCapital, __protocolIds, __discount);
 
-  //   __protocol.removeLPInfo(msg.sender);
+    __protocol.removeLPInfo(msg.sender);
 
-  //   if (__protocolIds.length == 1) {
-  //     __positionManager.removePosition(msg.sender);
+    if (__protocolIds.length == 1) {
+      __positionManager.removePosition(msg.sender);
 
-  //     address __lendingPool = ILendingPoolAddressesProvider(
-  //       aaveAddressesRegistry
-  //     ).getLendingPool();
+      address __lendingPool = ILendingPoolAddressesProvider(
+        aaveAddressesRegistry
+      ).getLendingPool();
 
-  //     uint256 _amountToWithdrawFromAAVE = __aaveScaledBalance.rayMul(
-  //       ILendingPool(__lendingPool).getReserveNormalizedIncome(stablecoin)
-  //     );
+      uint256 _amountToWithdrawFromAAVE = __aaveScaledBalance.rayMul(
+        ILendingPool(__lendingPool).getReserveNormalizedIncome(stablecoin)
+      );
 
-  //     ILendingPool(__lendingPool).withdraw(
-  //       stablecoin,
-  //       _amountToWithdrawFromAAVE,
-  //       msg.sender
-  //     );
-  //   } else {
-  //     if (__userCapital != __newUserCapital) {
-  //       __positionManager.updateUserCapital(
-  //         msg.sender,
-  //         __newUserCapital,
-  //         __aaveScaledBalanceToRemove
-  //       );
-  //     }
+      ILendingPool(__lendingPool).withdraw(
+        stablecoin,
+        _amountToWithdrawFromAAVE,
+        msg.sender
+      );
+    } else {
+      if (__userCapital != __newUserCapital) {
+        __positionManager.updateUserCapital(
+          msg.sender,
+          __newUserCapital,
+          __aaveScaledBalanceToRemove
+        );
+      }
 
-  //     __positionManager.removeProtocolId(msg.sender, _protocolId);
-  //   }
+      __positionManager.removeProtocolId(msg.sender, _protocolId);
+    }
 
-  //   //Thao@TODO: Event
-  // }
+    //Thao@TODO: Event
+  }
 
   function committingWithdrawAll() external {
     require(
@@ -480,26 +480,17 @@ contract Athena is ReentrancyGuard, Ownable {
   ) external payable {
     require(_amountClaimed > 0, "Claimed amount is zero");
 
-    IPolicyManager __policyManager = IPolicyManager(policyManager);
-
-    require(
-      msg.sender == __policyManager.ownerOf(_policyId),
-      "Policy is not owned"
-    );
-    require(
-      _policyId == __policyManager.tokenOfOwnerByIndex(msg.sender, _index),
-      "Wrong Token Id for Policy"
-    );
-
-    (uint256 __liquidity, uint128 __protocolId) = __policyManager.policies(
-      _policyId
-    );
+    (uint256 __liquidity, uint128 __protocolId) = IPolicyManager(policyManager)
+      .checkAndGetPolicy(msg.sender, _policyId, _index);
 
     actualizingProtocolAndRemoveExpiredPolicies(
       protocolsMapping[__protocolId].deployed
     );
 
-    require(__policyManager.balanceOf(msg.sender) > 0, "No Active Policy");
+    require(
+      IPolicyManager(policyManager).balanceOf(msg.sender) > 0,
+      "No Active Policy"
+    );
     require(__liquidity >= _amountClaimed, "Too big claimed amount");
 
     IClaimManager(claimManager).claim{ value: msg.value }(
@@ -522,17 +513,12 @@ contract Athena is ReentrancyGuard, Ownable {
     uint256 _amount,
     address _account
   ) external {
-    address _accountConfirm = IPolicyManager(policyManager).ownerOf(_policyId);
-
-    // console.log("Account : ", _account);
-    // console.log("Policy Id : ", _policyId);
-    // console.log("Account confirm : ", _accountConfirm);
-
-    require(_account == _accountConfirm, "Wrong account");
-
-    (, uint128 __protocolId) = IPolicyManager(policyManager).policies(
-      _policyId
+    require(
+      _account == IPolicyManager(policyManager).ownerOf(_policyId),
+      "Wrong account"
     );
+
+    (, uint128 __protocolId) = IPolicyManager(policyManager).policy(_policyId);
 
     IProtocolPool __protocolPool = IProtocolPool(
       protocolsMapping[__protocolId].deployed
@@ -565,30 +551,27 @@ contract Athena is ReentrancyGuard, Ownable {
     payable
     nonReentrant
   {
-    IPolicyManager __policyManager = IPolicyManager(policyManager);
-
-    require(__policyManager.balanceOf(msg.sender) > 0, "No Active Policy");
-    require(
-      _policyId == __policyManager.tokenOfOwnerByIndex(msg.sender, _index),
-      "Wrong Token Id for Policy"
+    (, uint128 __protocolId) = IPolicyManager(policyManager).checkAndGetPolicy(
+      msg.sender,
+      _policyId,
+      _index
     );
-    require(
-      msg.sender == __policyManager.ownerOf(_policyId),
-      "Policy is not owned"
-    );
-
-    (, uint128 __protocolId) = __policyManager.policies(_policyId);
     //Thao@Question: on fait quoi avec 'atensLocked' ???
 
     actualizingProtocolAndRemoveExpiredPolicies(
       protocolsMapping[__protocolId].deployed
     );
 
+    require(
+      IPolicyManager(policyManager).balanceOf(msg.sender) > 0,
+      "No Active Policy"
+    );
+
     IProtocolPool(protocolsMapping[__protocolId].deployed).withdrawPolicy(
       msg.sender
     );
 
-    __policyManager.burn(_policyId);
+    IPolicyManager(policyManager).burn(_policyId);
   }
 
   //////Thao@NOTE: Protocol

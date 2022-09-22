@@ -3,7 +3,7 @@ pragma solidity ^0.8;
 import "@openzeppelin/contracts/token/ERC721/extensions/IERC721Enumerable.sol";
 
 interface IPolicyManager is IERC721Enumerable {
-  function policies(uint256 _tokenId)
+  function policy(uint256 _tokenId)
     external
     view
     returns (uint256 liquidity, uint128 protocolId);
@@ -24,4 +24,10 @@ interface IPolicyManager is IERC721Enumerable {
     uint128 _protocolId,
     uint256 tokenId
   ) external;
+
+  function checkAndGetPolicy(
+    address account,
+    uint256 policyId,
+    uint256 index
+  ) external returns (uint256 amountGuaranteed, uint128 protocolId);
 }
