@@ -8,6 +8,7 @@ let POSITIONS_MANAGER_CONTRACT: ethers.Contract;
 let STAKED_ATENS_CONTRACT: ethers.Contract;
 let FACTORY_PROTOCOL_CONTRACT: ethers.Contract;
 let POLICY_MANAGER_CONTRACT: ethers.Contract;
+let CLAIM_MANAGER_CONTRACT: ethers.Contract;
 let STAKED_ATENS_POLICY_CONTRACT: ethers.Contract;
 let VAULT_ATENS_CONTRACT: ethers.Contract;
 
@@ -83,6 +84,20 @@ function getPolicyManagerContract() {
   return POLICY_MANAGER_CONTRACT;
 }
 
+async function deployClaimManagerContract(owner: ethers.Signer) {
+  CLAIM_MANAGER_CONTRACT = await (
+    await hre_ethers.getContractFactory("ClaimManager")
+  )
+    .connect(owner)
+    .deploy(ATHENA_CONTRACT.address, HardhatHelper.ARBITRATOR_ADDRESS);
+
+  await CLAIM_MANAGER_CONTRACT.deployed();
+}
+
+function getClaimManagerContract() {
+  return CLAIM_MANAGER_CONTRACT;
+}
+
 async function deployStakedAtensPolicyContract(owner: ethers.Signer) {
   STAKED_ATENS_POLICY_CONTRACT = await (
     await hre_ethers.getContractFactory("FixedRateStakeablePolicy")
@@ -120,7 +135,7 @@ async function initializeProtocol() {
     HardhatHelper.USDT_AAVE_ATOKEN,
     FACTORY_PROTOCOL_CONTRACT.address,
     HardhatHelper.ARBITRATOR_ADDRESS,
-    HardhatHelper.NULL_ADDRESS
+    CLAIM_MANAGER_CONTRACT.address
   );
 }
 
@@ -147,6 +162,7 @@ async function deployAllContractsAndInitializeProtocol(owner: ethers.Signer) {
   await deployStakedAtenContract(owner);
   await deployProtocolFactoryContract(owner);
   await deployPolicyManagerContract(owner);
+  await deployClaimManagerContract(owner);
   await deployStakedAtensPolicyContract(owner);
   await deployVaultAtenContract(owner);
   await initializeProtocol();
@@ -288,6 +304,8 @@ export default {
   getStakedAtensPolicyContract,
   deployVaultAtenContract,
   getVaultAtenContract,
+  deployClaimManagerContract,
+  getClaimManagerContract,
   initializeProtocol,
   setDiscountWithAten,
   setStakeRewards,
