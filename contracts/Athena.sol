@@ -713,7 +713,7 @@ contract Athena is ReentrancyGuard, Ownable {
     uint256 premiumRate;
   }
 
-  function protocolsView(uint128 beginId, uint256 numberOfProtocols)
+  function linearProtocolsView(uint128 beginId, uint256 numberOfProtocols)
     external
     view
     returns (ProtocolView[] memory protocolsInfo)
@@ -739,6 +739,35 @@ contract Athena is ReentrancyGuard, Ownable {
         symbol,
         name,
         beginId + i,
+        totalCouvrageValue,
+        availableCapacity,
+        utilizationRate,
+        premiumRate
+      );
+    }
+  }
+
+  function protocolsView(uint128[] calldata protocolsId)
+    external
+    view
+    returns (ProtocolView[] memory protocolsInfo)
+  {
+    protocolsInfo = new ProtocolView[](protocolsId.length);
+    for (uint128 i = 0; i < protocolsId.length; i++) {
+      (
+        string memory symbol,
+        string memory name,
+        uint256 totalCouvrageValue,
+        uint256 availableCapacity,
+        uint256 utilizationRate,
+        uint256 premiumRate
+      ) = IProtocolPool(protocolsMapping[protocolsId[i]].deployed)
+          .protocolInfo();
+
+      protocolsInfo[i] = ProtocolView(
+        symbol,
+        name,
+        protocolsId[i],
         totalCouvrageValue,
         availableCapacity,
         utilizationRate,
