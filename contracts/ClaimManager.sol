@@ -4,19 +4,13 @@ pragma solidity ^0.8;
 import "hardhat/console.sol";
 
 import "./interfaces/IArbitrator.sol";
+import "./interfaces/IClaimManager.sol";
 import "./interfaces/IAthena.sol";
 
-contract ClaimManager is IArbitrable {
+contract ClaimManager is IClaimManager, IArbitrable {
   address payable private immutable core;
   IArbitrator public immutable arbitrator;
   uint256 public delay = 14 days;
-
-  enum Status {
-    Initial,
-    Reclaimed,
-    Disputed,
-    Resolved
-  }
 
   enum RulingOptions {
     RefusedToArbitrate,
@@ -24,19 +18,7 @@ contract ClaimManager is IArbitrable {
     PayeeWins
   }
 
-  struct Claim {
-    address payable from;
-    uint256 createdAt;
-    uint256 disputeId;
-    uint256 klerosId;
-    uint256 policyId;
-    uint256 arbitrationCost;
-    uint256 amount;
-    Status status;
-    address payable challenger;
-  }
-
-  uint256 public disputesCounter;
+  uint256 public nextDisputeId;
 
   event ClaimCreated(
     address _claimant,
@@ -109,15 +91,16 @@ contract ClaimManager is IArbitrable {
         );
       }
     }
+
     uint256 __arbitrationCost = arbitrationCost();
     require(msg.value >= __arbitrationCost, "Not enough ETH for claim");
     //@dev TODO : should lock the capital in protocol pool
-    disputesCounter++;
-    ownerClaims[_account].push(disputesCounter);
-    claims[disputesCounter] = Claim({
+
+    ownerClaims[_account].push(nextDisputeId);
+    claims[nextDisputeId] = Claim({
       from: payable(_account),
       createdAt: block.timestamp,
-      disputeId: disputesCounter,
+      disputeId: nextDisputeId,
       klerosId: 0,
       arbitrationCost: __arbitrationCost,
       policyId: _policyId,
@@ -125,7 +108,9 @@ contract ClaimManager is IArbitrable {
       status: Status.Initial,
       challenger: payable(0x00)
     });
-    emit ClaimCreated(_account, disputesCounter, _policyId, _amount);
+
+    nextDisputeId++;
+    emit ClaimCreated(_account, nextDisputeId, _policyId, _amount);
   }
 
   function challenge(uint256 _disputeId) external payable {
@@ -182,5 +167,22 @@ contract ClaimManager is IArbitrable {
       claims[_disputeId].amount,
       claims[_disputeId].from
     );
+  }
+
+  function linearClaimsView(uint256 beginDisputeId, uint256 numberOfClaims)
+    external
+    view
+    returns (Claim[] memory claimsInfo)
+  {
+    require(beginDisputeId < nextDisputeId, "begin dispute Id is not exist");
+
+    uint256 __numberOfClaims = nextDisputeId > beginDisputeId + numberOfClaims
+      ? numberOfClaims
+      : nextDisputeId - beginDisputeId;
+
+    claimsInfo = new Claim[](__numberOfClaims);
+
+    for (uint256 i = 0; i < __numberOfClaims; i++)
+      claimsInfo[i] = claims[beginDisputeId + i];
   }
 }
