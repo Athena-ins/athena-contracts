@@ -168,7 +168,7 @@ contract Athena is ReentrancyGuard, Ownable {
     uint128[] calldata _protocolIds
   ) public payable {
     require(
-      !IPositionsManager(positionsManager).hasPositionOf(msg.sender),
+      IPositionsManager(positionsManager).balanceOf(msg.sender) == 0,
       "Already have a position"
     );
 
@@ -212,7 +212,7 @@ contract Athena is ReentrancyGuard, Ownable {
       _discount = getDiscountWithAten(atenToStake);
     }
 
-    IPositionsManager(positionsManager).createPosition(
+    IPositionsManager(positionsManager).mint(
       msg.sender,
       _discount,
       amount,
@@ -235,12 +235,17 @@ contract Athena is ReentrancyGuard, Ownable {
   }
 
   function takeInterest(uint128 _protocolId) public {
+    uint256 __tokenId = IPositionsManager(positionsManager).tokenOfOwnerByIndex(
+      msg.sender,
+      0
+    );
+
     (
       uint256 __userCapital,
       uint128[] memory __protocolIds,
       ,
       uint256 __discount
-    ) = IPositionsManager(positionsManager).positions(msg.sender);
+    ) = IPositionsManager(positionsManager).positions(__tokenId);
 
     require(
       isProtocolInList(_protocolId, __protocolIds),
@@ -263,7 +268,7 @@ contract Athena is ReentrancyGuard, Ownable {
 
     if (__userCapital != __newUserCapital)
       IPositionsManager(positionsManager).updateUserCapital(
-        msg.sender,
+        __tokenId,
         __newUserCapital,
         __aaveScaledBalanceToRemove
       );
@@ -274,12 +279,14 @@ contract Athena is ReentrancyGuard, Ownable {
     IPositionsManager __positionsManager = IPositionsManager(positionsManager);
 
     require(
-      __positionsManager.hasPositionOf(msg.sender),
+      __positionsManager.balanceOf(msg.sender) > 0,
       "No position to commit withdraw"
     );
 
+    uint256 __tokenId = __positionsManager.tokenOfOwnerByIndex(msg.sender, 0);
+
     (, uint128[] memory __protocolIds, , ) = __positionsManager.positions(
-      msg.sender
+      __tokenId
     );
 
     require(
@@ -311,12 +318,14 @@ contract Athena is ReentrancyGuard, Ownable {
 
     IPositionsManager __positionManager = IPositionsManager(positionsManager);
 
+    uint256 __tokenId = __positionManager.tokenOfOwnerByIndex(msg.sender, 0);
+
     (
       uint256 __userCapital,
       uint128[] memory __protocolIds,
       uint256 __aaveScaledBalance,
       uint128 __discount
-    ) = __positionManager.positions(msg.sender);
+    ) = __positionManager.positions(__tokenId);
 
     actualizingProtocolAndRemoveExpiredPolicies(address(__protocol));
 
@@ -326,7 +335,7 @@ contract Athena is ReentrancyGuard, Ownable {
     __protocol.removeLPInfo(msg.sender);
 
     if (__protocolIds.length == 1) {
-      __positionManager.removePosition(msg.sender);
+      __positionManager.burn(msg.sender);
 
       address __lendingPool = ILendingPoolAddressesProvider(
         aaveAddressesRegistry
@@ -344,13 +353,13 @@ contract Athena is ReentrancyGuard, Ownable {
     } else {
       if (__userCapital != __newUserCapital) {
         __positionManager.updateUserCapital(
-          msg.sender,
+          __tokenId,
           __newUserCapital,
           __aaveScaledBalanceToRemove
         );
       }
 
-      __positionManager.removeProtocolId(msg.sender, _protocolId);
+      __positionManager.removeProtocolId(__tokenId, _protocolId);
     }
 
     //Thao@TODO: Event
@@ -358,12 +367,17 @@ contract Athena is ReentrancyGuard, Ownable {
 
   function committingWithdrawAll() external {
     require(
-      IPositionsManager(positionsManager).hasPositionOf(msg.sender),
+      IPositionsManager(positionsManager).balanceOf(msg.sender) > 0,
       "No position to commit withdraw"
     );
 
+    uint256 _tokenId = IPositionsManager(positionsManager).tokenOfOwnerByIndex(
+      msg.sender,
+      0
+    );
+
     (, uint128[] memory _protocolIds, , ) = IPositionsManager(positionsManager)
-      .positions(msg.sender);
+      .positions(_tokenId);
 
     for (uint256 index = 0; index < _protocolIds.length; index++)
       IProtocolPool(protocolsMapping[_protocolIds[index]].deployed)
@@ -373,12 +387,14 @@ contract Athena is ReentrancyGuard, Ownable {
   function withdrawAll() external {
     IPositionsManager __positionsManager = IPositionsManager(positionsManager);
 
+    uint256 _tokenId = __positionsManager.tokenOfOwnerByIndex(msg.sender, 0);
+
     (
       uint256 __userCapital,
       uint128[] memory __protocolIds,
       uint256 __aaveScaledBalance,
       uint128 __discount
-    ) = __positionsManager.positions(msg.sender);
+    ) = __positionsManager.positions(_tokenId);
 
     uint256 __newUserCapital;
     uint256 __aaveScaledBalanceToRemove;
@@ -407,7 +423,7 @@ contract Athena is ReentrancyGuard, Ownable {
       __protocol.removeLPInfo(msg.sender);
     }
 
-    __positionsManager.removePosition(msg.sender);
+    __positionsManager.burn(msg.sender);
 
     address __lendingPool = ILendingPoolAddressesProvider(aaveAddressesRegistry)
       .getLendingPool();
@@ -581,25 +597,29 @@ contract Athena is ReentrancyGuard, Ownable {
 
   function withdrawAtens(uint256 atenToWithdraw) external {
     //@dev TODO check if multiple NFT positions
+    uint256 tokenId = IPositionsManager(positionsManager).tokenOfOwnerByIndex(
+      msg.sender,
+      0
+    );
 
     (
       uint256 liquidity,
       uint128[] memory protocolsId,
       uint256 atokens,
 
-    ) = IPositionsManager(positionsManager).positions(msg.sender);
+    ) = IPositionsManager(positionsManager).positions(tokenId);
     uint128 _discount = getDiscountWithAten(liquidity);
     uint256 actualAtens = IStakedAten(stakedAtensGP).balanceOf(msg.sender);
     require(actualAtens > 0, "No Atens to withdraw");
     // require(atenToWithdraw <= actualAtens, "Not enough Atens to withdraw");
     IStakedAten(stakedAtensGP).withdraw(msg.sender, atenToWithdraw);
     IPositionsManager(positionsManager).update(
-      msg.sender,
       _discount,
       liquidity,
       atokens,
       actualAtens - atenToWithdraw,
-      protocolsId
+      protocolsId,
+      tokenId
     );
   }
 

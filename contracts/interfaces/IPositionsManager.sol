@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8;
 
-interface IPositionsManager {
-  function positions(address _owner)
+import "@openzeppelin/contracts/token/ERC721/extensions/IERC721Enumerable.sol";
+
+interface IPositionsManager is IERC721Enumerable {
+  function positions(uint256 tokenId)
     external
     view
     returns (
@@ -12,7 +14,7 @@ interface IPositionsManager {
       uint128 discount
     );
 
-  function createPosition(
+  function mint(
     address to,
     uint128 discount,
     uint256 amount,
@@ -21,24 +23,24 @@ interface IPositionsManager {
     uint128[] calldata protocolsIds
   ) external;
 
-  function removePosition(address to) external;
+  function burn(address to) external;
 
   function update(
-    address to,
     uint128 discount,
     uint256 amount,
     uint256 aaveScaledBalance,
     uint256 atenStake,
-    uint128[] calldata protocolsIds
+    uint128[] calldata protocolsIds,
+    uint256 tokenId
   ) external;
 
   function updateUserCapital(
-    address to,
+    uint256 tokenId,
     uint256 amount,
     uint256 aaveScaledBalance
   ) external;
 
-  function removeProtocolId(address to, uint128 protocolId) external;
+  function removeProtocolId(uint256 tokenId, uint128 protocolId) external;
 
   function hasPositionOf(address to) external returns (bool);
 }

@@ -127,9 +127,7 @@ describe("Liquidity provider deposit", () => {
         const POSITIONS_MANAGER_CONTRACT =
           ProtocolHelper.getPositionManagerContract();
 
-        const position = await POSITIONS_MANAGER_CONTRACT.positions(
-          liquidityProvider1.getAddress()
-        );
+        const position = await POSITIONS_MANAGER_CONTRACT.positions(0);
         expect(position.liquidity).to.equal(bn(USDT_amount));
         expect(position.protocolsId).to.deep.equal([bn(0), bn(2)]);
 
@@ -273,9 +271,7 @@ describe("Liquidity provider deposit", () => {
         const POSITIONS_MANAGER_CONTRACT =
           ProtocolHelper.getPositionManagerContract();
 
-        const position = await POSITIONS_MANAGER_CONTRACT.positions(
-          liquidityProvider2.getAddress()
-        );
+        const position = await POSITIONS_MANAGER_CONTRACT.positions(1);
         expect(position.liquidity).to.equal(bn(USDT_amount));
         expect(position.protocolsId).to.deep.equal([bn(0), bn(1), bn(2)]);
 

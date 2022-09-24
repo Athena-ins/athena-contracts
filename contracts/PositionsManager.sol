@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8;
 
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "./interfaces/IPositionsManager.sol";
 import "./libraries/PositionsLibrary.sol";
 
-contract PositionsManager is IPositionsManager {
+contract PositionsManager is IPositionsManager, ERC721Enumerable {
   struct Position {
     address owner;
     uint256 providedLiquidity;
@@ -20,18 +21,22 @@ contract PositionsManager is IPositionsManager {
 
   address private core;
 
-  mapping(address => Position) private _positions;
+  /// @dev The token ID position data
+  mapping(uint256 => Position) private _positions;
+
+  /// @dev The ID of the next token that will be minted.
+  uint176 private _nextId = 0;
 
   modifier onlyCore() {
     require(msg.sender == core, "Only core");
     _;
   }
 
-  constructor(address coreAddress) {
+  constructor(address coreAddress) ERC721("ATHENA", "athena-co.io") {
     core = coreAddress;
   }
 
-  function positions(address _owner)
+  function positions(uint256 _tokenId)
     external
     view
     override
@@ -42,7 +47,7 @@ contract PositionsManager is IPositionsManager {
       uint128 discount
     )
   {
-    Position memory position = _positions[_owner];
+    Position memory position = _positions[_tokenId];
     return (
       position.providedLiquidity,
       position.protocolsId,
@@ -51,7 +56,7 @@ contract PositionsManager is IPositionsManager {
     );
   }
 
-  function createPosition(
+  function mint(
     address to,
     uint128 _discount,
     uint256 amount,
@@ -59,7 +64,7 @@ contract PositionsManager is IPositionsManager {
     uint256 atenStake,
     uint128[] calldata _protocolsIds
   ) external override onlyCore {
-    _positions[to] = Position({
+    _positions[_nextId] = Position({
       owner: to,
       providedLiquidity: amount,
       aaveScaledBalance: _aaveScaledBalance,
@@ -67,44 +72,48 @@ contract PositionsManager is IPositionsManager {
       protocolsId: _protocolsIds,
       atens: atenStake
     });
+
+    _mint(to, _nextId);
+    _nextId++;
   }
 
-  function removePosition(address to) external override onlyCore {
-    delete _positions[to];
+  function burn(address to) external override onlyCore {
+    uint256 tokenId = tokenOfOwnerByIndex(to, 0);
+    _burn(tokenId);
   }
 
   function update(
-    address to,
     uint128 _discount,
     uint256 amount,
     uint256 _aaveScaledBalance,
     uint256 atenStake,
-    uint128[] calldata _protocolsIds
+    uint128[] calldata _protocolsIds,
+    uint256 tokenId
   ) external override onlyCore {
-    _positions[to].providedLiquidity = amount;
+    _positions[tokenId].providedLiquidity = amount;
     if (_aaveScaledBalance != 0) {
-      _positions[to].aaveScaledBalance = _aaveScaledBalance;
+      _positions[tokenId].aaveScaledBalance = _aaveScaledBalance;
     }
-    _positions[to].discount = _discount;
-    _positions[to].protocolsId = _protocolsIds;
-    _positions[to].atens = atenStake;
+    _positions[tokenId].discount = _discount;
+    _positions[tokenId].protocolsId = _protocolsIds;
+    _positions[tokenId].atens = atenStake;
   }
 
   function updateUserCapital(
-    address to,
+    uint256 tokenId,
     uint256 _amount,
     uint256 _aaveScaledBalanceToRemove
   ) external override onlyCore {
-    _positions[to].providedLiquidity = _amount;
-    _positions[to].aaveScaledBalance -= _aaveScaledBalanceToRemove;
+    _positions[tokenId].providedLiquidity = _amount;
+    _positions[tokenId].aaveScaledBalance -= _aaveScaledBalanceToRemove;
   }
 
-  function removeProtocolId(address to, uint128 _protocolId)
+  function removeProtocolId(uint256 tokenId, uint128 _protocolId)
     external
     override
     onlyCore
   {
-    uint128[] memory __protocolsId = _positions[to].protocolsId;
+    uint128[] memory __protocolsId = _positions[tokenId].protocolsId;
 
     for (uint256 i = 0; i < __protocolsId.length; i++) {
       if (__protocolsId[i] == _protocolId) {
@@ -114,10 +123,10 @@ contract PositionsManager is IPositionsManager {
       }
     }
 
-    _positions[to].protocolsId = __protocolsId;
+    _positions[tokenId].protocolsId = __protocolsId;
   }
 
   function hasPositionOf(address to) external view override returns (bool) {
-    return _positions[to].protocolsId.length > 0;
+    return balanceOf(to) > 0;
   }
 }
