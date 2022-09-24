@@ -649,12 +649,15 @@ contract Athena is ReentrancyGuard, Ownable {
   }
 
   function getDiscountWithAten(uint256 _amount) public view returns (uint128) {
-    for (uint256 index = 0; index < premiumAtenDiscount.length; index++) {
-      if (_amount < premiumAtenDiscount[index].atenAmount)
-        return index == 0 ? 0 : premiumAtenDiscount[index - 1].discount;
+    for (uint256 index = premiumAtenDiscount.length - 1; index > 0; index--) {
+      if (_amount >= premiumAtenDiscount[index].atenAmount)
+        return premiumAtenDiscount[index].discount;
     }
-    // Else we are above max discount, so give it max discount
-    return premiumAtenDiscount[premiumAtenDiscount.length - 1].discount;
+
+    return
+      _amount >= premiumAtenDiscount[0].atenAmount
+        ? premiumAtenDiscount[0].discount
+        : 0;
   }
 
   function addNewProtocol(
