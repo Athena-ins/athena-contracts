@@ -10,24 +10,17 @@ interface IPolicyManager is IERC721Enumerable {
 
   function mint(
     address to,
-    uint256 capitalGuaranteed,
+    uint256 amountCovered,
+    uint256 paidPremium,
     uint256 atensLocked,
-    uint128 _protocolId
+    uint128 protocolId
   ) external returns (uint256);
 
   function burn(uint256 tokenId) external;
-
-  function update(
-    uint128 _discount,
-    uint256 amount,
-    uint256 atenStake,
-    uint128 _protocolId,
-    uint256 tokenId
-  ) external;
 
   function checkAndGetPolicy(
     address account,
     uint256 policyId,
     uint256 index
-  ) external returns (uint256 amountGuaranteed, uint128 protocolId);
+  ) external returns (uint256 amountCovered, uint128 protocolId);
 }

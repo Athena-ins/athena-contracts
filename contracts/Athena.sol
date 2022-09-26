@@ -441,20 +441,20 @@ contract Athena is ReentrancyGuard, Ownable {
 
   //////Thao@NOTE: Policy
   function buyPolicy(
-    uint256 _amountGuaranteed,
-    uint256 _premium,
+    uint256 _amountCovered,
+    uint256 _paidPremium,
     uint256 _atensLocked,
     uint128 _protocolId
   ) public payable nonReentrant {
     require(
-      _amountGuaranteed > 0 && _premium > 0,
+      _amountCovered > 0 && _paidPremium > 0,
       "Guarante and premium must be greater than 0"
     );
 
     IERC20(stablecoin).safeTransferFrom(
       msg.sender,
       protocolsMapping[_protocolId].deployed,
-      _premium
+      _paidPremium
     );
 
     if (_atensLocked > 0) {
@@ -464,7 +464,7 @@ contract Athena is ReentrancyGuard, Ownable {
       uint256 __decimalsRatio = 10**18 / 10**ERC20(stablecoin).decimals();
       require(
         (__price * _atensLocked) / pricePrecision <=
-          (_premium * __decimalsRatio),
+          (_paidPremium * __decimalsRatio),
         "Too many ATENS"
       );
       IStakedAtenPolicy(stakedAtensPo).stake(msg.sender, _atensLocked);
@@ -472,7 +472,8 @@ contract Athena is ReentrancyGuard, Ownable {
 
     uint256 __tokenId = IPolicyManager(policyManager).mint(
       msg.sender,
-      _amountGuaranteed,
+      _amountCovered,
+      _paidPremium,
       _atensLocked,
       _protocolId
     );
@@ -484,8 +485,8 @@ contract Athena is ReentrancyGuard, Ownable {
     IProtocolPool(protocolsMapping[_protocolId].deployed).buyPolicy(
       msg.sender,
       __tokenId,
-      _premium,
-      _amountGuaranteed
+      _paidPremium,
+      _amountCovered
     );
   }
 
