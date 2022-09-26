@@ -3,10 +3,26 @@ pragma solidity ^0.8;
 import "@openzeppelin/contracts/token/ERC721/extensions/IERC721Enumerable.sol";
 
 interface IPolicyManager is IERC721Enumerable {
-  function policy(uint256 _tokenId)
-    external
-    view
-    returns (uint256 liquidity, uint128 protocolId);
+  struct Policy {
+    uint256 amountCovered;
+    uint256 paidPremium;
+    uint256 atensLocked;
+    uint256 beginCoveredTime;
+    uint128 protocolId;
+  }
+
+  struct ExpiredPolicy {
+    uint256 amountCovered;
+    uint256 paidPremium;
+    uint256 actualFees;
+    uint256 atensLocked;
+    uint256 beginCoveredTime;
+    uint256 endCoveredTime;
+    uint128 protocolId;
+    bool isCanceled;
+  }
+
+  function policy(uint256 tokenId) external view returns (Policy memory);
 
   function mint(
     address to,
@@ -18,9 +34,18 @@ interface IPolicyManager is IERC721Enumerable {
 
   function burn(uint256 tokenId) external;
 
+  function saveExpiredPolicy(
+    address owner,
+    Policy memory policy,
+    uint256 actualFees,
+    bool isCanceled
+  ) external;
+
   function checkAndGetPolicy(
     address account,
     uint256 policyId,
     uint256 index
-  ) external returns (uint256 amountCovered, uint128 protocolId);
+  ) external view returns (Policy memory);
+
+  function processExpiredTokens(uint256[] calldata expiredTokens) external;
 }

@@ -112,8 +112,9 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     external
     onlyCore
     existedOwner(_owner)
+    returns (uint256 __remainedPremium)
   {
-    uint256 __remainedPremium = _withdrawPolicy(_owner);
+    __remainedPremium = _withdrawPolicy(_owner);
     IERC20(underlyingAsset).safeTransfer(_owner, __remainedPremium);
 
     emit WithdrawPolicy(_owner, __remainedPremium);

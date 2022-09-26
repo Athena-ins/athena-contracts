@@ -6,49 +6,49 @@ import "../ClaimCover.sol";
 
 //Thao@TODO: remove IPolicyCover
 interface IProtocolPool is IPolicyCover {
-  function deposit(address _account, uint256 _amount) external;
+  function deposit(address account, uint256 amount) external;
 
-  function committingWithdrawLiquidity(address _account) external;
+  function committingWithdrawLiquidity(address account) external;
 
-  function removeCommittedWithdrawLiquidity(address _account) external;
+  function removeCommittedWithdrawLiquidity(address account) external;
 
   function takeInterest(
-    address _account,
-    uint256 _userCapital,
-    uint128[] calldata _protocolIds,
-    uint256 _discount
+    address account,
+    uint256 userCapital,
+    uint128[] calldata protocolIds,
+    uint256 discount
   )
     external
     returns (uint256 newUserCapital, uint256 aaveScaledBalanceToRemove);
 
-  function isWithdrawLiquidityDelayOk(address _account)
+  function isWithdrawLiquidityDelayOk(address account)
     external
     view
     returns (bool);
 
   function withdrawLiquidity(
-    address _account,
-    uint256 _userCapital,
-    uint128[] calldata _protocolIds,
-    uint128 _discount
+    address account,
+    uint256 userCapital,
+    uint128[] calldata protocolIds,
+    uint128 discount
   )
     external
     returns (uint256 newUserCapital, uint256 aaveScaledBalanceToRemove);
 
-  function ratioWithAvailableCapital(uint256 _amount)
-    external
-    returns (uint256);
+  function ratioWithAvailableCapital(uint256 amount) external returns (uint256);
 
-  function releaseFunds(address _account, uint256 _amount) external;
+  function releaseFunds(address account, uint256 amount) external;
 
   function buyPolicy(
-    address _owner,
-    uint256 _tokenId,
-    uint256 _premium,
-    uint256 _insuredCapital
+    address owner,
+    uint256 tokenId,
+    uint256 premium,
+    uint256 insuredCapital
   ) external;
 
-  function withdrawPolicy(address _owner) external;
+  function withdrawPolicy(address owner)
+    external
+    returns (uint256 remainedPremium);
 
   function processClaim(
     uint128 fromProtocolId,
@@ -58,9 +58,9 @@ interface IProtocolPool is IPolicyCover {
 
   function getRelatedProtocols() external view returns (uint128[] memory);
 
-  function addRelatedProtocol(uint128 _protocolId, uint256 _amount) external;
+  function addRelatedProtocol(uint128 protocolId, uint256 amount) external;
 
-  function removeLPInfo(address _account) external;
+  function removeLPInfo(address account) external;
 
   function actualizing() external returns (uint256[] memory);
 
