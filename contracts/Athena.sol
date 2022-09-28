@@ -443,7 +443,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
           (_paidPremium * __decimalsRatio),
         "Too many ATENS"
       );
-      //Thao@NOTE: nous avons atensLocked ici, on a besoins de stocker dans PoManager ?
+
       IStakedAtenPolicy(stakedAtensPo).stake(msg.sender, _atensLocked);
     }
 
@@ -465,6 +465,64 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
       _paidPremium,
       _amountCovered
     );
+  }
+
+  function buyPolicies(
+    uint256[] calldata _amountCoveredArray,
+    uint256[] calldata _paidPremiumArray,
+    uint256[] calldata _atensLockedArray,
+    uint128[] calldata _protocolIdArray
+  ) public payable nonReentrant {
+    for (uint256 i = 0; i < _protocolIdArray.length; i++) {
+      uint256 _amountCovered = _amountCoveredArray[i];
+      uint256 _paidPremium = _paidPremiumArray[i];
+      uint256 _atensLocked = _atensLockedArray[i];
+      uint128 _protocolId = _protocolIdArray[i];
+
+      require(
+        _amountCovered > 0 && _paidPremium > 0,
+        "Guarante and premium must be greater than 0"
+      );
+
+      IERC20(stablecoin).safeTransferFrom(
+        msg.sender,
+        protocolsMapping[_protocolId].deployed,
+        _paidPremium
+      );
+
+      if (_atensLocked > 0) {
+        //@dev TODO get oracle price !
+        uint256 pricePrecision = 10000;
+        uint256 __price = 100; // = 100 / 10.000 = 0.01 USDT
+        uint256 __decimalsRatio = 10**18 / 10**ERC20(stablecoin).decimals();
+        require(
+          (__price * _atensLocked) / pricePrecision <=
+            (_paidPremium * __decimalsRatio),
+          "Too many ATENS"
+        );
+
+        IStakedAtenPolicy(stakedAtensPo).stake(msg.sender, _atensLocked);
+      }
+
+      uint256 __tokenId = IPolicyManager(policyManager).mint(
+        msg.sender,
+        _amountCovered,
+        _paidPremium,
+        _atensLocked,
+        _protocolId
+      );
+
+      actualizingProtocolAndRemoveExpiredPolicies(
+        protocolsMapping[_protocolId].deployed
+      );
+
+      IProtocolPool(protocolsMapping[_protocolId].deployed).buyPolicy(
+        msg.sender,
+        __tokenId,
+        _paidPremium,
+        _amountCovered
+      );
+    }
   }
 
   function startClaim(
