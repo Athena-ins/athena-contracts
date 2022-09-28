@@ -88,7 +88,7 @@ describe("Protocols view", () => {
   });
 
   it("Should call Athena.linearProtocolsView(beginId = 0, numberOfProtocols = 3)", async () => {
-    const result = await ProtocolHelper.getAthenaContract()
+    const result = await ProtocolHelper.getAthenaViewContract()
       .connect(owner)
       .linearProtocolsView(0, 3);
 
@@ -124,7 +124,7 @@ describe("Protocols view", () => {
   });
 
   it("Should call Athena.linearProtocolsView(beginId = 23, numberOfProtocols = 2)", async () => {
-    const result = await ProtocolHelper.getAthenaContract()
+    const result = await ProtocolHelper.getAthenaViewContract()
       .connect(owner)
       .linearProtocolsView(23, 2);
 
@@ -148,7 +148,7 @@ describe("Protocols view", () => {
   });
 
   it("Should call Athena.linearProtocolsView(beginId = 99, numberOfProtocols = 10)", async () => {
-    const result = await ProtocolHelper.getAthenaContract()
+    const result = await ProtocolHelper.getAthenaViewContract()
       .connect(owner)
       .linearProtocolsView(99, 10);
 
@@ -165,7 +165,7 @@ describe("Protocols view", () => {
 
   it("Should call Athena.linearProtocolsView(beginId = 100, numberOfProtocols = 10)", async () => {
     await expect(
-      ProtocolHelper.getAthenaContract()
+      ProtocolHelper.getAthenaViewContract()
         .connect(owner)
         .linearProtocolsView(100, 10)
     ).to.be.revertedWith("begin Id is not exist");
@@ -173,14 +173,14 @@ describe("Protocols view", () => {
 
   it("Should call Athena.linearProtocolsView(beginId = 101, numberOfProtocols = 10)", async () => {
     await expect(
-      ProtocolHelper.getAthenaContract()
+      ProtocolHelper.getAthenaViewContract()
         .connect(owner)
         .linearProtocolsView(100, 10)
     ).to.be.revertedWith("begin Id is not exist");
   });
 
   it("Should call Athena.protocolsView([0, 1, 2])", async () => {
-    const result = await ProtocolHelper.getAthenaContract()
+    const result = await ProtocolHelper.getAthenaViewContract()
       .connect(owner)
       .protocolsView([0, 1, 2]);
 
@@ -216,7 +216,7 @@ describe("Protocols view", () => {
   });
 
   it("Should call Athena.protocolsView([2, 37, 90, 85])", async () => {
-    const result = await ProtocolHelper.getAthenaContract()
+    const result = await ProtocolHelper.getAthenaViewContract()
       .connect(owner)
       .protocolsView([2, 37, 90, 85]);
 
@@ -259,7 +259,7 @@ describe("Protocols view", () => {
 
   it("Should call Athena.protocolsView([2, 100, 90, 85]) and reverted", async () => {
     await expect(
-      ProtocolHelper.getAthenaContract()
+      ProtocolHelper.getAthenaViewContract()
         .connect(owner)
         .protocolsView([2, 100, 90, 85])
     ).to.be.reverted;

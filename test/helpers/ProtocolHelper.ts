@@ -4,6 +4,7 @@ import HardhatHelper from "./HardhatHelper";
 import protocolPoolAbi from "../../artifacts/contracts/ProtocolPool.sol/ProtocolPool.json";
 
 let ATHENA_CONTRACT: ethers.Contract;
+let ATHENA_VIEW_CONTRACT: ethers.Contract;
 let POSITIONS_MANAGER_CONTRACT: ethers.Contract;
 let STAKED_ATENS_CONTRACT: ethers.Contract;
 let FACTORY_PROTOCOL_CONTRACT: ethers.Contract;
@@ -26,6 +27,20 @@ async function deployAthenaContract(owner: ethers.Signer) {
 
 function getAthenaContract() {
   return ATHENA_CONTRACT;
+}
+
+async function deployAthenaViewContract(owner: ethers.Signer) {
+  ATHENA_VIEW_CONTRACT = await (
+    await hre_ethers.getContractFactory("AthenaView")
+  )
+    .connect(owner)
+    .deploy(ATHENA_CONTRACT.address);
+
+  await ATHENA_VIEW_CONTRACT.deployed();
+}
+
+function getAthenaViewContract() {
+  return ATHENA_VIEW_CONTRACT;
 }
 
 async function deployPositionManagerContract(owner: ethers.Signer) {
@@ -158,6 +173,7 @@ async function setStakeRewards(owner: ethers.Signer) {
 
 async function deployAllContractsAndInitializeProtocol(owner: ethers.Signer) {
   await deployAthenaContract(owner);
+  await deployAthenaViewContract(owner);
   await deployPositionManagerContract(owner);
   await deployStakedAtenContract(owner);
   await deployProtocolFactoryContract(owner);
@@ -292,6 +308,8 @@ async function takeInterest(
 export default {
   deployAthenaContract,
   getAthenaContract,
+  deployAthenaViewContract,
+  getAthenaViewContract,
   deployPositionManagerContract,
   getPositionManagerContract,
   deployStakedAtenContract,

@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./AAVE/ILendingPoolAddressesProvider.sol";
 import "./AAVE/ILendingPool.sol";
 
+import "./interfaces/IAthena.sol";
 import "./interfaces/IPositionsManager.sol";
 import "./interfaces/IProtocolFactory.sol";
 import "./interfaces/IProtocolPool.sol";
@@ -19,7 +20,7 @@ import "./interfaces/IVaultERC20.sol";
 
 import "hardhat/console.sol";
 
-contract Athena is ReentrancyGuard, Ownable {
+contract Athena is IAthena, ReentrancyGuard, Ownable {
   using SafeERC20 for IERC20;
   using RayMath for uint256;
 
@@ -102,6 +103,14 @@ contract Athena is ReentrancyGuard, Ownable {
     atensVault = _atensVault;
     approveLendingPool();
     //initialized = true; //@dev required ?
+  }
+
+  function getNextProtocolId() external view returns (uint256) {
+    return nextProtocolId;
+  }
+
+  function getPoolAddressById(uint128 _poolId) external view returns (address) {
+    return protocolsMapping[_poolId].deployed;
   }
 
   //Thao@WARN: also removing atensLocked !!!
@@ -683,78 +692,5 @@ contract Athena is ReentrancyGuard, Ownable {
 
   function pauseProtocol(uint128 protocolId, bool pause) external onlyOwner {
     protocolsMapping[protocolId].active = pause;
-  }
-
-  struct ProtocolView {
-    string symbol;
-    string name;
-    uint128 protocolId;
-    uint256 totalCouvrageValue;
-    uint256 availableCapacity;
-    uint256 utilizationRate;
-    uint256 premiumRate;
-  }
-
-  function linearProtocolsView(uint128 beginId, uint256 numberOfProtocols)
-    external
-    view
-    returns (ProtocolView[] memory protocolsInfo)
-  {
-    require(beginId < nextProtocolId, "begin Id is not exist");
-
-    uint256 __numberOfProtocols = nextProtocolId - beginId >= numberOfProtocols
-      ? numberOfProtocols
-      : nextProtocolId - beginId;
-
-    protocolsInfo = new ProtocolView[](__numberOfProtocols);
-    for (uint128 i = 0; i < __numberOfProtocols; i++) {
-      (
-        string memory symbol,
-        string memory name,
-        uint256 totalCouvrageValue,
-        uint256 availableCapacity,
-        uint256 utilizationRate,
-        uint256 premiumRate
-      ) = IProtocolPool(protocolsMapping[beginId + i].deployed).protocolInfo();
-
-      protocolsInfo[i] = ProtocolView(
-        symbol,
-        name,
-        beginId + i,
-        totalCouvrageValue,
-        availableCapacity,
-        utilizationRate,
-        premiumRate
-      );
-    }
-  }
-
-  function protocolsView(uint128[] calldata protocolsId)
-    external
-    view
-    returns (ProtocolView[] memory protocolsInfo)
-  {
-    protocolsInfo = new ProtocolView[](protocolsId.length);
-    for (uint128 i = 0; i < protocolsId.length; i++) {
-      (
-        string memory symbol,
-        string memory name,
-        uint256 totalCouvrageValue,
-        uint256 availableCapacity,
-        uint256 utilizationRate,
-        uint256 premiumRate
-      ) = IProtocolPool(protocolsMapping[protocolsId[i]].deployed)
-          .protocolInfo();
-
-      protocolsInfo[i] = ProtocolView(
-        symbol,
-        name,
-        protocolsId[i],
-        totalCouvrageValue,
-        availableCapacity,
-        utilizationRate,
-        premiumRate
-      );
-    }
   }
 }
