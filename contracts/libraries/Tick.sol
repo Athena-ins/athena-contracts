@@ -49,17 +49,4 @@ library Tick {
   {
     delete self[tick];
   }
-
-  function cross(
-    mapping(uint32 => address[]) storage self,
-    mapping(address => PremiumPosition.Info) storage positions,
-    uint32 tick
-  ) internal view returns (uint256 policiesToRemove, uint256 capitalToRemove) {
-    address[] memory owners = self[tick];
-    for (uint256 i = 0; i < owners.length; i++) {
-      capitalToRemove += positions.get(owners[i]).capitalInsured;
-    }
-
-    policiesToRemove = owners.length;
-  }
 }

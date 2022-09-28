@@ -18,7 +18,6 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     uint256 beginClaimIndex;
   }
 
-  address private immutable core;
   address public underlyingAsset;
   uint128 public id;
   uint256 public immutable commitDelay;
@@ -37,8 +36,10 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     string memory _name,
     string memory _symbol,
     uint256 _commitDelay
-  ) ERC20(_name, _symbol) PolicyCover(_uOptimal, _r0, _rSlope1, _rSlope2) {
-    core = _core;
+  )
+    ERC20(_name, _symbol)
+    PolicyCover(_core, _uOptimal, _r0, _rSlope1, _rSlope2)
+  {
     underlyingAsset = _underlyingAsset;
     commitDelay = _commitDelay;
     id = _id;

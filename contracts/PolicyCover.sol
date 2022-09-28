@@ -5,7 +5,11 @@ import "./libraries/RayMath.sol";
 import "./libraries/Tick.sol";
 import "./libraries/TickBitmap.sol";
 import "./libraries/PremiumPosition.sol";
+
+import "./interfaces/IAthena.sol";
+import "./interfaces/IPolicyManager.sol";
 import "./interfaces/IPolicyCover.sol";
+
 import "./ClaimCover.sol";
 
 import "hardhat/console.sol";
@@ -16,6 +20,7 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
   using TickBitmap for mapping(uint24 => uint256);
   using PremiumPosition for mapping(address => PremiumPosition.Info);
 
+  address internal immutable core;
   mapping(uint32 => address[]) internal ticks;
   mapping(uint24 => uint256) internal tickBitmap;
   mapping(address => PremiumPosition.Info) public premiumPositions;
@@ -24,11 +29,14 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
   Slot0 public slot0;
 
   constructor(
+    address _core,
     uint256 _uOptimal, //Ray
     uint256 _r0, //Ray
     uint256 _rSlope1, //Ray
     uint256 _rSlope2 //Ray
   ) {
+    core = _core;
+
     f = Formula({
       uOptimal: _uOptimal,
       r0: _r0,
@@ -137,8 +145,19 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
     uint256 _availableCapital,
     uint32 _tick
   ) internal view {
-    (uint256 __policiesToRemove, uint256 __insuredCapitalToRemove) = ticks
-      .cross(premiumPositions, _tick);
+    // (uint256 __policiesToRemove, uint256 __insuredCapitalToRemove) = ticks
+    //   .cross(premiumPositions, _tick);
+
+    IPolicyManager policyManager_ = IPolicyManager(
+      IAthena(core).getPolicyManagerAddress()
+    );
+    address[] memory owners = ticks[_tick];
+    uint256 __insuredCapitalToRemove;
+    for (uint256 i = 0; i < owners.length; i++) {
+      __insuredCapitalToRemove += policyManager_
+        .policy(premiumPositions[owners[i]].tokenId)
+        .amountCovered;
+    }
 
     uint256 __currentPremiumRate = getPremiumRate(
       _utilisationRate(0, 0, _slot0.totalInsuredCapital, _availableCapital)
@@ -161,7 +180,7 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
 
     _slot0.totalInsuredCapital -= __insuredCapitalToRemove;
 
-    _slot0.remainingPolicies -= __policiesToRemove;
+    _slot0.remainingPolicies -= owners.length;
   }
 
   function _updateSlot0WhenAvailableCapitalChange(
