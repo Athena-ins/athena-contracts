@@ -14,7 +14,7 @@ let owner: ethers.Signer;
 let liquidityProvider1: ethers.Signer;
 let policyTaker1: ethers.Signer;
 
-describe("Buy policy", () => {
+describe("Buy policies", () => {
   before(async () => {
     await HardhatHelper.reset();
     const allSigners = await HardhatHelper.allSigners();

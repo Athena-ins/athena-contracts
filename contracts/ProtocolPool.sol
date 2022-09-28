@@ -108,13 +108,14 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     emit BuyPolicy(_owner, _premium, _insuredCapital);
   }
 
-  function withdrawPolicy(address _owner)
+  function withdrawPolicy(address _owner, uint256 _amountCovered)
     external
     onlyCore
     existedOwner(_owner)
     returns (uint256 __remainedPremium)
   {
-    __remainedPremium = _withdrawPolicy(_owner);
+    __remainedPremium = _withdrawPolicy(_owner, _amountCovered);
+
     IERC20(underlyingAsset).safeTransfer(_owner, __remainedPremium);
 
     emit WithdrawPolicy(_owner, __remainedPremium);

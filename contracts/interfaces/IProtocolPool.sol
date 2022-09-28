@@ -46,7 +46,7 @@ interface IProtocolPool is IPolicyCover {
     uint256 insuredCapital
   ) external;
 
-  function withdrawPolicy(address owner)
+  function withdrawPolicy(address owner, uint256 amountCovered)
     external
     returns (uint256 remainedPremium);
 

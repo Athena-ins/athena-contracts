@@ -359,7 +359,7 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
     slot0.remainingPolicies++;
   }
 
-  function _withdrawPolicy(address _owner)
+  function _withdrawPolicy(address _owner, uint256 _amountCovered)
     internal
     returns (uint256 __remainedPremium)
   {
@@ -376,7 +376,7 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
     );
 
     uint256 __ownerCurrentEmissionRate = getEmissionRate(
-      PremiumPosition.getBeginEmissionRate(__position),
+      _amountCovered.rayMul(__position.beginPremiumRate / 100) / 365,
       __position.beginPremiumRate,
       __currentPremiumRate
     );

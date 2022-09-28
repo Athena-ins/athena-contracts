@@ -2,6 +2,8 @@
 pragma solidity ^0.8;
 
 interface IAthena {
+  function getPolicyManagerAddress() external view returns (address);
+
   function getNextProtocolId() external view returns (uint256);
 
   function getPoolAddressById(uint128 _poolId) external view returns (address);

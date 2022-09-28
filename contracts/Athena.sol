@@ -42,9 +42,9 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
 
   address public stablecoin;
   address public aaveAddressesRegistry; // AAVE lending pool
+  address public protocolFactory;
   address public positionsManager;
   address public policyManager;
-  address public protocolFactory;
   address public claimManager;
 
   address public stakedAtensGP;
@@ -103,6 +103,10 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     atensVault = _atensVault;
     approveLendingPool();
     //initialized = true; //@dev required ?
+  }
+
+  function getPolicyManagerAddress() external view returns (address) {
+    return policyManager;
   }
 
   function getNextProtocolId() external view returns (uint256) {
@@ -621,7 +625,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
 
     uint256 remainedPremium_ = IProtocolPool(
       protocolsMapping[policy_.protocolId].deployed
-    ).withdrawPolicy(msg.sender);
+    ).withdrawPolicy(msg.sender, policy_.amountCovered);
 
     policyManager_.saveExpiredPolicy(
       msg.sender,
