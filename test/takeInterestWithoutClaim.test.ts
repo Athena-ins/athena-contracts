@@ -498,7 +498,6 @@ describe("Liquidity provider takeInterest", () => {
         await policyTaker1.getAddress()
       );
 
-      expect(policyInfo.capitalInsured).to.be.equal("109500");
       expect(policyInfo.beginPremiumRate).to.be.equal(
         "3000000000000000000000000000"
       );
@@ -529,7 +528,6 @@ describe("Liquidity provider takeInterest", () => {
         await policyTaker2.getAddress()
       );
 
-      expect(policyInfo.capitalInsured).to.be.equal("109500");
       expect(policyInfo.beginPremiumRate).to.be.equal(
         "5000000000000000000000000000"
       );

@@ -87,7 +87,6 @@ describe("Buy policies", () => {
         await policyTaker1.getAddress()
       );
 
-      expect(policyInfo.capitalInsured).to.be.equal("109500");
       expect(policyInfo.beginPremiumRate).to.be.equal(
         "2000000000000000000000000000"
       );
@@ -104,7 +103,6 @@ describe("Buy policies", () => {
         await policyTaker1.getAddress()
       );
 
-      expect(policyInfo.capitalInsured).to.be.equal("219000");
       expect(policyInfo.beginPremiumRate).to.be.equal(
         "3000000000000000000000000000"
       );
@@ -121,7 +119,6 @@ describe("Buy policies", () => {
         await policyTaker1.getAddress()
       );
 
-      expect(policyInfo.capitalInsured).to.be.equal("438000");
       expect(policyInfo.beginPremiumRate).to.be.equal(
         "5000000000000000000000000000"
       );

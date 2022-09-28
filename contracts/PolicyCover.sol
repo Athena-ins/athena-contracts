@@ -61,13 +61,11 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
   function addPremiumPosition(
     address _owner,
     uint256 _tokenId,
-    uint256 _capitalInsured,
     uint256 _beginPremiumRate,
     uint32 _tick
   ) private {
     premiumPositions[_owner] = PremiumPosition.Info(
       _tokenId,
-      _capitalInsured,
       _beginPremiumRate,
       _tick,
       ticks.addOwner(_owner, _tick)
@@ -82,13 +80,18 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
     address[] memory __owners = ticks[_tick];
     uint256[] memory __tokensId = new uint256[](__owners.length);
 
+    IPolicyManager policyManager_ = IPolicyManager(
+      IAthena(core).getPolicyManagerAddress()
+    );
     for (uint256 i = 0; i < __owners.length; i++) {
-      (uint256 tokenId, uint256 insuredCapital) = premiumPositions.removeOwner(
-        __owners[i]
-      );
+      uint256 tokenId = premiumPositions.removeOwner(__owners[i]);
       __tokensId[i] = tokenId;
 
-      emit ExpiredPolicy(__owners[i], insuredCapital, _tick);
+      emit ExpiredPolicy(
+        __owners[i],
+        policyManager_.policy(tokenId).amountCovered,
+        _tick
+      );
     }
 
     ticks.clear(_tick);
@@ -145,9 +148,6 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
     uint256 _availableCapital,
     uint32 _tick
   ) internal view {
-    // (uint256 __policiesToRemove, uint256 __insuredCapitalToRemove) = ticks
-    //   .cross(premiumPositions, _tick);
-
     IPolicyManager policyManager_ = IPolicyManager(
       IAthena(core).getPolicyManagerAddress()
     );
@@ -364,13 +364,7 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
     uint32 __lastTick = slot0.tick +
       uint32(__durationInSeconds / __newSecondsPerTick);
 
-    addPremiumPosition(
-      _owner,
-      _tokenId,
-      _insuredCapital,
-      __newPremiumRate,
-      __lastTick
-    );
+    addPremiumPosition(_owner, _tokenId, __newPremiumRate, __lastTick);
 
     slot0.totalInsuredCapital += _insuredCapital;
     slot0.secondsPerTick = __newSecondsPerTick;
@@ -409,13 +403,13 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
     uint256 __newPremiumRate = getPremiumRate(
       _utilisationRate(
         0,
-        __position.capitalInsured,
+        _amountCovered,
         __totalInsuredCapital,
         __availableCapital
       )
     );
 
-    slot0.totalInsuredCapital -= __position.capitalInsured;
+    slot0.totalInsuredCapital -= _amountCovered;
 
     slot0.secondsPerTick = getSecondsPerTick(
       slot0.secondsPerTick,
