@@ -43,6 +43,6 @@ library PremiumPosition {
     mapping(address => PremiumPosition.Info) storage self,
     address owner
   ) internal view returns (bool) {
-    return self[owner].capitalInsured > 0;
+    return self[owner].beginPremiumRate > 0;
   }
 }
