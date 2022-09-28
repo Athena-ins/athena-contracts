@@ -111,7 +111,7 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
     uint256 _oldEmissionRate,
     uint256 _oldPremiumRate,
     uint256 _newPremiumRate
-  ) private pure returns (uint256) {
+  ) internal pure returns (uint256) {
     return _oldEmissionRate.rayMul(_newPremiumRate).rayDiv(_oldPremiumRate);
   }
 
@@ -136,7 +136,7 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
     Slot0 memory _slot0,
     uint256 _availableCapital,
     uint32 _tick
-  ) private view {
+  ) internal view {
     (uint256 __policiesToRemove, uint256 __insuredCapitalToRemove) = ticks
       .cross(premiumPositions, _tick);
 
@@ -430,75 +430,6 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
       __slot0 = slot0;
       __slot0.lastUpdateTimestamp = _dateInSeconds;
     }
-  }
-
-  function getInfo(address _owner)
-    public
-    view
-    existedOwner(_owner)
-    returns (uint256 __remainingPremium, uint256 __remainingDay)
-  {
-    uint256 __availableCapital = availableCapital;
-    (Slot0 memory __slot0, ) = _actualizingUntil(block.timestamp);
-    PremiumPosition.Info memory __position = premiumPositions.get(_owner);
-
-    require(__slot0.tick <= __position.lastTick, "Policy Expired");
-
-    uint256 __beginOwnerEmissionRate = PremiumPosition.getBeginEmissionRate(
-      __position
-    );
-
-    uint256 __currentPremiumRate = getPremiumRate(
-      _utilisationRate(0, 0, __slot0.totalInsuredCapital, __availableCapital)
-    );
-
-    uint256 __currentOwnerEmissionRate = getEmissionRate(
-      __beginOwnerEmissionRate,
-      __position.beginPremiumRate,
-      __currentPremiumRate
-    );
-
-    uint256 __remainingSeconds;
-
-    while (__slot0.tick < __position.lastTick) {
-      (uint32 __tickNext, bool __initialized) = tickBitmap
-        .nextInitializedTickInTheRightWithinOneWord(__slot0.tick);
-
-      uint32 __tick = __tickNext < __position.lastTick
-        ? __tickNext
-        : __position.lastTick;
-      uint256 __secondsPassed = (__tick - __slot0.tick) *
-        __slot0.secondsPerTick;
-
-      __remainingPremium +=
-        (__secondsPassed * __currentOwnerEmissionRate) /
-        86400;
-
-      __remainingSeconds += __secondsPassed;
-
-      __slot0.tick = __tick;
-
-      if (__initialized && __tickNext < __position.lastTick) {
-        crossingInitializedTick(__slot0, __availableCapital, __tickNext);
-
-        __currentPremiumRate = getPremiumRate(
-          _utilisationRate(
-            0,
-            0,
-            __slot0.totalInsuredCapital,
-            __availableCapital
-          )
-        );
-
-        __currentOwnerEmissionRate = getEmissionRate(
-          __beginOwnerEmissionRate,
-          __position.beginPremiumRate,
-          __currentPremiumRate
-        );
-      }
-    }
-
-    __remainingDay = __remainingSeconds / 86400;
   }
 
   function getCurrentPremiumRate() public view returns (uint256) {

@@ -3,12 +3,15 @@ pragma solidity ^0.8;
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
+import "./interfaces/IAthena.sol";
+import "./interfaces/IPolicyManager.sol";
 import "./interfaces/IProtocolPool.sol";
 import "./PolicyCover.sol";
 
 contract ProtocolPool is IProtocolPool, PolicyCover {
   using RayMath for uint256;
   using SafeERC20 for IERC20;
+  using TickBitmap for mapping(uint24 => uint256);
 
   struct LPInfo {
     uint256 beginLiquidityIndex;
@@ -379,7 +382,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     emit ReleaseFunds(_account, _amount);
   }
 
-  //onlyCore
+  //onlyCore?
   function actualizing() external returns (uint256[] memory) {
     return _actualizing();
   }
@@ -411,5 +414,76 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
       __uRate,
       getPremiumRate(__uRate)
     );
+  }
+
+  function getInfo(address _owner)
+    public
+    view
+    existedOwner(_owner)
+    returns (uint256 __remainingPremium, uint256 __remainingDay)
+  {
+    uint256 __availableCapital = availableCapital;
+    (Slot0 memory __slot0, ) = _actualizingUntil(block.timestamp);
+    PremiumPosition.Info memory __position = premiumPositions[_owner];
+
+    require(__slot0.tick <= __position.lastTick, "Policy Expired");
+
+    uint256 __beginOwnerEmissionRate = IPolicyManager(
+      IAthena(core).getPolicyManagerAddress()
+    ).policy(__position.tokenId).amountCovered.rayMul(
+        __position.beginPremiumRate / 100
+      ) / 365;
+
+    uint256 __currentPremiumRate = getPremiumRate(
+      _utilisationRate(0, 0, __slot0.totalInsuredCapital, __availableCapital)
+    );
+
+    uint256 __currentOwnerEmissionRate = getEmissionRate(
+      __beginOwnerEmissionRate,
+      __position.beginPremiumRate,
+      __currentPremiumRate
+    );
+
+    uint256 __remainingSeconds;
+
+    while (__slot0.tick < __position.lastTick) {
+      (uint32 __tickNext, bool __initialized) = tickBitmap
+        .nextInitializedTickInTheRightWithinOneWord(__slot0.tick);
+
+      uint32 __tick = __tickNext < __position.lastTick
+        ? __tickNext
+        : __position.lastTick;
+      uint256 __secondsPassed = (__tick - __slot0.tick) *
+        __slot0.secondsPerTick;
+
+      __remainingPremium +=
+        (__secondsPassed * __currentOwnerEmissionRate) /
+        86400;
+
+      __remainingSeconds += __secondsPassed;
+
+      __slot0.tick = __tick;
+
+      if (__initialized && __tickNext < __position.lastTick) {
+        crossingInitializedTick(__slot0, __availableCapital, __tickNext);
+
+        __currentPremiumRate = getPremiumRate(
+          _utilisationRate(
+            0,
+            0,
+            __slot0.totalInsuredCapital,
+            __availableCapital
+          )
+        );
+
+        __currentOwnerEmissionRate = getEmissionRate(
+          __beginOwnerEmissionRate,
+          __position.beginPremiumRate,
+          __currentPremiumRate
+        );
+      }
+    }
+
+    __remainingDay = __remainingSeconds / 86400;
   }
 }

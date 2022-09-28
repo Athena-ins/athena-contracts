@@ -39,16 +39,6 @@ library PremiumPosition {
     delete self[owner];
   }
 
-  function getBeginEmissionRate(PremiumPosition.Info memory positionInfo)
-    internal
-    pure
-    returns (uint256)
-  {
-    return
-      positionInfo.capitalInsured.rayMul(positionInfo.beginPremiumRate / 100) /
-      365;
-  }
-
   function hasOwner(
     mapping(address => PremiumPosition.Info) storage self,
     address owner
