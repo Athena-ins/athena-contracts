@@ -405,11 +405,12 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
     );
 
     if (ticks.getOwnerNumber(__position.lastTick) > 1) {
-      ticks.removeOwner(__position.ownerIndex, __position.lastTick);
       premiumPositions.replaceAndRemoveOwner(
         _owner,
         ticks.getLastOwnerInTick(__position.lastTick)
       );
+
+      ticks.removeOwner(__position.ownerIndex, __position.lastTick);
     } else {
       removeTick(__position.lastTick);
     }

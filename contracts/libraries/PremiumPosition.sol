@@ -26,7 +26,9 @@ library PremiumPosition {
     address ownerToRemove,
     address ownerToReplace
   ) internal {
-    self[ownerToReplace].ownerIndex = self[ownerToRemove].ownerIndex;
+    if (ownerToRemove != ownerToReplace)
+      self[ownerToReplace].ownerIndex = self[ownerToRemove].ownerIndex;
+
     delete self[ownerToRemove];
   }
 

@@ -22,7 +22,10 @@ library Tick {
     uint32 tick
   ) internal {
     address[] storage owners = self[tick];
-    owners[ownerIndexToRemove] = owners[owners.length - 1];
+
+    if (ownerIndexToRemove != owners.length - 1)
+      owners[ownerIndexToRemove] = owners[owners.length - 1];
+
     owners.pop();
   }
 
