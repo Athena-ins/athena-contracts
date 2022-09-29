@@ -99,7 +99,8 @@ describe("Liquidity provider takeInterest", () => {
       const decodedData = await ProtocolHelper.takeInterest(
         liquidityProvider1,
         0,
-        1 * 24 * 60 * 60
+        1 * 24 * 60 * 60,
+        2
       );
 
       const lpInfoAfter = await protocolContract.LPsInfo(
@@ -135,7 +136,8 @@ describe("Liquidity provider takeInterest", () => {
       const decodedData = await ProtocolHelper.takeInterest(
         liquidityProvider1,
         0,
-        1 * 24 * 60 * 60
+        1 * 24 * 60 * 60,
+        2
       );
 
       const lpInfoAfter = await protocolContract.LPsInfo(
@@ -171,7 +173,8 @@ describe("Liquidity provider takeInterest", () => {
       const decodedData = await ProtocolHelper.takeInterest(
         liquidityProvider1,
         0,
-        10 * 24 * 60 * 60
+        10 * 24 * 60 * 60,
+        2
       );
 
       const lpInfoAfter = await protocolContract.LPsInfo(
@@ -207,7 +210,8 @@ describe("Liquidity provider takeInterest", () => {
       const decodedData = await ProtocolHelper.takeInterest(
         liquidityProvider2,
         0,
-        1 * 24 * 60 * 60
+        1 * 24 * 60 * 60,
+        2
       );
 
       const lpInfoAfter = await protocolContract.LPsInfo(
@@ -243,7 +247,8 @@ describe("Liquidity provider takeInterest", () => {
       const decodedData = await ProtocolHelper.takeInterest(
         liquidityProvider2,
         0,
-        1 * 24 * 60 * 60
+        1 * 24 * 60 * 60,
+        2
       );
 
       const lpInfoAfter = await protocolContract.LPsInfo(
@@ -280,7 +285,7 @@ describe("Liquidity provider takeInterest", () => {
         liquidityProvider2,
         0,
         611 * 24 * 60 * 60,
-        6
+        8
       );
 
       const lpInfoAfter = await protocolContract.LPsInfo(
@@ -316,7 +321,8 @@ describe("Liquidity provider takeInterest", () => {
       const decodedData = await ProtocolHelper.takeInterest(
         liquidityProvider2,
         0,
-        1 * 24 * 60 * 60
+        1 * 24 * 60 * 60,
+        2
       );
 
       const lpInfoAfter = await protocolContract.LPsInfo(
@@ -352,7 +358,8 @@ describe("Liquidity provider takeInterest", () => {
       const decodedData = await ProtocolHelper.takeInterest(
         liquidityProvider2,
         0,
-        1 * 24 * 60 * 60
+        1 * 24 * 60 * 60,
+        2
       );
 
       const lpInfoAfter = await protocolContract.LPsInfo(
@@ -388,7 +395,8 @@ describe("Liquidity provider takeInterest", () => {
       const decodedData = await ProtocolHelper.takeInterest(
         liquidityProvider1,
         0,
-        1 * 24 * 60 * 60
+        1 * 24 * 60 * 60,
+        2
       );
 
       const lpInfoAfter = await protocolContract.LPsInfo(
@@ -584,7 +592,8 @@ describe("Liquidity provider takeInterest", () => {
       const decodedData = await ProtocolHelper.takeInterest(
         liquidityProvider1,
         0,
-        1 * 24 * 60 * 60
+        1 * 24 * 60 * 60,
+        2
       );
 
       const lpInfoAfter = await protocolContract.LPsInfo(
@@ -620,7 +629,8 @@ describe("Liquidity provider takeInterest", () => {
       const decodedData = await ProtocolHelper.takeInterest(
         liquidityProvider2,
         0,
-        1 * 24 * 60 * 60
+        1 * 24 * 60 * 60,
+        2
       );
 
       const lpInfoAfter = await protocolContract.LPsInfo(
@@ -656,7 +666,8 @@ describe("Liquidity provider takeInterest", () => {
       const decodedData = await ProtocolHelper.takeInterest(
         liquidityProvider1,
         0,
-        1 * 24 * 60 * 60
+        1 * 24 * 60 * 60,
+        2
       );
 
       const lpInfoAfter = await protocolContract.LPsInfo(

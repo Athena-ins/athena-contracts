@@ -237,9 +237,10 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
 
     //transfer to account:
     uint256 __interestNet = (__totalRewards * (1000 - _discount)) / 1000;
+    IERC20(underlyingAsset).safeTransfer(_account, __interestNet);
 
     //transfer to treasury
-    // uint256 __fee = __totalRewards - __interestNet;
+    IERC20(underlyingAsset).safeTransfer(core, __totalRewards - __interestNet);
 
     LPsInfo[_account] = __newLPInfo;
 

@@ -206,7 +206,8 @@ describe("Liquidity provider withdraw", () => {
       const decodedData = await ProtocolHelper.takeInterest(
         liquidityProvider2,
         0,
-        days * 24 * 60 * 60
+        days * 24 * 60 * 60,
+        2
       );
 
       expect(decodedData.account).to.be.equal(
