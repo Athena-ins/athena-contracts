@@ -602,7 +602,8 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
       ILendingPoolAddressesProvider(aaveAddressesRegistry).getLendingPool()
     ).withdraw(stablecoin, _amount, _account);
 
-    // protocolsMapping[__protocolId].claimsOngoing -= 1;//use for later
+    //Thao@TODO: enable next line when adding modifier 'onlyClaimManager' and calling startClaim to increment claimsOngoing before resolve
+    // protocolsMapping[__protocolId].claimsOngoing -= 1;
   }
 
   function withdrawPolicy(uint256 _policyId, uint256 _index)

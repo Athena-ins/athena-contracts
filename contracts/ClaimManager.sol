@@ -150,6 +150,7 @@ contract ClaimManager is IClaimManager, IArbitrable {
   //   _resolve(_disputeId, 1);
   // }
 
+  //Thao@WARN: everyone can call this function !!!
   function releaseFunds(uint256 _disputeId) public {
     require(
       claims[_disputeId].status == Status.Initial,
