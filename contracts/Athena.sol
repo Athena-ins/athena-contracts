@@ -420,56 +420,57 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   }
 
   //////Thao@NOTE: Policy
-  function buyPolicy(
-    uint256 _amountCovered,
-    uint256 _paidPremium,
-    uint256 _atensLocked,
-    uint128 _protocolId
-  ) public payable nonReentrant {
-    require(
-      _amountCovered > 0 && _paidPremium > 0,
-      "Guarante and premium must be greater than 0"
-    );
+  //Thao@TODO: to remove
+  // function buyPolicy(
+  //   uint256 _amountCovered,
+  //   uint256 _paidPremium,
+  //   uint256 _atensLocked,
+  //   uint128 _protocolId
+  // ) public payable nonReentrant {
+  //   require(
+  //     _amountCovered > 0 && _paidPremium > 0,
+  //     "Guarante and premium must be greater than 0"
+  //   );
 
-    IERC20(stablecoin).safeTransferFrom(
-      msg.sender,
-      protocolsMapping[_protocolId].deployed,
-      _paidPremium
-    );
+  //   IERC20(stablecoin).safeTransferFrom(
+  //     msg.sender,
+  //     protocolsMapping[_protocolId].deployed,
+  //     _paidPremium
+  //   );
 
-    if (_atensLocked > 0) {
-      //@dev TODO get oracle price !
-      uint256 pricePrecision = 10000;
-      uint256 __price = 100; // = 100 / 10.000 = 0.01 USDT
-      uint256 __decimalsRatio = 10**18 / 10**ERC20(stablecoin).decimals();
-      require(
-        (__price * _atensLocked) / pricePrecision <=
-          (_paidPremium * __decimalsRatio),
-        "Too many ATENS"
-      );
+  //   if (_atensLocked > 0) {
+  //     //@dev TODO get oracle price !
+  //     uint256 pricePrecision = 10000;
+  //     uint256 __price = 100; // = 100 / 10.000 = 0.01 USDT
+  //     uint256 __decimalsRatio = 10**18 / 10**ERC20(stablecoin).decimals();
+  //     require(
+  //       (__price * _atensLocked) / pricePrecision <=
+  //         (_paidPremium * __decimalsRatio),
+  //       "Too many ATENS"
+  //     );
 
-      IStakedAtenPolicy(stakedAtensPo).stake(msg.sender, _atensLocked);
-    }
+  //     IStakedAtenPolicy(stakedAtensPo).stake(msg.sender, _atensLocked);
+  //   }
 
-    uint256 __tokenId = IPolicyManager(policyManager).mint(
-      msg.sender,
-      _amountCovered,
-      _paidPremium,
-      _atensLocked,
-      _protocolId
-    );
+  //   uint256 __tokenId = IPolicyManager(policyManager).mint(
+  //     msg.sender,
+  //     _amountCovered,
+  //     _paidPremium,
+  //     _atensLocked,
+  //     _protocolId
+  //   );
 
-    actualizingProtocolAndRemoveExpiredPolicies(
-      protocolsMapping[_protocolId].deployed
-    );
+  //   actualizingProtocolAndRemoveExpiredPolicies(
+  //     protocolsMapping[_protocolId].deployed
+  //   );
 
-    IProtocolPool(protocolsMapping[_protocolId].deployed).buyPolicy(
-      msg.sender,
-      __tokenId,
-      _paidPremium,
-      _amountCovered
-    );
-  }
+  //   IProtocolPool(protocolsMapping[_protocolId].deployed).buyPolicy(
+  //     msg.sender,
+  //     __tokenId,
+  //     _paidPremium,
+  //     _amountCovered
+  //   );
+  // }
 
   function buyPolicies(
     uint256[] calldata _amountCoveredArray,

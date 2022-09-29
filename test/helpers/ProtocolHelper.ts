@@ -264,11 +264,11 @@ async function buyPolicy(
 
   await HardhatHelper.setNextBlockTimestamp(timeLapse);
 
-  await ATHENA_CONTRACT.connect(user).buyPolicy(
-    capital,
-    premium,
-    atensLocked,
-    protocolId
+  await ATHENA_CONTRACT.connect(user).buyPolicies(
+    [capital],
+    [premium],
+    [atensLocked],
+    [protocolId]
   );
 }
 

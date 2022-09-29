@@ -86,7 +86,7 @@ describe("Buy policy", () => {
 
       const tx = await ProtocolHelper.getAthenaContract()
         .connect(policyTaker1)
-        .buyPolicy(capital, premium, atensLocked, 0);
+        .buyPolicies([capital], [premium], [atensLocked], [0]);
       expect(tx).to.haveOwnProperty("hash");
 
       totalPremium = totalPremium.add(premium);
@@ -209,7 +209,7 @@ describe("Buy policy", () => {
 
       const tx = await ProtocolHelper.getAthenaContract()
         .connect(policyTaker2)
-        .buyPolicy(capital, premium, atensLocked, 0);
+        .buyPolicies([capital], [premium], [atensLocked], [0]);
       expect(tx).to.haveOwnProperty("hash");
 
       totalPremium = totalPremium.add(premium);
