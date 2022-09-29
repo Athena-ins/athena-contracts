@@ -364,23 +364,6 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     return _amount.rayDiv(availableCapital);
   }
 
-  //Thao@TODO: use or not ?
-  event ReleaseFunds(address account, uint256 amount);
-
-  //Thao@TODO: use or not ?
-  function releaseFunds(address _account, uint256 _amount)
-    external
-    override
-    onlyCore
-  {
-    console.log("Amount to refund : ", _amount);
-    uint256 bal = IERC20(underlyingAsset).balanceOf(address(this));
-    console.log("Balance Contract = ", bal);
-    console.log("Account to transfer = ", _account);
-    // IERC20(underlyingAsset).safeTransfer(_account, _amount);
-    emit ReleaseFunds(_account, _amount);
-  }
-
   //onlyCore?
   function actualizing() external returns (uint256[] memory) {
     return _actualizing();
