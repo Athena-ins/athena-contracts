@@ -42,6 +42,11 @@ async function reset() {
   atenOwnerSigner = await impersonateAccount(ATEN_OWNER_ADDRESS);
 }
 
+async function initSigners() {
+  binanceSigner = await impersonateAccount(BINANCE_WALLET);
+  atenOwnerSigner = await impersonateAccount(ATEN_OWNER_ADDRESS);
+}
+
 async function allSigners() {
   return await hre_ethers.getSigners();
 }
@@ -131,6 +136,7 @@ async function getATokenBalance(
 export default {
   getCurrentTime,
   reset,
+  initSigners,
   allSigners,
   impersonateAccount,
   setNextBlockTimestamp,
