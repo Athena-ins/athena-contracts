@@ -60,7 +60,11 @@ async function deposit() {
 
   await ProtocolHelper.getAthenaContract()
     .connect(liquidityProvider1)
-    .deposit(USDT_amount, ATEN_amount, [0, 2, 5, 7, 1]);
+    .deposit(
+      ethers.utils.parseUnits(USDT_amount, 6),
+      ATEN_amount,
+      [0, 2, 5, 7, 1]
+    );
 
   console.log("Fin deposit");
 }
@@ -86,7 +90,12 @@ async function buyPolicies() {
 
   await ProtocolHelper.getAthenaContract()
     .connect(policyTaker1)
-    .buyPolicies([capital], [premium], [atensLocked], [2]);
+    .buyPolicies(
+      [ethers.utils.parseUnits(capital, 6)],
+      [ethers.utils.parseUnits(premium, 6)],
+      [atensLocked],
+      [2]
+    );
 
   console.log("Fin buy policies");
 }
