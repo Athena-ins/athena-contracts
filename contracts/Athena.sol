@@ -33,7 +33,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   address public aaveAddressesRegistry; // AAVE lending pool
   address public protocolFactory;
   address public positionsManager;
-  address public policyManager;
+  address public override policyManager;
   address public claimManager;
 
   address public stakedAtensGP;
@@ -49,7 +49,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
 
   AtenDiscount[] public premiumAtenDiscount;
 
-  uint128 public nextProtocolId;
+  uint128 public override nextProtocolId;
 
   constructor(
     address _stablecoinUsed,
@@ -94,6 +94,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   function getProtocolAddressById(uint128 protocolId)
     external
     view
+    override
     returns (address)
   {
     return protocolsMapping[protocolId].deployed;
@@ -102,6 +103,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   //Thao@WARN: also removing atensLocked !!!
   function actualizingProtocolAndRemoveExpiredPolicies(address protocolAddress)
     public
+    override
   {
     uint256[] memory __expiredTokens = IProtocolPool(protocolAddress)
       .actualizing();
@@ -110,7 +112,11 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   }
 
   //onlyPositionManager
-  function transferLiquidityToAAVE(uint256 amount) external returns (uint256) {
+  function transferLiquidityToAAVE(uint256 amount)
+    external
+    override
+    returns (uint256)
+  {
     address lendingPool = ILendingPoolAddressesProvider(aaveAddressesRegistry)
       .getLendingPool();
 
@@ -191,56 +197,8 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     );
   }
 
-  function isProtocolInList(uint128 _protocolId, uint128[] memory _protocolList)
-    private
-    pure
-    returns (bool)
-  {
-    for (uint256 i = 0; i < _protocolList.length; i++) {
-      if (_protocolId == _protocolList[i]) return true;
-    }
-
-    return false;
-  }
-
-  function takeInterest(uint128 _protocolId) public {
-    uint256 __tokenId = IPositionsManager(positionsManager).tokenOfOwnerByIndex(
-      msg.sender,
-      0
-    );
-
-    (
-      uint256 __userCapital,
-      uint128[] memory __protocolIds,
-      ,
-      uint256 __discount
-    ) = IPositionsManager(positionsManager).positions(__tokenId);
-
-    require(
-      isProtocolInList(_protocolId, __protocolIds),
-      "Not in protocol list"
-    );
-
-    actualizingProtocolAndRemoveExpiredPolicies(
-      protocolsMapping[_protocolId].deployed
-    );
-
-    (
-      uint256 __newUserCapital,
-      uint256 __aaveScaledBalanceToRemove
-    ) = IProtocolPool(protocolsMapping[_protocolId].deployed).takeInterest(
-        msg.sender,
-        __userCapital,
-        __protocolIds,
-        __discount
-      );
-
-    if (__userCapital != __newUserCapital)
-      IPositionsManager(positionsManager).updateUserCapital(
-        __tokenId,
-        __newUserCapital,
-        __aaveScaledBalanceToRemove
-      );
+  function takeInterest(uint128 protocolId) public {
+    IPositionsManager(positionsManager).takeInterest(msg.sender, 0, protocolId);
   }
 
   //Thao@Question: we need this function ?
@@ -258,10 +216,10 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
       __tokenId
     );
 
-    require(
-      isProtocolInList(_protocolId, __protocolIds),
-      "Not in protocol list"
-    );
+    // require(
+    //   isProtocolInList(_protocolId, __protocolIds),
+    //   "Not in protocol list"
+    // );
 
     require(
       protocolsMapping[_protocolId].claimsOngoing == 0,
@@ -409,58 +367,6 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   }
 
   //////Thao@NOTE: Policy
-  //Thao@TODO: to remove
-  // function buyPolicy(
-  //   uint256 _amountCovered,
-  //   uint256 _paidPremium,
-  //   uint256 _atensLocked,
-  //   uint128 _protocolId
-  // ) public payable nonReentrant {
-  //   require(
-  //     _amountCovered > 0 && _paidPremium > 0,
-  //     "Guarante and premium must be greater than 0"
-  //   );
-
-  //   IERC20(stablecoin).safeTransferFrom(
-  //     msg.sender,
-  //     protocolsMapping[_protocolId].deployed,
-  //     _paidPremium
-  //   );
-
-  //   if (_atensLocked > 0) {
-  //     //@dev TODO get oracle price !
-  //     uint256 pricePrecision = 10000;
-  //     uint256 __price = 100; // = 100 / 10.000 = 0.01 USDT
-  //     uint256 __decimalsRatio = 10**18 / 10**ERC20(stablecoin).decimals();
-  //     require(
-  //       (__price * _atensLocked) / pricePrecision <=
-  //         (_paidPremium * __decimalsRatio),
-  //       "Too many ATENS"
-  //     );
-
-  //     IStakedAtenPolicy(stakedAtensPo).stake(msg.sender, _atensLocked);
-  //   }
-
-  //   uint256 __tokenId = IPolicyManager(policyManager).mint(
-  //     msg.sender,
-  //     _amountCovered,
-  //     _paidPremium,
-  //     _atensLocked,
-  //     _protocolId
-  //   );
-
-  //   actualizingProtocolAndRemoveExpiredPolicies(
-  //     protocolsMapping[_protocolId].deployed
-  //   );
-
-  //   IProtocolPool(protocolsMapping[_protocolId].deployed).buyPolicy(
-  //     msg.sender,
-  //     __tokenId,
-  //     _paidPremium,
-  //     _amountCovered
-  //   );
-  // }
-
   function buyPolicies(
     uint256[] calldata _amountCoveredArray,
     uint256[] calldata _paidPremiumArray,
@@ -555,7 +461,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     uint256 _policyId,
     uint256 _amount,
     address _account
-  ) external {
+  ) external override {
     require(
       _account == IPolicyManager(policyManager).ownerOf(_policyId),
       "Wrong account"
@@ -630,7 +536,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     address account,
     uint256 atenToStake,
     uint256 amount
-  ) external {
+  ) external override {
     IStakedAten(stakedAtensGP).stake(account, atenToStake, amount);
   }
 
@@ -687,7 +593,12 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     }
   }
 
-  function getDiscountWithAten(uint256 _amount) public view returns (uint128) {
+  function getDiscountWithAten(uint256 _amount)
+    public
+    view
+    override
+    returns (uint128)
+  {
     for (uint256 index = premiumAtenDiscount.length - 1; index > 0; index--) {
       if (_amount >= premiumAtenDiscount[index].atenAmount)
         return premiumAtenDiscount[index].discount;

@@ -193,7 +193,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
     uint256 addingAmount,
     uint256 addingAtens
   ) external override onlyCore {
-    require(balanceOf(account) > 0, "No position to update");
+    require(balanceOf(account) > 0, "No active position");
     require(account == ownerOf(tokenId), "Token owner");
     require(addingAmount > 0 || addingAtens > 0, "both amounts is zero");
 
@@ -255,6 +255,53 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
       _positions[tokenId].discount = _core.getDiscountWithAten(_position.atens);
 
       _core.stakeAtens(account, addingAtens, addingAmount);
+    }
+  }
+
+  function isProtocolInList(uint128 _protocolId, uint128[] memory _protocolList)
+    private
+    pure
+    returns (bool)
+  {
+    for (uint256 i = 0; i < _protocolList.length; i++) {
+      if (_protocolId == _protocolList[i]) return true;
+    }
+
+    return false;
+  }
+
+  function takeInterest(
+    address account,
+    uint256 tokenIndex,
+    uint128 protocolId
+  ) external override onlyCore {
+    require(balanceOf(account) > 0, "No active position");
+    uint256 _tokenId = tokenOfOwnerByIndex(account, tokenIndex);
+
+    Position memory _position = _positions[_tokenId];
+
+    require(
+      isProtocolInList(protocolId, _position.protocolsId),
+      "Not in deposit protocol list"
+    );
+
+    IAthena _core = IAthena(core);
+    address protocolAddress = _core.getProtocolAddressById(protocolId);
+    _core.actualizingProtocolAndRemoveExpiredPolicies(protocolAddress);
+
+    (
+      uint256 _newUserCapital,
+      uint256 _aaveScaledBalanceToRemove
+    ) = IProtocolPool(protocolAddress).takeInterest(
+        account,
+        _position.providedLiquidity,
+        _position.protocolsId,
+        _position.discount
+      );
+
+    if (_position.providedLiquidity != _newUserCapital) {
+      _positions[_tokenId].providedLiquidity = _newUserCapital;
+      _positions[_tokenId].aaveScaledBalance -= _aaveScaledBalanceToRemove;
     }
   }
 }

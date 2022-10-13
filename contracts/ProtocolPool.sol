@@ -89,8 +89,10 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     delete LPsInfo[_account];
   }
 
-  function deposit(address _account, uint256 _amount) external // onlyCore
-  {
+  function deposit(
+    address _account,
+    uint256 _amount // onlyCore
+  ) external {
     _updateSlot0WhenAvailableCapitalChange(_amount, 0);
     availableCapital += _amount;
     _mint(_account, _amount);
@@ -215,12 +217,13 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     uint256 fee
   );
 
+  //onlyPositionManager
   function takeInterest(
     address _account,
     uint256 _userCapital,
     uint128[] calldata _protocolIds,
     uint256 _discount
-  ) public onlyCore returns (uint256, uint256) {
+  ) public returns (uint256, uint256) {
     (
       uint256 __newUserCapital,
       uint256 __totalRewards,

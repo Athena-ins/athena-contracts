@@ -72,4 +72,10 @@ interface IPositionsManager is IERC721Enumerable {
     uint256 addingAmount,
     uint256 addingAtens
   ) external;
+
+  function takeInterest(
+    address account,
+    uint256 tokenIndex,
+    uint128 protocolId
+  ) external;
 }
