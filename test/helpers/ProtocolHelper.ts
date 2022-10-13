@@ -149,7 +149,6 @@ async function initializeProtocol() {
     POLICY_MANAGER_CONTRACT.address,
     HardhatHelper.USDT_AAVE_ATOKEN,
     FACTORY_PROTOCOL_CONTRACT.address,
-    HardhatHelper.ARBITRATOR_ADDRESS,
     CLAIM_MANAGER_CONTRACT.address
   );
 }

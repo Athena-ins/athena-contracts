@@ -26,7 +26,7 @@ contract AthenaView {
     view
     returns (ProtocolView[] memory protocolsInfo)
   {
-    uint256 nextProtocolId_ = IAthena(core).getNextProtocolId();
+    uint256 nextProtocolId_ = IAthena(core).nextProtocolId();
     require(beginId < nextProtocolId_, "begin Id is not exist");
 
     uint256 __numberOfProtocols = nextProtocolId_ - beginId >= numberOfProtocols
@@ -42,7 +42,7 @@ contract AthenaView {
         uint256 availableCapacity,
         uint256 utilizationRate,
         uint256 premiumRate
-      ) = IProtocolPool(IAthena(core).getPoolAddressById(beginId + i))
+      ) = IProtocolPool(IAthena(core).getProtocolAddressById(beginId + i))
           .protocolInfo();
 
       protocolsInfo[i] = ProtocolView(
@@ -71,7 +71,7 @@ contract AthenaView {
         uint256 availableCapacity,
         uint256 utilizationRate,
         uint256 premiumRate
-      ) = IProtocolPool(IAthena(core).getPoolAddressById(protocolsId[i]))
+      ) = IProtocolPool(IAthena(core).getProtocolAddressById(protocolsId[i]))
           .protocolInfo();
 
       protocolsInfo[i] = ProtocolView(

@@ -24,17 +24,6 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   using SafeERC20 for IERC20;
   using RayMath for uint256;
 
-  struct Protocol {
-    uint128 id; //id in mapping
-    uint128 claimsOngoing; // claim ongoing, lock funds when claim is ongoing
-    address deployed; //Protocol Pool Address deployed
-    address protocolAddress; //address for the protocol interface to be unique
-    uint8 premiumRate; //Premium rate to pay for this protocol
-    uint8 guarantee; //Protocol guarantee type, could be 0 = smart contract vuln, 1 = unpeg, 2 = rug pull ...
-    bool active; //is Active or paused
-    string name; //Protocol name
-  }
-
   event NewProtocol(uint128);
 
   mapping(uint128 => mapping(uint128 => bool)) public incompatibilityProtocols;
@@ -53,8 +42,6 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   address public aaveAtoken;
   address public atensVault;
 
-  address public arbitrator;
-
   struct AtenDiscount {
     uint256 atenAmount;
     uint128 discount;
@@ -62,7 +49,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
 
   AtenDiscount[] public premiumAtenDiscount;
 
-  uint128 private nextProtocolId;
+  uint128 public nextProtocolId;
 
   constructor(
     address _stablecoinUsed,
@@ -89,7 +76,6 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     address _policyManagerAddress,
     address _aaveAtoken,
     address _protocolFactory,
-    address _arbitrator,
     address _claimManager
   ) external onlyOwner {
     positionsManager = _positionsAddress;
@@ -97,7 +83,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     policyManager = _policyManagerAddress;
     aaveAtoken = _aaveAtoken;
     protocolFactory = _protocolFactory;
-    arbitrator = _arbitrator;
+
     claimManager = _claimManager;
     stakedAtensPo = _stakedAtensPo;
     atensVault = _atensVault;
@@ -105,16 +91,12 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     //initialized = true; //@dev required ?
   }
 
-  function getPolicyManagerAddress() external view returns (address) {
-    return policyManager;
-  }
-
-  function getNextProtocolId() external view returns (uint256) {
-    return nextProtocolId;
-  }
-
-  function getPoolAddressById(uint128 _poolId) external view returns (address) {
-    return protocolsMapping[_poolId].deployed;
+  function getProtocolAddressById(uint128 protocolId)
+    external
+    view
+    returns (address)
+  {
+    return protocolsMapping[protocolId].deployed;
   }
 
   //Thao@WARN: also removing atensLocked !!!
@@ -127,78 +109,85 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     IPolicyManager(policyManager).processExpiredTokens(__expiredTokens);
   }
 
-  function _transferLiquidity(uint256 _amount) internal returns (uint256) {
-    IERC20(stablecoin).safeTransferFrom(msg.sender, address(this), _amount);
-
+  //onlyPositionManager
+  function transferLiquidityToAAVE(uint256 amount) external returns (uint256) {
     address lendingPool = ILendingPoolAddressesProvider(aaveAddressesRegistry)
       .getLendingPool();
 
-    ILendingPool(lendingPool).deposit(stablecoin, _amount, address(this), 0);
+    ILendingPool(lendingPool).deposit(stablecoin, amount, address(this), 0);
 
     return
-      _amount.rayDiv(
+      amount.rayDiv(
         ILendingPool(lendingPool).getReserveNormalizedIncome(stablecoin)
       );
   }
 
   //////Thao@NOTE: LP
+  modifier valideProtocolIds(uint128[] calldata protocolIds) {
+    for (
+      uint256 firstIndex = 0;
+      firstIndex < protocolIds.length;
+      firstIndex++
+    ) {
+      Protocol memory firstProtocol = protocolsMapping[protocolIds[firstIndex]];
+      require(firstProtocol.active == true, "PA");
+
+      for (
+        uint256 secondIndex = firstIndex + 1;
+        secondIndex < protocolIds.length;
+        secondIndex++
+      ) {
+        require(protocolIds[firstIndex] != protocolIds[secondIndex], "DTSP");
+
+        require(
+          incompatibilityProtocols[protocolIds[firstIndex]][
+            protocolIds[secondIndex]
+          ] ==
+            false &&
+            incompatibilityProtocols[protocolIds[secondIndex]][
+              protocolIds[firstIndex]
+            ] ==
+            false,
+          "PC"
+        );
+      }
+    }
+
+    _;
+  }
+
   function deposit(
     uint256 amount,
     uint256 atenToStake,
-    uint128[] calldata _protocolIds
-  ) public payable {
-    require(
-      IPositionsManager(positionsManager).balanceOf(msg.sender) == 0,
-      "Already have a position"
-    );
-
-    for (uint256 index = 0; index < _protocolIds.length; index++) {
-      Protocol memory protocol1 = protocolsMapping[_protocolIds[index]];
-      require(protocol1.active == true, "Protocol not active");
-
-      IProtocolPool protocolPool1 = IProtocolPool(protocol1.deployed);
-      for (uint256 index2 = index + 1; index2 < _protocolIds.length; index2++) {
-        require(
-          _protocolIds[index] != _protocolIds[index2],
-          "Cannot deposit twice on same protocol"
-        );
-
-        require(
-          incompatibilityProtocols[_protocolIds[index2]][_protocolIds[index]] ==
-            false &&
-            incompatibilityProtocols[_protocolIds[index]][
-              _protocolIds[index2]
-            ] ==
-            false,
-          "Protocol not compatible"
-        );
-
-        protocolPool1.addRelatedProtocol(_protocolIds[index2], amount);
-
-        IProtocolPool(protocolsMapping[_protocolIds[index2]].deployed)
-          .addRelatedProtocol(_protocolIds[index], amount);
-      }
-
-      actualizingProtocolAndRemoveExpiredPolicies(protocol1.deployed);
-
-      protocolPool1.deposit(msg.sender, amount);
-      protocolPool1.addRelatedProtocol(_protocolIds[index], amount);
-    }
-
-    uint256 __aaveScaledBalance = _transferLiquidity(amount);
-    uint128 _discount = 0;
-    if (atenToStake > 0) {
-      _stakeAtens(atenToStake, amount);
-      _discount = getDiscountWithAten(atenToStake);
-    }
-
-    IPositionsManager(positionsManager).mint(
+    uint128[] calldata protocolIds
+  ) public payable valideProtocolIds(protocolIds) {
+    // console.log("Athena.deposit:");
+    IERC20(stablecoin).safeTransferFrom(msg.sender, address(this), amount);
+    IPositionsManager(positionsManager).deposit(
       msg.sender,
-      _discount,
       amount,
-      __aaveScaledBalance,
       atenToStake,
-      _protocolIds
+      protocolIds
+    );
+  }
+
+  //Thao@TODO: not finit yet
+  function updatePosition(
+    uint256 tokenId,
+    uint256 addingAmount,
+    uint256 addingAtens
+  ) public {
+    //takeInterest ici ou plus tard ???
+    IERC20(stablecoin).safeTransferFrom(
+      msg.sender,
+      address(this),
+      addingAmount
+    );
+    IPositionsManager(positionsManager).updatePosition(
+      msg.sender,
+      tokenId,
+      addingAmount,
+      addingAtens
     );
   }
 
@@ -484,10 +473,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
       uint256 _atensLocked = _atensLockedArray[i];
       uint128 _protocolId = _protocolIdArray[i];
 
-      require(
-        _amountCovered > 0 && _paidPremium > 0,
-        "Guarante and premium must be greater than 0"
-      );
+      require(_amountCovered > 0 && _paidPremium > 0, "Must be greater than 0");
 
       IERC20(stablecoin).safeTransferFrom(
         msg.sender,
@@ -640,8 +626,12 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   }
 
   //////Thao@NOTE: Protocol
-  function _stakeAtens(uint256 atenToStake, uint256 amount) internal {
-    IStakedAten(stakedAtensGP).stake(msg.sender, atenToStake, amount);
+  function stakeAtens(
+    address account,
+    uint256 atenToStake,
+    uint256 amount
+  ) external {
+    IStakedAten(stakedAtensGP).stake(account, atenToStake, amount);
   }
 
   function withdrawAtens(uint256 atenToWithdraw) external {
@@ -663,12 +653,12 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     // require(atenToWithdraw <= actualAtens, "Not enough Atens to withdraw");
     IStakedAten(stakedAtensGP).withdraw(msg.sender, atenToWithdraw);
     IPositionsManager(positionsManager).update(
-      _discount,
+      tokenId,
       liquidity,
       atokens,
       actualAtens - atenToWithdraw,
-      protocolsId,
-      tokenId
+      _discount,
+      protocolsId
     );
   }
 
@@ -748,10 +738,6 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     protocolsMapping[newProtocolId] = newProtocol;
 
     emit NewProtocol(newProtocolId);
-  }
-
-  function protocolsLength() external view returns (uint256) {
-    return nextProtocolId;
   }
 
   function pauseProtocol(uint128 protocolId, bool pause) external onlyOwner {

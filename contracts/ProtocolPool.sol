@@ -61,7 +61,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
 
   function addRelatedProtocol(uint128 _protocolId, uint256 _amount)
     external
-    onlyCore
+  // onlyCore
   {
     if (intersectingAmountIndexes[_protocolId] == 0 && _protocolId != id) {
       intersectingAmountIndexes[_protocolId] = intersectingAmounts.length;
@@ -89,7 +89,8 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     delete LPsInfo[_account];
   }
 
-  function deposit(address _account, uint256 _amount) external onlyCore {
+  function deposit(address _account, uint256 _amount) external // onlyCore
+  {
     _updateSlot0WhenAvailableCapitalChange(_amount, 0);
     availableCapital += _amount;
     _mint(_account, _amount);

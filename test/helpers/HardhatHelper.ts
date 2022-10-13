@@ -32,7 +32,7 @@ async function reset() {
       {
         forking: {
           jsonRpcUrl: process.env.MAINNET_URL,
-          blockNumber: 14307200,
+          blockNumber: Number(process.env.FORKING_BLOCK || 14307200),
         },
       },
     ],

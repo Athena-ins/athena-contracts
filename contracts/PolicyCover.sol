@@ -81,7 +81,7 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
     uint256[] memory __tokensId = new uint256[](__owners.length);
 
     IPolicyManager policyManager_ = IPolicyManager(
-      IAthena(core).getPolicyManagerAddress()
+      IAthena(core).policyManager()
     );
     for (uint256 i = 0; i < __owners.length; i++) {
       uint256 tokenId = premiumPositions.removeOwner(__owners[i]);
@@ -149,7 +149,7 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
     uint32 _tick
   ) internal view {
     IPolicyManager policyManager_ = IPolicyManager(
-      IAthena(core).getPolicyManagerAddress()
+      IAthena(core).policyManager()
     );
     address[] memory owners = ticks[_tick];
     uint256 __insuredCapitalToRemove;
@@ -459,7 +459,7 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
     require(__slot0.tick <= __position.lastTick, "Policy Expired");
 
     uint256 __beginOwnerEmissionRate = IPolicyManager(
-      IAthena(core).getPolicyManagerAddress()
+      IAthena(core).policyManager()
     ).policy(__position.tokenId).amountCovered.rayMul(
         __position.beginPremiumRate / 100
       ) / 365;
