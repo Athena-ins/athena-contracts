@@ -37,7 +37,10 @@ const config: HardhatUserConfig = {
     hardhat: {
       forking: {
         url: process.env.MAINNET_URL || "",
-        blockNumber: Number(process.env.FORKING_BLOCK || 14307200), // FIX ETH CHAINLINK PRICE TO 3011$
+        blockNumber:
+          process.env.FORKING_BLOCK == undefined
+            ? undefined
+            : Number(process.env.FORKING_BLOCK), // 14307200 FIX ETH CHAINLINK PRICE TO 3011$
       },
       mining: {
         auto: true,
