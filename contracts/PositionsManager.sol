@@ -56,6 +56,28 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
     );
   }
 
+  function allPositionTokensOfOwner(address owner)
+    public
+    view
+    returns (uint256[] memory tokenList)
+  {
+    uint256 tokenLength = balanceOf(owner);
+    tokenList = new uint256[](tokenLength);
+    for (uint256 index = 0; index < tokenLength; index++)
+      tokenList[index] = tokenOfOwnerByIndex(owner, index);
+  }
+
+  function allPositionsOfOwner(address owner)
+    external
+    view
+    returns (Position[] memory positionList)
+  {
+    uint256[] memory tokenList = allPositionTokensOfOwner(owner);
+    positionList = new Position[](tokenList.length);
+    for (uint256 index = 0; index < tokenList.length; index++)
+      positionList[index] = _positions[tokenList[index]];
+  }
+
   function mint(
     address to,
     uint128 _discount,
