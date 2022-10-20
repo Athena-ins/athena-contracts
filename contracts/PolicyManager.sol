@@ -33,6 +33,28 @@ contract PolicyManager is IPolicyManager, ERC721Enumerable {
     return policies[_tokenId];
   }
 
+  function allPolicyTokensOfOwner(address owner)
+    public
+    view
+    returns (uint256[] memory tokenList)
+  {
+    uint256 tokenLength = balanceOf(owner);
+    tokenList = new uint256[](tokenLength);
+    for (uint256 index = 0; index < tokenLength; index++)
+      tokenList[index] = tokenOfOwnerByIndex(owner, index);
+  }
+
+  function allPoliciesOfOwner(address owner)
+    external
+    view
+    returns (Policy[] memory policyList)
+  {
+    uint256[] memory tokenList = allPolicyTokensOfOwner(owner);
+    policyList = new Policy[](tokenList.length);
+    for (uint256 index = 0; index < tokenList.length; index++)
+      policyList[index] = policies[tokenList[index]];
+  }
+
   function mint(
     address _to,
     uint256 _amountCovered,
@@ -54,7 +76,7 @@ contract PolicyManager is IPolicyManager, ERC721Enumerable {
     return nextId - 1;
   }
 
-  function burn(uint256 tokenId) public onlyCore {
+  function burn(uint256 tokenId) public override onlyCore {
     _burn(tokenId);
     delete policies[tokenId];
   }
@@ -96,6 +118,7 @@ contract PolicyManager is IPolicyManager, ERC721Enumerable {
   //Thao@TODO: cette fct doit retourner capitalToRemove
   function processExpiredTokens(uint256[] calldata _expiredTokens)
     external
+    override
     onlyCore
   {
     for (uint256 i = 0; i < _expiredTokens.length; i++) {
