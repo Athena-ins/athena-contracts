@@ -39,7 +39,6 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   address public stakedAtensGP;
   address public stakedAtensPo;
   address public rewardsToken;
-  address public aaveAtoken;
   address public atensVault;
 
   struct AtenDiscount {
@@ -61,6 +60,13 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     aaveAddressesRegistry = _aaveAddressesRegistry;
   }
 
+  function setAAVEAddressesRegistry(address _aaveAddressesRegistry)
+    external
+    onlyOwner
+  {
+    aaveAddressesRegistry = _aaveAddressesRegistry;
+  }
+
   function approveLendingPool() internal {
     IERC20(stablecoin).safeApprove(
       ILendingPoolAddressesProvider(aaveAddressesRegistry).getLendingPool(),
@@ -74,14 +80,12 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     address _stakedAtensPo,
     address _atensVault,
     address _policyManagerAddress,
-    address _aaveAtoken,
     address _protocolFactory,
     address _claimManager
   ) external onlyOwner {
     positionsManager = _positionsAddress;
     stakedAtensGP = _stakedAtensGP;
     policyManager = _policyManagerAddress;
-    aaveAtoken = _aaveAtoken;
     protocolFactory = _protocolFactory;
 
     claimManager = _claimManager;

@@ -147,7 +147,6 @@ async function initializeProtocol() {
     STAKED_ATENS_POLICY_CONTRACT.address,
     VAULT_ATENS_CONTRACT.address,
     POLICY_MANAGER_CONTRACT.address,
-    HardhatHelper.USDT_AAVE_ATOKEN,
     FACTORY_PROTOCOL_CONTRACT.address,
     CLAIM_MANAGER_CONTRACT.address
   );
