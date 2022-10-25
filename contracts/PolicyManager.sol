@@ -2,7 +2,10 @@
 pragma solidity ^0.8;
 
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
+
 import "./interfaces/IPolicyManager.sol";
+import "./interfaces/IAthena.sol";
+import "./interfaces/IProtocolPool.sol";
 
 contract PolicyManager is IPolicyManager, ERC721Enumerable {
   address private core;
@@ -141,5 +144,41 @@ contract PolicyManager is IPolicyManager, ERC721Enumerable {
     returns (ExpiredPolicy[] memory)
   {
     return expiredPolicies[account];
+  }
+
+  struct OngoingCoveragePolicy {
+    uint256 amountInsured;
+    uint256 premiumLocked;
+    uint256 premiumLeft;
+    uint256 dailyCost;
+    uint256 estDuration;
+  }
+
+  function getOngoingCoveragePolicies(address account)
+    public
+    view
+    returns (OngoingCoveragePolicy[] memory ongoingCoverages)
+  {
+    uint256[] memory _tokens = allPolicyTokensOfOwner(account);
+    ongoingCoverages = new OngoingCoveragePolicy[](_tokens.length);
+    for (uint256 i = 0; i < _tokens.length; i++) {
+      Policy memory _policy = policy(_tokens[i]);
+      address protocolAddress = IAthena(core).getProtocolAddressById(
+        _policy.protocolId
+      );
+      (
+        uint256 _premiumLeft,
+        uint256 _dailyCost,
+        uint256 _estDuration
+      ) = IProtocolPool(protocolAddress).getInfo(account);
+
+      ongoingCoverages[i] = OngoingCoveragePolicy({
+        amountInsured: _policy.amountCovered,
+        premiumLocked: _policy.paidPremium,
+        premiumLeft: _premiumLeft,
+        dailyCost: _dailyCost,
+        estDuration: _estDuration
+      });
+    }
   }
 }

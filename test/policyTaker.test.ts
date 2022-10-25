@@ -119,7 +119,8 @@ describe("Buy policy", () => {
       );
 
       expect(response.__remainingPremium).to.be.equal(2190);
-      expect(response.__remainingDay).to.be.equal(365);
+      expect(response.__currentEmissionRate).to.be.equal(6);
+      expect(response.__remainingSeconds).to.be.equal(365 * 24 * 60 * 60);
     });
 
     it("Should check slot0 in protocol 0", async () => {
@@ -242,8 +243,9 @@ describe("Buy policy", () => {
       );
 
       expect(response.__remainingPremium).to.be.equal("8760");
+      expect(response.__currentEmissionRate).to.be.equal("24");
       //remainingDay == 428 and not 365 because of expired policy of PT1
-      expect(response.__remainingDay).to.be.equal("427");
+      expect(response.__remainingSeconds).to.be.equal("36936000");
     });
 
     it("Should check slot0 in protocol 0", async () => {
@@ -313,7 +315,8 @@ describe("Buy policy", () => {
       );
 
       expect(response.__remainingPremium).to.be.equal(2130);
-      expect(response.__remainingDay).to.be.equal(177);
+      expect(response.__currentEmissionRate).to.be.equal(12);
+      expect(response.__remainingSeconds).to.be.equal(15336000);
     });
   });
 });

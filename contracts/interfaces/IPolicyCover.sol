@@ -29,5 +29,9 @@ interface IPolicyCover {
   function getInfo(address owner)
     external
     view
-    returns (uint256 remainingPremium, uint256 remainingDay);
+    returns (
+      uint256 remainingPremium,
+      uint256 currentEmissionRate,
+      uint256 remainingDay
+    );
 }

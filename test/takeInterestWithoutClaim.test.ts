@@ -524,7 +524,8 @@ describe("Liquidity provider takeInterest", () => {
       );
 
       expect(response.__remainingPremium).to.be.equal(2085);
-      expect(response.__remainingDay).to.be.equal(231);
+      expect(response.__currentEmissionRate).to.be.equal(9);
+      expect(response.__remainingSeconds).to.be.equal(20016000);
     });
 
     it("Should check policy2 initial info", async () => {
@@ -554,7 +555,8 @@ describe("Liquidity provider takeInterest", () => {
       );
 
       expect(response.__remainingPremium).to.be.equal(4365);
-      expect(response.__remainingDay).to.be.equal(611);
+      expect(response.__currentEmissionRate).to.be.equal(9);
+      expect(response.__remainingSeconds).to.be.equal(52848000);
     });
 
     it("Should check LP1's info", async () => {

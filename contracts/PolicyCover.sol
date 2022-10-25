@@ -450,7 +450,11 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
     public
     view
     existedOwner(_owner)
-    returns (uint256 __remainingPremium, uint256 __remainingDay)
+    returns (
+      uint256 __remainingPremium,
+      uint256 __currentEmissionRate,
+      uint256 __remainingSeconds
+    )
   {
     uint256 __availableCapital = availableCapital;
     (Slot0 memory __slot0, ) = _actualizingUntil(block.timestamp);
@@ -468,13 +472,13 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
       _utilisationRate(0, 0, __slot0.totalInsuredCapital, __availableCapital)
     );
 
-    uint256 __currentOwnerEmissionRate = getEmissionRate(
+    __currentEmissionRate = getEmissionRate(
       __beginOwnerEmissionRate,
       __position.beginPremiumRate,
       __currentPremiumRate
     );
 
-    uint256 __remainingSeconds;
+    uint256 __currentOwnerEmissionRate = __currentEmissionRate;
 
     while (__slot0.tick < __position.lastTick) {
       (uint32 __tickNext, bool __initialized) = tickBitmap
@@ -513,8 +517,6 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
         );
       }
     }
-
-    __remainingDay = __remainingSeconds / 86400;
   }
 
   function getCurrentPremiumRate() public view returns (uint256) {

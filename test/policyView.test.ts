@@ -170,7 +170,8 @@ describe("View policy", () => {
       );
 
       expect(response.__remainingPremium).to.be.equal("2130");
-      expect(response.__remainingDay).to.be.equal("177");
+      expect(response.__currentEmissionRate).to.be.equal("12");
+      expect(response.__remainingSeconds).to.be.equal("15336000");
     });
   });
 
