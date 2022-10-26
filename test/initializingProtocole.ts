@@ -10,7 +10,15 @@ async function initProtocol(poolNumber: number) {
 
   await ProtocolHelper.deployAllContractsAndInitializeProtocol(owner);
   console.log("Athena:", ProtocolHelper.getAthenaContract().address);
-  console.log("Athena view:", ProtocolHelper.getAthenaViewContract().address);
+  console.log("Athena View:", ProtocolHelper.getAthenaViewContract().address);
+  console.log(
+    "Position Manager",
+    ProtocolHelper.getPositionManagerContract().address
+  );
+  console.log(
+    "Policy Manager",
+    ProtocolHelper.getPolicyManagerContract().address
+  );
 
   for (let i = 0; i < poolNumber; i++)
     await ProtocolHelper.addNewProtocolPool(`Pool ${i}`);
@@ -23,14 +31,14 @@ async function deposit() {
   await HardhatHelper.initSigners();
   const allSigners = await HardhatHelper.allSigners();
 
-  const usdtBillion = allSigners[301];
-  await HardhatHelper.USDT_transfer(
-    await usdtBillion.getAddress(),
-    ethers.utils.parseUnits("100000000", 6)
-  );
-  console.log("USDT billion:", await usdtBillion.getAddress());
+  // const usdtBillion = allSigners[10];
+  // await HardhatHelper.USDT_transfer(
+  //   await usdtBillion.getAddress(),
+  //   ethers.utils.parseUnits("100000000", 6)
+  // );
+  // console.log("USDT billion:", await usdtBillion.getAddress());
 
-  let liquidityProvider1 = allSigners[1];
+  let liquidityProvider1 = allSigners[20];
   console.log("liquidity provider:", await liquidityProvider1.getAddress());
 
   const USDT_amount = "365000";
@@ -60,19 +68,16 @@ async function deposit() {
 
   await ProtocolHelper.getAthenaContract()
     .connect(liquidityProvider1)
-    .deposit(
-      ethers.utils.parseUnits(USDT_amount, 6),
-      ATEN_amount,
-      [0, 2, 5, 7, 1]
-    );
+    .deposit(ethers.utils.parseUnits(USDT_amount, 6), ATEN_amount, [0, 2, 5]);
 
   console.log("Fin deposit");
 }
 
 async function buyPolicies() {
   await HardhatHelper.initSigners();
+  console.log("line 82");
   const allSigners = await HardhatHelper.allSigners();
-  let policyTaker1 = allSigners[101];
+  let policyTaker1 = allSigners[30];
   console.log("policy taker:", await policyTaker1.getAddress());
 
   await HardhatHelper.USDT_maxApprove(
