@@ -527,6 +527,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
 
     policyManager_.saveExpiredPolicy(
       msg.sender,
+      _policyId,
       policy_,
       policy_.paidPremium - remainedPremium_,
       true

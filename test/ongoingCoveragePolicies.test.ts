@@ -12,6 +12,7 @@ let liquidityProvider1: ethers.Signer;
 let liquidityProvider2: ethers.Signer;
 let policyTaker1: ethers.Signer;
 let policyTaker2: ethers.Signer;
+let policyTaker3: ethers.Signer;
 
 describe("Ongoing coverage policies", () => {
   before(async () => {
@@ -22,6 +23,7 @@ describe("Ongoing coverage policies", () => {
     liquidityProvider2 = allSigners[2];
     policyTaker1 = allSigners[100];
     policyTaker2 = allSigners[101];
+    policyTaker3 = allSigners[102];
 
     await ProtocolHelper.deployAllContractsAndInitializeProtocol(owner);
     await ProtocolHelper.addNewProtocolPool("Test protocol 0");
@@ -65,6 +67,20 @@ describe("Ongoing coverage policies", () => {
       20 * 24 * 60 * 60
     );
 
+    await HardhatHelper.USDT_maxApprove(
+      policyTaker3,
+      ProtocolHelper.getAthenaContract().address
+    );
+
+    await ProtocolHelper.buyPolicy(
+      policyTaker3,
+      capital1,
+      premium1,
+      atensLocked1,
+      0,
+      1 * 24 * 60 * 60
+    );
+
     const capital2 = "219000";
     const premium2 = "8760";
     const atensLocked2 = "0";
@@ -86,15 +102,86 @@ describe("Ongoing coverage policies", () => {
 
     console.log(result);
     expect(result.length).to.be.equals(2);
-    expect(result[0].amountInsured).to.be.equals(109500);
-    expect(result[0].premiumLocked).to.be.equals(2190);
-    expect(result[0].premiumLeft).to.be.equals(2130);
-    expect(result[0].dailyCost).to.be.equals(6);
-    expect(result[0].estDuration).to.be.equals(30672000);
-    expect(result[1].amountInsured).to.be.equals(219000);
-    expect(result[1].premiumLocked).to.be.equals(8760);
-    expect(result[1].premiumLeft).to.be.equals(8760);
+    expect(result[0].policyId).to.be.equals(0);
+    expect(result[0].amountCovered).to.be.equals(109500);
+    expect(result[0].paidPremium).to.be.equals(2190);
+    expect(result[0].remainingPremium).to.be.equals(2094);
+    expect(result[0].dailyCost).to.be.equals(9);
+    expect(result[0].atensLocked).to.be.equals(0);
+    expect(result[0].beginCoveredTime).to.be.equals(1648120800);
+    expect(result[0].remainingDuration).to.be.equals(20102400);
+    expect(result[0].protocolId).to.be.equals(0);
+
+    expect(result[1].policyId).to.be.equals(2);
+    expect(result[1].amountCovered).to.be.equals(219000);
+    expect(result[1].paidPremium).to.be.equals(8760);
+    expect(result[1].remainingPremium).to.be.equals(8760);
     expect(result[1].dailyCost).to.be.equals(18);
-    expect(result[1].estDuration).to.be.equals(42048000);
+    expect(result[1].atensLocked).to.be.equals(0);
+    expect(result[1].beginCoveredTime).to.be.equals(1649071200);
+    expect(result[1].remainingDuration).to.be.equals(42048000);
+    expect(result[1].protocolId).to.be.equals(2);
+  });
+
+  it("Should call PolicyManager.getOngoingCoveragePolicies for PT1 after expireing of token 0", async () => {
+    await HardhatHelper.USDT_maxApprove(
+      policyTaker2,
+      ProtocolHelper.getAthenaContract().address
+    );
+
+    console.log("pass aprove");
+
+    await HardhatHelper.setNextBlockTimestamp(400 * 24 * 60 * 60);
+
+    const capital2 = "219000";
+    const premium2 = "8760";
+    const atensLocked2 = "0";
+
+    await ProtocolHelper.buyPolicy(
+      policyTaker2,
+      capital2,
+      premium2,
+      atensLocked2,
+      0,
+      10 * 24 * 60 * 60
+    );
+
+    await ProtocolHelper.buyPolicy(
+      policyTaker2,
+      capital2,
+      premium2,
+      atensLocked2,
+      2,
+      10 * 24 * 60 * 60
+    );
+
+    const result =
+      await ProtocolHelper.getPolicyManagerContract().getOngoingCoveragePolicies(
+        policyTaker1.getAddress()
+      );
+
+    // console.log(result);
+
+    expect(result.length).to.be.equals(1);
+    expect(result[0].policyId).to.be.equals(2);
+    expect(result[0].protocolId).to.be.equals(2);
+
+    const result1 =
+      await ProtocolHelper.getPolicyManagerContract().getExpiredPolicies(
+        policyTaker1.getAddress()
+      );
+
+    // console.log("expired:\n", result1);
+    expect(result1.length).to.be.equals(1);
+    expect(result1[0].policyId).to.be.equals(0);
+    expect(result1[0].protocolId).to.be.equals(0);
+
+    const result2 =
+      await ProtocolHelper.getPolicyManagerContract().allPolicyTokensOfOwner(
+        policyTaker1.getAddress()
+      );
+
+    console.log(result2);
+    expect(result2.length).to.be.equals(1);
   });
 });

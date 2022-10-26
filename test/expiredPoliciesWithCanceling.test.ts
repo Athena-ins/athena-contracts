@@ -243,10 +243,13 @@ describe("expired policies", () => {
 
       expect(expiredPolicies.length).to.be.equal(2);
 
+      expect(expiredPolicies[0].policyId).to.be.equal(2);
       expect(expiredPolicies[0].protocolId).to.be.equal(0);
-      expect(expiredPolicies[0].isCanceled).to.be.equal(true);
+      expect(expiredPolicies[0].isCancelled).to.be.equal(true);
+
+      expect(expiredPolicies[1].policyId).to.be.equal(3);
       expect(expiredPolicies[1].protocolId).to.be.equal(3);
-      expect(expiredPolicies[1].isCanceled).to.be.equal(false);
+      expect(expiredPolicies[1].isCancelled).to.be.equal(false);
     });
 
     it("Should get expired policies for policyTaker2", async () => {

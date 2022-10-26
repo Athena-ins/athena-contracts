@@ -86,12 +86,14 @@ contract PolicyManager is IPolicyManager, ERC721Enumerable {
 
   function saveExpiredPolicy(
     address _owner,
+    uint256 _policyId,
     Policy memory _policy,
     uint256 _actualFees,
     bool _isCanceled
   ) public override onlyCore {
     expiredPolicies[_owner].push(
       ExpiredPolicy({
+        policyId: _policyId,
         amountCovered: _policy.amountCovered,
         paidPremium: _policy.paidPremium,
         actualFees: _actualFees,
@@ -99,7 +101,7 @@ contract PolicyManager is IPolicyManager, ERC721Enumerable {
         beginCoveredTime: _policy.beginCoveredTime,
         endCoveredTime: block.timestamp, //ce n'est pas bon
         protocolId: _policy.protocolId,
-        isCanceled: _isCanceled
+        isCancelled: _isCanceled
       })
     );
   }
@@ -129,6 +131,7 @@ contract PolicyManager is IPolicyManager, ERC721Enumerable {
 
       saveExpiredPolicy(
         ownerOf(_expiredTokens[i]),
+        _expiredTokens[i],
         policy_,
         policy_.paidPremium,
         false
@@ -144,14 +147,6 @@ contract PolicyManager is IPolicyManager, ERC721Enumerable {
     returns (ExpiredPolicy[] memory)
   {
     return expiredPolicies[account];
-  }
-
-  struct OngoingCoveragePolicy {
-    uint256 amountInsured;
-    uint256 premiumLocked;
-    uint256 premiumLeft;
-    uint256 dailyCost;
-    uint256 estDuration;
   }
 
   function getOngoingCoveragePolicies(address account)
@@ -173,11 +168,15 @@ contract PolicyManager is IPolicyManager, ERC721Enumerable {
       ) = IProtocolPool(protocolAddress).getInfo(account);
 
       ongoingCoverages[i] = OngoingCoveragePolicy({
-        amountInsured: _policy.amountCovered,
-        premiumLocked: _policy.paidPremium,
-        premiumLeft: _premiumLeft,
+        policyId: _tokens[i],
+        amountCovered: _policy.amountCovered,
+        paidPremium: _policy.paidPremium,
+        remainingPremium: _premiumLeft,
+        atensLocked: _policy.atensLocked,
         dailyCost: _dailyCost,
-        estDuration: _estDuration
+        beginCoveredTime: _policy.beginCoveredTime,
+        remainingDuration: _estDuration,
+        protocolId: _policy.protocolId
       });
     }
   }
