@@ -36,21 +36,22 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
     return _positions[tokenId];
   }
 
+  //TODO: to remove, use only position function
   function positions(uint256 tokenId)
     external
     view
     override
     returns (
       uint256 liquidity,
-      uint128[] memory protocolsId,
+      uint128[] memory protocolIds,
       uint256 aaveScaledBalance,
       uint128 discount
     )
   {
     Position memory __position = _positions[tokenId];
     return (
-      __position.providedLiquidity,
-      __position.protocolsId,
+      __position.amountSupplied,
+      __position.protocolIds,
       __position.aaveScaledBalance,
       __position.discount
     );
@@ -84,14 +85,15 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
     uint256 amount,
     uint256 _aaveScaledBalance,
     uint256 atenStake,
-    uint128[] calldata _protocolsIds
+    uint128[] calldata _protocolIds
   ) external override onlyCore {
     _positions[_nextId] = Position({
+      createdAt: block.timestamp,
       owner: to,
-      providedLiquidity: amount,
+      amountSupplied: amount,
       aaveScaledBalance: _aaveScaledBalance,
       discount: _discount,
-      protocolsId: _protocolsIds,
+      protocolIds: _protocolIds,
       atens: atenStake
     });
 
@@ -110,13 +112,13 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
     uint256 _aaveScaledBalance,
     uint256 atenStake,
     uint128 _discount,
-    uint128[] calldata _protocolsIds
+    uint128[] calldata _protocolIds
   ) external override onlyCore {
-    _positions[tokenId].providedLiquidity = amount;
+    _positions[tokenId].amountSupplied = amount;
     _positions[tokenId].aaveScaledBalance = _aaveScaledBalance;
     _positions[tokenId].atens = atenStake;
     _positions[tokenId].discount = _discount;
-    _positions[tokenId].protocolsId = _protocolsIds;
+    _positions[tokenId].protocolIds = _protocolIds;
   }
 
   function updateUserCapital(
@@ -124,7 +126,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
     uint256 _amount,
     uint256 _aaveScaledBalanceToRemove
   ) external override onlyCore {
-    _positions[tokenId].providedLiquidity = _amount;
+    _positions[tokenId].amountSupplied = _amount;
     _positions[tokenId].aaveScaledBalance -= _aaveScaledBalanceToRemove;
   }
 
@@ -133,17 +135,17 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
     override
     onlyCore
   {
-    uint128[] memory __protocolsId = _positions[tokenId].protocolsId;
+    uint128[] memory __protocolIds = _positions[tokenId].protocolIds;
 
-    for (uint256 i = 0; i < __protocolsId.length; i++) {
-      if (__protocolsId[i] == _protocolId) {
-        __protocolsId[i] = __protocolsId[__protocolsId.length - 1];
-        delete __protocolsId[__protocolsId.length - 1];
+    for (uint256 i = 0; i < __protocolIds.length; i++) {
+      if (__protocolIds[i] == _protocolId) {
+        __protocolIds[i] = __protocolIds[__protocolIds.length - 1];
+        delete __protocolIds[__protocolIds.length - 1];
         break;
       }
     }
 
-    _positions[tokenId].protocolsId = __protocolsId;
+    _positions[tokenId].protocolIds = __protocolIds;
   }
 
   function hasPositionOf(address to) external view override returns (bool) {
@@ -197,10 +199,11 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
 
     _positions[_nextId] = Position({
       owner: account,
-      providedLiquidity: amount,
+      createdAt: block.timestamp,
+      amountSupplied: amount,
       aaveScaledBalance: __aaveScaledBalance,
       discount: _discount,
-      protocolsId: protocolIds,
+      protocolIds: protocolIds,
       atens: atenToStake
     });
 
@@ -208,6 +211,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
     _nextId++;
   }
 
+  /*
   //Thao@TODO: to complet
   function updatePosition(
     address account,
@@ -279,12 +283,12 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
       _core.stakeAtens(account, addingAtens, addingAmount);
     }
   }
+*/
 
-  function isProtocolInList(uint128 _protocolId, uint128[] memory _protocolList)
-    private
-    pure
-    returns (bool)
-  {
+  function isProtocolInCoverList(
+    uint128 _protocolId,
+    uint128[] memory _protocolList
+  ) private pure returns (bool) {
     for (uint256 i = 0; i < _protocolList.length; i++) {
       if (_protocolId == _protocolList[i]) return true;
     }
@@ -303,7 +307,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
     Position memory _position = _positions[_tokenId];
 
     require(
-      isProtocolInList(protocolId, _position.protocolsId),
+      isProtocolInCoverList(protocolId, _position.protocolIds),
       "Not in deposit protocol list"
     );
 
@@ -316,13 +320,13 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
       uint256 _aaveScaledBalanceToRemove
     ) = IProtocolPool(protocolAddress).takeInterest(
         account,
-        _position.providedLiquidity,
-        _position.protocolsId,
+        _position.amountSupplied,
+        _position.protocolIds,
         _position.discount
       );
 
-    if (_position.providedLiquidity != _newUserCapital) {
-      _positions[_tokenId].providedLiquidity = _newUserCapital;
+    if (_position.amountSupplied != _newUserCapital) {
+      _positions[_tokenId].amountSupplied = _newUserCapital;
       _positions[_tokenId].aaveScaledBalance -= _aaveScaledBalanceToRemove;
     }
   }

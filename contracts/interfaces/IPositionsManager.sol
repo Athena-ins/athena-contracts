@@ -6,19 +6,23 @@ import "@openzeppelin/contracts/token/ERC721/extensions/IERC721Enumerable.sol";
 interface IPositionsManager is IERC721Enumerable {
   struct Position {
     address owner;
-    uint256 providedLiquidity;
-    //AAVE scaled balance to redeem
+    uint256 createdAt;
+    uint256 amountSupplied;
     uint256 aaveScaledBalance;
-    //Aten to stake with position in stable
     uint256 atens;
     uint128 discount;
-    // alternative would be mapping id to protocol data
-    // like amount for Protocol, ...
-    uint128[] protocolsId;
+    uint128[] protocolIds;
+  }
+
+  struct PositionInfo {
+    uint256 positionId;
+    uint256 premiumReceived;
+    Position base;
   }
 
   function position(uint256 tokenId) external view returns (Position memory);
 
+  //TODO: to remove, use only position function
   function positions(uint256 tokenId)
     external
     view
@@ -66,12 +70,12 @@ interface IPositionsManager is IERC721Enumerable {
     uint128[] calldata protocolIds
   ) external;
 
-  function updatePosition(
-    address account,
-    uint256 tokenId,
-    uint256 addingAmount,
-    uint256 addingAtens
-  ) external;
+  // function updatePosition(
+  //   address account,
+  //   uint256 tokenId,
+  //   uint256 addingAmount,
+  //   uint256 addingAtens
+  // ) external;
 
   function takeInterest(
     address account,

@@ -86,7 +86,7 @@ describe("Liquidity provider withdraw", () => {
       );
     });
 
-    it(`Should commit withdraw for LP1 after 1 days of PT2 bought his policy in protocol0 and withdraw liquidity after 14 days of committing`, async () => {
+    it.skip(`Should commit withdraw for LP1 after 1 days of PT2 bought his policy in protocol0 and withdraw liquidity after 14 days of committing`, async () => {
       await HardhatHelper.setNextBlockTimestamp(1 * 24 * 60 * 60);
 
       const commit_tx = await ProtocolHelper.getAthenaContract()
@@ -135,7 +135,7 @@ describe("Liquidity provider withdraw", () => {
       expect(premiumRate).to.be.equal("5000000000000000000000000000");
     });
 
-    it("Should call takeInterest for LP2 after 10 day that LP1 withdrawed his capital", async () => {
+    it.skip("Should call takeInterest for LP2 after 10 day that LP1 withdrawed his capital", async () => {
       const protocolContract = await ProtocolHelper.getProtocolPoolContract(
         liquidityProvider2,
         0

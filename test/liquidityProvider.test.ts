@@ -129,7 +129,7 @@ describe("Liquidity provider deposit", () => {
 
         const position = await POSITIONS_MANAGER_CONTRACT.positions(0);
         expect(position.liquidity).to.equal(bn(USDT_amount));
-        expect(position.protocolsId).to.deep.equal([bn(0), bn(2)]);
+        expect(position.protocolIds).to.deep.equal([bn(0), bn(2)]);
 
         // we check AAVE aToken balance
         atokenBalance = atokenBalance.add(USDT_amount);
@@ -273,7 +273,7 @@ describe("Liquidity provider deposit", () => {
 
         const position = await POSITIONS_MANAGER_CONTRACT.positions(1);
         expect(position.liquidity).to.equal(bn(USDT_amount));
-        expect(position.protocolsId).to.deep.equal([bn(0), bn(1), bn(2)]);
+        expect(position.protocolIds).to.deep.equal([bn(0), bn(1), bn(2)]);
 
         // we check AAVE aToken balance
         atokenBalance = atokenBalance.add(USDT_amount);

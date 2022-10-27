@@ -181,6 +181,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     );
   }
 
+  /*
   //Thao@TODO: not finit yet
   function updatePosition(
     uint256 tokenId,
@@ -200,11 +201,13 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
       addingAtens
     );
   }
+*/
 
   function takeInterest(uint128 protocolId) public {
     IPositionsManager(positionsManager).takeInterest(msg.sender, 0, protocolId);
   }
 
+  /*
   //Thao@Question: we need this function ?
   function committingWithdrawInOneProtocol(uint128 _protocolId) external {
     IPositionsManager __positionsManager = IPositionsManager(positionsManager);
@@ -223,7 +226,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     // require(
     //   isProtocolInList(_protocolId, __protocolIds),
     //   "Not in protocol list"
-    // );
+    // );//isProtocolInList is moved into PositionManager
 
     require(
       protocolsMapping[_protocolId].claimsOngoing == 0,
@@ -233,7 +236,9 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     IProtocolPool(protocolsMapping[_protocolId].deployed)
       .committingWithdrawLiquidity(msg.sender);
   }
+*/
 
+  /*
   //Thao@Question: we need this function ?
   function withdrawLiquidityInOneProtocol(uint128 _protocolId) external {
     IProtocolPool __protocol = IProtocolPool(
@@ -295,6 +300,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
 
     //Thao@TODO: Event
   }
+*/
 
   function committingWithdrawAll() external {
     require(
