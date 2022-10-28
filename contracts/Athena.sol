@@ -549,6 +549,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     IStakedAten(stakedAtensGP).stake(account, atenToStake, amount);
   }
 
+  /*
   function withdrawAtens(uint256 atenToWithdraw) external {
     //@dev TODO check if multiple NFT positions
     uint256 tokenId = IPositionsManager(positionsManager).tokenOfOwnerByIndex(
@@ -573,7 +574,9 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
       __position.protocolIds
     );
   }
+*/
 
+  /*
   function withdrawAtensPolicy(uint256 _atenToWithdraw, uint128 _index)
     external
   {
@@ -589,7 +592,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
       //IERC20(rewardsToken).transferFrom(atensVault, msg.sender, __rewards);
     }
   }
-
+*/
   function setDiscountWithAten(AtenDiscount[] calldata _discountToSet)
     public
     onlyOwner
