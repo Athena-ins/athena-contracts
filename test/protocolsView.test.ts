@@ -88,9 +88,9 @@ describe("Protocols view", () => {
   });
 
   it("Should call Athena.linearProtocolsView(beginId = 0, numberOfProtocols = 3)", async () => {
-    const result = await ProtocolHelper.getAthenaViewContract()
+    const result = await ProtocolHelper.getAthenaContract()
       .connect(owner)
-      .linearProtocolsView(0, 3);
+      .getProtocols([0, 1, 2]);
 
     expect(result.length).to.be.equal(3);
 
@@ -124,9 +124,9 @@ describe("Protocols view", () => {
   });
 
   it("Should call Athena.linearProtocolsView(beginId = 23, numberOfProtocols = 2)", async () => {
-    const result = await ProtocolHelper.getAthenaViewContract()
+    const result = await ProtocolHelper.getAthenaContract()
       .connect(owner)
-      .linearProtocolsView(23, 2);
+      .getProtocols([23, 24]);
 
     expect(result.length).to.be.equal(2);
 
@@ -147,78 +147,10 @@ describe("Protocols view", () => {
     expect(result[1].premiumRate).to.be.equal("1000000000000000000000000000");
   });
 
-  it("Should call Athena.linearProtocolsView(beginId = 99, numberOfProtocols = 10)", async () => {
-    const result = await ProtocolHelper.getAthenaViewContract()
-      .connect(owner)
-      .linearProtocolsView(99, 10);
-
-    expect(result.length).to.be.equal(1);
-
-    expect(result[0].symbol).to.be.equal("APP_99");
-    expect(result[0].name).to.be.equal("Test protocol 99");
-    expect(result[0].protocolId).to.be.equal(99);
-    expect(result[0].totalCouvrageValue).to.be.equal(0);
-    expect(result[0].availableCapacity).to.be.equal(0);
-    expect(result[0].utilizationRate).to.be.equal("0");
-    expect(result[0].premiumRate).to.be.equal("1000000000000000000000000000");
-  });
-
-  it("Should call Athena.linearProtocolsView(beginId = 100, numberOfProtocols = 10)", async () => {
-    await expect(
-      ProtocolHelper.getAthenaViewContract()
-        .connect(owner)
-        .linearProtocolsView(100, 10)
-    ).to.be.revertedWith("begin Id is not exist");
-  });
-
-  it("Should call Athena.linearProtocolsView(beginId = 101, numberOfProtocols = 10)", async () => {
-    await expect(
-      ProtocolHelper.getAthenaViewContract()
-        .connect(owner)
-        .linearProtocolsView(100, 10)
-    ).to.be.revertedWith("begin Id is not exist");
-  });
-
-  it("Should call Athena.protocolsView([0, 1, 2])", async () => {
-    const result = await ProtocolHelper.getAthenaViewContract()
-      .connect(owner)
-      .protocolsView([0, 1, 2]);
-
-    expect(result.length).to.be.equal(3);
-
-    expect(result[0].symbol).to.be.equal("APP_0");
-    expect(result[0].name).to.be.equal("Test protocol 0");
-    expect(result[0].protocolId).to.be.equal(0);
-    expect(result[0].totalCouvrageValue).to.be.equal(109500);
-    expect(result[0].availableCapacity).to.be.equal(620500);
-    expect(result[0].utilizationRate).to.be.equal(
-      "15000000000000000000000000000"
-    );
-    expect(result[0].premiumRate).to.be.equal("2000000000000000000000000000");
-
-    expect(result[1].symbol).to.be.equal("APP_1");
-    expect(result[1].name).to.be.equal("Test protocol 1");
-    expect(result[1].protocolId).to.be.equal(1);
-    expect(result[1].totalCouvrageValue).to.be.equal(0);
-    expect(result[1].availableCapacity).to.be.equal(0);
-    expect(result[1].utilizationRate).to.be.equal("0");
-    expect(result[1].premiumRate).to.be.equal("1000000000000000000000000000");
-
-    expect(result[2].symbol).to.be.equal("APP_2");
-    expect(result[2].name).to.be.equal("Test protocol 2");
-    expect(result[2].protocolId).to.be.equal(2);
-    expect(result[2].totalCouvrageValue).to.be.equal(219000);
-    expect(result[2].availableCapacity).to.be.equal(511000);
-    expect(result[2].utilizationRate).to.be.equal(
-      "30000000000000000000000000000"
-    );
-    expect(result[2].premiumRate).to.be.equal("3000000000000000000000000000");
-  });
-
   it("Should call Athena.protocolsView([2, 37, 90, 85])", async () => {
-    const result = await ProtocolHelper.getAthenaViewContract()
+    const result = await ProtocolHelper.getAthenaContract()
       .connect(owner)
-      .protocolsView([2, 37, 90, 85]);
+      .getProtocols([2, 37, 90, 85]);
 
     expect(result.length).to.be.equal(4);
 
@@ -255,13 +187,5 @@ describe("Protocols view", () => {
     expect(result[3].availableCapacity).to.be.equal(0);
     expect(result[3].utilizationRate).to.be.equal("0");
     expect(result[3].premiumRate).to.be.equal("1000000000000000000000000000");
-  });
-
-  it("Should call Athena.protocolsView([2, 100, 90, 85]) and reverted", async () => {
-    await expect(
-      ProtocolHelper.getAthenaViewContract()
-        .connect(owner)
-        .protocolsView([2, 100, 90, 85])
-    ).to.be.reverted;
   });
 });

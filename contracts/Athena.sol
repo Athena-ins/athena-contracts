@@ -665,4 +665,43 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   function pauseProtocol(uint128 protocolId, bool pause) external onlyOwner {
     protocolsMapping[protocolId].active = pause;
   }
+
+  struct ProtocolView {
+    string symbol;
+    string name;
+    uint128 protocolId;
+    uint256 totalCouvrageValue;
+    uint256 availableCapacity;
+    uint256 utilizationRate;
+    uint256 premiumRate;
+  }
+
+  function getProtocols(uint128[] calldata protocolIds)
+    external
+    view
+    returns (ProtocolView[] memory protocols)
+  {
+    protocols = new ProtocolView[](protocolIds.length);
+    for (uint128 i = 0; i < protocolIds.length; i++) {
+      (
+        string memory symbol,
+        string memory name,
+        uint256 totalCouvrageValue,
+        uint256 availableCapacity,
+        uint256 utilizationRate,
+        uint256 premiumRate
+      ) = IProtocolPool(protocolsMapping[protocolIds[i]].deployed)
+          .protocolInfo();
+
+      protocols[i] = ProtocolView(
+        symbol,
+        name,
+        protocolIds[i],
+        totalCouvrageValue,
+        availableCapacity,
+        utilizationRate,
+        premiumRate
+      );
+    }
+  }
 }
