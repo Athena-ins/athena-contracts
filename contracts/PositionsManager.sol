@@ -36,27 +36,6 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
     return _positions[tokenId];
   }
 
-  //TODO: to remove, use only position function
-  function positions(uint256 tokenId)
-    external
-    view
-    override
-    returns (
-      uint256 liquidity,
-      uint128[] memory protocolIds,
-      uint256 aaveScaledBalance,
-      uint128 discount
-    )
-  {
-    Position memory __position = _positions[tokenId];
-    return (
-      __position.amountSupplied,
-      __position.protocolIds,
-      __position.aaveScaledBalance,
-      __position.discount
-    );
-  }
-
   function allPositionTokensOfOwner(address owner)
     public
     view
@@ -68,6 +47,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
       tokenList[index] = tokenOfOwnerByIndex(owner, index);
   }
 
+  //TODO: change return to PositionInfo
   function allPositionsOfOwner(address owner)
     external
     view

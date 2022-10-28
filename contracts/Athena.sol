@@ -313,11 +313,12 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
       0
     );
 
-    (, uint128[] memory _protocolIds, , ) = IPositionsManager(positionsManager)
-      .positions(_tokenId);
+    IPositionsManager.Position memory __position = IPositionsManager(
+      positionsManager
+    ).position(_tokenId);
 
-    for (uint256 index = 0; index < _protocolIds.length; index++)
-      IProtocolPool(protocolsMapping[_protocolIds[index]].deployed)
+    for (uint256 index = 0; index < __position.protocolIds.length; index++)
+      IProtocolPool(protocolsMapping[__position.protocolIds[index]].deployed)
         .committingWithdrawLiquidity(msg.sender);
   }
 
@@ -326,18 +327,15 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
 
     uint256 _tokenId = __positionsManager.tokenOfOwnerByIndex(msg.sender, 0);
 
-    (
-      uint256 __userCapital,
-      uint128[] memory __protocolIds,
-      uint256 __aaveScaledBalance,
-      uint128 __discount
-    ) = __positionsManager.positions(_tokenId);
+    IPositionsManager.Position memory __position = __positionsManager.position(
+      _tokenId
+    );
 
     uint256 __newUserCapital;
     uint256 __aaveScaledBalanceToRemove;
-    for (uint256 index = 0; index < __protocolIds.length; index++) {
+    for (uint256 index = 0; index < __position.protocolIds.length; index++) {
       IProtocolPool __protocol = IProtocolPool(
-        protocolsMapping[__protocolIds[index]].deployed
+        protocolsMapping[__position.protocolIds[index]].deployed
       );
 
       require(
@@ -352,9 +350,9 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
       (__newUserCapital, __aaveScaledBalanceToRemove) = __protocol
         .withdrawLiquidity(
           msg.sender,
-          __userCapital,
-          __protocolIds,
-          __discount
+          __position.amountSupplied,
+          __position.protocolIds,
+          __position.discount
         );
 
       __protocol.removeLPInfo(msg.sender);
@@ -365,7 +363,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     address __lendingPool = ILendingPoolAddressesProvider(aaveAddressesRegistry)
       .getLendingPool();
 
-    uint256 _amountToWithdrawFromAAVE = __aaveScaledBalance.rayMul(
+    uint256 _amountToWithdrawFromAAVE = __position.aaveScaledBalance.rayMul(
       ILendingPool(__lendingPool).getReserveNormalizedIncome(stablecoin)
     );
 
@@ -558,24 +556,21 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
       0
     );
 
-    (
-      uint256 liquidity,
-      uint128[] memory protocolsId,
-      uint256 atokens,
-
-    ) = IPositionsManager(positionsManager).positions(tokenId);
-    uint128 _discount = getDiscountWithAten(liquidity);
+    IPositionsManager.Position memory __position = IPositionsManager(
+      positionsManager
+    ).position(tokenId);
+    uint128 _discount = getDiscountWithAten(__position.atens);
     uint256 actualAtens = IStakedAten(stakedAtensGP).balanceOf(msg.sender);
     require(actualAtens > 0, "No Atens to withdraw");
     // require(atenToWithdraw <= actualAtens, "Not enough Atens to withdraw");
     IStakedAten(stakedAtensGP).withdraw(msg.sender, atenToWithdraw);
     IPositionsManager(positionsManager).update(
       tokenId,
-      liquidity,
-      atokens,
+      __position.amountSupplied,
+      __position.aaveScaledBalance,
       actualAtens - atenToWithdraw,
       _discount,
-      protocolsId
+      __position.protocolIds
     );
   }
 

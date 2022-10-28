@@ -22,17 +22,6 @@ interface IPositionsManager is IERC721Enumerable {
 
   function position(uint256 tokenId) external view returns (Position memory);
 
-  //TODO: to remove, use only position function
-  function positions(uint256 tokenId)
-    external
-    view
-    returns (
-      uint256 liquidity,
-      uint128[] memory protocolsId,
-      uint256 aaveScaledBalance,
-      uint128 discount
-    );
-
   function mint(
     address to,
     uint128 discount,
