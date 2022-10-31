@@ -318,5 +318,16 @@ describe("Buy policy", () => {
       expect(response.__currentEmissionRate).to.be.equal(12);
       expect(response.__remainingSeconds).to.be.equal(15336000);
     });
+
+    it("Should check all position of LP2", async () => {
+      const POSITIONS_MANAGER_CONTRACT =
+        ProtocolHelper.getPositionManagerContract();
+
+      const allPositions = await POSITIONS_MANAGER_CONTRACT.allPositionsOfOwner(
+        liquidityProvider2.getAddress()
+      );
+
+      console.log("allPositions:\n", allPositions);
+    });
   });
 });

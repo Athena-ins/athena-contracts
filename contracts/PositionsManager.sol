@@ -47,16 +47,38 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
       tokenList[index] = tokenOfOwnerByIndex(owner, index);
   }
 
-  //TODO: change return to PositionInfo
   function allPositionsOfOwner(address owner)
     external
     view
-    returns (Position[] memory positionList)
+    returns (PositionInfo[] memory positionList)
   {
     uint256[] memory tokenList = allPositionTokensOfOwner(owner);
-    positionList = new Position[](tokenList.length);
-    for (uint256 index = 0; index < tokenList.length; index++)
-      positionList[index] = _positions[tokenList[index]];
+    positionList = new PositionInfo[](tokenList.length);
+    for (uint256 index = 0; index < tokenList.length; index++) {
+      Position storage __position = _positions[tokenList[index]];
+
+      uint256 totalRewards;
+      for (uint256 i = 0; i < __position.protocolIds.length; i++) {
+        address poolAddress = IAthena(core).getProtocolAddressById(
+          __position.protocolIds[i]
+        );
+        (, uint256 __totalRewards, ) = IProtocolPool(poolAddress).rewardsOf(
+          owner,
+          __position.amountSupplied,
+          __position.protocolIds,
+          __position.discount,
+          block.timestamp
+        );
+
+        totalRewards += __totalRewards;
+      }
+
+      positionList[index] = PositionInfo({
+        positionId: tokenList[index],
+        premiumReceived: totalRewards,
+        position: __position
+      });
+    }
   }
 
   function mint(

@@ -10,11 +10,6 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
   using RayMath for uint256;
   using SafeERC20 for IERC20;
 
-  struct LPInfo {
-    uint256 beginLiquidityIndex;
-    uint256 beginClaimIndex;
-  }
-
   address public underlyingAsset;
   uint128 public id;
   uint256 public immutable commitDelay;
@@ -174,11 +169,12 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     address _account,
     uint256 _userCapital,
     uint128[] calldata _protocolIds,
-    // uint256 _discount,
+    uint256 _discount,
     uint256 _dateInSecond
   )
     public
     view
+    override
     returns (
       uint256 __newUserCapital,
       uint256 __totalRewards,
@@ -204,9 +200,9 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
       __liquidityIndex - __newLPInfo.beginLiquidityIndex
     );
 
-    __newLPInfo.beginLiquidityIndex = __liquidityIndex;
+    __totalRewards = (__totalRewards * (1000 - _discount)) / 1000;
 
-    //Thao@TODO: use discount to calcul totalRewards
+    __newLPInfo.beginLiquidityIndex = __liquidityIndex;
   }
 
   event TakeInterest(

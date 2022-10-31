@@ -6,11 +6,31 @@ import "../ClaimCover.sol";
 
 //Thao@TODO: remove IPolicyCover
 interface IProtocolPool is IPolicyCover {
+  struct LPInfo {
+    uint256 beginLiquidityIndex;
+    uint256 beginClaimIndex;
+  }
+
   function deposit(address account, uint256 amount) external;
 
   function committingWithdrawLiquidity(address account) external;
 
   function removeCommittedWithdrawLiquidity(address account) external;
+
+  function rewardsOf(
+    address _account,
+    uint256 _userCapital,
+    uint128[] calldata _protocolIds,
+    uint256 _discount,
+    uint256 _dateInSecond
+  )
+    external
+    view
+    returns (
+      uint256 __newUserCapital,
+      uint256 __totalRewards,
+      LPInfo memory __newLPInfo
+    );
 
   function takeInterest(
     address account,

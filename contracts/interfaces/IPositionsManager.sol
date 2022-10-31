@@ -17,7 +17,7 @@ interface IPositionsManager is IERC721Enumerable {
   struct PositionInfo {
     uint256 positionId;
     uint256 premiumReceived;
-    Position base;
+    Position position;
   }
 
   function position(uint256 tokenId) external view returns (Position memory);
