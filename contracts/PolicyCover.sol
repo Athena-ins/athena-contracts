@@ -361,6 +361,8 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
       __newPremiumRate
     );
 
+    require(__durationInSeconds >= __newSecondsPerTick, "Min duration");
+
     uint32 __lastTick = slot0.tick +
       uint32(__durationInSeconds / __newSecondsPerTick);
 

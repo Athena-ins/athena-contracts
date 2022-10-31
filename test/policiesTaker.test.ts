@@ -206,5 +206,30 @@ describe("Buy policies", () => {
       );
       expect(balancePool2).to.equal(4000);
     });
+
+    it("Should reverted for buying policies in protocol 0 cause of duration", async () => {
+      const allSigners = await HardhatHelper.allSigners();
+      const policyTaker2 = allSigners[101];
+
+      await HardhatHelper.USDT_transfer(
+        await policyTaker2.getAddress(),
+        hre_ethers.utils.parseUnits("1000", 6)
+      );
+
+      const USDT_Approved = await HardhatHelper.USDT_maxApprove(
+        policyTaker2,
+        ProtocolHelper.getAthenaContract().address
+      );
+
+      expect(USDT_Approved).to.haveOwnProperty("hash");
+
+      await HardhatHelper.setNextBlockTimestamp(20 * 24 * 60 * 60);
+
+      await expect(
+        ProtocolHelper.getAthenaContract()
+          .connect(policyTaker2)
+          .buyPolicies([109500], [1], [atensLocked], [0])
+      ).to.be.revertedWith("Min duration");
+    });
   });
 });
