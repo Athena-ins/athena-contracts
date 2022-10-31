@@ -124,6 +124,7 @@ describe("Liquidity provider rewards", () => {
         await liquidityProvider1.getAddress(),
         365000,
         [0, 2],
+        0,
         HardhatHelper.getCurrentTime() + 1 * 24 * 60 * 60
       );
 
@@ -154,6 +155,7 @@ describe("Liquidity provider rewards", () => {
         await liquidityProvider2.getAddress(),
         365000,
         [0, 2],
+        0,
         HardhatHelper.getCurrentTime() + 2 * 24 * 60 * 60
       );
 
@@ -197,6 +199,7 @@ describe("Liquidity provider rewards", () => {
         await liquidityProvider1.getAddress(),
         365000,
         [0, 2],
+        0,
         HardhatHelper.getCurrentTime() + 1 * 24 * 60 * 60
       );
 
@@ -214,6 +217,7 @@ describe("Liquidity provider rewards", () => {
         await liquidityProvider2.getAddress(),
         365000,
         [0, 1],
+        0,
         HardhatHelper.getCurrentTime() + 1 * 24 * 60 * 60
       );
 
@@ -231,6 +235,7 @@ describe("Liquidity provider rewards", () => {
         await liquidityProvider1.getAddress(),
         365000,
         [0, 2],
+        0,
         HardhatHelper.getCurrentTime() + 2 * 24 * 60 * 60
       );
 
@@ -248,6 +253,7 @@ describe("Liquidity provider rewards", () => {
         await liquidityProvider2.getAddress(),
         365000,
         [0, 1],
+        0,
         HardhatHelper.getCurrentTime() + 2 * 24 * 60 * 60
       );
 
@@ -265,6 +271,7 @@ describe("Liquidity provider rewards", () => {
         await liquidityProvider1.getAddress(),
         365000,
         [0, 2],
+        0,
         HardhatHelper.getCurrentTime() + 10 * 24 * 60 * 60
       );
 
@@ -282,6 +289,7 @@ describe("Liquidity provider rewards", () => {
         await liquidityProvider2.getAddress(),
         365000,
         [0, 1],
+        0,
         HardhatHelper.getCurrentTime() + 10 * 24 * 60 * 60
       );
 
