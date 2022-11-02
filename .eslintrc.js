@@ -20,5 +20,9 @@ module.exports = {
       "error",
       { ignores: ["modules"] },
     ],
+    "spaced-comment": "off",
+    "no-unused-vars": "off",
+    "node/no-unpublished-import": "off",
+    "prettier/prettier": ["error", { endOfLine: "auto" }],
   },
 };
