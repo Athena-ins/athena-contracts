@@ -5,7 +5,6 @@ import "@nomiclabs/hardhat-etherscan";
 import "@nomiclabs/hardhat-waffle";
 import "@typechain/hardhat";
 import "hardhat-gas-reporter";
-import "@nomiclabs/hardhat-etherscan";
 import "solidity-coverage";
 
 dotenv.config();
@@ -38,7 +37,7 @@ const config: HardhatUserConfig = {
       forking: {
         url: process.env.MAINNET_URL || "",
         blockNumber:
-          process.env.FORKING_BLOCK == undefined
+          process.env.FORKING_BLOCK === undefined
             ? undefined
             : Number(process.env.FORKING_BLOCK), // 14307200 FIX ETH CHAINLINK PRICE TO 3011$
       },
@@ -47,7 +46,7 @@ const config: HardhatUserConfig = {
         // interval: 5000,
       },
       accounts: {
-        count: 302,
+        count: 2,
       },
     },
     rinkeby: {
