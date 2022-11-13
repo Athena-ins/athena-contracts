@@ -24,5 +24,6 @@ module.exports = {
     "no-unused-vars": "off",
     "node/no-unpublished-import": "off",
     "prettier/prettier": ["error", { endOfLine: "auto" }],
+    "node/no-unpublished-require": ["error", { devDependencies: true }],
   },
 };
