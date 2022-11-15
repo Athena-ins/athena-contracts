@@ -96,6 +96,7 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
    * @notice
    * calculateStakeReward is used to calculate how much a user should be rewarded for their stakes
    * and the duration the stake has been active
+   * Currently the reward is 100% APR per year
    */
   function calculateStakeReward(Stakeholder memory _userStake, uint128 index)
     internal

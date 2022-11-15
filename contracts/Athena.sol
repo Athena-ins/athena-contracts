@@ -85,11 +85,11 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   ) external onlyOwner {
     positionsManager = _positionsAddress;
     stakedAtensGP = _stakedAtensGP;
+    stakedAtensPo = _stakedAtensPo;
     policyManager = _policyManagerAddress;
     protocolFactory = _protocolFactory;
 
     claimManager = _claimManager;
-    stakedAtensPo = _stakedAtensPo;
     atensVault = _atensVault;
     approveLendingPool();
     //initialized = true; //@dev required ?
