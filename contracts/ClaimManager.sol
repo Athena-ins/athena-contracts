@@ -96,6 +96,9 @@ contract ClaimManager is IClaimManager, IArbitrable {
     require(msg.value >= __arbitrationCost, "Not enough ETH for claim");
     //@dev TODO : should lock the capital in protocol pool
 
+    // Update dispute ID before any usage
+    nextDisputeId++;
+
     ownerClaims[_account].push(nextDisputeId);
     claims[nextDisputeId] = Claim({
       from: payable(_account),
@@ -109,7 +112,6 @@ contract ClaimManager is IClaimManager, IArbitrable {
       challenger: payable(0x00)
     });
 
-    nextDisputeId++;
     emit ClaimCreated(_account, nextDisputeId, _policyId, _amount);
   }
 
