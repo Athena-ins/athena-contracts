@@ -81,27 +81,29 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
     }
   }
 
-  function mint(
-    address to,
-    uint128 _discount,
-    uint256 amount,
-    uint256 _aaveScaledBalance,
-    uint256 atenStake,
-    uint128[] calldata _protocolIds
-  ) external override onlyCore {
-    _positions[_nextId] = Position({
-      createdAt: block.timestamp,
-      owner: to,
-      amountSupplied: amount,
-      aaveScaledBalance: _aaveScaledBalance,
-      discount: _discount,
-      protocolIds: _protocolIds,
-      atens: atenStake
-    });
+  // @bw fn is redundant with deposit in this contrat
+  // should be deleted
+  // function mint(
+  //   address to,
+  //   uint128 _discount,
+  //   uint256 amount,
+  //   uint256 _aaveScaledBalance,
+  //   uint256 atenStake,
+  //   uint128[] calldata _protocolIds
+  // ) external override onlyCore {
+  //   _positions[_nextId] = Position({
+  //     createdAt: block.timestamp,
+  //     owner: to,
+  //     amountSupplied: amount,
+  //     aaveScaledBalance: _aaveScaledBalance,
+  //     discount: _discount,
+  //     protocolIds: _protocolIds,
+  //     atens: atenStake
+  //   });
 
-    _mint(to, _nextId);
-    _nextId++;
-  }
+  //   _mint(to, _nextId);
+  //   _nextId++;
+  // }
 
   function burn(address to) external override onlyCore {
     uint256 tokenId = tokenOfOwnerByIndex(to, 0);

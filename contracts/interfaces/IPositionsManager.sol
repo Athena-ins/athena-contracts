@@ -22,14 +22,16 @@ interface IPositionsManager is IERC721Enumerable {
 
   function position(uint256 tokenId) external view returns (Position memory);
 
-  function mint(
-    address to,
-    uint128 discount,
-    uint256 amount,
-    uint256 aaveScaledBalance,
-    uint256 atenStake,
-    uint128[] calldata protocolsIds
-  ) external;
+  // @bw fn is redundant with deposit in this contrat
+  // should be deleted
+  // function mint(
+  //   address to,
+  //   uint128 discount,
+  //   uint256 amount,
+  //   uint256 aaveScaledBalance,
+  //   uint256 atenStake,
+  //   uint128[] calldata protocolsIds
+  // ) external;
 
   function burn(address to) external;
 
