@@ -3,7 +3,7 @@ pragma solidity ^0.8;
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-// @note this contract is not used and considered for deletion !!!
+// @notice DELETE this contract is not used and considered for deletion !!!
 
 contract StakingRewards is ReentrancyGuard {
   IERC20 public rewardsToken;

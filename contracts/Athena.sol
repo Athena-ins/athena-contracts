@@ -36,7 +36,9 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   address public override policyManager;
   address public claimManager;
 
+  /// @notice Staking Pool Contract: General Pool (GP)
   address public stakedAtensGP;
+  /// @notice Staking Pool Contract: Policy
   address public stakedAtensPo;
   address public rewardsToken;
   address public atensVault;

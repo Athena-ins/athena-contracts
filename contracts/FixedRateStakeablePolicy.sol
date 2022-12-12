@@ -6,6 +6,7 @@ import "./libraries/ERC20withSnapshot.sol";
 import "hardhat/console.sol";
 
 /**
+ * @notice Staking Pool Contract: Policy
  * @notice Stakeable is a contract who is ment to be inherited by other contract that wants Staking capabilities
  * @dev initially inspired from @percybolmer/DevToken
  */

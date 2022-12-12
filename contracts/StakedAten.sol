@@ -9,6 +9,7 @@ import "./libraries/ERC20withSnapshot.sol";
 import "./FixedRateStakeable.sol";
 import "./interfaces/IStakedAten.sol";
 
+// @notice Staking Pool Contract: General Pool (GP)
 contract StakedAten is
   IStakedAten,
   ERC20WithSnapshot,

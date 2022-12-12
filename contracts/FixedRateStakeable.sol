@@ -2,6 +2,7 @@
 pragma solidity ^0.8;
 
 /**
+ * @notice Staking Pool Parent: General Pool (GP)
  * @notice Stakeable is a contract who is ment to be inherited by other contract that wants Staking capabilities
  * @dev initially inspired from @percybolmer/DevToken
  */
