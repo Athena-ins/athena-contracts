@@ -162,9 +162,6 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
     uint256 atenToStake,
     uint128[] calldata protocolIds
   ) external override onlyCore {
-    //Thao@TODO: remove this require when multi-position
-    require(balanceOf(account) == 0, "Already have a position");
-
     IAthena _core = IAthena(core);
 
     for (
