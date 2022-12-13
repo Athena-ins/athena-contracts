@@ -168,6 +168,10 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     _;
   }
 
+  /// ============================ ///
+  /// ========== COVERS ========== ///
+  /// ============================ ///
+
   function deposit(
     uint256 amount,
     uint256 atenToStake,
@@ -376,6 +380,10 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     );
   }
 
+  /// ============================== ///
+  /// ========== POLICIES ========== ///
+  /// ============================== ///
+
   //////Thao@NOTE: Policy
   function buyPolicies(
     uint256[] calldata _amountCoveredArray,
@@ -431,6 +439,44 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
       );
     }
   }
+
+  function withdrawPolicy(uint256 _policyId, uint256 _index)
+    public
+    payable
+    nonReentrant
+  {
+    IPolicyManager policyManager_ = IPolicyManager(policyManager);
+    IPolicyManager.Policy memory policy_ = policyManager_.checkAndGetPolicy(
+      msg.sender,
+      _policyId,
+      _index
+    );
+    //Thao@Question: on fait quoi avec 'atensLocked' ???
+
+    actualizingProtocolAndRemoveExpiredPolicies(
+      protocolsMapping[policy_.protocolId].deployed
+    );
+
+    require(policyManager_.balanceOf(msg.sender) > 0, "No Active Policy");
+
+    uint256 remainedPremium_ = IProtocolPool(
+      protocolsMapping[policy_.protocolId].deployed
+    ).withdrawPolicy(msg.sender, policy_.amountCovered);
+
+    policyManager_.saveExpiredPolicy(
+      msg.sender,
+      _policyId,
+      policy_,
+      policy_.paidPremium - remainedPremium_,
+      true
+    );
+
+    policyManager_.burn(_policyId);
+  }
+
+  /// ============================ ///
+  /// ========== CLAIMS ========== ///
+  /// ============================ ///
 
   function startClaim(
     uint256 _policyId,
@@ -508,39 +554,9 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     // protocolsMapping[__protocolId].claimsOngoing -= 1;
   }
 
-  function withdrawPolicy(uint256 _policyId, uint256 _index)
-    public
-    payable
-    nonReentrant
-  {
-    IPolicyManager policyManager_ = IPolicyManager(policyManager);
-    IPolicyManager.Policy memory policy_ = policyManager_.checkAndGetPolicy(
-      msg.sender,
-      _policyId,
-      _index
-    );
-    //Thao@Question: on fait quoi avec 'atensLocked' ???
-
-    actualizingProtocolAndRemoveExpiredPolicies(
-      protocolsMapping[policy_.protocolId].deployed
-    );
-
-    require(policyManager_.balanceOf(msg.sender) > 0, "No Active Policy");
-
-    uint256 remainedPremium_ = IProtocolPool(
-      protocolsMapping[policy_.protocolId].deployed
-    ).withdrawPolicy(msg.sender, policy_.amountCovered);
-
-    policyManager_.saveExpiredPolicy(
-      msg.sender,
-      _policyId,
-      policy_,
-      policy_.paidPremium - remainedPremium_,
-      true
-    );
-
-    policyManager_.burn(_policyId);
-  }
+  /// ================================== ///
+  /// ========== ATEN STAKING ========== ///
+  /// ================================== ///
 
   //////Thao@NOTE: Protocol
   function stakeAtens(
@@ -620,6 +636,10 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
         ? premiumAtenDiscount[0].discount
         : 0;
   }
+
+  /// ==================================== ///
+  /// ========== PROTOCOL POOLS ========== ///
+  /// ==================================== ///
 
   function addNewProtocol(
     string calldata name,
