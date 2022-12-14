@@ -169,7 +169,7 @@ describe("Buy policy", () => {
         0
       );
 
-      expect(await protocolContract.symbol()).to.equal("APP_" + 0);
+      expect((await protocolContract.id()).toString() === "0").to.equal(true);
 
       const balanceProtocol = await HardhatHelper.USDT_balanceOf(
         protocolContract.address
@@ -294,7 +294,7 @@ describe("Buy policy", () => {
         0
       );
 
-      expect(await protocolContract.symbol()).to.equal("APP_" + 0);
+      expect((await protocolContract.id()).toString() === "0").to.equal(true);
 
       const balanceProtocol = await HardhatHelper.USDT_balanceOf(
         protocolContract.address

@@ -94,7 +94,6 @@ describe("Protocols view", () => {
 
     expect(result.length).to.be.equal(3);
 
-    expect(result[0].symbol).to.be.equal("APP_0");
     expect(result[0].name).to.be.equal("Test protocol 0");
     expect(result[0].protocolId).to.be.equal(0);
     expect(result[0].totalCouvrageValue).to.be.equal(109500);
@@ -104,7 +103,6 @@ describe("Protocols view", () => {
     );
     expect(result[0].premiumRate).to.be.equal("2000000000000000000000000000");
 
-    expect(result[1].symbol).to.be.equal("APP_1");
     expect(result[1].name).to.be.equal("Test protocol 1");
     expect(result[1].protocolId).to.be.equal(1);
     expect(result[1].totalCouvrageValue).to.be.equal(0);
@@ -112,7 +110,6 @@ describe("Protocols view", () => {
     expect(result[1].utilizationRate).to.be.equal("0");
     expect(result[1].premiumRate).to.be.equal("1000000000000000000000000000");
 
-    expect(result[2].symbol).to.be.equal("APP_2");
     expect(result[2].name).to.be.equal("Test protocol 2");
     expect(result[2].protocolId).to.be.equal(2);
     expect(result[2].totalCouvrageValue).to.be.equal(219000);
@@ -130,7 +127,6 @@ describe("Protocols view", () => {
 
     expect(result.length).to.be.equal(2);
 
-    expect(result[0].symbol).to.be.equal("APP_23");
     expect(result[0].name).to.be.equal("Test protocol 23");
     expect(result[0].protocolId).to.be.equal(23);
     expect(result[0].totalCouvrageValue).to.be.equal(0);
@@ -138,7 +134,6 @@ describe("Protocols view", () => {
     expect(result[0].utilizationRate).to.be.equal("0");
     expect(result[0].premiumRate).to.be.equal("1000000000000000000000000000");
 
-    expect(result[1].symbol).to.be.equal("APP_24");
     expect(result[1].name).to.be.equal("Test protocol 24");
     expect(result[1].protocolId).to.be.equal(24);
     expect(result[1].totalCouvrageValue).to.be.equal(0);
@@ -154,7 +149,6 @@ describe("Protocols view", () => {
 
     expect(result.length).to.be.equal(4);
 
-    expect(result[0].symbol).to.be.equal("APP_2");
     expect(result[0].name).to.be.equal("Test protocol 2");
     expect(result[0].protocolId).to.be.equal(2);
     expect(result[0].totalCouvrageValue).to.be.equal(219000);
@@ -164,7 +158,6 @@ describe("Protocols view", () => {
     );
     expect(result[0].premiumRate).to.be.equal("3000000000000000000000000000");
 
-    expect(result[1].symbol).to.be.equal("APP_37");
     expect(result[1].name).to.be.equal("Test protocol 37");
     expect(result[1].protocolId).to.be.equal(37);
     expect(result[1].totalCouvrageValue).to.be.equal(0);
@@ -172,7 +165,6 @@ describe("Protocols view", () => {
     expect(result[1].utilizationRate).to.be.equal("0");
     expect(result[1].premiumRate).to.be.equal("1000000000000000000000000000");
 
-    expect(result[2].symbol).to.be.equal("APP_90");
     expect(result[2].name).to.be.equal("Test protocol 90");
     expect(result[2].protocolId).to.be.equal(90);
     expect(result[2].totalCouvrageValue).to.be.equal(0);
@@ -180,7 +172,6 @@ describe("Protocols view", () => {
     expect(result[2].utilizationRate).to.be.equal("0");
     expect(result[2].premiumRate).to.be.equal("1000000000000000000000000000");
 
-    expect(result[3].symbol).to.be.equal("APP_85");
     expect(result[3].name).to.be.equal("Test protocol 85");
     expect(result[3].protocolId).to.be.equal(85);
     expect(result[3].totalCouvrageValue).to.be.equal(0);

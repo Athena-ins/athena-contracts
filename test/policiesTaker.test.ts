@@ -150,7 +150,7 @@ describe("Buy policies", () => {
         0
       );
 
-      expect(await poolContract0.symbol()).to.equal("APP_" + 0);
+      expect((await poolContract0.id()).toString() === "0").to.equal(true);
 
       const balancePool0 = await HardhatHelper.USDT_balanceOf(
         poolContract0.address
@@ -175,7 +175,7 @@ describe("Buy policies", () => {
         1
       );
 
-      expect(await poolContract1.symbol()).to.equal("APP_" + 1);
+      expect((await poolContract1.id()).toString() === "1").to.equal(true);
 
       const balancePool1 = await HardhatHelper.USDT_balanceOf(
         poolContract1.address
@@ -199,7 +199,7 @@ describe("Buy policies", () => {
         2
       );
 
-      expect(await poolContract2.symbol()).to.equal("APP_" + 2);
+      expect((await poolContract2.id()).toString() === "2").to.equal(true);
 
       const balancePool2 = await HardhatHelper.USDT_balanceOf(
         poolContract2.address

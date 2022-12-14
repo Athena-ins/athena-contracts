@@ -501,7 +501,9 @@ describe("Protocol Pool", function () {
       expect(
         await protocolContract.balanceOf(await user1.getAddress())
       ).to.not.equal(BN(0));
-      expect(await protocolContract.symbol()).to.equal("APP_" + PROTOCOL_ID);
+      expect(
+        (await protocolContract.id()).toString() === PROTOCOL_ID.toString()
+      ).to.equal(true);
 
       const balanceProtocol = await USDT_TOKEN_CONTRACT.connect(
         user1
@@ -579,7 +581,9 @@ describe("Protocol Pool", function () {
       expect(await protocolContract.balanceOf(user3.getAddress())).to.not.equal(
         BN(0)
       );
-      expect(await protocolContract.symbol()).to.equal("APP_" + PROTOCOL_ID);
+      expect(
+        (await protocolContract.id()).toString() === PROTOCOL_ID.toString()
+      ).to.equal(true);
 
       const rewardsUser3 = await protocolContract
         .connect(user3)
@@ -625,7 +629,7 @@ describe("Protocol Pool", function () {
       expect(await protocolContract.balanceOf(user2.getAddress())).to.not.equal(
         BN(0)
       );
-      expect(await protocolContract.symbol()).to.equal("APP_" + "0");
+      expect((await protocolContract.id()).toString() === "0").to.equal(true);
 
       const userNFTindex2 = await POS_CONTRACT.tokenOfOwnerByIndex(
         user2.getAddress(),
