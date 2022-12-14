@@ -13,6 +13,8 @@ let liquidityProvider2: ethers.Signer;
 let policyTaker1: ethers.Signer;
 let policyTaker2: ethers.Signer;
 let policyTaker3: ethers.Signer;
+let provider1tokenId: ethers.BigNumberish;
+let provider2tokenId: ethers.BigNumberish;
 
 describe("Liquidity provider takeInterest", () => {
   describe("LP1, LP2 then PT1, PT2 in pool 0", async () => {
@@ -41,6 +43,12 @@ describe("Liquidity provider takeInterest", () => {
         1 * 24 * 60 * 60
       );
 
+      const provider1tokenIds =
+        await ProtocolHelper.getPositionManagerContract()
+          .connect(liquidityProvider1)
+          .allPositionTokensOfOwner(liquidityProvider1.getAddress());
+      provider1tokenId = provider1tokenIds[0];
+
       const USDT_amount2 = "365000";
       const ATEN_amount2 = "9000000";
       await ProtocolHelper.deposit(
@@ -50,6 +58,12 @@ describe("Liquidity provider takeInterest", () => {
         [0, 1],
         1 * 24 * 60 * 60
       );
+
+      const provider2tokenIds =
+        await ProtocolHelper.getPositionManagerContract()
+          .connect(liquidityProvider2)
+          .allPositionTokensOfOwner(liquidityProvider2.getAddress());
+      provider2tokenId = provider2tokenIds[0];
 
       await HardhatHelper.USDT_maxApprove(
         policyTaker1,
@@ -92,24 +106,19 @@ describe("Liquidity provider takeInterest", () => {
         0
       );
 
-      const lpInfoBefore = await protocolContract.LPsInfo(
-        liquidityProvider1.getAddress()
-      );
+      const lpInfoBefore = await protocolContract.LPsInfo(provider1tokenId);
 
       const decodedData = await ProtocolHelper.takeInterest(
         liquidityProvider1,
+        provider1tokenId,
         0,
         1 * 24 * 60 * 60,
         2
       );
 
-      const lpInfoAfter = await protocolContract.LPsInfo(
-        liquidityProvider1.getAddress()
-      );
+      const lpInfoAfter = await protocolContract.LPsInfo(provider1tokenId);
 
-      expect(decodedData.account).to.be.equal(
-        await liquidityProvider1.getAddress()
-      );
+      expect(decodedData.tokenId).to.be.equal(provider1tokenId);
       expect(decodedData.userCapital).to.be.equal(365000);
       expect(decodedData.rewardsGross).to.be.equal(48);
       expect(decodedData.rewardsNet).to.be.equal(40);
@@ -129,24 +138,19 @@ describe("Liquidity provider takeInterest", () => {
         0
       );
 
-      const lpInfoBefore = await protocolContract.LPsInfo(
-        liquidityProvider1.getAddress()
-      );
+      const lpInfoBefore = await protocolContract.LPsInfo(provider1tokenId);
 
       const decodedData = await ProtocolHelper.takeInterest(
         liquidityProvider1,
+        provider1tokenId,
         0,
         1 * 24 * 60 * 60,
         2
       );
 
-      const lpInfoAfter = await protocolContract.LPsInfo(
-        liquidityProvider1.getAddress()
-      );
+      const lpInfoAfter = await protocolContract.LPsInfo(provider1tokenId);
 
-      expect(decodedData.account).to.be.equal(
-        await liquidityProvider1.getAddress()
-      );
+      expect(decodedData.tokenId).to.be.equal(provider1tokenId);
       expect(decodedData.userCapital).to.be.equal(365000);
       expect(decodedData.rewardsGross).to.be.equal(18);
       expect(decodedData.rewardsNet).to.be.equal(15);
@@ -166,24 +170,19 @@ describe("Liquidity provider takeInterest", () => {
         0
       );
 
-      const lpInfoBefore = await protocolContract.LPsInfo(
-        liquidityProvider1.getAddress()
-      );
+      const lpInfoBefore = await protocolContract.LPsInfo(provider1tokenId);
 
       const decodedData = await ProtocolHelper.takeInterest(
         liquidityProvider1,
+        provider1tokenId,
         0,
         10 * 24 * 60 * 60,
         2
       );
 
-      const lpInfoAfter = await protocolContract.LPsInfo(
-        liquidityProvider1.getAddress()
-      );
+      const lpInfoAfter = await protocolContract.LPsInfo(provider1tokenId);
 
-      expect(decodedData.account).to.be.equal(
-        await liquidityProvider1.getAddress()
-      );
+      expect(decodedData.tokenId).to.be.equal(provider1tokenId);
       expect(decodedData.userCapital).to.be.equal(365000);
       expect(decodedData.rewardsGross).to.be.equal(180);
       expect(decodedData.rewardsNet).to.be.equal(180 - (180 * 15) / 100);
@@ -203,24 +202,19 @@ describe("Liquidity provider takeInterest", () => {
         0
       );
 
-      const lpInfoBefore = await protocolContract.LPsInfo(
-        liquidityProvider2.getAddress()
-      );
+      const lpInfoBefore = await protocolContract.LPsInfo(provider2tokenId);
 
       const decodedData = await ProtocolHelper.takeInterest(
         liquidityProvider2,
+        provider2tokenId,
         0,
         1 * 24 * 60 * 60,
         2
       );
 
-      const lpInfoAfter = await protocolContract.LPsInfo(
-        liquidityProvider2.getAddress()
-      );
+      const lpInfoAfter = await protocolContract.LPsInfo(provider2tokenId);
 
-      expect(decodedData.account).to.be.equal(
-        await liquidityProvider2.getAddress()
-      );
+      expect(decodedData.tokenId).to.be.equal(provider2tokenId);
       expect(decodedData.userCapital).to.be.equal(365000);
       expect(decodedData.rewardsGross).to.be.equal(264);
       expect(decodedData.rewardsNet).to.be.equal(264 - 14);
@@ -240,24 +234,19 @@ describe("Liquidity provider takeInterest", () => {
         0
       );
 
-      const lpInfoBefore = await protocolContract.LPsInfo(
-        liquidityProvider2.getAddress()
-      );
+      const lpInfoBefore = await protocolContract.LPsInfo(provider2tokenId);
 
       const decodedData = await ProtocolHelper.takeInterest(
         liquidityProvider2,
+        provider2tokenId,
         0,
         1 * 24 * 60 * 60,
         2
       );
 
-      const lpInfoAfter = await protocolContract.LPsInfo(
-        liquidityProvider2.getAddress()
-      );
+      const lpInfoAfter = await protocolContract.LPsInfo(provider2tokenId);
 
-      expect(decodedData.account).to.be.equal(
-        await liquidityProvider2.getAddress()
-      );
+      expect(decodedData.tokenId).to.be.equal(provider2tokenId);
       expect(decodedData.userCapital).to.be.equal(365000);
       expect(decodedData.rewardsGross).to.be.equal(18);
       expect(decodedData.rewardsNet).to.be.equal(17);
@@ -277,24 +266,19 @@ describe("Liquidity provider takeInterest", () => {
         0
       );
 
-      const lpInfoBefore = await protocolContract.LPsInfo(
-        liquidityProvider2.getAddress()
-      );
+      const lpInfoBefore = await protocolContract.LPsInfo(provider2tokenId);
 
       const decodedData = await ProtocolHelper.takeInterest(
         liquidityProvider2,
+        provider2tokenId,
         0,
         611 * 24 * 60 * 60,
         8
       );
 
-      const lpInfoAfter = await protocolContract.LPsInfo(
-        liquidityProvider2.getAddress()
-      );
+      const lpInfoAfter = await protocolContract.LPsInfo(provider2tokenId);
 
-      expect(decodedData.account).to.be.equal(
-        await liquidityProvider2.getAddress()
-      );
+      expect(decodedData.tokenId).to.be.equal(provider2tokenId);
       expect(decodedData.userCapital).to.be.equal(365000);
       expect(decodedData.rewardsGross).to.be.equal(5193);
       expect(decodedData.rewardsNet).to.be.equal(5193 - 260);
@@ -314,24 +298,19 @@ describe("Liquidity provider takeInterest", () => {
         0
       );
 
-      const lpInfoBefore = await protocolContract.LPsInfo(
-        liquidityProvider2.getAddress()
-      );
+      const lpInfoBefore = await protocolContract.LPsInfo(provider2tokenId);
 
       const decodedData = await ProtocolHelper.takeInterest(
         liquidityProvider2,
+        provider2tokenId,
         0,
         1 * 24 * 60 * 60,
         2
       );
 
-      const lpInfoAfter = await protocolContract.LPsInfo(
-        liquidityProvider2.getAddress()
-      );
+      const lpInfoAfter = await protocolContract.LPsInfo(provider2tokenId);
 
-      expect(decodedData.account).to.be.equal(
-        await liquidityProvider2.getAddress()
-      );
+      expect(decodedData.tokenId).to.be.equal(provider2tokenId);
       expect(decodedData.userCapital).to.be.equal(365000);
       expect(decodedData.rewardsGross).to.be.equal(0);
       expect(decodedData.rewardsNet).to.be.equal(0);
@@ -351,24 +330,19 @@ describe("Liquidity provider takeInterest", () => {
         0
       );
 
-      const lpInfoBefore = await protocolContract.LPsInfo(
-        liquidityProvider2.getAddress()
-      );
+      const lpInfoBefore = await protocolContract.LPsInfo(provider2tokenId);
 
       const decodedData = await ProtocolHelper.takeInterest(
         liquidityProvider2,
+        provider2tokenId,
         0,
         1 * 24 * 60 * 60,
         2
       );
 
-      const lpInfoAfter = await protocolContract.LPsInfo(
-        liquidityProvider2.getAddress()
-      );
+      const lpInfoAfter = await protocolContract.LPsInfo(provider2tokenId);
 
-      expect(decodedData.account).to.be.equal(
-        await liquidityProvider2.getAddress()
-      );
+      expect(decodedData.tokenId).to.be.equal(provider2tokenId);
       expect(decodedData.userCapital).to.be.equal(365000);
       expect(decodedData.rewardsGross).to.be.equal(0);
       expect(decodedData.rewardsNet).to.be.equal(0);
@@ -388,24 +362,19 @@ describe("Liquidity provider takeInterest", () => {
         0
       );
 
-      const lpInfoBefore = await protocolContract.LPsInfo(
-        liquidityProvider1.getAddress()
-      );
+      const lpInfoBefore = await protocolContract.LPsInfo(provider1tokenId);
 
       const decodedData = await ProtocolHelper.takeInterest(
         liquidityProvider1,
+        provider1tokenId,
         0,
         1 * 24 * 60 * 60,
         2
       );
 
-      const lpInfoAfter = await protocolContract.LPsInfo(
-        liquidityProvider1.getAddress()
-      );
+      const lpInfoAfter = await protocolContract.LPsInfo(provider1tokenId);
 
-      expect(decodedData.account).to.be.equal(
-        await liquidityProvider1.getAddress()
-      );
+      expect(decodedData.tokenId).to.be.equal(provider1tokenId);
       expect(decodedData.userCapital).to.be.equal(365000);
       expect(decodedData.rewardsGross).to.be.equal(5229);
       expect(decodedData.rewardsNet).to.be.equal(5229 - 785);
@@ -565,7 +534,8 @@ describe("Liquidity provider takeInterest", () => {
         0
       );
 
-      let lpInfo = await protocolPool0.LPsInfo(liquidityProvider1.getAddress());
+      let lpInfo = await protocolPool0.LPsInfo(provider1tokenId);
+
       expect(lpInfo.beginLiquidityIndex).to.be.equal(0);
       expect(lpInfo.beginClaimIndex).to.be.equal(0);
     });
@@ -576,7 +546,8 @@ describe("Liquidity provider takeInterest", () => {
         0
       );
 
-      let lpInfo = await protocolPool0.LPsInfo(liquidityProvider2.getAddress());
+      let lpInfo = await protocolPool0.LPsInfo(provider2tokenId);
+
       expect(lpInfo.beginLiquidityIndex).to.not.be.equal(0);
       expect(lpInfo.beginClaimIndex).to.be.equal(0);
     });
@@ -587,24 +558,19 @@ describe("Liquidity provider takeInterest", () => {
         0
       );
 
-      const lpInfoBefore = await protocolContract.LPsInfo(
-        liquidityProvider1.getAddress()
-      );
+      const lpInfoBefore = await protocolContract.LPsInfo(provider1tokenId);
 
       const decodedData = await ProtocolHelper.takeInterest(
         liquidityProvider1,
+        provider1tokenId,
         0,
         1 * 24 * 60 * 60,
         2
       );
 
-      const lpInfoAfter = await protocolContract.LPsInfo(
-        liquidityProvider1.getAddress()
-      );
+      const lpInfoAfter = await protocolContract.LPsInfo(provider1tokenId);
 
-      expect(decodedData.account).to.be.equal(
-        await liquidityProvider1.getAddress()
-      );
+      expect(decodedData.tokenId).to.be.equal(provider1tokenId);
       expect(decodedData.userCapital).to.be.equal(365000);
       expect(decodedData.rewardsGross).to.be.equal(129);
       expect(decodedData.rewardsNet).to.be.equal(109);
@@ -624,24 +590,19 @@ describe("Liquidity provider takeInterest", () => {
         0
       );
 
-      const lpInfoBefore = await protocolContract.LPsInfo(
-        liquidityProvider2.getAddress()
-      );
+      const lpInfoBefore = await protocolContract.LPsInfo(provider2tokenId);
 
       const decodedData = await ProtocolHelper.takeInterest(
         liquidityProvider2,
+        provider2tokenId,
         0,
         1 * 24 * 60 * 60,
         2
       );
 
-      const lpInfoAfter = await protocolContract.LPsInfo(
-        liquidityProvider2.getAddress()
-      );
+      const lpInfoAfter = await protocolContract.LPsInfo(provider2tokenId);
 
-      expect(decodedData.account).to.be.equal(
-        await liquidityProvider2.getAddress()
-      );
+      expect(decodedData.tokenId).to.be.equal(provider2tokenId);
       expect(decodedData.userCapital).to.be.equal(365000);
       expect(decodedData.rewardsGross).to.be.equal(18);
       expect(decodedData.rewardsNet).to.be.equal(17);
@@ -661,24 +622,19 @@ describe("Liquidity provider takeInterest", () => {
         0
       );
 
-      const lpInfoBefore = await protocolContract.LPsInfo(
-        liquidityProvider1.getAddress()
-      );
+      const lpInfoBefore = await protocolContract.LPsInfo(provider1tokenId);
 
       const decodedData = await ProtocolHelper.takeInterest(
         liquidityProvider1,
+        provider1tokenId,
         0,
         1 * 24 * 60 * 60,
         2
       );
 
-      const lpInfoAfter = await protocolContract.LPsInfo(
-        liquidityProvider1.getAddress()
-      );
+      const lpInfoAfter = await protocolContract.LPsInfo(provider1tokenId);
 
-      expect(decodedData.account).to.be.equal(
-        await liquidityProvider1.getAddress()
-      );
+      expect(decodedData.tokenId).to.be.equal(provider1tokenId);
       expect(decodedData.userCapital).to.be.equal(365000);
       expect(decodedData.rewardsGross).to.be.equal(18);
       expect(decodedData.rewardsNet).to.be.equal(15);
