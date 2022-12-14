@@ -271,13 +271,17 @@ async function resolveClaim(
 
 async function takeInterest(
   user: ethers.Signer,
+  tokenId: ethers.BigNumberish,
   protocolId: number,
   timeLapse: number,
   eventIndex: number = 0
 ) {
   await HardhatHelper.setNextBlockTimestamp(timeLapse);
 
-  const tx = await ATHENA_CONTRACT.connect(user).takeInterest(protocolId);
+  const tx = await ATHENA_CONTRACT.connect(user).takeInterest(
+    tokenId,
+    protocolId
+  );
   const events = (await tx.wait()).events;
   const event = events[eventIndex];
 
