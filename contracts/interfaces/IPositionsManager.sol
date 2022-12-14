@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/token/ERC721/extensions/IERC721Enumerable.sol";
 
 interface IPositionsManager is IERC721Enumerable {
   struct Position {
-    address owner;
+    // address owner; // @bw should be removed for multi pos
     uint256 createdAt;
     uint256 amountSupplied;
     uint256 aaveScaledBalance;
