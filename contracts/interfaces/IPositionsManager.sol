@@ -33,7 +33,7 @@ interface IPositionsManager is IERC721Enumerable {
   //   uint128[] calldata protocolsIds
   // ) external;
 
-  function burn(address to) external;
+  function burn(uint256 tokenId) external;
 
   function update(
     uint256 tokenId,
@@ -70,7 +70,7 @@ interface IPositionsManager is IERC721Enumerable {
 
   function takeInterest(
     address account,
-    uint256 tokenIndex,
+    uint256 tokenId,
     uint128 protocolId
   ) external;
 }

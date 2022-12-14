@@ -11,14 +11,14 @@ interface IProtocolPool is IPolicyCover {
     uint256 beginClaimIndex;
   }
 
-  function deposit(address account, uint256 amount) external;
+  function deposit(uint256 tokenId, uint256 amount) external;
 
-  function committingWithdrawLiquidity(address account) external;
+  function committingWithdrawLiquidity(uint256 tokenId) external;
 
-  function removeCommittedWithdrawLiquidity(address account) external;
+  function removeCommittedWithdrawLiquidity(uint256 tokenId) external;
 
   function rewardsOf(
-    address _account,
+    uint256 tokenId,
     uint256 _userCapital,
     uint128[] calldata _protocolIds,
     uint256 _discount,
@@ -34,6 +34,7 @@ interface IProtocolPool is IPolicyCover {
 
   function takeInterest(
     address account,
+    uint256 tokenId,
     uint256 userCapital,
     uint128[] calldata protocolIds,
     uint256 discount
@@ -41,13 +42,14 @@ interface IProtocolPool is IPolicyCover {
     external
     returns (uint256 newUserCapital, uint256 aaveScaledBalanceToRemove);
 
-  function isWithdrawLiquidityDelayOk(address account)
+  function isWithdrawLiquidityDelayOk(uint256 tokenId)
     external
     view
     returns (bool);
 
   function withdrawLiquidity(
     address account,
+    uint256 tokenId,
     uint256 userCapital,
     uint128[] calldata protocolIds,
     uint128 discount
@@ -78,7 +80,7 @@ interface IProtocolPool is IPolicyCover {
 
   function addRelatedProtocol(uint128 protocolId, uint256 amount) external;
 
-  function removeLPInfo(address account) external;
+  function removeLPInfo(uint256 tokenId) external;
 
   function actualizing() external returns (uint256[] memory);
 

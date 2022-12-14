@@ -16,7 +16,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
   mapping(uint256 => Position) private _positions;
 
   /// @dev The ID of the next token that will be minted.
-  uint176 private _nextId = 0;
+  uint176 private _nextTokenId = 0;
 
   modifier onlyCore() {
     require(msg.sender == core, "Only core");
@@ -54,8 +54,10 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
   {
     uint256[] memory tokenList = allPositionTokensOfOwner(owner);
     positionList = new PositionInfo[](tokenList.length);
+
     for (uint256 index = 0; index < tokenList.length; index++) {
-      Position memory __position = _positions[tokenList[index]];
+      uint256 tokenId = tokenList[index];
+      Position memory __position = _positions[tokenId];
 
       uint256 finalCapital;
       uint256 totalRewards;
@@ -66,7 +68,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
         (uint256 __newUserCapital, uint256 __totalRewards, ) = IProtocolPool(
           poolAddress
         ).rewardsOf(
-            owner,
+            tokenId,
             __position.amountSupplied,
             __position.protocolIds,
             __position.discount,
@@ -97,7 +99,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
   //   uint256 atenStake,
   //   uint128[] calldata _protocolIds
   // ) external override onlyCore {
-  //   _positions[_nextId] = Position({
+  //   _positions[_nextTokenId] = Position({
   //     createdAt: block.timestamp,
   //     owner: to,
   //     amountSupplied: amount,
@@ -107,12 +109,12 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
   //     atens: atenStake
   //   });
 
-  //   _mint(to, _nextId);
-  //   _nextId++;
+  //   _mint(to, _nextTokenId);
+  //   _nextTokenId++;
   // }
 
-  function burn(address to) external override onlyCore {
-    uint256 tokenId = tokenOfOwnerByIndex(to, 0);
+  function burn(uint tokenId) external override onlyCore {
+ 
     _burn(tokenId);
   }
 
@@ -170,6 +172,8 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
   ) external override onlyCore {
     IAthena _core = IAthena(core);
 
+    uint256 tokenId = _nextTokenId;
+
     for (
       uint256 firstIndex = 0;
       firstIndex < protocolIds.length;
@@ -192,7 +196,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
 
       _core.actualizingProtocolAndRemoveExpiredPolicies(address(protocolPool1));
 
-      protocolPool1.deposit(account, amount);
+      protocolPool1.deposit(tokenId, amount);
       //Thao@TODO: pas besoin de add lui-même
       protocolPool1.addRelatedProtocol(protocolIds[firstIndex], amount);
     }
@@ -204,8 +208,8 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
       _discount = _core.getDiscountWithAten(atenToStake);
     }
 
-    _positions[_nextId] = Position({
-      owner: account,
+    _positions[tokenId] = Position({
+      // owner: account, // @bw should be removed for multi pos
       createdAt: block.timestamp,
       amountSupplied: amount,
       aaveScaledBalance: __aaveScaledBalance,
@@ -214,8 +218,8 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
       atens: atenToStake
     });
 
-    _mint(account, _nextId);
-    _nextId++;
+    _mint(account, tokenId);
+    _nextTokenId++;
   }
 
   /*
@@ -305,13 +309,10 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
 
   function takeInterest(
     address account,
-    uint256 tokenIndex,
+    uint256  tokenId,
     uint128 protocolId
   ) external override onlyCore {
-    require(balanceOf(account) > 0, "No active position");
-    uint256 _tokenId = tokenOfOwnerByIndex(account, tokenIndex);
-
-    Position memory _position = _positions[_tokenId];
+    Position memory _position = _positions[tokenId];
 
     require(
       isProtocolInCoverList(protocolId, _position.protocolIds),
@@ -327,14 +328,15 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
       uint256 _aaveScaledBalanceToRemove
     ) = IProtocolPool(protocolAddress).takeInterest(
         account,
+        tokenId,
         _position.amountSupplied,
         _position.protocolIds,
         _position.discount
       );
 
     if (_position.amountSupplied != _newUserCapital) {
-      _positions[_tokenId].amountSupplied = _newUserCapital;
-      _positions[_tokenId].aaveScaledBalance -= _aaveScaledBalanceToRemove;
+      _positions[tokenId].amountSupplied = _newUserCapital;
+      _positions[tokenId].aaveScaledBalance -= _aaveScaledBalanceToRemove;
     }
   }
 }

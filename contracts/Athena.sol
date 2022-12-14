@@ -134,6 +134,15 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
       );
   }
 
+  modifier checkTokenOwner(uint256 tokenId_) {
+    // @dev Check caller is owner of the cover NFT
+    address ownerOfToken = IPositionsManager(positionsManager).ownerOf(
+      tokenId_
+    );
+    require(msg.sender == ownerOfToken, "A: Caller is not the owner");
+    _;
+  }
+
   //////Thao@NOTE: LP
   modifier valideProtocolIds(uint128[] calldata protocolIds) {
     for (
@@ -209,8 +218,15 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   }
 */
 
-  function takeInterest(uint128 protocolId) public {
-    IPositionsManager(positionsManager).takeInterest(msg.sender, 0, protocolId);
+  function takeInterest(uint256 tokenId, uint128 protocolId)
+    public
+    checkTokenOwner(tokenId)
+  {
+    IPositionsManager(positionsManager).takeInterest(
+      msg.sender,
+      tokenId,
+      protocolId
+    );
   }
 
   /*
@@ -308,7 +324,10 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   }
 */
 
-  function committingWithdrawAll() external {
+  function committingWithdrawAll(uint256 tokenId)
+    external
+    checkTokenOwner(tokenId)
+  {
     require(
       IPositionsManager(positionsManager).balanceOf(msg.sender) > 0,
       "No position to commit withdraw"
@@ -325,16 +344,14 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
 
     for (uint256 index = 0; index < __position.protocolIds.length; index++)
       IProtocolPool(protocolsMapping[__position.protocolIds[index]].deployed)
-        .committingWithdrawLiquidity(msg.sender);
+        .committingWithdrawLiquidity(tokenId);
   }
 
-  function withdrawAll() external {
+  function withdrawAll(uint256 tokenId) external checkTokenOwner(tokenId) {
     IPositionsManager __positionsManager = IPositionsManager(positionsManager);
 
-    uint256 _tokenId = __positionsManager.tokenOfOwnerByIndex(msg.sender, 0);
-
     IPositionsManager.Position memory __position = __positionsManager.position(
-      _tokenId
+      tokenId
     );
 
     uint256 __newUserCapital;
@@ -345,26 +362,27 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
       );
 
       require(
-        __protocol.isWithdrawLiquidityDelayOk(msg.sender),
+        __protocol.isWithdrawLiquidityDelayOk(tokenId),
         "Withdraw reserve"
       );
 
-      __protocol.removeCommittedWithdrawLiquidity(msg.sender);
+      __protocol.removeCommittedWithdrawLiquidity(tokenId);
 
       actualizingProtocolAndRemoveExpiredPolicies(address(__protocol));
 
       (__newUserCapital, __aaveScaledBalanceToRemove) = __protocol
         .withdrawLiquidity(
           msg.sender,
+          tokenId,
           __position.amountSupplied,
           __position.protocolIds,
           __position.discount
         );
 
-      __protocol.removeLPInfo(msg.sender);
+      __protocol.removeLPInfo(tokenId);
     }
 
-    __positionsManager.burn(msg.sender);
+    __positionsManager.burn(tokenId);
 
     address __lendingPool = ILendingPoolAddressesProvider(aaveAddressesRegistry)
       .getLendingPool();

@@ -15,8 +15,8 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
   string public _poolName;
   uint256 public immutable commitDelay;
 
-  mapping(address => uint256) public withdrawReserves;
-  mapping(address => LPInfo) public LPsInfo;
+  mapping(uint256 => uint256) public withdrawReserves;
+  mapping(uint256 => LPInfo) public LPsInfo;
 
   constructor(
     address _core,
@@ -71,28 +71,28 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     intersectingAmounts[intersectingAmountIndexes[_protocolId]] += _amount;
   }
 
-  function committingWithdrawLiquidity(address _account) external onlyCore {
-    withdrawReserves[_account] = block.timestamp;
+  function committingWithdrawLiquidity(uint256 tokenId_) external onlyCore {
+    withdrawReserves[tokenId_] = block.timestamp;
   }
 
-  function removeCommittedWithdrawLiquidity(address _account)
+  function removeCommittedWithdrawLiquidity(uint256 tokenId_)
     external
     onlyCore
   {
-    delete withdrawReserves[_account];
+    delete withdrawReserves[tokenId_];
   }
 
-  function removeLPInfo(address _account) external onlyCore {
-    delete LPsInfo[_account];
+  function removeLPInfo(uint256 tokenId_) external onlyCore {
+    delete LPsInfo[tokenId_];
   }
 
   function deposit(
-    address _account,
+    uint256 tokenId_,
     uint256 _amount // onlyCore
   ) external {
     _updateSlot0WhenAvailableCapitalChange(_amount, 0);
     availableCapital += _amount;
-    LPsInfo[_account] = LPInfo(liquidityIndex, claims.length);
+    LPsInfo[tokenId_] = LPInfo(liquidityIndex, claims.length);
   }
 
   function buyPolicy(
@@ -120,7 +120,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
   }
 
   function _actualizingLPInfoWithClaims(
-    address _account,
+    uint256 tokenId_,
     uint256 _userCapital,
     uint128[] calldata _protocolIds
   )
@@ -133,7 +133,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
       uint256 __aaveScaledBalanceToRemove
     )
   {
-    __newLPInfo = LPsInfo[_account];
+    __newLPInfo = LPsInfo[tokenId_];
     Claim[] memory __claims = _claims(__newLPInfo.beginClaimIndex);
 
     __newUserCapital = _userCapital;
@@ -165,7 +165,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
   }
 
   function rewardsOf(
-    address _account,
+    uint256 tokenId_,
     uint256 _userCapital,
     uint128[] calldata _protocolIds,
     uint256 _discount,
@@ -185,7 +185,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
       __totalRewards,
       __newLPInfo,
 
-    ) = _actualizingLPInfoWithClaims(_account, _userCapital, _protocolIds);
+    ) = _actualizingLPInfoWithClaims(tokenId_, _userCapital, _protocolIds);
 
     uint256 __liquidityIndex;
 
@@ -205,7 +205,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
   }
 
   event TakeInterest(
-    address account,
+    uint256 tokenId,
     uint256 userCapital,
     uint256 rewardsGross,
     uint256 rewardsNet,
@@ -214,7 +214,8 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
 
   //onlyPositionManager
   function takeInterest(
-    address _account,
+    address account_,
+    uint256 tokenId_,
     uint256 _userCapital,
     uint128[] calldata _protocolIds,
     uint256 _discount
@@ -224,7 +225,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
       uint256 __totalRewards,
       LPInfo memory __newLPInfo,
       uint256 __aaveScaledBalanceToRemove
-    ) = _actualizingLPInfoWithClaims(_account, _userCapital, _protocolIds);
+    ) = _actualizingLPInfoWithClaims(tokenId_, _userCapital, _protocolIds);
 
     uint256 __liquidityIndex = liquidityIndex;
 
@@ -236,15 +237,15 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
 
     //transfer to account:
     uint256 __interestNet = (__totalRewards * (1000 - _discount)) / 1000;
-    IERC20(underlyingAsset).safeTransfer(_account, __interestNet);
+    IERC20(underlyingAsset).safeTransfer(account_, __interestNet);
 
     //transfer to treasury
     IERC20(underlyingAsset).safeTransfer(core, __totalRewards - __interestNet);
 
-    LPsInfo[_account] = __newLPInfo;
+    LPsInfo[tokenId_] = __newLPInfo;
 
     emit TakeInterest(
-      _account,
+      tokenId_,
       __newUserCapital,
       __totalRewards,
       __interestNet,
@@ -254,19 +255,19 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     return (__newUserCapital, __aaveScaledBalanceToRemove);
   }
 
-  function isWithdrawLiquidityDelayOk(address _account)
+  function isWithdrawLiquidityDelayOk(uint256 tokenId_)
     external
     view
     returns (bool)
   {
-    uint256 withdrawReserveTime = withdrawReserves[_account];
+    uint256 withdrawReserveTime = withdrawReserves[tokenId_];
     return
       withdrawReserveTime != 0 &&
       block.timestamp - withdrawReserveTime >= commitDelay;
   }
 
   event WithdrawLiquidity(
-    address account,
+    uint256 tokenId,
     uint256 capital,
     uint256 rewardsGross,
     uint256 rewardsNet,
@@ -274,7 +275,8 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
   );
 
   function withdrawLiquidity(
-    address _account,
+    address account_,
+    uint256 tokenId_,
     uint256 _userCapital,
     uint128[] calldata _protocolIds,
     uint128 _discount
@@ -294,7 +296,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
       uint256 __totalRewards,
       LPInfo memory __newLPInfo,
       uint256 __aaveScaledBalanceToRemove
-    ) = _actualizingLPInfoWithClaims(_account, _userCapital, _protocolIds);
+    ) = _actualizingLPInfoWithClaims(tokenId_, _userCapital, _protocolIds);
 
     __totalRewards += __newUserCapital.rayMul(
       liquidityIndex - __newLPInfo.beginLiquidityIndex
@@ -303,7 +305,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     uint256 __rewardsNet;
     if (__totalRewards > 0) {
       __rewardsNet = (__totalRewards * (1000 - _discount)) / 1000;
-      IERC20(underlyingAsset).safeTransfer(_account, __rewardsNet);
+      IERC20(underlyingAsset).safeTransfer(account_, __rewardsNet);
       IERC20(underlyingAsset).safeTransfer(core, __totalRewards - __rewardsNet);
     }
 
@@ -318,7 +320,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     availableCapital -= __newUserCapital;
 
     emit WithdrawLiquidity(
-      _account,
+      tokenId_,
       __newUserCapital,
       __totalRewards,
       __rewardsNet,
