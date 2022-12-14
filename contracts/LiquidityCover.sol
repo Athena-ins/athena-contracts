@@ -1,16 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-
 import "./libraries/RayMath.sol";
 
 import "hardhat/console.sol";
 
 abstract contract LiquidityCover {
   using RayMath for uint256;
-
-  event Mint(address owner, uint256 amount);
 
   uint128[] public relatedProtocols;
 

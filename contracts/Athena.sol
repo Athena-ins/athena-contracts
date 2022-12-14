@@ -52,6 +52,15 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
 
   uint128 public override nextProtocolId;
 
+  struct ProtocolView {
+    string name;
+    uint128 protocolId;
+    uint256 totalCouvrageValue;
+    uint256 availableCapacity;
+    uint256 utilizationRate;
+    uint256 premiumRate;
+  }
+
   constructor(
     address _stablecoinUsed,
     address _rewardsToken,
@@ -60,20 +69,6 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     rewardsToken = _rewardsToken;
     stablecoin = _stablecoinUsed;
     aaveAddressesRegistry = _aaveAddressesRegistry;
-  }
-
-  function setAAVEAddressesRegistry(address _aaveAddressesRegistry)
-    external
-    onlyOwner
-  {
-    aaveAddressesRegistry = _aaveAddressesRegistry;
-  }
-
-  function approveLendingPool() internal {
-    IERC20(stablecoin).safeApprove(
-      ILendingPoolAddressesProvider(aaveAddressesRegistry).getLendingPool(),
-      2**256 - 1
-    );
   }
 
   function initialize(
@@ -95,6 +90,20 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     atensVault = _atensVault;
     approveLendingPool();
     //initialized = true; //@dev required ?
+  }
+
+  function setAAVEAddressesRegistry(address _aaveAddressesRegistry)
+    external
+    onlyOwner
+  {
+    aaveAddressesRegistry = _aaveAddressesRegistry;
+  }
+
+  function approveLendingPool() internal {
+    IERC20(stablecoin).safeApprove(
+      ILendingPoolAddressesProvider(aaveAddressesRegistry).getLendingPool(),
+      2**256 - 1
+    );
   }
 
   function getProtocolAddressById(uint128 protocolId)
@@ -132,6 +141,15 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
       amount.rayDiv(
         ILendingPool(lendingPool).getReserveNormalizedIncome(stablecoin)
       );
+  }
+
+  /// ============================ ///
+  /// ========== MODIFIERS ========== ///
+  /// ============================ ///
+
+  modifier onlyClaimManager() {
+    require(msg.sender == claimManager, "Only Claim Manager");
+    _;
   }
 
   modifier checkTokenOwner(uint256 tokenId_) {
@@ -525,11 +543,6 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     protocolsMapping[policy_.protocolId].claimsOngoing += 1;
   }
 
-  modifier onlyClaimManager() {
-    require(msg.sender == claimManager, "Only Claim Manager");
-    _;
-  }
-
   //onlyClaimManager
   function resolveClaim(
     uint256 _policyId,
@@ -702,15 +715,6 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
 
   function pauseProtocol(uint128 protocolId, bool pause) external onlyOwner {
     protocolsMapping[protocolId].active = pause;
-  }
-
-  struct ProtocolView {
-    string name;
-    uint128 protocolId;
-    uint256 totalCouvrageValue;
-    uint256 availableCapacity;
-    uint256 utilizationRate;
-    uint256 premiumRate;
   }
 
   function getProtocols(uint128[] calldata protocolIds)
