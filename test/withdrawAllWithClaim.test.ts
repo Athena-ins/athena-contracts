@@ -13,6 +13,8 @@ let liquidityProvider2: ethers.Signer;
 let policyTaker1: ethers.Signer;
 let policyTaker2: ethers.Signer;
 let policyTaker3: ethers.Signer;
+let provider1tokenId: ethers.BigNumberish;
+let provider2tokenId: ethers.BigNumberish;
 
 describe("Liquidity provider withdraw", () => {
   describe("LP1, LP2 then PT1, PT2 in pool 0", async () => {
@@ -41,6 +43,12 @@ describe("Liquidity provider withdraw", () => {
         1 * 24 * 60 * 60
       );
 
+      const provider1tokenIds =
+        await ProtocolHelper.getPositionManagerContract()
+          .connect(liquidityProvider1)
+          .allPositionTokensOfOwner(liquidityProvider1.getAddress());
+      provider1tokenId = provider1tokenIds[0];
+
       const USDT_amount2 = "547500";
       const ATEN_amount2 = "9000000";
       await ProtocolHelper.deposit(
@@ -50,6 +58,12 @@ describe("Liquidity provider withdraw", () => {
         [0, 2],
         1 * 24 * 60 * 60
       );
+
+      const provider2tokenIds =
+        await ProtocolHelper.getPositionManagerContract()
+          .connect(liquidityProvider2)
+          .allPositionTokensOfOwner(liquidityProvider2.getAddress());
+      provider2tokenId = provider2tokenIds[0];
 
       await HardhatHelper.USDT_maxApprove(
         policyTaker1,
@@ -113,13 +127,13 @@ describe("Liquidity provider withdraw", () => {
 
       const commit_tx = await ProtocolHelper.getAthenaContract()
         .connect(liquidityProvider1)
-        .committingWithdrawAll();
+        .committingWithdrawAll(provider1tokenId);
 
       await HardhatHelper.setNextBlockTimestamp(14 * 24 * 60 * 60);
 
       const withdraw_tx = await ProtocolHelper.getAthenaContract()
         .connect(liquidityProvider1)
-        .withdrawAll();
+        .withdrawAll(provider1tokenId);
 
       const result = await withdraw_tx.wait();
       //   console.log(result);
@@ -134,7 +148,7 @@ describe("Liquidity provider withdraw", () => {
         result.events.find(
           (el: any) =>
             el.topics[0] ===
-              "0xac6df79d6b02e1767ce71b052690f830eb97257ab615e4b41a3f3f82dd4928cc" &&
+              "0x620d50d2ff399522b99eeffadbd9b188529ed4c6ce9a4ecf9e85fc3c00edc79f" &&
             el.data.includes(`${"2a".padStart(64, "0")}${"".padStart(62, "0")}`)
         ) || {};
 
@@ -143,9 +157,7 @@ describe("Liquidity provider withdraw", () => {
         p0_event.data
       );
 
-      expect(p0_decodedData.account).to.be.equal(
-        await liquidityProvider1.getAddress()
-      );
+      expect(p0_decodedData.tokenId).to.be.equal(provider1tokenId);
       expect(p0_decodedData.capital).to.be.equal(136875);
       expect(p0_decodedData.rewardsGross).to.be.equal(42);
       expect(p0_decodedData.rewardsNet).to.be.equal(35);
@@ -173,7 +185,7 @@ describe("Liquidity provider withdraw", () => {
         result.events.find(
           (el: any) =>
             el.topics[0] ===
-              "0xac6df79d6b02e1767ce71b052690f830eb97257ab615e4b41a3f3f82dd4928cc" &&
+              "0x620d50d2ff399522b99eeffadbd9b188529ed4c6ce9a4ecf9e85fc3c00edc79f" &&
             el.data.includes(`${"56".padStart(64, "0")}${"".padStart(62, "0")}`)
         ) || {};
 
@@ -182,9 +194,7 @@ describe("Liquidity provider withdraw", () => {
         p2_event.data
       );
 
-      expect(p2_decodedData.account).to.be.equal(
-        await liquidityProvider1.getAddress()
-      );
+      expect(p2_decodedData.tokenId).to.be.equal(provider1tokenId);
       expect(p2_decodedData.capital).to.be.equal(136875);
       expect(p2_decodedData.rewardsGross).to.be.equal(86);
       expect(p2_decodedData.rewardsNet).to.be.equal(73);
@@ -210,29 +220,24 @@ describe("Liquidity provider withdraw", () => {
         0
       );
 
-      const lpInfoBefore = await protocolContract.LPsInfo(
-        liquidityProvider2.getAddress()
-      );
+      const lpInfoBefore = await protocolContract.LPsInfo(provider2tokenId);
 
       const days = 10;
       const decodedData = await ProtocolHelper.takeInterest(
         liquidityProvider2,
+        provider2tokenId,
         0,
         days * 24 * 60 * 60,
         2
       );
 
-      expect(decodedData.account).to.be.equal(
-        await liquidityProvider2.getAddress()
-      );
+      expect(decodedData.tokenId).to.be.equal(provider2tokenId);
       expect(decodedData.userCapital).to.be.equal(410625);
       expect(decodedData.rewardsGross).to.be.equal(211);
       expect(decodedData.rewardsNet).to.be.equal(200);
       expect(decodedData.fee).to.be.equal(11);
 
-      const lpInfoAfter = await protocolContract.LPsInfo(
-        liquidityProvider2.getAddress()
-      );
+      const lpInfoAfter = await protocolContract.LPsInfo(provider2tokenId);
 
       expect(
         lpInfoAfter.beginLiquidityIndex.gt(lpInfoBefore.beginLiquidityIndex)
