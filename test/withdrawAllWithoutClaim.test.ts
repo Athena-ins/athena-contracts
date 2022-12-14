@@ -108,7 +108,13 @@ describe("Liquidity provider withdraw", () => {
         0
       );
 
-      const p0_event = result.events[3];
+      const p0_event =
+        result.events.find(
+          (el: any) =>
+            el.topics[0] ===
+              "0xac6df79d6b02e1767ce71b052690f830eb97257ab615e4b41a3f3f82dd4928cc" &&
+            el.data.includes(`${"25".padStart(64, "0")}${"".padStart(62, "0")}`)
+        ) || {};
 
       const p0_decodedData = p0_contract.interface.decodeEventLog(
         p0_event.topics[0],
@@ -141,7 +147,13 @@ describe("Liquidity provider withdraw", () => {
         liquidityProvider1,
         2
       );
-      const p2_event = result.events[7];
+      const p2_event =
+        result.events.find(
+          (el: any) =>
+            el.topics[0] ===
+              "0xac6df79d6b02e1767ce71b052690f830eb97257ab615e4b41a3f3f82dd4928cc" &&
+            el.data.includes(`${"43".padStart(64, "0")}${"".padStart(62, "0")}`)
+        ) || {};
 
       const p2_decodedData = p2_contract.interface.decodeEventLog(
         p2_event.topics[0],
