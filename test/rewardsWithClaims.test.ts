@@ -13,6 +13,8 @@ let liquidityProvider2: ethers.Signer;
 let policyTaker1: ethers.Signer;
 let policyTaker2: ethers.Signer;
 let policyTaker3: ethers.Signer;
+let provider1tokenId: ethers.BigNumberish;
+let provider2tokenId: ethers.BigNumberish;
 
 describe("Liquidity provider rewards", () => {
   before(async () => {
@@ -40,6 +42,11 @@ describe("Liquidity provider rewards", () => {
       1 * 24 * 60 * 60
     );
 
+    const provider1tokenIds = await ProtocolHelper.getPositionManagerContract()
+      .connect(liquidityProvider1)
+      .allPositionTokensOfOwner(liquidityProvider1.getAddress());
+    provider1tokenId = provider1tokenIds[0];
+
     const USDT_amount2 = "365000";
     const ATEN_amount2 = "9000000";
     await ProtocolHelper.deposit(
@@ -49,6 +56,11 @@ describe("Liquidity provider rewards", () => {
       [0, 1],
       1 * 24 * 60 * 60
     );
+
+    const provider2tokenIds = await ProtocolHelper.getPositionManagerContract()
+      .connect(liquidityProvider2)
+      .allPositionTokensOfOwner(liquidityProvider2.getAddress());
+    provider2tokenId = provider2tokenIds[0];
 
     await HardhatHelper.USDT_maxApprove(
       policyTaker3,
@@ -109,7 +121,7 @@ describe("Liquidity provider rewards", () => {
         0
       );
 
-      let lpInfo = await protocolPool0.LPsInfo(liquidityProvider1.getAddress());
+      let lpInfo = await protocolPool0.LPsInfo(provider1tokenId);
       expect(lpInfo.beginLiquidityIndex).to.be.equal(0);
       expect(lpInfo.beginClaimIndex).to.be.equal(0);
     });
@@ -121,7 +133,7 @@ describe("Liquidity provider rewards", () => {
       );
 
       let result = await protocolPool0.rewardsOf(
-        await liquidityProvider1.getAddress(),
+        provider1tokenId,
         365000,
         [0, 2],
         0,
@@ -140,7 +152,7 @@ describe("Liquidity provider rewards", () => {
         0
       );
 
-      let lpInfo = await protocolPool0.LPsInfo(liquidityProvider2.getAddress());
+      let lpInfo = await protocolPool0.LPsInfo(provider2tokenId);
       expect(lpInfo.beginLiquidityIndex).to.be.equal(0);
       expect(lpInfo.beginClaimIndex).to.be.equal(0);
     });
@@ -152,7 +164,7 @@ describe("Liquidity provider rewards", () => {
       );
 
       let result = await protocolPool0.rewardsOf(
-        await liquidityProvider2.getAddress(),
+        provider2tokenId,
         365000,
         [0, 2],
         0,
@@ -196,7 +208,7 @@ describe("Liquidity provider rewards", () => {
       );
 
       const result = await protocolPool0.rewardsOf(
-        await liquidityProvider1.getAddress(),
+        provider1tokenId,
         365000,
         [0, 2],
         0,
@@ -214,7 +226,7 @@ describe("Liquidity provider rewards", () => {
       );
 
       const result = await protocolPool0.rewardsOf(
-        await liquidityProvider2.getAddress(),
+        provider2tokenId,
         365000,
         [0, 1],
         0,
@@ -232,7 +244,7 @@ describe("Liquidity provider rewards", () => {
       );
 
       const result = await protocolPool0.rewardsOf(
-        await liquidityProvider1.getAddress(),
+        provider1tokenId,
         365000,
         [0, 2],
         0,
@@ -250,7 +262,7 @@ describe("Liquidity provider rewards", () => {
       );
 
       const result = await protocolPool0.rewardsOf(
-        await liquidityProvider2.getAddress(),
+        provider2tokenId,
         365000,
         [0, 1],
         0,
@@ -268,7 +280,7 @@ describe("Liquidity provider rewards", () => {
       );
 
       const result = await protocolPool0.rewardsOf(
-        await liquidityProvider1.getAddress(),
+        provider1tokenId,
         365000,
         [0, 2],
         0,
@@ -286,7 +298,7 @@ describe("Liquidity provider rewards", () => {
       );
 
       const result = await protocolPool0.rewardsOf(
-        await liquidityProvider2.getAddress(),
+        provider2tokenId,
         365000,
         [0, 1],
         0,
