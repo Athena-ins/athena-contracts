@@ -37,8 +37,6 @@ contract ProtocolFactory {
           _rSlope1,
           _rSlope2,
           name,
-          // A P P = Athena Protocol Pool
-          string(abi.encodePacked("APP_", Strings.toString(newProtocolId))),
           commitDelay
         )
       );

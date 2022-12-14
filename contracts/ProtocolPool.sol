@@ -12,6 +12,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
 
   address public underlyingAsset;
   uint128 public id;
+  string public _poolName;
   uint256 public immutable commitDelay;
 
   mapping(address => uint256) public withdrawReserves;
@@ -25,16 +26,13 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     uint256 _r0,
     uint256 _rSlope1,
     uint256 _rSlope2,
-    string memory _name,
-    string memory _symbol,
+    string memory poolName_,
     uint256 _commitDelay
-  )
-    ERC20(_name, _symbol)
-    PolicyCover(_core, _uOptimal, _r0, _rSlope1, _rSlope2)
-  {
+  ) PolicyCover(_core, _uOptimal, _r0, _rSlope1, _rSlope2) {
     underlyingAsset = _underlyingAsset;
     commitDelay = _commitDelay;
     id = _id;
+    _poolName = poolName_;
     relatedProtocols.push(_id);
     // intersectingAmountIndexes[_id] = 0;
     intersectingAmounts.push();
@@ -43,6 +41,10 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
   modifier onlyCore() {
     require(msg.sender == core, "Only Core");
     _;
+  }
+
+  function poolName() public view returns (string memory) {
+    return _poolName;
   }
 
   function getRelatedProtocols()
@@ -90,10 +92,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
   ) external {
     _updateSlot0WhenAvailableCapitalChange(_amount, 0);
     availableCapital += _amount;
-    _mint(_account, _amount);
     LPsInfo[_account] = LPInfo(liquidityIndex, claims.length);
-
-    emit Mint(_account, _amount);
   }
 
   function buyPolicy(
@@ -287,7 +286,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
         slot0.totalInsuredCapital,
         availableCapital - _userCapital
       ) <= RayMath.RAY * 100,
-      string(abi.encodePacked(name(), ": use rate > 100%"))
+      string(abi.encodePacked(poolName(), ": use rate > 100%"))
     );
 
     (
@@ -300,9 +299,6 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     __totalRewards += __newUserCapital.rayMul(
       liquidityIndex - __newLPInfo.beginLiquidityIndex
     );
-
-    //Thao@NOTE: _burn diminue totalSupply seulement
-    _burn(_account, balanceOf(_account));
 
     uint256 __rewardsNet;
     if (__totalRewards > 0) {
@@ -373,7 +369,6 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     external
     view
     returns (
-      string memory symbol,
       string memory name,
       uint256 totalCouvrageValue,
       uint256 availableCapacity,
@@ -389,8 +384,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     );
 
     return (
-      this.symbol(),
-      this.name(),
+      poolName(),
       slot0.totalInsuredCapital,
       availableCapital - slot0.totalInsuredCapital,
       __uRate,

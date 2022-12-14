@@ -687,7 +687,6 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   }
 
   struct ProtocolView {
-    string symbol;
     string name;
     uint128 protocolId;
     uint256 totalCouvrageValue;
@@ -704,7 +703,6 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     protocols = new ProtocolView[](protocolIds.length);
     for (uint128 i = 0; i < protocolIds.length; i++) {
       (
-        string memory symbol,
         string memory name,
         uint256 totalCouvrageValue,
         uint256 availableCapacity,
@@ -714,7 +712,6 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
           .protocolInfo();
 
       protocols[i] = ProtocolView(
-        symbol,
         name,
         protocolIds[i],
         totalCouvrageValue,

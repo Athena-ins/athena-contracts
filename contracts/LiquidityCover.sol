@@ -7,7 +7,7 @@ import "./libraries/RayMath.sol";
 
 import "hardhat/console.sol";
 
-abstract contract LiquidityCover is ERC20 {
+abstract contract LiquidityCover {
   using RayMath for uint256;
 
   event Mint(address owner, uint256 amount);
