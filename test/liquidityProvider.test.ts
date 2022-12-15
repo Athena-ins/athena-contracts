@@ -16,6 +16,8 @@ const ATEN_AMOUNT = "10000000";
 let owner: ethers.Signer;
 let liquidityProvider1: ethers.Signer;
 let liquidityProvider2: ethers.Signer;
+let provider1tokenId: ethers.BigNumberish;
+let provider2tokenId: ethers.BigNumberish;
 
 describe("Liquidity provider deposit", () => {
   before(async () => {
@@ -96,7 +98,13 @@ describe("Liquidity provider deposit", () => {
 
         const tx = await ProtocolHelper.getAthenaContract()
           .connect(liquidityProvider1)
-          .deposit(USDT_amount, ATEN_amount, [0, 2]);
+          .deposit(USDT_amount, [0, 2]);
+
+        const provider1tokenIds =
+          await ProtocolHelper.getPositionManagerContract()
+            .connect(liquidityProvider1)
+            .allPositionTokensOfOwner(liquidityProvider1.getAddress());
+        provider1tokenId = provider1tokenIds[0];
 
         expect(tx).to.haveOwnProperty("hash");
       });
@@ -123,11 +131,13 @@ describe("Liquidity provider deposit", () => {
         expect(availableCapital).to.be.equal("400000");
       });
 
-      it("Should check funs and NFT", async () => {
+      it("Should check funds and NFT", async () => {
         const POSITIONS_MANAGER_CONTRACT =
           ProtocolHelper.getPositionManagerContract();
 
-        const position = await POSITIONS_MANAGER_CONTRACT.position(0);
+        const position = await POSITIONS_MANAGER_CONTRACT.position(
+          provider1tokenId
+        );
         expect(position.amountSupplied).to.equal(bn(USDT_amount));
         expect(position.protocolIds).to.deep.equal([bn(0), bn(2)]);
 
@@ -240,7 +250,13 @@ describe("Liquidity provider deposit", () => {
 
         const tx = await ProtocolHelper.getAthenaContract()
           .connect(liquidityProvider2)
-          .deposit(USDT_amount, ATEN_amount, [0, 1, 2]);
+          .deposit(USDT_amount, [0, 1, 2]);
+
+        const provider2tokenIds =
+          await ProtocolHelper.getPositionManagerContract()
+            .connect(liquidityProvider2)
+            .allPositionTokensOfOwner(liquidityProvider2.getAddress());
+        provider2tokenId = provider2tokenIds[0];
 
         expect(tx).to.haveOwnProperty("hash");
       });
@@ -267,11 +283,13 @@ describe("Liquidity provider deposit", () => {
         expect(availableCapital).to.be.equal("730000");
       });
 
-      it("Should check funs and NFT", async () => {
+      it("Should check funds and NFT", async () => {
         const POSITIONS_MANAGER_CONTRACT =
           ProtocolHelper.getPositionManagerContract();
 
-        const position = await POSITIONS_MANAGER_CONTRACT.position(1);
+        const position = await POSITIONS_MANAGER_CONTRACT.position(
+          provider2tokenId
+        );
         expect(position.amountSupplied).to.equal(bn(USDT_amount));
         expect(position.protocolIds).to.deep.equal([bn(0), bn(1), bn(2)]);
 
