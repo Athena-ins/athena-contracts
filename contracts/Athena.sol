@@ -195,6 +195,89 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     _;
   }
 
+  /// ================================== ///
+  /// ========== ATEN STAKING ========== ///
+  /// ================================== ///
+
+  //////Thao@NOTE: Protocol
+  function stakeAtens(
+    address account,
+    uint256 atenToStake,
+    uint256 amount
+  ) external override {
+    IStakedAten(stakedAtensGP).stake(account, atenToStake, amount);
+  }
+
+  /*
+  function withdrawAtens(uint256 atenToWithdraw) external {
+    //@dev TODO check if multiple NFT positions
+    uint256 tokenId = IPositionsManager(positionsManager).tokenOfOwnerByIndex(
+      msg.sender,
+      0
+    );
+
+    IPositionsManager.Position memory __position = IPositionsManager(
+      positionsManager
+    ).position(tokenId);
+    uint128 _discount = getDiscountWithAten(__position.atens);
+    uint256 actualAtens = IStakedAten(stakedAtensGP).balanceOf(msg.sender);
+    require(actualAtens > 0, "No Atens to withdraw");
+    // require(atenToWithdraw <= actualAtens, "Not enough Atens to withdraw");
+    IStakedAten(stakedAtensGP).withdraw(msg.sender, atenToWithdraw);
+    IPositionsManager(positionsManager).update(
+      tokenId,
+      __position.amountSupplied,
+      __position.aaveScaledBalance,
+      actualAtens - atenToWithdraw,
+      _discount,
+      __position.protocolIds
+    );
+  }
+*/
+
+  /*
+  function withdrawAtensPolicy(uint256 _atenToWithdraw, uint128 _index)
+    external
+  {
+    uint256 __rewards = IStakedAtenPolicy(stakedAtensPo).withdraw(
+      msg.sender,
+      _atenToWithdraw,
+      _index
+    );
+    if (
+      __rewards > 0 && __rewards <= IERC20(rewardsToken).balanceOf(atensVault)
+    ) {
+      IVaultERC20(atensVault).transfer(msg.sender, __rewards);
+      //IERC20(rewardsToken).transferFrom(atensVault, msg.sender, __rewards);
+    }
+  }
+*/
+  function setDiscountWithAten(AtenDiscount[] calldata _discountToSet)
+    public
+    onlyOwner
+  {
+    for (uint256 index = 0; index < _discountToSet.length; index++) {
+      premiumAtenDiscount.push(_discountToSet[index]);
+    }
+  }
+
+  function getDiscountWithAten(uint256 _amount)
+    public
+    view
+    override
+    returns (uint128)
+  {
+    for (uint256 index = premiumAtenDiscount.length - 1; index > 0; index--) {
+      if (_amount >= premiumAtenDiscount[index].atenAmount)
+        return premiumAtenDiscount[index].discount;
+    }
+
+    return
+      _amount >= premiumAtenDiscount[0].atenAmount
+        ? premiumAtenDiscount[0].discount
+        : 0;
+  }
+
   /// ============================ ///
   /// ========== COVERS ========== ///
   /// ============================ ///
@@ -585,89 +668,6 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
 
     //Thao@TODO: enable next line when adding modifier 'onlyClaimManager' and calling startClaim to increment claimsOngoing before resolve
     // protocolsMapping[__protocolId].claimsOngoing -= 1;
-  }
-
-  /// ================================== ///
-  /// ========== ATEN STAKING ========== ///
-  /// ================================== ///
-
-  //////Thao@NOTE: Protocol
-  function stakeAtens(
-    address account,
-    uint256 atenToStake,
-    uint256 amount
-  ) external override {
-    IStakedAten(stakedAtensGP).stake(account, atenToStake, amount);
-  }
-
-  /*
-  function withdrawAtens(uint256 atenToWithdraw) external {
-    //@dev TODO check if multiple NFT positions
-    uint256 tokenId = IPositionsManager(positionsManager).tokenOfOwnerByIndex(
-      msg.sender,
-      0
-    );
-
-    IPositionsManager.Position memory __position = IPositionsManager(
-      positionsManager
-    ).position(tokenId);
-    uint128 _discount = getDiscountWithAten(__position.atens);
-    uint256 actualAtens = IStakedAten(stakedAtensGP).balanceOf(msg.sender);
-    require(actualAtens > 0, "No Atens to withdraw");
-    // require(atenToWithdraw <= actualAtens, "Not enough Atens to withdraw");
-    IStakedAten(stakedAtensGP).withdraw(msg.sender, atenToWithdraw);
-    IPositionsManager(positionsManager).update(
-      tokenId,
-      __position.amountSupplied,
-      __position.aaveScaledBalance,
-      actualAtens - atenToWithdraw,
-      _discount,
-      __position.protocolIds
-    );
-  }
-*/
-
-  /*
-  function withdrawAtensPolicy(uint256 _atenToWithdraw, uint128 _index)
-    external
-  {
-    uint256 __rewards = IStakedAtenPolicy(stakedAtensPo).withdraw(
-      msg.sender,
-      _atenToWithdraw,
-      _index
-    );
-    if (
-      __rewards > 0 && __rewards <= IERC20(rewardsToken).balanceOf(atensVault)
-    ) {
-      IVaultERC20(atensVault).transfer(msg.sender, __rewards);
-      //IERC20(rewardsToken).transferFrom(atensVault, msg.sender, __rewards);
-    }
-  }
-*/
-  function setDiscountWithAten(AtenDiscount[] calldata _discountToSet)
-    public
-    onlyOwner
-  {
-    for (uint256 index = 0; index < _discountToSet.length; index++) {
-      premiumAtenDiscount.push(_discountToSet[index]);
-    }
-  }
-
-  function getDiscountWithAten(uint256 _amount)
-    public
-    view
-    override
-    returns (uint128)
-  {
-    for (uint256 index = premiumAtenDiscount.length - 1; index > 0; index--) {
-      if (_amount >= premiumAtenDiscount[index].atenAmount)
-        return premiumAtenDiscount[index].discount;
-    }
-
-    return
-      _amount >= premiumAtenDiscount[0].atenAmount
-        ? premiumAtenDiscount[0].discount
-        : 0;
   }
 
   /// ==================================== ///

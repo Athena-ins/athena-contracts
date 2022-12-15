@@ -114,7 +114,6 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
   // }
 
   function burn(uint tokenId) external override onlyCore {
- 
     _burn(tokenId);
   }
 
