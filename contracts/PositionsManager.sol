@@ -65,6 +65,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
         address poolAddress = IAthena(core).getProtocolAddressById(
           __position.protocolIds[i]
         );
+
         (uint256 __newUserCapital, uint256 __totalRewards, ) = IProtocolPool(
           poolAddress
         ).rewardsOf(
@@ -106,7 +107,6 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
   //     aaveScaledBalance: _aaveScaledBalance,
   //     discount: _discount,
   //     protocolIds: _protocolIds,
-  //     atens: atenStake
   //   });
 
   //   _mint(to, _nextTokenId);
@@ -121,13 +121,11 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
     uint256 tokenId,
     uint256 amount,
     uint256 _aaveScaledBalance,
-    uint256 atenStake,
     uint128 _discount,
     uint128[] calldata _protocolIds
   ) external override onlyCore {
     _positions[tokenId].amountSupplied = amount;
     _positions[tokenId].aaveScaledBalance = _aaveScaledBalance;
-    _positions[tokenId].atens = atenStake;
     _positions[tokenId].discount = _discount;
     _positions[tokenId].protocolIds = _protocolIds;
   }
@@ -167,7 +165,6 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
     address account,
     uint256 amount,
     uint128 stakingDiscount,
-    uint256 atenToStake,
     uint128[] calldata protocolIds
   ) external override onlyCore {
     IAthena _core = IAthena(core);
@@ -209,8 +206,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
       amountSupplied: amount,
       aaveScaledBalance: __aaveScaledBalance,
       discount: stakingDiscount,
-      protocolIds: protocolIds,
-      atens: atenToStake
+      protocolIds: protocolIds
     });
 
     _mint(account, tokenId);
@@ -304,7 +300,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
 
   function takeInterest(
     address account,
-    uint256  tokenId,
+    uint256 tokenId,
     uint128 protocolId
   ) external override onlyCore {
     Position memory _position = _positions[tokenId];

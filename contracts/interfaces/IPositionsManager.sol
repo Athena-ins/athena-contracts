@@ -9,7 +9,6 @@ interface IPositionsManager is IERC721Enumerable {
     uint256 createdAt;
     uint256 amountSupplied;
     uint256 aaveScaledBalance;
-    uint256 atens;
     uint128 discount;
     uint128[] protocolIds;
   }
@@ -39,7 +38,6 @@ interface IPositionsManager is IERC721Enumerable {
     uint256 tokenId,
     uint256 amount,
     uint256 aaveScaledBalance,
-    uint256 atenStake,
     uint128 discount,
     uint128[] calldata protocolsIds
   ) external;
@@ -58,7 +56,6 @@ interface IPositionsManager is IERC721Enumerable {
     address account,
     uint256 amount,
     uint128 stakingDiscount,
-    uint256 atenToStake,
     uint128[] calldata protocolIds
   ) external;
 

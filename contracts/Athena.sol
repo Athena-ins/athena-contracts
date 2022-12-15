@@ -282,11 +282,11 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   /// ========== COVERS ========== ///
   /// ============================ ///
 
-  function deposit(
-    uint256 amount,
-    uint256 atenToStake,
-    uint128[] calldata protocolIds
-  ) public payable valideProtocolIds(protocolIds) {
+  function deposit(uint256 amount, uint128[] calldata protocolIds)
+    public
+    payable
+    valideProtocolIds(protocolIds)
+  {
     // retrieve user funds for coverage
     IERC20(stablecoin).safeTransferFrom(msg.sender, address(this), amount);
 
@@ -304,7 +304,6 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
       msg.sender,
       amount,
       stakingDiscount,
-      atenToStake,
       protocolIds
     );
   }
