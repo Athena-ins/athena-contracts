@@ -14,11 +14,12 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
   using SafeERC20 for IERC20;
   address public immutable underlyingAssetAddress;
   address public immutable core;
-  uint256 divRewardPerYear = (365 days) * 10000;
+  uint128 public divRewardPerYear = (365 days) * 10_000;
 
   struct PolicyStake {
     uint256 amount;
-    uint256 timestamp;
+    uint128 timestamp;
+    uint128 rate;
   }
   /**
    * @notice Stakeholder is a staker that has a stake
@@ -36,19 +37,7 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
   /**
    * @notice Staked event is triggered whenever a user stakes tokens, address is indexed to make it filterable
    */
-  event Staked(address indexed user, uint256 amount, uint256 timestamp);
-
-  /**
-     * @notice
-      Structure for getting fixed rewards depending on amount staked
-      Need to be set before use !
-     */
-  RewardRate[] internal rewardRates;
-
-  struct RewardRate {
-    uint256 amount;
-    uint128 rate;
-  }
+  event Staked(address indexed user, uint256 amount, uint128 timestamp);
 
   /**
    * @notice constructs Pool LP Tokens for staking, decimals defaults to 18
@@ -85,9 +74,11 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
    */
   function _stake(address _account, uint256 _amount) internal {
     require(_amount > 0, "Cannot stake nothing");
-    uint256 timestamp = block.timestamp;
+    uint128 timestamp = uint128(block.timestamp);
     Stakeholder storage __userStake = stakes[_account];
-    __userStake.userStakes.push(PolicyStake(_amount, timestamp));
+    __userStake.userStakes.push(
+      PolicyStake(_amount, timestamp, divRewardPerYear)
+    );
     __userStake.index++;
 
     emit Staked(_account, _amount, timestamp);
@@ -117,7 +108,7 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
     return
       ((block.timestamp - _userStake.userStakes[index].timestamp) *
         _userStake.userStakes[index].amount *
-        10000) / divRewardPerYear;
+        10000) / _userStake.userStakes[index].rate;
   }
 
   function withdraw(
@@ -156,7 +147,7 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
     __userStake.userStakes[_index].amount -= _amount;
 
     // Reset timer of stake
-    __userStake.userStakes[_index].timestamp = block.timestamp;
+    __userStake.userStakes[_index].timestamp = uint128(block.timestamp);
 
     return reward;
   }
