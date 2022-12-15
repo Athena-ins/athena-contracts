@@ -287,9 +287,19 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     uint256 atenToStake,
     uint128[] calldata protocolIds
   ) public payable valideProtocolIds(protocolIds) {
-    // console.log("Athena.deposit:");
+    // retrieve user funds for coverage
     IERC20(stablecoin).safeTransferFrom(msg.sender, address(this), amount);
+
+    // check the user's balance of staked ATEN
+    uint256 stakedAten = IStakedAten(stakedAtensGP).positionOf(msg.sender);
+
+    // if user has staked ATEN then get discount
     uint128 stakingDiscount;
+    if (stakedAten > 0) {
+      stakingDiscount = getDiscountWithAten(stakedAten);
+    }
+
+    // deposit assets in the pool and create position NFT
     IPositionsManager(positionsManager).deposit(
       msg.sender,
       amount,

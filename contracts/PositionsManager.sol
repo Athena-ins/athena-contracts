@@ -202,11 +202,6 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
     }
 
     uint256 __aaveScaledBalance = _core.transferLiquidityToAAVE(amount);
-    uint128 _discount;
-    if (atenToStake > 0) {
-      _core.stakeAtens(account, atenToStake, amount);
-      _discount = _core.getDiscountWithAten(atenToStake);
-    }
 
     _positions[tokenId] = Position({
       // owner: account, // @bw should be removed for multi pos
