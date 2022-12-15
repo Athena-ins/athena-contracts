@@ -152,7 +152,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     _;
   }
 
-  modifier checkTokenOwner(uint256 tokenId_) {
+  modifier checkPositionTokenOwner(uint256 tokenId_) {
     // @dev Check caller is owner of the cover NFT
     address ownerOfToken = IPositionsManager(positionsManager).ownerOf(
       tokenId_
@@ -332,7 +332,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
 
   function takeInterest(uint256 tokenId, uint128 protocolId)
     public
-    checkTokenOwner(tokenId)
+    checkPositionTokenOwner(tokenId)
   {
     IPositionsManager(positionsManager).takeInterest(
       msg.sender,
@@ -438,7 +438,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
 
   function committingWithdrawAll(uint256 tokenId)
     external
-    checkTokenOwner(tokenId)
+    checkPositionTokenOwner(tokenId)
   {
     require(
       IPositionsManager(positionsManager).balanceOf(msg.sender) > 0,
@@ -459,7 +459,10 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
         .committingWithdrawLiquidity(tokenId);
   }
 
-  function withdrawAll(uint256 tokenId) external checkTokenOwner(tokenId) {
+  function withdrawAll(uint256 tokenId)
+    external
+    checkPositionTokenOwner(tokenId)
+  {
     IPositionsManager __positionsManager = IPositionsManager(positionsManager);
 
     IPositionsManager.Position memory __position = __positionsManager.position(
