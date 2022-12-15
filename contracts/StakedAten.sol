@@ -41,7 +41,7 @@ contract StakedAten is
   function stake(
     address _account,
     uint256 _amount,
-    uint256 _usdDeposit
+    uint256 _usdCapitalSupplied
   ) external override onlyCore {
     // we put from & to opposite so as token owner has a Snapshot balance when staking
     _beforeTokenTransfer(address(0), _account, _amount);
@@ -50,7 +50,7 @@ contract StakedAten is
       address(this),
       _amount
     );
-    _stake(_account, _amount, _usdDeposit);
+    _stake(_account, _amount, _usdCapitalSupplied);
     _mint(_account, _amount);
   }
 

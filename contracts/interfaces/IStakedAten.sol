@@ -8,7 +8,7 @@ interface IStakedAten is IERC20 {
   function stake(
     address _account,
     uint256 _amount,
-    uint256 _usdDeposit
+    uint256 usdCapitalSupplied
   ) external;
 
   function withdraw(address _account, uint256 _amount) external;

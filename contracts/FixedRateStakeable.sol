@@ -47,14 +47,14 @@ contract FixedRateStakeable {
   function _stake(
     address _account,
     uint256 _amount,
-    uint256 _usdDeposit
+    uint256 _usdCapitalSupplied // in USD
   ) internal {
     require(_amount > 0, "Cannot stake nothing");
     uint256 timestamp = block.timestamp;
     Stakeholder storage _userStake = stakes[_account];
     _userStake.amount += _amount;
     _userStake.since = timestamp;
-    _userStake.rate = getRate(_usdDeposit);
+    _userStake.rate = getRate(_usdCapitalSupplied);
 
     emit Staked(_account, _amount, timestamp);
   }
