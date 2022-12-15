@@ -90,6 +90,22 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
     }
   }
 
+  function allCapitalSuppliedByAccount(address account_)
+    external
+    view
+    returns (uint256 _capitalSupplied)
+  {
+    // @bw WARN this is ok for now but incomplete since the amount is raw
+    // this should probably be adjusted with claims losses and APR gains
+    uint256[] memory tokenList = allPositionTokensOfOwner(account_);
+
+    for (uint256 index = 0; index < tokenList.length; index++) {
+      Position memory _position = _positions[tokenList[index]];
+
+      _capitalSupplied += _position.amountSupplied;
+    }
+  }
+
   // @bw fn is redundant with deposit in this contrat
   // should be deleted
   // function mint(
@@ -113,7 +129,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
   //   _nextTokenId++;
   // }
 
-  function burn(uint tokenId) external override onlyCore {
+  function burn(uint256 tokenId) external override onlyCore {
     _burn(tokenId);
   }
 

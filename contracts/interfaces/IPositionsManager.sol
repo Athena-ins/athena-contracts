@@ -20,6 +20,11 @@ interface IPositionsManager is IERC721Enumerable {
 
   function position(uint256 tokenId) external view returns (Position memory);
 
+  function allCapitalSuppliedByAccount(address account_)
+    external
+    view
+    returns (uint256 _capitalSupplied);
+
   // @bw fn is redundant with deposit in this contrat
   // should be deleted
   // function mint(
