@@ -95,6 +95,15 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
 
   /**
    * @notice
+   * Sets the new staking rewards APR for newly created policies.
+   * @param newRate the new reward rate (100% APR = 10_000)
+   */
+  function setRewardsPerYear(uint128 newRate) external onlyCore {
+    divRewardPerYear = (365 days) * newRate;
+  }
+
+  /**
+   * @notice
    * calculateStakeReward is used to calculate how much a user should be rewarded for their stakes
    * and the duration the stake has been active
    * Currently the reward is 100% APR per year

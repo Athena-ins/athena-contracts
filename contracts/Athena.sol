@@ -199,6 +199,15 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   /// ========== ATEN STAKING ========== ///
   /// ================================== ///
 
+  /**
+   * @notice
+   * Sets the new staking rewards APR for newly created policies.
+   * @param newRate the new reward rate (100% APR = 10_000)
+   */
+  function setPolicyStakingRewards(uint128 newRate) external onlyOwner {
+    IStakedAtenPolicy(stakedAtensPo).setRewardsPerYear(newRate);
+  }
+
   //////Thao@NOTE: Protocol
   function stakeAtens(uint256 amount) external override {
     uint256 usdCapitalSupplied = IPositionsManager(positionsManager)

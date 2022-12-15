@@ -10,4 +10,6 @@ interface IStakedAtenPolicy is IERC20 {
     uint256 _amount,
     uint128 _index
   ) external returns (uint256);
+
+  function setRewardsPerYear(uint256 newRate) external;
 }
