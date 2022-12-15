@@ -206,9 +206,11 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   ) public payable valideProtocolIds(protocolIds) {
     // console.log("Athena.deposit:");
     IERC20(stablecoin).safeTransferFrom(msg.sender, address(this), amount);
+    uint128 stakingDiscount;
     IPositionsManager(positionsManager).deposit(
       msg.sender,
       amount,
+      stakingDiscount,
       atenToStake,
       protocolIds
     );

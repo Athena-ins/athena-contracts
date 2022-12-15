@@ -167,6 +167,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
   function deposit(
     address account,
     uint256 amount,
+    uint128 stakingDiscount,
     uint256 atenToStake,
     uint128[] calldata protocolIds
   ) external override onlyCore {
@@ -213,7 +214,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
       createdAt: block.timestamp,
       amountSupplied: amount,
       aaveScaledBalance: __aaveScaledBalance,
-      discount: _discount,
+      discount: stakingDiscount,
       protocolIds: protocolIds,
       atens: atenToStake
     });

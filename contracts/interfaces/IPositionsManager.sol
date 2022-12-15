@@ -57,6 +57,7 @@ interface IPositionsManager is IERC721Enumerable {
   function deposit(
     address account,
     uint256 amount,
+    uint128 stakingDiscount,
     uint256 atenToStake,
     uint128[] calldata protocolIds
   ) external;
