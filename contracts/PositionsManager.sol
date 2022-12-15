@@ -201,7 +201,6 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
     uint256 __aaveScaledBalance = _core.transferLiquidityToAAVE(amount);
 
     _positions[tokenId] = Position({
-      // owner: account, // @bw should be removed for multi pos
       createdAt: block.timestamp,
       amountSupplied: amount,
       aaveScaledBalance: __aaveScaledBalance,
