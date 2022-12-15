@@ -224,11 +224,9 @@ async function deposit(
 
   await HardhatHelper.setNextBlockTimestamp(timeLapse);
 
-  await ATHENA_CONTRACT.connect(user).deposit(
-    USDT_amount,
-    ATEN_amount,
-    protocols
-  );
+  await (await ATHENA_CONTRACT.connect(user).stakeAtens(ATEN_amount)).wait();
+
+  await ATHENA_CONTRACT.connect(user).deposit(USDT_amount, protocols);
 }
 
 async function buyPolicy(
