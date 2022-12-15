@@ -200,12 +200,11 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   /// ================================== ///
 
   //////Thao@NOTE: Protocol
-  function stakeAtens(
-    address account,
-    uint256 atenToStake,
-    uint256 amount
-  ) external override {
-    IStakedAten(stakedAtensGP).stake(account, atenToStake, amount);
+  function stakeAtens(uint256 amount) external override {
+    uint256 usdCapitalSupplied = IPositionsManager(positionsManager)
+      .allCapitalSuppliedByAccount(msg.sender);
+
+    IStakedAten(stakedAtensGP).stake(msg.sender, amount, usdCapitalSupplied);
   }
 
   /*
@@ -261,6 +260,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     }
   }
 
+  // @bw should change name from discount to fee level (for user lower is better)
   function getDiscountWithAten(uint256 _amount)
     public
     view

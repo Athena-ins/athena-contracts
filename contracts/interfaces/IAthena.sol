@@ -35,9 +35,5 @@ interface IAthena {
     address _account
   ) external;
 
-  function stakeAtens(
-    address account,
-    uint256 atenToStake,
-    uint256 amount
-  ) external;
+  function stakeAtens(uint256 amount) external;
 }
