@@ -126,17 +126,6 @@ contract FixedRateStakeable {
 
   /**
    * @notice
-   * public function to view the ATEN position of a staker
-   */
-  function positionOf(address _account) public view returns (uint256) {
-    Stakeholder storage userStake = stakes[_account];
-    uint256 reward = calculateStakeReward(userStake);
-
-    return userStake.amount + reward;
-  }
-
-  /**
-   * @notice
    * public function to view rewards available for a stake
    */
   function rewardsOf(address _staker)
