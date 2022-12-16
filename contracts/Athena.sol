@@ -48,6 +48,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     uint128 feeRate;
   }
 
+  /// Available reward levels (10_000 = 100% APR)
   AtenFeeLevel[] public supplyFeeLevels;
 
   uint128 public override nextProtocolId;
@@ -276,19 +277,24 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
 
     // Set all cover supply fee levels
     for (uint256 index = 0; index < levels_.length; index++) {
+      AtenFeeLevel calldata level = levels_[index];
+
       if (index == 0) {
         // Require that the first level indicates fees for atenAmount 0
-        require(levels_[index].atenAmount == 0, "A: Must specify base rate");
+        require(level.atenAmount == 0, "A: Must specify base rate");
       } else {
         // If it isn't the first item check that items are ascending
         require(
-          levels_[index - 1].atenAmount < levels_[index].atenAmount,
+          levels_[index - 1].atenAmount < level.atenAmount,
           "A: Sort rates in ascending order"
         );
       }
 
+      // Check that APR is not higher than 100%
+      require(level.feeRate < 10_000, "A: fee >= 100%");
+
       // save to storage
-      supplyFeeLevels.push(levels_[index]);
+      supplyFeeLevels.push(level);
     }
   }
 

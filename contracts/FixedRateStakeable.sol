@@ -32,6 +32,7 @@ contract FixedRateStakeable {
       Structure for getting fixed rewards depending on amount staked
       Need to be set before use !
      */
+  /// Available staking reward levels (10_000 = 100% APR)
   RewardRateLevel[] internal stakingRewardRates;
 
   struct RewardRateLevel {
@@ -71,22 +72,24 @@ contract FixedRateStakeable {
 
     // Set all cover supply fee levels
     for (uint256 index = 0; index < levels_.length; index++) {
+      RewardRateLevel calldata level = levels_[index];
+
       if (index == 0) {
         // Require that the first level indicates fees for atenAmount 0
-        require(
-          levels_[index].amountSupplied == 0,
-          "SA: Must specify base rate"
-        );
+        require(level.amountSupplied == 0, "SA: Must specify base rate");
       } else {
         // If it isn't the first item check that items are ascending
         require(
-          levels_[index - 1].amountSupplied < levels_[index].amountSupplied,
+          levels_[index - 1].amountSupplied < level.amountSupplied,
           "SA: Sort in ascending order"
         );
       }
 
+      // Check that APR is not higher than 100%
+      require(level.aprStaking <= 10_000, "SA: APR > 100%");
+
       // save to storage
-      stakingRewardRates.push(levels_[index]);
+      stakingRewardRates.push(level);
     }
   }
 
@@ -119,7 +122,7 @@ contract FixedRateStakeable {
     returns (uint256)
   {
     if (_userStake.amount == 0 || _userStake.rate == 0) return 0;
-    uint256 divRewardPerSecond = ((365 days) * 100 * 100) / _userStake.rate;
+    uint256 divRewardPerSecond = ((365 days) * 10_000) / _userStake.rate;
     return
       ((block.timestamp - _userStake.since) * _userStake.amount) /
       divRewardPerSecond;
