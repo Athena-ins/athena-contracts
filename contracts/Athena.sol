@@ -43,12 +43,12 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   address public rewardsToken;
   address public atensVault;
 
-  struct AtenDiscount {
+  struct AtenFeeLevel {
     uint256 atenAmount;
-    uint128 discount;
+    uint128 feeRate;
   }
 
-  AtenDiscount[] public premiumAtenDiscount;
+  AtenFeeLevel[] public supplyFeeLevels;
 
   uint128 public override nextProtocolId;
 
@@ -227,7 +227,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     IPositionsManager.Position memory __position = IPositionsManager(
       positionsManager
     ).position(tokenId);
-    uint128 _discount = getDiscountWithAten(__position.atens);
+    uint128 _feeRate = getFeeRateWithAten(__position.atens);
     uint256 actualAtens = IStakedAten(stakedAtensGP).balanceOf(msg.sender);
     require(actualAtens > 0, "No Atens to withdraw");
     // require(atenToWithdraw <= actualAtens, "Not enough Atens to withdraw");
@@ -237,7 +237,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
       __position.amountSupplied,
       __position.aaveScaledBalance,
       actualAtens - atenToWithdraw,
-      _discount,
+      _feeRate,
       __position.protocolIds
     );
   }
@@ -260,31 +260,29 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     }
   }
 */
-  function setDiscountWithAten(AtenDiscount[] calldata _discountToSet)
+  function setFeeLevelsWithAten(AtenFeeLevel[] calldata levels_)
     public
     onlyOwner
   {
-    for (uint256 index = 0; index < _discountToSet.length; index++) {
-      premiumAtenDiscount.push(_discountToSet[index]);
+    for (uint256 index = 0; index < levels_.length; index++) {
+      supplyFeeLevels.push(levels_[index]);
     }
   }
 
   // @bw should change name from discount to fee level (for user lower is better)
-  function getDiscountWithAten(uint256 _amount)
+  function getFeeRateWithAten(uint256 _amount)
     public
     view
     override
     returns (uint128)
   {
-    for (uint256 index = premiumAtenDiscount.length - 1; index > 0; index--) {
-      if (_amount >= premiumAtenDiscount[index].atenAmount)
-        return premiumAtenDiscount[index].discount;
+    for (uint256 index = supplyFeeLevels.length - 1; index > 0; index--) {
+      if (_amount >= supplyFeeLevels[index].atenAmount)
+        return supplyFeeLevels[index].feeRate;
     }
 
     return
-      _amount >= premiumAtenDiscount[0].atenAmount
-        ? premiumAtenDiscount[0].discount
-        : 0;
+      _amount >= supplyFeeLevels[0].atenAmount ? supplyFeeLevels[0].feeRate : 0;
   }
 
   /// ============================ ///
@@ -302,17 +300,17 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     // check the user's balance of staked ATEN
     uint256 stakedAten = IStakedAten(stakedAtensGP).positionOf(msg.sender);
 
-    // if user has staked ATEN then get discount
-    uint128 stakingDiscount;
+    // if user has staked ATEN then get feeRate
+    uint128 stakingFeeRate;
     if (stakedAten > 0) {
-      stakingDiscount = getDiscountWithAten(stakedAten);
+      stakingFeeRate = getFeeRateWithAten(stakedAten);
     }
 
     // deposit assets in the pool and create position NFT
     IPositionsManager(positionsManager).deposit(
       msg.sender,
       amount,
-      stakingDiscount,
+      stakingFeeRate,
       protocolIds
     );
   }
@@ -403,13 +401,13 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
       uint256 __userCapital,
       uint128[] memory __protocolIds,
       uint256 __aaveScaledBalance,
-      uint128 __discount
+      uint128 __feeRate
     ) = __positionManager.positions(__tokenId);
 
     actualizingProtocolAndRemoveExpiredPolicies(address(__protocol));
 
     (uint256 __newUserCapital, uint256 __aaveScaledBalanceToRemove) = __protocol
-      .withdrawLiquidity(msg.sender, __userCapital, __protocolIds, __discount);
+      .withdrawLiquidity(msg.sender, __userCapital, __protocolIds, __feeRate);
 
     __protocol.removeLPInfo(msg.sender);
 
@@ -500,7 +498,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
           tokenId,
           __position.amountSupplied,
           __position.protocolIds,
-          __position.discount
+          __position.feeRate
         );
 
       __protocol.removeLPInfo(tokenId);

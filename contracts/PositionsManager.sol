@@ -72,7 +72,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
             tokenId,
             __position.amountSupplied,
             __position.protocolIds,
-            __position.discount,
+            __position.feeRate,
             block.timestamp
           );
 
@@ -110,7 +110,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
   // should be deleted
   // function mint(
   //   address to,
-  //   uint128 _discount,
+  //   uint128 _feeRate,
   //   uint256 amount,
   //   uint256 _aaveScaledBalance,
   //   uint256 atenStake,
@@ -121,7 +121,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
   //     owner: to,
   //     amountSupplied: amount,
   //     aaveScaledBalance: _aaveScaledBalance,
-  //     discount: _discount,
+  //     feeRate: _feeRate,
   //     protocolIds: _protocolIds,
   //   });
 
@@ -137,12 +137,12 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
     uint256 tokenId,
     uint256 amount,
     uint256 _aaveScaledBalance,
-    uint128 _discount,
+    uint128 _feeRate,
     uint128[] calldata _protocolIds
   ) external override onlyCore {
     _positions[tokenId].amountSupplied = amount;
     _positions[tokenId].aaveScaledBalance = _aaveScaledBalance;
-    _positions[tokenId].discount = _discount;
+    _positions[tokenId].feeRate = _feeRate;
     _positions[tokenId].protocolIds = _protocolIds;
   }
 
@@ -180,7 +180,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
   function deposit(
     address account,
     uint256 amount,
-    uint128 stakingDiscount,
+    uint128 feeRate,
     uint128[] calldata protocolIds
   ) external override onlyCore {
     IAthena _core = IAthena(core);
@@ -220,7 +220,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
       createdAt: block.timestamp,
       amountSupplied: amount,
       aaveScaledBalance: __aaveScaledBalance,
-      discount: stakingDiscount,
+      feeRate: feeRate,
       protocolIds: protocolIds
     });
 
@@ -295,7 +295,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
       _position.atens += addingAtens;
 
       _positions[tokenId].atens = _position.atens;
-      _positions[tokenId].discount = _core.getDiscountWithAten(_position.atens);
+      _positions[tokenId].feeRate = _core.getFeeRateWithAten(_position.atens);
 
       _core.stakeAtens(account, addingAtens, addingAmount);
     }
@@ -337,7 +337,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
         tokenId,
         _position.amountSupplied,
         _position.protocolIds,
-        _position.discount
+        _position.feeRate
       );
 
     if (_position.amountSupplied != _newUserCapital) {

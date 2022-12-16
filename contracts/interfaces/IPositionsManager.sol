@@ -8,7 +8,7 @@ interface IPositionsManager is IERC721Enumerable {
     uint256 createdAt;
     uint256 amountSupplied;
     uint256 aaveScaledBalance;
-    uint128 discount;
+    uint128 feeRate;
     uint128[] protocolIds;
   }
 
@@ -29,7 +29,7 @@ interface IPositionsManager is IERC721Enumerable {
   // should be deleted
   // function mint(
   //   address to,
-  //   uint128 discount,
+  //   uint128 feeRate,
   //   uint256 amount,
   //   uint256 aaveScaledBalance,
   //   uint256 atenStake,
@@ -42,7 +42,7 @@ interface IPositionsManager is IERC721Enumerable {
     uint256 tokenId,
     uint256 amount,
     uint256 aaveScaledBalance,
-    uint128 discount,
+    uint128 feeRate,
     uint128[] calldata protocolsIds
   ) external;
 
@@ -59,7 +59,7 @@ interface IPositionsManager is IERC721Enumerable {
   function deposit(
     address account,
     uint256 amount,
-    uint128 stakingDiscount,
+    uint128 feeRate,
     uint128[] calldata protocolIds
   ) external;
 

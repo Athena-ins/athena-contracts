@@ -20,7 +20,7 @@ interface IAthena {
     view
     returns (address);
 
-  function getDiscountWithAten(uint256 atens) external view returns (uint128);
+  function getFeeRateWithAten(uint256 atens) external view returns (uint128);
 
   function nextProtocolId() external view returns (uint128);
 
