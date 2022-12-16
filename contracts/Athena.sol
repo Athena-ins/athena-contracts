@@ -260,29 +260,59 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     }
   }
 */
+
+  /** @notice
+   * Setter for cover supply interests fees according to staked ATEN.
+   * @dev Levels must be in ascending order of atenAmount
+   * @dev The atenAmount indicates the upper limit for the level
+   * @param levels_ array of fee level structs
+   **/
   function setFeeLevelsWithAten(AtenFeeLevel[] calldata levels_)
     public
     onlyOwner
   {
+    // First clean the storage
+    delete supplyFeeLevels;
+
+    // Set all cover supply fee levels
     for (uint256 index = 0; index < levels_.length; index++) {
+      if (index == 0) {
+        // Require that the first level indicates fees for atenAmount 0
+        require(levels_[index].atenAmount == 0, "A: Must specify base rate");
+      } else {
+        // If it isn't the first item check that items are ascending
+        require(
+          levels_[index - 1].atenAmount < levels_[index].atenAmount,
+          "A: Sort rates in ascending order"
+        );
+      }
+
+      // save to storage
       supplyFeeLevels.push(levels_[index]);
     }
   }
 
-  // @bw should change name from discount to fee level (for user lower is better)
-  function getFeeRateWithAten(uint256 _amount)
+  /** @notice
+   * Retrieves the fee rate according to amount of staked ATEN.
+   * @dev Returns displays warning but levels require an amountAten of 0
+   * @param stakedAten_ amount of ATEN the user stakes in GP
+   * @return uint128 amount of fees applied to cover supply interests
+   **/
+  function getFeeRateWithAten(uint256 stakedAten_)
     public
     view
     override
     returns (uint128)
   {
-    for (uint256 index = supplyFeeLevels.length - 1; index > 0; index--) {
-      if (_amount >= supplyFeeLevels[index].atenAmount)
+    // Lazy check to avoid loop if user doesn't stake
+    if (stakedAten_ == 0) return supplyFeeLevels[0].feeRate;
+
+    // Inversed loop starts with the end to find adequate level
+    for (uint256 index = supplyFeeLevels.length - 1; index >= 0; index--) {
+      // Rate level with atenAmount of 0 will always be true
+      if (supplyFeeLevels[index].atenAmount <= stakedAten_)
         return supplyFeeLevels[index].feeRate;
     }
-
-    return
-      _amount >= supplyFeeLevels[0].atenAmount ? supplyFeeLevels[0].feeRate : 0;
   }
 
   /// ============================ ///
@@ -297,7 +327,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     // retrieve user funds for coverage
     IERC20(stablecoin).safeTransferFrom(msg.sender, address(this), amount);
 
-    // check the user's balance of staked ATEN
+    // check the user's balance of staked ATEN + staking rewards
     uint256 stakedAten = IStakedAten(stakedAtensGP).positionOf(msg.sender);
 
     // if user has staked ATEN then get feeRate
