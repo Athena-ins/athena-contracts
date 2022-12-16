@@ -55,7 +55,7 @@ contract FixedRateStakeable {
     Stakeholder storage _userStake = stakes[_account];
     _userStake.amount += _amount;
     _userStake.since = timestamp;
-    _userStake.rate = getRate(_usdCapitalSupplied);
+    _userStake.rate = getStakingRewardRate(_usdCapitalSupplied);
 
     emit Staked(_account, _amount, timestamp);
   }
@@ -99,7 +99,11 @@ contract FixedRateStakeable {
    * @param suppliedCapital_ USD amount of the user's cover positions
    * @return uint128 staking APR of user in GP
    **/
-  function getRate(uint256 suppliedCapital_) public view returns (uint128) {
+  function getStakingRewardRate(uint256 suppliedCapital_)
+    public
+    view
+    returns (uint128)
+  {
     // Lazy check to avoid loop if user doesn't supply
     if (suppliedCapital_ == 0) return stakingRewardRates[0].aprStaking;
 
