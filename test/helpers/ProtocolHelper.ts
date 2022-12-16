@@ -137,11 +137,12 @@ async function initializeProtocol() {
   );
 }
 
-async function setDiscountWithAten(owner: ethers.Signer) {
-  return await ATHENA_CONTRACT.connect(owner).setDiscountWithAten([
-    [1000, 200],
-    [100000, 150],
-    [1000000, 50],
+async function setFeeLevelsWithAten(owner: ethers.Signer) {
+  return await ATHENA_CONTRACT.connect(owner).setFeeLevelsWithAten([
+    [0, 250],
+    [1_000, 200],
+    [100_000, 150],
+    [1_000_000, 50],
   ]);
 }
 
@@ -164,7 +165,7 @@ async function deployAllContractsAndInitializeProtocol(owner: ethers.Signer) {
   await deployStakedAtensPolicyContract(owner);
   await deployVaultAtenContract(owner);
   await initializeProtocol();
-  await setDiscountWithAten(owner);
+  await setFeeLevelsWithAten(owner);
   await setStakeRewards(owner);
 }
 
@@ -307,7 +308,7 @@ export default {
   deployClaimManagerContract,
   getClaimManagerContract,
   initializeProtocol,
-  setDiscountWithAten,
+  setFeeLevelsWithAten,
   setStakeRewards,
   deployAllContractsAndInitializeProtocol,
   addNewProtocolPool,

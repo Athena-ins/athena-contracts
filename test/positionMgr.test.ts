@@ -235,10 +235,11 @@ describe("Position Manager", function () {
   // });
 
   it("Should set discounts with Aten", async function () {
-    const tx = await ATHENA_CONTRACT.connect(owner).setDiscountWithAten([
-      [1000, 200],
-      [100000, 150],
-      [1000000, 50],
+    const tx = await ATHENA_CONTRACT.connect(owner).setFeeLevelsWithAten([
+      [0, 250],
+      [1_000, 200],
+      [100_000, 150],
+      [1_000_000, 50],
     ]);
     expect(tx).to.haveOwnProperty("hash");
     const discountFirst = await ATHENA_CONTRACT.connect(

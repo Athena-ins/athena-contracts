@@ -266,7 +266,7 @@ describe("Deploy protocol", () => {
     describe("Set discounts with Aten", () => {
       it("Should set discounts with Aten", async () => {
         const ATHENA_CONTRACT = ProtocolHelper.getAthenaContract();
-        const tx = await ProtocolHelper.setDiscountWithAten(owner);
+        const tx = await ProtocolHelper.setFeeLevelsWithAten(owner);
 
         expect(tx).to.haveOwnProperty("hash");
 
