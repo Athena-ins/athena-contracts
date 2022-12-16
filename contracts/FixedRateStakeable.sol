@@ -65,7 +65,7 @@ contract FixedRateStakeable {
    * @dev The amountSupplied indicates the upper limit for the level
    * @param levels_ array of staking reward levels structs
    **/
-  function _setStakeRewards(RewardRateLevel[] calldata levels_) internal {
+  function _setStakingRewards(RewardRateLevel[] calldata levels_) internal {
     // First clean the storage
     delete stakingRewardRates;
 

@@ -65,11 +65,11 @@ contract StakedAten is
     _mint(_account, _amount);
   }
 
-  function setStakeRewards(RewardRateLevel[] calldata stakingLevels_)
+  function setStakingRewards(RewardRateLevel[] calldata stakingLevels_)
     public
     onlyOwner
   {
-    _setStakeRewards(stakingLevels_);
+    _setStakingRewards(stakingLevels_);
   }
 
   function withdraw(address _account, uint256 _amount)
