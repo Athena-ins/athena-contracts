@@ -1,8 +1,8 @@
 import { BigNumber, BigNumberish } from "ethers";
 
-const bn = (n: BigNumberish) => BigNumber.from(n);
+const BN = (n: BigNumberish) => BigNumber.from(n);
 
-const RAY = bn(10).pow(27);
+const RAY = BN(10).pow(27);
 const halfRAY = RAY.div(2);
 
 function ray(n: BigNumberish) {
@@ -10,11 +10,11 @@ function ray(n: BigNumberish) {
 }
 
 function rayMul(a: BigNumberish, b: BigNumberish) {
-  return bn(a).mul(b).add(halfRAY).div(RAY);
+  return BN(a).mul(b).add(halfRAY).div(RAY);
 }
 
 function rayDiv(a: BigNumberish, b: BigNumberish) {
-  return bn(a).mul(RAY).add(bn(b).div(2)).div(b);
+  return BN(a).mul(RAY).add(BN(b).div(2)).div(b);
 }
 
 type Slot0 = {
@@ -34,16 +34,16 @@ type Formula = {
   rSlope2: BigNumber;
 };
 
-let timeStamp: BigNumber = bn(1646220000);
+let timeStamp: BigNumber = BN(1646220000);
 
 const slot0: Slot0 = {
-  tick: bn(0),
+  tick: BN(0),
   premiumRate: ray(1),
   emissionRate: ray(0),
   hoursPerTick: ray(24),
   totalInsuredCapital: ray(0),
   availableCapital: ray(0),
-  lastUpdateTimestamp: bn(0),
+  lastUpdateTimestamp: BN(0),
 };
 
 function getSlot0Info() {
@@ -78,11 +78,11 @@ function getUtilisationRate(
   }
   return _isAdded
     ? rayDiv(
-        bn(_totalInsuredCapital).add(_insuredCapital).mul(100),
+        BN(_totalInsuredCapital).add(_insuredCapital).mul(100),
         _availableCapital
       )
     : rayDiv(
-        bn(_totalInsuredCapital).sub(_insuredCapital).mul(100),
+        BN(_totalInsuredCapital).sub(_insuredCapital).mul(100),
         _availableCapital
       );
 }

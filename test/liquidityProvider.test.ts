@@ -8,7 +8,7 @@ import ProtocolHelper from "./helpers/ProtocolHelper";
 
 chai.use(chaiAsPromised);
 
-const bn = (num: string | number) => hre_ethers.BigNumber.from(num);
+const BN = (num: string | number) => hre_ethers.BigNumber.from(num);
 
 const USDT_AMOUNT = "1000000";
 const ATEN_AMOUNT = "10000000";
@@ -34,7 +34,7 @@ describe("Liquidity provider deposit", () => {
   });
 
   describe("Should simulate liquidity provider actions", async () => {
-    let atokenBalance = bn(0);
+    let atokenBalance = BN(0);
 
     describe("Should do actions of liquidity provider 1", async () => {
       const USDT_amount = "400000";
@@ -138,8 +138,8 @@ describe("Liquidity provider deposit", () => {
         const position = await POSITIONS_MANAGER_CONTRACT.position(
           provider1tokenId
         );
-        expect(position.amountSupplied).to.equal(bn(USDT_amount));
-        expect(position.protocolIds).to.deep.equal([bn(0), bn(2)]);
+        expect(position.amountSupplied).to.equal(BN(USDT_amount));
+        expect(position.protocolIds).to.deep.equal([BN(0), BN(2)]);
 
         // we check AAVE aToken balance
         atokenBalance = atokenBalance.add(USDT_amount);
@@ -290,8 +290,8 @@ describe("Liquidity provider deposit", () => {
         const position = await POSITIONS_MANAGER_CONTRACT.position(
           provider2tokenId
         );
-        expect(position.amountSupplied).to.equal(bn(USDT_amount));
-        expect(position.protocolIds).to.deep.equal([bn(0), bn(1), bn(2)]);
+        expect(position.amountSupplied).to.equal(BN(USDT_amount));
+        expect(position.protocolIds).to.deep.equal([BN(0), BN(1), BN(2)]);
 
         // we check AAVE aToken balance
         atokenBalance = atokenBalance.add(USDT_amount);

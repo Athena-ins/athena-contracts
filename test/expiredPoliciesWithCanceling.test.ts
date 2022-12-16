@@ -8,7 +8,7 @@ import ProtocolHelper from "./helpers/ProtocolHelper";
 
 chai.use(chaiAsPromised);
 
-const bn = (num: string | number) => hre_ethers.BigNumber.from(num);
+const BN = (num: string | number) => hre_ethers.BigNumber.from(num);
 
 let owner: ethers.Signer;
 let liquidityProvider1: ethers.Signer;

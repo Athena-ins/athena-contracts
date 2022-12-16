@@ -8,7 +8,7 @@ import ProtocolHelper from "./helpers/ProtocolHelper";
 
 chai.use(chaiAsPromised);
 
-const bn = (num: string | number) => hre_ethers.BigNumber.from(num);
+const BN = (num: string | number) => hre_ethers.BigNumber.from(num);
 
 let owner: ethers.Signer;
 
@@ -273,26 +273,26 @@ describe("Deploy protocol", () => {
         const discountZero = await ATHENA_CONTRACT.connect(
           owner
         ).supplyFeeLevels(0);
-        expect(discountZero.atenAmount).to.equal(bn(0));
-        expect(discountZero.feeRate).to.equal(bn(250));
+        expect(discountZero.atenAmount).to.equal(BN(0));
+        expect(discountZero.feeRate).to.equal(BN(250));
 
         const discountFirst = await ATHENA_CONTRACT.connect(
           owner
         ).supplyFeeLevels(1);
-        expect(discountFirst.atenAmount).to.equal(bn(1_000));
-        expect(discountFirst.feeRate).to.equal(bn(200));
+        expect(discountFirst.atenAmount).to.equal(BN(1_000));
+        expect(discountFirst.feeRate).to.equal(BN(200));
 
         const discountSnd = await ATHENA_CONTRACT.connect(
           owner
         ).supplyFeeLevels(2);
-        expect(discountSnd.atenAmount).to.equal(bn(100_000));
-        expect(discountSnd.feeRate).to.equal(bn(150));
+        expect(discountSnd.atenAmount).to.equal(BN(100_000));
+        expect(discountSnd.feeRate).to.equal(BN(150));
 
         const discountThird = await ATHENA_CONTRACT.connect(
           owner
         ).supplyFeeLevels(3);
-        expect(discountThird.atenAmount).to.equal(bn(1_000_000));
-        expect(discountThird.feeRate).to.equal(bn(50));
+        expect(discountThird.atenAmount).to.equal(BN(1_000_000));
+        expect(discountThird.feeRate).to.equal(BN(50));
 
         await expect(
           ATHENA_CONTRACT.connect(owner).supplyFeeLevels(4)
@@ -335,27 +335,27 @@ describe("Deploy protocol", () => {
 
         expect(
           await STAKED_ATENS_CONTRACT.connect(owner).getStakingRewardRate(0)
-        ).to.equal(bn(1_000));
+        ).to.equal(BN(1_000));
 
         expect(
           await STAKED_ATENS_CONTRACT.connect(owner).getStakingRewardRate(10)
-        ).to.equal(bn(1000));
+        ).to.equal(BN(1000));
 
         expect(
           await STAKED_ATENS_CONTRACT.connect(owner).getStakingRewardRate(10000)
-        ).to.equal(bn(1200));
+        ).to.equal(BN(1200));
 
         expect(
           await STAKED_ATENS_CONTRACT.connect(owner).getStakingRewardRate(
             100_001
           )
-        ).to.equal(bn(1600));
+        ).to.equal(BN(1600));
 
         expect(
           await STAKED_ATENS_CONTRACT.connect(owner).getStakingRewardRate(
             1_000_000
           )
-        ).to.equal(bn(2000));
+        ).to.equal(BN(2000));
       });
     });
   });

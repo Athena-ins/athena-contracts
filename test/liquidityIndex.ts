@@ -1,8 +1,8 @@
 import { BigNumber, BigNumberish } from "ethers";
 
-const bn = (n: BigNumberish) => BigNumber.from(n);
+const BN = (n: BigNumberish) => BigNumber.from(n);
 
-const RAY = bn(10).pow(27); //27 decimal
+const RAY = BN(10).pow(27); //27 decimal
 const halfRAY = RAY.div(2);
 
 function ray(n: BigNumberish) {
@@ -10,11 +10,11 @@ function ray(n: BigNumberish) {
 }
 
 function rayMul(a: BigNumberish, b: BigNumberish) {
-  return bn(a).mul(b).add(halfRAY).div(RAY);
+  return BN(a).mul(b).add(halfRAY).div(RAY);
 }
 
 function rayDiv(a: BigNumberish, b: BigNumberish) {
-  return bn(a).mul(RAY).add(bn(b).div(2)).div(b);
+  return BN(a).mul(RAY).add(BN(b).div(2)).div(b);
 }
 
 const T_YEAR = 31536000;
@@ -24,7 +24,7 @@ function utilisationRate(
   totalAvailableLiquidity: number
 ) {
   return totalAvailableLiquidity === 0
-    ? bn(0)
+    ? BN(0)
     : rayDiv(ray(totalInsuredLiquidity), ray(totalAvailableLiquidity));
 }
 
@@ -61,9 +61,9 @@ function liquidityIndex(
 const reserve = {
   availableCapital: 0,
   totalInsuredCapital: 0,
-  utilisationRate: bn(0),
-  premiumRate: bn(0),
-  liquidityRate: bn(0),
+  utilisationRate: BN(0),
+  premiumRate: BN(0),
+  liquidityRate: BN(0),
   liquidityIndex: ray(1),
 };
 
@@ -95,9 +95,9 @@ function testLI() {
   //Depositor1
   const depositor1 = {
     depositedAmount: 100000,
-    scaledBalance: bn(0),
-    currentBalance: bn(0),
-    income: bn(0),
+    scaledBalance: BN(0),
+    currentBalance: BN(0),
+    income: BN(0),
   };
 
   console.log("depositor1.depositedAmount:", depositor1.depositedAmount);
@@ -137,9 +137,9 @@ function testLI() {
   //Depositor2
   const depositor2 = {
     depositedAmount: 100000,
-    scaledBalance: bn(0),
-    currentBalance: bn(0),
-    income: bn(0),
+    scaledBalance: BN(0),
+    currentBalance: BN(0),
+    income: BN(0),
   };
 
   console.log("depositor2.depositedAmount:", depositor2.depositedAmount);

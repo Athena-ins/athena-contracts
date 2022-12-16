@@ -8,7 +8,7 @@ import ProtocolHelper from "./helpers/ProtocolHelper";
 
 chai.use(chaiAsPromised);
 
-const bn = (num: string | number) => hre_ethers.BigNumber.from(num);
+const BN = (num: string | number) => hre_ethers.BigNumber.from(num);
 
 let owner: ethers.Signer;
 let liquidityProvider1: ethers.Signer;
@@ -143,7 +143,7 @@ describe("Buy policies", () => {
 
       const policy0 = await POLICY_MANAGER_CONTRACT.policy(tokenId0);
       expect(policy0.amountCovered).to.equal(109500);
-      expect(policy0.protocolId).to.equal(bn(0));
+      expect(policy0.protocolId).to.equal(BN(0));
 
       const poolContract0 = await ProtocolHelper.getProtocolPoolContract(
         policyTaker1,
@@ -167,7 +167,7 @@ describe("Buy policies", () => {
       const policy1 = await POLICY_MANAGER_CONTRACT.policy(tokenId1);
       expect(policy1.amountCovered).to.equal(219000);
       1;
-      expect(policy1.protocolId).to.equal(bn(1));
+      expect(policy1.protocolId).to.equal(BN(1));
       1;
 
       const poolContract1 = await ProtocolHelper.getProtocolPoolContract(
@@ -192,7 +192,7 @@ describe("Buy policies", () => {
       const policy2 = await POLICY_MANAGER_CONTRACT.policy(tokenId2);
       expect(policy2.amountCovered).to.equal(438000);
 
-      expect(policy2.protocolId).to.equal(bn(2));
+      expect(policy2.protocolId).to.equal(BN(2));
 
       const poolContract2 = await ProtocolHelper.getProtocolPoolContract(
         policyTaker1,
