@@ -134,18 +134,18 @@ describe("Premium Rewards Generic Contract", function () {
   });
 
   it("Should have rate calculations", async () => {
-    await expect(POLICY_COVER_CONTRACT.getRate(0, true)).to.eventually.equal(
-      BN("1").mul(BN(10000))
-    ); // 10% = 0.1 => 10 / 100 / 10000
+    await expect(
+      POLICY_COVER_CONTRACT.getStakingRewardRate(0, true)
+    ).to.eventually.equal(BN("1").mul(BN(10000))); // 10% = 0.1 => 10 / 100 / 10000
 
     // 1000$ on 100000$ Pool => 1% utilisation rate = 10.33%
-    // await expect(POLICY_COVER_CONTRACT.getRate(1000, true)).to.eventually.equal(
+    // await expect(POLICY_COVER_CONTRACT.getStakingRewardRate(1000, true)).to.eventually.equal(
     //   BN("116").mul(BN(10000)).div(100)
     // );
 
     // 90000$ on 100000$ Pool => 90% utilisation rate = 40%
     // await expect(
-    //   POLICY_COVER_CONTRACT.getRate(90000, true)
+    //   POLICY_COVER_CONTRACT.getStakingRewardRate(90000, true)
     // ).to.eventually.equal(BN("40").mul(BN(10000)));
   });
 

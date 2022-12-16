@@ -244,33 +244,37 @@ describe("Protocol Pool", function () {
 
     it("Should set reward Rates ATEN with USD", async function () {
       await expect(
-        STAKED_ATENS_CONTRACT.connect(owner).setStakeRewards([
-          [1000, 1000],
-          [10, 1200],
+        STAKED_ATENS_CONTRACT.connect(owner).setStakingRewards([
+          [0, 1_000],
+          [10_000, 1_200],
+          [1_000_000, 2_000],
+          [100_000, 1_600],
         ])
-      ).to.be.rejectedWith("Rate must be in ascending order");
-      const tx = await STAKED_ATENS_CONTRACT.connect(owner).setStakeRewards([
-        ["1", "1000"],
-        ["10000", "1200"],
-        ["100000", "1600"],
-        ["1000000", "2000"],
+      ).to.be.rejectedWith("SA: Sort in ascending order");
+      const tx = await STAKED_ATENS_CONTRACT.connect(owner).setStakingRewards([
+        [0, 1_000],
+        [10_000, 1_200],
+        [100_000, 1_600],
+        [1_000_000, 2_000],
       ]);
       expect(tx).to.haveOwnProperty("hash");
-      const discountFirst = await STAKED_ATENS_CONTRACT.connect(owner).getRate(
-        0
-      );
+      const discountFirst = await STAKED_ATENS_CONTRACT.connect(
+        owner
+      ).getStakingRewardRate(0);
       expect(discountFirst).to.equal(BN(0));
-      expect(await STAKED_ATENS_CONTRACT.connect(owner).getRate(10)).to.equal(
-        BN(1000)
-      );
       expect(
-        await STAKED_ATENS_CONTRACT.connect(owner).getRate("10000")
+        await STAKED_ATENS_CONTRACT.connect(owner).getStakingRewardRate(10)
+      ).to.equal(BN(1000));
+      expect(
+        await STAKED_ATENS_CONTRACT.connect(owner).getStakingRewardRate("10000")
       ).to.equal(BN(1200));
       expect(
-        await STAKED_ATENS_CONTRACT.connect(owner).getRate("100001")
+        await STAKED_ATENS_CONTRACT.connect(owner).getStakingRewardRate(
+          "100001"
+        )
       ).to.equal(BN(1600));
       expect(
-        await STAKED_ATENS_CONTRACT.connect(owner).getRate(1000000)
+        await STAKED_ATENS_CONTRACT.connect(owner).getStakingRewardRate(1000000)
       ).to.equal(BN(2000));
     });
   });

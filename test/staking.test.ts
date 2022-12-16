@@ -180,11 +180,11 @@ describe("Staking Policy Rewards", function () {
 
     const tx2 = await STAKED_ATENS_CONTRACT.connect(
       allSigners[0]
-    ).setStakeRewards([
-      ["1", "1000"],
-      ["10000", "1200"],
-      ["100000", "1600"],
-      ["1000000", "2000"],
+    ).setStakingRewards([
+      [0, 1_000],
+      [10_000, 1_200],
+      [100_000, 1_600],
+      [1_000_000, 2_000],
     ]);
   });
 
