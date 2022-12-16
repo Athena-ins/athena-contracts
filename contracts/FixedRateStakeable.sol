@@ -32,11 +32,11 @@ contract FixedRateStakeable {
       Structure for getting fixed rewards depending on amount staked
       Need to be set before use !
      */
-  RewardRate[] internal rewardRates;
+  RewardRateLevel[] internal stakingRewardRates;
 
-  struct RewardRate {
-    uint256 amount;
-    uint128 rate;
+  struct RewardRateLevel {
+    uint256 amountSupplied;
+    uint128 aprStaking;
   }
 
   /**
@@ -59,17 +59,53 @@ contract FixedRateStakeable {
     emit Staked(_account, _amount, timestamp);
   }
 
-  function _setStakeRewards(RewardRate[] calldata _rewardToSet) internal {
-    for (uint256 index = 0; index < _rewardToSet.length - 1; index++) {
-      require(
-        _rewardToSet[index].amount < _rewardToSet[index + 1].amount,
-        "Rate must be in ascending order"
-      );
+  /** @notice
+   * Setter for staking rewards according to supplied cover capital.
+   * @dev Levels must be in ascending order of amountSupplied
+   * @dev The amountSupplied indicates the upper limit for the level
+   * @param levels_ array of staking reward levels structs
+   **/
+  function _setStakeRewards(RewardRateLevel[] calldata levels_) internal {
+    // First clean the storage
+    delete stakingRewardRates;
 
-      rewardRates.push(_rewardToSet[index]);
+    // Set all cover supply fee levels
+    for (uint256 index = 0; index < levels_.length; index++) {
+      if (index == 0) {
+        // Require that the first level indicates fees for atenAmount 0
+        require(
+          levels_[index].amountSupplied == 0,
+          "SA: Must specify base rate"
+        );
+      } else {
+        // If it isn't the first item check that items are ascending
+        require(
+          levels_[index - 1].amountSupplied < levels_[index].amountSupplied,
+          "SA: Sort in ascending order"
+        );
+      }
+
+      // save to storage
+      stakingRewardRates.push(levels_[index]);
     }
+  }
 
-    rewardRates.push(_rewardToSet[_rewardToSet.length - 1]);
+  /** @notice
+   * Retrieves the fee rate according to amount of staked ATEN.
+   * @dev Returns displays warning but levels require an amountSupplied of 0
+   * @param suppliedCapital_ USD amount of the user's cover positions
+   * @return uint128 staking APR of user in GP
+   **/
+  function getRate(uint256 suppliedCapital_) public view returns (uint128) {
+    // Lazy check to avoid loop if user doesn't supply
+    if (suppliedCapital_ == 0) return stakingRewardRates[0].aprStaking;
+
+    // Inversed loop starts with the end to find adequate level
+    for (uint256 index = stakingRewardRates.length - 1; index >= 0; index--) {
+      // Rate level with amountSupplied of 0 will always be true
+      if (stakingRewardRates[index].amountSupplied <= suppliedCapital_)
+        return stakingRewardRates[index].aprStaking;
+    }
   }
 
   /**
@@ -87,15 +123,6 @@ contract FixedRateStakeable {
     return
       ((block.timestamp - _userStake.since) * _userStake.amount) /
       divRewardPerSecond;
-  }
-
-  function getRate(uint256 _amount) public view returns (uint128) {
-    for (uint256 index = 0; index < rewardRates.length; index++) {
-      if (_amount < rewardRates[index].amount)
-        return index == 0 ? 0 : rewardRates[index - 1].rate;
-    }
-    // Else we are above max, so give it last rate
-    return rewardRates[rewardRates.length - 1].rate;
   }
 
   /**
