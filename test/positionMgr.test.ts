@@ -235,6 +235,42 @@ describe("Position Manager", function () {
   // });
 
   it("Should set discounts with Aten", async function () {
+    await expect(
+      ATHENA_CONTRACT.connect(allSigners[1]).setFeeLevelsWithAten([
+        [0, 250],
+        [1_000, 200],
+        [100_000, 150],
+        [1_000_000, 50],
+      ])
+    ).to.be.rejectedWith("Ownable: caller is not the owner");
+
+    await expect(
+      ATHENA_CONTRACT.connect(owner).setFeeLevelsWithAten([
+        [0, 250],
+        [100_000, 150],
+        [1_000, 200],
+        [1_000_000, 50],
+      ])
+    ).to.be.rejectedWith("A: Sort in ascending order");
+
+    await expect(
+      ATHENA_CONTRACT.connect(owner).setFeeLevelsWithAten([
+        [1, 250],
+        [1_000, 200],
+        [100_000, 150],
+        [1_000_000, 50],
+      ])
+    ).to.be.rejectedWith("A: Must specify base rate");
+
+    await expect(
+      ATHENA_CONTRACT.connect(owner).setFeeLevelsWithAten([
+        [0, 10_000],
+        [1_000, 200],
+        [100_000, 150],
+        [1_000_000, 50],
+      ])
+    ).to.be.rejectedWith("A: fee >= 100%");
+
     const tx = await ATHENA_CONTRACT.connect(owner).setFeeLevelsWithAten([
       [0, 250],
       [1_000, 200],
@@ -242,36 +278,43 @@ describe("Position Manager", function () {
       [1_000_000, 50],
     ]);
     expect(tx).to.haveOwnProperty("hash");
-    const discountFirst = await ATHENA_CONTRACT.connect(
-      owner
-    ).premiumAtenDiscount(0);
-    expect(discountFirst.atenAmount).to.equal(BN(1000));
-    expect(discountFirst.discount).to.equal(BN(200));
-    const discountSnd = await ATHENA_CONTRACT.connect(
-      owner
-    ).premiumAtenDiscount(1);
-    expect(discountSnd.atenAmount).to.equal(BN(100000));
-    expect(discountSnd.discount).to.equal(BN(150));
-    const discountThird = await ATHENA_CONTRACT.connect(
-      owner
-    ).premiumAtenDiscount(2);
-    expect(discountThird.atenAmount).to.equal(BN(1000000));
-    expect(discountThird.discount).to.equal(BN(50));
+
+    const discountZero = await ATHENA_CONTRACT.connect(owner).supplyFeeLevels(
+      0
+    );
+    expect(discountZero.atenAmount).to.equal(BN(0));
+    expect(discountZero.feeRate).to.equal(BN(250));
+
+    const discountFirst = await ATHENA_CONTRACT.connect(owner).supplyFeeLevels(
+      1
+    );
+    expect(discountFirst.atenAmount).to.equal(BN(1_000));
+    expect(discountFirst.feeRate).to.equal(BN(200));
+
+    const discountSnd = await ATHENA_CONTRACT.connect(owner).supplyFeeLevels(2);
+    expect(discountSnd.atenAmount).to.equal(BN(100_000));
+    expect(discountSnd.feeRate).to.equal(BN(150));
+
+    const discountThird = await ATHENA_CONTRACT.connect(owner).supplyFeeLevels(
+      3
+    );
+    expect(discountThird.atenAmount).to.equal(BN(1_000_000));
+    expect(discountThird.feeRate).to.equal(BN(50));
 
     await expect(
-      ATHENA_CONTRACT.connect(owner).premiumAtenDiscount(3)
+      ATHENA_CONTRACT.connect(owner).supplyFeeLevels(4)
     ).to.be.rejectedWith();
   });
 
   it("Should get discount amount with Aten", async function () {
     expect(
-      await ATHENA_CONTRACT.connect(user).getDiscountWithAten(999)
+      await ATHENA_CONTRACT.connect(user).getFeeRateWithAten(999)
     ).to.equal(0);
     expect(
-      await ATHENA_CONTRACT.connect(user).getDiscountWithAten(1000)
+      await ATHENA_CONTRACT.connect(user).getFeeRateWithAten(1000)
     ).to.equal(200);
     expect(
-      await ATHENA_CONTRACT.connect(user).getDiscountWithAten(10000000)
+      await ATHENA_CONTRACT.connect(user).getFeeRateWithAten(10000000)
     ).to.equal(50);
   });
 

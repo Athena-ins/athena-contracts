@@ -207,38 +207,44 @@ describe("Protocol Pool", function () {
       ]);
       expect(tx).to.haveOwnProperty("hash");
 
+      const discountZero = await ATHENA_CONTRACT.connect(owner).supplyFeeLevels(
+        0
+      );
+      expect(discountZero.atenAmount).to.equal(BN(0));
+      expect(discountZero.feeRate).to.equal(BN(250));
+
       const discountFirst = await ATHENA_CONTRACT.connect(
         owner
-      ).premiumAtenDiscount(0);
-      expect(discountFirst.atenAmount).to.equal(BN(1000));
-      expect(discountFirst.discount).to.equal(BN(200));
+      ).supplyFeeLevels(1);
+      expect(discountFirst.atenAmount).to.equal(BN(1_000));
+      expect(discountFirst.feeRate).to.equal(BN(200));
 
-      const discountSnd = await ATHENA_CONTRACT.connect(
-        owner
-      ).premiumAtenDiscount(1);
-      expect(discountSnd.atenAmount).to.equal(BN(100000));
-      expect(discountSnd.discount).to.equal(BN(150));
+      const discountSnd = await ATHENA_CONTRACT.connect(owner).supplyFeeLevels(
+        2
+      );
+      expect(discountSnd.atenAmount).to.equal(BN(100_000));
+      expect(discountSnd.feeRate).to.equal(BN(150));
 
       const discountThird = await ATHENA_CONTRACT.connect(
         owner
-      ).premiumAtenDiscount(2);
-      expect(discountThird.atenAmount).to.equal(BN(1000000));
-      expect(discountThird.discount).to.equal(BN(50));
+      ).supplyFeeLevels(3);
+      expect(discountThird.atenAmount).to.equal(BN(1_000_000));
+      expect(discountThird.feeRate).to.equal(BN(50));
 
       await expect(
-        ATHENA_CONTRACT.connect(owner).premiumAtenDiscount(3)
+        ATHENA_CONTRACT.connect(owner).supplyFeeLevels(4)
       ).to.be.rejectedWith();
     });
 
     it("Should get discount amount with Aten", async function () {
       expect(
-        await ATHENA_CONTRACT.connect(user1).getDiscountWithAten(999)
+        await ATHENA_CONTRACT.connect(user1).getFeeRateWithAten(999)
       ).to.equal(0);
       expect(
-        await ATHENA_CONTRACT.connect(user1).getDiscountWithAten(1000)
+        await ATHENA_CONTRACT.connect(user1).getFeeRateWithAten(1000)
       ).to.equal(200);
       expect(
-        await ATHENA_CONTRACT.connect(user1).getDiscountWithAten(10000000)
+        await ATHENA_CONTRACT.connect(user1).getFeeRateWithAten(10000000)
       ).to.equal(50);
     });
 

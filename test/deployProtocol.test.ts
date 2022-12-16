@@ -270,29 +270,32 @@ describe("Deploy protocol", () => {
 
         expect(tx).to.haveOwnProperty("hash");
 
+        const discountZero = await ATHENA_CONTRACT.connect(
+          owner
+        ).supplyFeeLevels(0);
+        expect(discountZero.atenAmount).to.equal(bn(0));
+        expect(discountZero.feeRate).to.equal(bn(250));
+
         const discountFirst = await ATHENA_CONTRACT.connect(
           owner
-        ).premiumAtenDiscount(0);
-
-        expect(discountFirst.atenAmount).to.equal(bn(1000));
-        expect(discountFirst.discount).to.equal(bn(200));
+        ).supplyFeeLevels(1);
+        expect(discountFirst.atenAmount).to.equal(bn(1_000));
+        expect(discountFirst.feeRate).to.equal(bn(200));
 
         const discountSnd = await ATHENA_CONTRACT.connect(
           owner
-        ).premiumAtenDiscount(1);
-
-        expect(discountSnd.atenAmount).to.equal(bn(100000));
-        expect(discountSnd.discount).to.equal(bn(150));
+        ).supplyFeeLevels(2);
+        expect(discountSnd.atenAmount).to.equal(bn(100_000));
+        expect(discountSnd.feeRate).to.equal(bn(150));
 
         const discountThird = await ATHENA_CONTRACT.connect(
           owner
-        ).premiumAtenDiscount(2);
-
-        expect(discountThird.atenAmount).to.equal(bn(1000000));
-        expect(discountThird.discount).to.equal(bn(50));
+        ).supplyFeeLevels(3);
+        expect(discountThird.atenAmount).to.equal(bn(1_000_000));
+        expect(discountThird.feeRate).to.equal(bn(50));
 
         await expect(
-          ATHENA_CONTRACT.connect(owner).premiumAtenDiscount(3)
+          ATHENA_CONTRACT.connect(owner).supplyFeeLevels(4)
         ).to.be.rejectedWith();
       });
 
@@ -300,17 +303,17 @@ describe("Deploy protocol", () => {
         expect(
           await ProtocolHelper.getAthenaContract()
             .connect(owner)
-            .getDiscountWithAten(999)
-        ).to.equal(0);
+            .getFeeRateWithAten(999)
+        ).to.equal(250);
         expect(
           await ProtocolHelper.getAthenaContract()
             .connect(owner)
-            .getDiscountWithAten(1000)
+            .getFeeRateWithAten(1000)
         ).to.equal(200);
         expect(
           await ProtocolHelper.getAthenaContract()
             .connect(owner)
-            .getDiscountWithAten(10000000)
+            .getFeeRateWithAten(10000000)
         ).to.equal(50);
       });
 
