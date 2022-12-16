@@ -110,7 +110,7 @@ coverage.json
 typechain
 
 #Hardhat files
-cache
+# cache
 artifacts
 
 #prettierrc
