@@ -147,14 +147,15 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
   //   _positions[tokenId].protocolIds = _protocolIds;
   // }
 
-  function updateUserCapital(
-    uint256 tokenId,
-    uint256 _amount,
-    uint256 _aaveScaledBalanceToRemove
-  ) external override onlyCore {
-    _positions[tokenId].amountSupplied = _amount;
-    _positions[tokenId].aaveScaledBalance -= _aaveScaledBalanceToRemove;
-  }
+  // @bw probably to delete because unused
+  // function updateUserCapital(
+  //   uint256 tokenId,
+  //   uint256 _amount,
+  //   uint256 _aaveScaledBalanceToRemove
+  // ) external override onlyCore {
+  //   _positions[tokenId].amountSupplied = _amount;
+  //   _positions[tokenId].aaveScaledBalance -= _aaveScaledBalanceToRemove;
+  // }
 
   function removeProtocolId(uint256 tokenId, uint128 _protocolId)
     external

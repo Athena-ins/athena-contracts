@@ -46,11 +46,11 @@ interface IPositionsManager is IERC721Enumerable {
   //   uint128[] calldata protocolsIds
   // ) external;
 
-  function updateUserCapital(
-    uint256 tokenId,
-    uint256 amount,
-    uint256 aaveScaledBalanceToRemove
-  ) external;
+  // function updateUserCapital(
+  //   uint256 tokenId,
+  //   uint256 amount,
+  //   uint256 aaveScaledBalanceToRemove
+  // ) external;
 
   function removeProtocolId(uint256 tokenId, uint128 protocolId) external;
 
