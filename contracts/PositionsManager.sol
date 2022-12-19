@@ -314,4 +314,40 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
       _positions[tokenId].aaveScaledBalance -= _aaveScaledBalanceToRemove;
     }
   }
+
+  function takeInterestsInAllPools(address account, uint256 tokenId) internal {
+    Position memory userPosition = _positions[tokenId];
+    IAthena _core = IAthena(core);
+
+    uint256 amountSuppliedUpdated;
+    uint256 aaveScaledBalanceUpdated;
+    for (uint256 i = 0; i < userPosition.protocolIds.length; i++) {
+      uint128 protocolId = userPosition.protocolIds[i];
+
+      address protocolAddress = _core.getProtocolAddressById(protocolId);
+      _core.actualizingProtocolAndRemoveExpiredPolicies(protocolAddress);
+
+      (
+        uint256 _newUserCapital,
+        uint256 _aaveScaledBalanceToRemove
+      ) = IProtocolPool(protocolAddress).takeInterest(
+          account,
+          tokenId,
+          userPosition.amountSupplied,
+          userPosition.protocolIds,
+          userPosition.feeRate
+        );
+
+      // @bw unsure of this assign, should check if only last item should update or all of them
+      if (i == userPosition.protocolIds.length - 1) {
+        amountSuppliedUpdated = _newUserCapital;
+        aaveScaledBalanceUpdated = _aaveScaledBalanceToRemove;
+      }
+    }
+
+    if (userPosition.amountSupplied != amountSuppliedUpdated) {
+      _positions[tokenId].amountSupplied = amountSuppliedUpdated;
+      _positions[tokenId].aaveScaledBalance -= aaveScaledBalanceUpdated;
+    }
+  }
 }
