@@ -209,12 +209,16 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     IStakedAtenPolicy(stakedAtensPo).setRewardsPerYear(newRate);
   }
 
+  function _stakeAtens(address account, uint256 amount) internal {
+    uint256 usdCapitalSupplied = IPositionsManager(positionsManager)
+      .allCapitalSuppliedByAccount(account);
+
+    IStakedAten(stakedAtensGP).stake(account, amount, usdCapitalSupplied);
+  }
+
   //////Thao@NOTE: Protocol
   function stakeAtens(uint256 amount) external override {
-    uint256 usdCapitalSupplied = IPositionsManager(positionsManager)
-      .allCapitalSuppliedByAccount(msg.sender);
-
-    IStakedAten(stakedAtensGP).stake(msg.sender, amount, usdCapitalSupplied);
+    _stakeAtens(msg.sender, amount);
   }
 
   /*
