@@ -61,39 +61,6 @@ contract FixedRateStakeable {
   }
 
   /** @notice
-   * Setter for staking rewards according to supplied cover capital.
-   * @dev Levels must be in ascending order of amountSupplied
-   * @dev The amountSupplied indicates the upper limit for the level
-   * @param levels_ array of staking reward levels structs
-   **/
-  function _setStakingRewards(RewardRateLevel[] calldata levels_) internal {
-    // First clean the storage
-    delete stakingRewardRates;
-
-    // Set all cover supply fee levels
-    for (uint256 index = 0; index < levels_.length; index++) {
-      RewardRateLevel calldata level = levels_[index];
-
-      if (index == 0) {
-        // Require that the first level indicates fees for atenAmount 0
-        require(level.amountSupplied == 0, "SA: Must specify base rate");
-      } else {
-        // If it isn't the first item check that items are ascending
-        require(
-          levels_[index - 1].amountSupplied < level.amountSupplied,
-          "SA: Sort in ascending order"
-        );
-      }
-
-      // Check that APR is not higher than 100%
-      require(level.aprStaking <= 10_000, "SA: APR > 100%");
-
-      // save to storage
-      stakingRewardRates.push(level);
-    }
-  }
-
-  /** @notice
    * Retrieves the fee rate according to amount of staked ATEN.
    * @dev Returns displays warning but levels require an amountSupplied of 0
    * @param suppliedCapital_ USD amount of the user's cover positions
@@ -170,5 +137,42 @@ contract FixedRateStakeable {
     Stakeholder memory _userStake = stakes[_staker];
     rewards = calculateStakeReward(_userStake);
     return (rewards, _userStake.rate);
+  }
+
+  /// ================================== ///
+  /// ========= ADMINISTRATION ========= ///
+  /// ================================== ///
+
+  /** @notice
+   * Setter for staking rewards according to supplied cover capital.
+   * @dev Levels must be in ascending order of amountSupplied
+   * @dev The amountSupplied indicates the upper limit for the level
+   * @param levels_ array of staking reward levels structs
+   **/
+  function _setStakingRewards(RewardRateLevel[] calldata levels_) internal {
+    // First clean the storage
+    delete stakingRewardRates;
+
+    // Set all cover supply fee levels
+    for (uint256 index = 0; index < levels_.length; index++) {
+      RewardRateLevel calldata level = levels_[index];
+
+      if (index == 0) {
+        // Require that the first level indicates fees for atenAmount 0
+        require(level.amountSupplied == 0, "SA: Must specify base rate");
+      } else {
+        // If it isn't the first item check that items are ascending
+        require(
+          levels_[index - 1].amountSupplied < level.amountSupplied,
+          "SA: Sort in ascending order"
+        );
+      }
+
+      // Check that APR is not higher than 100%
+      require(level.aprStaking <= 10_000, "SA: APR > 100%");
+
+      // save to storage
+      stakingRewardRates.push(level);
+    }
   }
 }

@@ -65,13 +65,6 @@ contract StakedAten is
     _mint(_account, _amount);
   }
 
-  function setStakingRewards(RewardRateLevel[] calldata stakingLevels_)
-    public
-    onlyOwner
-  {
-    _setStakingRewards(stakingLevels_);
-  }
-
   function withdraw(address _account, uint256 _amount)
     external
     override
@@ -81,5 +74,16 @@ contract StakedAten is
     // we put from & to opposite so as token owner has a Snapshot balance when staking
     _beforeTokenTransfer(_account, address(0), _amount);
     IERC20(underlyingAssetAddress).safeTransfer(_account, amountToReturn);
+  }
+
+  /// ================================== ///
+  /// ========= ADMINISTRATION ========= ///
+  /// ================================== ///
+
+  function setStakingRewards(RewardRateLevel[] calldata stakingLevels_)
+    public
+    onlyOwner
+  {
+    _setStakingRewards(stakingLevels_);
   }
 }
