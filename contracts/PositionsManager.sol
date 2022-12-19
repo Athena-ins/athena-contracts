@@ -12,10 +12,10 @@ import "./libraries/PositionsLibrary.sol";
 contract PositionsManager is IPositionsManager, ERC721Enumerable {
   address private core;
 
-  /// @dev The token ID position data
+  /// The token ID position data
   mapping(uint256 => Position) private _positions;
 
-  /// @dev The ID of the next token that will be minted.
+  /// The ID of the next token that will be minted.
   uint176 private _nextTokenId = 0;
 
   modifier onlyCore() {
@@ -100,7 +100,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
     view
     returns (uint256 _capitalSupplied)
   {
-    // @bw WARN this is ok for now but incomplete since the amount is raw
+    // @bw WARN this is ok for now but incomplete since the amount is the base capital
     // this should probably be adjusted with claims losses and APR gains
     uint256[] memory tokenList = allPositionTokensOfOwner(account_);
 
@@ -171,6 +171,8 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
 
     for (uint256 i = 0; i < __protocolIds.length; i++) {
       if (__protocolIds[i] == _protocolId) {
+        // @bw ERROR must fix if not leaves an empty value in array
+        // This should check if last item and if isn't remplace deleted with last item
         __protocolIds[i] = __protocolIds[__protocolIds.length - 1];
         delete __protocolIds[__protocolIds.length - 1];
         break;
@@ -262,7 +264,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
       // Create an instance of the current pool
       IProtocolPool currentPool = IProtocolPool(
         _core.getProtocolAddressById(currentPoolId)
-        );
+      );
 
       // Loop through each latter pool (j)
       for (uint256 j = i + 1; j < userPosition.protocolIds.length; j++) {
@@ -274,7 +276,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
         // Mirror the dependency of the current pool in the latter pool
         IProtocolPool(_core.getProtocolAddressById(latterPoolId))
           .addRelatedProtocol(currentPoolId, amount);
-        }
+      }
 
       _core.actualizingProtocolAndRemoveExpiredPolicies(address(currentPool));
 
@@ -285,13 +287,13 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
     // Update fee rate of positions if it has changed
     if (_positions[tokenId].feeRate != newStakingFeeRate) {
       _positions[tokenId].feeRate = newStakingFeeRate;
-      }
+    }
 
     _positions[tokenId].amountSupplied += amount;
     // @bw this can probably be optimized with a single aave deposit (also present elsewhere)
-      _positions[tokenId].aaveScaledBalance += _core.transferLiquidityToAAVE(
+    _positions[tokenId].aaveScaledBalance += _core.transferLiquidityToAAVE(
       amount
-      );
+    );
   }
 
   function isProtocolInCoverList(

@@ -14,7 +14,7 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
   using SafeERC20 for IERC20;
   address public immutable underlyingAssetAddress;
   address public immutable core;
-  uint128 public divRewardPerYear = (365 days) * 10_000;
+  uint128 public divRewardPerYear = (365 days) * 10_000; // 10_000 = 100% APR
 
   struct PolicyStake {
     uint256 amount;
