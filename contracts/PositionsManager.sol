@@ -222,7 +222,10 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
     _nextTokenId++;
   }
 
-  //Thao@TODO: to complet
+  //Thao@TODO:
+  //Il faut takeInterest avant de deposit pour update liquidityIndex et claimsIndex
+  //see pool.deposit: LPsInfo[_account] = LPInfo(liquidityIndex, claims.length);
+  // update pools in protocolsId: actualizing and remove, capital, slot0, intersectingAmount
   function updatePosition(
     address account,
     uint256 tokenId,
@@ -233,42 +236,47 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
 
     IAthena _core = IAthena(core);
 
-      // update pools in protocolsId: actualizing and remove, capital, slot0, intersectingAmount
+    // Take interests in all pools before update
+    takeInterestsInAllPools(account, tokenId);
 
+    // Ensure that all capital dependencies between pools are registered
+    // Loop through each of the pools (i)
     for (uint256 i = 0; i < userPosition.protocolIds.length; i++) {
-        IProtocolPool protocolPool1 = IProtocolPool(
-        _core.getProtocolAddressById(userPosition.protocolIds[i])
+      uint128 currentPoolId = userPosition.protocolIds[i];
+
+      // Create an instance of the current pool
+      IProtocolPool currentPool = IProtocolPool(
+        _core.getProtocolAddressById(currentPoolId)
         );
 
+      // Loop through each latter pool (j)
       for (uint256 j = i + 1; j < userPosition.protocolIds.length; j++) {
-        protocolPool1.addRelatedProtocol(userPosition.protocolIds[j], amount);
+        uint128 latterPoolId = userPosition.protocolIds[j];
 
-        IProtocolPool(_core.getProtocolAddressById(userPosition.protocolIds[j]))
-          .addRelatedProtocol(userPosition.protocolIds[i], amount);
+        // Add the latter pool to the current pool dependencies
+        currentPool.addRelatedProtocol(latterPoolId, amount);
+
+        // Mirror the dependency of the current pool in the latter pool
+        IProtocolPool(_core.getProtocolAddressById(latterPoolId))
+          .addRelatedProtocol(currentPoolId, amount);
         }
 
-      _core.actualizingProtocolAndRemoveExpiredPolicies(address(protocolPool1));
+      _core.actualizingProtocolAndRemoveExpiredPolicies(address(currentPool));
 
-        //Thao@TODO:
-        //Il faut takeInterest avant de deposit pour update liquidityIndex et claimsIndex
-        //see pool.deposit: LPsInfo[_account] = LPInfo(liquidityIndex, claims.length);
-      protocolPool1.deposit(tokenId, amount);
-      protocolPool1.addRelatedProtocol(userPosition.protocolIds[i], amount);
+      // Deposit fund into pool and add amount to its own intersectingAmounts
+      currentPool.deposit(tokenId, amount);
+    }
+
+    // Update fee rate of positions if it has changed
+    if (_positions[tokenId].feeRate != newStakingFeeRate) {
+      _positions[tokenId].feeRate = newStakingFeeRate;
       }
 
     _positions[tokenId].amountSupplied += amount;
+    // @bw this can probably be optimized with a single aave deposit (also present elsewhere)
       _positions[tokenId].aaveScaledBalance += _core.transferLiquidityToAAVE(
       amount
       );
-
-    //Thao@TODO: verifier ce if, sur tout stakeAtens
-    if (1 > 0) {
-      _positions[tokenId].feeRate = _core.getFeeRateWithAten(
-        42 + 1 // @bw bad total
-      );
-
-      // _core._stakeAtens(account, addingAtens, amount);
-    }
   }
 
   function isProtocolInCoverList(
