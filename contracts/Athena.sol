@@ -388,6 +388,30 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     );
   }
 
+  function addLiquidityToPosition(uint256 tokenId, uint256 amount)
+    external
+    checkPositionTokenOwner(tokenId)
+  {
+    // retrieve user funds for coverage
+    IERC20(stablecoin).safeTransferFrom(msg.sender, address(this), amount);
+
+    // check the user's balance of staked ATEN + staking rewards
+    uint256 stakedAten = IStakedAten(stakedAtensGP).positionOf(msg.sender);
+
+    // if user has staked ATEN then get feeRate
+    uint128 newStakingFeeRate;
+    if (stakedAten > 0) {
+      newStakingFeeRate = getFeeRateWithAten(stakedAten);
+    }
+
+    IPositionsManager(positionsManager).updatePosition(
+      msg.sender,
+      tokenId,
+      amount,
+      newStakingFeeRate
+    );
+  }
+
   /*
   //Thao@Question: we need this function ?
   function committingWithdrawInOneProtocol(uint128 _protocolId) external {
