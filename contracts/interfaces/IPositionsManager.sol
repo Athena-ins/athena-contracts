@@ -38,13 +38,13 @@ interface IPositionsManager is IERC721Enumerable {
 
   function burn(uint256 tokenId) external;
 
-  function update(
-    uint256 tokenId,
-    uint256 amount,
-    uint256 aaveScaledBalance,
-    uint128 feeRate,
-    uint128[] calldata protocolsIds
-  ) external;
+  // function update(
+  //   uint256 tokenId,
+  //   uint256 amount,
+  //   uint256 aaveScaledBalance,
+  //   uint128 feeRate,
+  //   uint128[] calldata protocolsIds
+  // ) external;
 
   function updateUserCapital(
     uint256 tokenId,
@@ -63,12 +63,12 @@ interface IPositionsManager is IERC721Enumerable {
     uint128[] calldata protocolIds
   ) external;
 
-  // function updatePosition(
-  //   address account,
-  //   uint256 tokenId,
-  //   uint256 addingAmount,
-  //   uint256 addingAtens
-  // ) external;
+  function updatePosition(
+    address account,
+    uint256 tokenId,
+    uint256 amount,
+    uint128 newStakingFeeRate
+  ) external;
 
   function takeInterest(
     address account,

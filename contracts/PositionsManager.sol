@@ -133,18 +133,19 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
     _burn(tokenId);
   }
 
-  function update(
-    uint256 tokenId,
-    uint256 amount,
-    uint256 _aaveScaledBalance,
-    uint128 _feeRate,
-    uint128[] calldata _protocolIds
-  ) external override onlyCore {
-    _positions[tokenId].amountSupplied = amount;
-    _positions[tokenId].aaveScaledBalance = _aaveScaledBalance;
-    _positions[tokenId].feeRate = _feeRate;
-    _positions[tokenId].protocolIds = _protocolIds;
-  }
+  // @bw fn is redundant with updatePosition in this contrat
+  // function update(
+  //   uint256 tokenId,
+  //   uint256 amount,
+  //   uint256 _aaveScaledBalance,
+  //   uint128 _feeRate,
+  //   uint128[] calldata _protocolIds
+  // ) external override onlyCore {
+  //   _positions[tokenId].amountSupplied = amount;
+  //   _positions[tokenId].aaveScaledBalance = _aaveScaledBalance;
+  //   _positions[tokenId].feeRate = _feeRate;
+  //   _positions[tokenId].protocolIds = _protocolIds;
+  // }
 
   function updateUserCapital(
     uint256 tokenId,
@@ -228,79 +229,69 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
     _nextTokenId++;
   }
 
-  /*
   //Thao@TODO: to complet
   function updatePosition(
     address account,
     uint256 tokenId,
-    uint256 addingAmount,
-    uint256 addingAtens
+    uint256 amount,
+    uint128 newStakingFeeRate
   ) external override onlyCore {
-    require(balanceOf(account) > 0, "No active position");
-    require(account == ownerOf(tokenId), "Token owner");
-    require(addingAmount > 0 || addingAtens > 0, "both amounts is zero");
-
-    IPositionsManager.Position memory _position = _positions[tokenId];
+    IPositionsManager.Position memory userPosition = _positions[tokenId];
 
     IAthena _core = IAthena(core);
 
-    if (addingAmount > 0) {
       // update pools in protocolsId: actualizing and remove, capital, slot0, intersectingAmount
 
       for (
         uint256 firstIndex = 0;
-        firstIndex < _position.protocolsId.length;
+      firstIndex < userPosition.protocolIds.length;
         firstIndex++
       ) {
         IProtocolPool protocolPool1 = IProtocolPool(
-          _core.getProtocolAddressById(_position.protocolsId[firstIndex])
+        _core.getProtocolAddressById(userPosition.protocolIds[firstIndex])
         );
+
         for (
           uint256 secondIndex = firstIndex + 1;
-          secondIndex < _position.protocolsId.length;
+        secondIndex < userPosition.protocolIds.length;
           secondIndex++
         ) {
           protocolPool1.addRelatedProtocol(
-            _position.protocolsId[secondIndex],
-            addingAmount
+          userPosition.protocolIds[secondIndex],
+          amount
           );
 
           IProtocolPool(
-            _core.getProtocolAddressById(_position.protocolsId[secondIndex])
-          ).addRelatedProtocol(_position.protocolsId[firstIndex], addingAmount);
+          _core.getProtocolAddressById(userPosition.protocolIds[secondIndex])
+        ).addRelatedProtocol(userPosition.protocolIds[firstIndex], amount);
         }
 
-        _core.actualizingProtocolAndRemoveExpiredPolicies(
-          address(protocolPool1)
-        );
+      _core.actualizingProtocolAndRemoveExpiredPolicies(address(protocolPool1));
 
         //Thao@TODO:
         //Il faut takeInterest avant de deposit pour update liquidityIndex et claimsIndex
         //see pool.deposit: LPsInfo[_account] = LPInfo(liquidityIndex, claims.length);
-        protocolPool1.deposit(msg.sender, addingAmount);
+      protocolPool1.deposit(tokenId, amount);
         protocolPool1.addRelatedProtocol(
-          _position.protocolsId[firstIndex],
-          addingAmount
+        userPosition.protocolIds[firstIndex],
+        amount
         );
       }
 
-      _positions[tokenId].providedLiquidity += addingAmount;
+    _positions[tokenId].amountSupplied += amount;
       _positions[tokenId].aaveScaledBalance += _core.transferLiquidityToAAVE(
-        addingAmount
+      amount
       );
-    }
 
     //Thao@TODO: verifier ce if, sur tout stakeAtens
-    if (addingAtens > 0) {
-      _position.atens += addingAtens;
+    if (1 > 0) {
+      _positions[tokenId].feeRate = _core.getFeeRateWithAten(
+        42 + 1 // @bw bad total
+      );
 
-      _positions[tokenId].atens = _position.atens;
-      _positions[tokenId].feeRate = _core.getFeeRateWithAten(_position.atens);
-
-      _core.stakeAtens(account, addingAtens, addingAmount);
+      // _core._stakeAtens(account, addingAtens, amount);
     }
   }
-*/
 
   function isProtocolInCoverList(
     uint128 _protocolId,
