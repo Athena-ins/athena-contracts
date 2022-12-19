@@ -488,14 +488,9 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
       "No position to commit withdraw"
     );
 
-    uint256 _tokenId = IPositionsManager(positionsManager).tokenOfOwnerByIndex(
-      msg.sender,
-      0
-    );
-
     IPositionsManager.Position memory __position = IPositionsManager(
       positionsManager
-    ).position(_tokenId);
+    ).position(tokenId);
 
     for (uint256 index = 0; index < __position.protocolIds.length; index++)
       IProtocolPool(protocolsMapping[__position.protocolIds[index]].deployed)
