@@ -187,7 +187,9 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
   ) external override onlyCore {
     IAthena _core = IAthena(core);
 
+    // Save new position tokenId and update for next
     uint256 tokenId = _nextTokenId;
+    _nextTokenId++;
 
     for (uint256 i = 0; i < protocolIds.length; i++) {
       IProtocolPool protocolPool1 = IProtocolPool(
@@ -219,7 +221,6 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
     });
 
     _mint(account, tokenId);
-    _nextTokenId++;
   }
 
   //Thao@TODO:
