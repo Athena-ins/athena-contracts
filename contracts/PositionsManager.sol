@@ -39,6 +39,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
   function allPositionTokensOfOwner(address owner)
     public
     view
+    override
     returns (uint256[] memory tokenList)
   {
     uint256 tokenLength = balanceOf(owner);

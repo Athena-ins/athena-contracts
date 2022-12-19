@@ -75,4 +75,9 @@ interface IPositionsManager is IERC721Enumerable {
     uint256 tokenId,
     uint128 protocolId
   ) external;
+
+  function allPositionTokensOfOwner(address owner)
+    external
+    view
+    returns (uint256[] memory tokenList);
 }
