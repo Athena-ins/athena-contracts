@@ -88,10 +88,13 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
 
   function deposit(
     uint256 tokenId_,
-    uint256 _amount // onlyCore
+    uint256 amount_ // @bw onlyCore or onlyPositionManager ?
   ) external {
-    _updateSlot0WhenAvailableCapitalChange(_amount, 0);
-    availableCapital += _amount;
+    // Add deposit to pool's own intersecting amounts
+    intersectingAmounts[0] += amount_;
+
+    _updateSlot0WhenAvailableCapitalChange(amount_, 0);
+    availableCapital += amount_;
     LPsInfo[tokenId_] = LPInfo(liquidityIndex, claims.length);
   }
 
