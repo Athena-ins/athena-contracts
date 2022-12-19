@@ -55,17 +55,21 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
     uint256[] memory tokenList = allPositionTokensOfOwner(owner);
     positionList = new PositionInfo[](tokenList.length);
 
-    for (uint256 index = 0; index < tokenList.length; index++) {
-      uint256 tokenId = tokenList[index];
+    // Loop through each tokenId (i) of a user
+    for (uint256 i = 0; i < tokenList.length; i++) {
+      uint256 tokenId = tokenList[i];
       Position memory __position = _positions[tokenId];
 
       uint256 finalCapital;
       uint256 totalRewards;
-      for (uint256 i = 0; i < __position.protocolIds.length; i++) {
+
+      // Loop through each poolId (j) in a tokenId
+      for (uint256 j = 0; j < __position.protocolIds.length; j++) {
         address poolAddress = IAthena(core).getProtocolAddressById(
-          __position.protocolIds[i]
+          __position.protocolIds[j]
         );
 
+        // Check the user's rewards in the pool
         (uint256 __newUserCapital, uint256 __totalRewards, ) = IProtocolPool(
           poolAddress
         ).rewardsOf(
@@ -80,10 +84,11 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
         finalCapital = __newUserCapital;
       }
 
+      // Include unrealized rewards & penalties in the initial capital
       __position.amountSupplied = finalCapital;
 
-      positionList[index] = PositionInfo({
-        positionId: tokenList[index],
+      positionList[i] = PositionInfo({
+        positionId: tokenList[i],
         premiumReceived: totalRewards,
         position: __position
       });
