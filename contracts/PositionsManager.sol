@@ -188,31 +188,23 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
 
     uint256 tokenId = _nextTokenId;
 
-    for (
-      uint256 firstIndex = 0;
-      firstIndex < protocolIds.length;
-      firstIndex++
-    ) {
+    for (uint256 i = 0; i < protocolIds.length; i++) {
       IProtocolPool protocolPool1 = IProtocolPool(
-        _core.getProtocolAddressById(protocolIds[firstIndex])
+        _core.getProtocolAddressById(protocolIds[i])
       );
 
-      for (
-        uint256 secondIndex = firstIndex + 1;
-        secondIndex < protocolIds.length;
-        secondIndex++
-      ) {
-        protocolPool1.addRelatedProtocol(protocolIds[secondIndex], amount);
+      for (uint256 j = i + 1; j < protocolIds.length; j++) {
+        protocolPool1.addRelatedProtocol(protocolIds[j], amount);
 
-        IProtocolPool(_core.getProtocolAddressById(protocolIds[secondIndex]))
-          .addRelatedProtocol(protocolIds[firstIndex], amount);
+        IProtocolPool(_core.getProtocolAddressById(protocolIds[j]))
+          .addRelatedProtocol(protocolIds[i], amount);
       }
 
       _core.actualizingProtocolAndRemoveExpiredPolicies(address(protocolPool1));
 
       protocolPool1.deposit(tokenId, amount);
       //Thao@TODO: pas besoin de add lui-même
-      protocolPool1.addRelatedProtocol(protocolIds[firstIndex], amount);
+      protocolPool1.addRelatedProtocol(protocolIds[i], amount);
     }
 
     uint256 __aaveScaledBalance = _core.transferLiquidityToAAVE(amount);
@@ -242,28 +234,16 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
 
       // update pools in protocolsId: actualizing and remove, capital, slot0, intersectingAmount
 
-      for (
-        uint256 firstIndex = 0;
-      firstIndex < userPosition.protocolIds.length;
-        firstIndex++
-      ) {
+    for (uint256 i = 0; i < userPosition.protocolIds.length; i++) {
         IProtocolPool protocolPool1 = IProtocolPool(
-        _core.getProtocolAddressById(userPosition.protocolIds[firstIndex])
+        _core.getProtocolAddressById(userPosition.protocolIds[i])
         );
 
-        for (
-          uint256 secondIndex = firstIndex + 1;
-        secondIndex < userPosition.protocolIds.length;
-          secondIndex++
-        ) {
-          protocolPool1.addRelatedProtocol(
-          userPosition.protocolIds[secondIndex],
-          amount
-          );
+      for (uint256 j = i + 1; j < userPosition.protocolIds.length; j++) {
+        protocolPool1.addRelatedProtocol(userPosition.protocolIds[j], amount);
 
-          IProtocolPool(
-          _core.getProtocolAddressById(userPosition.protocolIds[secondIndex])
-        ).addRelatedProtocol(userPosition.protocolIds[firstIndex], amount);
+        IProtocolPool(_core.getProtocolAddressById(userPosition.protocolIds[j]))
+          .addRelatedProtocol(userPosition.protocolIds[i], amount);
         }
 
       _core.actualizingProtocolAndRemoveExpiredPolicies(address(protocolPool1));
@@ -272,10 +252,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
         //Il faut takeInterest avant de deposit pour update liquidityIndex et claimsIndex
         //see pool.deposit: LPsInfo[_account] = LPInfo(liquidityIndex, claims.length);
       protocolPool1.deposit(tokenId, amount);
-        protocolPool1.addRelatedProtocol(
-        userPosition.protocolIds[firstIndex],
-        amount
-        );
+      protocolPool1.addRelatedProtocol(userPosition.protocolIds[i], amount);
       }
 
     _positions[tokenId].amountSupplied += amount;
