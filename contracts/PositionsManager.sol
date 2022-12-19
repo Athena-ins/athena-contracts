@@ -196,23 +196,32 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
     uint256 tokenId = _nextTokenId;
     _nextTokenId++;
 
+    // Ensure that all capital dependencies between pools are registered
+    // Loop through each of the pools (i)
     for (uint256 i = 0; i < protocolIds.length; i++) {
-      IProtocolPool protocolPool1 = IProtocolPool(
-        _core.getProtocolAddressById(protocolIds[i])
+      uint128 currentPoolId = protocolIds[i];
+
+      // Create an instance of the current pool
+      IProtocolPool currentPool = IProtocolPool(
+        _core.getProtocolAddressById(currentPoolId)
       );
 
+      // Loop through each latter pool (j)
       for (uint256 j = i + 1; j < protocolIds.length; j++) {
-        protocolPool1.addRelatedProtocol(protocolIds[j], amount);
+        uint128 latterPoolId = protocolIds[j];
 
-        IProtocolPool(_core.getProtocolAddressById(protocolIds[j]))
-          .addRelatedProtocol(protocolIds[i], amount);
+        // Add the latter pool to the current pool dependencies
+        currentPool.addRelatedProtocol(latterPoolId, amount);
+
+        // Mirror the dependency of the current pool in the latter pool
+        IProtocolPool(_core.getProtocolAddressById(latterPoolId))
+          .addRelatedProtocol(currentPoolId, amount);
       }
 
-      _core.actualizingProtocolAndRemoveExpiredPolicies(address(protocolPool1));
+      _core.actualizingProtocolAndRemoveExpiredPolicies(address(currentPool));
 
-      protocolPool1.deposit(tokenId, amount);
-      //Thao@TODO: pas besoin de add lui-même
-      protocolPool1.addRelatedProtocol(protocolIds[i], amount);
+      // Deposit fund into pool and add amount to its own intersectingAmounts
+      currentPool.deposit(tokenId, amount);
     }
 
     uint256 __aaveScaledBalance = _core.transferLiquidityToAAVE(amount);
