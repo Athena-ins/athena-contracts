@@ -24,6 +24,7 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
     uint256 amount;
     uint128 timestamp;
     uint128 rate;
+    bool withdrawn;
   }
 
   /**
@@ -157,6 +158,7 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
       amount_,
       timestamp,
       rewardsAnnualRate,
+      false
     );
     stakingAccount.tokenIds.push(tokenId_);
 
