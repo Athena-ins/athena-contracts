@@ -172,44 +172,55 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
   /// ========== WITHDRAW ========== ///
   /// ============================== ///
 
-  function withdraw(
-    address account_,
-    uint256 tokenId_,
-    uint256 amount_
-  ) external onlyCore returns (uint256) {
-    uint256 __rewards = _withdrawStake(account_, tokenId_, amount_);
+  /**
+   * @notice
+   * Used when a user closes his policy before a year has elapsed.
+   * @param account_ address of the user
+   * @param tokenId_ id of the policy
+   */
+  function earlyWithdraw(address account_, uint256 tokenId_) external onlyCore {
+    StakingPosition storage pos = stakes[account_].positions[tokenId_];
+
+    // Get the amount of ATEN initially deposited for staking
+    uint256 amountWithdrawal = pos.amount;
+
     // we put from & to opposite so as token owner has a Snapshot balance when staking
+    _beforeTokenTransfer(account_, address(0), amountWithdrawal);
 
-    _beforeTokenTransfer(account_, address(0), __rewards);
-    //@dev TODO do not modify staking date for user is not enough balance
-
-    IERC20(underlyingAssetAddress).safeTransfer(account_, __rewards);
+    // Send tokens to user
+    IERC20(underlyingAssetAddress).safeTransfer(account_, amountWithdrawal);
   }
 
-  function _withdrawStake(
-    address account_,
-    uint256 tokenId_,
-    uint256 amount_
-  ) internal returns (uint256) {
-    StakeAccount storage __userStake = stakes[account_];
+  /**
+   * @notice
+   * Used when a user claims his staking rewards after a year has elapsed.
+   * @param account_ address of the user
+   * @param tokenId_ id of the policy
+   */
+  function withdraw(address account_, uint256 tokenId_) external onlyCore {
+    StakingPosition storage pos = stakes[account_].positions[tokenId_];
+
+    require(!pos.withdrawn, "FRSP: already withdrawn");
+
+    // Check that a year has elapsed since staking position creation
     require(
-      __userStake.positions[tokenId_].amount >= amount_,
-      "Invalid amount"
-    );
-    require(
-      block.timestamp - __userStake.positions[tokenId_].timestamp >= 365 days,
-      "FRSP: ATEN still locked"
+      365 days <= block.timestamp - pos.timestamp,
+      "FRSP: year has not elapsed"
     );
 
-    // Calculate available Reward first before we start modifying data
-    uint256 reward = rewardsOf(account_, tokenId_);
-    // Remove by subtracting the money unstaked
-    __userStake.positions[tokenId_].amount -= amount_;
+    // Max reward is 365 days of rewards at specified APR
+    uint256 maxReward = (pos.amount * pos.rate) / 10_000;
+    // Total reward is the amount initially deposited + the max reward
+    uint256 amountWithdrawal = pos.amount + maxReward;
 
-    // Reset timer of stake
-    __userStake.positions[tokenId_].timestamp = uint128(block.timestamp);
+    // Close staking position by setting withdrawn to true
+    pos.withdrawn = true;
 
-    return reward;
+    // we put from & to opposite so as token owner has a Snapshot balance when staking
+    _beforeTokenTransfer(account_, address(0), amountWithdrawal);
+
+    // Send tokens to user
+    IERC20(underlyingAssetAddress).safeTransfer(account_, amountWithdrawal);
   }
 
   /// =========================== ///
