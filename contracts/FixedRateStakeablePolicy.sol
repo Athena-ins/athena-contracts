@@ -59,6 +59,67 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
     _;
   }
 
+  /// ================================ ///
+  /// ========== READ FUNCS ========== ///
+  /// ================================ ///
+
+  function accountStakingPositions(address account_)
+    external
+    view
+    returns (StakingPosition[] memory _stakingPositions)
+  {
+    StakeAccount storage userStakingPositions = stakes[account_];
+
+    for (uint256 i = 0; i < userStakingPositions.tokenIds.length; i++) {
+      uint256 tokenId = userStakingPositions.tokenIds[i];
+      _stakingPositions[i] = userStakingPositions.positions[tokenId];
+    }
+  }
+
+  /**
+   * @notice
+   * calculateStakeReward is used to calculate how much a user should be rewarded for their stakes
+   * and the duration the stake has been active
+   * Currently the reward is 100% APR per year
+   */
+  function rewardsOf(address account_, uint256 tokenId_)
+    public
+    view
+    returns (uint256)
+  {
+    StakingPosition storage pos = stakes[account_].positions[tokenId_];
+
+    // If the staking position is empty return 0
+    if (pos.amount == 0) return 0;
+
+    require(
+      pos.timestamp < block.timestamp,
+      "FRSP: timestamp is in the future"
+    );
+
+    uint256 timeElapsed;
+    unchecked {
+      // Unckecked because we know that block.timestamp is always bigger than pos.timestamp
+      timeElapsed = block.timestamp - pos.timestamp;
+    }
+
+    // Max reward is 365 days of rewards at specified APR
+    uint256 maxReward = (pos.amount * pos.rate) / 10_000;
+
+    if (365 days <= timeElapsed) {
+      // Cap rewards at 365 days
+      return maxReward;
+    } else {
+      // Else return proportional rewards
+      uint256 yearPercentage = (timeElapsed * 10_000) / 365 days;
+      return (yearPercentage * maxReward) / 10_000;
+    }
+  }
+
+  /// ============================= ///
+  /// ========== DEPOSIT ========== ///
+  /// ============================= ///
+
   function stake(
     address account_,
     uint256 tokenId_,
@@ -102,71 +163,22 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
     emit Staked(account_, amount_, timestamp);
   }
 
-  /**
-   * @notice
-   * Sets the new staking rewards APR for newly created policies.
-   * @param newRate_ the new reward rate (100% APR = 10_000)
-   */
-  function setRewardsPerYear(uint128 newRate_) external onlyCore {
-    divRewardPerYear = newRate_;
-  }
-
-  /**
-   * @notice
-   * calculateStakeReward is used to calculate how much a user should be rewarded for their stakes
-   * and the duration the stake has been active
-   * Currently the reward is 100% APR per year
-   */
-  function rewardsOf(address account_, uint256 tokenId_)
-    public
-    view
-    returns (uint256)
-  {
-    StakingPosition storage pos = stakes[account_].positions[tokenId_];
-
-    // If the staking position is empty return 0
-    if (pos.amount == 0) return 0;
-
-    require(
-      pos.timestamp < block.timestamp,
-      "FRSP: timestamp is in the future"
-    );
-
-    uint256 timeElapsed;
-    unchecked {
-      // Unckecked because we know that block.timestamp is always bigger than pos.timestamp
-      timeElapsed = block.timestamp - pos.timestamp;
-    }
-
-    // Max reward is 365 days of rewards at specified APR
-    uint256 maxReward = (pos.amount * pos.rate) / 10_000;
-
-    if (365 days <= timeElapsed) {
-      // Cap rewards at 365 days
-      return maxReward;
-    } else {
-      // Else return proportional rewards
-      uint256 yearPercentage = (timeElapsed * 10_000) / 365 days;
-      return (yearPercentage * maxReward) / 10_000;
-    }
-  }
+  /// ============================== ///
+  /// ========== WITHDRAW ========== ///
+  /// ============================== ///
 
   function withdraw(
     address account_,
     uint256 tokenId_,
     uint256 amount_
   ) external onlyCore returns (uint256) {
-    uint256 __rewards = _withdrawStake(account_, amount_, tokenId_);
+    uint256 __rewards = _withdrawStake(account_, tokenId_, amount_);
     // we put from & to opposite so as token owner has a Snapshot balance when staking
-    _beforeTokenTransfer(account_, address(0), amount_);
+
+    _beforeTokenTransfer(account_, address(0), __rewards);
     //@dev TODO do not modify staking date for user is not enough balance
-    console.log("Rewards : ", __rewards);
-    console.log(
-      "balance here : ",
-      IERC20(underlyingAssetAddress).balanceOf(address(this))
-    );
-    IERC20(underlyingAssetAddress).safeTransfer(account_, amount_);
-    return __rewards;
+
+    IERC20(underlyingAssetAddress).safeTransfer(account_, __rewards);
   }
 
   function _withdrawStake(
@@ -195,16 +207,16 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
     return reward;
   }
 
-  function userStakes(address account_)
-    external
-    view
-    returns (StakingPosition[] memory _stakingPositions)
-  {
-    StakeAccount storage userStakingPositions = stakes[account_];
+  /// =========================== ///
+  /// ========== ADMIN ========== ///
+  /// =========================== ///
 
-    for (uint256 i = 0; i < userStakingPositions.tokenIds.length; i++) {
-      uint256 tokenId = userStakingPositions.tokenIds[i];
-      _stakingPositions[i] = userStakingPositions.positions[tokenId];
-    }
+  /**
+   * @notice
+   * Sets the new staking rewards APR for newly created policies.
+   * @param newRate_ the new reward rate (100% APR = 10_000)
+   */
+  function setRewardsPerYear(uint128 newRate_) external onlyCore {
+    divRewardPerYear = newRate_;
   }
 }
