@@ -15,7 +15,6 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
 
   // The amount of ATEN tokens still available for staking rewards
   uint256 public rewardsRemaining;
-
   // Address of ATEN token
   address public immutable underlyingAssetAddress;
   // Address of the core Athena contract
@@ -24,7 +23,7 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
   // @dev 10_000 = 100% APR
   uint128 public rewardsAnnualRate = 10_000;
 
-  /// A staking position of a user
+  // A staking position of a user
   struct StakingPosition {
     uint256 amount;
     uint128 timestamp;
@@ -32,21 +31,15 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
     bool withdrawn;
   }
 
-  /// Staking account data of user
+  // Staking account data of user
   struct StakeAccount {
     address user;
     mapping(uint256 => StakingPosition) positions;
     uint256[] tokenIds;
   }
 
-  /// Mapping of stakers addresses to their staking accounts
+  // Mapping of stakers addresses to their staking accounts
   mapping(address => StakeAccount) public stakes;
-
-  /**
-   * @notice
-   * Staked event is triggered whenever a user stakes tokens
-   */
-  event Staked(address indexed user, uint256 amount, uint128 timestamp);
 
   /**
    * @notice constructs Pool LP Tokens for staking, decimals defaults to 18
@@ -59,6 +52,44 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
     underlyingAssetAddress = underlyingAsset_;
     coreAddress = core_;
   }
+
+  /// ============================ ///
+  /// ========== EVENTS ========== ///
+  /// ============================ ///
+
+  /**
+   * @notice
+   * Triggered whenever a user stakes tokens
+   */
+  event Stake(address indexed user, uint256 indexed tokenId, uint256 amount);
+
+  /**
+   * @notice
+   * Triggered whenever a user unstakes tokens
+   * @dev isEarlyUnstake is true if the user unstakes before the policy is expired
+   */
+  event Unstake(
+    address indexed user,
+    uint256 indexed tokenId,
+    uint256 amount,
+    bool indexed isEarlyUnstake
+  );
+
+  /**
+   * @notice
+   * Triggered whenever the rewards rate is updated
+   */
+  event RewardsRateUpdated(uint256 newRewardsAnnualRate);
+
+  /**
+   * @notice
+   * Triggered whenever rewards are added to the staking pool
+   */
+  event RewardsAdded(uint256 newTotalRewards);
+
+  /// =============================== ///
+  /// ========== MODIFIERS ========== ///
+  /// =============================== ///
 
   modifier onlyCore() {
     require(msg.sender == coreAddress, "Only Core");
@@ -195,7 +226,7 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
     // Mint tokens to user's wallet
     _mint(account_, amount_);
 
-    emit Staked(account_, amount_, timestamp);
+    emit Stake(account_, tokenId_, amount_);
   }
 
   /// ============================== ///
@@ -219,6 +250,8 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
 
     // Send tokens to user
     IERC20(underlyingAssetAddress).safeTransfer(account_, amountWithdrawal);
+
+    emit Unstake(account_, tokenId_, amountWithdrawal, true);
   }
 
   /**
@@ -251,6 +284,8 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
 
     // Send tokens to user
     IERC20(underlyingAssetAddress).safeTransfer(account_, amountWithdrawal);
+
+    emit Unstake(account_, tokenId_, amountWithdrawal, false);
   }
 
   /// =========================== ///
@@ -264,6 +299,8 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
    */
   function addAvailableRewards(uint256 amount_) external onlyCore {
     rewardsRemaining += amount_;
+
+    emit RewardsAdded(rewardsRemaining);
   }
 
   /**
@@ -273,5 +310,7 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
    */
   function setRewardsPerYear(uint128 newRate_) external onlyCore {
     rewardsAnnualRate = newRate_;
+
+    emit RewardsRateUpdated(newRate_);
   }
 }
