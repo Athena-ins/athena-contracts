@@ -16,10 +16,15 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
   // The amount of ATEN tokens still available for staking rewards
   uint256 public rewardsRemaining;
 
+  // Address of ATEN token
   address public immutable underlyingAssetAddress;
-  address public immutable core;
-  uint128 public rewardsAnnualRate = 10_000; // 10_000 = 100% APR
+  // Address of the core Athena contract
+  address public immutable coreAddress;
+  // The current APR of the staking pool
+  // @dev 10_000 = 100% APR
+  uint128 public rewardsAnnualRate = 10_000;
 
+  /// A staking position of a user
   struct StakingPosition {
     uint256 amount;
     uint128 timestamp;
@@ -27,23 +32,19 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
     bool withdrawn;
   }
 
-  /**
-   * @notice StakeAccount is a staker that has a stake
-   */
+  /// Staking account data of user
   struct StakeAccount {
     address user;
     mapping(uint256 => StakingPosition) positions;
     uint256[] tokenIds;
   }
 
-  /**
-   * @notice
-   * stakes is used to keep track of the INDEX for the stakers in the stakes array
-   */
+  /// Mapping of stakers addresses to their staking accounts
   mapping(address => StakeAccount) public stakes;
 
   /**
-   * @notice Staked event is triggered whenever a user stakes tokens, address is indexed to make it filterable
+   * @notice
+   * Staked event is triggered whenever a user stakes tokens
    */
   event Staked(address indexed user, uint256 amount, uint128 timestamp);
 
@@ -56,11 +57,11 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
     ERC20WithSnapshot("ATEN Policy Staking Token", "psATEN")
   {
     underlyingAssetAddress = underlyingAsset_;
-    core = core_;
+    coreAddress = core_;
   }
 
   modifier onlyCore() {
-    require(msg.sender == core, "Only Core");
+    require(msg.sender == coreAddress, "Only Core");
     _;
   }
 
@@ -68,7 +69,28 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
   /// ========== READ FUNCS ========== ///
   /// ================================ ///
 
-  function accountStakingPositions(address account_)
+  /**
+   * @notice
+   * Returns a user's staking position for a specific policy.
+   * @param account_ is the address of the user
+   * @param tokenId_ is the id of the policy
+   * @return StakingPosition the corresponding staking position if it exists
+   */
+  function accountStakingPositions(address account_, uint256 tokenId_)
+    external
+    view
+    returns (StakingPosition memory)
+  {
+    return stakes[account_].positions[tokenId_];
+  }
+
+  /**
+   * @notice
+   * Returns all staking position of a user.
+   * @param account_ is the address of the user
+   * @return _stakingPositions all staking positions if there are any
+   */
+  function allAccountStakingPositions(address account_)
     external
     view
     returns (StakingPosition[] memory _stakingPositions)
@@ -83,9 +105,10 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
 
   /**
    * @notice
-   * calculateStakeReward is used to calculate how much a user should be rewarded for their stakes
-   * and the duration the stake has been active
-   * Currently the reward is 100% APR per year
+   * Returns the amount of rewards a user has earned for a specific staking position.
+   * @dev The rewards are capped at 365 days of staking at the specified APR.
+   * @param account_ is the address of the user
+   * @param tokenId_ is the id of the policy
    */
   function rewardsOf(address account_, uint256 tokenId_)
     public
@@ -125,6 +148,13 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
   /// ========== DEPOSIT ========== ///
   /// ============================= ///
 
+  /**
+   * @notice
+   * Deposit a policy holder's ATEN so they can earn staking rewards.
+   * @param account_ is the address of the user
+   * @param tokenId_ is the id of the policy
+   * @param amount_ is the amount of tokens to stake
+   */
   function stake(
     address account_,
     uint256 tokenId_,
@@ -148,7 +178,7 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
     unchecked {
       // unchecked because we know that rewardsRemaining is always bigger than maxReward
       rewardsRemaining -= maxReward;
-  }
+    }
 
     StakeAccount storage stakingAccount = stakes[account_];
 
