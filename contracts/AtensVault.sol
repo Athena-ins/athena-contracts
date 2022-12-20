@@ -43,4 +43,21 @@ contract AtensVault is IVaultERC20 {
     // userBalances[msg.sender] -= _amount;
     IERC20(underlyingAssetAddress).transfer(_account, _amount);
   }
+
+  /**
+   * @notice
+   * Sends policy or general staking rewards to a user
+   * @param to_ the address of the user
+   * @param amount_ the amount of rewards to send
+   */
+  function sendReward(address to_, uint256 amount_) external onlyCore {
+    // Check if the contract has enough tokens
+    require(
+      amount_ <= IERC20(underlyingAssetAddress).balanceOf(address(this)),
+      "AV: insufficient balance"
+    );
+
+    // Transfer the amount to the user
+    IERC20(underlyingAssetAddress).transfer(to_, amount_);
+  }
 }
