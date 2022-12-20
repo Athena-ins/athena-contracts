@@ -310,15 +310,15 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   /**
    * @notice
    * Withdraws the staking rewards generated from a policy staking position.
-   * @param tokenId_ the id of the policy position
+   * @param policyId_ the id of the policy position
    */
-  function withdrawAtensPolicy(uint256 tokenId_) external {
+  function withdrawAtensPolicy(uint256 policyId_) external {
     // @bw Should check if policy is still active of was still active after a year
 
     // Get the amount of rewards and consume the staking position
     uint256 amountRewards = IStakedAtenPolicy(stakedAtensPo).withdraw(
       msg.sender,
-      tokenId_
+      policyId_
     );
 
     // Check the amount is above 0
@@ -666,7 +666,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
         _paidPremium
       );
 
-      uint256 __tokenId = IPolicyManager(policyManager).mint(
+      uint256 policyId = IPolicyManager(policyManager).mint(
         msg.sender,
         _amountCovered,
         _paidPremium,
@@ -680,7 +680,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
 
       IProtocolPool(protocolsMapping[_protocolId].deployed).buyPolicy(
         msg.sender,
-        __tokenId,
+        policyId,
         _paidPremium,
         _amountCovered
       );
@@ -696,7 +696,11 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
           "A: amount ATEN too high"
         );
 
-        IStakedAtenPolicy(stakedAtensPo).stake(msg.sender, _atensLocked);
+        IStakedAtenPolicy(stakedAtensPo).stake(
+          msg.sender,
+          policyId,
+          _atensLocked
+        );
       }
     }
   }

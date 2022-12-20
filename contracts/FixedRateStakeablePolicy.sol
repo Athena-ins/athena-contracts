@@ -32,8 +32,9 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
   // Staking account data of user
   struct StakeAccount {
     address user;
+    // Maps a policy token ID to a staking position
     mapping(uint256 => StakingPosition) positions;
-    uint256[] tokenIds;
+    uint256[] policyTokenIds;
   }
 
   // Mapping of stakers addresses to their staking accounts
@@ -41,11 +42,11 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
 
   /**
    * @notice constructs Pool LP Tokens for staking, decimals defaults to 18
-   * @param underlyingAsset_ is the address of the staked token
+   * @param underlyingAsset_ is the address of ATEN token
    * @param core_ is the address of the core contract
    */
   constructor(address underlyingAsset_, address core_)
-    ERC20WithSnapshot("ATEN Policy Staking Token", "psATEN")
+    ERC20WithSnapshot("ATEN Policy Staked", "ATENps")
   {
     underlyingAssetAddress = underlyingAsset_;
     coreAddress = core_;
@@ -107,15 +108,15 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
    * @notice
    * Returns a user's staking position for a specific policy.
    * @param account_ is the address of the user
-   * @param tokenId_ is the id of the policy
-   * @return StakingPosition the corresponding staking position if it exists
+   * @param policyId_ is the id of the policy
+   * @return _ the corresponding staking position if it exists
    */
-  function accountStakingPositions(address account_, uint256 tokenId_)
+  function accountStakingPositions(address account_, uint256 policyId_)
     external
     view
     returns (StakingPosition memory)
   {
-    return stakes[account_].positions[tokenId_];
+    return stakes[account_].positions[policyId_];
   }
 
   /**
@@ -131,8 +132,9 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
   {
     StakeAccount storage userStakingPositions = stakes[account_];
 
-    for (uint256 i = 0; i < userStakingPositions.tokenIds.length; i++) {
-      uint256 tokenId = userStakingPositions.tokenIds[i];
+    for (uint256 i = 0; i < userStakingPositions.policyTokenIds.length; i++) {
+      uint256 tokenId = userStakingPositions.policyTokenIds[i];
+
       _stakingPositions[i] = userStakingPositions.positions[tokenId];
     }
   }
@@ -142,14 +144,15 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
    * Returns the amount of rewards a user has earned for a specific staking position.
    * @dev The rewards are capped at 365 days of staking at the specified APR.
    * @param account_ is the address of the user
-   * @param tokenId_ is the id of the policy
+   * @param policyId_ is the id of the policy
+   * @ @return _ the amount of rewards earned
    */
-  function rewardsOf(address account_, uint256 tokenId_)
+  function rewardsOf(address account_, uint256 policyId_)
     external
     view
     returns (uint256)
   {
-    StakingPosition storage pos = stakes[account_].positions[tokenId_];
+    StakingPosition storage pos = stakes[account_].positions[policyId_];
 
     // If the staking position is empty return 0
     if (pos.amount == 0) return 0;
@@ -186,12 +189,12 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
    * @notice
    * Deposit a policy holder's ATEN so they can earn staking rewards.
    * @param account_ is the address of the user
-   * @param tokenId_ is the id of the policy
+   * @param policyId_ is the id of the policy
    * @param amount_ is the amount of tokens to stake
    */
   function stake(
     address account_,
-    uint256 tokenId_,
+    uint256 policyId_,
     uint256 amount_
   ) external onlyCore {
     require(amount_ > 0, "FRSP: cannot stake 0 ATEN");
@@ -218,18 +221,18 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
 
     // Save the user's staking position
     uint128 timestamp = uint128(block.timestamp);
-    stakingAccount.positions[tokenId_] = StakingPosition(
+    stakingAccount.positions[policyId_] = StakingPosition(
       amount_,
       timestamp,
       rewardsAnnualRate,
       false
     );
-    stakingAccount.tokenIds.push(tokenId_);
+    stakingAccount.policyTokenIds.push(policyId_);
 
     // Mint tokens to user's wallet
     _mint(account_, amount_);
 
-    emit Stake(account_, tokenId_, amount_);
+    emit Stake(account_, policyId_, amount_);
   }
 
   /// ============================== ///
@@ -240,10 +243,13 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
    * @notice
    * Used when a user closes his policy before a year has elapsed.
    * @param account_ address of the user
-   * @param tokenId_ id of the policy
+   * @param policyId_ id of the policy
    */
-  function earlyWithdraw(address account_, uint256 tokenId_) external onlyCore {
-    StakingPosition storage pos = stakes[account_].positions[tokenId_];
+  function earlyWithdraw(address account_, uint256 policyId_)
+    external
+    onlyCore
+  {
+    StakingPosition storage pos = stakes[account_].positions[policyId_];
 
     require(!pos.withdrawn, "FRSP: already withdrawn");
     // Close staking position by setting withdrawn to true
@@ -258,22 +264,22 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
     // Send initial staked tokens to user
     IERC20(underlyingAssetAddress).safeTransfer(account_, initialAmount);
 
-    emit Unstake(account_, tokenId_, initialAmount, 0, true);
+    emit Unstake(account_, policyId_, initialAmount, 0, true);
   }
 
   /**
    * @notice
    * Used when a user claims his staking rewards after a year has elapsed.
    * @param account_ address of the user
-   * @param tokenId_ id of the policy
+   * @param policyId_ id of the policy
    * @return _ the amount of rewards to send to user
    */
-  function withdraw(address account_, uint256 tokenId_)
+  function withdraw(address account_, uint256 policyId_)
     external
     onlyCore
     returns (uint256)
   {
-    StakingPosition storage pos = stakes[account_].positions[tokenId_];
+    StakingPosition storage pos = stakes[account_].positions[policyId_];
 
     require(!pos.withdrawn, "FRSP: already withdrawn");
     // Close staking position by setting withdrawn to true
@@ -297,7 +303,7 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
     // Max reward is 365 days of rewards at specified APR
     uint256 maxReward = (pos.amount * pos.rate) / 10_000;
 
-    emit Unstake(account_, tokenId_, initialAmount, maxReward, false);
+    emit Unstake(account_, policyId_, initialAmount, maxReward, false);
 
     // Return 365 days of rewards at specified APR
     return maxReward;
