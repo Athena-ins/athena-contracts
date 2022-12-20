@@ -307,23 +307,26 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     IStakedAten(stakedAtensGP).withdraw(msg.sender, amount_);
   }
 
-  /*
-  function withdrawAtensPolicy(uint256 _atenToWithdraw, uint128 _index)
-    external
-  {
-    uint256 __rewards = IStakedAtenPolicy(stakedAtensPo).withdraw(
+  /**
+   * @notice
+   * Withdraws the staking rewards generated from a policy staking position.
+   * @param tokenId_ the id of the policy position
+   */
+  function withdrawAtensPolicy(uint256 tokenId_) external {
+    // @bw Should check if policy is still active of was still active after a year
+
+    // Get the amount of rewards and consume the staking position
+    uint256 amountRewards = IStakedAtenPolicy(stakedAtensPo).withdraw(
       msg.sender,
-      _atenToWithdraw,
-      _index
+      tokenId_
     );
-    if (
-      __rewards > 0 && __rewards <= IERC20(rewardsToken).balanceOf(atensVault)
-    ) {
-      IVaultERC20(atensVault).transfer(msg.sender, __rewards);
-      //IERC20(rewardsToken).transferFrom(atensVault, msg.sender, __rewards);
+
+    // Check the amount is above 0
+    require(amountRewards > 0, "A: withdrawable amount is 0");
+
+    // Send the rewards to the user from the vault
+    IVaultERC20(atensVault).sendReward(msg.sender, amountRewards);
     }
-  }
-*/
 
   /** @notice
    * Setter for cover supply interests fees according to staked ATEN.
@@ -663,20 +666,6 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
         _paidPremium
       );
 
-      if (_atensLocked > 0) {
-        //@dev TODO get oracle price !
-        uint256 pricePrecision = 10000;
-        uint256 __price = 100; // = 100 / 10.000 = 0.01 USDT
-        uint256 __decimalsRatio = 10**18 / 10**ERC20(stablecoin).decimals();
-        require(
-          (__price * _atensLocked) / pricePrecision <=
-            (_paidPremium * __decimalsRatio),
-          "Too many ATENS"
-        );
-
-        IStakedAtenPolicy(stakedAtensPo).stake(msg.sender, _atensLocked);
-      }
-
       uint256 __tokenId = IPolicyManager(policyManager).mint(
         msg.sender,
         _amountCovered,
@@ -695,6 +684,20 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
         _paidPremium,
         _amountCovered
       );
+
+      if (_atensLocked > 0) {
+        // @bw TODO get oracle price !
+        uint256 pricePrecision = 10000;
+        uint256 __price = 100; // = 100 / 10.000 = 0.01 USDT
+        uint256 __decimalsRatio = 1e18 / 10**ERC20(stablecoin).decimals();
+        require(
+          (__price * _atensLocked) / pricePrecision <=
+            (_paidPremium * __decimalsRatio),
+          "A: amount ATEN too high"
+        );
+
+        IStakedAtenPolicy(stakedAtensPo).stake(msg.sender, _atensLocked);
+      }
     }
   }
 
