@@ -3,8 +3,6 @@ pragma solidity ^0.8;
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./libraries/ERC20withSnapshot.sol";
 
-import "hardhat/console.sol";
-
 /**
  * @notice Staking Pool Contract: Policy
  * @notice Stakeable is a contract who is ment to be inherited by other contract that wants Staking capabilities
@@ -61,7 +59,11 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
    * @notice
    * Triggered whenever a user stakes tokens
    */
-  event Stake(address indexed user, uint256 indexed tokenId, uint256 amount);
+  event Stake(
+    address indexed user,
+    uint256 indexed tokenId,
+    uint256 amountStaked
+  );
 
   /**
    * @notice
@@ -71,7 +73,8 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
   event Unstake(
     address indexed user,
     uint256 indexed tokenId,
-    uint256 amount,
+    uint256 amountUnstaked,
+    uint256 amountRewards,
     bool indexed isEarlyUnstake
   );
 
@@ -142,7 +145,7 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
    * @param tokenId_ is the id of the policy
    */
   function rewardsOf(address account_, uint256 tokenId_)
-    public
+    external
     view
     returns (uint256)
   {
@@ -193,7 +196,7 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
   ) external onlyCore {
     require(amount_ > 0, "FRSP: cannot stake 0 ATEN");
 
-    // we put from & to opposite so as token owner has a Snapshot balance when staking
+    // Make a snapshot of the user's balance
     _beforeTokenTransfer(address(0), account_, amount_);
 
     // Get tokens from user to staking pool
@@ -242,16 +245,20 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
   function earlyWithdraw(address account_, uint256 tokenId_) external onlyCore {
     StakingPosition storage pos = stakes[account_].positions[tokenId_];
 
+    require(!pos.withdrawn, "FRSP: already withdrawn");
+    // Close staking position by setting withdrawn to true
+    pos.withdrawn = true;
+
     // Get the amount of ATEN initially deposited for staking
-    uint256 amountWithdrawal = pos.amount;
+    uint256 initialAmount = pos.amount;
 
-    // we put from & to opposite so as token owner has a Snapshot balance when staking
-    _beforeTokenTransfer(account_, address(0), amountWithdrawal);
+    // Make a snapshot of the user's balance
+    _beforeTokenTransfer(account_, address(0), initialAmount);
 
-    // Send tokens to user
-    IERC20(underlyingAssetAddress).safeTransfer(account_, amountWithdrawal);
+    // Send initial staked tokens to user
+    IERC20(underlyingAssetAddress).safeTransfer(account_, initialAmount);
 
-    emit Unstake(account_, tokenId_, amountWithdrawal, true);
+    emit Unstake(account_, tokenId_, initialAmount, 0, true);
   }
 
   /**
@@ -259,11 +266,18 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
    * Used when a user claims his staking rewards after a year has elapsed.
    * @param account_ address of the user
    * @param tokenId_ id of the policy
+   * @return _ the amount of rewards to send to user
    */
-  function withdraw(address account_, uint256 tokenId_) external onlyCore {
+  function withdraw(address account_, uint256 tokenId_)
+    external
+    onlyCore
+    returns (uint256)
+  {
     StakingPosition storage pos = stakes[account_].positions[tokenId_];
 
     require(!pos.withdrawn, "FRSP: already withdrawn");
+    // Close staking position by setting withdrawn to true
+    pos.withdrawn = true;
 
     // Check that a year has elapsed since staking position creation
     require(
@@ -271,21 +285,22 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
       "FRSP: year has not elapsed"
     );
 
+    // Get the amount of ATEN initially deposited for staking
+    uint256 initialAmount = pos.amount;
+
+    // Make a snapshot of the user's balance
+    _beforeTokenTransfer(account_, address(0), initialAmount);
+
+    // Send initial staked tokens to user
+    IERC20(underlyingAssetAddress).safeTransfer(account_, pos.amount);
+
     // Max reward is 365 days of rewards at specified APR
     uint256 maxReward = (pos.amount * pos.rate) / 10_000;
-    // Total reward is the amount initially deposited + the max reward
-    uint256 amountWithdrawal = pos.amount + maxReward;
 
-    // Close staking position by setting withdrawn to true
-    pos.withdrawn = true;
+    emit Unstake(account_, tokenId_, initialAmount, maxReward, false);
 
-    // we put from & to opposite so as token owner has a Snapshot balance when staking
-    _beforeTokenTransfer(account_, address(0), amountWithdrawal);
-
-    // Send tokens to user
-    IERC20(underlyingAssetAddress).safeTransfer(account_, amountWithdrawal);
-
-    emit Unstake(account_, tokenId_, amountWithdrawal, false);
+    // Return 365 days of rewards at specified APR
+    return maxReward;
   }
 
   /// =========================== ///
@@ -298,6 +313,7 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
    * @param amount_ amount of rewards to add
    */
   function addAvailableRewards(uint256 amount_) external onlyCore {
+    // Add rewards to existing rewards balance
     rewardsRemaining += amount_;
 
     emit RewardsAdded(rewardsRemaining);
