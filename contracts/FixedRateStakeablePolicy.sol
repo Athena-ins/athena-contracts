@@ -117,16 +117,17 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
    * and the duration the stake has been active
    * Currently the reward is 100% APR per year
    */
-  function calculateStakeReward(
-    Stakeholder storage userStake_,
-    uint256 tokenId_
-  ) internal view returns (uint256) {
-    if (userStake_.tokenIds.length == 0) return 0;
+  function calculateStakeReward(address account_, uint256 tokenId_)
+    internal
+    view
+    returns (uint256)
+  {
+    StakingPosition storage pos = stakes[account_].positions[tokenId_];
 
-    return
-      ((block.timestamp - userStake_.userStakes[tokenId_].timestamp) *
-        userStake_.userStakes[tokenId_].amount *
-        10000) / userStake_.userStakes[tokenId_].rate;
+    // If the staking position is empty return 0
+    if (pos.amount == 0) return 0;
+
+    return ((block.timestamp - pos.timestamp) * pos.amount * 10000) / pos.rate;
   }
 
   function withdraw(
@@ -163,7 +164,7 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
     );
 
     // Calculate available Reward first before we start modifying data
-    uint256 reward = calculateStakeReward(__userStake, tokenId_);
+    uint256 reward = calculateStakeReward(_account, tokenId_);
     // Remove by subtracting the money unstaked
     __userStake.userStakes[tokenId_].amount -= _amount;
 
@@ -190,13 +191,11 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
    * @notice
    * public function to view rewards available for a stake
    */
-  function rewardsOf(address _staker, uint256 tokenId_)
+  function rewardsOf(address account_, uint256 tokenId_)
     public
     view
     returns (uint256 rewards)
   {
-    Stakeholder storage _userStake = stakes[_staker];
-    rewards = calculateStakeReward(_userStake, tokenId_);
-    return rewards;
+    return calculateStakeReward(account_, tokenId_);
   }
 }
