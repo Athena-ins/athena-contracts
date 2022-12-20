@@ -12,9 +12,13 @@ import "hardhat/console.sol";
  */
 contract FixedRateStakeablePolicy is ERC20WithSnapshot {
   using SafeERC20 for IERC20;
+
+  // The amount of ATEN tokens still available for staking rewards
+  uint256 public rewardsRemaining;
+
   address public immutable underlyingAssetAddress;
   address public immutable core;
-  uint128 public divRewardPerYear = 10_000; // 10_000 = 100% APR
+  uint128 public rewardsAnnualRate = 10_000; // 10_000 = 100% APR
 
   struct StakingPosition {
     uint256 amount;
@@ -125,40 +129,39 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
     uint256 tokenId_,
     uint256 amount_
   ) external onlyCore {
+    require(amount_ > 0, "FRSP: cannot stake 0 ATEN");
+
     // we put from & to opposite so as token owner has a Snapshot balance when staking
     _beforeTokenTransfer(address(0), account_, amount_);
 
-    // Send tokens from user to staking pool
+    // Get tokens from user to staking pool
     IERC20(underlyingAssetAddress).safeTransferFrom(
       account_,
       address(this),
       amount_
     );
 
-    _stake(account_, tokenId_, amount_);
-    _mint(account_, amount_);
+    // Calc the max rewards and check there is enough rewards left
+    uint256 maxReward = (amount_ * rewardsAnnualRate) / 10_000;
+    require(maxReward <= rewardsRemaining, "FRSP: not enough rewards left");
+    unchecked {
+      // unchecked because we know that rewardsRemaining is always bigger than maxReward
+      rewardsRemaining -= maxReward;
   }
 
-  /**
-   * @notice
-   * _Stake is used to make a stake for an sender.
-   */
-  function _stake(
-    address account_,
-    uint256 tokenId_,
-    uint256 amount_
-  ) internal {
-    require(amount_ > 0, "Cannot stake nothing");
-    uint128 timestamp = uint128(block.timestamp);
-    StakeAccount storage __userStake = stakes[account_];
+    StakeAccount storage stakingAccount = stakes[account_];
 
-    __userStake.positions[tokenId_] = StakingPosition(
+    // Save the user's staking position
+    uint128 timestamp = uint128(block.timestamp);
+    stakingAccount.positions[tokenId_] = StakingPosition(
       amount_,
       timestamp,
-      divRewardPerYear
+      rewardsAnnualRate,
     );
+    stakingAccount.tokenIds.push(tokenId_);
 
-    __userStake.tokenIds.push(tokenId_);
+    // Mint tokens to user's wallet
+    _mint(account_, amount_);
 
     emit Staked(account_, amount_, timestamp);
   }
@@ -213,10 +216,19 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
 
   /**
    * @notice
+   * Used to add more rewards to the staking pool.
+   * @param amount_ amount of rewards to add
+   */
+  function addAvailableRewards(uint256 amount_) external onlyCore {
+    rewardsRemaining += amount_;
+  }
+
+  /**
+   * @notice
    * Sets the new staking rewards APR for newly created policies.
    * @param newRate_ the new reward rate (100% APR = 10_000)
    */
   function setRewardsPerYear(uint128 newRate_) external onlyCore {
-    divRewardPerYear = newRate_;
+    rewardsAnnualRate = newRate_;
   }
 }
