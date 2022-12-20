@@ -117,8 +117,8 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
    * and the duration the stake has been active
    * Currently the reward is 100% APR per year
    */
-  function calculateStakeReward(address account_, uint256 tokenId_)
-    internal
+  function rewardsOf(address account_, uint256 tokenId_)
+    public
     view
     returns (uint256)
   {
@@ -164,7 +164,7 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
     );
 
     // Calculate available Reward first before we start modifying data
-    uint256 reward = calculateStakeReward(account_, tokenId_);
+    uint256 reward = rewardsOf(account_, tokenId_);
     // Remove by subtracting the money unstaked
     __userStake.positions[tokenId_].amount -= amount_;
 
@@ -185,17 +185,5 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
       uint256 tokenId = userStakingPositions.tokenIds[i];
       _stakingPositions[i] = userStakingPositions.positions[tokenId];
     }
-  }
-
-  /**
-   * @notice
-   * public function to view rewards available for a stake
-   */
-  function rewardsOf(address account_, uint256 tokenId_)
-    public
-    view
-    returns (uint256)
-  {
-    return calculateStakeReward(account_, tokenId_);
   }
 }
