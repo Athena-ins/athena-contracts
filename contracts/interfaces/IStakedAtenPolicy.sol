@@ -3,13 +3,13 @@ pragma solidity ^0.8;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 interface IStakedAtenPolicy is IERC20 {
-  function stake(address _account, uint256 _amount) external;
+  function stake(address account_, uint256 amount_) external;
 
   function withdraw(
-    address _account,
-    uint256 _amount,
-    uint128 _index
+    address account_,
+    uint256 amount_,
+    uint128 index_
   ) external returns (uint256);
 
-  function setRewardsPerYear(uint256 newRate) external;
+  function setRewardsPerYear(uint256 newRate_) external;
 }
