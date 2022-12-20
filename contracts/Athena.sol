@@ -145,7 +145,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   }
 
   /// ============================ ///
-  /// ========== MODIFIERS ========== ///
+  /// ========= MODIFIERS ======== ///
   /// ============================ ///
 
   modifier onlyClaimManager() {
@@ -209,44 +209,103 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     IStakedAtenPolicy(stakedAtensPo).setRewardsPerYear(newRate);
   }
 
-  function _stakeAtens(address account, uint256 amount) internal {
-    uint256 usdCapitalSupplied = IPositionsManager(positionsManager)
-      .allCapitalSuppliedByAccount(account);
-
-    IStakedAten(stakedAtensGP).stake(account, amount, usdCapitalSupplied);
-  }
-
-  //////Thao@NOTE: Protocol
-  function stakeAtens(uint256 amount) external override {
-    _stakeAtens(msg.sender, amount);
-  }
-
-  /*
-  function withdrawAtens(uint256 atenToWithdraw) external {
-    //@dev TODO check if multiple NFT positions
-    uint256 tokenId = IPositionsManager(positionsManager).tokenOfOwnerByIndex(
-      msg.sender,
-      0
-    );
-
-    IPositionsManager.Position memory __position = IPositionsManager(
+  /** @notice
+   * Stake ATEN in the general staking pool to earn interests.
+   * @dev Also updates covers if the update causes a fee level change
+   * @param amount_ the amount of ATEN to stake
+   **/
+  function stakeAtens(uint256 amount_) external override {
+    IPositionsManager positionManagerInterface = IPositionsManager(
       positionsManager
-    ).position(tokenId);
-    uint128 _feeRate = getFeeRateWithAten(__position.atens);
-    uint256 actualAtens = IStakedAten(stakedAtensGP).balanceOf(msg.sender);
-    require(actualAtens > 0, "No Atens to withdraw");
-    // require(atenToWithdraw <= actualAtens, "Not enough Atens to withdraw");
-    IStakedAten(stakedAtensGP).withdraw(msg.sender, atenToWithdraw);
-    IPositionsManager(positionsManager).update(
-      tokenId,
-      __position.amountSupplied,
-      __position.aaveScaledBalance,
-      actualAtens - atenToWithdraw,
-      _feeRate,
-      __position.protocolIds
     );
+
+    // Check if user has positions that will require an update
+    uint256[] memory tokenList = positionManagerInterface
+      .allPositionTokensOfOwner(msg.sender);
+
+    // If the user has positions check if unstaking affects fee level
+    if (tokenList.length != 0) {
+      // Get the user's first position
+      IPositionsManager.Position memory userPosition = positionManagerInterface
+        .position(tokenList[0]);
+
+      // Check the position's fee level
+      uint128 currentFeeLevel = userPosition.feeRate;
+
+      // Check the user's balance of staked ATEN + staking rewards
+      uint256 stakedAten = IStakedAten(stakedAtensGP).positionOf(msg.sender);
+
+      // Compute the fee level after adding accrued interests and removing withdrawal
+      uint256 balanceAfterWithdraw = stakedAten + amount_;
+      uint128 newFeeLevel = getFeeRateWithAten(balanceAfterWithdraw);
+
+      // If the fee level changes, update all positions
+      if (currentFeeLevel != newFeeLevel) {
+        for (uint256 i = 0; i < tokenList.length; i++) {
+          positionManagerInterface.takeInterestsInAllPools(
+            msg.sender,
+            tokenList[i]
+          );
+
+          positionManagerInterface.updateFeeLevel(tokenList[i], newFeeLevel);
+        }
+      }
+    }
+
+    // Get the amount of capital supplied by the user
+    uint256 usdCapitalSupplied = positionManagerInterface
+      .allCapitalSuppliedByAccount(msg.sender);
+
+    // Deposit ATEN in the staking pool
+    IStakedAten(stakedAtensGP).stake(msg.sender, amount_, usdCapitalSupplied);
   }
-*/
+
+  /** @notice
+   * Remove ATEN from the general staking pool.
+   * @dev Also updates covers if the update causes a fee level change
+   * @param amount_ the amount of ATEN to withdraw
+   **/
+  function unstakeAtens(uint256 amount_) external {
+    IPositionsManager positionManagerInterface = IPositionsManager(
+      positionsManager
+    );
+
+    // Check if user has positions that will require an update
+    uint256[] memory tokenList = positionManagerInterface
+      .allPositionTokensOfOwner(msg.sender);
+
+    // If the user has positions check if unstaking affects fee level
+    if (tokenList.length != 0) {
+      // Get the user's first position
+      IPositionsManager.Position memory userPosition = positionManagerInterface
+        .position(tokenList[0]);
+
+      // Check the position's fee level
+      uint128 currentFeeLevel = userPosition.feeRate;
+
+      // Check the user's balance of staked ATEN + staking rewards
+      uint256 stakedAten = IStakedAten(stakedAtensGP).positionOf(msg.sender);
+
+      // Compute the fee level after adding accrued interests and removing withdrawal
+      uint256 balanceAfterWithdraw = stakedAten - amount_;
+      uint128 newFeeLevel = getFeeRateWithAten(balanceAfterWithdraw);
+
+      // If the fee level changes, update all positions
+      if (currentFeeLevel != newFeeLevel) {
+        for (uint256 i = 0; i < tokenList.length; i++) {
+          positionManagerInterface.takeInterestsInAllPools(
+            msg.sender,
+            tokenList[i]
+          );
+
+          positionManagerInterface.updateFeeLevel(tokenList[i], newFeeLevel);
+        }
+      }
+    }
+
+    // Withdraw from the staking pool
+    IStakedAten(stakedAtensGP).withdraw(msg.sender, amount_);
+  }
 
   /*
   function withdrawAtensPolicy(uint256 _atenToWithdraw, uint128 _index)
