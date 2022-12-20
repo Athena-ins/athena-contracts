@@ -297,6 +297,21 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
     );
   }
 
+  /**
+   * @notice
+   * Update the fee level of a position according to amount of staked ATEN.
+   * @param tokenId_ the position to be uptdated
+   * @param newFeeRate_ the new fee rate of the position
+   **/
+  function updateFeeLevel(uint256 tokenId_, uint128 newFeeRate_)
+    external
+    override
+    onlyCore
+  {
+    // @bw should probably change feeRate to a global map instead of saving in each position
+    _positions[tokenId_].feeRate = newFeeRate_;
+  }
+
   function isProtocolInCoverList(
     uint128 _protocolId,
     uint128[] memory _protocolList

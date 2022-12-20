@@ -82,4 +82,6 @@ interface IPositionsManager is IERC721Enumerable {
     returns (uint256[] memory tokenList);
 
   function takeInterestsInAllPools(address account, uint256 tokenId) external;
+
+  function updateFeeLevel(uint256 tokenId, uint128 newFeeLevel) external;
 }
