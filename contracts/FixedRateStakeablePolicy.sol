@@ -14,7 +14,7 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
   using SafeERC20 for IERC20;
   address public immutable underlyingAssetAddress;
   address public immutable core;
-  uint128 public divRewardPerYear = (365 days) * 10_000; // 10_000 = 100% APR
+  uint128 public divRewardPerYear = 10_000; // 10_000 = 100% APR
 
   struct StakingPosition {
     uint256 amount;
@@ -108,7 +108,7 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
    * @param newRate_ the new reward rate (100% APR = 10_000)
    */
   function setRewardsPerYear(uint128 newRate_) external onlyCore {
-    divRewardPerYear = (365 days) * newRate_;
+    divRewardPerYear = newRate_;
   }
 
   /**
@@ -127,7 +127,28 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
     // If the staking position is empty return 0
     if (pos.amount == 0) return 0;
 
-    return ((block.timestamp - pos.timestamp) * pos.amount * 10000) / pos.rate;
+    require(
+      pos.timestamp < block.timestamp,
+      "FRSP: timestamp is in the future"
+    );
+
+    uint256 timeElapsed;
+    unchecked {
+      // Unckecked because we know that block.timestamp is always bigger than pos.timestamp
+      timeElapsed = block.timestamp - pos.timestamp;
+    }
+
+    // Max reward is 365 days of rewards at specified APR
+    uint256 maxReward = (pos.amount * pos.rate) / 10_000;
+
+    if (365 days <= timeElapsed) {
+      // Cap rewards at 365 days
+      return maxReward;
+    } else {
+      // Else return proportional rewards
+      uint256 yearPercentage = (timeElapsed * 10_000) / 365 days;
+      return (yearPercentage * maxReward) / 10_000;
+    }
   }
 
   function withdraw(
