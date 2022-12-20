@@ -255,7 +255,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
     IAthena _core = IAthena(core);
 
     // Take interests in all pools before update
-    takeInterestsInAllPools(account, tokenId);
+    _takeInterestsInAllPools(account, tokenId);
 
     // Ensure that all capital dependencies between pools are registered
     // Loop through each of the pools (i)
@@ -341,7 +341,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
     }
   }
 
-  function takeInterestsInAllPools(address account, uint256 tokenId) internal {
+  function _takeInterestsInAllPools(address account, uint256 tokenId) internal {
     Position memory userPosition = _positions[tokenId];
     IAthena _core = IAthena(core);
 
@@ -375,5 +375,9 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
       _positions[tokenId].amountSupplied = amountSuppliedUpdated;
       _positions[tokenId].aaveScaledBalance -= aaveScaledBalanceUpdated;
     }
+  }
+
+  function takeInterestsInAllPools(address account, uint256 tokenId) external {
+    _takeInterestsInAllPools(account, tokenId);
   }
 }
