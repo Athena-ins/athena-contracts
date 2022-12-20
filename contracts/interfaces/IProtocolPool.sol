@@ -21,7 +21,7 @@ interface IProtocolPool is IPolicyCover {
     uint256 tokenId,
     uint256 _userCapital,
     uint128[] calldata _protocolIds,
-    uint256 _discount,
+    uint256 _feeRate,
     uint256 _dateInSecond
   )
     external
@@ -37,7 +37,7 @@ interface IProtocolPool is IPolicyCover {
     uint256 tokenId,
     uint256 userCapital,
     uint128[] calldata protocolIds,
-    uint256 discount
+    uint256 feeRate
   )
     external
     returns (uint256 newUserCapital, uint256 aaveScaledBalanceToRemove);
@@ -52,7 +52,7 @@ interface IProtocolPool is IPolicyCover {
     uint256 tokenId,
     uint256 userCapital,
     uint128[] calldata protocolIds,
-    uint128 discount
+    uint128 feeRate
   )
     external
     returns (uint256 newUserCapital, uint256 aaveScaledBalanceToRemove);

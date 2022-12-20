@@ -171,7 +171,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     uint256 tokenId_,
     uint256 _userCapital,
     uint128[] calldata _protocolIds,
-    uint256 _discount,
+    uint256 _feeRate,
     uint256 _dateInSecond
   )
     public
@@ -202,7 +202,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
       __liquidityIndex - __newLPInfo.beginLiquidityIndex
     );
 
-    __totalRewards = (__totalRewards * (1000 - _discount)) / 1000;
+    __totalRewards = (__totalRewards * (1000 - _feeRate)) / 1000;
 
     __newLPInfo.beginLiquidityIndex = __liquidityIndex;
   }
@@ -221,7 +221,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     uint256 tokenId_,
     uint256 _userCapital,
     uint128[] calldata _protocolIds,
-    uint256 _discount
+    uint256 _feeRate
   ) public returns (uint256, uint256) {
     (
       uint256 __newUserCapital,
@@ -239,7 +239,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     __newLPInfo.beginLiquidityIndex = __liquidityIndex;
 
     //transfer to account:
-    uint256 __interestNet = (__totalRewards * (1000 - _discount)) / 1000;
+    uint256 __interestNet = (__totalRewards * (1000 - _feeRate)) / 1000;
     IERC20(underlyingAsset).safeTransfer(account_, __interestNet);
 
     //transfer to treasury
@@ -282,7 +282,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     uint256 tokenId_,
     uint256 _userCapital,
     uint128[] calldata _protocolIds,
-    uint128 _discount
+    uint128 _feeRate
   ) external override onlyCore returns (uint256, uint256) {
     require(
       _utilisationRate(
@@ -307,7 +307,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
 
     uint256 __rewardsNet;
     if (__totalRewards > 0) {
-      __rewardsNet = (__totalRewards * (1000 - _discount)) / 1000;
+      __rewardsNet = (__totalRewards * (1000 - _feeRate)) / 1000;
       IERC20(underlyingAsset).safeTransfer(account_, __rewardsNet);
       IERC20(underlyingAsset).safeTransfer(core, __totalRewards - __rewardsNet);
     }
