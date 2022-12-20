@@ -21,19 +21,22 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
     uint128 timestamp;
     uint128 rate;
   }
+
   /**
    * @notice Stakeholder is a staker that has a stake
    */
   struct Stakeholder {
     address user;
-    PolicyStake[] userStakes;
-    uint128 index;
+    mapping(uint256 => PolicyStake) userStakes;
+    uint256[] tokenIds;
   }
+
   /**
    * @notice
    * stakes is used to keep track of the INDEX for the stakers in the stakes array
    */
   mapping(address => Stakeholder) public stakes;
+
   /**
    * @notice Staked event is triggered whenever a user stakes tokens, address is indexed to make it filterable
    */
@@ -56,15 +59,22 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
     _;
   }
 
-  function stake(address _account, uint256 _amount) external onlyCore {
+  function stake(
+    address _account,
+    uint256 tokenId_,
+    uint256 _amount
+  ) external onlyCore {
     // we put from & to opposite so as token owner has a Snapshot balance when staking
     _beforeTokenTransfer(address(0), _account, _amount);
+
+    // Send tokens from user to staking pool
     IERC20(underlyingAssetAddress).safeTransferFrom(
       _account,
       address(this),
       _amount
     );
-    _stake(_account, _amount);
+
+    _stake(_account, tokenId_, _amount);
     _mint(_account, _amount);
   }
 
@@ -72,14 +82,22 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
    * @notice
    * _Stake is used to make a stake for an sender.
    */
-  function _stake(address _account, uint256 _amount) internal {
+  function _stake(
+    address _account,
+    uint256 tokenId_,
+    uint256 _amount
+  ) internal {
     require(_amount > 0, "Cannot stake nothing");
     uint128 timestamp = uint128(block.timestamp);
     Stakeholder storage __userStake = stakes[_account];
-    __userStake.userStakes.push(
-      PolicyStake(_amount, timestamp, divRewardPerYear)
+
+    __userStake.userStakes[tokenId_] = PolicyStake(
+      _amount,
+      timestamp,
+      divRewardPerYear
     );
-    __userStake.index++;
+
+    __userStake.tokenIds.push(tokenId_);
 
     emit Staked(_account, _amount, timestamp);
   }
@@ -99,24 +117,24 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
    * and the duration the stake has been active
    * Currently the reward is 100% APR per year
    */
-  function calculateStakeReward(Stakeholder memory _userStake, uint128 index)
-    internal
-    view
-    returns (uint256)
-  {
-    if (_userStake.index == 0) return 0;
+  function calculateStakeReward(
+    Stakeholder storage userStake_,
+    uint256 tokenId_
+  ) internal view returns (uint256) {
+    if (userStake_.tokenIds.length == 0) return 0;
+
     return
-      ((block.timestamp - _userStake.userStakes[index].timestamp) *
-        _userStake.userStakes[index].amount *
-        10000) / _userStake.userStakes[index].rate;
+      ((block.timestamp - userStake_.userStakes[tokenId_].timestamp) *
+        userStake_.userStakes[tokenId_].amount *
+        10000) / userStake_.userStakes[tokenId_].rate;
   }
 
   function withdraw(
     address _account,
-    uint256 _amount,
-    uint128 _index
+    uint256 tokenId_,
+    uint256 _amount
   ) external onlyCore returns (uint256) {
-    uint256 __rewards = _withdrawStake(_account, _amount, _index);
+    uint256 __rewards = _withdrawStake(_account, _amount, tokenId_);
     // we put from & to opposite so as token owner has a Snapshot balance when staking
     _beforeTokenTransfer(_account, address(0), _amount);
     //@dev TODO do not modify staking date for user is not enough balance
@@ -131,23 +149,26 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
 
   function _withdrawStake(
     address _account,
-    uint256 _amount,
-    uint128 _index
+    uint256 tokenId_,
+    uint256 _amount
   ) internal returns (uint256) {
     Stakeholder storage __userStake = stakes[_account];
-    require(__userStake.userStakes[_index].amount >= _amount, "Invalid amount");
     require(
-      block.timestamp - __userStake.userStakes[_index].timestamp >= 365 days,
-      "Locked window"
+      __userStake.userStakes[tokenId_].amount >= _amount,
+      "Invalid amount"
+    );
+    require(
+      block.timestamp - __userStake.userStakes[tokenId_].timestamp >= 365 days,
+      "FRSP: ATEN still locked"
     );
 
     // Calculate available Reward first before we start modifying data
-    uint256 reward = calculateStakeReward(__userStake, _index);
+    uint256 reward = calculateStakeReward(__userStake, tokenId_);
     // Remove by subtracting the money unstaked
-    __userStake.userStakes[_index].amount -= _amount;
+    __userStake.userStakes[tokenId_].amount -= _amount;
 
     // Reset timer of stake
-    __userStake.userStakes[_index].timestamp = uint128(block.timestamp);
+    __userStake.userStakes[tokenId_].timestamp = uint128(block.timestamp);
 
     return reward;
   }
@@ -155,23 +176,27 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
   function userStakes(address _account)
     external
     view
-    returns (PolicyStake[] memory)
+    returns (PolicyStake[] memory stakingPositions)
   {
-    Stakeholder memory __userStake = stakes[_account];
-    return __userStake.userStakes;
+    Stakeholder storage userStakingPositions = stakes[_account];
+
+    for (uint256 i = 0; i < userStakingPositions.tokenIds.length; i++) {
+      uint256 tokenId = userStakingPositions.tokenIds[i];
+      stakingPositions[i] = userStakingPositions.userStakes[tokenId];
+    }
   }
 
   /**
    * @notice
    * public function to view rewards available for a stake
    */
-  function rewardsOf(address _staker, uint128 _index)
+  function rewardsOf(address _staker, uint256 tokenId_)
     public
     view
     returns (uint256 rewards)
   {
-    Stakeholder memory _userStake = stakes[_staker];
-    rewards = calculateStakeReward(_userStake, _index);
+    Stakeholder storage _userStake = stakes[_staker];
+    rewards = calculateStakeReward(_userStake, tokenId_);
     return rewards;
   }
 }
