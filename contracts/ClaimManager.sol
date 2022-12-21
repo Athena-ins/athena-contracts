@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8;
 
-import "hardhat/console.sol";
-
 import "./interfaces/IArbitrator.sol";
 import "./interfaces/IClaimManager.sol";
 import "./interfaces/IAthena.sol";
@@ -20,33 +18,85 @@ contract ClaimManager is IClaimManager, IArbitrable {
 
   uint256 public nextDisputeId;
 
+  mapping(uint256 => Claim) public claims;
+  mapping(address => uint256[]) public ownerClaims;
+  mapping(uint256 => uint256) private _klerosToDisputeId;
+
+  constructor(address _core, IArbitrator _arbitrator) {
+    core = payable(_core);
+    arbitrator = _arbitrator;
+  }
+
+  /// ========================= ///
+  /// ========= EVENTS ======== ///
+  /// ========================= ///
+
   event ClaimCreated(
     address _claimant,
     uint256 _disputeId,
     uint256 _policyId,
     uint256 _amount
   );
-  event Dispute(
+
+  event AthenaDispute(
     IArbitrator _arbitrator,
     uint256 _disputeId,
     uint256 _policyId,
     uint256 _amount
   );
+
   event Solved(IArbitrator _arbitrator, uint256 _disputeId, uint256 _policyId);
 
-  mapping(uint256 => Claim) public claims;
-  mapping(address => uint256[]) public ownerClaims;
-  mapping(uint256 => uint256) private _klerosToDisputeId;
+  /// ============================ ///
+  /// ========= MODIFIERS ======== ///
+  /// ============================ ///
 
   modifier onlyCore() {
     require(msg.sender == core, "Only core");
     _;
   }
 
+  /// ======================== ///
+  /// ========= VIEWS ======== ///
+  /// ======================== ///
+
+  function remainingTimeToReclaim(uint256 _disputeId)
+    public
+    view
+    returns (uint256)
+  {
+    require(claims[_disputeId].status == Status.Initial, "Status not initial");
+    return
+      (block.timestamp - claims[_disputeId].createdAt) > delay
+        ? 0
+        : (claims[_disputeId].createdAt + delay - block.timestamp);
+  }
+
+  function linearClaimsView(uint256 beginDisputeId, uint256 numberOfClaims)
+    external
+    view
+    returns (Claim[] memory claimsInfo)
+  {
+    require(beginDisputeId < nextDisputeId, "begin dispute Id is not exist");
+
+    uint256 __numberOfClaims = nextDisputeId > beginDisputeId + numberOfClaims
+      ? numberOfClaims
+      : nextDisputeId - beginDisputeId;
+
+    claimsInfo = new Claim[](__numberOfClaims);
+
+    for (uint256 i = 0; i < __numberOfClaims; i++)
+      claimsInfo[i] = claims[beginDisputeId + i];
+  }
+
   constructor(address _core, IArbitrator _arbitrator) {
     core = payable(_core);
     arbitrator = _arbitrator;
   }
+
+  /// ============================ ///
+  /// ========== CLAIMS ========== ///
+  /// ============================ ///
 
   /**
    * @dev Give a ruling for a dispute. Must be called by the arbitrator.
@@ -128,19 +178,7 @@ contract ClaimManager is IClaimManager, IArbitrable {
     claims[_disputeId].klerosId = __klerosId;
     _klerosToDisputeId[__klerosId] = _disputeId;
     claims[_disputeId].challenger = payable(msg.sender);
-    emit Dispute(arbitrator, __klerosId, _disputeId, _disputeId);
-  }
-
-  function remainingTimeToReclaim(uint256 _disputeId)
-    public
-    view
-    returns (uint256)
-  {
-    require(claims[_disputeId].status == Status.Initial, "Status not initial");
-    return
-      (block.timestamp - claims[_disputeId].createdAt) > delay
-        ? 0
-        : (claims[_disputeId].createdAt + delay - block.timestamp);
+    emit AthenaDispute(arbitrator, __klerosId, _disputeId, _disputeId);
   }
 
   // function resolve(uint256 _disputeId) external {
@@ -170,22 +208,5 @@ contract ClaimManager is IClaimManager, IArbitrable {
       claims[_disputeId].amount,
       claims[_disputeId].from
     );
-  }
-
-  function linearClaimsView(uint256 beginDisputeId, uint256 numberOfClaims)
-    external
-    view
-    returns (Claim[] memory claimsInfo)
-  {
-    require(beginDisputeId < nextDisputeId, "begin dispute Id is not exist");
-
-    uint256 __numberOfClaims = nextDisputeId > beginDisputeId + numberOfClaims
-      ? numberOfClaims
-      : nextDisputeId - beginDisputeId;
-
-    claimsInfo = new Claim[](__numberOfClaims);
-
-    for (uint256 i = 0; i < __numberOfClaims; i++)
-      claimsInfo[i] = claims[beginDisputeId + i];
   }
 }
