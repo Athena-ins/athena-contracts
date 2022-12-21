@@ -157,7 +157,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
    * @notice
    * Check caller is owner of the cover supply NFT
    */
-  modifier checkPositionTokenOwner(uint256 coverId_) {
+  modifier onlyPositionTokenOwner(uint256 coverId_) {
     // @dev Check caller is owner of the cover NFT
     address ownerOfToken = IPositionsManager(positionsManager).ownerOf(
       coverId_
@@ -168,9 +168,9 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
 
   /**
    * @notice
-   * Check caller is owner of the policy buyer NFT
+   * Check caller is owner of the policy holder NFT
    */
-  modifier checkPolicyTokenOwner(uint256 policyId_) {
+  modifier onlyPolicyTokenOwner(uint256 policyId_) {
     // @dev Check caller is owner of the cover NFT
     address ownerOfToken = IPolicyManager(policyManager).ownerOf(policyId_);
     require(msg.sender == ownerOfToken, "A: Caller is not the owner");
@@ -390,7 +390,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
 
   function takeInterest(uint256 tokenId, uint128 protocolId)
     public
-    checkPositionTokenOwner(tokenId)
+    onlyPositionTokenOwner(tokenId)
   {
     IPositionsManager(positionsManager).takeInterest(
       msg.sender,
@@ -401,7 +401,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
 
   function addLiquidityToPosition(uint256 tokenId, uint256 amount)
     external
-    checkPositionTokenOwner(tokenId)
+    onlyPositionTokenOwner(tokenId)
   {
     // retrieve user funds for coverage
     IERC20(stablecoin).safeTransferFrom(msg.sender, address(this), amount);
@@ -520,7 +520,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
 
   function committingWithdrawAll(uint256 tokenId)
     external
-    checkPositionTokenOwner(tokenId)
+    onlyPositionTokenOwner(tokenId)
   {
     require(
       IPositionsManager(positionsManager).balanceOf(msg.sender) > 0,
@@ -538,7 +538,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
 
   function withdrawAll(uint256 tokenId)
     external
-    checkPositionTokenOwner(tokenId)
+    onlyPositionTokenOwner(tokenId)
   {
     IPositionsManager __positionsManager = IPositionsManager(positionsManager);
 
@@ -657,7 +657,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   function withdrawPolicy(uint256 _policyId, uint256 _index)
     public
     payable
-    checkPolicyTokenOwner(_policyId)
+    onlyPolicyTokenOwner(_policyId)
     nonReentrant
   {
     IPolicyManager policyManager_ = IPolicyManager(policyManager);
@@ -696,7 +696,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
    */
   function withdrawAtensPolicyWithoutRewards(uint256 policyId_)
     external
-    checkPolicyTokenOwner(policyId_)
+    onlyPolicyTokenOwner(policyId_)
   {
     // Consume the staking position and send back staked ATEN to user
     IStakedAtenPolicy(stakedAtensPo).earlyWithdraw(msg.sender, policyId_);
@@ -709,7 +709,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
    */
   function withdrawAtensPolicy(uint256 policyId_)
     external
-    checkPolicyTokenOwner(policyId_)
+    onlyPolicyTokenOwner(policyId_)
   {
     IPolicyManager policyManagerInterface = IPolicyManager(policyManager);
 
@@ -746,7 +746,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     uint256 _policyId,
     uint256 _index,
     uint256 _amountClaimed
-  ) external payable checkPolicyTokenOwner(_policyId) {
+  ) external payable onlyPolicyTokenOwner(_policyId) {
     require(_amountClaimed > 0, "Claimed amount is zero");
 
     IPolicyManager.Policy memory policy_ = IPolicyManager(policyManager)
