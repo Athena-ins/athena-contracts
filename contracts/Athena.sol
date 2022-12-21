@@ -543,37 +543,60 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     }
   }
 
-  function withdrawPolicy(uint256 _policyId, uint256 _index)
+  /**
+   * @notice
+   * Closes the policy of a user and withdraws remaining funds, staked ATEN and potential staking rewards.
+   * @param policyId_ id of the policy to close
+   */
+  function withdrawPolicy(uint256 policyId_)
     public
     payable
-    onlyPolicyTokenOwner(_policyId)
+    onlyPolicyTokenOwner(policyId_)
     nonReentrant
   {
-    IPolicyManager policyManager_ = IPolicyManager(policyManager);
-    IPolicyManager.Policy memory policy_ = policyManager_.checkAndGetPolicy(
-      msg.sender,
-      _policyId,
-      _index
-    );
-    //Thao@Question: on fait quoi avec 'atensLocked' ???
+    IPolicyManager policyManagerInterface = IPolicyManager(policyManager);
 
+    // Get the policy
+    IPolicyManager.Policy memory userPolicy = policyManagerInterface.policy(
+      policyId_
+    );
+
+    // Remove expired policies
     actualizingProtocolAndRemoveExpiredPolicies(
-      protocolsMapping[policy_.protocolId].deployed
+      protocolsMapping[userPolicy.protocolId].deployed
     );
 
-    require(policyManager_.balanceOf(msg.sender) > 0, "No Active Policy");
+    // Require that the policy is still active
+    bool isStillActive = policyManagerInterface.policyActive(policyId_);
+    require(isStillActive, "A: policy is expired");
 
+    // If ATEN was staked along with the policy then process the staking withdrawal
+    if (0 < userPolicy.atensLocked) {
+      if (userPolicy.beginCoveredTime + 365 days <= block.timestamp) {
+        // If a year has elapsed then consume staking position and withdraw ATEN + rewards
+        _processPolicyStakingPayout(msg.sender, policyId_);
+      } else {
+        // If a year has not elapsed then consume staking position and withdraw ATEN
+        IStakedAtenPolicy(stakedAtensPo).earlyWithdraw(msg.sender, policyId_);
+      }
+    }
+
+    // Updates pool liquidity and withdraws remaining funds to user
     uint256 remainedPremium_ = IProtocolPool(
-      protocolsMapping[policy_.protocolId].deployed
-    ).withdrawPolicy(msg.sender, policy_.amountCovered);
+      protocolsMapping[userPolicy.protocolId].deployed
+    ).withdrawPolicy(msg.sender, userPolicy.amountCovered);
 
-    policyManager_.saveExpiredPolicy(
+    // Delete policy from registry and saves historical data
+    policyManagerInterface.saveExpiredPolicy(
       msg.sender,
-      _policyId,
-      policy_,
-      policy_.paidPremium - remainedPremium_,
+      policyId_,
+      userPolicy,
+      userPolicy.paidPremium - remainedPremium_,
       true
     );
+
+    policyManagerInterface.burn(policyId_);
+  }
 
   /**
    * @notice
