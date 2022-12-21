@@ -153,11 +153,26 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     _;
   }
 
-  modifier checkPositionTokenOwner(uint256 tokenId_) {
+  /**
+   * @notice
+   * Check caller is owner of the cover supply NFT
+   */
+  modifier checkPositionTokenOwner(uint256 coverId_) {
     // @dev Check caller is owner of the cover NFT
     address ownerOfToken = IPositionsManager(positionsManager).ownerOf(
-      tokenId_
+      coverId_
     );
+    require(msg.sender == ownerOfToken, "A: Caller is not the owner");
+    _;
+  }
+
+  /**
+   * @notice
+   * Check caller is owner of the policy buyer NFT
+   */
+  modifier checkPolicyTokenOwner(uint256 policyId_) {
+    // @dev Check caller is owner of the cover NFT
+    address ownerOfToken = IPolicyManager(policyManager).ownerOf(policyId_);
     require(msg.sender == ownerOfToken, "A: Caller is not the owner");
     _;
   }
@@ -642,6 +657,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   function withdrawPolicy(uint256 _policyId, uint256 _index)
     public
     payable
+    checkPolicyTokenOwner(_policyId)
     nonReentrant
   {
     IPolicyManager policyManager_ = IPolicyManager(policyManager);
@@ -678,7 +694,10 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
    * Enables ATEN withdrawals from policy staking pool either with anticipation or from expired policies.
    * @param policyId_ the id of the policy position
    */
-  function withdrawAtensPolicyWithoutRewards(uint256 policyId_) external {
+  function withdrawAtensPolicyWithoutRewards(uint256 policyId_)
+    external
+    checkPolicyTokenOwner(policyId_)
+  {
     // Consume the staking position and send back staked ATEN to user
     IStakedAtenPolicy(stakedAtensPo).earlyWithdraw(msg.sender, policyId_);
   }
@@ -688,7 +707,10 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
    * Withdraws the staking rewards generated from a policy staking position.
    * @param policyId_ the id of the policy position
    */
-  function withdrawAtensPolicy(uint256 policyId_) external {
+  function withdrawAtensPolicy(uint256 policyId_)
+    external
+    checkPolicyTokenOwner(policyId_)
+  {
     IPolicyManager policyManagerInterface = IPolicyManager(policyManager);
 
     // Get the protocol ID of the policy
@@ -724,7 +746,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     uint256 _policyId,
     uint256 _index,
     uint256 _amountClaimed
-  ) external payable {
+  ) external payable checkPolicyTokenOwner(_policyId) {
     require(_amountClaimed > 0, "Claimed amount is zero");
 
     IPolicyManager.Policy memory policy_ = IPolicyManager(policyManager)
