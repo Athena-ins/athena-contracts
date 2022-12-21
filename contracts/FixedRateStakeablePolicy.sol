@@ -255,6 +255,11 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
     // Get the amount of ATEN initially deposited for staking
     uint256 initialAmount = pos.amount;
 
+    // Calc the amount of rewards the position had reserved
+    uint256 maxReward = (pos.amount * pos.rate) / 10_000;
+    // Add back the allocated rewards to the rewards pool
+    rewardsRemaining += maxReward;
+
     // Make a snapshot of the user's balance
     // @bw is this really useful ?
     _beforeTokenTransfer(account_, address(0), initialAmount);
