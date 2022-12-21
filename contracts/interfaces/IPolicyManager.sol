@@ -62,4 +62,8 @@ interface IPolicyManager is IERC721Enumerable {
   ) external view returns (Policy memory);
 
   function processExpiredTokens(uint256[] calldata expiredTokens) external;
+
+  function policyActive(uint256 _tokenId) external view returns (bool);
+
+  function protocolIdOfPolicy(uint256 _tokenId) external view returns (uint128);
 }

@@ -27,6 +27,18 @@ contract PolicyManager is IPolicyManager, ERC721Enumerable {
     core = coreAddress;
   }
 
+  function policyActive(uint256 _tokenId) external view returns (bool) {
+    return policies[_tokenId].amountCovered != 0;
+  }
+
+  function protocolIdOfPolicy(uint256 _tokenId)
+    external
+    view
+    returns (uint128)
+  {
+    return policies[_tokenId].protocolId;
+  }
+
   function policy(uint256 _tokenId)
     public
     view
