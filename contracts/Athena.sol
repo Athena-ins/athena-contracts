@@ -93,19 +93,9 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     //initialized = true; //@dev required ?
   }
 
-  function setAAVEAddressesRegistry(address _aaveAddressesRegistry)
-    external
-    onlyOwner
-  {
-    aaveAddressesRegistry = _aaveAddressesRegistry;
-  }
-
-  function approveLendingPool() internal {
-    IERC20(stablecoin).safeApprove(
-      ILendingPoolAddressesProvider(aaveAddressesRegistry).getLendingPool(),
-      2**256 - 1
-    );
-  }
+  /// ======================== ///
+  /// ========= VIEWS ======== ///
+  /// ======================== ///
 
   function getProtocolAddressById(uint128 protocolId)
     external
@@ -116,32 +106,31 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     return protocolsMapping[protocolId].deployed;
   }
 
-  //Thao@WARN: also removing atensLocked !!!
-  function actualizingProtocolAndRemoveExpiredPolicies(address protocolAddress)
-    public
-    override
-  {
-    uint256[] memory __expiredTokens = IProtocolPool(protocolAddress)
-      .actualizing();
-
-    IPolicyManager(policyManager).processExpiredTokens(__expiredTokens);
-  }
-
-  //onlyPositionManager
-  function transferLiquidityToAAVE(uint256 amount)
+  function getProtocols(uint128[] calldata protocolIds)
     external
-    override
-    returns (uint256)
+    view
+    returns (ProtocolView[] memory protocols)
   {
-    address lendingPool = ILendingPoolAddressesProvider(aaveAddressesRegistry)
-      .getLendingPool();
+    protocols = new ProtocolView[](protocolIds.length);
+    for (uint128 i = 0; i < protocolIds.length; i++) {
+      (
+        string memory name,
+        uint256 totalCouvrageValue,
+        uint256 availableCapacity,
+        uint256 utilizationRate,
+        uint256 premiumRate
+      ) = IProtocolPool(protocolsMapping[protocolIds[i]].deployed)
+          .protocolInfo();
 
-    ILendingPool(lendingPool).deposit(stablecoin, amount, address(this), 0);
-
-    return
-      amount.rayDiv(
-        ILendingPool(lendingPool).getReserveNormalizedIncome(stablecoin)
+      protocols[i] = ProtocolView(
+        name,
+        protocolIds[i],
+        totalCouvrageValue,
+        availableCapacity,
+        utilizationRate,
+        premiumRate
       );
+    }
   }
 
   /// ============================ ///
@@ -156,6 +145,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   /**
    * @notice
    * Check caller is owner of the cover supply NFT
+   * @param coverId_ cover supply NFT ID
    */
   modifier onlyPositionTokenOwner(uint256 coverId_) {
     // @dev Check caller is owner of the cover NFT
@@ -169,6 +159,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   /**
    * @notice
    * Check caller is owner of the policy holder NFT
+   * @param policyId_ policy holder NFT ID
    */
   modifier onlyPolicyTokenOwner(uint256 policyId_) {
     // @dev Check caller is owner of the cover NFT
@@ -209,6 +200,21 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     }
 
     _;
+  }
+
+  /// ========================== ///
+  /// ========= HELPERS ======== ///
+  /// ========================== ///
+
+  //Thao@WARN: also removing atensLocked !!!
+  function actualizingProtocolAndRemoveExpiredPolicies(address protocolAddress)
+    public
+    override
+  {
+    uint256[] memory __expiredTokens = IProtocolPool(protocolAddress)
+      .actualizing();
+
+    IPolicyManager(policyManager).processExpiredTokens(__expiredTokens);
   }
 
   /// ================================== ///
@@ -317,7 +323,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
    * Retrieves the fee rate according to amount of staked ATEN.
    * @dev Returns displays warning but levels require an amountAten of 0
    * @param stakedAten_ amount of ATEN the user stakes in GP
-   * @return uint128 amount of fees applied to cover supply interests
+   * @return _ amount of fees applied to cover supply interests
    **/
   function getFeeRateWithAten(uint256 stakedAten_)
     public
@@ -911,30 +917,36 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     protocolsMapping[protocolId].active = pause;
   }
 
-  function getProtocols(uint128[] calldata protocolIds)
-    external
-    view
-    returns (ProtocolView[] memory protocols)
-  {
-    protocols = new ProtocolView[](protocolIds.length);
-    for (uint128 i = 0; i < protocolIds.length; i++) {
-      (
-        string memory name,
-        uint256 totalCouvrageValue,
-        uint256 availableCapacity,
-        uint256 utilizationRate,
-        uint256 premiumRate
-      ) = IProtocolPool(protocolsMapping[protocolIds[i]].deployed)
-          .protocolInfo();
+  /// -------- AAVE -------- ///
 
-      protocols[i] = ProtocolView(
-        name,
-        protocolIds[i],
-        totalCouvrageValue,
-        availableCapacity,
-        utilizationRate,
-        premiumRate
+  function setAAVEAddressesRegistry(address _aaveAddressesRegistry)
+    external
+    onlyOwner
+  {
+    aaveAddressesRegistry = _aaveAddressesRegistry;
+  }
+
+  function approveLendingPool() internal {
+    IERC20(stablecoin).safeApprove(
+      ILendingPoolAddressesProvider(aaveAddressesRegistry).getLendingPool(),
+      2**256 - 1
       );
     }
+
+  //onlyPositionManager
+  function transferLiquidityToAAVE(uint256 amount)
+    external
+    override
+    returns (uint256)
+  {
+    address lendingPool = ILendingPoolAddressesProvider(aaveAddressesRegistry)
+      .getLendingPool();
+
+    ILendingPool(lendingPool).deposit(stablecoin, amount, address(this), 0);
+
+    return
+      amount.rayDiv(
+        ILendingPool(lendingPool).getReserveNormalizedIncome(stablecoin)
+      );
   }
 }
