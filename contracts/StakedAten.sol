@@ -40,10 +40,11 @@ contract StakedAten is
 
   /**
    * @notice
-   * public function to view the ATEN position of a staker
+   * Returns the full amount of an account's staked ATEN including rewards.
+   * @param account_ the account whose balance is read
    */
-  function positionOf(address _account) public view returns (uint256) {
-    Stakeholder storage userStake = stakes[_account];
+  function positionOf(address account_) public view returns (uint256) {
+    Stakeholder storage userStake = stakes[account_];
     uint256 reward = calculateStakeReward(userStake);
 
     return userStake.amount + reward;
@@ -73,6 +74,8 @@ contract StakedAten is
     uint256 amountToReturn = _withdrawStake(_account, _amount);
     // we put from & to opposite so as token owner has a Snapshot balance when staking
     _beforeTokenTransfer(_account, address(0), _amount);
+
+    // @bw should handle only staked amount and have rewards paid out by vault in Athena
     IERC20(underlyingAssetAddress).safeTransfer(_account, amountToReturn);
   }
 

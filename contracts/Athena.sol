@@ -24,8 +24,6 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   using SafeERC20 for IERC20;
   using RayMath for uint256;
 
-  event NewProtocol(uint128);
-
   mapping(uint128 => mapping(uint128 => bool)) public incompatibilityProtocols;
   mapping(uint128 => Protocol) public protocolsMapping;
 
@@ -93,45 +91,11 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     //initialized = true; //@dev required ?
   }
 
-  /// ======================== ///
-  /// ========= VIEWS ======== ///
-  /// ======================== ///
+  /// ========================= ///
+  /// ========= EVENTS ======== ///
+  /// ========================= ///
 
-  function getProtocolAddressById(uint128 protocolId)
-    external
-    view
-    override
-    returns (address)
-  {
-    return protocolsMapping[protocolId].deployed;
-  }
-
-  function getProtocols(uint128[] calldata protocolIds)
-    external
-    view
-    returns (ProtocolView[] memory protocols)
-  {
-    protocols = new ProtocolView[](protocolIds.length);
-    for (uint128 i = 0; i < protocolIds.length; i++) {
-      (
-        string memory name,
-        uint256 totalCouvrageValue,
-        uint256 availableCapacity,
-        uint256 utilizationRate,
-        uint256 premiumRate
-      ) = IProtocolPool(protocolsMapping[protocolIds[i]].deployed)
-          .protocolInfo();
-
-      protocols[i] = ProtocolView(
-        name,
-        protocolIds[i],
-        totalCouvrageValue,
-        availableCapacity,
-        utilizationRate,
-        premiumRate
-      );
-    }
-  }
+  event NewProtocol(uint128);
 
   /// ============================ ///
   /// ========= MODIFIERS ======== ///
@@ -200,6 +164,46 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     }
 
     _;
+  }
+
+  /// ======================== ///
+  /// ========= VIEWS ======== ///
+  /// ======================== ///
+
+  function getProtocolAddressById(uint128 protocolId)
+    external
+    view
+    override
+    returns (address)
+  {
+    return protocolsMapping[protocolId].deployed;
+  }
+
+  function getProtocols(uint128[] calldata protocolIds)
+    external
+    view
+    returns (ProtocolView[] memory protocols)
+  {
+    protocols = new ProtocolView[](protocolIds.length);
+    for (uint128 i = 0; i < protocolIds.length; i++) {
+      (
+        string memory name,
+        uint256 totalCouvrageValue,
+        uint256 availableCapacity,
+        uint256 utilizationRate,
+        uint256 premiumRate
+      ) = IProtocolPool(protocolsMapping[protocolIds[i]].deployed)
+          .protocolInfo();
+
+      protocols[i] = ProtocolView(
+        name,
+        protocolIds[i],
+        totalCouvrageValue,
+        availableCapacity,
+        utilizationRate,
+        premiumRate
+      );
+    }
   }
 
   /// ========================== ///
@@ -850,6 +854,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     }
 
   //onlyPositionManager
+  // @bw onlyPositionManager
   function transferLiquidityToAAVE(uint256 amount)
     external
     override
