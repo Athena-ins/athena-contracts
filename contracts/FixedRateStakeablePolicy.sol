@@ -5,8 +5,6 @@ import "./libraries/ERC20withSnapshot.sol";
 
 /**
  * @notice Staking Pool Contract: Policy
- * @notice Stakeable is a contract who is ment to be inherited by other contract that wants Staking capabilities
- * @dev initially inspired from @percybolmer/DevToken
  */
 contract FixedRateStakeablePolicy is ERC20WithSnapshot {
   using SafeERC20 for IERC20;
@@ -30,15 +28,16 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
   }
 
   // Staking account data of user
+  // @bw this could all be optimized by abstracting away the user address out of this staking pool
+  // we just need staking pos by policy id and a getter for all policy ids of a user (with policyTokenIds)
   struct StakeAccount {
-    address user;
+    uint256[] policyTokenIds;
     // Maps a policy token ID to a staking position
     mapping(uint256 => StakingPosition) positions;
-    uint256[] policyTokenIds;
   }
 
   // Mapping of stakers addresses to their staking accounts
-  mapping(address => StakeAccount) public stakes;
+  mapping(address => StakeAccount) private _stakes;
 
   /**
    * @notice constructs Pool LP Tokens for staking, decimals defaults to 18
@@ -116,7 +115,7 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
     view
     returns (StakingPosition memory)
   {
-    return stakes[account_].positions[policyId_];
+    return _stakes[account_].positions[policyId_];
   }
 
   /**
@@ -130,7 +129,7 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
     view
     returns (StakingPosition[] memory _stakingPositions)
   {
-    StakeAccount storage userStakingPositions = stakes[account_];
+    StakeAccount storage userStakingPositions = _stakes[account_];
 
     for (uint256 i = 0; i < userStakingPositions.policyTokenIds.length; i++) {
       uint256 tokenId = userStakingPositions.policyTokenIds[i];
@@ -152,7 +151,7 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
     view
     returns (uint256)
   {
-    StakingPosition storage pos = stakes[account_].positions[policyId_];
+    StakingPosition storage pos = _stakes[account_].positions[policyId_];
 
     // If the staking position is empty return 0
     if (pos.amount == 0) return 0;
@@ -200,6 +199,7 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
     require(amount_ > 0, "FRSP: cannot stake 0 ATEN");
 
     // Make a snapshot of the user's balance
+    // @bw is this really useful ?
     _beforeTokenTransfer(address(0), account_, amount_);
 
     // Get tokens from user to staking pool
@@ -217,7 +217,7 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
       rewardsRemaining -= maxReward;
     }
 
-    StakeAccount storage stakingAccount = stakes[account_];
+    StakeAccount storage stakingAccount = _stakes[account_];
 
     // Save the user's staking position
     uint128 timestamp = uint128(block.timestamp);
@@ -228,9 +228,6 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
       false
     );
     stakingAccount.policyTokenIds.push(policyId_);
-
-    // Mint tokens to user's wallet
-    _mint(account_, amount_);
 
     emit Stake(account_, policyId_, amount_);
   }
@@ -249,7 +246,7 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
     external
     onlyCore
   {
-    StakingPosition storage pos = stakes[account_].positions[policyId_];
+    StakingPosition storage pos = _stakes[account_].positions[policyId_];
 
     require(!pos.withdrawn, "FRSP: already withdrawn");
     // Close staking position by setting withdrawn to true
@@ -259,6 +256,7 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
     uint256 initialAmount = pos.amount;
 
     // Make a snapshot of the user's balance
+    // @bw is this really useful ?
     _beforeTokenTransfer(account_, address(0), initialAmount);
 
     // Send initial staked tokens to user
@@ -279,7 +277,7 @@ contract FixedRateStakeablePolicy is ERC20WithSnapshot {
     onlyCore
     returns (uint256)
   {
-    StakingPosition storage pos = stakes[account_].positions[policyId_];
+    StakingPosition storage pos = _stakes[account_].positions[policyId_];
 
     require(!pos.withdrawn, "FRSP: already withdrawn");
     // Close staking position by setting withdrawn to true
