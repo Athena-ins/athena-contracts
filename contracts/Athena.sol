@@ -675,13 +675,35 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
 
   /**
    * @notice
+   * Enables ATEN withdrawals from policy staking pool either with anticipation or from expired policies.
+   * @param policyId_ the id of the policy position
+   */
+  function withdrawAtensPolicyWithoutRewards(uint256 policyId_) external {
+    // Consume the staking position and send back staked ATEN to user
+    IStakedAtenPolicy(stakedAtensPo).earlyWithdraw(msg.sender, policyId_);
+  }
+
+  /**
+   * @notice
    * Withdraws the staking rewards generated from a policy staking position.
    * @param policyId_ the id of the policy position
    */
   function withdrawAtensPolicy(uint256 policyId_) external {
-    // @bw Should check if policy is still active of was still active after a year
+    IPolicyManager policyManagerInterface = IPolicyManager(policyManager);
 
-    // Get the amount of rewards and consume the staking position
+    // Get the protocol ID of the policy
+    uint128 protocolId = policyManagerInterface.protocolIdOfPolicy(policyId_);
+
+    // Remove expired policies
+    actualizingProtocolAndRemoveExpiredPolicies(
+      protocolsMapping[protocolId].deployed
+    );
+
+    // Require that the policy is still active
+    bool isStillActive = policyManagerInterface.policyActive(policyId_);
+    require(isStillActive, "A: policy is expired");
+
+    // Get the amount of rewards, consume the staking position and send back staked ATEN to user
     uint256 amountRewards = IStakedAtenPolicy(stakedAtensPo).withdraw(
       msg.sender,
       policyId_

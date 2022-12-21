@@ -14,4 +14,6 @@ interface IStakedAtenPolicy is IERC20 {
     returns (uint256);
 
   function setRewardsPerYear(uint256 newRate_) external;
+
+  function earlyWithdraw(address account_, uint256 policyId_) external;
 }
