@@ -31,4 +31,9 @@ interface IClaimManager {
     external
     view
     returns (Claim[] memory claimsInfo);
+
+  function addMetaEvidenceForProtocol(
+    uint256 protocolId_,
+    string calldata metaEvidenceIpfsHash_
+  ) external;
 }

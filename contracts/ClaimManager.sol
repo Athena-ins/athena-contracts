@@ -5,9 +5,10 @@ import "./interfaces/IArbitrator.sol";
 import "./interfaces/IClaimManager.sol";
 import "./interfaces/IAthena.sol";
 
-contract ClaimManager is IClaimManager, IArbitrable {
+import "./ClaimEvidence.sol";
+
+contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
   address payable private immutable core;
-  IArbitrator public immutable arbitrator;
   uint256 public delay = 14 days;
 
   enum RulingOptions {
@@ -22,9 +23,10 @@ contract ClaimManager is IClaimManager, IArbitrable {
   mapping(address => uint256[]) public ownerClaims;
   mapping(uint256 => uint256) private _klerosToDisputeId;
 
-  constructor(address _core, IArbitrator _arbitrator) {
+  constructor(address _core, IArbitrator _arbitrator)
+    ClaimEvidence(_arbitrator)
+  {
     core = payable(_core);
-    arbitrator = _arbitrator;
   }
 
   /// ========================= ///
@@ -89,9 +91,24 @@ contract ClaimManager is IClaimManager, IArbitrable {
       claimsInfo[i] = claims[beginDisputeId + i];
   }
 
-  constructor(address _core, IArbitrator _arbitrator) {
-    core = payable(_core);
-    arbitrator = _arbitrator;
+  /// ============================== ///
+  /// ========== EVIDENCE ========== ///
+  /// ============================== ///
+
+  // @bw should add a fn to update this file without breaking the pool
+  function addMetaEvidenceForProtocol(
+    uint256 protocolId_,
+    string calldata metaEvidenceIpfsHash_
+  ) external onlyCore {
+    _addMetaEvidenceForProtocol(protocolId_, metaEvidenceIpfsHash_);
+  }
+
+  function createMetaEvidenceForClaim(uint256 policyId_) public {
+    //
+  }
+
+  function submitEvidenceForClaim(uint256 claimId_) public {
+    //
   }
 
   /// ============================ ///
