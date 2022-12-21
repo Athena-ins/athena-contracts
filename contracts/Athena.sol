@@ -200,15 +200,6 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   /// ========== ATEN STAKING ========== ///
   /// ================================== ///
 
-  /**
-   * @notice
-   * Sets the new staking rewards APR for newly created policies.
-   * @param newRate the new reward rate (100% APR = 10_000)
-   */
-  function setPolicyStakingRewards(uint128 newRate) external onlyOwner {
-    IStakedAtenPolicy(stakedAtensPo).setRewardsPerYear(newRate);
-  }
-
   /** @notice
    * Stake ATEN in the general staking pool to earn interests.
    * @dev Also updates covers if the update causes a fee level change
@@ -305,63 +296,6 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
 
     // Withdraw from the staking pool
     IStakedAten(stakedAtensGP).withdraw(msg.sender, amount_);
-  }
-
-  /**
-   * @notice
-   * Withdraws the staking rewards generated from a policy staking position.
-   * @param policyId_ the id of the policy position
-   */
-  function withdrawAtensPolicy(uint256 policyId_) external {
-    // @bw Should check if policy is still active of was still active after a year
-
-    // Get the amount of rewards and consume the staking position
-    uint256 amountRewards = IStakedAtenPolicy(stakedAtensPo).withdraw(
-      msg.sender,
-      policyId_
-    );
-
-    // Check the amount is above 0
-    require(amountRewards > 0, "A: withdrawable amount is 0");
-
-    // Send the rewards to the user from the vault
-    IVaultERC20(atensVault).sendReward(msg.sender, amountRewards);
-    }
-
-  /** @notice
-   * Setter for cover supply interests fees according to staked ATEN.
-   * @dev Levels must be in ascending order of atenAmount
-   * @dev The atenAmount indicates the upper limit for the level
-   * @param levels_ array of fee level structs
-   **/
-  function setFeeLevelsWithAten(AtenFeeLevel[] calldata levels_)
-    public
-    onlyOwner
-  {
-    // First clean the storage
-    delete supplyFeeLevels;
-
-    // Set all cover supply fee levels
-    for (uint256 index = 0; index < levels_.length; index++) {
-      AtenFeeLevel calldata level = levels_[index];
-
-      if (index == 0) {
-        // Require that the first level indicates fees for atenAmount 0
-        require(level.atenAmount == 0, "A: Must specify base rate");
-      } else {
-        // If it isn't the first item check that items are ascending
-        require(
-          levels_[index - 1].atenAmount < level.atenAmount,
-          "A: Sort rates in ascending order"
-        );
-      }
-
-      // Check that APR is not higher than 100%
-      require(level.feeRate < 10_000, "A: fee >= 100%");
-
-      // save to storage
-      supplyFeeLevels.push(level);
-    }
   }
 
   /** @notice
@@ -739,6 +673,27 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     policyManager_.burn(_policyId);
   }
 
+  /**
+   * @notice
+   * Withdraws the staking rewards generated from a policy staking position.
+   * @param policyId_ the id of the policy position
+   */
+  function withdrawAtensPolicy(uint256 policyId_) external {
+    // @bw Should check if policy is still active of was still active after a year
+
+    // Get the amount of rewards and consume the staking position
+    uint256 amountRewards = IStakedAtenPolicy(stakedAtensPo).withdraw(
+      msg.sender,
+      policyId_
+    );
+
+    // Check the amount is above 0
+    require(amountRewards > 0, "A: withdrawable amount is 0");
+
+    // Send the rewards to the user from the vault
+    IVaultERC20(atensVault).sendReward(msg.sender, amountRewards);
+  }
+
   /// ============================ ///
   /// ========== CLAIMS ========== ///
   /// ============================ ///
@@ -814,9 +769,58 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     // protocolsMapping[__protocolId].claimsOngoing -= 1;
   }
 
-  /// ==================================== ///
-  /// ========== PROTOCOL POOLS ========== ///
-  /// ==================================== ///
+  /// =========================== ///
+  /// ========== ADMIN ========== ///
+  /// =========================== ///
+
+  /// -------- STAKING -------- ///
+
+  /**
+   * @notice
+   * Sets the APR applied to newly created policies that stake ATEN in the policy staking pool.
+   * @param newRate_ the new reward rate (100% APR = 10_000)
+   */
+  function setPolicyStakingRewards(uint128 newRate_) external onlyOwner {
+    IStakedAtenPolicy(stakedAtensPo).setRewardsPerYear(newRate_);
+  }
+
+  /** @notice
+   * Set the fee levels on cover interests according to amount of staked ATEN in general pool.
+   * @dev Levels must be in ascending order of atenAmount
+   * @dev The atenAmount indicates the upper limit for the level
+   * @param levels_ array of fee level structs
+   **/
+  function setFeeLevelsWithAten(AtenFeeLevel[] calldata levels_)
+    public
+    onlyOwner
+  {
+    // First clean the storage
+    delete supplyFeeLevels;
+
+    // Set all cover supply fee levels
+    for (uint256 index = 0; index < levels_.length; index++) {
+      AtenFeeLevel calldata level = levels_[index];
+
+      if (index == 0) {
+        // Require that the first level indicates fees for atenAmount 0
+        require(level.atenAmount == 0, "A: Must specify base rate");
+      } else {
+        // If it isn't the first item check that items are ascending
+        require(
+          levels_[index - 1].atenAmount < level.atenAmount,
+          "A: Sort rates in ascending order"
+        );
+      }
+
+      // Check that APR is not higher than 100%
+      require(level.feeRate < 10_000, "A: fee >= 100%");
+
+      // save to storage
+      supplyFeeLevels.push(level);
+    }
+  }
+
+  /// -------- PROTOCOL POOLS -------- ///
 
   function addNewProtocol(
     string calldata name,
