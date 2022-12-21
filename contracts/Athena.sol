@@ -797,7 +797,8 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     uint8 guaranteeType,
     uint8 premium, //Thao@NOTE: not used
     address iface,
-    uint128[] calldata protocolsNotCompat
+    uint128[] calldata protocolsNotCompat,
+    string calldata ipfsMetaEvidenceHash_
   ) public onlyOwner {
     uint128 newProtocolId = nextProtocolId;
     nextProtocolId++;
@@ -812,6 +813,12 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
         5e27,
         11e26
       );
+
+    // Add the meta evidence IPFS address to the registry
+    IClaimManager(claimManager).addMetaEvidenceForProtocol(
+      newProtocolId,
+      ipfsMetaEvidenceHash_
+    );
 
     Protocol memory newProtocol = Protocol({
       id: newProtocolId,
