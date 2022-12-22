@@ -668,12 +668,16 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   /// ========== CLAIMS ========== ///
   /// ============================ ///
 
+  /**
+   * @notice
+   * Initiates a claim for a policy holder.
+   */
   function startClaim(
     uint256 _policyId,
     uint256 _index,
     uint256 _amountClaimed
   ) external payable onlyPolicyTokenOwner(_policyId) {
-    require(_amountClaimed > 0, "Claimed amount is zero");
+    IPolicyManager policyManagerInterface = IPolicyManager(policyManager);
 
     IPolicyManager.Policy memory policy_ = IPolicyManager(policyManager)
       .checkAndGetPolicy(msg.sender, _policyId, _index);
@@ -683,10 +687,9 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     );
 
     require(
-      IPolicyManager(policyManager).balanceOf(msg.sender) > 0,
-      "No Active Policy"
+      0 < _amountClaimed && _amountClaimed <= policy_.amountCovered,
+      "A: bad claim range"
     );
-    require(policy_.amountCovered >= _amountClaimed, "Too big claimed amount");
 
     IClaimManager(claimManager).claim{ value: msg.value }(
       msg.sender,
@@ -857,8 +860,8 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     IERC20(stablecoin).safeApprove(
       ILendingPoolAddressesProvider(aaveAddressesRegistry).getLendingPool(),
       2**256 - 1
-      );
-    }
+    );
+  }
 
   //onlyPositionManager
   // @bw onlyPositionManager
