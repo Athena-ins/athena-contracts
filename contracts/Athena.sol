@@ -672,32 +672,37 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
    * @notice
    * Initiates a claim for a policy holder.
    */
-  function startClaim(
-    uint256 _policyId,
-    uint256 _index,
-    uint256 _amountClaimed
-  ) external payable onlyPolicyTokenOwner(_policyId) {
+  function startClaim(uint256 policyId_, uint256 amountClaimed_)
+    external
+    payable
+    onlyPolicyTokenOwner(policyId_)
+  {
     IPolicyManager policyManagerInterface = IPolicyManager(policyManager);
 
-    IPolicyManager.Policy memory policy_ = IPolicyManager(policyManager)
-      .checkAndGetPolicy(msg.sender, _policyId, _index);
+    // // Get the policy
+    IPolicyManager.Policy memory userPolicy = policyManagerInterface.policy(
+      policyId_
+    );
+
+    uint128 protocolId = userPolicy.protocolId;
 
     actualizingProtocolAndRemoveExpiredPolicies(
-      protocolsMapping[policy_.protocolId].deployed
+      protocolsMapping[protocolId].deployed
     );
 
     require(
-      0 < _amountClaimed && _amountClaimed <= policy_.amountCovered,
+      0 < amountClaimed_ && amountClaimed_ <= userPolicy.amountCovered,
       "A: bad claim range"
     );
 
     IClaimManager(claimManager).claim{ value: msg.value }(
       msg.sender,
-      _policyId,
-      _amountClaimed
+      policyId_,
+      protocolId,
+      amountClaimed_
     );
 
-    protocolsMapping[policy_.protocolId].claimsOngoing += 1;
+    protocolsMapping[protocolId].claimsOngoing += 1;
   }
 
   //onlyClaimManager
