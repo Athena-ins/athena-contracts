@@ -104,20 +104,33 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
   /// ========== EVIDENCE ========== ///
   /// ============================== ///
 
-  // @bw should add a fn to update this file without breaking the pool
+  /**
+   * @notice
+   * Adds the document associated to the protocol's insurance terms.
+   * @param protocolId_ The new protocol ID
+   * @param metaEvidenceIpfsHash_ The IPFS hash of the meta evidence
+   */
   function addMetaEvidenceForProtocol(
     uint256 protocolId_,
     string calldata metaEvidenceIpfsHash_
   ) external onlyCore {
+    // @bw should add a fn to update this file without breaking the pool
     _addMetaEvidenceForProtocol(protocolId_, metaEvidenceIpfsHash_);
   }
 
-  function createMetaEvidenceForClaim(uint256 policyId_) public {
-    //
-  }
-
-  function submitEvidenceForClaim(uint256 claimId_) public {
-    //
+  /**
+   * @notice
+   * Adds evidence IPFS hashes for a claim.
+   * @param claimId_ The claim ID
+   * @param party_ The party that submits the evidence
+   * @param ipfsEvidenceHashes_ The IPFS hashes of the evidence
+   */
+  function submitEvidenceForClaim(
+    uint256 claimId_,
+    address party_,
+    string[] calldata ipfsEvidenceHashes_
+  ) external onlyCore {
+    _submitKlerosEvidence(claimId_, party_, ipfsEvidenceHashes_);
   }
 
   /// ============================ ///
