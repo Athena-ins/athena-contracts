@@ -140,6 +140,7 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
   function claim(
     address _account,
     uint256 _policyId,
+    uint128 protocolId_,
     uint256 _amount
   ) external payable onlyCore {
     for (uint256 index = 0; index < ownerClaims[_account].length; index++) {
@@ -157,13 +158,14 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
     //@dev TODO : should lock the capital in protocol pool
 
     // Update dispute ID before any usage
+    uint256 disputeId_ = nextDisputeId;
     nextDisputeId++;
 
-    ownerClaims[_account].push(nextDisputeId);
-    claims[nextDisputeId] = Claim({
+    ownerClaims[_account].push(disputeId_);
+    claims[disputeId_] = Claim({
       from: payable(_account),
       createdAt: block.timestamp,
-      disputeId: nextDisputeId,
+      disputeId: disputeId_,
       klerosId: 0,
       arbitrationCost: __arbitrationCost,
       policyId: _policyId,
@@ -172,7 +174,10 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
       challenger: payable(0x00)
     });
 
-    emit ClaimCreated(_account, nextDisputeId, _policyId, _amount);
+    //
+    _emitKlerosDisputeEvents(disputeId_, protocolId_);
+
+    emit ClaimCreated(_account, disputeId_, _policyId, _amount);
   }
 
   function challenge(uint256 _disputeId) external payable {

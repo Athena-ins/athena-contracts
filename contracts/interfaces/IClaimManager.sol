@@ -13,6 +13,7 @@ interface IClaimManager {
     address payable from;
     uint256 createdAt;
     uint256 disputeId;
+    // @bw could remove ?
     uint256 klerosId;
     uint256 policyId;
     uint256 arbitrationCost;
@@ -24,6 +25,7 @@ interface IClaimManager {
   function claim(
     address _account,
     uint256 _policyId,
+    uint128 protocolId_,
     uint256 _amount
   ) external payable;
 
