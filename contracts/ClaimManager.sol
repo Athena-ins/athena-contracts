@@ -62,6 +62,10 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
   /// ========= VIEWS ======== ///
   /// ======================== ///
 
+  function arbitrationCost() public view returns (uint256) {
+    return arbitrator.arbitrationCost("");
+  }
+
   function remainingTimeToReclaim(uint256 _disputeId)
     public
     view
@@ -114,35 +118,6 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
   /// ============================ ///
   /// ========== CLAIMS ========== ///
   /// ============================ ///
-
-  /**
-   * @dev Give a ruling for a dispute. Must be called by the arbitrator.
-   * The purpose of this function is to ensure that the address calling it has the right to rule on the contract.
-   * @param _disputeId ID of the dispute in the Arbitrator contract.
-   * @param _ruling Ruling given by the arbitrator. Note that 0 is reserved for "Not able/wanting to make a decision".
-   */
-  function rule(uint256 _disputeId, uint256 _ruling) external {
-    require(msg.sender == address(arbitrator), "Only Arbitrator can rule");
-    // Make action based on ruling
-    Claim storage __dispute = claims[_klerosToDisputeId[_disputeId]];
-    __dispute.status = Status.Resolved;
-    // if accepted, send funds from Protocol to claimant
-    uint256 __amount = 0;
-    if (_ruling == 1) {
-      __dispute.from.transfer(__dispute.amount);
-      __amount = __dispute.amount;
-    } else {
-      __dispute.challenger.transfer(__dispute.amount);
-    }
-    // call Athena core for unlocking the funds
-    IAthena(core).resolveClaim(__dispute.policyId, __amount, __dispute.from);
-    emit Solved(arbitrator, __dispute.disputeId, _ruling);
-    emit Ruling(arbitrator, __dispute.disputeId, _ruling);
-  }
-
-  function arbitrationCost() public view returns (uint256) {
-    return arbitrator.arbitrationCost("");
-  }
 
   function claim(
     address _account,
@@ -198,6 +173,10 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
     emit AthenaDispute(arbitrator, __klerosId, _disputeId, _disputeId);
   }
 
+  /// ================================ ///
+  /// ========== RESOLUTION ========== ///
+  /// ================================ ///
+
   // function resolve(uint256 _disputeId) external {
   //   require(claims[_disputeId].status == Status.Initial, "Dispute ongoing");
   //   require(
@@ -225,5 +204,29 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
       claims[_disputeId].amount,
       claims[_disputeId].from
     );
+  }
+
+  /**
+   * @dev Give a ruling for a dispute. Must be called by the arbitrator.
+   * The purpose of this function is to ensure that the address calling it has the right to rule on the contract.
+   * @param _disputeId ID of the dispute in the Arbitrator contract.
+   * @param _ruling Ruling given by the arbitrator. Note that 0 is reserved for "Not able/wanting to make a decision".
+   */
+  function rule(uint256 _disputeId, uint256 _ruling) external onlyArbitrator {
+    // Make action based on ruling
+    Claim storage __dispute = claims[_klerosToDisputeId[_disputeId]];
+    __dispute.status = Status.Resolved;
+    // if accepted, send funds from Protocol to claimant
+    uint256 __amount = 0;
+    if (_ruling == 1) {
+      __dispute.from.transfer(__dispute.amount);
+      __amount = __dispute.amount;
+    } else {
+      __dispute.challenger.transfer(__dispute.amount);
+    }
+    // call Athena core for unlocking the funds
+    IAthena(core).resolveClaim(__dispute.policyId, __amount, __dispute.from);
+    emit Solved(arbitrator, __dispute.disputeId, _ruling);
+    emit Ruling(arbitrator, __dispute.disputeId, _ruling);
   }
 }
