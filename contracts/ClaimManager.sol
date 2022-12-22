@@ -54,7 +54,12 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
   /// ============================ ///
 
   modifier onlyCore() {
-    require(msg.sender == core, "Only core");
+    require(msg.sender == core, "CM: only core");
+    _;
+  }
+
+  modifier onlyArbitrator() {
+    require(msg.sender == address(arbitrator), "CM: only arbitrator");
     _;
   }
 
@@ -212,7 +217,7 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
    * @param _disputeId ID of the dispute in the Arbitrator contract.
    * @param _ruling Ruling given by the arbitrator. Note that 0 is reserved for "Not able/wanting to make a decision".
    */
-  function rule(uint256 _disputeId, uint256 _ruling) external onlyArbitrator {
+  function rule(uint256 _disputeId, uint256 _ruling) external {
     // Make action based on ruling
     Claim storage __dispute = claims[_klerosToDisputeId[_disputeId]];
     __dispute.status = Status.Resolved;
