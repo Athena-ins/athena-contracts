@@ -26,12 +26,12 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
   mapping(address => uint256[]) public claimsByAccount;
 
   uint256 public nextDisputeId;
-  mapping(uint256 => uint256) private _klerosToDisputeId;
+  mapping(uint256 => uint256) public klerosToDisputeId;
 
-  constructor(address _core, IArbitrator _arbitrator)
-    ClaimEvidence(_arbitrator)
+  constructor(address core_, IArbitrator arbitrator_)
+    ClaimEvidence(arbitrator_)
   {
-    core = payable(_core);
+    core = payable(core_);
   }
 
   /// ========================= ///
@@ -39,20 +39,20 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
   /// ========================= ///
 
   event ClaimCreated(
-    address _claimant,
-    uint256 _disputeId,
-    uint256 _policyId,
-    uint256 _amount
+    address claimant_,
+    uint256 disputeId_,
+    uint256 policyId_,
+    uint256 amount_
   );
 
   event AthenaDispute(
-    IArbitrator _arbitrator,
-    uint256 _disputeId,
-    uint256 _policyId,
-    uint256 _amount
+    IArbitrator arbitrator_,
+    uint256 disputeId_,
+    uint256 policyId_,
+    uint256 amount_
   );
 
-  event Solved(IArbitrator _arbitrator, uint256 _disputeId, uint256 _policyId);
+  event Solved(IArbitrator arbitrator_, uint256 disputeId_, uint256 policyId_);
 
   /// ============================ ///
   /// ========= MODIFIERS ======== ///
@@ -76,16 +76,16 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
     return arbitrator.arbitrationCost("");
   }
 
-  function remainingTimeToReclaim(uint256 _disputeId)
+  function remainingTimeToReclaim(uint256 disputeId_)
     public
     view
     returns (uint256)
   {
-    require(claims[_disputeId].status == Status.Initial, "Status not initial");
+    require(claims[disputeId_].status == Status.Initial, "Status not initial");
     return
-      (block.timestamp - claims[_disputeId].createdAt) > delay
+      (block.timestamp - claims[disputeId_].createdAt) > delay
         ? 0
-        : (claims[_disputeId].createdAt + delay - block.timestamp);
+        : (claims[disputeId_].createdAt + delay - block.timestamp);
   }
 
   function linearClaimsView(uint256 beginDisputeId, uint256 numberOfClaims)
@@ -95,13 +95,13 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
   {
     require(beginDisputeId < nextDisputeId, "begin dispute Id is not exist");
 
-    uint256 __numberOfClaims = nextDisputeId > beginDisputeId + numberOfClaims
+    uint256 numberOfClaims_ = nextDisputeId > beginDisputeId + numberOfClaims
       ? numberOfClaims
       : nextDisputeId - beginDisputeId;
 
-    claimsInfo = new Claim[](__numberOfClaims);
+    claimsInfo = new Claim[](numberOfClaims_);
 
-    for (uint256 i = 0; i < __numberOfClaims; i++)
+    for (uint256 i = 0; i < numberOfClaims_; i++)
       claimsInfo[i] = claims[beginDisputeId + i];
   }
 
@@ -143,12 +143,12 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
   /// ============================ ///
 
   function inititateClaim(
-    address _account,
-    uint256 _policyId,
+    address account_,
+    uint256 policyId_,
     uint128 protocolId_,
-    uint256 _amount
+    uint256 amount_
   ) external payable onlyCore {
-    require(policyIdToDisputeId[_policyId] == 0, "CM: claim already ongoing");
+    require(policyIdToDisputeId[policyId_] == 0, "CM: claim already ongoing");
 
     uint256 costOfArbitration = arbitrationCost();
     require(msg.value >= costOfArbitration, "CM: Not enough ETH for claim");
@@ -158,28 +158,28 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
       ""
     );
 
-    policyIdToDisputeId[_policyId] = disputeId;
+    policyIdToDisputeId[policyId_] = disputeId;
 
-    for (uint256 index = 0; index < claimsByAccount[_account].length; index++) {
-      if (claims[claimsByAccount[_account][index]].policyId == _policyId) {
+    for (uint256 index = 0; index < claimsByAccount[account_].length; index++) {
+      if (claims[claimsByAccount[account_][index]].policyId == policyId_) {
         require(
           block.timestamp >
-            claims[claimsByAccount[_account][index]].createdAt + delay,
+            claims[claimsByAccount[account_][index]].createdAt + delay,
           "Already claiming"
         );
       }
     }
     //@dev TODO : should lock the capital in protocol pool
 
-    claimsByAccount[_account].push(disputeId);
+    claimsByAccount[account_].push(disputeId);
     claims[disputeId] = Claim({
-      from: payable(_account),
+      from: payable(account_),
       createdAt: block.timestamp,
       disputeId: disputeId,
       klerosId: 0,
       arbitrationCost: costOfArbitration,
-      policyId: _policyId,
-      amount: _amount,
+      policyId: policyId_,
+      amount: amount_,
       status: Status.Initial,
       challenger: payable(0x00)
     });
@@ -187,79 +187,79 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
     //
     _emitKlerosDisputeEvents(disputeId, protocolId_);
 
-    emit ClaimCreated(_account, disputeId, _policyId, _amount);
+    emit ClaimCreated(account_, disputeId, policyId_, amount_);
   }
 
-  function challenge(uint256 _disputeId) external payable {
-    require(claims[_disputeId].status == Status.Initial, "Dispute ongoing");
+  function challenge(uint256 disputeId_) external payable {
+    require(claims[disputeId_].status == Status.Initial, "Dispute ongoing");
     require(
-      block.timestamp < claims[_disputeId].createdAt + delay,
+      block.timestamp < claims[disputeId_].createdAt + delay,
       "Challenge delay passed"
     );
-    uint256 __arbitrationCost = arbitrationCost();
-    require(msg.value >= __arbitrationCost, "Not enough ETH for challenge");
-    uint256 __klerosId = arbitrator.createDispute{ value: msg.value }(2, "");
-    claims[_disputeId].status = Status.Disputed;
-    claims[_disputeId].klerosId = __klerosId;
-    _klerosToDisputeId[__klerosId] = _disputeId;
-    claims[_disputeId].challenger = payable(msg.sender);
-    emit AthenaDispute(arbitrator, __klerosId, _disputeId, _disputeId);
+    uint256 arbitrationCost_ = arbitrationCost();
+    require(msg.value >= arbitrationCost_, "Not enough ETH for challenge");
+    uint256 klerosId_ = arbitrator.createDispute{ value: msg.value }(2, "");
+    claims[disputeId_].status = Status.Disputed;
+    claims[disputeId_].klerosId = klerosId_;
+    klerosToDisputeId[klerosId_] = disputeId_;
+    claims[disputeId_].challenger = payable(msg.sender);
+    emit AthenaDispute(arbitrator, klerosId_, disputeId_, disputeId_);
   }
 
   /// ================================ ///
   /// ========== RESOLUTION ========== ///
   /// ================================ ///
 
-  // function resolve(uint256 _disputeId) external {
-  //   require(claims[_disputeId].status == Status.Initial, "Dispute ongoing");
+  // function resolve(uint256 disputeId_) external {
+  //   require(claims[disputeId_].status == Status.Initial, "Dispute ongoing");
   //   require(
-  //     block.timestamp > claims[_disputeId].createdAt + delay,
+  //     block.timestamp > claims[disputeId_].createdAt + delay,
   //     "Delay is not over"
   //   );
-  //   _resolve(_disputeId, 1);
+  //   _resolve(disputeId_, 1);
   // }
 
   //Thao@WARN: everyone can call this function !!!
-  function releaseFunds(uint256 _disputeId) public {
+  function releaseFunds(uint256 disputeId_) public {
     require(
-      claims[_disputeId].status == Status.Initial,
+      claims[disputeId_].status == Status.Initial,
       "Dispute is not in initial state"
     );
     require(
-      block.timestamp - claims[_disputeId].createdAt > delay,
+      block.timestamp - claims[disputeId_].createdAt > delay,
       "Delay is not over"
     );
-    claims[_disputeId].status = Status.Resolved;
-    claims[_disputeId].from.transfer(claims[_disputeId].amount);
+    claims[disputeId_].status = Status.Resolved;
+    claims[disputeId_].from.transfer(claims[disputeId_].amount);
     // call Athena core for release funds to claimant
     IAthena(core).resolveClaim(
-      claims[_disputeId].policyId,
-      claims[_disputeId].amount,
-      claims[_disputeId].from
+      claims[disputeId_].policyId,
+      claims[disputeId_].amount,
+      claims[disputeId_].from
     );
   }
 
   /**
    * @dev Give a ruling for a dispute. Must be called by the arbitrator.
    * The purpose of this function is to ensure that the address calling it has the right to rule on the contract.
-   * @param _disputeId ID of the dispute in the Arbitrator contract.
-   * @param _ruling Ruling given by the arbitrator. Note that 0 is reserved for "Not able/wanting to make a decision".
+   * @param disputeId_ ID of the dispute in the Arbitrator contract.
+   * @param ruling_ Ruling given by the arbitrator. Note that 0 is reserved for "Not able/wanting to make a decision".
    */
-  function rule(uint256 _disputeId, uint256 _ruling) external {
+  function rule(uint256 disputeId_, uint256 ruling_) external {
     // Make action based on ruling
-    Claim storage __dispute = claims[_klerosToDisputeId[_disputeId]];
-    __dispute.status = Status.Resolved;
+    Claim storage dispute_ = claims[klerosToDisputeId[disputeId_]];
+    dispute_.status = Status.Resolved;
     // if accepted, send funds from Protocol to claimant
-    uint256 __amount = 0;
-    if (_ruling == 1) {
-      __dispute.from.transfer(__dispute.amount);
-      __amount = __dispute.amount;
+    uint256 amount_ = 0;
+    if (ruling_ == 1) {
+      dispute_.from.transfer(dispute_.amount);
+      amount_ = dispute_.amount;
     } else {
-      __dispute.challenger.transfer(__dispute.amount);
+      dispute_.challenger.transfer(dispute_.amount);
     }
     // call Athena core for unlocking the funds
-    IAthena(core).resolveClaim(__dispute.policyId, __amount, __dispute.from);
-    emit Solved(arbitrator, __dispute.disputeId, _ruling);
-    emit Ruling(arbitrator, __dispute.disputeId, _ruling);
+    IAthena(core).resolveClaim(dispute_.policyId, amount_, dispute_.from);
+    emit Solved(arbitrator, dispute_.disputeId, ruling_);
+    emit Ruling(arbitrator, dispute_.disputeId, ruling_);
   }
 }
