@@ -17,10 +17,15 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
     PayeeWins
   }
 
-  uint256 public nextDisputeId;
+  // Maps a policyId to a Kleros disputeId
+  mapping(uint256 => uint256) public policyIdToDisputeId;
 
+  // Maps a Kleros disputeId to a claim's data
   mapping(uint256 => Claim) public claims;
-  mapping(address => uint256[]) public ownerClaims;
+  // Lists all the Kleros disputeIds of an account
+  mapping(address => uint256[]) public claimsByAccount;
+
+  uint256 public nextDisputeId;
   mapping(uint256 => uint256) private _klerosToDisputeId;
 
   constructor(address _core, IArbitrator _arbitrator)
