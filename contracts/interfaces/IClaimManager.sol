@@ -22,7 +22,7 @@ interface IClaimManager {
     address payable challenger;
   }
 
-  function claim(
+  function inititateClaim(
     address _account,
     uint256 _policyId,
     uint128 protocolId_,

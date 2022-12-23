@@ -142,37 +142,42 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
   /// ========== CLAIMS ========== ///
   /// ============================ ///
 
-  function claim(
+  function inititateClaim(
     address _account,
     uint256 _policyId,
     uint128 protocolId_,
     uint256 _amount
   ) external payable onlyCore {
-    for (uint256 index = 0; index < ownerClaims[_account].length; index++) {
-      if (claims[ownerClaims[_account][index]].policyId == _policyId) {
+    require(policyIdToDisputeId[_policyId] == 0, "CM: claim already ongoing");
+
+    uint256 costOfArbitration = arbitrationCost();
+    require(msg.value >= costOfArbitration, "CM: Not enough ETH for claim");
+
+    uint256 disputeId = arbitrator.createDispute{ value: costOfArbitration }(
+      2,
+      ""
+    );
+
+    policyIdToDisputeId[_policyId] = disputeId;
+
+    for (uint256 index = 0; index < claimsByAccount[_account].length; index++) {
+      if (claims[claimsByAccount[_account][index]].policyId == _policyId) {
         require(
           block.timestamp >
-            claims[ownerClaims[_account][index]].createdAt + delay,
+            claims[claimsByAccount[_account][index]].createdAt + delay,
           "Already claiming"
         );
       }
     }
-
-    uint256 __arbitrationCost = arbitrationCost();
-    require(msg.value >= __arbitrationCost, "Not enough ETH for claim");
     //@dev TODO : should lock the capital in protocol pool
 
-    // Update dispute ID before any usage
-    uint256 disputeId_ = nextDisputeId;
-    nextDisputeId++;
-
-    ownerClaims[_account].push(disputeId_);
-    claims[disputeId_] = Claim({
+    claimsByAccount[_account].push(disputeId);
+    claims[disputeId] = Claim({
       from: payable(_account),
       createdAt: block.timestamp,
-      disputeId: disputeId_,
+      disputeId: disputeId,
       klerosId: 0,
-      arbitrationCost: __arbitrationCost,
+      arbitrationCost: costOfArbitration,
       policyId: _policyId,
       amount: _amount,
       status: Status.Initial,
@@ -180,9 +185,9 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
     });
 
     //
-    _emitKlerosDisputeEvents(disputeId_, protocolId_);
+    _emitKlerosDisputeEvents(disputeId, protocolId_);
 
-    emit ClaimCreated(_account, disputeId_, _policyId, _amount);
+    emit ClaimCreated(_account, disputeId, _policyId, _amount);
   }
 
   function challenge(uint256 _disputeId) external payable {
