@@ -21,10 +21,11 @@ interface IClaimManager {
   }
 
   function inititateClaim(
-    address _account,
-    uint256 _policyId,
+    address account_,
+    uint256 policyId_,
     uint128 protocolId_,
-    uint256 _amount
+    uint256 amount_,
+    string calldata ipfsMetaEvidenceHash_
   ) external payable;
 
   function linearClaimsView(uint256 beginDisputeId, uint256 numberOfClaims)
@@ -32,8 +33,8 @@ interface IClaimManager {
     view
     returns (Claim[] memory claimsInfo);
 
-  function addMetaEvidenceForProtocol(
+  function addAgreementForProtocol(
     uint256 protocolId_,
-    string calldata metaEvidenceIpfsHash_
+    string calldata agreementIpfsHash_
   ) external;
 }

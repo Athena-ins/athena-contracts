@@ -7,7 +7,7 @@ contract ClaimEvidence is IEvidence {
   IArbitrator public immutable arbitrator;
 
   // Maps a protocol ID to its generic meta-evidence IPFS file hash
-  mapping(uint256 => string) public protocolToMetaEvidence;
+  mapping(uint256 => string) public protocolToAgreement;
 
   // Maps a dispute ID to its submited evidence
   mapping(uint256 => string[]) public disputeToEvidence;
@@ -16,7 +16,7 @@ contract ClaimEvidence is IEvidence {
     arbitrator = arbitrator_;
   }
 
-  function _genMetaEvidenceId(uint256 disputeId_, uint256 protocolId_)
+  function _genMetaEvidenceId(uint256 protocolId_, uint256 disputeId_)
     internal
     pure
     returns (uint256)
@@ -24,27 +24,26 @@ contract ClaimEvidence is IEvidence {
     return protocolId_ * 1e10 + disputeId_;
   }
 
-  function _emitKlerosDisputeEvents(uint256 disputeId_, uint256 protocolId_)
-    internal
-  {
-    // @bw should add initial kleros creation event from arbitrator
+  function _emitKlerosDisputeEvents(
+    uint256 protocolId_,
+    uint256 disputeId_,
+    string calldata ipfsMetaEvidenceHash_
+  ) internal {
+    // Generate a meta-evidence ID based on inputs
+    uint256 metaEvidenceId = _genMetaEvidenceId(protocolId_, disputeId_);
 
-    uint256 metaEvidenceId = _genMetaEvidenceId(disputeId_, protocolId_);
-
-    emit Dispute(
-      arbitrator, // IArbitrator indexed _arbitrator
-      disputeId_, // uint256 indexed _disputeID
-      metaEvidenceId, // uint256 _metaEvidenceID
-      disputeId_ // uint256 _evidenceGroupID
-    );
-
-    // Get the address of the meta-evidence dedicated to the protocol
-    string memory protocolMetaEvidence = protocolToMetaEvidence[protocolId_];
+    // Annonces creation of dispute and linked meta-evidence items
+    emit Dispute(arbitrator, disputeId_, metaEvidenceId, disputeId_);
 
     // Emit the meta-evidence event
-    emit MetaEvidence(
-      metaEvidenceId, // uint256 indexed _metaEvidenceID
-      protocolMetaEvidence // string _evidence
+    emit MetaEvidence(metaEvidenceId, ipfsMetaEvidenceHash_);
+
+    // Send agreement information as evidence
+    emit Evidence(
+      arbitrator,
+      disputeId_,
+      address(this),
+      protocolToAgreement[protocolId_]
     );
   }
 
@@ -67,10 +66,10 @@ contract ClaimEvidence is IEvidence {
     }
   }
 
-  function _addMetaEvidenceForProtocol(
+  function _addAgreementForProtocol(
     uint256 protocolId_,
-    string calldata metaEvidenceIpfsHash_
+    string calldata agreementIpfsHash_
   ) internal {
-    protocolToMetaEvidence[protocolId_] = metaEvidenceIpfsHash_;
+    protocolToAgreement[protocolId_] = agreementIpfsHash_;
   }
 }

@@ -114,14 +114,14 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
    * @notice
    * Adds the document associated to the protocol's insurance terms.
    * @param protocolId_ The new protocol ID
-   * @param metaEvidenceIpfsHash_ The IPFS hash of the meta evidence
+   * @param agreementIpfsHash_ The IPFS hash of the meta evidence
    */
-  function addMetaEvidenceForProtocol(
+  function addAgreementForProtocol(
     uint256 protocolId_,
-    string calldata metaEvidenceIpfsHash_
+    string calldata agreementIpfsHash_
   ) external onlyCore {
     // @bw should add a fn to update this file without breaking the pool
-    _addMetaEvidenceForProtocol(protocolId_, metaEvidenceIpfsHash_);
+    _addAgreementForProtocol(protocolId_, agreementIpfsHash_);
   }
 
   /**
@@ -150,12 +150,14 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
    * @param policyId_ The policy ID
    * @param protocolId_ The protocol ID of the policy
    * @param amount_ The amount claimed by the policy holder
+   * @param ipfsMetaEvidenceHash_ The IPFS hash of the meta evidence file
    */
   function inititateClaim(
     address account_,
     uint256 policyId_,
     uint128 protocolId_,
-    uint256 amount_
+    uint256 amount_,
+    string calldata ipfsMetaEvidenceHash_
   ) external payable onlyCore {
     // Check that the user has deposited the capital necessary for arbitration
     uint256 costOfArbitration = arbitrationCost();
@@ -198,7 +200,7 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
     });
 
     // Emit all Kleros related events for creation and meta-evidence association
-    _emitKlerosDisputeEvents(disputeId, protocolId_);
+    _emitKlerosDisputeEvents(disputeId, protocolId_, ipfsMetaEvidenceHash_);
 
     // Emit Athena claim creation event
     emit AthenaClaimCreated(account_, policyId_, protocolId_, disputeId);
