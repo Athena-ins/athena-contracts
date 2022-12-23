@@ -19,14 +19,10 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
 
   // Maps a policyId to a Kleros disputeId
   mapping(uint256 => uint256) public policyIdToDisputeId;
-
   // Maps a Kleros disputeId to a claim's data
   mapping(uint256 => Claim) public claims;
   // Lists all the Kleros disputeIds of an account
   mapping(address => uint256[]) public claimsByAccount;
-
-  uint256 public nextDisputeId;
-  mapping(uint256 => uint256) public klerosToDisputeId;
 
   constructor(address core_, IArbitrator arbitrator_)
     ClaimEvidence(arbitrator_)
@@ -93,16 +89,13 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
     view
     returns (Claim[] memory claimsInfo)
   {
-    require(beginDisputeId < nextDisputeId, "begin dispute Id is not exist");
-
-    uint256 numberOfClaims_ = nextDisputeId > beginDisputeId + numberOfClaims
-      ? numberOfClaims
-      : nextDisputeId - beginDisputeId;
-
-    claimsInfo = new Claim[](numberOfClaims_);
-
-    for (uint256 i = 0; i < numberOfClaims_; i++)
-      claimsInfo[i] = claims[beginDisputeId + i];
+    // require(beginDisputeId < nextDisputeId, "begin dispute Id is not exist");
+    // uint256 numberOfClaims_ = nextDisputeId > beginDisputeId + numberOfClaims
+    //   ? numberOfClaims
+    //   : nextDisputeId - beginDisputeId;
+    // claimsInfo = new Claim[](numberOfClaims_);
+    // for (uint256 i = 0; i < numberOfClaims_; i++)
+    //   claimsInfo[i] = claims[beginDisputeId + i];
   }
 
   /// ============================== ///
@@ -176,7 +169,6 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
       from: payable(account_),
       createdAt: block.timestamp,
       disputeId: disputeId,
-      klerosId: 0,
       arbitrationCost: costOfArbitration,
       policyId: policyId_,
       amount: amount_,
@@ -198,12 +190,9 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
     );
     uint256 arbitrationCost_ = arbitrationCost();
     require(msg.value >= arbitrationCost_, "Not enough ETH for challenge");
-    uint256 klerosId_ = arbitrator.createDispute{ value: msg.value }(2, "");
     claims[disputeId_].status = Status.Disputed;
-    claims[disputeId_].klerosId = klerosId_;
-    klerosToDisputeId[klerosId_] = disputeId_;
     claims[disputeId_].challenger = payable(msg.sender);
-    emit AthenaDispute(arbitrator, klerosId_, disputeId_, disputeId_);
+    emit AthenaDispute(arbitrator, disputeId_, disputeId_, disputeId_);
   }
 
   /// ================================ ///
@@ -246,20 +235,20 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
    * @param ruling_ Ruling given by the arbitrator. Note that 0 is reserved for "Not able/wanting to make a decision".
    */
   function rule(uint256 disputeId_, uint256 ruling_) external {
-    // Make action based on ruling
-    Claim storage dispute_ = claims[klerosToDisputeId[disputeId_]];
-    dispute_.status = Status.Resolved;
-    // if accepted, send funds from Protocol to claimant
-    uint256 amount_ = 0;
-    if (ruling_ == 1) {
-      dispute_.from.transfer(dispute_.amount);
-      amount_ = dispute_.amount;
-    } else {
-      dispute_.challenger.transfer(dispute_.amount);
-    }
-    // call Athena core for unlocking the funds
-    IAthena(core).resolveClaim(dispute_.policyId, amount_, dispute_.from);
-    emit Solved(arbitrator, dispute_.disputeId, ruling_);
-    emit Ruling(arbitrator, dispute_.disputeId, ruling_);
+    // // Make action based on ruling
+    // Claim storage dispute_ = claims[klerosToDisputeId[disputeId_]];
+    // dispute_.status = Status.Resolved;
+    // // if accepted, send funds from Protocol to claimant
+    // uint256 amount_ = 0;
+    // if (ruling_ == 1) {
+    //   dispute_.from.transfer(dispute_.amount);
+    //   amount_ = dispute_.amount;
+    // } else {
+    //   dispute_.challenger.transfer(dispute_.amount);
+    // }
+    // // call Athena core for unlocking the funds
+    // IAthena(core).resolveClaim(dispute_.policyId, amount_, dispute_.from);
+    // emit Solved(arbitrator, dispute_.disputeId, ruling_);
+    // emit Ruling(arbitrator, dispute_.disputeId, ruling_);
   }
 }
