@@ -17,6 +17,8 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
     PayeeWins
   }
 
+  // Lists all the Kleros disputeIds
+  uint256[] public disputeIds;
   // Maps a policyId to its latest Kleros disputeId
   mapping(uint256 => uint256) public policyIdToLatestDisputeId;
   // Maps a Kleros disputeId to a claim's data
@@ -36,11 +38,12 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
   /// ========= EVENTS ======== ///
   /// ========================= ///
 
-  event ClaimCreated(
-    address claimant_,
-    uint256 disputeId_,
-    uint256 policyId_,
-    uint256 amount_
+  // Emitted upon claim creation
+  event AthenaClaimCreated(
+    address indexed claimant,
+    uint256 indexed policyId,
+    uint256 indexed protocolId,
+    uint256 disputeId
   );
 
   event AthenaDispute(
@@ -154,48 +157,51 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
     uint128 protocolId_,
     uint256 amount_
   ) external payable onlyCore {
-    require(
-      policyIdToLatestDisputeId[policyId_] == 0,
-      "CM: claim already ongoing"
-    );
-
+    // Check that the user has deposited the capital necessary for arbitration
     uint256 costOfArbitration = arbitrationCost();
     require(msg.value >= costOfArbitration, "CM: Not enough ETH for claim");
 
+    // Check if there already an ongoing claim related to this policy
+    uint256 latestDisputeIdOfPolicy = policyIdToLatestDisputeId[policyId_];
+    if (latestDisputeIdOfPolicy != 0) {
+      // If there is a claim associated to the policy then check it is resolved
+      IArbitrator.DisputeStatus previousClaimStatus = arbitrator.disputeStatus(
+        latestDisputeIdOfPolicy
+      );
+    require(
+        previousClaimStatus == IArbitrator.DisputeStatus.Solved,
+        "CM: previous claim still ongoing"
+    );
+    }
+
+    // Create the claim and obtain the Kleros dispute ID
     uint256 disputeId = arbitrator.createDispute{ value: costOfArbitration }(
       2,
       ""
     );
 
+    // Save the new dispute ID
+    disputeIds.push(disputeId);
     policyIdToLatestDisputeId[policyId_] = disputeId;
 
-    // for (uint256 index = 0; index < claimsByAccount[account_].length; index++) {
-    //   if (disputeIdToClaim[claimsByAccount[account_][index]].policyId == policyId_) {
-    //     require(
-    //       block.timestamp >
-    //         disputeIdToClaim[claimsByAccount[account_][index]].createdAt + delay,
-    //       "Already claiming"
-    //     );
-    //   }
-    // }
-    // claimsByAccount[account_].push(disputeId);
-    //@dev TODO : should lock the capital in protocol pool
+    // @bw @dev TODO : should lock the capital in protocol pool
 
     disputeIdToClaim[disputeId] = Claim({
-      from: payable(account_),
-      createdAt: block.timestamp,
-      disputeId: disputeId,
-      arbitrationCost: costOfArbitration,
-      policyId: policyId_,
-      amount: amount_,
       status: Status.Initial,
-      challenger: payable(0x00)
+      from: account_,
+      challenger: address(this), // @bw should decide what to do with funds sent here
+      createdAt: block.timestamp,
+      arbitrationCost: costOfArbitration,
+      disputeId: disputeId,
+      policyId: policyId_,
+      amount: amount_
     });
 
-    //
+    // Emit all Kleros related events for creation and meta-evidence association
     _emitKlerosDisputeEvents(disputeId, protocolId_);
 
-    emit ClaimCreated(account_, disputeId, policyId_, amount_);
+    // Emit Athena claim creation event
+    emit AthenaClaimCreated(account_, policyId_, protocolId_, disputeId);
   }
 
   /**

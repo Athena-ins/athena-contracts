@@ -10,16 +10,14 @@ interface IClaimManager {
   }
 
   struct Claim {
-    address payable from;
+    address from;
     uint256 createdAt;
     uint256 disputeId;
-    // @bw could remove ?
-    uint256 klerosId;
     uint256 policyId;
     uint256 arbitrationCost;
     uint256 amount;
     Status status;
-    address payable challenger;
+    address challenger;
   }
 
   function inititateClaim(
