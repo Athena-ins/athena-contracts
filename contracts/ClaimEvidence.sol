@@ -10,7 +10,7 @@ contract ClaimEvidence is IEvidence {
   mapping(uint256 => string) public protocolToAgreement;
 
   // Maps a dispute ID to its submited evidence
-  mapping(uint256 => string[]) public disputeToEvidence;
+  mapping(uint256 => string[]) public disputeIdToEvidence;
 
   constructor(IArbitrator arbitrator_) {
     arbitrator = arbitrator_;
@@ -54,7 +54,7 @@ contract ClaimEvidence is IEvidence {
   ) internal {
     for (uint256 i = 0; i < ipfsEvidenceHashes_.length; i++) {
       // Save evidence files
-      disputeToEvidence[disputeId_].push(ipfsEvidenceHashes_[i]);
+      disputeIdToEvidence[disputeId_].push(ipfsEvidenceHashes_[i]);
 
       // Emit event for Kleros to pick up the evidence
       emit Evidence(

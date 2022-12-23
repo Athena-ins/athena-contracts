@@ -47,13 +47,13 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
   );
 
   event AthenaDispute(
-    IArbitrator arbitrator_,
-    uint256 disputeId_,
-    uint256 policyId_,
-    uint256 amount_
+    IArbitrator arbitrator,
+    uint256 disputeId,
+    uint256 policyId,
+    uint256 amount
   );
 
-  event Solved(IArbitrator arbitrator_, uint256 disputeId_, uint256 policyId_);
+  event Solved(IArbitrator arbitrator, uint256 disputeId, uint256 policyId);
 
   /// ============================ ///
   /// ========= MODIFIERS ======== ///
@@ -170,10 +170,10 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
       IArbitrator.DisputeStatus previousClaimStatus = arbitrator.disputeStatus(
         latestDisputeIdOfPolicy
       );
-    require(
+      require(
         previousClaimStatus == IArbitrator.DisputeStatus.Solved,
         "CM: previous claim still ongoing"
-    );
+      );
     }
 
     // Create the claim and obtain the Kleros dispute ID
@@ -251,9 +251,9 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
       "Delay is not over"
     );
     disputeIdToClaim[disputeId_].status = Status.Resolved;
-    disputeIdToClaim[disputeId_].from.transfer(
-      disputeIdToClaim[disputeId_].amount
-    );
+    // disputeIdToClaim[disputeId_].from.transfer(
+    //   disputeIdToClaim[disputeId_].amount
+    // );
     // call Athena core for release funds to claimant
     IAthena(core).resolveClaim(
       disputeIdToClaim[disputeId_].policyId,

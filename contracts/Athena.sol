@@ -672,11 +672,11 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
    * @notice
    * Initiates a claim for a policy holder.
    */
-  function startClaim(uint256 policyId_, uint256 amountClaimed_)
-    external
-    payable
-    onlyPolicyTokenOwner(policyId_)
-  {
+  function startClaim(
+    uint256 policyId_,
+    uint256 amountClaimed_,
+    string calldata ipfsMetaEvidenceHash_
+  ) external payable onlyPolicyTokenOwner(policyId_) {
     IPolicyManager policyManagerInterface = IPolicyManager(policyManager);
 
     // // Get the policy
@@ -695,11 +695,12 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
       "A: bad claim range"
     );
 
-    IClaimManager(claimManager).claim{ value: msg.value }(
+    IClaimManager(claimManager).inititateClaim{ value: msg.value }(
       msg.sender,
       policyId_,
       protocolId,
-      amountClaimed_
+      amountClaimed_,
+      ipfsMetaEvidenceHash_
     );
 
     protocolsMapping[protocolId].claimsOngoing += 1;
