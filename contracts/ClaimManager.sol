@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8;
 
+import "./interfaces/IArbitrable.sol";
 import "./interfaces/IArbitrator.sol";
+
 import "./interfaces/IClaimManager.sol";
 import "./interfaces/IAthena.sol";
 
