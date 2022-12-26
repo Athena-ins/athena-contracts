@@ -717,6 +717,23 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     protocolsMapping[protocolId].claimsOngoing += 1;
   }
 
+  /**
+   * @notice
+   * Allows a policy holder with an ongoing claim to add evidence for their case.
+   * @param disputeId_ the id of the dispute
+   * @param ipfsEvidenceHashes_ the IPFS hashes of the evidence
+   */
+  function addEvidenceToClaim(
+    uint256 disputeId_,
+    string[] calldata ipfsEvidenceHashes_
+  ) external onlyClaimOwner(disputeId_) {
+    IClaimManager(claimManager).submitEvidenceForClaim(
+      disputeId_,
+      msg.sender,
+      ipfsEvidenceHashes_
+    );
+  }
+
   function addCounterEvidenceToClaim(
     uint256 coverId_,
     uint256 claimId_,
@@ -895,15 +912,30 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
 
   /// -------- CLAIMS -------- ///
 
+  /**
+   * @notice
+   * Enables Athena to add counter evidence to a claim.
+   * @param disputeId_ the dispute ID of the claim
+   * @param ipfsEvidenceHashes_ the IPFS hashes of the evidence
+   */
   function athenaAddCounterEvidenceToClaim(
-    uint256 claimId_,
+    uint256 disputeId_,
     string[] calldata ipfsEvidenceHashes_
   ) external onlyOwner {
     // Submit the counter evidence
     IClaimManager(claimManager).submitCounterEvidenceForClaim(
-      claimId_,
+      disputeId_,
       ipfsEvidenceHashes_
     );
+  }
+
+  /**
+   * @notice
+   * Overrule a claim that was irregularly created with irregular meta-evidence.
+   * @param disputeId_ the dispute ID of the claim
+   */
+  function overruleIrregularClaim(uint256 disputeId_) external onlyOwner {
+    IClaimManager(claimManager).overruleIrregularClaim(disputeId_);
   }
 
   /// -------- AAVE -------- ///

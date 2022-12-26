@@ -16,4 +16,17 @@ interface IClaimManager {
     uint256 protocolId_,
     string calldata agreementIpfsHash_
   ) external;
+
+  function submitEvidenceForClaim(
+    uint256 claimId_,
+    address party_,
+    string[] calldata ipfsEvidenceHashes_
+  ) external;
+
+  function submitCounterEvidenceForClaim(
+    uint256 claimId_,
+    string[] calldata ipfsEvidenceHashes_
+  ) external;
+
+  function overruleIrregularClaim(uint256 disputeId_) external;
 }
