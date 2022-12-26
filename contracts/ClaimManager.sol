@@ -24,10 +24,6 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
   // Maps a Kleros disputeId to a claim's data
   mapping(uint256 => Claim) public disputeIdToClaim;
 
-  // @bw can probably be avoided since only required for view fn
-  // // Lists all the Kleros disputeIds of an account
-  // mapping(address => uint256[]) public claimsByAccount;
-
   constructor(address core_, IArbitrator arbitrator_)
     ClaimEvidence(arbitrator_)
   {
@@ -92,18 +88,48 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
         : (disputeIdToClaim[disputeId_].createdAt + delay - block.timestamp);
   }
 
-  function linearClaimsView(uint256 beginDisputeId, uint256 numberOfClaims)
+  /**
+   * @notice
+   * Get all or a range of exiting claims.
+   * @dev The range is inclusive of the beginIndex and exclusive of the endIndex.
+   * @param beginIndex The index of the first claim to return
+   * @param endIndex The index of the claim at which to stop
+   * @return claimsInfo All the claims in the specified range
+   */
+  function linearClaimsView(uint256 beginIndex, uint256 endIndex)
     external
     view
     returns (Claim[] memory claimsInfo)
   {
-    // require(beginDisputeId < nextDisputeId, "begin dispute Id is not exist");
-    // uint256 numberOfClaims_ = nextDisputeId > beginDisputeId + numberOfClaims
-    //   ? numberOfClaims
-    //   : nextDisputeId - beginDisputeId;
-    // claimsInfo = new Claim[](numberOfClaims_);
-    // for (uint256 i = 0; i < numberOfClaims_; i++)
-    //   claimsInfo[i] = disputeIdToClaim[beginDisputeId + i];
+    require(endIndex <= disputeIds.length, "CM: outside of range");
+
+    for (uint256 i = beginIndex; i < endIndex; i++) {
+      Claim memory claim = disputeIdToClaim[disputeIds[i]];
+
+      uint256 index = claimsInfo.length;
+      claimsInfo[index] = claim;
+    }
+  }
+
+  /**
+   * @notice
+   * Returns all the claims of a user.
+   * @param account_ The user's address
+   * @return claimsInfo All the user's claims
+   */
+  function claimsByAccount(address account_)
+    external
+    view
+    returns (Claim[] memory claimsInfo)
+  {
+    for (uint256 i = 0; i < disputeIds.length; i++) {
+      Claim memory claim = disputeIdToClaim[disputeIds[i]];
+
+      if (claim.from == account_) {
+        uint256 index = claimsInfo.length;
+        claimsInfo[index] = claim;
+      }
+    }
   }
 
   /// ============================== ///
