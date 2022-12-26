@@ -71,6 +71,10 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
   /// ========= VIEWS ======== ///
   /// ======================== ///
 
+  function claimInitiator(uint256 disputeId_) external view returns (address) {
+    return disputeIdToClaim[disputeId_].from;
+  }
+
   function arbitrationCost() public view returns (uint256) {
     return arbitrator.arbitrationCost("");
   }

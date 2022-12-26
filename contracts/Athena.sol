@@ -112,7 +112,6 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
    * @param coverId_ cover supply NFT ID
    */
   modifier onlyPositionTokenOwner(uint256 coverId_) {
-    // @dev Check caller is owner of the cover NFT
     address ownerOfToken = IPositionsManager(positionsManager).ownerOf(
       coverId_
     );
@@ -126,9 +125,21 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
    * @param policyId_ policy holder NFT ID
    */
   modifier onlyPolicyTokenOwner(uint256 policyId_) {
-    // @dev Check caller is owner of the cover NFT
     address ownerOfToken = IPolicyManager(policyManager).ownerOf(policyId_);
     require(msg.sender == ownerOfToken, "A: Caller is not the owner");
+    _;
+  }
+
+  /**
+   * @notice
+   * Check caller is the claim's initiator.
+   * @param disputeId_ dispute ID
+   */
+  modifier onlyClaimOwner(uint256 disputeId_) {
+    address claimInitiator = IClaimManager(claimManager).claimInitiator(
+      disputeId_
+    );
+    require(msg.sender == claimInitiator, "A: Caller is claimant");
     _;
   }
 

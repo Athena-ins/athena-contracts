@@ -20,6 +20,8 @@ interface IClaimManager {
     address challenger;
   }
 
+  function claimInitiator(uint256 disputeId_) external view returns (address);
+
   function inititateClaim(
     address account_,
     uint256 policyId_,
