@@ -12,16 +12,27 @@ import "./ClaimEvidence.sol";
 contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
   address payable private immutable core;
   uint256 public delay = 14 days;
+  uint256 public claimIndex = 0;
+
+  enum ClaimStatus {
+    Initiated,
+    Cancelled,
+    Accepted,
+    Disputed,
+    AcceptedWithDispute,
+    RejectedWithDispute
+  }
 
   struct Claim {
+    ClaimStatus status;
     address from;
+    address challenger;
     uint256 createdAt;
     uint256 disputeId;
     uint256 policyId;
     uint256 arbitrationCost;
     uint256 amount;
-    IArbitrator.DisputeStatus status;
-    address challenger;
+    uint256 rulingTimestamp;
   }
 
   // Lists all the Kleros disputeIds
@@ -42,18 +53,27 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
   /// ========================= ///
 
   // Emitted upon claim creation
-  event AthenaClaimCreated(
+  event ClaimCreated(
     address indexed claimant,
     uint256 indexed policyId,
-    uint256 indexed protocolId,
-    uint256 disputeId
+    uint256 indexed protocolId
   );
 
-  event AthenaDispute(
-    IArbitrator arbitrator,
-    uint256 disputeId,
-    uint256 policyId,
-    uint256 amount
+// Emit when a claim is challenged into a dispute
+  event DisputeCreated(
+    address indexed claimant,
+    uint256 indexed policyId,
+    uint256 protocolId,
+    uint256 indexed disputeId
+  );
+
+// Emit when a dispute is resolved
+  event DisputeResolved(
+    address indexed claimant,
+    uint256 indexed policyId,
+    uint256 protocolId,
+    uint256 indexed disputeId,
+    bool isWonByClaimant
   );
 
   event Solved(IArbitrator arbitrator, uint256 disputeId, uint256 policyId);
@@ -243,28 +263,30 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
     disputeIdToClaim[disputeId] = Claim({
       status: status,
       from: account_,
-      challenger: address(this), // @bw should decide what to do with funds sent here
+      challenger: address(0),
       createdAt: block.timestamp,
       arbitrationCost: costOfArbitration,
       disputeId: disputeId,
       policyId: policyId_,
-      amount: amount_
+      amount: amount_,
+      rulingTimestamp: 0
     });
 
-    // Emit all Kleros related events for creation and meta-evidence association
+    // Emit Kleros events for dispute creation and meta-evidence association
     _emitKlerosDisputeEvents(disputeId, protocolId_, ipfsMetaEvidenceHash_);
 
     // Emit Athena claim creation event
-    emit AthenaClaimCreated(account_, policyId_, protocolId_, disputeId);
+    emit ClaimCreated(account_, policyId_, protocolId_);
   }
 
   /// ================================ ///
-  /// ========== RESOLUTION ========== ///
+  /// ========== DISPUTE ========== ///
   /// ================================ ///
 
   /**
    * @dev Give a ruling for a dispute. Must be called by the arbitrator.
    * The purpose of this function is to ensure that the address calling it has the right to rule on the contract.
+   * @dev ruling options - 0 = Refuse to arbitrate, 1 = Validate the claim, 2 = Reject the claim
    * @param disputeId_ ID of the dispute in the Arbitrator contract.
    * @param ruling_ Ruling given by the arbitrator. Note that 0 is reserved for "Not able/wanting to make a decision".
    */
