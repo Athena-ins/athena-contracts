@@ -929,15 +929,6 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     );
   }
 
-  /**
-   * @notice
-   * Overrule a claim that was irregularly created with irregular meta-evidence.
-   * @param disputeId_ the dispute ID of the claim
-   */
-  function overruleIrregularClaim(uint256 disputeId_) external onlyOwner {
-    IClaimManager(claimManager).overruleIrregularClaim(disputeId_);
-  }
-
   /// -------- AAVE -------- ///
 
   function setAAVEAddressesRegistry(address _aaveAddressesRegistry)

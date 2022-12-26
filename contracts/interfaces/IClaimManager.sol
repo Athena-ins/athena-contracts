@@ -27,6 +27,4 @@ interface IClaimManager {
     uint256 claimId_,
     string[] calldata ipfsEvidenceHashes_
   ) external;
-
-  function overruleIrregularClaim(uint256 disputeId_) external;
 }
