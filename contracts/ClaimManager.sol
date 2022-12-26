@@ -11,10 +11,15 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
   address payable private immutable core;
   uint256 public delay = 14 days;
 
-  enum RulingOptions {
-    RefusedToArbitrate,
-    PayerWins,
-    PayeeWins
+  struct Claim {
+    address from;
+    uint256 createdAt;
+    uint256 disputeId;
+    uint256 policyId;
+    uint256 arbitrationCost;
+    uint256 amount;
+    IArbitrator.DisputeStatus status;
+    address challenger;
   }
 
   // Lists all the Kleros disputeIds
@@ -85,7 +90,7 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
     returns (uint256)
   {
     require(
-      disputeIdToClaim[disputeId_].status == Status.Initial,
+      disputeIdToClaim[disputeId_].status == IArbitrator.DisputeStatus.Waiting,
       "Status not initial"
     );
     return
@@ -233,8 +238,10 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
 
     // @bw @dev TODO : should lock the capital in protocol pool
 
+    IArbitrator.DisputeStatus status = IArbitrator.DisputeStatus.Waiting;
+
     disputeIdToClaim[disputeId] = Claim({
-      status: Status.Initial,
+      status: status,
       from: account_,
       challenger: address(this), // @bw should decide what to do with funds sent here
       createdAt: block.timestamp,
@@ -264,7 +271,7 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
   function rule(uint256 disputeId_, uint256 ruling_) external {
     // // Make action based on ruling
     // Claim storage dispute_ = disputeIdToClaim[klerosToDisputeId[disputeId_]];
-    // dispute_.status = Status.Resolved;
+    // dispute_.status = IArbitrator.DisputeStatus.Resolved;
     // // if accepted, send funds from Protocol to claimant
     // uint256 amount_ = 0;
     // if (ruling_ == 1) {
@@ -280,7 +287,7 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
   }
 
   // function resolve(uint256 disputeId_) external {
-  //   require(disputeIdToClaim[disputeId_].status == Status.Initial, "Dispute ongoing");
+  //   require(disputeIdToClaim[disputeId_].status == IArbitrator.DisputeStatus.Initial, "Dispute ongoing");
   //   require(
   //     block.timestamp > disputeIdToClaim[disputeId_].createdAt + delay,
   //     "Delay is not over"
@@ -291,14 +298,14 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
   //Thao@WARN: everyone can call this function !!!
   function releaseFunds(uint256 disputeId_) public {
     require(
-      disputeIdToClaim[disputeId_].status == Status.Initial,
+      disputeIdToClaim[disputeId_].status == IArbitrator.DisputeStatus.Initial,
       "Dispute is not in initial state"
     );
     require(
       block.timestamp - disputeIdToClaim[disputeId_].createdAt > delay,
       "Delay is not over"
     );
-    disputeIdToClaim[disputeId_].status = Status.Resolved;
+    disputeIdToClaim[disputeId_].status = IArbitrator.DisputeStatus.Resolved;
     // disputeIdToClaim[disputeId_].from.transfer(
     //   disputeIdToClaim[disputeId_].amount
     // );
