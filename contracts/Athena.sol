@@ -706,6 +706,35 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     protocolsMapping[protocolId].claimsOngoing += 1;
   }
 
+  function addCounterEvidenceToClaim(
+    uint256 coverId_,
+    uint256 claimId_,
+    string[] calldata ipfsEvidenceHashes_
+  ) external onlyPositionTokenOwner(coverId_) {
+    IPositionsManager positionManagerInterface = IPositionsManager(
+      positionsManager
+    );
+
+    // Get the user's cover position
+    IPositionsManager.Position memory userPosition = positionManagerInterface
+      .position(coverId_);
+
+    // Read the data since when the user is a cover supplier
+    uint256 coverSupplierSince = userPosition.createdAt;
+
+    // Check the user is a cover supplier since at least 15 days
+    require(
+      coverSupplierSince + 15 days <= block.timestamp,
+      "A: position too recent"
+    );
+
+    // Submit the counter evidence
+    IClaimManager(claimManager).submitCounterEvidenceForClaim(
+      claimId_,
+      ipfsEvidenceHashes_
+    );
+  }
+
   //onlyClaimManager
   function resolveClaim(
     uint256 _policyId,
@@ -851,6 +880,19 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
 
   function pauseProtocol(uint128 protocolId, bool pause) external onlyOwner {
     protocolsMapping[protocolId].active = pause;
+  }
+
+  /// -------- CLAIMS -------- ///
+
+  function athenaAddCounterEvidenceToClaim(
+    uint256 claimId_,
+    string[] calldata ipfsEvidenceHashes_
+  ) external onlyOwner {
+    // Submit the counter evidence
+    IClaimManager(claimManager).submitCounterEvidenceForClaim(
+      claimId_,
+      ipfsEvidenceHashes_
+    );
   }
 
   /// -------- AAVE -------- ///

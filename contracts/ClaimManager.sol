@@ -167,6 +167,19 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
     _submitKlerosEvidence(claimId_, party_, ipfsEvidenceHashes_);
   }
 
+  /**
+   * @notice
+   * Allows liquidity providers or Athena to adds counter evidence IPFS hashes for a claim.
+   * @param claimId_ The claim ID
+   * @param ipfsEvidenceHashes_ The IPFS hashes of the evidence
+   */
+  function submitCounterEvidenceForClaim(
+    uint256 claimId_,
+    string[] calldata ipfsEvidenceHashes_
+  ) external onlyCore {
+    _submitKlerosEvidence(claimId_, address(this), ipfsEvidenceHashes_);
+  }
+
   /// ============================ ///
   /// ========== CLAIMS ========== ///
   /// ============================ ///
@@ -232,27 +245,6 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
 
     // Emit Athena claim creation event
     emit AthenaClaimCreated(account_, policyId_, protocolId_, disputeId);
-  }
-
-  /**
-   * @notice
-   * Used by a user who wishes to challenge an initiated claim.
-   * @param disputeId_ The dispute ID
-   */
-  function challengeClaim(uint256 disputeId_) external payable {
-    require(
-      disputeIdToClaim[disputeId_].status == Status.Initial,
-      "Dispute ongoing"
-    );
-    require(
-      block.timestamp < disputeIdToClaim[disputeId_].createdAt + delay,
-      "Challenge delay passed"
-    );
-    uint256 arbitrationCost_ = arbitrationCost();
-    require(msg.value >= arbitrationCost_, "Not enough ETH for challenge");
-    disputeIdToClaim[disputeId_].status = Status.Disputed;
-    disputeIdToClaim[disputeId_].challenger = payable(msg.sender);
-    emit AthenaDispute(arbitrator, disputeId_, disputeId_, disputeId_);
   }
 
   /// ================================ ///
