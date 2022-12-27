@@ -25,6 +25,7 @@ contract ClaimEvidence is IEvidence {
   }
 
   function _emitKlerosDisputeEvents(
+    address challenger_,
     uint256 protocolId_,
     uint256 disputeId_,
     string calldata ipfsMetaEvidenceHash_
@@ -42,7 +43,7 @@ contract ClaimEvidence is IEvidence {
     emit Evidence(
       arbitrator,
       disputeId_,
-      address(this),
+      challenger_,
       protocolToAgreement[protocolId_]
     );
   }
