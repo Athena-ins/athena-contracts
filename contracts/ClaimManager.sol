@@ -309,36 +309,27 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
     // emit Ruling(arbitrator, dispute_.disputeId, ruling_);
   }
 
-  // function resolve(uint256 disputeId_) external {
-  //   require(disputeIdToClaim[disputeId_].status == IArbitrator.DisputeStatus.Initial, "Dispute ongoing");
+  //Thao@WARN: everyone can call this function !!!
+  // function releaseFunds(uint256 disputeId_) public {
   //   require(
-  //     block.timestamp > disputeIdToClaim[disputeId_].createdAt + delay,
+  //     disputeIdToClaim[disputeId_].status == IArbitrator.DisputeStatus.Initial,
+  //     "Dispute is not in initial state"
+  //   );
+  //   require(
+  //     block.timestamp - disputeIdToClaim[disputeId_].createdAt > delay,
   //     "Delay is not over"
   //   );
-  //   _resolve(disputeId_, 1);
+  //   disputeIdToClaim[disputeId_].status = IArbitrator.DisputeStatus.Resolved;
+  //   // disputeIdToClaim[disputeId_].from.transfer(
+  //   //   disputeIdToClaim[disputeId_].amount
+  //   // );
+  //   // call Athena core for release funds to claimant
+  //   IAthena(core).resolveClaim(
+  //     disputeIdToClaim[disputeId_].policyId,
+  //     disputeIdToClaim[disputeId_].amount,
+  //     disputeIdToClaim[disputeId_].from
+  //   );
   // }
-
-  //Thao@WARN: everyone can call this function !!!
-  function releaseFunds(uint256 disputeId_) public {
-    require(
-      disputeIdToClaim[disputeId_].status == IArbitrator.DisputeStatus.Initial,
-      "Dispute is not in initial state"
-    );
-    require(
-      block.timestamp - disputeIdToClaim[disputeId_].createdAt > delay,
-      "Delay is not over"
-    );
-    disputeIdToClaim[disputeId_].status = IArbitrator.DisputeStatus.Resolved;
-    // disputeIdToClaim[disputeId_].from.transfer(
-    //   disputeIdToClaim[disputeId_].amount
-    // );
-    // call Athena core for release funds to claimant
-    IAthena(core).resolveClaim(
-      disputeIdToClaim[disputeId_].policyId,
-      disputeIdToClaim[disputeId_].amount,
-      disputeIdToClaim[disputeId_].from
-    );
-  }
 
   /// ============================ ///
   /// ========== ADMIN ========== ///
