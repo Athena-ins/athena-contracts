@@ -277,9 +277,102 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
     emit ClaimCreated(account_, policyId_, protocolId_);
   }
 
+  /**
+   * @notice
+   * Allows a policy holder to execute the claim if it has remained unchallenged.
+   * @param account_ The account that is claiming
+   * @param claimId_ The claim ID
+   */
+  function withdrawCompensationWithoutDispute(
+    address account_,
+    uint256 claimId_
+  ) external onlyCore {
+    Claim storage userClaim = claims[claimId_];
+    address claimant = userClaim.from;
+
+    // Check the caller is the claim initiator
+    require(claimant == account_, "CM: caller is not the claimant");
+
+    // Check the claim is in the appropriate status
+    require(
+      userClaim.status == ClaimStatus.Initiated,
+      "CM: wrong claim status"
+    );
+
+    // Check the claim has passed the disputable delay
+    require(
+      userClaim.createdAt + 14 days < block.timestamp,
+      "CM: delay not elapsed"
+    );
+
+    // Set the status of the claim to accepted
+    userClaim.status = ClaimStatus.Accepted;
+
+    // Send back the collateral and arbitration cost to the claimant
+    payable(claimant).send(userClaim.arbitrationCost + collateralAmount);
+
+    // Call Athena core for unlocking the funds
+    IAthena(core).resolveClaim(
+      userClaim.policyId,
+      userClaim.amount,
+      userClaim.from
+    );
+  }
+
   /// ================================ ///
   /// ========== DISPUTE ========== ///
   /// ================================ ///
+
+  /**
+   * @notice
+   * Allows a user to challenge a pending claim by creating a dispute in Kleros.
+   * @param claimId_ The claim ID
+   * @param challengerAddress_ The address of the challenger
+   */
+  function disputeClaim(uint256 claimId_, address challengerAddress_)
+    external
+    payable
+    onlyCore
+  {
+    Claim storage userClaim = claims[claimId_];
+
+    // Check the claim is in the appropriate status and challenge is within delay
+    require(
+      userClaim.status == ClaimStatus.Initiated &&
+        block.timestamp < userClaim.createdAt + 14 days,
+      "CM: claim not challengeable"
+    );
+
+    // Check the claim is not already disputed
+    require(userClaim.challenger == address(0), "CM: claim already challenged");
+
+    // Check that the challenger has deposited enough capital for dispute creation
+    uint256 costOfArbitration = userClaim.costOfArbitration;
+    require(costOfArbitration <= msg.value, "CM: must match claimant deposit");
+
+    // Create the claim and obtain the Kleros dispute ID
+    uint256 disputeId = arbitrator.createDispute{ value: costOfArbitration }(
+      2,
+      ""
+    );
+
+    // Update the claim with challenged status and challenger address
+    userClaim.status = ClaimStatus.Disputed;
+    userClaim.challenger = challengerAddress_;
+    userClaim.disputeId = disputeId;
+
+    // Save the new dispute ID
+    disputeIds.push(disputeId);
+    claimIdToDisputeId[claimId_] = disputeId;
+
+    // Emit Kleros events for dispute creation and meta-evidence association
+    _emitKlerosDisputeEvents(
+      challengerAddress_,
+      disputeId,
+      userClaim.protocolId,
+      userClaim.metaEvidence
+    );
+  }
 
   /**
    * @dev Give a ruling for a dispute. Must be called by the arbitrator.
