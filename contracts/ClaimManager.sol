@@ -34,14 +34,18 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
     uint256 arbitrationCost;
     uint256 amount;
     uint256 rulingTimestamp;
+    string metaEvidence;
   }
 
+  // Maps a claim ID to a claim's data
+  mapping(uint256 => Claim) public claims;
+  // Maps a policyId to its latest Kleros disputeId
+  mapping(uint256 => uint256) public policyIdToLatestClaimId;
+
+  // Maps a claim ID to its Kleros dispute ID
+  mapping(uint256 => uint256) public claimIdToDisputeId;
   // Lists all the Kleros disputeIds
   uint256[] public disputeIds;
-  // Maps a policyId to its latest Kleros disputeId
-  mapping(uint256 => uint256) public policyIdToLatestDisputeId;
-  // Maps a Kleros disputeId to a claim's data
-  mapping(uint256 => Claim) public disputeIdToClaim;
 
   constructor(address core_, IArbitrator arbitrator_)
     ClaimEvidence(arbitrator_)
@@ -63,17 +67,19 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
 // Emit when a claim is challenged into a dispute
   event DisputeCreated(
     address indexed claimant,
-    uint256 indexed policyId,
-    uint256 protocolId,
-    uint256 indexed disputeId
+    address indexed challenger,
+    uint256 policyId,
+    uint256 indexed protocolId,
+    uint256 disputeId
   );
 
 // Emit when a dispute is resolved
   event DisputeResolved(
     address indexed claimant,
-    uint256 indexed policyId,
-    uint256 protocolId,
-    uint256 indexed disputeId,
+    address indexed challenger,
+    uint256 policyId,
+    uint256 indexed protocolId,
+    uint256 disputeId,
     bool isWonByClaimant
   );
 
@@ -232,49 +238,40 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
   ) external payable onlyCore {
     // Check that the user has deposited the capital necessary for arbitration and collateral
     uint256 costOfArbitration = arbitrationCost();
-    require(costOfArbitration + collateralAmount <= msg.value, "CM: Not enough ETH for claim");
+    require(
+      costOfArbitration + collateralAmount <= msg.value,
+      "CM: Not enough ETH for claim"
+    );
 
     // Check if there already an ongoing claim related to this policy
-    uint256 latestDisputeIdOfPolicy = policyIdToLatestDisputeId[policyId_];
-    if (latestDisputeIdOfPolicy != 0) {
-      // If there is a claim associated to the policy then check it is resolved
-      IArbitrator.DisputeStatus previousClaimStatus = arbitrator.disputeStatus(
-        latestDisputeIdOfPolicy
-      );
+    uint256 latestClaimIdOfPolicy = policyIdToLatestClaimId[policyId_];
+    if (latestClaimIdOfPolicy != 0) {
+      // Only allow for a new claim if the previous was rejected after a dispute
+      Claim storage userClaim = claims[latestClaimIdOfPolicy];
       require(
-        previousClaimStatus == IArbitrator.DisputeStatus.Solved,
+        userClaim.status == ClaimStatus.RejectedWithDispute,
         "CM: previous claim still ongoing"
       );
     }
 
-    // Create the claim and obtain the Kleros dispute ID
-    uint256 disputeId = arbitrator.createDispute{ value: costOfArbitration }(
-      2,
-      ""
-    );
+    // Save latest claim ID of policy and update claim index
+    uint256 claimId = claimIndex;
+    policyIdToLatestClaimId[policyId_] = claimId;
+    claimIndex++;
 
-    // Save the new dispute ID
-    disputeIds.push(disputeId);
-    policyIdToLatestDisputeId[policyId_] = disputeId;
-
-    // @bw @dev TODO : should lock the capital in protocol pool
-
-    IArbitrator.DisputeStatus status = IArbitrator.DisputeStatus.Waiting;
-
-    disputeIdToClaim[disputeId] = Claim({
-      status: status,
+    // Save claim data
+    claims[claimId] = Claim({
+      status: ClaimStatus.Initiated,
       from: account_,
       challenger: address(0),
       createdAt: block.timestamp,
       arbitrationCost: costOfArbitration,
-      disputeId: disputeId,
+      disputeId: 0,
       policyId: policyId_,
       amount: amount_,
-      rulingTimestamp: 0
+      rulingTimestamp: 0,
+      metaEvidence: ipfsMetaEvidenceHash_
     });
-
-    // Emit Kleros events for dispute creation and meta-evidence association
-    _emitKlerosDisputeEvents(disputeId, protocolId_, ipfsMetaEvidenceHash_);
 
     // Emit Athena claim creation event
     emit ClaimCreated(account_, policyId_, protocolId_);
