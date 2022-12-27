@@ -253,6 +253,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     // If the user has positions check if unstaking affects fee level
     if (tokenList.length != 0) {
       // Get the user's first position
+      // @dev We only check the first position because the fee level is the same for all positions
       IPositionsManager.Position memory userPosition = positionManagerInterface
         .position(tokenList[0]);
 
@@ -701,6 +702,8 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
       protocolsMapping[protocolId].deployed
     );
 
+    // @bw @dev TODO : should lock the capital in protocol pool
+
     require(
       0 < amountClaimed_ && amountClaimed_ <= userPolicy.amountCovered,
       "A: bad claim range"
@@ -740,11 +743,6 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     uint256 _amount,
     address _account
   ) external override {
-    require(
-      _account == IPolicyManager(policyManager).ownerOf(_policyId),
-      "Wrong account"
-    );
-
     IPolicyManager.Policy memory policy_ = IPolicyManager(policyManager).policy(
       _policyId
     );

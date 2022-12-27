@@ -70,7 +70,7 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
     uint256 indexed protocolId
   );
 
-// Emit when a claim is challenged into a dispute
+  // Emit when a claim is challenged into a dispute
   event DisputeCreated(
     address indexed claimant,
     address indexed challenger,
@@ -79,7 +79,7 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
     uint256 disputeId
   );
 
-// Emit when a dispute is resolved
+  // Emit when a dispute is resolved
   event DisputeResolved(
     address indexed claimant,
     address indexed challenger,
@@ -413,51 +413,88 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
   }
 
   /**
-   * @dev Give a ruling for a dispute. Must be called by the arbitrator.
-   * The purpose of this function is to ensure that the address calling it has the right to rule on the contract.
-   * @dev ruling options - 0 = Refuse to arbitrate, 1 = Validate the claim, 2 = Reject the claim
+   * @notice
+   * Give a ruling for a dispute. Must be called by the arbitrator.
    * @param disputeId_ ID of the dispute in the Arbitrator contract.
    * @param ruling_ Ruling given by the arbitrator. Note that 0 is reserved for "Not able/wanting to make a decision".
    */
-  function rule(uint256 disputeId_, uint256 ruling_) external {
-    // // Make action based on ruling
-    // Claim storage dispute_ = disputeIdToClaim[klerosToDisputeId[disputeId_]];
-    // dispute_.status = IArbitrator.DisputeStatus.Resolved;
-    // // if accepted, send funds from Protocol to claimant
-    // uint256 amount_ = 0;
-    // if (ruling_ == 1) {
-    //   dispute_.from.transfer(dispute_.amount);
-    //   amount_ = dispute_.amount;
-    // } else {
-    //   dispute_.challenger.transfer(dispute_.amount);
-    // }
-    // // call Athena core for unlocking the funds
-    // IAthena(core).resolveClaim(dispute_.policyId, amount_, dispute_.from);
-    // emit Solved(arbitrator, dispute_.disputeId, ruling_);
-    // emit Ruling(arbitrator, dispute_.disputeId, ruling_);
+  function rule(uint256 disputeId_, uint256 ruling_) external onlyArbitrator {
+    uint256 claimId = disputeIdToClaimId[disputeId_];
+    Claim storage userClaim = claims[claimId];
+
+    address challenger = userClaim.challenger;
+
+    // Check the status of the claim
+    require(
+      userClaim.status == ClaimStatus.Disputed,
+      "CM: claim not in dispute"
+    );
+
+    require(ruling_ <= numberOfRulingOptions, "CM: invalid ruling");
+
+    // Manage ETH for claim creation, claim collateral and dispute creation
+    if (ruling_ == uint256(RulingOptions.CompensateClaimant)) {
+      userClaim.status = ClaimStatus.AcceptedWithDispute;
+
+      // Send back the collateral and arbitration cost to the claimant
+      address claimant = userClaim.challenger;
+      sendValue(claimant, userClaim.arbitrationCost + collateralAmount);
+    } else if (ruling_ == uint256(RulingOptions.RejectClaim)) {
+      userClaim.status = ClaimStatus.RejectedWithDispute;
+
+      // Refund arbitration cost to the challenger and pay them with collateral
+      sendValue(challenger, userClaim.arbitrationCost + collateralAmount);
+    } else {
+      // This is the case where the arbitrator refuses to rule
+      userClaim.status = ClaimStatus.RejectedWithDispute;
+
+      uint256 halfArbitrationCost = userClaim.arbitrationCost / 2;
+
+      // Send back the collateral and half the arbitration cost to the claimant
+      address claimant = userClaim.challenger;
+      sendValue(claimant, halfArbitrationCost + collateralAmount);
+
+      // Send back half the arbitration cost to the challenger
+      sendValue(challenger, halfArbitrationCost);
+    }
+
+    emit DisputeResolved({
+      claimant: userClaim.from,
+      challenger: challenger,
+      policyId: userClaim.policyId,
+      protocolId: userClaim.protocolId,
+      disputeId: disputeId_,
+      ruling: ruling_
+    });
   }
 
-  //Thao@WARN: everyone can call this function !!!
-  // function releaseFunds(uint256 disputeId_) public {
-  //   require(
-  //     disputeIdToClaim[disputeId_].status == IArbitrator.DisputeStatus.Initial,
-  //     "Dispute is not in initial state"
-  //   );
-  //   require(
-  //     block.timestamp - disputeIdToClaim[disputeId_].createdAt > delay,
-  //     "Delay is not over"
-  //   );
-  //   disputeIdToClaim[disputeId_].status = IArbitrator.DisputeStatus.Resolved;
-  //   // disputeIdToClaim[disputeId_].from.transfer(
-  //   //   disputeIdToClaim[disputeId_].amount
-  //   // );
-  //   // call Athena core for release funds to claimant
-  //   IAthena(core).resolveClaim(
-  //     disputeIdToClaim[disputeId_].policyId,
-  //     disputeIdToClaim[disputeId_].amount,
-  //     disputeIdToClaim[disputeId_].from
-  //   );
-  // }
+  /**
+   * @notice
+   * Allows the claimant to withdraw the compensation after a dispute has been resolved in their favor.
+   * @param claimId_ The claim ID
+   */
+  function withdrawCompensationAfterDispute(uint256 claimId_)
+    external
+    onlyCore
+  {
+    Claim storage userClaim = claims[claimId_];
+
+    // Check the status of the claim
+    require(
+      userClaim.status == ClaimStatus.AcceptedWithDispute,
+      "CM: wrong claim status"
+    );
+
+    // Update claim status
+    userClaim.status = ClaimStatus.CompensatedAfterAcceptation;
+
+    // Call Athena core to pay the compensation
+    IAthena(core).resolveClaim(
+      userClaim.policyId,
+      userClaim.amount,
+      userClaim.from
+    );
+  }
 
   /// =========================== ///
   /// ========== ADMIN ========== ///
