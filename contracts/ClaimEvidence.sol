@@ -26,9 +26,9 @@ contract ClaimEvidence is IEvidence {
 
   function _emitKlerosDisputeEvents(
     address challenger_,
-    uint256 protocolId_,
     uint256 disputeId_,
-    string calldata ipfsMetaEvidenceHash_
+    uint256 protocolId_,
+    string storage ipfsMetaEvidenceHash_
   ) internal {
     // Generate a meta-evidence ID based on inputs
     uint256 metaEvidenceId = _genMetaEvidenceId(protocolId_, disputeId_);

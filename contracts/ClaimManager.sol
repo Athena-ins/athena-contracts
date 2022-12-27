@@ -9,6 +9,8 @@ import "./interfaces/IAthena.sol";
 
 import "./ClaimEvidence.sol";
 
+// @bw add reentrency guard to all fns with ETH manipulation
+
 contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
   address payable private immutable core;
   uint256 public challengeDelay = 14 days;
@@ -17,35 +19,39 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
 
   enum ClaimStatus {
     Initiated,
-    Cancelled,
-    Accepted,
     Disputed,
     AcceptedWithDispute,
-    RejectedWithDispute
+    RejectedWithDispute,
+    CompensatedAfterAcceptation
   }
+
+  enum RulingOptions {
+    RefusedToArbitrate,
+    CompensateClaimant,
+    RejectClaim
+  }
+  uint256 constant numberOfRulingOptions = 2;
 
   struct Claim {
     ClaimStatus status;
-    address from;
-    address challenger;
     uint256 createdAt;
-    uint256 disputeId;
-    uint256 policyId;
-    uint256 arbitrationCost;
+    address from;
     uint256 amount;
-    uint256 rulingTimestamp;
+    uint256 policyId;
+    uint256 protocolId;
     string metaEvidence;
+    //
+    uint256 disputeId;
+    address challenger;
+    uint256 arbitrationCost;
   }
 
   // Maps a claim ID to a claim's data
   mapping(uint256 => Claim) public claims;
   // Maps a policyId to its latest Kleros disputeId
   mapping(uint256 => uint256) public policyIdToLatestClaimId;
-
-  // Maps a claim ID to its Kleros dispute ID
-  mapping(uint256 => uint256) public claimIdToDisputeId;
-  // Lists all the Kleros disputeIds
-  uint256[] public disputeIds;
+  // Maps a Kleros dispute ID to its claim ID
+  mapping(uint256 => uint256) public disputeIdToClaimId;
 
   constructor(address core_, IArbitrator arbitrator_)
     ClaimEvidence(arbitrator_)
@@ -80,7 +86,7 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
     uint256 policyId,
     uint256 indexed protocolId,
     uint256 disputeId,
-    bool isWonByClaimant
+    uint256 ruling
   );
 
   event Solved(IArbitrator arbitrator, uint256 disputeId, uint256 policyId);
@@ -124,7 +130,7 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
    * @return _ the remaining time to challenge
    */
   function remainingTimeToChallenge(uint256 claimId_)
-    public
+    external
     view
     returns (uint256)
   {
@@ -271,8 +277,8 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
       arbitrationCost: costOfArbitration,
       disputeId: 0,
       policyId: policyId_,
+      protocolId: protocolId_,
       amount: amount_,
-      rulingTimestamp: 0,
       metaEvidence: ipfsMetaEvidenceHash_
     });
 
@@ -308,13 +314,13 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
       "CM: delay not elapsed"
     );
 
-    // Set the status of the claim to accepted
-    userClaim.status = ClaimStatus.Accepted;
+    // Update claim status
+    userClaim.status = ClaimStatus.CompensatedAfterAcceptation;
 
     // Send back the collateral and arbitration cost to the claimant
-    payable(claimant).send(userClaim.arbitrationCost + collateralAmount);
+    sendValue(claimant, userClaim.arbitrationCost + collateralAmount);
 
-    // Call Athena core for unlocking the funds
+    // Call Athena core to pay the compensation
     IAthena(core).resolveClaim(
       userClaim.policyId,
       userClaim.amount,
@@ -322,9 +328,9 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
     );
   }
 
-  /// ================================ ///
+  /// ============================= ///
   /// ========== DISPUTE ========== ///
-  /// ================================ ///
+  /// ============================= ///
 
   /**
    * @notice
@@ -350,7 +356,7 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
     require(userClaim.challenger == address(0), "CM: claim already challenged");
 
     // Check that the challenger has deposited enough capital for dispute creation
-    uint256 costOfArbitration = userClaim.costOfArbitration;
+    uint256 costOfArbitration = userClaim.arbitrationCost;
     require(costOfArbitration <= msg.value, "CM: must match claimant deposit");
 
     // Create the claim and obtain the Kleros dispute ID
@@ -364,9 +370,8 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
     userClaim.challenger = challengerAddress_;
     userClaim.disputeId = disputeId;
 
-    // Save the new dispute ID
-    disputeIds.push(disputeId);
-    claimIdToDisputeId[claimId_] = disputeId;
+    // Map the new dispute ID to be able to search it after ruling
+    disputeIdToClaimId[disputeId] = claimId_;
 
     // Emit Kleros events for dispute creation and meta-evidence association
     _emitKlerosDisputeEvents(
@@ -424,9 +429,9 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
   //   );
   // }
 
-  /// ============================ ///
+  /// =========================== ///
   /// ========== ADMIN ========== ///
-  /// ============================ ///
+  /// =========================== ///
 
   /**
    * @notice
