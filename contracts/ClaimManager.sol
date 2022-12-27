@@ -210,20 +210,13 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
     address party_,
     string[] calldata ipfsEvidenceHashes_
   ) external onlyCore {
-    _submitKlerosEvidence(claimId_, party_, ipfsEvidenceHashes_);
-  }
+    Claim storage userClaim = claims[claimId_];
 
-  /**
-   * @notice
-   * Allows liquidity providers or Athena to adds counter evidence IPFS hashes for a claim.
-   * @param claimId_ The claim ID
-   * @param ipfsEvidenceHashes_ The IPFS hashes of the evidence
-   */
-  function submitCounterEvidenceForClaim(
-    uint256 claimId_,
-    string[] calldata ipfsEvidenceHashes_
-  ) external onlyCore {
-    _submitKlerosEvidence(claimId_, address(this), ipfsEvidenceHashes_);
+    address claimant = userClaim.from;
+    address challenger = userClaim.challenger;
+    require(party_ == claimant || party_ == challenger, "CM: invalid party");
+
+    _submitKlerosEvidence(claimId_, party_, ipfsEvidenceHashes_);
   }
 
   /// ============================ ///

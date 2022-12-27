@@ -9,8 +9,8 @@ contract ClaimEvidence is IEvidence {
   // Maps a protocol ID to its generic meta-evidence IPFS file hash
   mapping(uint256 => string) public protocolToAgreement;
 
-  // Maps a dispute ID to its submited evidence
-  mapping(uint256 => string[]) public disputeIdToEvidence;
+  // Maps a claim ID to its submited evidence
+  mapping(uint256 => string[]) public claimIdToEvidence;
 
   constructor(IArbitrator arbitrator_) {
     arbitrator = arbitrator_;
@@ -49,18 +49,18 @@ contract ClaimEvidence is IEvidence {
   }
 
   function _submitKlerosEvidence(
-    uint256 disputeId_,
+    uint256 claimId_,
     address party_,
     string[] calldata ipfsEvidenceHashes_
   ) internal {
     for (uint256 i = 0; i < ipfsEvidenceHashes_.length; i++) {
       // Save evidence files
-      disputeIdToEvidence[disputeId_].push(ipfsEvidenceHashes_[i]);
+      claimIdToEvidence[claimId_].push(ipfsEvidenceHashes_[i]);
 
       // Emit event for Kleros to pick up the evidence
       emit Evidence(
         arbitrator, // IArbitrator indexed _arbitrator
-        disputeId_, // uint256 indexed _evidenceGroupID
+        claimId_, // uint256 indexed _evidenceGroupID
         party_, // address indexed _party
         ipfsEvidenceHashes_[i] // string _evidence
       );

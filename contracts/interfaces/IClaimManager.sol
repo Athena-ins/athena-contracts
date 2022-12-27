@@ -4,6 +4,8 @@ pragma solidity ^0.8;
 interface IClaimManager {
   function claimInitiator(uint256 disputeId_) external view returns (address);
 
+  function claimChallenger(uint256 claimId_) external view returns (address);
+
   function inititateClaim(
     address account_,
     uint256 policyId_,
@@ -20,11 +22,6 @@ interface IClaimManager {
   function submitEvidenceForClaim(
     uint256 claimId_,
     address party_,
-    string[] calldata ipfsEvidenceHashes_
-  ) external;
-
-  function submitCounterEvidenceForClaim(
-    uint256 claimId_,
     string[] calldata ipfsEvidenceHashes_
   ) external;
 }

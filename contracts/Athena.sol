@@ -720,45 +720,16 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   /**
    * @notice
    * Allows a policy holder with an ongoing claim to add evidence for their case.
-   * @param disputeId_ the id of the dispute
+   * @param claimId_ the id of the dispute
    * @param ipfsEvidenceHashes_ the IPFS hashes of the evidence
    */
   function addEvidenceToClaim(
-    uint256 disputeId_,
-    string[] calldata ipfsEvidenceHashes_
-  ) external onlyClaimOwner(disputeId_) {
-    IClaimManager(claimManager).submitEvidenceForClaim(
-      disputeId_,
-      msg.sender,
-      ipfsEvidenceHashes_
-    );
-  }
-
-  function addCounterEvidenceToClaim(
-    uint256 coverId_,
     uint256 claimId_,
     string[] calldata ipfsEvidenceHashes_
-  ) external onlyPositionTokenOwner(coverId_) {
-    IPositionsManager positionManagerInterface = IPositionsManager(
-      positionsManager
-    );
-
-    // Get the user's cover position
-    IPositionsManager.Position memory userPosition = positionManagerInterface
-      .position(coverId_);
-
-    // Read the data since when the user is a cover supplier
-    uint256 coverSupplierSince = userPosition.createdAt;
-
-    // Check the user is a cover supplier since at least 15 days
-    require(
-      coverSupplierSince + 15 days <= block.timestamp,
-      "A: position too recent"
-    );
-
-    // Submit the counter evidence
-    IClaimManager(claimManager).submitCounterEvidenceForClaim(
+  ) external {
+    IClaimManager(claimManager).submitEvidenceForClaim(
       claimId_,
+      msg.sender,
       ipfsEvidenceHashes_
     );
   }
@@ -923,8 +894,10 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     string[] calldata ipfsEvidenceHashes_
   ) external onlyOwner {
     // Submit the counter evidence
-    IClaimManager(claimManager).submitCounterEvidenceForClaim(
+    IClaimManager(claimManager).submitEvidenceForClaim(
       disputeId_,
+      // @bw Should change to challenger address
+      address(this),
       ipfsEvidenceHashes_
     );
   }
