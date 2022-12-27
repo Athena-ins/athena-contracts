@@ -11,7 +11,7 @@ import "./ClaimEvidence.sol";
 
 contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
   address payable private immutable core;
-  uint256 public delay = 14 days;
+  uint256 public challengeDelay = 14 days;
   uint256 public claimIndex = 0;
   uint256 public collateralAmount = 0.1 ether;
 
@@ -103,27 +103,37 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
   /// ========= VIEWS ======== ///
   /// ======================== ///
 
-  function claimInitiator(uint256 disputeId_) external view returns (address) {
-    return disputeIdToClaim[disputeId_].from;
+  /**
+   * @notice
+   * Returns the claimant of a claim.
+   * @param claimId_ The claim ID
+   * @return _ the claimant's address
+   */
+  function claimInitiator(uint256 claimId_) external view returns (address) {
+    return claims[claimId_].from;
   }
 
   function arbitrationCost() public view returns (uint256) {
     return arbitrator.arbitrationCost("");
   }
 
-  function remainingTimeToReclaim(uint256 disputeId_)
+  /**
+   * @notice
+   * Returns the remaining time to challenge a claim.
+   * @param claimId_ The claim ID
+   * @return _ the remaining time to challenge
+   */
+  function remainingTimeToChallenge(uint256 claimId_)
     public
     view
     returns (uint256)
   {
-    require(
-      disputeIdToClaim[disputeId_].status == IArbitrator.DisputeStatus.Waiting,
-      "Status not initial"
-    );
-    return
-      (block.timestamp - disputeIdToClaim[disputeId_].createdAt) > delay
-        ? 0
-        : (disputeIdToClaim[disputeId_].createdAt + delay - block.timestamp);
+    Claim memory userClaim = claims[claimId_];
+
+    // If the claim is not in the Initiated state it cannot be challenged
+    if (userClaim.status != ClaimStatus.Initiated) return 0;
+    else if (userClaim.createdAt + challengeDelay < block.timestamp) return 0;
+    else return (userClaim.createdAt + challengeDelay) - block.timestamp;
   }
 
   /**
@@ -139,10 +149,10 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
     view
     returns (Claim[] memory claimsInfo)
   {
-    require(endIndex <= disputeIds.length, "CM: outside of range");
+    require(endIndex < claimIndex, "CM: outside of range");
 
     for (uint256 i = beginIndex; i < endIndex; i++) {
-      Claim memory claim = disputeIdToClaim[disputeIds[i]];
+      Claim memory claim = claims[i];
 
       uint256 index = claimsInfo.length;
       claimsInfo[index] = claim;
@@ -160,8 +170,8 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
     view
     returns (Claim[] memory claimsInfo)
   {
-    for (uint256 i = 0; i < disputeIds.length; i++) {
-      Claim memory claim = disputeIdToClaim[disputeIds[i]];
+    for (uint256 i = 0; i < claimIndex; i++) {
+      Claim memory claim = claims[i];
 
       if (claim.from == account_) {
         uint256 index = claimsInfo.length;
@@ -301,7 +311,7 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
 
     // Check the claim has passed the disputable delay
     require(
-      userClaim.createdAt + 14 days < block.timestamp,
+      userClaim.createdAt + challengeDelay < block.timestamp,
       "CM: delay not elapsed"
     );
 
@@ -339,7 +349,7 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
     // Check the claim is in the appropriate status and challenge is within delay
     require(
       userClaim.status == ClaimStatus.Initiated &&
-        block.timestamp < userClaim.createdAt + 14 days,
+        block.timestamp < userClaim.createdAt + challengeDelay,
       "CM: claim not challengeable"
     );
 
@@ -431,7 +441,7 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
    * @dev The collateral is paid to the challenger if the claim is disputed and rejected.
    * @param amount_ The new amount of collateral.
    */
-  function changeCollateral(uint256 amount_) external onlyCore {
+  function changeRequiredCollateral(uint256 amount_) external onlyCore {
     collateralAmount = amount_;
   }
 }
