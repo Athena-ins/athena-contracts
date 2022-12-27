@@ -119,6 +119,21 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
     return claims[claimId_].from;
   }
 
+  /**
+   * @notice
+   * Returns the challenger of a claim.
+   * @param claimId_ The claim ID
+   * @return _ the challenger's address
+   */
+  function claimChallenger(uint256 claimId_) external view returns (address) {
+    return claims[claimId_].challenger;
+  }
+
+  /**
+   * @notice
+   * Returns the cost of arbitration for a Kleros dispute.
+   * @return _ the arbitration cost
+   */
   function arbitrationCost() public view returns (uint256) {
     return arbitrator.arbitrationCost("");
   }
@@ -184,6 +199,21 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
         claimsInfo[index] = claim;
       }
     }
+  }
+
+  /// ============================ ///
+  /// ========== HELPER ========== ///
+  /// ============================ ///
+
+  /**
+   * @notice
+   * Sends value to an address.
+   * @param to_ The address to send value to
+   * @param value_ The amount of ETH to send
+   */
+  function sendValue(address to_, uint256 value_) private {
+    (bool success, ) = to_.call{ value: value_ }("");
+    require(success, "CM: transfer failed");
   }
 
   /// ============================== ///
