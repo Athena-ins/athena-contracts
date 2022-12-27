@@ -13,6 +13,7 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
   address payable private immutable core;
   uint256 public delay = 14 days;
   uint256 public claimIndex = 0;
+  uint256 public collateralAmount = 0.1 ether;
 
   enum ClaimStatus {
     Initiated,
@@ -229,9 +230,9 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
     uint256 amount_,
     string calldata ipfsMetaEvidenceHash_
   ) external payable onlyCore {
-    // Check that the user has deposited the capital necessary for arbitration
+    // Check that the user has deposited the capital necessary for arbitration and collateral
     uint256 costOfArbitration = arbitrationCost();
-    require(msg.value >= costOfArbitration, "CM: Not enough ETH for claim");
+    require(costOfArbitration + collateralAmount <= msg.value, "CM: Not enough ETH for claim");
 
     // Check if there already an ongoing claim related to this policy
     uint256 latestDisputeIdOfPolicy = policyIdToLatestDisputeId[policyId_];
@@ -342,4 +343,14 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
   /// ============================ ///
   /// ========== ADMIN ========== ///
   /// ============================ ///
+
+  /**
+   * @notice
+   * Changes the amount of collateral required when opening a claim.
+   * @dev The collateral is paid to the challenger if the claim is disputed and rejected.
+   * @param amount_ The new amount of collateral.
+   */
+  function changeCollateral(uint256 amount_) external onlyCore {
+    collateralAmount = amount_;
+  }
 }
