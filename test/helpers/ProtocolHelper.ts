@@ -258,6 +258,18 @@ async function buyPolicy(
   );
 }
 
+async function createClaim(
+  publicSigner: ethers.Signer,
+  policyId: number,
+  amountClaimed: string | number
+) {
+  await CLAIM_MANAGER_CONTRACT.connect(publicSigner).inititateClaim(
+    policyId,
+    amountClaimed,
+    "bafybeiafebm3zdtzmn5mcquacgd47enhsjnebvegnzfunaaaaaaaaaaaaa"
+  );
+}
+
 async function resolveClaimWithoutDispute(
   publicSigner: ethers.Signer,
   policyId: number,
@@ -322,6 +334,7 @@ export default {
   getProtocolPoolContract,
   deposit,
   buyPolicy,
+  createClaim,
   resolveClaimWithoutDispute,
   takeInterest,
 };
