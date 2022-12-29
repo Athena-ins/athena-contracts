@@ -105,6 +105,17 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
     _;
   }
 
+  /**
+   * @notice
+   * Check caller is owner of the policy holder NFT
+   * @param policyId_ policy holder NFT ID
+   */
+  modifier onlyPolicyTokenOwner(uint256 policyId_) {
+    address ownerOfToken = policyManagerInterface.ownerOf(policyId_);
+    require(msg.sender == ownerOfToken, "A: Caller is not the owner");
+    _;
+  }
+
   /// ======================== ///
   /// ========= VIEWS ======== ///
   /// ======================== ///
