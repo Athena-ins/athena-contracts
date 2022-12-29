@@ -677,95 +677,50 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
 
   /**
    * @notice
-   * Initiates a claim for a policy holder.
+   * Called by the claim manager to compensate the claimant.
+   * @param policyId_ the id of the policy
+   * @param amount_ the amount to compensate
+   * @param account_ the address of the claimant
    */
-  function startClaim(
+  function compensateClaimant(
     uint256 policyId_,
-    uint256 amountClaimed_,
-    string calldata ipfsMetaEvidenceHash_
-  ) external payable onlyPolicyTokenOwner(policyId_) {
-    IPolicyManager policyManagerInterface = IPolicyManager(policyManager);
+    uint256 amount_,
+    address account_
+  ) external onlyClaimManager {
+    IPolicyManager.Policy memory userPolicy = IPolicyManager(policyManager)
+      .policy(policyId_);
 
-    // // Get the policy
-    IPolicyManager.Policy memory userPolicy = policyManagerInterface.policy(
-      policyId_
-    );
+    address poolAddress = protocolsMapping[userPolicy.protocolId].deployed;
 
-    uint128 protocolId = userPolicy.protocolId;
+    IProtocolPool poolInterface = IProtocolPool(poolAddress);
+    uint256 ratio = poolInterface.ratioWithAvailableCapital(amount_);
 
-    actualizingProtocolAndRemoveExpiredPolicies(
-      protocolsMapping[protocolId].deployed
-    );
-
-    // @bw @dev TODO : should lock the capital in protocol pool
-
-    require(
-      0 < amountClaimed_ && amountClaimed_ <= userPolicy.amountCovered,
-      "A: bad claim range"
-    );
-
-    IClaimManager(claimManager).inititateClaim{ value: msg.value }(
-      msg.sender,
-      policyId_,
-      protocolId,
-      amountClaimed_,
-      ipfsMetaEvidenceHash_
-    );
-
-    protocolsMapping[protocolId].claimsOngoing += 1;
-  }
-
-  /**
-   * @notice
-   * Allows a policy holder with an ongoing claim to add evidence for their case.
-   * @param claimId_ the id of the dispute
-   * @param ipfsEvidenceHashes_ the IPFS hashes of the evidence
-   */
-  function addEvidenceToClaim(
-    uint256 claimId_,
-    string[] calldata ipfsEvidenceHashes_
-  ) external {
-    IClaimManager(claimManager).submitEvidenceForClaim(
-      claimId_,
-      msg.sender,
-      ipfsEvidenceHashes_
-    );
-  }
-
-  //onlyClaimManager
-  function resolveClaim(
-    uint256 _policyId,
-    uint256 _amount,
-    address _account
-  ) external override {
-    IPolicyManager.Policy memory policy_ = IPolicyManager(policyManager).policy(
-      _policyId
-    );
-
-    IProtocolPool __protocolPool = IProtocolPool(
-      protocolsMapping[policy_.protocolId].deployed
-    );
-
-    uint256 __ratio = __protocolPool.ratioWithAvailableCapital(_amount);
-    uint256 __reserveNormalizedIncome = ILendingPool(
+    ILendingPool lendingPoolInterface = ILendingPool(
       ILendingPoolAddressesProvider(aaveAddressesRegistry).getLendingPool()
-    ).getReserveNormalizedIncome(stablecoin);
+    );
 
-    uint128[] memory __relatedProtocols = __protocolPool.getRelatedProtocols();
-    for (uint256 i = 0; i < __relatedProtocols.length; i++) {
-      actualizingProtocolAndRemoveExpiredPolicies(
-        protocolsMapping[__relatedProtocols[i]].deployed
+    uint256 reserveNormalizedIncome = lendingPoolInterface
+      .getReserveNormalizedIncome(stablecoin);
+
+    uint128[] memory relatedProtocols = poolInterface.getRelatedProtocols();
+    for (uint256 i = 0; i < relatedProtocols.length; i++) {
+      uint128 relatedPoolId = relatedProtocols[i];
+
+      address relatedPoolAddress = protocolsMapping[relatedPoolId].deployed;
+
+      actualizingProtocolAndRemoveExpiredPolicies(relatedPoolAddress);
+
+      IProtocolPool(relatedPoolAddress).processClaim(
+        userPolicy.protocolId,
+        ratio,
+        reserveNormalizedIncome
       );
-
-      IProtocolPool(protocolsMapping[__relatedProtocols[i]].deployed)
-        .processClaim(policy_.protocolId, __ratio, __reserveNormalizedIncome);
     }
 
-    ILendingPool(
-      ILendingPoolAddressesProvider(aaveAddressesRegistry).getLendingPool()
-    ).withdraw(stablecoin, _amount, _account);
+    lendingPoolInterface.withdraw(stablecoin, amount_, account_);
 
     //Thao@TODO: enable next line when adding modifier 'onlyClaimManager' and calling startClaim to increment claimsOngoing before resolve
+    // @bw is this necessary ?
     // protocolsMapping[__protocolId].claimsOngoing -= 1;
   }
 

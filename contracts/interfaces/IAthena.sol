@@ -33,5 +33,11 @@ interface IAthena {
     uint128 protocolId
   ) external;
 
+  function compensateClaimant(
+    uint256 policyId,
+    uint256 amount,
+    address account
+  ) external;
+
   function stakeAtens(uint256 amount) external;
 }
