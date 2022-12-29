@@ -261,12 +261,23 @@ async function buyPolicy(
 async function createClaim(
   policyHolder: ethers.Signer,
   policyId: number,
-  amountClaimed: string | number
+  amountClaimed: string | number,
+  valueOverride?: ethers.BigNumberish
 ) {
+  // Get the cost of arbitration + challenge collateral
+  const [arbitrationCost, collateralAmount] = await Promise.all([
+    CLAIM_MANAGER_CONTRACT.connect(policyHolder).arbitrationCost(),
+    CLAIM_MANAGER_CONTRACT.connect(policyHolder).collateralAmount(),
+  ]);
+
+  const valueForTx = valueOverride || arbitrationCost.add(collateralAmount);
+
+  // Create the claim
   await CLAIM_MANAGER_CONTRACT.connect(policyHolder).inititateClaim(
     policyId,
     amountClaimed,
-    "bafybeiafebm3zdtzmn5mcquacgd47enhsjnebvegnzfunaaaaaaaaaaaaa"
+    "bafybeiafebm3zdtzmn5mcquacgd47enhsjnebvegnzfunaaaaaaaaaaaaa",
+    { value: valueForTx }
   );
 }
 
