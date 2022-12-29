@@ -154,7 +154,8 @@ describe("Protocol Pool", function () {
         0,
         30,
         WETH,
-        []
+        [],
+        "bafybeiafebm3zdtzmn5mcquacgd47enhsjnebvegnzfunbbbbbbbbbbbbb"
       );
       expect(tx).to.haveOwnProperty("hash");
 
@@ -168,7 +169,8 @@ describe("Protocol Pool", function () {
         0,
         30,
         NULL_ADDRESS,
-        []
+        [],
+        "bafybeiafebm3zdtzmn5mcquacgd47enhsjnebvegnzfunbbbbbbbbbbbbb"
       );
       expect(tx).to.haveOwnProperty("hash");
 
@@ -185,7 +187,8 @@ describe("Protocol Pool", function () {
         0,
         30,
         NULL_ADDRESS,
-        [0]
+        [0],
+        "bafybeiafebm3zdtzmn5mcquacgd47enhsjnebvegnzfunbbbbbbbbbbbbb"
       );
       expect(tx).to.haveOwnProperty("hash");
 

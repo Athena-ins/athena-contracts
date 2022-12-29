@@ -184,7 +184,8 @@ describe("Position Manager", function () {
         0,
         1,
         WETH,
-        [0]
+        [0],
+        "bafybeiafebm3zdtzmn5mcquacgd47enhsjnebvegnzfunbbbbbbbbbbbbb"
       )
     ).to.be.rejectedWith("Ownable: caller is not the owner");
   });
@@ -194,7 +195,8 @@ describe("Position Manager", function () {
       0,
       30,
       WETH,
-      []
+      [],
+      "bafybeiafebm3zdtzmn5mcquacgd47enhsjnebvegnzfunbbbbbbbbbbbbb"
     );
     expect(tx).to.haveOwnProperty("hash");
     const prot = await ATHENA_CONTRACT.protocolsMapping(0);
@@ -207,7 +209,8 @@ describe("Position Manager", function () {
       0,
       30,
       NULL_ADDRESS,
-      []
+      [],
+      "bafybeiafebm3zdtzmn5mcquacgd47enhsjnebvegnzfunbbbbbbbbbbbbb"
     );
     expect(tx).to.haveOwnProperty("hash");
     const prot = await ATHENA_CONTRACT.protocolsMapping(1);
@@ -220,7 +223,8 @@ describe("Position Manager", function () {
       0,
       30,
       NULL_ADDRESS,
-      [0]
+      [0],
+      "bafybeiafebm3zdtzmn5mcquacgd47enhsjnebvegnzfunbbbbbbbbbbbbb"
     );
     expect(tx).to.haveOwnProperty("hash");
     const prot = await ATHENA_CONTRACT.protocolsMapping(2);

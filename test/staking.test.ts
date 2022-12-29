@@ -163,7 +163,8 @@ describe("Staking Policy Rewards", function () {
       0,
       30,
       WETH,
-      []
+      [],
+      "bafybeiafebm3zdtzmn5mcquacgd47enhsjnebvegnzfunbbbbbbbbbbbbb"
     );
     expect(tx).to.haveOwnProperty("hash");
     const prot = await ATHENA_CONTRACT.connect(allSigners[0]).protocolsMapping(
@@ -175,7 +176,8 @@ describe("Staking Policy Rewards", function () {
       0,
       30,
       WETH,
-      []
+      [],
+      "bafybeiafebm3zdtzmn5mcquacgd47enhsjnebvegnzfunbbbbbbbbbbbbb"
     );
 
     const tx2 = await STAKED_ATENS_CONTRACT.connect(

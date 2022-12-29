@@ -179,7 +179,8 @@ async function addNewProtocolPool(protocolPoolName: string) {
     0,
     30,
     HardhatHelper.WETH,
-    []
+    [],
+    "bafybeiafebm3zdtzmn5mcquacgd47enhsjnebvegnzfunbbbbbbbbbbbbb"
   );
 }
 

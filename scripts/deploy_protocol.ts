@@ -115,7 +115,8 @@ const addNewProtocol = async (signer: SignerWithAddress) => {
     0,
     0,
     "0xfbdd194376de19a88118e84e279b977f165d01b8",
-    [1]
+    [1],
+    "bafybeiafebm3zdtzmn5mcquacgd47enhsjnebvegnzfunbbbbbbbbbbbbb"
   );
   const receipt = await start.wait(5);
   console.log("Done, hash ; ", receipt.transactionHash);

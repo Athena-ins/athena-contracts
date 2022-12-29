@@ -156,7 +156,7 @@ describe("expired policies", () => {
 
       await ProtocolHelper.getAthenaContract()
         .connect(policyTaker1)
-        .withdrawPolicy(2, 0);
+        .withdrawPolicy(2);
 
       const slot0 = await protocolContract.slot0();
       expect(slot0.remainingPolicies).to.be.equal(1);
