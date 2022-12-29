@@ -131,13 +131,7 @@ describe("Liquidity provider takeInterest", () => {
   });
 
   it("Should add a claim in protocol2 and check claim info in protocol0", async () => {
-    await ProtocolHelper.resolveClaim(
-      owner,
-      0,
-      "182500",
-      policyTaker3,
-      1 * 24 * 60 * 60
-    );
+    await ProtocolHelper.resolveClaimWithoutDispute(owner, 0, 1 * 24 * 60 * 60);
 
     let protocolPool0 = await ProtocolHelper.getProtocolPoolContract(owner, 0);
 
@@ -284,27 +278,9 @@ describe("Liquidity provider takeInterest", () => {
   });
 
   it("Should add a 3 claims into protocol1 and check claim info in protocol0", async () => {
-    await ProtocolHelper.resolveClaim(
-      owner,
-      1,
-      "500",
-      policyTaker4,
-      1 * 24 * 60 * 60
-    );
-    await ProtocolHelper.resolveClaim(
-      owner,
-      1,
-      "1000",
-      policyTaker4,
-      1 * 24 * 60 * 60
-    );
-    await ProtocolHelper.resolveClaim(
-      owner,
-      1,
-      "1000",
-      policyTaker4,
-      1 * 24 * 60 * 60
-    );
+    await ProtocolHelper.resolveClaimWithoutDispute(owner, 1, 1 * 24 * 60 * 60);
+    await ProtocolHelper.resolveClaimWithoutDispute(owner, 1, 1 * 24 * 60 * 60);
+    await ProtocolHelper.resolveClaimWithoutDispute(owner, 1, 1 * 24 * 60 * 60);
 
     let protocolPool0 = await ProtocolHelper.getProtocolPoolContract(owner, 0);
 

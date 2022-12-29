@@ -101,11 +101,9 @@ describe("Liquidity provider withdraw", () => {
     });
 
     it("Should resolve claim in Protocol 2", async () => {
-      await ProtocolHelper.resolveClaim(
+      await ProtocolHelper.resolveClaimWithoutDispute(
         owner,
         1,
-        "182500",
-        policyTaker2,
         1 * 24 * 60 * 60
       );
 

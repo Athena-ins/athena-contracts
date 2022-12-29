@@ -172,11 +172,9 @@ describe("Claims", () => {
     });
 
     it("Should add claim in Protocol 2", async () => {
-      await ProtocolHelper.resolveClaim(
+      await ProtocolHelper.resolveClaimWithoutDispute(
         owner,
         0,
-        "182500",
-        policyTaker3,
         1 * 24 * 60 * 60
       );
 
@@ -325,11 +323,9 @@ describe("Claims", () => {
     });
 
     it("Should add claim in protocol 3", async () => {
-      await ProtocolHelper.resolveClaim(
+      await ProtocolHelper.resolveClaimWithoutDispute(
         owner,
         1,
-        "182500",
-        policyTaker4,
         1 * 24 * 60 * 60
       );
 

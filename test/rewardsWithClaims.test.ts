@@ -178,11 +178,9 @@ describe("Liquidity provider rewards", () => {
 
   describe("Claim", async () => {
     it("Should add a claim in protocol2 and check claim info in protocol0", async () => {
-      await ProtocolHelper.resolveClaim(
+      await ProtocolHelper.resolveClaimWithoutDispute(
         owner,
         0,
-        "182500",
-        policyTaker3,
         1 * 24 * 60 * 60
       );
 
