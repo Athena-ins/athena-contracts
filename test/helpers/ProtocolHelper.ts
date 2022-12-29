@@ -258,19 +258,20 @@ async function buyPolicy(
   );
 }
 
-async function resolveClaim(
+async function resolveClaimWithoutDispute(
   publicSigner: ethers.Signer,
   policyId: number,
-  amount: string,
-  account: ethers.Signer,
   timeLapse: number
 ) {
+  const claimId = await CLAIM_MANAGER_CONTRACT.connect(
+    publicSigner
+  ).policyIdToLatestClaimId(policyId);
+
   await HardhatHelper.setNextBlockTimestamp(timeLapse);
-  await ATHENA_CONTRACT.connect(publicSigner).resolveClaim(
-    policyId,
-    amount,
-    await account.getAddress()
-  );
+
+  await CLAIM_MANAGER_CONTRACT.connect(
+    publicSigner
+  ).withdrawCompensationWithoutDispute(claimId);
 }
 
 async function takeInterest(
@@ -321,6 +322,6 @@ export default {
   getProtocolPoolContract,
   deposit,
   buyPolicy,
-  resolveClaim,
+  resolveClaimWithoutDispute,
   takeInterest,
 };
