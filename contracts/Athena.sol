@@ -130,19 +130,6 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     _;
   }
 
-  /**
-   * @notice
-   * Check caller is the claim's initiator.
-   * @param disputeId_ dispute ID
-   */
-  modifier onlyClaimOwner(uint256 disputeId_) {
-    address claimInitiator = IClaimManager(claimManager).claimInitiator(
-      disputeId_
-    );
-    require(msg.sender == claimInitiator, "A: Caller is claimant");
-    _;
-  }
-
   //////Thao@NOTE: LP
   modifier valideProtocolIds(uint128[] calldata protocolIds) {
     for (
@@ -230,6 +217,14 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
       .actualizing();
 
     IPolicyManager(policyManager).processExpiredTokens(__expiredTokens);
+  }
+
+  function actualizingProtocolAndRemoveExpiredPoliciesByProtocolId(
+    uint128 protocolId_
+  ) public {
+    actualizingProtocolAndRemoveExpiredPolicies(
+      protocolsMapping[protocolId_].deployed
+    );
   }
 
   /// ================================== ///
@@ -877,27 +872,6 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
 
   function pauseProtocol(uint128 protocolId, bool pause) external onlyOwner {
     protocolsMapping[protocolId].active = pause;
-  }
-
-  /// -------- CLAIMS -------- ///
-
-  /**
-   * @notice
-   * Enables Athena to add counter evidence to a claim.
-   * @param disputeId_ the dispute ID of the claim
-   * @param ipfsEvidenceHashes_ the IPFS hashes of the evidence
-   */
-  function athenaAddCounterEvidenceToClaim(
-    uint256 disputeId_,
-    string[] calldata ipfsEvidenceHashes_
-  ) external onlyOwner {
-    // Submit the counter evidence
-    IClaimManager(claimManager).submitEvidenceForClaim(
-      disputeId_,
-      // @bw Should change to challenger address
-      address(this),
-      ipfsEvidenceHashes_
-    );
   }
 
   /// -------- AAVE -------- ///

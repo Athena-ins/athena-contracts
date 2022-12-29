@@ -29,10 +29,8 @@ interface IAthena {
   function actualizingProtocolAndRemoveExpiredPolicies(address protocolAddress)
     external;
 
-  function resolveClaim(
-    uint256 _policyId,
-    uint256 _amount,
-    address _account
+  function actualizingProtocolAndRemoveExpiredPoliciesByProtocolId(
+    uint128 protocolId
   ) external;
 
   function stakeAtens(uint256 amount) external;
