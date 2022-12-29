@@ -254,48 +254,65 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
    * @notice
    * Adds evidence IPFS hashes for a claim.
    * @param claimId_ The claim ID
-   * @param party_ The party that submits the evidence
    * @param ipfsEvidenceHashes_ The IPFS hashes of the evidence
    */
   function submitEvidenceForClaim(
     uint256 claimId_,
-    address party_,
     string[] calldata ipfsEvidenceHashes_
-  ) external onlyCore {
+  ) external {
     Claim storage userClaim = claims[claimId_];
+
+    require(userClaim.status == ClaimStatus.Disputed, "CM: wrong claim status");
 
     address claimant = userClaim.from;
     address challenger = userClaim.challenger;
-    require(party_ == claimant || party_ == challenger, "CM: invalid party");
+    require(
+      msg.sender == claimant || msg.sender == challenger,
+      "CM: invalid party"
+    );
 
-    _submitKlerosEvidence(claimId_, party_, ipfsEvidenceHashes_);
+    _submitKlerosEvidence(claimId_, msg.sender, ipfsEvidenceHashes_);
   }
 
   /// ============================ ///
   /// ========== CLAIMS ========== ///
   /// ============================ ///
 
+  // @bw @dev TODO : should lock the capital in protocol pool
   /**
    * @notice
    * Initiates a payment claim to Kleros by a policy holder.
-   * @param account_ The account that is claiming
    * @param policyId_ The policy ID
-   * @param protocolId_ The protocol ID of the policy
-   * @param amount_ The amount claimed by the policy holder
+   * @param amountClaimed_ The amount claimed by the policy holder
    * @param ipfsMetaEvidenceHash_ The IPFS hash of the meta evidence file
    */
   function inititateClaim(
-    address account_,
     uint256 policyId_,
-    uint128 protocolId_,
-    uint256 amount_,
+    uint256 amountClaimed_,
     string calldata ipfsMetaEvidenceHash_
-  ) external payable onlyCore {
+  ) external payable onlyPolicyTokenOwner(policyId_) {
+    // Get the policy
+    IPolicyManager.Policy memory userPolicy = policyManagerInterface.policy(
+      policyId_
+    );
+
+    uint128 protocolId = userPolicy.protocolId;
+
+    // Update the protocol's policies
+    // @bw is this really required as expired policies can open claims ?
+    core.actualizingProtocolAndRemoveExpiredPoliciesByProtocolId(protocolId);
+
+    // Check that the user is not trying to claim more than the amount covered
+    require(
+      0 < amountClaimed_ && amountClaimed_ <= userPolicy.amountCovered,
+      "CM: bad claim range"
+    );
+
     // Check that the user has deposited the capital necessary for arbitration and collateral
     uint256 costOfArbitration = arbitrationCost();
     require(
       costOfArbitration + collateralAmount <= msg.value,
-      "CM: Not enough ETH for claim"
+      "CM: not enough ETH for claim"
     );
 
     // Check if there already an ongoing claim related to this policy
@@ -317,36 +334,28 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
     // Save claim data
     claims[claimId] = Claim({
       status: ClaimStatus.Initiated,
-      from: account_,
+      from: msg.sender,
       challenger: address(0),
       createdAt: block.timestamp,
       arbitrationCost: costOfArbitration,
       disputeId: 0,
       policyId: policyId_,
-      protocolId: protocolId_,
-      amount: amount_,
+      protocolId: protocolId,
+      amount: amountClaimed_,
       metaEvidence: ipfsMetaEvidenceHash_
     });
 
     // Emit Athena claim creation event
-    emit ClaimCreated(account_, policyId_, protocolId_);
+    emit ClaimCreated(msg.sender, policyId_, protocolId);
   }
 
   /**
    * @notice
    * Allows a policy holder to execute the claim if it has remained unchallenged.
-   * @param account_ The account that is claiming
    * @param claimId_ The claim ID
    */
-  function withdrawCompensationWithoutDispute(
-    address account_,
-    uint256 claimId_
-  ) external onlyCore {
+  function withdrawCompensationWithoutDispute(uint256 claimId_) external {
     Claim storage userClaim = claims[claimId_];
-    address claimant = userClaim.from;
-
-    // Check the caller is the claim initiator
-    require(claimant == account_, "CM: caller is not the claimant");
 
     // Check the claim is in the appropriate status
     require(
@@ -364,7 +373,7 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
     userClaim.status = ClaimStatus.CompensatedAfterAcceptation;
 
     // Send back the collateral and arbitration cost to the claimant
-    sendValue(claimant, userClaim.arbitrationCost + collateralAmount);
+    sendValue(userClaim.from, userClaim.arbitrationCost + collateralAmount);
 
     // Call Athena core to pay the compensation
     core.compensateClaimant(
@@ -382,13 +391,8 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
    * @notice
    * Allows a user to challenge a pending claim by creating a dispute in Kleros.
    * @param claimId_ The claim ID
-   * @param challengerAddress_ The address of the challenger
    */
-  function disputeClaim(uint256 claimId_, address challengerAddress_)
-    external
-    payable
-    onlyCore
-  {
+  function disputeClaim(uint256 claimId_) external payable {
     Claim storage userClaim = claims[claimId_];
 
     // Check the claim is in the appropriate status and challenge is within delay
@@ -413,7 +417,7 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
 
     // Update the claim with challenged status and challenger address
     userClaim.status = ClaimStatus.Disputed;
-    userClaim.challenger = challengerAddress_;
+    userClaim.challenger = msg.sender;
     userClaim.disputeId = disputeId;
 
     // Map the new dispute ID to be able to search it after ruling
@@ -421,7 +425,7 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
 
     // Emit Kleros events for dispute creation and meta-evidence association
     _emitKlerosDisputeEvents(
-      challengerAddress_,
+      msg.sender,
       disputeId,
       userClaim.protocolId,
       userClaim.metaEvidence
@@ -489,10 +493,7 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
    * Allows the claimant to withdraw the compensation after a dispute has been resolved in their favor.
    * @param claimId_ The claim ID
    */
-  function withdrawCompensationAfterDispute(uint256 claimId_)
-    external
-    onlyCore
-  {
+  function releaseCompensationAfterDispute(uint256 claimId_) external {
     Claim storage userClaim = claims[claimId_];
 
     // Check the status of the claim
