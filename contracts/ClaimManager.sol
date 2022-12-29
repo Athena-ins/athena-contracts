@@ -4,6 +4,7 @@ pragma solidity ^0.8;
 import "./interfaces/IArbitrable.sol";
 import "./interfaces/IArbitrator.sol";
 
+import "./interfaces/IPolicyManager.sol";
 import "./interfaces/IClaimManager.sol";
 import "./interfaces/IAthena.sol";
 
@@ -12,7 +13,8 @@ import "./ClaimEvidence.sol";
 // @bw add reentrency guard to all fns with ETH manipulation
 
 contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
-  address payable private immutable core;
+  IAthena public immutable core;
+  IPolicyManager public immutable policyManagerInterface;
   uint256 public challengeDelay = 14 days;
   uint256 public claimIndex = 0;
   uint256 public collateralAmount = 0.1 ether;
@@ -30,7 +32,7 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
     CompensateClaimant,
     RejectClaim
   }
-  uint256 constant numberOfRulingOptions = 2;
+  uint256 public immutable numberOfRulingOptions = 2;
 
   struct Claim {
     ClaimStatus status;
@@ -53,10 +55,13 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
   // Maps a Kleros dispute ID to its claim ID
   mapping(uint256 => uint256) public disputeIdToClaimId;
 
-  constructor(address core_, IArbitrator arbitrator_)
-    ClaimEvidence(arbitrator_)
-  {
-    core = payable(core_);
+  constructor(
+    address core_,
+    address policyManager_,
+    IArbitrator arbitrator_
+  ) ClaimEvidence(arbitrator_) {
+    core = IAthena(core_);
+    policyManagerInterface = IPolicyManager(policyManager_);
   }
 
   /// ========================= ///
@@ -96,7 +101,7 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
   /// ============================ ///
 
   modifier onlyCore() {
-    require(msg.sender == core, "CM: only core");
+    require(msg.sender == address(core), "CM: only core");
     _;
   }
 
@@ -362,7 +367,7 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
     sendValue(claimant, userClaim.arbitrationCost + collateralAmount);
 
     // Call Athena core to pay the compensation
-    IAthena(core).resolveClaim(
+    core.compensateClaimant(
       userClaim.policyId,
       userClaim.amount,
       userClaim.from
@@ -500,7 +505,7 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
     userClaim.status = ClaimStatus.CompensatedAfterAcceptation;
 
     // Call Athena core to pay the compensation
-    IAthena(core).resolveClaim(
+    core.compensateClaimant(
       userClaim.policyId,
       userClaim.amount,
       userClaim.from

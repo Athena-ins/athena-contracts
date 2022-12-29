@@ -89,7 +89,11 @@ async function deployClaimManagerContract(owner: ethers.Signer) {
     await hre_ethers.getContractFactory("ClaimManager")
   )
     .connect(owner)
-    .deploy(ATHENA_CONTRACT.address, HardhatHelper.ARBITRATOR_ADDRESS);
+    .deploy(
+      ATHENA_CONTRACT.address,
+      POLICY_MANAGER_CONTRACT.address,
+      HardhatHelper.ARBITRATOR_ADDRESS
+    );
 
   await CLAIM_MANAGER_CONTRACT.deployed();
 }
