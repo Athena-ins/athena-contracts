@@ -259,11 +259,11 @@ async function buyPolicy(
 }
 
 async function createClaim(
-  publicSigner: ethers.Signer,
+  policyHolder: ethers.Signer,
   policyId: number,
   amountClaimed: string | number
 ) {
-  await CLAIM_MANAGER_CONTRACT.connect(publicSigner).inititateClaim(
+  await CLAIM_MANAGER_CONTRACT.connect(policyHolder).inititateClaim(
     policyId,
     amountClaimed,
     "bafybeiafebm3zdtzmn5mcquacgd47enhsjnebvegnzfunaaaaaaaaaaaaa"
@@ -271,18 +271,18 @@ async function createClaim(
 }
 
 async function resolveClaimWithoutDispute(
-  publicSigner: ethers.Signer,
+  policyHolder: ethers.Signer,
   policyId: number,
   timeLapse: number
 ) {
   const claimId = await CLAIM_MANAGER_CONTRACT.connect(
-    publicSigner
+    policyHolder
   ).policyIdToLatestClaimId(policyId);
 
   await HardhatHelper.setNextBlockTimestamp(timeLapse);
 
   await CLAIM_MANAGER_CONTRACT.connect(
-    publicSigner
+    policyHolder
   ).withdrawCompensationWithoutDispute(claimId);
 }
 
