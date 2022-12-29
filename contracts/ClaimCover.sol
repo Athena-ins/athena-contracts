@@ -13,21 +13,21 @@ abstract contract ClaimCover is LiquidityCover {
     uint256 aaveReserveNormalizedIncomeBeforeClaim;
   }
 
-  Claim[] public claims;
+  Claim[] public processedClaims;
 
   //Thao@NOTE: for testing
   function claimsCount() public view returns (uint256) {
-    return claims.length;
+    return processedClaims.length;
   }
 
   function _claims(uint256 beginIndex) internal view returns (Claim[] memory) {
-    uint256 __length = claims.length;
+    uint256 __length = processedClaims.length;
     if (__length == beginIndex) return new Claim[](0);
 
     __length = __length - beginIndex;
     Claim[] memory __claims = new Claim[](__length);
     for (uint256 i = 0; i < __length; i++) {
-      __claims[i] = claims[beginIndex + i];
+      __claims[i] = processedClaims[beginIndex + i];
     }
 
     return __claims;

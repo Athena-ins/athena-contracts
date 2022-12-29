@@ -191,7 +191,7 @@ describe("Liquidity provider rewards", () => {
         0
       );
 
-      const claim = await protocolPool0.claims(0);
+      const claim = await protocolPool0.processedClaims(0);
 
       expect(claim.fromProtocolId).to.be.equal(2);
       expect(claim.ratio).to.be.equal("500000000000000000000000000");

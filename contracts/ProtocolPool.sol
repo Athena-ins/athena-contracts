@@ -95,7 +95,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
 
     _updateSlot0WhenAvailableCapitalChange(amount_, 0);
     availableCapital += amount_;
-    LPsInfo[tokenId_] = LPInfo(liquidityIndex, claims.length);
+    LPsInfo[tokenId_] = LPInfo(liquidityIndex, processedClaims.length);
   }
 
   function buyPolicy(
@@ -333,6 +333,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     return (__newUserCapital, __aaveScaledBalanceToRemove);
   }
 
+  // @bw should not be public
   function processClaim(
     uint128 _fromProtocolId,
     uint256 _ratio,
@@ -347,7 +348,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     intersectingAmounts[
       intersectingAmountIndexes[_fromProtocolId]
     ] -= __amountToRemoveByClaim;
-    claims.push(
+    processedClaims.push(
       Claim(
         _fromProtocolId,
         _ratio,

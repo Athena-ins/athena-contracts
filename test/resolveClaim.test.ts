@@ -168,7 +168,7 @@ describe("Claims", () => {
         owner,
         0
       );
-      const claim = await protocolPool0.claims(0);
+      const claim = await protocolPool0.processedClaims(0);
 
       expect(claim.fromProtocolId).to.be.equal(0);
       expect(claim.ratio).to.be.equal("250000000000000000000000000");
@@ -302,7 +302,7 @@ describe("Claims", () => {
         owner,
         0
       );
-      const claim = await protocolPool0.claims(0);
+      const claim = await protocolPool0.processedClaims(0);
 
       expect(claim.fromProtocolId).to.be.equal(0);
       expect(claim.ratio).to.be.equal("250000000000000000000000000");
@@ -324,7 +324,7 @@ describe("Claims", () => {
         owner,
         1
       );
-      const claim = await protocolPool1.claims(1);
+      const claim = await protocolPool1.processedClaims(1);
 
       expect(claim.fromProtocolId).to.be.equal(3);
       expect(claim.ratio).to.be.equal("500000000000000000000000000");
@@ -334,7 +334,7 @@ describe("Claims", () => {
         owner,
         3
       );
-      const claim3 = await protocolPool3.claims(0);
+      const claim3 = await protocolPool3.processedClaims(0);
 
       expect(claim3.fromProtocolId).to.be.equal(3);
       expect(claim3.ratio).to.be.equal("500000000000000000000000000");

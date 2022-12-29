@@ -141,7 +141,7 @@ describe("Liquidity provider takeInterest", () => {
 
     let protocolPool0 = await ProtocolHelper.getProtocolPoolContract(owner, 0);
 
-    const claim = await protocolPool0.claims(0);
+    const claim = await protocolPool0.processedClaims(0);
 
     expect(claim.fromProtocolId).to.be.equal(2);
     expect(claim.ratio).to.be.equal("500000000000000000000000000");
@@ -308,17 +308,17 @@ describe("Liquidity provider takeInterest", () => {
 
     let protocolPool0 = await ProtocolHelper.getProtocolPoolContract(owner, 0);
 
-    const claim1 = await protocolPool0.claims(1);
+    const claim1 = await protocolPool0.processedClaims(1);
 
     expect(claim1.fromProtocolId).to.be.equal(1);
     expect(claim1.liquidityIndexBeforeClaim).to.not.be.equal(0);
 
-    const claim2 = await protocolPool0.claims(2);
+    const claim2 = await protocolPool0.processedClaims(2);
 
     expect(claim2.fromProtocolId).to.be.equal(1);
     expect(claim2.liquidityIndexBeforeClaim).to.not.be.equal(0);
 
-    const claim3 = await protocolPool0.claims(3);
+    const claim3 = await protocolPool0.processedClaims(3);
 
     expect(claim3.fromProtocolId).to.be.equal(1);
     expect(claim3.liquidityIndexBeforeClaim).to.not.be.equal(0);
