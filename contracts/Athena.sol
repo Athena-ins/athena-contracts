@@ -115,7 +115,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     address ownerOfToken = IPositionsManager(positionsManager).ownerOf(
       coverId_
     );
-    require(msg.sender == ownerOfToken, "A: Caller is not the owner");
+    require(msg.sender == ownerOfToken, "A: not position owner");
     _;
   }
 
@@ -126,7 +126,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
    */
   modifier onlyPolicyTokenOwner(uint256 policyId_) {
     address ownerOfToken = IPolicyManager(policyManager).ownerOf(policyId_);
-    require(msg.sender == ownerOfToken, "A: Caller is not the owner");
+    require(msg.sender == ownerOfToken, "A: not policy owner");
     _;
   }
 

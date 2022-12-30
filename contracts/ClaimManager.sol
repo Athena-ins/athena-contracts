@@ -117,7 +117,7 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
    */
   modifier onlyPolicyTokenOwner(uint256 policyId_) {
     address ownerOfToken = policyManagerInterface.ownerOf(policyId_);
-    require(msg.sender == ownerOfToken, "A: Caller is not the owner");
+    require(msg.sender == ownerOfToken, "CM: not policy owner");
     _;
   }
 
