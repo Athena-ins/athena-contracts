@@ -176,10 +176,12 @@ describe("Claims", () => {
     });
 
     it("Should add claim in Protocol 2", async () => {
+      await ProtocolHelper.createClaim(policyTaker3, 2, "182500");
+
       await ProtocolHelper.resolveClaimWithoutDispute(
-        owner,
-        0,
-        1 * 24 * 60 * 60
+        policyTaker3,
+        2,
+        14 * 24 * 60 * 60 + 10 // 14 days + 10 seconds
       );
 
       const protocolPool0 = await ProtocolHelper.getProtocolPoolContract(
@@ -327,10 +329,12 @@ describe("Claims", () => {
     });
 
     it("Should add claim in protocol 3", async () => {
+      await ProtocolHelper.createClaim(policyTaker4, 3, "182500");
+
       await ProtocolHelper.resolveClaimWithoutDispute(
-        owner,
-        1,
-        1 * 24 * 60 * 60
+        policyTaker4,
+        3,
+        14 * 24 * 60 * 60 + 10 // 14 days + 10 seconds
       );
 
       const protocolPool1 = await ProtocolHelper.getProtocolPoolContract(

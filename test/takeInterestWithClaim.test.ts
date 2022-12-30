@@ -135,9 +135,13 @@ describe("Liquidity provider takeInterest", () => {
   });
 
   it("Should add a claim in protocol2 and check claim info in protocol0", async () => {
-    await ProtocolHelper.resolveClaimWithoutDispute(owner, 0, 1 * 24 * 60 * 60);
+    await ProtocolHelper.createClaim(policyTaker3, 0, "182500");
 
-    let protocolPool0 = await ProtocolHelper.getProtocolPoolContract(owner, 0);
+    await ProtocolHelper.resolveClaimWithoutDispute(
+      policyTaker3,
+      0,
+      14 * 24 * 60 * 60 + 10 // 14 days + 10 seconds
+    );
 
     const claim = await protocolPool0.processedClaims(0);
 
@@ -282,11 +286,26 @@ describe("Liquidity provider takeInterest", () => {
   });
 
   it("Should add a 3 claims into protocol1 and check claim info in protocol0", async () => {
-    await ProtocolHelper.resolveClaimWithoutDispute(owner, 1, 1 * 24 * 60 * 60);
-    await ProtocolHelper.resolveClaimWithoutDispute(owner, 1, 1 * 24 * 60 * 60);
-    await ProtocolHelper.resolveClaimWithoutDispute(owner, 1, 1 * 24 * 60 * 60);
+    await ProtocolHelper.createClaim(policyTaker4, 3, "500");
+    await ProtocolHelper.resolveClaimWithoutDispute(
+      policyTaker4,
+      3,
+      14 * 24 * 60 * 60 + 10 // 14 days + 10 seconds
+    );
 
-    let protocolPool0 = await ProtocolHelper.getProtocolPoolContract(owner, 0);
+    await ProtocolHelper.createClaim(policyTaker4, 3, "1000");
+    await ProtocolHelper.resolveClaimWithoutDispute(
+      policyTaker4,
+      3,
+      14 * 24 * 60 * 60 + 10 // 14 days + 10 seconds
+    );
+
+    await ProtocolHelper.createClaim(policyTaker4, 3, "1000");
+    await ProtocolHelper.resolveClaimWithoutDispute(
+      policyTaker4,
+      3,
+      14 * 24 * 60 * 60 + 10 // 14 days + 10 seconds
+    );
 
     const claim1 = await protocolPool0.processedClaims(1);
 
