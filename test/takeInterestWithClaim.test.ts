@@ -16,6 +16,7 @@ let policyTaker3: ethers.Signer;
 let policyTaker4: ethers.Signer;
 let provider1tokenId: ethers.BigNumberish;
 let provider2tokenId: ethers.BigNumberish;
+let protocolPool0: ethers.Contract;
 
 describe("Liquidity provider takeInterest", () => {
   before(async () => {
@@ -33,6 +34,8 @@ describe("Liquidity provider takeInterest", () => {
     await ProtocolHelper.addNewProtocolPool("Test protocol 0");
     await ProtocolHelper.addNewProtocolPool("Test protocol 1");
     await ProtocolHelper.addNewProtocolPool("Test protocol 2");
+
+    protocolPool0 = await ProtocolHelper.getProtocolPoolContract(owner, 0);
 
     // ================= Cover Providers ================= //
 

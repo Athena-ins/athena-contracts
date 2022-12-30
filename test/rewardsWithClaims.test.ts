@@ -15,6 +15,7 @@ let policyTaker2: ethers.Signer;
 let policyTaker3: ethers.Signer;
 let provider1tokenId: ethers.BigNumberish;
 let provider2tokenId: ethers.BigNumberish;
+let protocolPool0: ethers.Contract;
 
 describe("Liquidity provider rewards", () => {
   before(async () => {
@@ -32,6 +33,7 @@ describe("Liquidity provider rewards", () => {
     await ProtocolHelper.addNewProtocolPool("Test protocol 1");
     await ProtocolHelper.addNewProtocolPool("Test protocol 2");
 
+    protocolPool0 = await ProtocolHelper.getProtocolPoolContract(owner, 0);
 
     // ================= Cover Providers ================= //
 
@@ -121,22 +123,12 @@ describe("Liquidity provider rewards", () => {
 
   describe("LP1", async () => {
     it("Should check LPInfo", async () => {
-      let protocolPool0 = await ProtocolHelper.getProtocolPoolContract(
-        owner,
-        0
-      );
-
       let lpInfo = await protocolPool0.LPsInfo(provider1tokenId);
       expect(lpInfo.beginLiquidityIndex).to.be.equal(0);
       expect(lpInfo.beginClaimIndex).to.be.equal(0);
     });
 
     it("Should call rewardsOf and check data", async () => {
-      let protocolPool0 = await ProtocolHelper.getProtocolPoolContract(
-        owner,
-        0
-      );
-
       let result = await protocolPool0.rewardsOf(
         provider1tokenId,
         365000,
@@ -152,22 +144,12 @@ describe("Liquidity provider rewards", () => {
 
   describe("LP2", async () => {
     it("Should check LPInfo", async () => {
-      let protocolPool0 = await ProtocolHelper.getProtocolPoolContract(
-        owner,
-        0
-      );
-
       let lpInfo = await protocolPool0.LPsInfo(provider2tokenId);
       expect(lpInfo.beginLiquidityIndex).to.be.equal(0);
       expect(lpInfo.beginClaimIndex).to.be.equal(0);
     });
 
     it("Should call rewardsOf and check data", async () => {
-      let protocolPool0 = await ProtocolHelper.getProtocolPoolContract(
-        owner,
-        0
-      );
-
       let result = await protocolPool0.rewardsOf(
         provider2tokenId,
         365000,
@@ -202,11 +184,6 @@ describe("Liquidity provider rewards", () => {
     });
 
     it("Should call rewardsOf for LP1 after 1 day of added claim and check result", async () => {
-      let protocolPool0 = await ProtocolHelper.getProtocolPoolContract(
-        owner,
-        0
-      );
-
       const result = await protocolPool0.rewardsOf(
         provider1tokenId,
         365000,
@@ -220,11 +197,6 @@ describe("Liquidity provider rewards", () => {
     });
 
     it("Should call rewardsOf for LP2 after 1 day of added claim and check result", async () => {
-      let protocolPool0 = await ProtocolHelper.getProtocolPoolContract(
-        owner,
-        0
-      );
-
       const result = await protocolPool0.rewardsOf(
         provider2tokenId,
         365000,
@@ -238,11 +210,6 @@ describe("Liquidity provider rewards", () => {
     });
 
     it("Should call rewardsOf for LP1 after 2 day of added claim and check result", async () => {
-      let protocolPool0 = await ProtocolHelper.getProtocolPoolContract(
-        owner,
-        0
-      );
-
       const result = await protocolPool0.rewardsOf(
         provider1tokenId,
         365000,
@@ -256,11 +223,6 @@ describe("Liquidity provider rewards", () => {
     });
 
     it("Should call rewardsOf for LP2 after 2 day of added claim and check result", async () => {
-      let protocolPool0 = await ProtocolHelper.getProtocolPoolContract(
-        owner,
-        0
-      );
-
       const result = await protocolPool0.rewardsOf(
         provider2tokenId,
         365000,
@@ -274,11 +236,6 @@ describe("Liquidity provider rewards", () => {
     });
 
     it("Should call rewardsOf for LP1 after 10 day of added claim and check result", async () => {
-      let protocolPool0 = await ProtocolHelper.getProtocolPoolContract(
-        owner,
-        0
-      );
-
       const result = await protocolPool0.rewardsOf(
         provider1tokenId,
         365000,
@@ -292,11 +249,6 @@ describe("Liquidity provider rewards", () => {
     });
 
     it("Should call rewardsOf for LP2 after 10 day of added claim and check result", async () => {
-      let protocolPool0 = await ProtocolHelper.getProtocolPoolContract(
-        owner,
-        0
-      );
-
       const result = await protocolPool0.rewardsOf(
         provider2tokenId,
         365000,

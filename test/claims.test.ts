@@ -15,6 +15,10 @@ let policyTaker1: ethers.Signer;
 let policyTaker2: ethers.Signer;
 let policyTaker3: ethers.Signer;
 let policyTaker4: ethers.Signer;
+let protocolPool0: ethers.Contract;
+let protocolPool1: ethers.Contract;
+let protocolPool2: ethers.Contract;
+let protocolPool3: ethers.Contract;
 
 describe("Claims", () => {
   before(async () => {
@@ -34,6 +38,11 @@ describe("Claims", () => {
     await ProtocolHelper.addNewProtocolPool("Test protocol 1");
     await ProtocolHelper.addNewProtocolPool("Test protocol 2");
     await ProtocolHelper.addNewProtocolPool("Test protocol 3");
+
+    protocolPool0 = await ProtocolHelper.getProtocolPoolContract(owner, 0);
+    protocolPool1 = await ProtocolHelper.getProtocolPoolContract(owner, 1);
+    protocolPool2 = await ProtocolHelper.getProtocolPoolContract(owner, 2);
+    protocolPool3 = await ProtocolHelper.getProtocolPoolContract(owner, 3);
 
     // ================= Cover Providers ================= //
 
@@ -137,11 +146,7 @@ describe("Claims", () => {
 
   describe("Claim", async () => {
     it("Should check slot0 in protocol 0 before claim", async () => {
-      const protocolContract = await ProtocolHelper.getProtocolPoolContract(
-        policyTaker2,
-        0
-      );
-      const slot0 = await protocolContract.slot0();
+      const slot0 = await protocolPool0.slot0();
 
       expect(slot0.tick).to.be.equal(20);
       expect(slot0.secondsPerTick).to.be.equal(6 * 60 * 60);
@@ -151,27 +156,22 @@ describe("Claims", () => {
         HardhatHelper.getCurrentTime()
       );
 
-      const premiumRate = await protocolContract.getCurrentPremiumRate();
+      const premiumRate = await protocolPool0.getCurrentPremiumRate();
       expect(premiumRate).to.be.equal("4000000000000000000000000000");
 
-      const availableCapital = await protocolContract.availableCapital();
+      const availableCapital = await protocolPool0.availableCapital();
 
       expect(availableCapital).to.be.equal("730000");
     });
 
     it("Should check intersectingAmounts in protocol 0 before claim", async () => {
-      const protocolContract = await ProtocolHelper.getProtocolPoolContract(
-        policyTaker2,
-        0
-      );
-
-      const intersecAmountsP0 = await protocolContract.intersectingAmounts(0);
+      const intersecAmountsP0 = await protocolPool0.intersectingAmounts(0);
       expect(intersecAmountsP0).to.be.equal("730000");
 
-      const intersecAmountsP1 = await protocolContract.intersectingAmounts(2);
+      const intersecAmountsP1 = await protocolPool0.intersectingAmounts(2);
       expect(intersecAmountsP1).to.be.equal("330000");
 
-      const intersecAmountsP2 = await protocolContract.intersectingAmounts(1); //P2 at index 1
+      const intersecAmountsP2 = await protocolPool0.intersectingAmounts(1); //P2 at index 1
       expect(intersecAmountsP2).to.be.equal("730000");
     });
 
@@ -184,10 +184,6 @@ describe("Claims", () => {
         14 * 24 * 60 * 60 + 10 // 14 days + 10 seconds
       );
 
-      const protocolPool0 = await ProtocolHelper.getProtocolPoolContract(
-        owner,
-        0
-      );
       const claim = await protocolPool0.processedClaims(0);
 
       expect(claim.fromProtocolId).to.be.equal(2);
@@ -198,51 +194,27 @@ describe("Claims", () => {
     });
 
     it("Should check number of claim in protocol 0", async () => {
-      const protocolContract = await ProtocolHelper.getProtocolPoolContract(
-        policyTaker2,
-        0
-      );
-
-      const length = await protocolContract.claimsCount();
+      const length = await protocolPool0.claimsCount();
       expect(length).to.be.equal(1);
     });
 
     it("Should check number of claim in protocol 1", async () => {
-      const protocolContract = await ProtocolHelper.getProtocolPoolContract(
-        policyTaker2,
-        1
-      );
-
-      const length = await protocolContract.claimsCount();
+      const length = await protocolPool1.claimsCount();
       expect(length).to.be.equal(1);
     });
 
     it("Should check number of claim in protocol 2", async () => {
-      const protocolContract = await ProtocolHelper.getProtocolPoolContract(
-        policyTaker2,
-        2
-      );
-
-      const length = await protocolContract.claimsCount();
+      const length = await protocolPool2.claimsCount();
       expect(length).to.be.equal(1);
     });
 
     it("Should check number of claim in protocol 3", async () => {
-      const protocolContract = await ProtocolHelper.getProtocolPoolContract(
-        policyTaker2,
-        3
-      );
-
-      const length = await protocolContract.claimsCount();
+      const length = await protocolPool3.claimsCount();
       expect(length).to.be.equal(0);
     });
 
     it("Should check slot0 in Protocol 0 at the moment of adding claim in Protocol 2", async () => {
-      const protocolContract = await ProtocolHelper.getProtocolPoolContract(
-        policyTaker2,
-        0
-      );
-      const slot0 = await protocolContract.slot0();
+      const slot0 = await protocolPool0.slot0();
 
       expect(slot0.tick).to.be.equal(24);
       expect(slot0.secondsPerTick).to.be.equal(48 * 6 * 60);
@@ -252,22 +224,17 @@ describe("Claims", () => {
         HardhatHelper.getCurrentTime()
       );
 
-      const premiumRate = await protocolContract.getCurrentPremiumRate();
+      const premiumRate = await protocolPool0.getCurrentPremiumRate();
       expect(premiumRate).to.be.equal("5000000000000000000000000000");
 
-      const availableCapital = await protocolContract.availableCapital();
+      const availableCapital = await protocolPool0.availableCapital();
 
       expect(availableCapital).to.be.equal("547500");
     });
 
     it("Should get vSlot0 of Protocol 0 after 1 day claimed in Protocol 2", async () => {
-      const protocolContract = await ProtocolHelper.getProtocolPoolContract(
-        owner,
-        0
-      );
-
       const days = 1;
-      const result = await protocolContract.actualizingUntilGivenDate(
+      const result = await protocolPool0.actualizingUntilGivenDate(
         HardhatHelper.getCurrentTime() + days * 24 * 60 * 60
       );
 
@@ -281,24 +248,19 @@ describe("Claims", () => {
     });
 
     it("Should actualizing after 1 day of adding claim, checking intersectingAmounts and slot0 in protocol 0", async () => {
-      const protocolContract = await ProtocolHelper.getProtocolPoolContract(
-        owner,
-        0
-      );
-
       await HardhatHelper.setNextBlockTimestamp(1 * 24 * 60 * 60);
-      await protocolContract.actualizing();
+      await protocolPool0.actualizing();
 
-      const intersecAmounts0 = await protocolContract.intersectingAmounts(0);
+      const intersecAmounts0 = await protocolPool0.intersectingAmounts(0);
       expect(intersecAmounts0).to.be.equal("730000");
 
-      const intersecAmounts1 = await protocolContract.intersectingAmounts(2);
+      const intersecAmounts1 = await protocolPool0.intersectingAmounts(2);
       expect(intersecAmounts1).to.be.equal("330000");
 
-      const intersecAmounts2 = await protocolContract.intersectingAmounts(1);
+      const intersecAmounts2 = await protocolPool0.intersectingAmounts(1);
       expect(intersecAmounts2).to.be.equal("547500");
 
-      const slot0 = await protocolContract.slot0();
+      const slot0 = await protocolPool0.slot0();
       expect(slot0.tick).to.be.equal(29);
       expect(slot0.secondsPerTick).to.be.equal(48 * 6 * 60);
       expect(slot0.totalInsuredCapital).to.be.equal("328500");
@@ -307,18 +269,14 @@ describe("Claims", () => {
         HardhatHelper.getCurrentTime()
       );
 
-      const premiumRate = await protocolContract.getCurrentPremiumRate();
+      const premiumRate = await protocolPool0.getCurrentPremiumRate();
       expect(premiumRate).to.be.equal("5000000000000000000000000000");
 
-      const availableCapital = await protocolContract.availableCapital();
+      const availableCapital = await protocolPool0.availableCapital();
       expect(availableCapital).to.be.equal("547500");
     });
 
     it("Should check added claim in protocol 0", async () => {
-      const protocolPool0 = await ProtocolHelper.getProtocolPoolContract(
-        owner,
-        0
-      );
       const claim = await protocolPool0.processedClaims(0);
 
       expect(claim.fromProtocolId).to.be.equal(2);
@@ -337,10 +295,6 @@ describe("Claims", () => {
         14 * 24 * 60 * 60 + 10 // 14 days + 10 seconds
       );
 
-      const protocolPool1 = await ProtocolHelper.getProtocolPoolContract(
-        owner,
-        1
-      );
       const claim = await protocolPool1.processedClaims(1);
 
       expect(claim.fromProtocolId).to.be.equal(3);

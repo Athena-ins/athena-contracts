@@ -15,6 +15,8 @@ let policyTaker2: ethers.Signer;
 let policyTaker3: ethers.Signer;
 let provider1tokenId: ethers.BigNumberish;
 let provider2tokenId: ethers.BigNumberish;
+let protocolPool0: ethers.Contract;
+let protocolPool2: ethers.Contract;
 
 describe("Liquidity provider withdraw", () => {
   describe("LP1, LP2 then PT1, PT2 in pool 0", async () => {
@@ -32,6 +34,9 @@ describe("Liquidity provider withdraw", () => {
       await ProtocolHelper.addNewProtocolPool("Test protocol 0");
       await ProtocolHelper.addNewProtocolPool("Test protocol 1");
       await ProtocolHelper.addNewProtocolPool("Test protocol 2");
+
+      protocolPool0 = await ProtocolHelper.getProtocolPoolContract(owner, 0);
+      protocolPool2 = await ProtocolHelper.getProtocolPoolContract(owner, 2);
 
       // ================= Cover Providers ================= //
 
@@ -113,10 +118,6 @@ describe("Liquidity provider withdraw", () => {
         14 * 24 * 60 * 60 + 10 // 14 days + 10 seconds
       );
 
-      const protocolPool0 = await ProtocolHelper.getProtocolPoolContract(
-        owner,
-        0
-      );
       const claim = await protocolPool0.processedClaims(0);
 
       expect(claim.fromProtocolId).to.be.equal(2);
@@ -142,12 +143,6 @@ describe("Liquidity provider withdraw", () => {
       const result = await withdraw_tx.wait();
       //   console.log(result);
 
-      //protocol0
-      const p0_contract = await ProtocolHelper.getProtocolPoolContract(
-        liquidityProvider1,
-        0
-      );
-
       const p0_event =
         result.events.find(
           (el: any) =>
@@ -156,7 +151,7 @@ describe("Liquidity provider withdraw", () => {
             el.data.includes(`${"2a".padStart(64, "0")}${"".padStart(62, "0")}`)
         ) || {};
 
-      const p0_decodedData = p0_contract.interface.decodeEventLog(
+      const p0_decodedData = protocolPool0.interface.decodeEventLog(
         p0_event.topics[0],
         p0_event.data
       );
@@ -167,11 +162,11 @@ describe("Liquidity provider withdraw", () => {
       expect(p0_decodedData.rewardsNet).to.be.equal(35);
       expect(p0_decodedData.fee).to.be.equal(7);
 
-      const p0_premiumRate = await p0_contract.getCurrentPremiumRate();
+      const p0_premiumRate = await protocolPool0.getCurrentPremiumRate();
 
       expect(p0_premiumRate).to.be.equal("2777777777777777777777777780");
 
-      const p0_slot0 = await p0_contract.slot0();
+      const p0_slot0 = await protocolPool0.slot0();
 
       expect(p0_slot0.secondsPerTick).to.be.equal("31104");
       expect(p0_slot0.totalInsuredCapital).to.be.equal("109500");
@@ -181,10 +176,7 @@ describe("Liquidity provider withdraw", () => {
       );
 
       //protocol2
-      const p2_contract = await ProtocolHelper.getProtocolPoolContract(
-        liquidityProvider1,
-        2
-      );
+
       const p2_event =
         result.events.find(
           (el: any) =>
@@ -193,7 +185,7 @@ describe("Liquidity provider withdraw", () => {
             el.data.includes(`${"56".padStart(64, "0")}${"".padStart(62, "0")}`)
         ) || {};
 
-      const p2_decodedData = p2_contract.interface.decodeEventLog(
+      const p2_decodedData = protocolPool2.interface.decodeEventLog(
         p2_event.topics[0],
         p2_event.data
       );
@@ -204,11 +196,11 @@ describe("Liquidity provider withdraw", () => {
       expect(p2_decodedData.rewardsNet).to.be.equal(73);
       expect(p2_decodedData.fee).to.be.equal(13);
 
-      const p2_premiumRate = await p2_contract.getCurrentPremiumRate();
+      const p2_premiumRate = await protocolPool2.getCurrentPremiumRate();
 
       expect(p2_premiumRate).to.be.equal("4555555555555555555555555555");
 
-      const p2_slot0 = await p2_contract.slot0();
+      const p2_slot0 = await protocolPool2.slot0();
 
       expect(p2_slot0.secondsPerTick).to.be.equal("18966");
       expect(p2_slot0.totalInsuredCapital).to.be.equal("219000");
@@ -219,12 +211,7 @@ describe("Liquidity provider withdraw", () => {
     });
 
     it("Should call takeInterest for LP2 after 10 day that LP1 withdrawed his capital in protocol 0", async () => {
-      const protocolContract = await ProtocolHelper.getProtocolPoolContract(
-        liquidityProvider2,
-        0
-      );
-
-      const lpInfoBefore = await protocolContract.LPsInfo(provider2tokenId);
+      const lpInfoBefore = await protocolPool0.LPsInfo(provider2tokenId);
 
       const days = 10;
       const decodedData = await ProtocolHelper.takeInterest(
@@ -241,7 +228,7 @@ describe("Liquidity provider withdraw", () => {
       expect(decodedData.rewardsNet).to.be.equal(200);
       expect(decodedData.fee).to.be.equal(11);
 
-      const lpInfoAfter = await protocolContract.LPsInfo(provider2tokenId);
+      const lpInfoAfter = await protocolPool0.LPsInfo(provider2tokenId);
 
       expect(
         lpInfoAfter.beginLiquidityIndex.gt(lpInfoBefore.beginLiquidityIndex)
