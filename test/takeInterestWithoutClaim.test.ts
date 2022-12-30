@@ -15,6 +15,7 @@ let policyTaker2: ethers.Signer;
 let policyTaker3: ethers.Signer;
 let provider1tokenId: ethers.BigNumberish;
 let provider2tokenId: ethers.BigNumberish;
+let protocolPool0: ethers.Contract;
 
 describe("Liquidity provider takeInterest", () => {
   describe("LP1, LP2 then PT1, PT2 in pool 0", async () => {
@@ -32,6 +33,10 @@ describe("Liquidity provider takeInterest", () => {
       await ProtocolHelper.addNewProtocolPool("Test protocol 0");
       await ProtocolHelper.addNewProtocolPool("Test protocol 1");
       await ProtocolHelper.addNewProtocolPool("Test protocol 2");
+
+      protocolPool0 = await ProtocolHelper.getProtocolPoolContract(owner, 0);
+
+      // ================= Cover Providers ================= //
 
       const USDT_amount1 = "365000";
       const ATEN_amount1 = "100000";
@@ -64,6 +69,8 @@ describe("Liquidity provider takeInterest", () => {
           .connect(liquidityProvider2)
           .allPositionTokensOfOwner(liquidityProvider2.getAddress());
       provider2tokenId = provider2tokenIds[0];
+
+      // ================= Policy Buyers ================= //
 
       await HardhatHelper.USDT_maxApprove(
         policyTaker1,
@@ -405,6 +412,8 @@ describe("Liquidity provider takeInterest", () => {
       await ProtocolHelper.addNewProtocolPool("Test protocol 1");
       await ProtocolHelper.addNewProtocolPool("Test protocol 2");
 
+      // ================= Cover Providers ================= //
+
       const USDT_amount1 = "365000";
       const ATEN_amount1 = "100000";
       await ProtocolHelper.deposit(
@@ -414,6 +423,8 @@ describe("Liquidity provider takeInterest", () => {
         [0, 2],
         1 * 24 * 60 * 60
       );
+
+      // ================= Policy Buyers ================= //
 
       await HardhatHelper.USDT_maxApprove(
         policyTaker1,
@@ -459,6 +470,7 @@ describe("Liquidity provider takeInterest", () => {
         1 * 24 * 60 * 60
       );
 
+      // @bw calc method
       //PT1: UR = 30%; PR = 3%; ER = 9, (PT1 -> 9)
       //10 days => LP1 <- 9 * 10 = 90; PT1 <- 2190 - 90 = 2100
       //PT2: UR = 60%; PR = 5%; ER = 30, (PT1 -> 15; PT2 -> 15)
@@ -529,11 +541,6 @@ describe("Liquidity provider takeInterest", () => {
     });
 
     it("Should check LP1's info", async () => {
-      let protocolPool0 = await ProtocolHelper.getProtocolPoolContract(
-        owner,
-        0
-      );
-
       let lpInfo = await protocolPool0.LPsInfo(provider1tokenId);
 
       expect(lpInfo.beginLiquidityIndex).to.be.equal(0);
@@ -541,11 +548,6 @@ describe("Liquidity provider takeInterest", () => {
     });
 
     it("Should check LP2's info", async () => {
-      let protocolPool0 = await ProtocolHelper.getProtocolPoolContract(
-        owner,
-        0
-      );
-
       let lpInfo = await protocolPool0.LPsInfo(provider2tokenId);
 
       expect(lpInfo.beginLiquidityIndex).to.not.be.equal(0);

@@ -35,6 +35,8 @@ describe("Claims", () => {
     await ProtocolHelper.addNewProtocolPool("Test protocol 2");
     await ProtocolHelper.addNewProtocolPool("Test protocol 3");
 
+    // ================= Cover Providers ================= //
+
     const USDT_amount1 = "400000";
     const ATEN_amount1 = "100000";
     await ProtocolHelper.deposit(
@@ -65,36 +67,7 @@ describe("Claims", () => {
       1 * 24 * 60 * 60
     );
 
-    await HardhatHelper.USDT_maxApprove(
-      policyTaker3,
-      ProtocolHelper.getAthenaContract().address
-    );
-
-    const capital3 = "182500";
-    const premium3 = "8760";
-    const atensLocked3 = "0";
-    await ProtocolHelper.buyPolicy(
-      policyTaker3,
-      capital3,
-      premium3,
-      atensLocked3,
-      2,
-      10 * 24 * 60 * 60
-    );
-
-    await HardhatHelper.USDT_maxApprove(
-      policyTaker4,
-      ProtocolHelper.getAthenaContract().address
-    );
-
-    await ProtocolHelper.buyPolicy(
-      policyTaker4,
-      capital3,
-      premium3,
-      atensLocked3,
-      3,
-      10 * 24 * 60 * 60
-    );
+    // ================= Policy Buyers ================= //
 
     await HardhatHelper.USDT_maxApprove(
       policyTaker1,
@@ -127,6 +100,37 @@ describe("Claims", () => {
       premium2,
       atensLocked2,
       0,
+      10 * 24 * 60 * 60
+    );
+
+    await HardhatHelper.USDT_maxApprove(
+      policyTaker3,
+      ProtocolHelper.getAthenaContract().address
+    );
+
+    const capital3 = "182500";
+    const premium3 = "8760";
+    const atensLocked3 = "0";
+    await ProtocolHelper.buyPolicy(
+      policyTaker3,
+      capital3,
+      premium3,
+      atensLocked3,
+      2,
+      10 * 24 * 60 * 60
+    );
+
+    await HardhatHelper.USDT_maxApprove(
+      policyTaker4,
+      ProtocolHelper.getAthenaContract().address
+    );
+
+    await ProtocolHelper.buyPolicy(
+      policyTaker4,
+      capital3,
+      premium3,
+      atensLocked3,
+      3,
       10 * 24 * 60 * 60
     );
   });

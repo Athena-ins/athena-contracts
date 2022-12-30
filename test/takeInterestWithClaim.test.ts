@@ -34,6 +34,8 @@ describe("Liquidity provider takeInterest", () => {
     await ProtocolHelper.addNewProtocolPool("Test protocol 1");
     await ProtocolHelper.addNewProtocolPool("Test protocol 2");
 
+    // ================= Cover Providers ================= //
+
     const USDT_amount1 = "365000";
     const ATEN_amount1 = "100000";
     await ProtocolHelper.deposit(
@@ -64,36 +66,7 @@ describe("Liquidity provider takeInterest", () => {
       .allPositionTokensOfOwner(liquidityProvider2.getAddress());
     provider2tokenId = provider2tokenIds[0];
 
-    await HardhatHelper.USDT_maxApprove(
-      policyTaker3,
-      ProtocolHelper.getAthenaContract().address
-    );
-
-    const capital3 = "219000";
-    const premium3 = "8760";
-    const atensLocked3 = "0";
-    await ProtocolHelper.buyPolicy(
-      policyTaker3,
-      capital3,
-      premium3,
-      atensLocked3,
-      2,
-      10 * 24 * 60 * 60
-    );
-
-    await HardhatHelper.USDT_maxApprove(
-      policyTaker4,
-      ProtocolHelper.getAthenaContract().address
-    );
-
-    await ProtocolHelper.buyPolicy(
-      policyTaker4,
-      capital3,
-      premium3,
-      atensLocked3,
-      1,
-      10 * 24 * 60 * 60
-    );
+    // ================= Policy Buyers ================= //
 
     await HardhatHelper.USDT_maxApprove(
       policyTaker1,
@@ -126,6 +99,37 @@ describe("Liquidity provider takeInterest", () => {
       premium2,
       atensLocked2,
       0,
+      10 * 24 * 60 * 60
+    );
+
+    await HardhatHelper.USDT_maxApprove(
+      policyTaker3,
+      ProtocolHelper.getAthenaContract().address
+    );
+
+    const capital3 = "219000";
+    const premium3 = "8760";
+    const atensLocked3 = "0";
+    await ProtocolHelper.buyPolicy(
+      policyTaker3,
+      capital3,
+      premium3,
+      atensLocked3,
+      2,
+      10 * 24 * 60 * 60
+    );
+
+    await HardhatHelper.USDT_maxApprove(
+      policyTaker4,
+      ProtocolHelper.getAthenaContract().address
+    );
+
+    await ProtocolHelper.buyPolicy(
+      policyTaker4,
+      capital3,
+      premium3,
+      atensLocked3,
+      1,
       10 * 24 * 60 * 60
     );
   });

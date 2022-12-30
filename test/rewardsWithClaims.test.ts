@@ -32,13 +32,16 @@ describe("Liquidity provider rewards", () => {
     await ProtocolHelper.addNewProtocolPool("Test protocol 1");
     await ProtocolHelper.addNewProtocolPool("Test protocol 2");
 
+
+    // ================= Cover Providers ================= //
+
     const USDT_amount1 = "365000";
     const ATEN_amount1 = "100000";
     await ProtocolHelper.deposit(
       liquidityProvider1,
       USDT_amount1,
       ATEN_amount1,
-      [0, 2],
+      [0, 1],
       1 * 24 * 60 * 60
     );
 
@@ -48,12 +51,12 @@ describe("Liquidity provider rewards", () => {
     provider1tokenId = provider1tokenIds[0];
 
     const USDT_amount2 = "365000";
-    const ATEN_amount2 = "9000000";
+    const ATEN_amount2 = "100000";
     await ProtocolHelper.deposit(
       liquidityProvider2,
       USDT_amount2,
       ATEN_amount2,
-      [0, 1],
+      [0, 2],
       1 * 24 * 60 * 60
     );
 
@@ -62,22 +65,7 @@ describe("Liquidity provider rewards", () => {
       .allPositionTokensOfOwner(liquidityProvider2.getAddress());
     provider2tokenId = provider2tokenIds[0];
 
-    await HardhatHelper.USDT_maxApprove(
-      policyTaker3,
-      ProtocolHelper.getAthenaContract().address
-    );
-
-    const capital3 = "219000";
-    const premium3 = "8760";
-    const atensLocked3 = "0";
-    await ProtocolHelper.buyPolicy(
-      policyTaker3,
-      capital3,
-      premium3,
-      atensLocked3,
-      2,
-      10 * 24 * 60 * 60
-    );
+    // ================= Policy Buyers ================= //
 
     await HardhatHelper.USDT_maxApprove(
       policyTaker1,
@@ -110,6 +98,23 @@ describe("Liquidity provider rewards", () => {
       premium2,
       atensLocked2,
       0,
+      10 * 24 * 60 * 60
+    );
+
+    await HardhatHelper.USDT_maxApprove(
+      policyTaker3,
+      ProtocolHelper.getAthenaContract().address
+    );
+
+    const capital3 = "219000";
+    const premium3 = "8760";
+    const atensLocked3 = "0";
+    await ProtocolHelper.buyPolicy(
+      policyTaker3,
+      capital3,
+      premium3,
+      atensLocked3,
+      2,
       10 * 24 * 60 * 60
     );
   });

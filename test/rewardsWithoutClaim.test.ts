@@ -33,6 +33,8 @@ describe("Liquidity provider rewards without claims", () => {
       await ProtocolHelper.addNewProtocolPool("Test protocol 1");
       await ProtocolHelper.addNewProtocolPool("Test protocol 2");
 
+      // ================= Cover Providers ================= //
+
       const USDT_amount1 = "365000";
       const ATEN_amount1 = "100000";
       await ProtocolHelper.deposit(
@@ -64,6 +66,8 @@ describe("Liquidity provider rewards without claims", () => {
           .connect(liquidityProvider2)
           .allPositionTokensOfOwner(liquidityProvider2.getAddress());
       provider2tokenId = provider2tokenIds[0];
+
+      // ================= Policy Buyers ================= //
 
       await HardhatHelper.USDT_maxApprove(
         policyTaker1,
