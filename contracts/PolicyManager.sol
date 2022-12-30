@@ -7,6 +7,8 @@ import "./interfaces/IPolicyManager.sol";
 import "./interfaces/IAthena.sol";
 import "./interfaces/IProtocolPool.sol";
 
+import "hardhat/console.sol";
+
 contract PolicyManager is IPolicyManager, ERC721Enumerable {
   address private core;
 
@@ -103,6 +105,7 @@ contract PolicyManager is IPolicyManager, ERC721Enumerable {
     uint256 _actualFees,
     bool _isCanceled
   ) public override onlyCore {
+    // @bw should only save token id of expired or set to expired state
     expiredPolicies[_owner].push(
       ExpiredPolicy({
         policyId: _policyId,
@@ -111,7 +114,7 @@ contract PolicyManager is IPolicyManager, ERC721Enumerable {
         actualFees: _actualFees,
         atensLocked: _policy.atensLocked,
         beginCoveredTime: _policy.beginCoveredTime,
-        endCoveredTime: block.timestamp, //ce n'est pas bon
+        endCoveredTime: block.timestamp, // @bw ce n'est pas bon
         protocolId: _policy.protocolId,
         isCancelled: _isCanceled
       })

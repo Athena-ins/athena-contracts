@@ -132,13 +132,13 @@ describe("Liquidity provider rewards", () => {
       let result = await protocolPool0.rewardsOf(
         provider1tokenId,
         365000,
-        [0, 2],
+        [0, 1],
         0,
         HardhatHelper.getCurrentTime() + 1 * 24 * 60 * 60
       );
 
       expect(result.__newUserCapital).to.be.equal(365000);
-      expect(result.__totalRewards).to.be.equal(48);
+      expect(result.__totalRewards).to.be.equal(228);
     });
   });
 
@@ -155,11 +155,11 @@ describe("Liquidity provider rewards", () => {
         365000,
         [0, 2],
         0,
-        HardhatHelper.getCurrentTime() + 2 * 24 * 60 * 60
+        HardhatHelper.getCurrentTime() + 1 * 24 * 60 * 60
       );
 
       expect(result.__newUserCapital).to.be.equal(365000);
-      expect(result.__totalRewards).to.be.equal(66);
+      expect(result.__totalRewards).to.be.equal(228);
     });
   });
 
@@ -179,7 +179,7 @@ describe("Liquidity provider rewards", () => {
       expect(claim.ratio).to.be.equal("500000000000000000000000000");
       expect(claim.liquidityIndexBeforeClaim).to.not.be.equal(0);
       expect(claim.liquidityIndexBeforeClaim).to.be.equal(
-        "131506849315068493150684"
+        "1265759132420091324200913"
       );
     });
 
@@ -187,57 +187,70 @@ describe("Liquidity provider rewards", () => {
       const result = await protocolPool0.rewardsOf(
         provider1tokenId,
         365000,
-        [0, 2],
+        [0, 1],
         0,
         HardhatHelper.getCurrentTime() + 1 * 24 * 60 * 60
       );
 
-      expect(result.__newUserCapital).to.be.equal(182500);
-      expect(result.__totalRewards).to.be.equal(63);
+      expect(result.__newUserCapital).to.be.equal(365000);
+      expect(result.__totalRewards).to.be.equal(492);
     });
 
     it("Should call rewardsOf for LP2 after 1 day of added claim and check result", async () => {
       const result = await protocolPool0.rewardsOf(
         provider2tokenId,
         365000,
-        [0, 1],
+        [0, 2],
         0,
         HardhatHelper.getCurrentTime() + 1 * 24 * 60 * 60
       );
 
-      expect(result.__newUserCapital).to.be.equal(365000);
-      expect(result.__totalRewards).to.be.equal(78);
+      expect(result.__newUserCapital).to.be.equal(182500);
+      expect(result.__totalRewards).to.be.equal(477);
     });
 
     it("Should call rewardsOf for LP1 after 2 day of added claim and check result", async () => {
       const result = await protocolPool0.rewardsOf(
         provider1tokenId,
         365000,
-        [0, 2],
+        [0, 1],
         0,
         HardhatHelper.getCurrentTime() + 2 * 24 * 60 * 60
       );
 
-      expect(result.__newUserCapital).to.be.equal(182500);
-      expect(result.__totalRewards).to.be.equal(63 + 15);
+      expect(result.__newUserCapital).to.be.equal(365000);
+      expect(result.__totalRewards).to.be.equal(492 + 30);
     });
 
     it("Should call rewardsOf for LP2 after 2 day of added claim and check result", async () => {
       const result = await protocolPool0.rewardsOf(
         provider2tokenId,
         365000,
-        [0, 1],
+        [0, 2],
         0,
         HardhatHelper.getCurrentTime() + 2 * 24 * 60 * 60
       );
 
-      expect(result.__newUserCapital).to.be.equal(365000);
-      expect(result.__totalRewards).to.be.equal(78 + 30);
+      expect(result.__newUserCapital).to.be.equal(182500);
+      expect(result.__totalRewards).to.be.equal(477 + 15);
     });
 
     it("Should call rewardsOf for LP1 after 10 day of added claim and check result", async () => {
       const result = await protocolPool0.rewardsOf(
         provider1tokenId,
+        365000,
+        [0, 1],
+        0,
+        HardhatHelper.getCurrentTime() + 10 * 24 * 60 * 60
+      );
+
+      expect(result.__newUserCapital).to.be.equal(365000);
+      expect(result.__totalRewards).to.be.equal(492 - 30 + 300);
+    });
+
+    it("Should call rewardsOf for LP2 after 10 day of added claim and check result", async () => {
+      const result = await protocolPool0.rewardsOf(
+        provider2tokenId,
         365000,
         [0, 2],
         0,
@@ -245,20 +258,7 @@ describe("Liquidity provider rewards", () => {
       );
 
       expect(result.__newUserCapital).to.be.equal(182500);
-      expect(result.__totalRewards).to.be.equal(63 - 15 + 150);
-    });
-
-    it("Should call rewardsOf for LP2 after 10 day of added claim and check result", async () => {
-      const result = await protocolPool0.rewardsOf(
-        provider2tokenId,
-        365000,
-        [0, 1],
-        0,
-        HardhatHelper.getCurrentTime() + 10 * 24 * 60 * 60
-      );
-
-      expect(result.__newUserCapital).to.be.equal(365000);
-      expect(result.__totalRewards).to.be.equal(78 - 30 + 300);
+      expect(result.__totalRewards).to.be.equal(477 - 15 + 150);
     });
   });
 });

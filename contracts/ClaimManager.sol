@@ -10,6 +10,8 @@ import "./interfaces/IAthena.sol";
 
 import "./ClaimEvidence.sol";
 
+import "hardhat/console.sol";
+
 // @bw add reentrency guard to all fns with ETH manipulation
 
 contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
