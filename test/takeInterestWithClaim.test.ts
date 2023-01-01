@@ -138,11 +138,11 @@ describe("Liquidity provider takeInterest", () => {
   });
 
   it("Should add a claim in protocol2 and check claim info in protocol0", async () => {
-    await ProtocolHelper.createClaim(policyTaker3, 0, "182500");
+    await ProtocolHelper.createClaim(policyTaker3, 2, "182500");
 
     await ProtocolHelper.resolveClaimWithoutDispute(
       policyTaker3,
-      0,
+      2,
       14 * 24 * 60 * 60 + 10 // 14 days + 10 seconds
     );
 
@@ -152,7 +152,7 @@ describe("Liquidity provider takeInterest", () => {
     expect(claim.ratio).to.be.equal("500000000000000000000000000");
     expect(claim.liquidityIndexBeforeClaim).to.not.be.equal(0);
     expect(claim.liquidityIndexBeforeClaim).to.be.equal(
-      "131506849315068493150684"
+      "1758909817351598173515981"
     );
   });
 
@@ -176,9 +176,9 @@ describe("Liquidity provider takeInterest", () => {
 
     expect(decodedData.tokenId).to.be.equal(provider1tokenId);
     expect(decodedData.userCapital).to.be.equal(182500);
-    expect(decodedData.rewardsGross).to.be.equal(63);
-    expect(decodedData.rewardsNet).to.be.equal(53);
-    expect(decodedData.fee).to.be.equal(10);
+    expect(decodedData.rewardsGross).to.be.equal(657);
+    expect(decodedData.rewardsNet).to.be.equal(558);
+    expect(decodedData.fee).to.be.equal(99);
 
     expect(
       lpInfoAfter.beginLiquidityIndex.gt(lpInfoBefore.beginLiquidityIndex)
@@ -209,9 +209,9 @@ describe("Liquidity provider takeInterest", () => {
 
     expect(decodedData.tokenId).to.be.equal(provider2tokenId);
     expect(decodedData.userCapital).to.be.equal(365000);
-    expect(decodedData.rewardsGross).to.be.equal(78 + 30);
-    expect(decodedData.rewardsNet).to.be.equal(102);
-    expect(decodedData.fee).to.be.equal(6);
+    expect(decodedData.rewardsGross).to.be.equal(702);
+    expect(decodedData.rewardsNet).to.be.equal(666);
+    expect(decodedData.fee).to.be.equal(36);
 
     expect(
       lpInfoAfter.beginLiquidityIndex.gt(lpInfoBefore.beginLiquidityIndex)
