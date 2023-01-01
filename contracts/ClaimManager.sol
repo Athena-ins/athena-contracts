@@ -217,6 +217,27 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
     }
   }
 
+  /**
+   * @notice
+   * Returns all the claims of a protocol.
+   * @param protocolId_ The protocol's address
+   * @return claimsInfo All the protocol's claims
+   */
+  function claimsByProtocol(uint256 protocolId_)
+    external
+    view
+    returns (Claim[] memory claimsInfo)
+  {
+    for (uint256 i = 0; i < claimIndex; i++) {
+      Claim memory claim = claims[i];
+
+      if (claim.protocolId == protocolId_) {
+        uint256 index = claimsInfo.length;
+        claimsInfo[index] = claim;
+      }
+    }
+  }
+
   /// ============================ ///
   /// ========== HELPER ========== ///
   /// ============================ ///
