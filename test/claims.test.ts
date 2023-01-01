@@ -79,6 +79,37 @@ describe("Claims", () => {
     // ================= Policy Buyers ================= //
 
     await HardhatHelper.USDT_maxApprove(
+      policyTaker3,
+      ProtocolHelper.getAthenaContract().address
+    );
+
+    const capital3 = "182500";
+    const premium3 = "8760";
+    const atensLocked3 = "0";
+    await ProtocolHelper.buyPolicy(
+      policyTaker3,
+      capital3,
+      premium3,
+      atensLocked3,
+      2,
+      10 * 24 * 60 * 60
+    );
+
+    await HardhatHelper.USDT_maxApprove(
+      policyTaker4,
+      ProtocolHelper.getAthenaContract().address
+    );
+
+    await ProtocolHelper.buyPolicy(
+      policyTaker4,
+      capital3,
+      premium3,
+      atensLocked3,
+      3,
+      10 * 24 * 60 * 60
+    );
+
+    await HardhatHelper.USDT_maxApprove(
       policyTaker1,
       ProtocolHelper.getAthenaContract().address
     );
@@ -109,37 +140,6 @@ describe("Claims", () => {
       premium2,
       atensLocked2,
       0,
-      10 * 24 * 60 * 60
-    );
-
-    await HardhatHelper.USDT_maxApprove(
-      policyTaker3,
-      ProtocolHelper.getAthenaContract().address
-    );
-
-    const capital3 = "182500";
-    const premium3 = "8760";
-    const atensLocked3 = "0";
-    await ProtocolHelper.buyPolicy(
-      policyTaker3,
-      capital3,
-      premium3,
-      atensLocked3,
-      2,
-      10 * 24 * 60 * 60
-    );
-
-    await HardhatHelper.USDT_maxApprove(
-      policyTaker4,
-      ProtocolHelper.getAthenaContract().address
-    );
-
-    await ProtocolHelper.buyPolicy(
-      policyTaker4,
-      capital3,
-      premium3,
-      atensLocked3,
-      3,
       10 * 24 * 60 * 60
     );
   });
@@ -176,11 +176,11 @@ describe("Claims", () => {
     });
 
     it("Should add claim in Protocol 2", async () => {
-      await ProtocolHelper.createClaim(policyTaker3, 2, "182500");
+      await ProtocolHelper.createClaim(policyTaker3, 0, "182500");
 
       await ProtocolHelper.resolveClaimWithoutDispute(
         policyTaker3,
-        2,
+        0,
         14 * 24 * 60 * 60 + 10 // 14 days + 10 seconds
       );
 
@@ -189,7 +189,7 @@ describe("Claims", () => {
       expect(claim.fromProtocolId).to.be.equal(2);
       expect(claim.ratio).to.be.equal("250000000000000000000000000");
       expect(claim.liquidityIndexBeforeClaim).to.be.equal(
-        "131506849315068493150684"
+        "772608447488584474885844"
       );
     });
 
@@ -216,7 +216,7 @@ describe("Claims", () => {
     it("Should check slot0 in Protocol 0 at the moment of adding claim in Protocol 2", async () => {
       const slot0 = await protocolPool0.slot0();
 
-      expect(slot0.tick).to.be.equal(24);
+      expect(slot0.tick).to.be.equal(76);
       expect(slot0.secondsPerTick).to.be.equal(48 * 6 * 60);
       expect(slot0.totalInsuredCapital).to.be.equal("328500");
       expect(slot0.remainingPolicies).to.be.equal("2");
@@ -238,7 +238,7 @@ describe("Claims", () => {
         HardhatHelper.getCurrentTime() + days * 24 * 60 * 60
       );
 
-      expect(result.__slot0.tick).to.be.equal(29);
+      expect(result.__slot0.tick).to.be.equal(81);
       expect(result.__slot0.secondsPerTick).to.be.equal(48 * 6 * 60);
       expect(result.__slot0.totalInsuredCapital).to.be.equal(328500);
       expect(result.__slot0.remainingPolicies).to.be.equal(2);
@@ -261,7 +261,7 @@ describe("Claims", () => {
       expect(intersecAmounts2).to.be.equal("547500");
 
       const slot0 = await protocolPool0.slot0();
-      expect(slot0.tick).to.be.equal(29);
+      expect(slot0.tick).to.be.equal(81);
       expect(slot0.secondsPerTick).to.be.equal(48 * 6 * 60);
       expect(slot0.totalInsuredCapital).to.be.equal("328500");
       expect(slot0.remainingPolicies).to.be.equal(2);
@@ -282,16 +282,16 @@ describe("Claims", () => {
       expect(claim.fromProtocolId).to.be.equal(2);
       expect(claim.ratio).to.be.equal("250000000000000000000000000");
       expect(claim.liquidityIndexBeforeClaim).to.be.equal(
-        "131506849315068493150684"
+        "772608447488584474885844"
       );
     });
 
     it("Should add claim in protocol 3", async () => {
-      await ProtocolHelper.createClaim(policyTaker4, 3, "182500");
+      await ProtocolHelper.createClaim(policyTaker4, 1, "182500");
 
       await ProtocolHelper.resolveClaimWithoutDispute(
         policyTaker4,
-        3,
+        1,
         14 * 24 * 60 * 60 + 10 // 14 days + 10 seconds
       );
 
