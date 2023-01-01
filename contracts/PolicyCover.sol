@@ -12,8 +12,6 @@ import "./interfaces/IPolicyCover.sol";
 
 import "./ClaimCover.sol";
 
-import "hardhat/console.sol";
-
 abstract contract PolicyCover is IPolicyCover, ClaimCover {
   using RayMath for uint256;
   using Tick for mapping(uint32 => address[]);

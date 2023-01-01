@@ -18,8 +18,6 @@ import "./interfaces/IScaledBalanceToken.sol";
 import "./interfaces/IClaimManager.sol";
 import "./interfaces/IVaultERC20.sol";
 
-import "hardhat/console.sol";
-
 contract Athena is IAthena, ReentrancyGuard, Ownable {
   using SafeERC20 for IERC20;
   using RayMath for uint256;

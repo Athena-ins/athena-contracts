@@ -7,8 +7,6 @@ import "./interfaces/IPolicyManager.sol";
 import "./interfaces/IAthena.sol";
 import "./interfaces/IProtocolPool.sol";
 
-import "hardhat/console.sol";
-
 contract PolicyManager is IPolicyManager, ERC721Enumerable {
   address private core;
 

@@ -3,7 +3,6 @@ pragma solidity ^0.8;
 
 import "./libraries/RayMath.sol";
 
-import "hardhat/console.sol";
 
 abstract contract LiquidityCover {
   using RayMath for uint256;
