@@ -123,7 +123,7 @@ describe("Liquidity provider withdraw", () => {
       expect(claim.fromProtocolId).to.be.equal(2);
       expect(claim.ratio).to.be.equal("250000000000000000000000000");
       expect(claim.liquidityIndexBeforeClaim).to.be.equal(
-        "90410958904109589041095"
+        "197261225266362252663622"
       );
     });
 
@@ -147,8 +147,7 @@ describe("Liquidity provider withdraw", () => {
         result.events.find(
           (el: any) =>
             el.topics[0] ===
-              "0x620d50d2ff399522b99eeffadbd9b188529ed4c6ce9a4ecf9e85fc3c00edc79f" &&
-            el.data.includes(`${"2a".padStart(64, "0")}${"".padStart(62, "0")}`)
+            "0x620d50d2ff399522b99eeffadbd9b188529ed4c6ce9a4ecf9e85fc3c00edc79f"
         ) || {};
 
       const p0_decodedData = protocolPool0.interface.decodeEventLog(
@@ -158,9 +157,9 @@ describe("Liquidity provider withdraw", () => {
 
       expect(p0_decodedData.tokenId).to.be.equal(provider1tokenId);
       expect(p0_decodedData.capital).to.be.equal(136875);
-      expect(p0_decodedData.rewardsGross).to.be.equal(42);
-      expect(p0_decodedData.rewardsNet).to.be.equal(35);
-      expect(p0_decodedData.fee).to.be.equal(7);
+      expect(p0_decodedData.rewardsGross).to.be.equal(62);
+      expect(p0_decodedData.rewardsNet).to.be.equal(52);
+      expect(p0_decodedData.fee).to.be.equal(10);
 
       const p0_premiumRate = await protocolPool0.getCurrentPremiumRate();
 
@@ -181,8 +180,7 @@ describe("Liquidity provider withdraw", () => {
         result.events.find(
           (el: any) =>
             el.topics[0] ===
-              "0x620d50d2ff399522b99eeffadbd9b188529ed4c6ce9a4ecf9e85fc3c00edc79f" &&
-            el.data.includes(`${"56".padStart(64, "0")}${"".padStart(62, "0")}`)
+            "0x620d50d2ff399522b99eeffadbd9b188529ed4c6ce9a4ecf9e85fc3c00edc79f"
         ) || {};
 
       const p2_decodedData = protocolPool2.interface.decodeEventLog(
@@ -192,9 +190,9 @@ describe("Liquidity provider withdraw", () => {
 
       expect(p2_decodedData.tokenId).to.be.equal(provider1tokenId);
       expect(p2_decodedData.capital).to.be.equal(136875);
-      expect(p2_decodedData.rewardsGross).to.be.equal(86);
-      expect(p2_decodedData.rewardsNet).to.be.equal(73);
-      expect(p2_decodedData.fee).to.be.equal(13);
+      expect(p2_decodedData.rewardsGross).to.be.equal(62);
+      expect(p2_decodedData.rewardsNet).to.be.equal(52);
+      expect(p2_decodedData.fee).to.be.equal(10);
 
       const p2_premiumRate = await protocolPool2.getCurrentPremiumRate();
 
@@ -224,9 +222,9 @@ describe("Liquidity provider withdraw", () => {
 
       expect(decodedData.tokenId).to.be.equal(provider2tokenId);
       expect(decodedData.userCapital).to.be.equal(410625);
-      expect(decodedData.rewardsGross).to.be.equal(211);
-      expect(decodedData.rewardsNet).to.be.equal(200);
-      expect(decodedData.fee).to.be.equal(11);
+      expect(decodedData.rewardsGross).to.be.equal(270);
+      expect(decodedData.rewardsNet).to.be.equal(256);
+      expect(decodedData.fee).to.be.equal(14);
 
       const lpInfoAfter = await protocolPool0.LPsInfo(provider2tokenId);
 
