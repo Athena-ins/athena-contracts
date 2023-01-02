@@ -326,7 +326,7 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
     // Check that the user is not trying to claim more than the amount covered
     require(
       0 < amountClaimed_ && amountClaimed_ <= userPolicy.amountCovered,
-      "CM: bad claim range"
+      "CM: bad amount range"
     );
 
     // Check that the user has deposited the capital necessary for arbitration and collateral
@@ -339,10 +339,12 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
     // Check if there already an ongoing claim related to this policy
     uint256 latestClaimIdOfPolicy = policyIdToLatestClaimId[policyId_];
     if (latestClaimIdOfPolicy != 0) {
-      // Only allow for a new claim if the previous was rejected after a dispute
+      // Only allow for a new claim if it is not initiated or disputed
+      // @dev a policy can lead to multiple claims but if the total claimed amount exceeds their coverage amount then the claim may be disputed
       Claim storage userClaim = claims[latestClaimIdOfPolicy];
       require(
-        userClaim.status == ClaimStatus.RejectedWithDispute,
+        userClaim.status != ClaimStatus.Initiated &&
+          userClaim.status != ClaimStatus.Disputed,
         "CM: previous claim still ongoing"
       );
     }
