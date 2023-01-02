@@ -12,7 +12,7 @@
     "testNTT": "npx hardhat test ./test/deployProtocol.test.ts ./test/liquidityProvider.test.ts ./test/policyTaker.test.ts ./test/policiesTaker.test.ts ./test/policyView.test.ts ./test/claims.test.ts ./test/rewardsWithoutClaim.test.ts ./test/rewardsWithClaims.test.ts ./test/takeInterestWithoutClaim.test.ts ./test/takeInterestWithClaim.test.ts ./test/withdrawLiquidity1ProtocolWithoutClaim.test.ts ./test/withdrawAllWithoutClaim.test.ts ./test/withdrawAllWithClaim.test.ts ./test/resolveClaim.test.ts ./test/expiredPoliciesWithCanceling.test.ts ./test/expiredPoliciesWithoutCanceling.test.ts ./test/ongoingCoveragePolicies.test.ts",
     "testView": "npx hardhat test ./test/protocolsView.test.ts",
     "testFBW": "npx hardhat test ./test/claims.test.ts ./test/rewardsWithClaims.test.ts ./test/takeInterestWithClaim.test.ts ./test/withdrawAllWithClaim.test.ts ./test/resolveClaim.test.ts",
-    "testBW": "npx hardhat test ./test/rewardsWithClaims.test.ts"
+    "testBW": "npx hardhat test ./test/resolveClaim.test.ts"
   },
   "repository": {
     "type": "git",
