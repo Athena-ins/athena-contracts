@@ -175,25 +175,51 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     return protocolsMapping[protocolId].deployed;
   }
 
-  function getProtocols(uint128[] calldata protocolIds)
+  function getProtocol(uint128 protocolId)
+    external
+    view
+    returns (ProtocolView memory)
+  {
+    require(protocolId < nextProtocolId, "A: out of range");
+
+    address poolAddress = protocolsMapping[protocolId].deployed;
+
+    (
+      string memory name,
+      uint256 totalCouvrageValue,
+      uint256 availableCapacity,
+      uint256 utilizationRate,
+      uint256 premiumRate
+    ) = IProtocolPool(poolAddress).protocolInfo();
+
+    return
+      ProtocolView(
+        name,
+        protocolId,
+        totalCouvrageValue,
+        availableCapacity,
+        utilizationRate,
+        premiumRate
+      );
+  }
+
+  function getAllProtocols()
     external
     view
     returns (ProtocolView[] memory protocols)
   {
-    protocols = new ProtocolView[](protocolIds.length);
-    for (uint128 i = 0; i < protocolIds.length; i++) {
+    for (uint128 i = 0; i < nextProtocolId; i++) {
       (
         string memory name,
         uint256 totalCouvrageValue,
         uint256 availableCapacity,
         uint256 utilizationRate,
         uint256 premiumRate
-      ) = IProtocolPool(protocolsMapping[protocolIds[i]].deployed)
-          .protocolInfo();
+      ) = IProtocolPool(protocolsMapping[i].deployed).protocolInfo();
 
       protocols[i] = ProtocolView(
         name,
-        protocolIds[i],
+        i,
         totalCouvrageValue,
         availableCapacity,
         utilizationRate,
@@ -823,6 +849,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     emit NewProtocol(newProtocolId);
   }
 
+  // @bw unused
   function pauseProtocol(uint128 protocolId, bool pause) external onlyOwner {
     protocolsMapping[protocolId].active = pause;
   }

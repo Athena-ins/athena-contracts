@@ -88,9 +88,11 @@ describe("Protocols view", () => {
   });
 
   it("Should call Athena.linearProtocolsView(beginId = 0, numberOfProtocols = 3)", async () => {
-    const result = await ProtocolHelper.getAthenaContract()
-      .connect(owner)
-      .getProtocols([0, 1, 2]);
+    const result = await Promise.all([
+      ProtocolHelper.getAthenaContract().connect(owner).getProtocol(0),
+      ProtocolHelper.getAthenaContract().connect(owner).getProtocol(1),
+      ProtocolHelper.getAthenaContract().connect(owner).getProtocol(2),
+    ]);
 
     expect(result.length).to.be.equal(3);
 
@@ -121,9 +123,10 @@ describe("Protocols view", () => {
   });
 
   it("Should call Athena.linearProtocolsView(beginId = 23, numberOfProtocols = 2)", async () => {
-    const result = await ProtocolHelper.getAthenaContract()
-      .connect(owner)
-      .getProtocols([23, 24]);
+    const result = await Promise.all([
+      ProtocolHelper.getAthenaContract().connect(owner).getProtocol(23),
+      ProtocolHelper.getAthenaContract().connect(owner).getProtocol(23),
+    ]);
 
     expect(result.length).to.be.equal(2);
 
@@ -143,9 +146,12 @@ describe("Protocols view", () => {
   });
 
   it("Should call Athena.protocolsView([2, 37, 90, 85])", async () => {
-    const result = await ProtocolHelper.getAthenaContract()
-      .connect(owner)
-      .getProtocols([2, 37, 90, 85]);
+    const result = await Promise.all([
+      ProtocolHelper.getAthenaContract().connect(owner).getProtocol(2),
+      ProtocolHelper.getAthenaContract().connect(owner).getProtocol(37),
+      ProtocolHelper.getAthenaContract().connect(owner).getProtocol(90),
+      ProtocolHelper.getAthenaContract().connect(owner).getProtocol(85),
+    ]);
 
     expect(result.length).to.be.equal(4);
 
