@@ -1103,6 +1103,44 @@
         "IERC20Metadata"
       ]
     },
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\TokenVault.sol": {
+      "lastModificationDate": 1672742334038,
+      "contentHash": "3fcf8f2bcfc6d7a0b3212f8562a2950f",
+      "sourceName": "contracts/TokenVault.sol",
+      "solcConfig": {
+        "version": "0.8.11",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol",
+        "./interfaces/IVaultERC20.sol"
+      ],
+      "versionPragmas": [
+        "^0.8"
+      ],
+      "artifacts": [
+        "TokenVault"
+      ]
+    },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\StrategicSale\\StrategicSale.sol": {
       "lastModificationDate": 1664788756625,
       "contentHash": "2a71bc97f5d0b9b9849f09b04fb266e7",
@@ -1182,10 +1220,10 @@
         "PrivateSale"
       ]
     },
-    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\USDT_testnet\\USDT.sol": {
-      "lastModificationDate": 1664788756627,
-      "contentHash": "c03b28e54103a386b30a27b897b0c772",
-      "sourceName": "contracts/USDT_testnet/USDT.sol",
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\StakingGeneralPool.sol": {
+      "lastModificationDate": 1672742389338,
+      "contentHash": "4fa15912e5bb97d8e26ac98fcbb9bd8f",
+      "sourceName": "contracts/StakingGeneralPool.sol",
       "solcConfig": {
         "version": "0.8.11",
         "settings": {
@@ -1210,13 +1248,18 @@
         }
       },
       "imports": [
-        "@openzeppelin/contracts/token/ERC20/ERC20.sol"
+        "@openzeppelin/contracts/access/Ownable.sol",
+        "@openzeppelin/contracts/security/ReentrancyGuard.sol",
+        "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol",
+        "./libraries/ERC20withSnapshot.sol",
+        "./FixedRateStakeable.sol",
+        "./interfaces/IStakedAten.sol"
       ],
       "versionPragmas": [
         "^0.8"
       ],
       "artifacts": [
-        "USDT"
+        "StakingGeneralPool"
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\libraries\\ERC20withSnapshot.sol": {
@@ -1289,6 +1332,81 @@
       ],
       "artifacts": [
         "FixedRateStakeable"
+      ]
+    },
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\USDT_testnet\\USDT.sol": {
+      "lastModificationDate": 1664788756627,
+      "contentHash": "c03b28e54103a386b30a27b897b0c772",
+      "sourceName": "contracts/USDT_testnet/USDT.sol",
+      "solcConfig": {
+        "version": "0.8.11",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "@openzeppelin/contracts/token/ERC20/ERC20.sol"
+      ],
+      "versionPragmas": [
+        "^0.8"
+      ],
+      "artifacts": [
+        "USDT"
+      ]
+    },
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\StakingPolicy.sol": {
+      "lastModificationDate": 1672742291036,
+      "contentHash": "c95e1f9e6bcd9db177bdddbb694bc9a4",
+      "sourceName": "contracts/StakingPolicy.sol",
+      "solcConfig": {
+        "version": "0.8.11",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol",
+        "./libraries/ERC20withSnapshot.sol"
+      ],
+      "versionPragmas": [
+        "^0.8"
+      ],
+      "artifacts": [
+        "StakingPolicy"
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\node_modules\\@openzeppelin\\contracts\\token\\ERC721\\ERC721.sol": {
@@ -2241,124 +2359,6 @@
         "IERC20",
         "Ownable",
         "SafeMath"
-      ]
-    },
-    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\TokenVault.sol": {
-      "lastModificationDate": 1672738421752,
-      "contentHash": "b62ec5df36cc9255c6e69f306abd122d",
-      "sourceName": "contracts/TokenVault.sol",
-      "solcConfig": {
-        "version": "0.8.11",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 1000
-          },
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [
-        "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol",
-        "./interfaces/IVaultERC20.sol"
-      ],
-      "versionPragmas": [
-        "^0.8"
-      ],
-      "artifacts": [
-        "AtensVault"
-      ]
-    },
-    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\StakingGeneralPool.sol": {
-      "lastModificationDate": 1672738391427,
-      "contentHash": "97b66f9e117fec8e71df6a3bcbd19e44",
-      "sourceName": "contracts/StakingGeneralPool.sol",
-      "solcConfig": {
-        "version": "0.8.11",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 1000
-          },
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [
-        "@openzeppelin/contracts/access/Ownable.sol",
-        "@openzeppelin/contracts/security/ReentrancyGuard.sol",
-        "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol",
-        "./libraries/ERC20withSnapshot.sol",
-        "./FixedRateStakeable.sol",
-        "./interfaces/IStakedAten.sol"
-      ],
-      "versionPragmas": [
-        "^0.8"
-      ],
-      "artifacts": [
-        "StakedAten"
-      ]
-    },
-    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\StakingPolicy.sol": {
-      "lastModificationDate": 1672738358270,
-      "contentHash": "ea21dd83056b9c043f0935772e69cca3",
-      "sourceName": "contracts/StakingPolicy.sol",
-      "solcConfig": {
-        "version": "0.8.11",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 1000
-          },
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [
-        "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol",
-        "./libraries/ERC20withSnapshot.sol"
-      ],
-      "versionPragmas": [
-        "^0.8"
-      ],
-      "artifacts": [
-        "FixedRateStakeablePolicy"
       ]
     }
   }
