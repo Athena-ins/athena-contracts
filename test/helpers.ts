@@ -86,7 +86,9 @@ export const deployAndInitProtocol = async (
   await POS_CONTRACT.deployed();
   console.log("Deployed PositionsManager");
 
-  const factoryStakedAtens = await hre.ethers.getContractFactory("StakedAten");
+  const factoryStakedAtens = await hre.ethers.getContractFactory(
+    "StakingGeneralPool"
+  );
   const STAKED_ATENS_CONTRACT = await factoryStakedAtens
     .connect(allSigners[0])
     .deploy(opts?.ATEN || ATEN_TOKEN, ATHENA_CONTRACT.address);
@@ -94,7 +96,7 @@ export const deployAndInitProtocol = async (
   console.log("Deployed Staked Atens");
 
   const factoryStakedAtensPolicy = await hre.ethers.getContractFactory(
-    "FixedRateStakeablePolicy"
+    "StakingPolicy"
   );
   const STAKED_ATENS_CONTRACT_POLICY = await factoryStakedAtensPolicy
     .connect(allSigners[0])
@@ -114,7 +116,7 @@ export const deployAndInitProtocol = async (
   await FACTORY_PROTOCOL_CONTRACT.deployed();
   console.log("Deployed Factory Protocol");
 
-  const vaultFactory = await hre.ethers.getContractFactory("AtensVault");
+  const vaultFactory = await hre.ethers.getContractFactory("TokenVault");
   const VAULT_ATENS_CONTRACT = await vaultFactory
     .connect(allSigners[0])
     .deploy(opts?.ATEN || ATEN_TOKEN, ATHENA_CONTRACT.address);

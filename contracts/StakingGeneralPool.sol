@@ -10,7 +10,7 @@ import "./FixedRateStakeable.sol";
 import "./interfaces/IStakedAten.sol";
 
 // @notice Staking Pool Contract: General Pool (GP)
-contract StakedAten is
+contract StakingGeneralPool is
   IStakedAten,
   ERC20WithSnapshot,
   FixedRateStakeable,

@@ -44,7 +44,7 @@ function getPositionManagerContract() {
 
 async function deployStakedAtenContract(owner: ethers.Signer) {
   STAKED_ATENS_CONTRACT = await (
-    await hre_ethers.getContractFactory("StakedAten")
+    await hre_ethers.getContractFactory("StakingGeneralPool")
   )
     .connect(owner)
     .deploy(HardhatHelper.ATEN, ATHENA_CONTRACT.address);
@@ -104,7 +104,7 @@ function getClaimManagerContract() {
 
 async function deployStakedAtensPolicyContract(owner: ethers.Signer) {
   STAKED_ATENS_POLICY_CONTRACT = await (
-    await hre_ethers.getContractFactory("FixedRateStakeablePolicy")
+    await hre_ethers.getContractFactory("StakingPolicy")
   )
     .connect(owner)
     .deploy(HardhatHelper.ATEN, ATHENA_CONTRACT.address);
@@ -118,7 +118,7 @@ function getStakedAtensPolicyContract() {
 
 async function deployVaultAtenContract(owner: ethers.Signer) {
   VAULT_ATENS_CONTRACT = await (
-    await hre_ethers.getContractFactory("AtensVault")
+    await hre_ethers.getContractFactory("TokenVault")
   )
     .connect(owner)
     .deploy(HardhatHelper.ATEN, ATHENA_CONTRACT.address);

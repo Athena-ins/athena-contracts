@@ -3,10 +3,8 @@ pragma solidity ^0.8;
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./libraries/ERC20withSnapshot.sol";
 
-/**
- * @notice Staking Pool Contract: Policy
- */
-contract FixedRateStakeablePolicy is ERC20WithSnapshot {
+/// @notice Staking Pool Contract: Policy
+contract StakingPolicy is ERC20WithSnapshot {
   using SafeERC20 for IERC20;
 
   // The amount of ATEN tokens still available for staking rewards

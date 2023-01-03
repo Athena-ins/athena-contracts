@@ -40,7 +40,7 @@ describe("Deploy protocol", () => {
         ).to.not.equal("0x");
       });
 
-      it("Should deploy StakedAten contract", async () => {
+      it("Should deploy StakingGeneralPool contract", async () => {
         await ProtocolHelper.deployStakedAtenContract(owner);
 
         expect(

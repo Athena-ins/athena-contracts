@@ -94,8 +94,10 @@ describe("Protocol Pool", function () {
       );
     });
 
-    it("Should deploy StakedAten contract", async function () {
-      const factoryStakedAtens = await ethers.getContractFactory("StakedAten");
+    it("Should deploy StakingGeneralPool contract", async function () {
+      const factoryStakedAtens = await ethers.getContractFactory(
+        "StakingGeneralPool"
+      );
       STAKED_ATENS_CONTRACT = await factoryStakedAtens
         .connect(owner)
         .deploy(ATEN_TOKEN, ATHENA_CONTRACT.address);

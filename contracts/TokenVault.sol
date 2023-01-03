@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./interfaces/IVaultERC20.sol";
 
 /// @notice Vault holding the locked supply of ATEN rewards
-contract AtensVault is IVaultERC20 {
+contract TokenVault is IVaultERC20 {
   uint256 private constant MAX_UINT256 = type(uint256).max;
   address public immutable underlyingAssetAddress;
   address public immutable core;
