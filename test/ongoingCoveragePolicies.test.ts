@@ -110,7 +110,7 @@ describe("Ongoing coverage policies", () => {
     expect(result[0].atensLocked).to.be.equals(0);
     expect(result[0].beginCoveredTime).to.be.equals(1648120800);
     expect(result[0].remainingDuration).to.be.equals(20102400);
-    expect(result[0].protocolId).to.be.equals(0);
+    expect(result[0].poolId).to.be.equals(0);
 
     expect(result[1].policyId).to.be.equals(2);
     expect(result[1].amountCovered).to.be.equals(219000);
@@ -120,7 +120,7 @@ describe("Ongoing coverage policies", () => {
     expect(result[1].atensLocked).to.be.equals(0);
     expect(result[1].beginCoveredTime).to.be.equals(1649071200);
     expect(result[1].remainingDuration).to.be.equals(42048000);
-    expect(result[1].protocolId).to.be.equals(2);
+    expect(result[1].poolId).to.be.equals(2);
   });
 
   it("Should call PolicyManager.getOngoingCoveragePolicies for PT1 after expireing of token 0", async () => {
@@ -164,7 +164,7 @@ describe("Ongoing coverage policies", () => {
 
     expect(result.length).to.be.equals(1);
     expect(result[0].policyId).to.be.equals(2);
-    expect(result[0].protocolId).to.be.equals(2);
+    expect(result[0].poolId).to.be.equals(2);
 
     const result1 =
       await ProtocolHelper.getPolicyManagerContract().getExpiredPolicies(
@@ -174,7 +174,7 @@ describe("Ongoing coverage policies", () => {
     // console.log("expired:\n", result1);
     expect(result1.length).to.be.equals(1);
     expect(result1[0].policyId).to.be.equals(0);
-    expect(result1[0].protocolId).to.be.equals(0);
+    expect(result1[0].poolId).to.be.equals(0);
 
     const result2 =
       await ProtocolHelper.getPolicyManagerContract().allPolicyTokensOfOwner(

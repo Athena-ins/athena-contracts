@@ -15,23 +15,22 @@ interface IAthena {
 
   function policyManager() external view returns (address);
 
-  function getProtocolAddressById(uint128 protocolId)
+  function getProtocolAddressById(uint128 poolId)
     external
     view
     returns (address);
 
   function getFeeRateWithAten(uint256 atens) external view returns (uint128);
 
-  function nextProtocolId() external view returns (uint128);
+  function nextPoolId() external view returns (uint128);
 
   function transferLiquidityToAAVE(uint256 amount) external returns (uint256);
 
   function actualizingProtocolAndRemoveExpiredPolicies(address protocolAddress)
     external;
 
-  function actualizingProtocolAndRemoveExpiredPoliciesByProtocolId(
-    uint128 protocolId
-  ) external;
+  function actualizingProtocolAndRemoveExpiredPoliciesByPoolId(uint128 poolId)
+    external;
 
   function compensateClaimant(
     uint256 policyId,

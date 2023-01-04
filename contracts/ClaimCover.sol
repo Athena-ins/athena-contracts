@@ -7,7 +7,7 @@ abstract contract ClaimCover is LiquidityCover {
   using RayMath for uint256;
 
   struct Claim {
-    uint128 fromProtocolId;
+    uint128 fromPoolId;
     uint256 ratio; // Ray //ratio = claimAmount / capital
     uint256 liquidityIndexBeforeClaim;
     uint256 aaveReserveNormalizedIncomeBeforeClaim;

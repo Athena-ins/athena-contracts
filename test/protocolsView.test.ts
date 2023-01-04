@@ -97,7 +97,7 @@ describe("Protocols view", () => {
     expect(result.length).to.be.equal(3);
 
     expect(result[0].name).to.be.equal("Test protocol 0");
-    expect(result[0].protocolId).to.be.equal(0);
+    expect(result[0].poolId).to.be.equal(0);
     expect(result[0].insuredCapital).to.be.equal(109500);
     expect(result[0].availableCapacity).to.be.equal(620500);
     expect(result[0].utilizationRate).to.be.equal(
@@ -106,14 +106,14 @@ describe("Protocols view", () => {
     expect(result[0].premiumRate).to.be.equal("2000000000000000000000000000");
 
     expect(result[1].name).to.be.equal("Test protocol 1");
-    expect(result[1].protocolId).to.be.equal(1);
+    expect(result[1].poolId).to.be.equal(1);
     expect(result[1].insuredCapital).to.be.equal(0);
     expect(result[1].availableCapacity).to.be.equal(0);
     expect(result[1].utilizationRate).to.be.equal("0");
     expect(result[1].premiumRate).to.be.equal("1000000000000000000000000000");
 
     expect(result[2].name).to.be.equal("Test protocol 2");
-    expect(result[2].protocolId).to.be.equal(2);
+    expect(result[2].poolId).to.be.equal(2);
     expect(result[2].insuredCapital).to.be.equal(219000);
     expect(result[2].availableCapacity).to.be.equal(511000);
     expect(result[2].utilizationRate).to.be.equal(
@@ -131,14 +131,14 @@ describe("Protocols view", () => {
     expect(result.length).to.be.equal(2);
 
     expect(result[0].name).to.be.equal("Test protocol 23");
-    expect(result[0].protocolId).to.be.equal(23);
+    expect(result[0].poolId).to.be.equal(23);
     expect(result[0].insuredCapital).to.be.equal(0);
     expect(result[0].availableCapacity).to.be.equal(0);
     expect(result[0].utilizationRate).to.be.equal("0");
     expect(result[0].premiumRate).to.be.equal("1000000000000000000000000000");
 
     expect(result[1].name).to.be.equal("Test protocol 24");
-    expect(result[1].protocolId).to.be.equal(24);
+    expect(result[1].poolId).to.be.equal(24);
     expect(result[1].insuredCapital).to.be.equal(0);
     expect(result[1].availableCapacity).to.be.equal(0);
     expect(result[1].utilizationRate).to.be.equal("0");
@@ -156,7 +156,7 @@ describe("Protocols view", () => {
     expect(result.length).to.be.equal(4);
 
     expect(result[0].name).to.be.equal("Test protocol 2");
-    expect(result[0].protocolId).to.be.equal(2);
+    expect(result[0].poolId).to.be.equal(2);
     expect(result[0].insuredCapital).to.be.equal(219000);
     expect(result[0].availableCapacity).to.be.equal(511000);
     expect(result[0].utilizationRate).to.be.equal(
@@ -165,21 +165,21 @@ describe("Protocols view", () => {
     expect(result[0].premiumRate).to.be.equal("3000000000000000000000000000");
 
     expect(result[1].name).to.be.equal("Test protocol 37");
-    expect(result[1].protocolId).to.be.equal(37);
+    expect(result[1].poolId).to.be.equal(37);
     expect(result[1].insuredCapital).to.be.equal(0);
     expect(result[1].availableCapacity).to.be.equal(0);
     expect(result[1].utilizationRate).to.be.equal("0");
     expect(result[1].premiumRate).to.be.equal("1000000000000000000000000000");
 
     expect(result[2].name).to.be.equal("Test protocol 90");
-    expect(result[2].protocolId).to.be.equal(90);
+    expect(result[2].poolId).to.be.equal(90);
     expect(result[2].insuredCapital).to.be.equal(0);
     expect(result[2].availableCapacity).to.be.equal(0);
     expect(result[2].utilizationRate).to.be.equal("0");
     expect(result[2].premiumRate).to.be.equal("1000000000000000000000000000");
 
     expect(result[3].name).to.be.equal("Test protocol 85");
-    expect(result[3].protocolId).to.be.equal(85);
+    expect(result[3].poolId).to.be.equal(85);
     expect(result[3].insuredCapital).to.be.equal(0);
     expect(result[3].availableCapacity).to.be.equal(0);
     expect(result[3].utilizationRate).to.be.equal("0");

@@ -7,7 +7,7 @@ interface IClaimManager {
   function claimChallenger(uint256 claimId_) external view returns (address);
 
   function addAgreementForProtocol(
-    uint256 protocolId_,
+    uint256 poolId_,
     string calldata agreementIpfsHash_
   ) external;
 }

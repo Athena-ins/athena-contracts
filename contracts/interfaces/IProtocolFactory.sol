@@ -5,7 +5,7 @@ interface IProtocolFactory {
   function deployProtocol(
     string calldata name,
     address stablecoin,
-    uint128 newProtocolId,
+    uint128 newPoolId,
     uint256 _uOptimal,
     uint256 _r0,
     uint256 _rSlope1,

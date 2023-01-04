@@ -20,7 +20,7 @@ interface IProtocolPool is IPolicyCover {
   function rewardsOf(
     uint256 tokenId,
     uint256 _userCapital,
-    uint128[] calldata _protocolIds,
+    uint128[] calldata _poolIds,
     uint256 _feeRate,
     uint256 _dateInSecond
   )
@@ -36,7 +36,7 @@ interface IProtocolPool is IPolicyCover {
     address account,
     uint256 tokenId,
     uint256 userCapital,
-    uint128[] calldata protocolIds,
+    uint128[] calldata poolIds,
     uint256 feeRate
   )
     external
@@ -51,7 +51,7 @@ interface IProtocolPool is IPolicyCover {
     address account,
     uint256 tokenId,
     uint256 userCapital,
-    uint128[] calldata protocolIds,
+    uint128[] calldata poolIds,
     uint128 feeRate
   )
     external
@@ -71,14 +71,14 @@ interface IProtocolPool is IPolicyCover {
     returns (uint256 remainedPremium);
 
   function processClaim(
-    uint128 fromProtocolId,
+    uint128 fromPoolId,
     uint256 ratio,
     uint256 aaveReserveNormalizedIncome
   ) external;
 
   function getRelatedProtocols() external view returns (uint128[] memory);
 
-  function addRelatedProtocol(uint128 protocolId, uint256 amount) external;
+  function addRelatedProtocol(uint128 poolId, uint256 amount) external;
 
   function removeLPInfo(uint256 tokenId) external;
 

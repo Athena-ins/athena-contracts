@@ -162,7 +162,7 @@ describe("Buy policy", () => {
 
       const policy = await POLICY_MANAGER_CONTRACT.policy(tokenId);
       expect(policy.amountCovered).to.equal(capital);
-      expect(policy.protocolId).to.equal(BN(0));
+      expect(policy.poolId).to.equal(BN(0));
 
       const protocolContract = await ProtocolHelper.getProtocolPoolContract(
         policyTaker1,
@@ -287,7 +287,7 @@ describe("Buy policy", () => {
 
       const policy = await POLICY_MANAGER_CONTRACT.policy(tokenId);
       expect(policy.amountCovered).to.equal(capital);
-      expect(policy.protocolId).to.equal(BN(0));
+      expect(policy.poolId).to.equal(BN(0));
 
       const protocolContract = await ProtocolHelper.getProtocolPoolContract(
         policyTaker2,

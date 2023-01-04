@@ -20,7 +20,7 @@ contract ProtocolFactory {
   function deployProtocol(
     string calldata name,
     address stablecoin,
-    uint128 newProtocolId,
+    uint128 newPoolId,
     uint256 _uOptimal,
     uint256 _r0,
     uint256 _rSlope1,
@@ -31,7 +31,7 @@ contract ProtocolFactory {
         new ProtocolPool(
           core,
           stablecoin,
-          newProtocolId,
+          newPoolId,
           _uOptimal,
           _r0,
           _rSlope1,

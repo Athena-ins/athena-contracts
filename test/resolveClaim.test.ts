@@ -170,7 +170,7 @@ describe("Claims", () => {
 
       const claim = await protocolPool3.processedClaims(0);
 
-      expect(claim.fromProtocolId).to.be.equal(3);
+      expect(claim.fromPoolId).to.be.equal(3);
       expect(claim.ratio).to.be.equal("500000000000000000000000000");
       expect(claim.liquidityIndexBeforeClaim).to.be.equal(
         "6516766731164383561643835"
@@ -267,7 +267,7 @@ describe("Claims", () => {
 
       const claim = await protocolPool0.processedClaims(0);
 
-      expect(claim.fromProtocolId).to.be.equal(0);
+      expect(claim.fromPoolId).to.be.equal(0);
       expect(claim.ratio).to.be.equal("250000000000000000000000000");
       expect(claim.liquidityIndexBeforeClaim).to.be.equal(
         "1512340182648401826484017"

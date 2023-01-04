@@ -41,12 +41,8 @@ contract PolicyManager is IPolicyManager, ERC721Enumerable {
     return policies[_tokenId].amountCovered != 0;
   }
 
-  function protocolIdOfPolicy(uint256 _tokenId)
-    external
-    view
-    returns (uint128)
-  {
-    return policies[_tokenId].protocolId;
+  function poolIdOfPolicy(uint256 _tokenId) external view returns (uint128) {
+    return policies[_tokenId].poolId;
   }
 
   function policy(uint256 _tokenId)
@@ -112,7 +108,7 @@ contract PolicyManager is IPolicyManager, ERC721Enumerable {
     for (uint256 i = 0; i < _tokens.length; i++) {
       Policy memory _policy = policy(_tokens[i]);
       address protocolAddress = IAthena(core).getProtocolAddressById(
-        _policy.protocolId
+        _policy.poolId
       );
       (
         uint256 _premiumLeft,
@@ -129,7 +125,7 @@ contract PolicyManager is IPolicyManager, ERC721Enumerable {
         dailyCost: _dailyCost,
         beginCoveredTime: _policy.beginCoveredTime,
         remainingDuration: _estDuration,
-        protocolId: _policy.protocolId
+        poolId: _policy.poolId
       });
     }
   }
@@ -143,10 +139,10 @@ contract PolicyManager is IPolicyManager, ERC721Enumerable {
     uint256 _amountCovered,
     uint256 _paidPremium,
     uint256 _atensLocked,
-    uint128 _protocolId
+    uint128 _poolId
   ) external override onlyCore returns (uint256) {
     policies[nextId] = Policy({
-      protocolId: _protocolId,
+      poolId: _poolId,
       amountCovered: _amountCovered,
       paidPremium: _paidPremium,
       atensLocked: _atensLocked,
@@ -185,7 +181,7 @@ contract PolicyManager is IPolicyManager, ERC721Enumerable {
         atensLocked: _policy.atensLocked,
         beginCoveredTime: _policy.beginCoveredTime,
         endCoveredTime: block.timestamp, // @bw ce n'est pas bon
-        protocolId: _policy.protocolId,
+        poolId: _policy.poolId,
         isCancelled: _isCanceled
       })
     );

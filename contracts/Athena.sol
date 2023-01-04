@@ -47,11 +47,11 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   /// Available reward levels (10_000 = 100% APR)
   AtenFeeLevel[] public supplyFeeLevels;
 
-  uint128 public override nextProtocolId;
+  uint128 public override nextPoolId;
 
   struct ProtocolView {
     string name;
-    uint128 protocolId;
+    uint128 poolId;
     uint256 insuredCapital;
     uint256 availableCapacity;
     uint256 utilizationRate;
@@ -129,29 +129,23 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   }
 
   //////Thao@NOTE: LP
-  modifier valideProtocolIds(uint128[] calldata protocolIds) {
-    for (
-      uint256 firstIndex = 0;
-      firstIndex < protocolIds.length;
-      firstIndex++
-    ) {
-      Protocol memory firstProtocol = protocolsMapping[protocolIds[firstIndex]];
+  modifier validePoolIds(uint128[] calldata poolIds) {
+    for (uint256 firstIndex = 0; firstIndex < poolIds.length; firstIndex++) {
+      Protocol memory firstProtocol = protocolsMapping[poolIds[firstIndex]];
       require(firstProtocol.active == true, "PA");
 
       for (
         uint256 secondIndex = firstIndex + 1;
-        secondIndex < protocolIds.length;
+        secondIndex < poolIds.length;
         secondIndex++
       ) {
-        require(protocolIds[firstIndex] != protocolIds[secondIndex], "DTSP");
+        require(poolIds[firstIndex] != poolIds[secondIndex], "DTSP");
 
         require(
-          incompatibilityProtocols[protocolIds[firstIndex]][
-            protocolIds[secondIndex]
-          ] ==
+          incompatibilityProtocols[poolIds[firstIndex]][poolIds[secondIndex]] ==
             false &&
-            incompatibilityProtocols[protocolIds[secondIndex]][
-              protocolIds[firstIndex]
+            incompatibilityProtocols[poolIds[secondIndex]][
+              poolIds[firstIndex]
             ] ==
             false,
           "PC"
@@ -166,23 +160,23 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   /// ========= VIEWS ======== ///
   /// ======================== ///
 
-  function getProtocolAddressById(uint128 protocolId)
+  function getProtocolAddressById(uint128 poolId)
     external
     view
     override
     returns (address)
   {
-    return protocolsMapping[protocolId].deployed;
+    return protocolsMapping[poolId].deployed;
   }
 
-  function getProtocol(uint128 protocolId)
+  function getProtocol(uint128 poolId)
     external
     view
     returns (ProtocolView memory)
   {
-    require(protocolId < nextProtocolId, "A: out of range");
+    require(poolId < nextPoolId, "A: out of range");
 
-    address poolAddress = protocolsMapping[protocolId].deployed;
+    address poolAddress = protocolsMapping[poolId].deployed;
 
     (
       string memory name,
@@ -195,7 +189,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     return
       ProtocolView(
         name,
-        protocolId,
+        poolId,
         insuredCapital,
         availableCapacity,
         utilizationRate,
@@ -208,7 +202,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     view
     returns (ProtocolView[] memory protocols)
   {
-    for (uint128 i = 0; i < nextProtocolId; i++) {
+    for (uint128 i = 0; i < nextPoolId; i++) {
       (
         string memory name,
         uint256 insuredCapital,
@@ -243,11 +237,11 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     IPolicyManager(policyManager).processExpiredTokens(__expiredTokens);
   }
 
-  function actualizingProtocolAndRemoveExpiredPoliciesByProtocolId(
-    uint128 protocolId_
-  ) public {
+  function actualizingProtocolAndRemoveExpiredPoliciesByPoolId(uint128 poolId_)
+    public
+  {
     actualizingProtocolAndRemoveExpiredPolicies(
-      protocolsMapping[protocolId_].deployed
+      protocolsMapping[poolId_].deployed
     );
   }
 
@@ -381,10 +375,10 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   /// ========== COVERS ========== ///
   /// ============================ ///
 
-  function deposit(uint256 amount, uint128[] calldata protocolIds)
+  function deposit(uint256 amount, uint128[] calldata poolIds)
     public
     payable
-    valideProtocolIds(protocolIds)
+    validePoolIds(poolIds)
   {
     // retrieve user funds for coverage
     IERC20(stablecoin).safeTransferFrom(msg.sender, address(this), amount);
@@ -403,18 +397,18 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
       msg.sender,
       amount,
       stakingFeeRate,
-      protocolIds
+      poolIds
     );
   }
 
-  function takeInterest(uint256 tokenId, uint128 protocolId)
+  function takeInterest(uint256 tokenId, uint128 poolId)
     public
     onlyPositionTokenOwner(tokenId)
   {
     IPositionsManager(positionsManager).takeInterest(
       msg.sender,
       tokenId,
-      protocolId
+      poolId
     );
   }
 
@@ -455,8 +449,8 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
       positionsManager
     ).position(tokenId);
 
-    for (uint256 index = 0; index < __position.protocolIds.length; index++)
-      IProtocolPool(protocolsMapping[__position.protocolIds[index]].deployed)
+    for (uint256 index = 0; index < __position.poolIds.length; index++)
+      IProtocolPool(protocolsMapping[__position.poolIds[index]].deployed)
         .committingWithdrawLiquidity(tokenId);
   }
 
@@ -472,9 +466,9 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
 
     uint256 __newUserCapital;
     uint256 __aaveScaledBalanceToRemove;
-    for (uint256 index = 0; index < __position.protocolIds.length; index++) {
+    for (uint256 index = 0; index < __position.poolIds.length; index++) {
       IProtocolPool __protocol = IProtocolPool(
-        protocolsMapping[__position.protocolIds[index]].deployed
+        protocolsMapping[__position.poolIds[index]].deployed
       );
 
       require(
@@ -491,7 +485,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
           msg.sender,
           tokenId,
           __position.amountSupplied,
-          __position.protocolIds,
+          __position.poolIds,
           __position.feeRate
         );
 
@@ -523,19 +517,19 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     uint256[] calldata _amountCoveredArray,
     uint256[] calldata _paidPremiumArray,
     uint256[] calldata _atensLockedArray,
-    uint128[] calldata _protocolIdArray
+    uint128[] calldata _poolIdArray
   ) public payable nonReentrant {
-    for (uint256 i = 0; i < _protocolIdArray.length; i++) {
+    for (uint256 i = 0; i < _poolIdArray.length; i++) {
       uint256 _amountCovered = _amountCoveredArray[i];
       uint256 _paidPremium = _paidPremiumArray[i];
       uint256 _atensLocked = _atensLockedArray[i];
-      uint128 _protocolId = _protocolIdArray[i];
+      uint128 _poolId = _poolIdArray[i];
 
       require(_amountCovered > 0 && _paidPremium > 0, "Must be greater than 0");
 
       IERC20(stablecoin).safeTransferFrom(
         msg.sender,
-        protocolsMapping[_protocolId].deployed,
+        protocolsMapping[_poolId].deployed,
         _paidPremium
       );
 
@@ -544,14 +538,14 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
         _amountCovered,
         _paidPremium,
         _atensLocked,
-        _protocolId
+        _poolId
       );
 
       actualizingProtocolAndRemoveExpiredPolicies(
-        protocolsMapping[_protocolId].deployed
+        protocolsMapping[_poolId].deployed
       );
 
-      IProtocolPool(protocolsMapping[_protocolId].deployed).buyPolicy(
+      IProtocolPool(protocolsMapping[_poolId].deployed).buyPolicy(
         msg.sender,
         policyId,
         _paidPremium,
@@ -598,7 +592,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
 
     // Remove expired policies
     actualizingProtocolAndRemoveExpiredPolicies(
-      protocolsMapping[userPolicy.protocolId].deployed
+      protocolsMapping[userPolicy.poolId].deployed
     );
 
     // Require that the policy is still active
@@ -619,7 +613,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
 
     // Updates pool liquidity and withdraws remaining funds to user
     uint256 remainedPremium_ = IProtocolPool(
-      protocolsMapping[userPolicy.protocolId].deployed
+      protocolsMapping[userPolicy.poolId].deployed
     ).withdrawPolicy(msg.sender, userPolicy.amountCovered);
 
     // Delete policy from registry and saves historical data
@@ -681,11 +675,11 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     IPolicyManager policyManagerInterface = IPolicyManager(policyManager);
 
     // Get the protocol ID of the policy
-    uint128 protocolId = policyManagerInterface.protocolIdOfPolicy(policyId_);
+    uint128 poolId = policyManagerInterface.poolIdOfPolicy(policyId_);
 
     // Remove expired policies
     actualizingProtocolAndRemoveExpiredPolicies(
-      protocolsMapping[protocolId].deployed
+      protocolsMapping[poolId].deployed
     );
 
     // Require that the policy is still active
@@ -718,7 +712,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     IPolicyManager.Policy memory userPolicy = IPolicyManager(policyManager)
       .policy(policyId_);
 
-    address poolAddress = protocolsMapping[userPolicy.protocolId].deployed;
+    address poolAddress = protocolsMapping[userPolicy.poolId].deployed;
 
     IProtocolPool poolInterface = IProtocolPool(poolAddress);
     uint256 ratio = poolInterface.ratioWithAvailableCapital(amount_);
@@ -739,7 +733,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
       actualizingProtocolAndRemoveExpiredPolicies(relatedPoolAddress);
 
       IProtocolPool(relatedPoolAddress).processClaim(
-        userPolicy.protocolId,
+        userPolicy.poolId,
         ratio,
         reserveNormalizedIncome
       );
@@ -749,7 +743,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
 
     //Thao@TODO: enable next line when adding modifier 'onlyClaimManager' and calling startClaim to increment claimsOngoing before resolve
     // @bw is this necessary ?
-    // protocolsMapping[__protocolId].claimsOngoing -= 1;
+    // protocolsMapping[__poolId].claimsOngoing -= 1;
   }
 
   /// =========================== ///
@@ -813,14 +807,14 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     uint128[] calldata protocolsNotCompat,
     string calldata ipfsAgreementHash_
   ) public onlyOwner {
-    uint128 newProtocolId = nextProtocolId;
-    nextProtocolId++;
+    uint128 newPoolId = nextPoolId;
+    nextPoolId++;
 
     address _protocolDeployed = IProtocolFactory(protocolFactory)
       .deployProtocol(
         name,
         stablecoin,
-        newProtocolId,
+        newPoolId,
         75 * 1e27,
         1e27,
         5e27,
@@ -829,12 +823,12 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
 
     // Add the meta evidence IPFS address to the registry
     IClaimManager(claimManager).addAgreementForProtocol(
-      newProtocolId,
+      newPoolId,
       ipfsAgreementHash_
     );
 
     Protocol memory newProtocol = Protocol({
-      id: newProtocolId,
+      id: newPoolId,
       name: name,
       protocolAddress: iface,
       premiumRate: premium,
@@ -845,17 +839,17 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     });
 
     for (uint256 i = 0; i < protocolsNotCompat.length; i++) {
-      incompatibilityProtocols[newProtocolId][protocolsNotCompat[i]] = true;
+      incompatibilityProtocols[newPoolId][protocolsNotCompat[i]] = true;
     }
 
-    protocolsMapping[newProtocolId] = newProtocol;
+    protocolsMapping[newPoolId] = newProtocol;
 
-    emit NewProtocol(newProtocolId);
+    emit NewProtocol(newPoolId);
   }
 
   // @bw unused
-  function pauseProtocol(uint128 protocolId, bool pause) external onlyOwner {
-    protocolsMapping[protocolId].active = pause;
+  function pauseProtocol(uint128 poolId, bool pause) external onlyOwner {
+    protocolsMapping[poolId].active = pause;
   }
 
   /// -------- AAVE -------- ///

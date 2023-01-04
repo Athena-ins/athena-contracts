@@ -56,19 +56,19 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     return relatedProtocols;
   }
 
-  function addRelatedProtocol(uint128 _protocolId, uint256 _amount)
+  function addRelatedProtocol(uint128 _poolId, uint256 _amount)
     external
   // onlyCore
   {
-    if (intersectingAmountIndexes[_protocolId] == 0 && _protocolId != id) {
-      intersectingAmountIndexes[_protocolId] = intersectingAmounts.length;
+    if (intersectingAmountIndexes[_poolId] == 0 && _poolId != id) {
+      intersectingAmountIndexes[_poolId] = intersectingAmounts.length;
 
-      relatedProtocols.push(_protocolId);
+      relatedProtocols.push(_poolId);
 
       intersectingAmounts.push();
     }
 
-    intersectingAmounts[intersectingAmountIndexes[_protocolId]] += _amount;
+    intersectingAmounts[intersectingAmountIndexes[_poolId]] += _amount;
   }
 
   function committingWithdrawLiquidity(uint256 tokenId_) external onlyCore {
@@ -125,7 +125,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
   function _actualizingLPInfoWithClaims(
     uint256 tokenId_,
     uint256 _userCapital,
-    uint128[] calldata _protocolIds
+    uint128[] calldata _poolIds
   )
     internal
     view
@@ -148,8 +148,8 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
         __claim.liquidityIndexBeforeClaim - __newLPInfo.beginLiquidityIndex
       );
 
-      for (uint256 j = 0; j < _protocolIds.length; j++) {
-        if (_protocolIds[j] == __claim.fromProtocolId) {
+      for (uint256 j = 0; j < _poolIds.length; j++) {
+        if (_poolIds[j] == __claim.fromPoolId) {
           uint256 capitalToRemove = __newUserCapital.rayMul(__claim.ratio);
 
           __aaveScaledBalanceToRemove += capitalToRemove.rayDiv(
@@ -170,7 +170,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
   function rewardsOf(
     uint256 tokenId_,
     uint256 _userCapital,
-    uint128[] calldata _protocolIds,
+    uint128[] calldata _poolIds,
     uint256 _feeRate,
     uint256 _dateInSecond
   )
@@ -188,7 +188,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
       __totalRewards,
       __newLPInfo,
 
-    ) = _actualizingLPInfoWithClaims(tokenId_, _userCapital, _protocolIds);
+    ) = _actualizingLPInfoWithClaims(tokenId_, _userCapital, _poolIds);
 
     uint256 __liquidityIndex;
 
@@ -220,7 +220,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     address account_,
     uint256 tokenId_,
     uint256 _userCapital,
-    uint128[] calldata _protocolIds,
+    uint128[] calldata _poolIds,
     uint256 _feeRate
   ) public returns (uint256, uint256) {
     (
@@ -228,7 +228,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
       uint256 __totalRewards,
       LPInfo memory __newLPInfo,
       uint256 __aaveScaledBalanceToRemove
-    ) = _actualizingLPInfoWithClaims(tokenId_, _userCapital, _protocolIds);
+    ) = _actualizingLPInfoWithClaims(tokenId_, _userCapital, _poolIds);
 
     uint256 __liquidityIndex = liquidityIndex;
 
@@ -281,7 +281,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     address account_,
     uint256 tokenId_,
     uint256 _userCapital,
-    uint128[] calldata _protocolIds,
+    uint128[] calldata _poolIds,
     uint128 _feeRate
   ) external override onlyCore returns (uint256, uint256) {
     require(
@@ -299,7 +299,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
       uint256 __totalRewards,
       LPInfo memory __newLPInfo,
       uint256 __aaveScaledBalanceToRemove
-    ) = _actualizingLPInfoWithClaims(tokenId_, _userCapital, _protocolIds);
+    ) = _actualizingLPInfoWithClaims(tokenId_, _userCapital, _poolIds);
 
     __totalRewards += __newUserCapital.rayMul(
       liquidityIndex - __newLPInfo.beginLiquidityIndex
@@ -314,9 +314,9 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
 
     _updateSlot0WhenAvailableCapitalChange(0, __newUserCapital);
 
-    for (uint256 i = 0; i < _protocolIds.length; i++) {
+    for (uint256 i = 0; i < _poolIds.length; i++) {
       intersectingAmounts[
-        intersectingAmountIndexes[_protocolIds[i]]
+        intersectingAmountIndexes[_poolIds[i]]
       ] -= __newUserCapital;
     }
 
@@ -335,26 +335,21 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
 
   // @bw DANGER should not be public
   function processClaim(
-    uint128 _fromProtocolId,
+    uint128 _fromPoolId,
     uint256 _ratio,
     uint256 _aaveReserveNormalizedIncome
   ) public override {
     uint256 __amountToRemoveByClaim = _amountToRemoveFromIntersecAndCapital(
-      _intersectingAmount(_fromProtocolId),
+      _intersectingAmount(_fromPoolId),
       _ratio
     );
     _updateSlot0WhenAvailableCapitalChange(0, __amountToRemoveByClaim);
     availableCapital -= __amountToRemoveByClaim;
     intersectingAmounts[
-      intersectingAmountIndexes[_fromProtocolId]
+      intersectingAmountIndexes[_fromPoolId]
     ] -= __amountToRemoveByClaim;
     processedClaims.push(
-      Claim(
-        _fromProtocolId,
-        _ratio,
-        liquidityIndex,
-        _aaveReserveNormalizedIncome
-      )
+      Claim(_fromPoolId, _ratio, liquidityIndex, _aaveReserveNormalizedIncome)
     );
   }
 

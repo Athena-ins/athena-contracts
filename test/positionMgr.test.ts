@@ -547,7 +547,7 @@ describe("Position Manager", function () {
       expect(tokenId).to.equal(BN(0));
       const policy = await POLICY_CONTRACT.policies(tokenId);
       expect(policy.liquidity).to.equal(BN(10000));
-      expect(policy.protocolId).to.equal(BN(PROTOCOL_ID));
+      expect(policy.poolId).to.equal(BN(PROTOCOL_ID));
       const protocol = await ATHENA_CONTRACT.connect(user).protocolsMapping(
         PROTOCOL_ID
       );

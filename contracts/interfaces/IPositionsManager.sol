@@ -9,7 +9,7 @@ interface IPositionsManager is IERC721Enumerable {
     uint256 amountSupplied;
     uint256 aaveScaledBalance;
     uint128 feeRate;
-    uint128[] protocolIds;
+    uint128[] poolIds;
   }
 
   struct PositionInfo {
@@ -52,7 +52,7 @@ interface IPositionsManager is IERC721Enumerable {
   //   uint256 aaveScaledBalanceToRemove
   // ) external;
 
-  function removeProtocolId(uint256 tokenId, uint128 protocolId) external;
+  function removePoolId(uint256 tokenId, uint128 poolId) external;
 
   function hasPositionOf(address to) external returns (bool);
 
@@ -60,7 +60,7 @@ interface IPositionsManager is IERC721Enumerable {
     address account,
     uint256 amount,
     uint128 feeRate,
-    uint128[] calldata protocolIds
+    uint128[] calldata poolIds
   ) external;
 
   function updatePosition(
@@ -73,7 +73,7 @@ interface IPositionsManager is IERC721Enumerable {
   function takeInterest(
     address account,
     uint256 tokenId,
-    uint128 protocolId
+    uint128 poolId
   ) external;
 
   function allPositionTokensOfOwner(address owner)

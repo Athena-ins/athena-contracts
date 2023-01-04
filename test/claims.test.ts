@@ -186,7 +186,7 @@ describe("Claims", () => {
 
       const claim = await protocolPool0.processedClaims(0);
 
-      expect(claim.fromProtocolId).to.be.equal(2);
+      expect(claim.fromPoolId).to.be.equal(2);
       expect(claim.ratio).to.be.equal("250000000000000000000000000");
       expect(claim.liquidityIndexBeforeClaim).to.be.equal(
         "772608447488584474885844"
@@ -279,7 +279,7 @@ describe("Claims", () => {
     it("Should check added claim in protocol 0", async () => {
       const claim = await protocolPool0.processedClaims(0);
 
-      expect(claim.fromProtocolId).to.be.equal(2);
+      expect(claim.fromPoolId).to.be.equal(2);
       expect(claim.ratio).to.be.equal("250000000000000000000000000");
       expect(claim.liquidityIndexBeforeClaim).to.be.equal(
         "772608447488584474885844"
@@ -297,7 +297,7 @@ describe("Claims", () => {
 
       const claim = await protocolPool1.processedClaims(1);
 
-      expect(claim.fromProtocolId).to.be.equal(3);
+      expect(claim.fromPoolId).to.be.equal(3);
       expect(claim.ratio).to.be.equal("500000000000000000000000000");
       expect(claim.liquidityIndexBeforeClaim).to.be.equal("0");
     });

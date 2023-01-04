@@ -512,7 +512,7 @@ describe("Protocol Pool", function () {
 
       const policy = await POLICY_CONTRACT.policies(tokenId);
       expect(policy.liquidity).to.equal(BN(10000));
-      expect(policy.protocolId).to.equal(BN(PROTOCOL_ID));
+      expect(policy.poolId).to.equal(BN(PROTOCOL_ID));
 
       expect(
         await protocolContract.balanceOf(await user1.getAddress())

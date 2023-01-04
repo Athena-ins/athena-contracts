@@ -188,13 +188,8 @@ async function getProtocolPoolDataById(protocolPoolId: number) {
   return await ATHENA_CONTRACT.protocolsMapping(protocolPoolId);
 }
 
-async function getProtocolPoolContract(
-  user: ethers.Signer,
-  protocolId: number
-) {
-  const protocol = await ATHENA_CONTRACT.connect(user).protocolsMapping(
-    protocolId
-  );
+async function getProtocolPoolContract(user: ethers.Signer, poolId: number) {
+  const protocol = await ATHENA_CONTRACT.connect(user).protocolsMapping(poolId);
 
   return new ethers.Contract(protocol.deployed, protocolPoolAbi.abi, user);
 }
@@ -240,7 +235,7 @@ async function buyPolicy(
   capital: string,
   premium: string,
   atensLocked: string,
-  protocolId: number,
+  poolId: number,
   timeLapse: number
 ) {
   await HardhatHelper.USDT_transfer(
@@ -254,7 +249,7 @@ async function buyPolicy(
     [capital],
     [premium],
     [atensLocked],
-    [protocolId]
+    [poolId]
   );
 }
 
@@ -300,16 +295,13 @@ async function resolveClaimWithoutDispute(
 async function takeInterest(
   user: ethers.Signer,
   tokenId: ethers.BigNumberish,
-  protocolId: number,
+  poolId: number,
   timeLapse: number,
   eventIndex: number = 0
 ) {
   await HardhatHelper.setNextBlockTimestamp(timeLapse);
 
-  const tx = await ATHENA_CONTRACT.connect(user).takeInterest(
-    tokenId,
-    protocolId
-  );
+  const tx = await ATHENA_CONTRACT.connect(user).takeInterest(tokenId, poolId);
   const events = (await tx.wait()).events;
   const event = events[eventIndex];
 

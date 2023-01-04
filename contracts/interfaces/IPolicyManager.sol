@@ -8,7 +8,7 @@ interface IPolicyManager is IERC721Enumerable {
     uint256 paidPremium;
     uint256 atensLocked;
     uint256 beginCoveredTime;
-    uint128 protocolId;
+    uint128 poolId;
   }
 
   struct OngoingCoveragePolicy {
@@ -20,7 +20,7 @@ interface IPolicyManager is IERC721Enumerable {
     uint256 atensLocked;
     uint256 beginCoveredTime;
     uint256 remainingDuration;
-    uint128 protocolId;
+    uint128 poolId;
   }
 
   struct ExpiredPolicy {
@@ -31,7 +31,7 @@ interface IPolicyManager is IERC721Enumerable {
     uint256 atensLocked;
     uint256 beginCoveredTime;
     uint256 endCoveredTime;
-    uint128 protocolId;
+    uint128 poolId;
     bool isCancelled;
   }
 
@@ -42,7 +42,7 @@ interface IPolicyManager is IERC721Enumerable {
     uint256 amountCovered,
     uint256 paidPremium,
     uint256 atensLocked,
-    uint128 protocolId
+    uint128 poolId
   ) external returns (uint256);
 
   function burn(uint256 tokenId) external;
@@ -65,5 +65,5 @@ interface IPolicyManager is IERC721Enumerable {
 
   function policyActive(uint256 _tokenId) external view returns (bool);
 
-  function protocolIdOfPolicy(uint256 _tokenId) external view returns (uint128);
+  function poolIdOfPolicy(uint256 _tokenId) external view returns (uint128);
 }

@@ -139,7 +139,7 @@ describe("Liquidity provider deposit", () => {
           provider1tokenId
         );
         expect(position.amountSupplied).to.equal(BN(USDT_amount));
-        expect(position.protocolIds).to.deep.equal([BN(0), BN(2)]);
+        expect(position.poolIds).to.deep.equal([BN(0), BN(2)]);
 
         // we check AAVE aToken balance
         atokenBalance = atokenBalance.add(USDT_amount);
@@ -291,7 +291,7 @@ describe("Liquidity provider deposit", () => {
           provider2tokenId
         );
         expect(position.amountSupplied).to.equal(BN(USDT_amount));
-        expect(position.protocolIds).to.deep.equal([BN(0), BN(1), BN(2)]);
+        expect(position.poolIds).to.deep.equal([BN(0), BN(1), BN(2)]);
 
         // we check AAVE aToken balance
         atokenBalance = atokenBalance.add(USDT_amount);

@@ -225,8 +225,8 @@ describe("expired policies", () => {
 
       expect(expiredPolicies.length).to.be.equal(2);
 
-      expect(expiredPolicies[0].protocolId).to.be.equal(0);
-      expect(expiredPolicies[1].protocolId).to.be.equal(3);
+      expect(expiredPolicies[0].poolId).to.be.equal(0);
+      expect(expiredPolicies[1].poolId).to.be.equal(3);
     });
 
     it("Should get expired policies for policyTaker2", async () => {
@@ -238,7 +238,7 @@ describe("expired policies", () => {
 
       expect(expiredPolicies.length).to.be.equal(1);
 
-      expect(expiredPolicies[0].protocolId).to.be.equal(0);
+      expect(expiredPolicies[0].poolId).to.be.equal(0);
     });
 
     it("Should get expired policies for policyTaker3", async () => {
@@ -250,7 +250,7 @@ describe("expired policies", () => {
 
       expect(expiredPolicies.length).to.be.equal(1);
 
-      expect(expiredPolicies[0].protocolId).to.be.equal(2);
+      expect(expiredPolicies[0].poolId).to.be.equal(2);
     });
 
     it("Should get expired policies for policyTaker4", async () => {
@@ -262,7 +262,7 @@ describe("expired policies", () => {
 
       expect(expiredPolicies.length).to.be.equal(1);
 
-      expect(expiredPolicies[0].protocolId).to.be.equal(3);
+      expect(expiredPolicies[0].poolId).to.be.equal(3);
     });
   });
 });

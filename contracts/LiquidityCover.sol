@@ -3,7 +3,6 @@ pragma solidity ^0.8;
 
 import "./libraries/RayMath.sol";
 
-
 abstract contract LiquidityCover {
   using RayMath for uint256;
 
@@ -25,12 +24,12 @@ abstract contract LiquidityCover {
     liquidityIndex += (_uRate.rayMul(_pRate) * _deltaT) / 31536000;
   }
 
-  function _intersectingAmount(uint128 _protocolId)
+  function _intersectingAmount(uint128 _poolId)
     internal
     view
     returns (uint256)
   {
-    return intersectingAmounts[intersectingAmountIndexes[_protocolId]];
+    return intersectingAmounts[intersectingAmountIndexes[_poolId]];
   }
 
   // returns actual usage rate on capital insured / capital provided for insurance

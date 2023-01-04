@@ -40,7 +40,7 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
     address from;
     uint256 amount;
     uint256 policyId;
-    uint256 protocolId;
+    uint256 poolId;
     string metaEvidence;
     //
     uint256 disputeId;
@@ -72,7 +72,7 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
   event ClaimCreated(
     address indexed claimant,
     uint256 indexed policyId,
-    uint256 indexed protocolId
+    uint256 indexed poolId
   );
 
   // Emit when a claim is challenged into a dispute
@@ -80,7 +80,7 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
     address indexed claimant,
     address indexed challenger,
     uint256 policyId,
-    uint256 indexed protocolId,
+    uint256 indexed poolId,
     uint256 disputeId
   );
 
@@ -89,7 +89,7 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
     address indexed claimant,
     address indexed challenger,
     uint256 policyId,
-    uint256 indexed protocolId,
+    uint256 indexed poolId,
     uint256 disputeId,
     uint256 ruling
   );
@@ -220,10 +220,10 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
   /**
    * @notice
    * Returns all the claims of a protocol.
-   * @param protocolId_ The protocol's address
+   * @param poolId_ The protocol's address
    * @return claimsInfo All the protocol's claims
    */
-  function claimsByProtocol(uint256 protocolId_)
+  function claimsByProtocol(uint256 poolId_)
     external
     view
     returns (Claim[] memory claimsInfo)
@@ -231,7 +231,7 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
     for (uint256 i = 0; i < claimIndex; i++) {
       Claim memory claim = claims[i];
 
-      if (claim.protocolId == protocolId_) {
+      if (claim.poolId == poolId_) {
         uint256 index = claimsInfo.length;
         claimsInfo[index] = claim;
       }
@@ -260,15 +260,15 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
   /**
    * @notice
    * Adds the document associated to the protocol's insurance terms.
-   * @param protocolId_ The new protocol ID
+   * @param poolId_ The new protocol ID
    * @param agreementIpfsHash_ The IPFS hash of the meta evidence
    */
   function addAgreementForProtocol(
-    uint256 protocolId_,
+    uint256 poolId_,
     string calldata agreementIpfsHash_
   ) external onlyCore {
     // @bw should add a fn to update this file without breaking the pool
-    _addAgreementForProtocol(protocolId_, agreementIpfsHash_);
+    _addAgreementForProtocol(poolId_, agreementIpfsHash_);
   }
 
   /**
@@ -317,11 +317,11 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
       policyId_
     );
 
-    uint128 protocolId = userPolicy.protocolId;
+    uint128 poolId = userPolicy.poolId;
 
     // Update the protocol's policies
     // @bw is this really required as expired policies can open claims ?
-    core.actualizingProtocolAndRemoveExpiredPoliciesByProtocolId(protocolId);
+    core.actualizingProtocolAndRemoveExpiredPoliciesByPoolId(poolId);
 
     // Check that the user is not trying to claim more than the amount covered
     require(
@@ -363,13 +363,13 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
       arbitrationCost: costOfArbitration,
       disputeId: 0,
       policyId: policyId_,
-      protocolId: protocolId,
+      poolId: poolId,
       amount: amountClaimed_,
       metaEvidence: ipfsMetaEvidenceHash_
     });
 
     // Emit Athena claim creation event
-    emit ClaimCreated(msg.sender, policyId_, protocolId);
+    emit ClaimCreated(msg.sender, policyId_, poolId);
   }
 
   /**
@@ -450,7 +450,7 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
     _emitKlerosDisputeEvents(
       msg.sender,
       disputeId,
-      userClaim.protocolId,
+      userClaim.poolId,
       userClaim.metaEvidence
     );
   }
@@ -505,7 +505,7 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
       claimant: userClaim.from,
       challenger: challenger,
       policyId: userClaim.policyId,
-      protocolId: userClaim.protocolId,
+      poolId: userClaim.poolId,
       disputeId: disputeId_,
       ruling: ruling_
     });

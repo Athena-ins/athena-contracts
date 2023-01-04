@@ -110,8 +110,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\Athena.sol": {
-      "lastModificationDate": 1672677265178,
-      "contentHash": "267ed7c11b0d5d5075d6c9b192a32852",
+      "lastModificationDate": 1672853965316,
+      "contentHash": "d012b366a853b776aea1b05f7b9266f2",
       "sourceName": "contracts/Athena.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -233,8 +233,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\interfaces\\IAthena.sol": {
-      "lastModificationDate": 1672653178670,
-      "contentHash": "874e934a0a9d449a4e641e18413c18b5",
+      "lastModificationDate": 1672853965320,
+      "contentHash": "e4fe405a65c3c4c23dc2270184cdd391",
       "sourceName": "contracts/interfaces/IAthena.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -268,8 +268,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\interfaces\\IPositionsManager.sol": {
-      "lastModificationDate": 1671534263617,
-      "contentHash": "7d3bcc6c9f4757951a07d21d210db76a",
+      "lastModificationDate": 1672853965321,
+      "contentHash": "a0363d805394cbbfc2735b75f57a16f9",
       "sourceName": "contracts/interfaces/IPositionsManager.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -305,8 +305,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\interfaces\\IProtocolFactory.sol": {
-      "lastModificationDate": 1664788756637,
-      "contentHash": "a8799560922b2dc04d95d1ab67136817",
+      "lastModificationDate": 1672853965322,
+      "contentHash": "f912474228958c5a9b96392e30d376d9",
       "sourceName": "contracts/interfaces/IProtocolFactory.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -340,8 +340,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\interfaces\\IProtocolPool.sol": {
-      "lastModificationDate": 1671532936692,
-      "contentHash": "d23e1060f449810d7945e3d1e4c5d9cc",
+      "lastModificationDate": 1672853965323,
+      "contentHash": "a986d667e821eaec1cf65ad3234b39d3",
       "sourceName": "contracts/interfaces/IProtocolPool.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -454,8 +454,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\interfaces\\IPolicyManager.sol": {
-      "lastModificationDate": 1671620337752,
-      "contentHash": "569cc9d4682936f48be75888ac3ffc96",
+      "lastModificationDate": 1672846266510,
+      "contentHash": "a2f345ac7b314bf34b7a6f5095f49539",
       "sourceName": "contracts/interfaces/IPolicyManager.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -526,8 +526,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\interfaces\\IClaimManager.sol": {
-      "lastModificationDate": 1672653178671,
-      "contentHash": "c6c68a2512060357da470de09bc6d18e",
+      "lastModificationDate": 1672846266510,
+      "contentHash": "9977f9a956b94637d8c3d6607555b4f7",
       "sourceName": "contracts/interfaces/IClaimManager.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -810,8 +810,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\ClaimCover.sol": {
-      "lastModificationDate": 1672653178655,
-      "contentHash": "424fa12b537552138d8995704ca10286",
+      "lastModificationDate": 1672853965319,
+      "contentHash": "44bcf2fc0029dad4c700ee028afc32af",
       "sourceName": "contracts/ClaimCover.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -847,8 +847,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\LiquidityCover.sol": {
-      "lastModificationDate": 1672653178660,
-      "contentHash": "da9d6108834c07a29019c677beaa7711",
+      "lastModificationDate": 1672846266510,
+      "contentHash": "7f8979160c0956853117e6eaa6d041c6",
       "sourceName": "contracts/LiquidityCover.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -1221,8 +1221,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\StakingGeneralPool.sol": {
-      "lastModificationDate": 1672742389338,
-      "contentHash": "4fa15912e5bb97d8e26ac98fcbb9bd8f",
+      "lastModificationDate": 1672842530721,
+      "contentHash": "3c81c4539181b8c75999895b951aad97",
       "sourceName": "contracts/StakingGeneralPool.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -1372,8 +1372,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\StakingPolicy.sol": {
-      "lastModificationDate": 1672742291036,
-      "contentHash": "c95e1f9e6bcd9db177bdddbb694bc9a4",
+      "lastModificationDate": 1672839140168,
+      "contentHash": "8e6b4b69b1e907b65e835da2bc99351a",
       "sourceName": "contracts/StakingPolicy.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -1635,8 +1635,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\PositionsManager.sol": {
-      "lastModificationDate": 1671534397832,
-      "contentHash": "674b3f3309981ed9a44284d01bf3d87d",
+      "lastModificationDate": 1672853965316,
+      "contentHash": "c19484a8b8fa438516dae28db2762f54",
       "sourceName": "contracts/PositionsManager.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -1676,8 +1676,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\libraries\\PositionsLibrary.sol": {
-      "lastModificationDate": 1664788756645,
-      "contentHash": "1ecdeb7dc66de70f51427b04802146f4",
+      "lastModificationDate": 1672846266510,
+      "contentHash": "788712952bfeaa4fa41befe17a3c540e",
       "sourceName": "contracts/libraries/PositionsLibrary.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -1711,8 +1711,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\ProtocolPool.sol": {
-      "lastModificationDate": 1672655872892,
-      "contentHash": "08960fa6229c0adbe8dcee84ba1d3acc",
+      "lastModificationDate": 1672853965317,
+      "contentHash": "16a031a09b9dadd77b711b2ce4ab331b",
       "sourceName": "contracts/ProtocolPool.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -1940,8 +1940,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\PolicyManager.sol": {
-      "lastModificationDate": 1672653178665,
-      "contentHash": "7b7261d92c15ee477163ce2d236ec484",
+      "lastModificationDate": 1672846266506,
+      "contentHash": "3e41b08e4d8067f03bb93fa6744b539c",
       "sourceName": "contracts/PolicyManager.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -1980,8 +1980,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\ClaimManager.sol": {
-      "lastModificationDate": 1672659649082,
-      "contentHash": "9b2041c2530a03bd8a0cbf6ef5fe04be",
+      "lastModificationDate": 1672853964685,
+      "contentHash": "94b871ae06e8baa2ff731e51a25d101c",
       "sourceName": "contracts/ClaimManager.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -2096,8 +2096,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\ClaimEvidence.sol": {
-      "lastModificationDate": 1672653178656,
-      "contentHash": "e707a701b535078abc446ce167d07756",
+      "lastModificationDate": 1672846266510,
+      "contentHash": "6f63e71686778cef0b0482ca52759d71",
       "sourceName": "contracts/ClaimEvidence.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -2170,8 +2170,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\ProtocolFactory.sol": {
-      "lastModificationDate": 1671101257309,
-      "contentHash": "5591f80e4a5a43a354d63b42eed7d16e",
+      "lastModificationDate": 1672853965318,
+      "contentHash": "08568f819c980c2b3be6b0f0eacb70bd",
       "sourceName": "contracts/ProtocolFactory.sol",
       "solcConfig": {
         "version": "0.8.11",

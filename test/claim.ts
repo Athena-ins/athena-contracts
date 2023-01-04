@@ -1,5 +1,5 @@
 type Claim = {
-  protocolId: number;
+  poolId: number;
   amount: number;
   ratio: number;
   timestamp: number;
@@ -7,7 +7,7 @@ type Claim = {
 
 type Position = {
   depositAmount: number;
-  protocolIds: number[];
+  poolIds: number[];
   protocolAmounts: number[];
   lastActionTimestamp: number;
 };
@@ -39,27 +39,26 @@ function initProtocols(_numberProtocols: number) {
 function deposit(
   _owner: string,
   _depositAmount: number,
-  _protocolIds: number[],
+  _poolIds: number[],
   _protocolAmounts: number[]
 ) {
-  for (let i = 0; i < _protocolIds.length; i++) {
-    const __currentProtocolId = _protocolIds[i];
+  for (let i = 0; i < _poolIds.length; i++) {
+    const __currentPoolId = _poolIds[i];
     const __amount = _protocolAmounts[i];
-    const __protocolPool = protocolPools[__currentProtocolId];
+    const __protocolPool = protocolPools[__currentPoolId];
 
-    for (let j = 0; j < _protocolIds.length; j++) {
+    for (let j = 0; j < _poolIds.length; j++) {
       if (j !== i) {
-        const __value = __protocolPool.intersectingAmounts[_protocolIds[j]];
+        const __value = __protocolPool.intersectingAmounts[_poolIds[j]];
         if (!__value)
-          __protocolPool.intersectingAmounts[_protocolIds[j]] = __amount;
+          __protocolPool.intersectingAmounts[_poolIds[j]] = __amount;
         else
-          __protocolPool.intersectingAmounts[_protocolIds[j]] =
-            __value + __amount;
+          __protocolPool.intersectingAmounts[_poolIds[j]] = __value + __amount;
       }
     }
     __protocolPool.positionManager[_owner] = {
       depositAmount: __amount,
-      protocolIds: _protocolIds,
+      poolIds: _poolIds,
       protocolAmounts: _protocolAmounts,
       lastActionTimestamp: 0,
     };
@@ -68,8 +67,8 @@ function deposit(
   }
 }
 
-function setPremiumSpent(_protocolId: number, _amount: number) {
-  protocolPools[_protocolId].premiumSpent = _amount;
+function setPremiumSpent(_poolId: number, _amount: number) {
+  protocolPools[_poolId].premiumSpent = _amount;
 }
 
 //_claimAmount:
@@ -80,20 +79,17 @@ function getClaimAmountRatio(_claimAmount: number, _totalCapital: number) {
   return _claimAmount / _totalCapital;
 }
 
-function startClaim(_protocolId: number, _amount: number, _timestamp: number) {
-  const __compatifProtocolIds = Object.keys(
-    protocolPools[_protocolId].intersectingAmounts
+function startClaim(_poolId: number, _amount: number, _timestamp: number) {
+  const __compatifPoolIds = Object.keys(
+    protocolPools[_poolId].intersectingAmounts
   ).map((e) => Number(e));
-  __compatifProtocolIds.push(_protocolId);
+  __compatifPoolIds.push(_poolId);
 
-  for (const __protocolId of __compatifProtocolIds) {
-    protocolPools[__protocolId].claims.push({
-      protocolId: _protocolId,
+  for (const __poolId of __compatifPoolIds) {
+    protocolPools[__poolId].claims.push({
+      poolId: _poolId,
       amount: _amount,
-      ratio: getClaimAmountRatio(
-        _amount,
-        protocolPools[_protocolId].totalCapital
-      ),
+      ratio: getClaimAmountRatio(_amount, protocolPools[_poolId].totalCapital),
       timestamp: _timestamp,
     });
   }
@@ -131,16 +127,16 @@ function amountToRemoveFromDeposit(
 }
 
 //TODO
-function updateDepositAmount(_owner: string, _protocolId: number) {
-  const __protocolPool = protocolPools[_protocolId];
+function updateDepositAmount(_owner: string, _poolId: number) {
+  const __protocolPool = protocolPools[_poolId];
   const __position = __protocolPool.positionManager[_owner];
   let __totalCapital = __protocolPool.totalCapital;
   let __depositAmount = __position.depositAmount;
   for (let i = 0; i < __protocolPool.claims.length; i++) {
     const __claim = __protocolPool.claims[i];
-    if (__position.protocolIds.includes(__claim.protocolId)) {
+    if (__position.poolIds.includes(__claim.poolId)) {
       const __intersecAmount =
-        __protocolPool.intersectingAmounts[__claim.protocolId];
+        __protocolPool.intersectingAmounts[__claim.poolId];
       const __amountToRemoveFromIntersecAndCapital =
         amountToRemoveFromIntersecAndCapital(__intersecAmount, __claim.ratio);
       const __ratioBetweenDepositAndIntersec = ratioBetweenDepositAndIntersec(
@@ -155,7 +151,7 @@ function updateDepositAmount(_owner: string, _protocolId: number) {
       console.log("__totalCapital:", __totalCapital);
       console.log(
         "__intersecAmount:",
-        __protocolPool.intersectingAmounts[__claim.protocolId]
+        __protocolPool.intersectingAmounts[__claim.poolId]
       );
       console.log("__depositAmount:", __depositAmount);
       console.log("__claim.ratio:", __claim.ratio);
@@ -171,13 +167,13 @@ function updateDepositAmount(_owner: string, _protocolId: number) {
       console.log("__amountToRemoveFromDeposit:", __amountToRemoveFromDeposit);
 
       __totalCapital -= __amountToRemoveFromIntersecAndCapital;
-      __protocolPool.intersectingAmounts[__claim.protocolId] -=
+      __protocolPool.intersectingAmounts[__claim.poolId] -=
         __amountToRemoveFromIntersecAndCapital;
       __depositAmount -= __amountToRemoveFromDeposit;
       console.log("__totalCapital:", __totalCapital);
       console.log(
         "__intersecAmount:",
-        __protocolPool.intersectingAmounts[__claim.protocolId]
+        __protocolPool.intersectingAmounts[__claim.poolId]
       );
       console.log("__depositAmount:", __depositAmount);
       console.log();

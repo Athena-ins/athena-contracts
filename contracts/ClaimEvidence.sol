@@ -16,22 +16,22 @@ contract ClaimEvidence is IEvidence {
     arbitrator = arbitrator_;
   }
 
-  function _genMetaEvidenceId(uint256 protocolId_, uint256 disputeId_)
+  function _genMetaEvidenceId(uint256 poolId_, uint256 disputeId_)
     internal
     pure
     returns (uint256)
   {
-    return protocolId_ * 1e10 + disputeId_;
+    return poolId_ * 1e10 + disputeId_;
   }
 
   function _emitKlerosDisputeEvents(
     address challenger_,
     uint256 disputeId_,
-    uint256 protocolId_,
+    uint256 poolId_,
     string storage ipfsMetaEvidenceHash_
   ) internal {
     // Generate a meta-evidence ID based on inputs
-    uint256 metaEvidenceId = _genMetaEvidenceId(protocolId_, disputeId_);
+    uint256 metaEvidenceId = _genMetaEvidenceId(poolId_, disputeId_);
 
     // Annonces creation of dispute and linked meta-evidence items
     emit Dispute(arbitrator, disputeId_, metaEvidenceId, disputeId_);
@@ -44,7 +44,7 @@ contract ClaimEvidence is IEvidence {
       arbitrator,
       disputeId_,
       challenger_,
-      protocolToAgreement[protocolId_]
+      protocolToAgreement[poolId_]
     );
   }
 
@@ -68,9 +68,9 @@ contract ClaimEvidence is IEvidence {
   }
 
   function _addAgreementForProtocol(
-    uint256 protocolId_,
+    uint256 poolId_,
     string calldata agreementIpfsHash_
   ) internal {
-    protocolToAgreement[protocolId_] = agreementIpfsHash_;
+    protocolToAgreement[poolId_] = agreementIpfsHash_;
   }
 }

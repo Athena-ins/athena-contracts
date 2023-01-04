@@ -77,9 +77,9 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
       uint256 totalRewards;
 
       // Loop through each poolId (j) in a tokenId
-      for (uint256 j = 0; j < __position.protocolIds.length; j++) {
+      for (uint256 j = 0; j < __position.poolIds.length; j++) {
         address poolAddress = IAthena(core).getProtocolAddressById(
-          __position.protocolIds[j]
+          __position.poolIds[j]
         );
 
         // Check the user's rewards in the pool
@@ -88,7 +88,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
         ).rewardsOf(
             tokenId,
             __position.amountSupplied,
-            __position.protocolIds,
+            __position.poolIds,
             __position.feeRate,
             block.timestamp
           );
@@ -125,11 +125,11 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
   }
 
   function isProtocolInCoverList(
-    uint128 _protocolId,
+    uint128 _poolId,
     uint128[] memory _protocolList
   ) private pure returns (bool) {
     for (uint256 i = 0; i < _protocolList.length; i++) {
-      if (_protocolId == _protocolList[i]) return true;
+      if (_poolId == _protocolList[i]) return true;
     }
 
     return false;
@@ -143,7 +143,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
     address account,
     uint256 amount,
     uint128 feeRate,
-    uint128[] calldata protocolIds
+    uint128[] calldata poolIds
   ) external override onlyCore {
     IAthena _core = IAthena(core);
 
@@ -153,8 +153,8 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
 
     // Ensure that all capital dependencies between pools are registered
     // Loop through each of the pools (i)
-    for (uint256 i = 0; i < protocolIds.length; i++) {
-      uint128 currentPoolId = protocolIds[i];
+    for (uint256 i = 0; i < poolIds.length; i++) {
+      uint128 currentPoolId = poolIds[i];
 
       // Create an instance of the current pool
       IProtocolPool currentPool = IProtocolPool(
@@ -162,8 +162,8 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
       );
 
       // Loop through each latter pool (j)
-      for (uint256 j = i + 1; j < protocolIds.length; j++) {
-        uint128 latterPoolId = protocolIds[j];
+      for (uint256 j = i + 1; j < poolIds.length; j++) {
+        uint128 latterPoolId = poolIds[j];
 
         // Add the latter pool to the current pool dependencies
         currentPool.addRelatedProtocol(latterPoolId, amount);
@@ -186,7 +186,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
       amountSupplied: amount,
       aaveScaledBalance: __aaveScaledBalance,
       feeRate: feeRate,
-      protocolIds: protocolIds
+      poolIds: poolIds
     });
 
     _mint(account, tokenId);
@@ -205,24 +205,24 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
   /// ========================= ///
 
   // @bw remove fn or check side effects - dangerous
-  function removeProtocolId(uint256 tokenId, uint128 _protocolId)
+  function removePoolId(uint256 tokenId, uint128 _poolId)
     external
     override
     onlyCore
   {
-    uint128[] memory __protocolIds = _positions[tokenId].protocolIds;
+    uint128[] memory __poolIds = _positions[tokenId].poolIds;
 
-    for (uint256 i = 0; i < __protocolIds.length; i++) {
-      if (__protocolIds[i] == _protocolId) {
+    for (uint256 i = 0; i < __poolIds.length; i++) {
+      if (__poolIds[i] == _poolId) {
         // @bw ERROR must fix if not leaves a "0" value in array
         // This should check if last item and if isn't remplace deleted with last item
-        __protocolIds[i] = __protocolIds[__protocolIds.length - 1];
-        delete __protocolIds[__protocolIds.length - 1];
+        __poolIds[i] = __poolIds[__poolIds.length - 1];
+        delete __poolIds[__poolIds.length - 1];
         break;
       }
     }
 
-    _positions[tokenId].protocolIds = __protocolIds;
+    _positions[tokenId].poolIds = __poolIds;
   }
 
   //Thao@TODO:
@@ -244,8 +244,8 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
 
     // Ensure that all capital dependencies between pools are registered
     // Loop through each of the pools (i)
-    for (uint256 i = 0; i < userPosition.protocolIds.length; i++) {
-      uint128 currentPoolId = userPosition.protocolIds[i];
+    for (uint256 i = 0; i < userPosition.poolIds.length; i++) {
+      uint128 currentPoolId = userPosition.poolIds[i];
 
       // Create an instance of the current pool
       IProtocolPool currentPool = IProtocolPool(
@@ -253,8 +253,8 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
       );
 
       // Loop through each latter pool (j)
-      for (uint256 j = i + 1; j < userPosition.protocolIds.length; j++) {
-        uint128 latterPoolId = userPosition.protocolIds[j];
+      for (uint256 j = i + 1; j < userPosition.poolIds.length; j++) {
+        uint128 latterPoolId = userPosition.poolIds[j];
 
         // Add the latter pool to the current pool dependencies
         currentPool.addRelatedProtocol(latterPoolId, amount);
@@ -289,17 +289,17 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
   function takeInterest(
     address account,
     uint256 tokenId,
-    uint128 protocolId
+    uint128 poolId
   ) external override onlyCore {
     Position memory _position = _positions[tokenId];
 
     require(
-      isProtocolInCoverList(protocolId, _position.protocolIds),
+      isProtocolInCoverList(poolId, _position.poolIds),
       "Not in deposit protocol list"
     );
 
     IAthena _core = IAthena(core);
-    address protocolAddress = _core.getProtocolAddressById(protocolId);
+    address protocolAddress = _core.getProtocolAddressById(poolId);
     _core.actualizingProtocolAndRemoveExpiredPolicies(protocolAddress);
 
     (
@@ -309,7 +309,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
         account,
         tokenId,
         _position.amountSupplied,
-        _position.protocolIds,
+        _position.poolIds,
         _position.feeRate
       );
 
@@ -325,10 +325,10 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
 
     uint256 amountSuppliedUpdated;
     uint256 aaveScaledBalanceUpdated;
-    for (uint256 i = 0; i < userPosition.protocolIds.length; i++) {
-      uint128 protocolId = userPosition.protocolIds[i];
+    for (uint256 i = 0; i < userPosition.poolIds.length; i++) {
+      uint128 poolId = userPosition.poolIds[i];
 
-      address protocolAddress = _core.getProtocolAddressById(protocolId);
+      address protocolAddress = _core.getProtocolAddressById(poolId);
       _core.actualizingProtocolAndRemoveExpiredPolicies(protocolAddress);
 
       (
@@ -338,12 +338,12 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
           account,
           tokenId,
           userPosition.amountSupplied,
-          userPosition.protocolIds,
+          userPosition.poolIds,
           userPosition.feeRate
         );
 
       // @bw unsure of this assign, should check if only last item should update or all of them
-      if (i == userPosition.protocolIds.length - 1) {
+      if (i == userPosition.poolIds.length - 1) {
         amountSuppliedUpdated = _newUserCapital;
         aaveScaledBalanceUpdated = _aaveScaledBalanceToRemove;
       }
