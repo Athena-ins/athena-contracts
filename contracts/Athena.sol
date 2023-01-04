@@ -602,6 +602,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     );
 
     // Require that the policy is still active
+    // @bw maybe wrong fn for checking
     bool isStillActive = policyManagerInterface.policyActive(policyId_);
     require(isStillActive, "A: policy is expired");
 
@@ -688,6 +689,9 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     );
 
     // Require that the policy is still active
+    // @bw maybe wrong fn for checking
+    // @bw no need to be active, no fn for exit post expiration
+    // withdrawAtensPolicyWithoutRewards should not remove rewards if expired post 1 year
     bool isStillActive = policyManagerInterface.policyActive(policyId_);
     require(isStillActive, "A: policy is expired");
 

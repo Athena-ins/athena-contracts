@@ -27,14 +27,14 @@ contract StakingGeneralPool is
    * @param _core is the address of the core contract
    */
   constructor(address _underlyingAsset, address _core)
-    ERC20WithSnapshot("ATEN Guarantee Pool Provider Token", "ATEN_GP_LP")
+    ERC20WithSnapshot("ATEN General Pool Staking", "ATENgps")
   {
     underlyingAssetAddress = _underlyingAsset;
     core = _core;
   }
 
   modifier onlyCore() {
-    require(msg.sender == core, "Only Core");
+    require(msg.sender == core, "SGP: Only Core");
     _;
   }
 

@@ -43,7 +43,7 @@ contract StakingPolicy is ERC20WithSnapshot {
    * @param core_ is the address of the core contract
    */
   constructor(address underlyingAsset_, address core_)
-    ERC20WithSnapshot("ATEN Policy Staked", "ATENps")
+    ERC20WithSnapshot("ATEN Policy Staking", "ATENps")
   {
     underlyingAssetAddress = underlyingAsset_;
     coreAddress = core_;
@@ -93,7 +93,7 @@ contract StakingPolicy is ERC20WithSnapshot {
   /// =============================== ///
 
   modifier onlyCore() {
-    require(msg.sender == coreAddress, "Only Core");
+    require(msg.sender == coreAddress, "SP: Only Core");
     _;
   }
 
@@ -154,12 +154,8 @@ contract StakingPolicy is ERC20WithSnapshot {
     // If the staking position is empty return 0
     if (pos.amount == 0) return 0;
 
-    require(
-      pos.timestamp < block.timestamp,
-      "FRSP: timestamp is in the future"
-    );
-
     uint256 timeElapsed;
+    require(pos.timestamp < block.timestamp, "SP: timestamp is in the future");
     unchecked {
       // Unckecked because we know that block.timestamp is always bigger than pos.timestamp
       timeElapsed = block.timestamp - pos.timestamp;
@@ -194,7 +190,7 @@ contract StakingPolicy is ERC20WithSnapshot {
     uint256 policyId_,
     uint256 amount_
   ) external onlyCore {
-    require(amount_ > 0, "FRSP: cannot stake 0 ATEN");
+    require(amount_ > 0, "SP: cannot stake 0 ATEN");
 
     // Make a snapshot of the user's balance
     // @bw is this really useful ?
@@ -209,7 +205,7 @@ contract StakingPolicy is ERC20WithSnapshot {
 
     // Calc the max rewards and check there is enough rewards left
     uint256 maxReward = (amount_ * rewardsAnnualRate) / 10_000;
-    require(maxReward <= rewardsRemaining, "FRSP: not enough rewards left");
+    require(maxReward <= rewardsRemaining, "SP: not enough rewards left");
     unchecked {
       // unchecked because we know that rewardsRemaining is always bigger than maxReward
       rewardsRemaining -= maxReward;
@@ -246,7 +242,7 @@ contract StakingPolicy is ERC20WithSnapshot {
   {
     StakingPosition storage pos = _stakes[account_].positions[policyId_];
 
-    require(!pos.withdrawn, "FRSP: already withdrawn");
+    require(!pos.withdrawn, "SP: already withdrawn");
     // Close staking position by setting withdrawn to true
     pos.withdrawn = true;
 
@@ -282,14 +278,14 @@ contract StakingPolicy is ERC20WithSnapshot {
   {
     StakingPosition storage pos = _stakes[account_].positions[policyId_];
 
-    require(!pos.withdrawn, "FRSP: already withdrawn");
+    require(!pos.withdrawn, "SP: already withdrawn");
     // Close staking position by setting withdrawn to true
     pos.withdrawn = true;
 
     // Check that a year has elapsed since staking position creation
     require(
       365 days <= block.timestamp - pos.timestamp,
-      "FRSP: year has not elapsed"
+      "SP: year has not elapsed"
     );
 
     // Get the amount of ATEN initially deposited for staking
@@ -319,6 +315,7 @@ contract StakingPolicy is ERC20WithSnapshot {
    * Used to add more rewards to the staking pool.
    * @param amount_ amount of rewards to add
    */
+  // @bw need to call method when adding to vault
   function addAvailableRewards(uint256 amount_) external onlyCore {
     // Add rewards to existing rewards balance
     rewardsRemaining += amount_;

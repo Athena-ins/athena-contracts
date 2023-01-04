@@ -333,7 +333,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     return (__newUserCapital, __aaveScaledBalanceToRemove);
   }
 
-  // @bw should not be public
+  // @bw DANGER should not be public
   function processClaim(
     uint128 _fromProtocolId,
     uint256 _ratio,
