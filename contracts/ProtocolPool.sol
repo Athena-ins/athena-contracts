@@ -376,7 +376,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     view
     returns (
       string memory name,
-      uint256 totalCouvrageValue,
+      uint256 insuredCapital,
       uint256 availableCapacity,
       uint256 utilizationRate,
       uint256 premiumRate
