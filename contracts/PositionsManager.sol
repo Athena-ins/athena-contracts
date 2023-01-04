@@ -18,14 +18,22 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
   /// The ID of the next token that will be minted.
   uint176 private _nextTokenId = 0;
 
+  constructor(address coreAddress) ERC721("ATHENA", "athena-co.io") {
+    core = coreAddress;
+  }
+
+  /// =========================== ///
+  /// ========= MODIFIER ======== ///
+  /// =========================== ///
+
   modifier onlyCore() {
     require(msg.sender == core, "Only core");
     _;
   }
 
-  constructor(address coreAddress) ERC721("ATHENA", "athena-co.io") {
-    core = coreAddress;
-  }
+  /// ======================== ///
+  /// ========= VIEWS ======== ///
+  /// ======================== ///
 
   function position(uint256 tokenId)
     external
@@ -34,6 +42,10 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
     returns (Position memory)
   {
     return _positions[tokenId];
+  }
+
+  function hasPositionOf(address to) external view override returns (bool) {
+    return balanceOf(to) > 0;
   }
 
   function allPositionTokensOfOwner(address owner)
@@ -112,80 +124,20 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
     }
   }
 
-  // @bw fn is redundant with deposit in this contrat
-  // should be deleted
-  // function mint(
-  //   address to,
-  //   uint128 _feeRate,
-  //   uint256 amount,
-  //   uint256 _aaveScaledBalance,
-  //   uint256 atenStake,
-  //   uint128[] calldata _protocolIds
-  // ) external override onlyCore {
-  //   _positions[_nextTokenId] = Position({
-  //     createdAt: block.timestamp,
-  //     owner: to,
-  //     amountSupplied: amount,
-  //     aaveScaledBalance: _aaveScaledBalance,
-  //     feeRate: _feeRate,
-  //     protocolIds: _protocolIds,
-  //   });
-
-  //   _mint(to, _nextTokenId);
-  //   _nextTokenId++;
-  // }
-
-  function burn(uint256 tokenId) external override onlyCore {
-    _burn(tokenId);
-  }
-
-  // @bw fn is redundant with updatePosition in this contrat
-  // function update(
-  //   uint256 tokenId,
-  //   uint256 amount,
-  //   uint256 _aaveScaledBalance,
-  //   uint128 _feeRate,
-  //   uint128[] calldata _protocolIds
-  // ) external override onlyCore {
-  //   _positions[tokenId].amountSupplied = amount;
-  //   _positions[tokenId].aaveScaledBalance = _aaveScaledBalance;
-  //   _positions[tokenId].feeRate = _feeRate;
-  //   _positions[tokenId].protocolIds = _protocolIds;
-  // }
-
-  // @bw probably to delete because unused
-  // function updateUserCapital(
-  //   uint256 tokenId,
-  //   uint256 _amount,
-  //   uint256 _aaveScaledBalanceToRemove
-  // ) external override onlyCore {
-  //   _positions[tokenId].amountSupplied = _amount;
-  //   _positions[tokenId].aaveScaledBalance -= _aaveScaledBalanceToRemove;
-  // }
-
-  function removeProtocolId(uint256 tokenId, uint128 _protocolId)
-    external
-    override
-    onlyCore
-  {
-    uint128[] memory __protocolIds = _positions[tokenId].protocolIds;
-
-    for (uint256 i = 0; i < __protocolIds.length; i++) {
-      if (__protocolIds[i] == _protocolId) {
-        // @bw ERROR must fix if not leaves an empty value in array
-        // This should check if last item and if isn't remplace deleted with last item
-        __protocolIds[i] = __protocolIds[__protocolIds.length - 1];
-        delete __protocolIds[__protocolIds.length - 1];
-        break;
-      }
+  function isProtocolInCoverList(
+    uint128 _protocolId,
+    uint128[] memory _protocolList
+  ) private pure returns (bool) {
+    for (uint256 i = 0; i < _protocolList.length; i++) {
+      if (_protocolId == _protocolList[i]) return true;
     }
 
-    _positions[tokenId].protocolIds = __protocolIds;
+    return false;
   }
 
-  function hasPositionOf(address to) external view override returns (bool) {
-    return balanceOf(to) > 0;
-  }
+  /// ========================= ///
+  /// ========= CREATE ======== ///
+  /// ========================= ///
 
   function deposit(
     address account,
@@ -238,6 +190,39 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
     });
 
     _mint(account, tokenId);
+  }
+
+  /// ======================== ///
+  /// ========= CLOSE ======== ///
+  /// ======================== ///
+
+  function burn(uint256 tokenId) external override onlyCore {
+    _burn(tokenId);
+  }
+
+  /// ========================= ///
+  /// ========= MODIFY ======== ///
+  /// ========================= ///
+
+  // @bw remove fn or check side effects - dangerous
+  function removeProtocolId(uint256 tokenId, uint128 _protocolId)
+    external
+    override
+    onlyCore
+  {
+    uint128[] memory __protocolIds = _positions[tokenId].protocolIds;
+
+    for (uint256 i = 0; i < __protocolIds.length; i++) {
+      if (__protocolIds[i] == _protocolId) {
+        // @bw ERROR must fix if not leaves a "0" value in array
+        // This should check if last item and if isn't remplace deleted with last item
+        __protocolIds[i] = __protocolIds[__protocolIds.length - 1];
+        delete __protocolIds[__protocolIds.length - 1];
+        break;
+      }
+    }
+
+    _positions[tokenId].protocolIds = __protocolIds;
   }
 
   //Thao@TODO:
@@ -297,31 +282,9 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
     );
   }
 
-  /**
-   * @notice
-   * Update the fee level of a position according to amount of staked ATEN.
-   * @param tokenId_ the position to be uptdated
-   * @param newFeeRate_ the new fee rate of the position
-   **/
-  function updateFeeLevel(uint256 tokenId_, uint128 newFeeRate_)
-    external
-    override
-    onlyCore
-  {
-    // @bw should probably change feeRate to a global map instead of saving in each position
-    _positions[tokenId_].feeRate = newFeeRate_;
-  }
-
-  function isProtocolInCoverList(
-    uint128 _protocolId,
-    uint128[] memory _protocolList
-  ) private pure returns (bool) {
-    for (uint256 i = 0; i < _protocolList.length; i++) {
-      if (_protocolId == _protocolList[i]) return true;
-    }
-
-    return false;
-  }
+  /// ================================= ///
+  /// ========= TAKE INTERESTS ======== ///
+  /// ================================= ///
 
   function takeInterest(
     address account,
@@ -394,5 +357,24 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
 
   function takeInterestsInAllPools(address account, uint256 tokenId) external {
     _takeInterestsInAllPools(account, tokenId);
+  }
+
+  /// ========================= ///
+  /// ========= ADMIN ======== ///
+  /// ========================= ///
+
+  /**
+   * @notice
+   * Update the fee level of a position according to amount of staked ATEN.
+   * @param tokenId_ the position to be uptdated
+   * @param newFeeRate_ the new fee rate of the position
+   **/
+  function updateFeeLevel(uint256 tokenId_, uint128 newFeeRate_)
+    external
+    override
+    onlyCore
+  {
+    // @bw should probably change feeRate to a global map instead of saving in each position
+    _positions[tokenId_].feeRate = newFeeRate_;
   }
 }
