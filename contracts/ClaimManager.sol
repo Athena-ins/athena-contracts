@@ -37,7 +37,9 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
   }
   uint256 public immutable numberOfRulingOptions = 2;
 
+  // @dev claimId is set to 0 to minimize gas cost but filled in view functions
   struct Claim {
+    uint256 claimId;
     ClaimStatus status;
     uint256 createdAt;
     address from;
@@ -197,6 +199,9 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
       uint256 index = claimsInfo.length;
       claimsInfo[index] = claim;
 
+      // Fill the empty claimId with the item index
+      claimsInfo[index].claimId = i;
+
       // We should check if the claim is available for compensation
       if (
         claim.status == ClaimStatus.Initiated &&
@@ -224,6 +229,9 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
       if (claim.from == account_) {
         uint256 index = claimsInfo.length;
         claimsInfo[index] = claim;
+
+        // Fill the empty claimId with the item index
+        claimsInfo[index].claimId = i;
 
         // We should check if the claim is available for compensation
         if (
@@ -253,6 +261,9 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
       if (claim.poolId == poolId_) {
         uint256 index = claimsInfo.length;
         claimsInfo[index] = claim;
+
+        // Fill the empty claimId with the item index
+        claimsInfo[index].claimId = i;
 
         // We should check if the claim is available for compensation
         if (
@@ -383,6 +394,7 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
 
     // Save claim data
     claims[claimId] = Claim({
+      claimId: 0,
       status: ClaimStatus.Initiated,
       from: msg.sender,
       challenger: address(0),
