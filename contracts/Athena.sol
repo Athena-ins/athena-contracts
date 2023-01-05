@@ -809,7 +809,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   function addNewProtocol(
     string calldata name,
     uint8 guaranteeType,
-    uint8 premium, //Thao@NOTE: not used
+    uint8 premiumRate, //Thao@NOTE: not used
     address iface,
     uint128[] calldata protocolsNotCompat,
     string calldata ipfsAgreementHash_
@@ -838,7 +838,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
       id: newPoolId,
       name: name,
       protocolAddress: iface,
-      premiumRate: premium,
+      premiumRate: premiumRate,
       guarantee: guaranteeType,
       deployed: _protocolDeployed,
       active: true,
