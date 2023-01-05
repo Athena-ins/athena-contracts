@@ -19,8 +19,11 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
   uint256 public claimIndex = 0;
   uint256 public collateralAmount = 0.1 ether;
 
+  // @dev the 'Accepted' status is virtual as it is never written to the blockchain
+  // It enables view functions to display the adequate state of the claim
   enum ClaimStatus {
     Initiated,
+    Accepted,
     Disputed,
     AcceptedWithDispute,
     RejectedWithDispute,
@@ -193,6 +196,14 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
 
       uint256 index = claimsInfo.length;
       claimsInfo[index] = claim;
+
+      // We should check if the claim is available for compensation
+      if (
+        claim.status == ClaimStatus.Initiated &&
+        claim.createdAt + challengeDelay < block.timestamp
+      ) {
+        claimsInfo[index].status = ClaimStatus.Accepted;
+      }
     }
   }
 
@@ -213,6 +224,14 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
       if (claim.from == account_) {
         uint256 index = claimsInfo.length;
         claimsInfo[index] = claim;
+
+        // We should check if the claim is available for compensation
+        if (
+          claim.status == ClaimStatus.Initiated &&
+          claim.createdAt + challengeDelay < block.timestamp
+        ) {
+          claimsInfo[index].status = ClaimStatus.Accepted;
+        }
       }
     }
   }
@@ -234,6 +253,14 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
       if (claim.poolId == poolId_) {
         uint256 index = claimsInfo.length;
         claimsInfo[index] = claim;
+
+        // We should check if the claim is available for compensation
+        if (
+          claim.status == ClaimStatus.Initiated &&
+          claim.createdAt + challengeDelay < block.timestamp
+        ) {
+          claimsInfo[index].status = ClaimStatus.Accepted;
+        }
       }
     }
   }
