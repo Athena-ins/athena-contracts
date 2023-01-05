@@ -106,12 +106,12 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
 
   /**
    * @notice
-   * Check caller is owner of the cover supply NFT
-   * @param coverId_ cover supply NFT ID
+   * Check caller is owner of the position supply NFT
+   * @param positionId_ position supply NFT ID
    */
-  modifier onlyPositionTokenOwner(uint256 coverId_) {
+  modifier onlyPositionTokenOwner(uint256 positionId_) {
     address ownerOfToken = IPositionsManager(positionsManager).ownerOf(
-      coverId_
+      positionId_
     );
     require(msg.sender == ownerOfToken, "A: not position owner");
     _;
