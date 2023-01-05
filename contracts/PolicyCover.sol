@@ -451,7 +451,7 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
     view
     existedOwner(_owner)
     returns (
-      uint256 __remainingPremium,
+      uint256 __premiumLeft,
       uint256 __currentEmissionRate,
       uint256 __remainingSeconds
     )
@@ -490,9 +490,7 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
       uint256 __secondsPassed = (__tick - __slot0.tick) *
         __slot0.secondsPerTick;
 
-      __remainingPremium +=
-        (__secondsPassed * __currentOwnerEmissionRate) /
-        86400;
+      __premiumLeft += (__secondsPassed * __currentOwnerEmissionRate) / 86400;
 
       __remainingSeconds += __secondsPassed;
 

@@ -104,8 +104,8 @@ describe("Ongoing coverage policies", () => {
     expect(result.length).to.be.equals(2);
     expect(result[0].policyId).to.be.equals(0);
     expect(result[0].amountCovered).to.be.equals(109500);
-    expect(result[0].paidPremium).to.be.equals(2190);
-    expect(result[0].remainingPremium).to.be.equals(2094);
+    expect(result[0].premiumDeposit).to.be.equals(2190);
+    expect(result[0].premiumLeft).to.be.equals(2094);
     expect(result[0].dailyCost).to.be.equals(9);
     expect(result[0].atensLocked).to.be.equals(0);
     expect(result[0].beginCoveredTime).to.be.equals(1648120800);
@@ -114,8 +114,8 @@ describe("Ongoing coverage policies", () => {
 
     expect(result[1].policyId).to.be.equals(2);
     expect(result[1].amountCovered).to.be.equals(219000);
-    expect(result[1].paidPremium).to.be.equals(8760);
-    expect(result[1].remainingPremium).to.be.equals(8760);
+    expect(result[1].premiumDeposit).to.be.equals(8760);
+    expect(result[1].premiumLeft).to.be.equals(8760);
     expect(result[1].dailyCost).to.be.equals(18);
     expect(result[1].atensLocked).to.be.equals(0);
     expect(result[1].beginCoveredTime).to.be.equals(1649071200);

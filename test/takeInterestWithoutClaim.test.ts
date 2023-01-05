@@ -504,7 +504,7 @@ describe("Liquidity provider takeInterest", () => {
         await policyTaker1.getAddress()
       );
 
-      expect(response.__remainingPremium).to.be.equal(2085);
+      expect(response.__premiumLeft).to.be.equal(2085);
       expect(response.__currentEmissionRate).to.be.equal(9);
       expect(response.__remainingSeconds).to.be.equal(20016000);
     });
@@ -535,7 +535,7 @@ describe("Liquidity provider takeInterest", () => {
         await policyTaker2.getAddress()
       );
 
-      expect(response.__remainingPremium).to.be.equal(4365);
+      expect(response.__premiumLeft).to.be.equal(4365);
       expect(response.__currentEmissionRate).to.be.equal(9);
       expect(response.__remainingSeconds).to.be.equal(52848000);
     });

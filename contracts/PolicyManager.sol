@@ -119,8 +119,8 @@ contract PolicyManager is IPolicyManager, ERC721Enumerable {
       ongoingCoverages[i] = OngoingCoveragePolicy({
         policyId: _tokens[i],
         amountCovered: _policy.amountCovered,
-        paidPremium: _policy.paidPremium,
-        remainingPremium: _premiumLeft,
+        premiumDeposit: _policy.premiumDeposit,
+        premiumLeft: _premiumLeft,
         atensLocked: _policy.atensLocked,
         dailyCost: _dailyCost,
         beginCoveredTime: _policy.beginCoveredTime,
@@ -137,14 +137,14 @@ contract PolicyManager is IPolicyManager, ERC721Enumerable {
   function mint(
     address _to,
     uint256 _amountCovered,
-    uint256 _paidPremium,
+    uint256 _premiumDeposit,
     uint256 _atensLocked,
     uint128 _poolId
   ) external override onlyCore returns (uint256) {
     policies[nextId] = Policy({
       poolId: _poolId,
       amountCovered: _amountCovered,
-      paidPremium: _paidPremium,
+      premiumDeposit: _premiumDeposit,
       atensLocked: _atensLocked,
       beginCoveredTime: block.timestamp
     });
@@ -168,7 +168,7 @@ contract PolicyManager is IPolicyManager, ERC721Enumerable {
     address _owner,
     uint256 _policyId,
     Policy memory _policy,
-    uint256 _actualFees,
+    uint256 _premiumSpent,
     bool _isCanceled
   ) public override onlyCore {
     // @bw should only save token id of expired or set to expired state
@@ -176,8 +176,8 @@ contract PolicyManager is IPolicyManager, ERC721Enumerable {
       ExpiredPolicy({
         policyId: _policyId,
         amountCovered: _policy.amountCovered,
-        paidPremium: _policy.paidPremium,
-        actualFees: _actualFees,
+        premiumDeposit: _policy.premiumDeposit,
+        premiumSpent: _premiumSpent,
         atensLocked: _policy.atensLocked,
         beginCoveredTime: _policy.beginCoveredTime,
         endCoveredTime: block.timestamp, // @bw ce n'est pas bon
@@ -200,7 +200,7 @@ contract PolicyManager is IPolicyManager, ERC721Enumerable {
         ownerOf(_expiredTokens[i]),
         _expiredTokens[i],
         policy_,
-        policy_.paidPremium,
+        policy_.premiumDeposit,
         false
       );
 

@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/token/ERC721/extensions/IERC721Enumerable.sol";
 interface IPolicyManager is IERC721Enumerable {
   struct Policy {
     uint256 amountCovered;
-    uint256 paidPremium;
+    uint256 premiumDeposit;
     uint256 atensLocked;
     uint256 beginCoveredTime;
     uint128 poolId;
@@ -14,8 +14,8 @@ interface IPolicyManager is IERC721Enumerable {
   struct OngoingCoveragePolicy {
     uint256 policyId;
     uint256 amountCovered;
-    uint256 paidPremium;
-    uint256 remainingPremium;
+    uint256 premiumDeposit;
+    uint256 premiumLeft;
     uint256 dailyCost;
     uint256 atensLocked;
     uint256 beginCoveredTime;
@@ -26,8 +26,8 @@ interface IPolicyManager is IERC721Enumerable {
   struct ExpiredPolicy {
     uint256 policyId;
     uint256 amountCovered;
-    uint256 paidPremium;
-    uint256 actualFees;
+    uint256 premiumDeposit;
+    uint256 premiumSpent;
     uint256 atensLocked;
     uint256 beginCoveredTime;
     uint256 endCoveredTime;
@@ -40,7 +40,7 @@ interface IPolicyManager is IERC721Enumerable {
   function mint(
     address to,
     uint256 amountCovered,
-    uint256 paidPremium,
+    uint256 premiumDeposit,
     uint256 atensLocked,
     uint128 poolId
   ) external returns (uint256);
@@ -51,7 +51,7 @@ interface IPolicyManager is IERC721Enumerable {
     address owner,
     uint256 policyId,
     Policy memory policy,
-    uint256 actualFees,
+    uint256 premiumSpent,
     bool isCanceled
   ) external;
 

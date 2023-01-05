@@ -514,29 +514,34 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
 
   //////Thao@NOTE: Policy
   function buyPolicies(
-    uint256[] calldata _amountCoveredArray,
-    uint256[] calldata _paidPremiumArray,
-    uint256[] calldata _atensLockedArray,
-    uint128[] calldata _poolIdArray
+    uint256[] calldata amountCoveredArray_,
+    uint256[] calldata premiumDepositArray_,
+    uint256[] calldata atensLockedArray_,
+    uint128[] calldata poolIdArray_
   ) public payable nonReentrant {
-    for (uint256 i = 0; i < _poolIdArray.length; i++) {
-      uint256 _amountCovered = _amountCoveredArray[i];
-      uint256 _paidPremium = _paidPremiumArray[i];
-      uint256 _atensLocked = _atensLockedArray[i];
-      uint128 _poolId = _poolIdArray[i];
+    uint256 nbPolicies = poolIdArray_.length;
 
-      require(_amountCovered > 0 && _paidPremium > 0, "Must be greater than 0");
+    for (uint256 i = 0; i < nbPolicies; i++) {
+      uint256 _amountCovered = amountCoveredArray_[i];
+      uint256 _premiumDeposit = premiumDepositArray_[i];
+      uint256 _atensLocked = atensLockedArray_[i];
+      uint128 _poolId = poolIdArray_[i];
+
+      require(
+        _amountCovered > 0 && _premiumDeposit > 0,
+        "Must be greater than 0"
+      );
 
       IERC20(stablecoin).safeTransferFrom(
         msg.sender,
         protocolsMapping[_poolId].deployed,
-        _paidPremium
+        _premiumDeposit
       );
 
       uint256 policyId = IPolicyManager(policyManager).mint(
         msg.sender,
         _amountCovered,
-        _paidPremium,
+        _premiumDeposit,
         _atensLocked,
         _poolId
       );
@@ -548,7 +553,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
       IProtocolPool(protocolsMapping[_poolId].deployed).buyPolicy(
         msg.sender,
         policyId,
-        _paidPremium,
+        _premiumDeposit,
         _amountCovered
       );
 
@@ -559,7 +564,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
         uint256 __decimalsRatio = 1e18 / 10**ERC20(stablecoin).decimals();
         require(
           (__price * _atensLocked) / pricePrecision <=
-            (_paidPremium * __decimalsRatio),
+            (_premiumDeposit * __decimalsRatio),
           "A: amount ATEN too high"
         );
 
@@ -612,16 +617,18 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     }
 
     // Updates pool liquidity and withdraws remaining funds to user
-    uint256 remainedPremium_ = IProtocolPool(
+    uint256 _premiumLeft = IProtocolPool(
       protocolsMapping[userPolicy.poolId].deployed
     ).withdrawPolicy(msg.sender, userPolicy.amountCovered);
+
+    uint256 premiumSpent = userPolicy.premiumDeposit - _premiumLeft;
 
     // Delete policy from registry and saves historical data
     policyManagerInterface.saveExpiredPolicy(
       msg.sender,
       policyId_,
       userPolicy,
-      userPolicy.paidPremium - remainedPremium_,
+      premiumSpent,
       true
     );
 

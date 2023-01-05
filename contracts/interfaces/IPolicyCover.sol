@@ -30,7 +30,7 @@ interface IPolicyCover {
     external
     view
     returns (
-      uint256 remainingPremium,
+      uint256 premiumLeft,
       uint256 currentEmissionRate,
       uint256 remainingDay
     );

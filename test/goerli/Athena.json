@@ -28390,7 +28390,7 @@
         },
         {
           "internalType": "uint256[]",
-          "name": "_paidPremiumArray",
+          "name": "_premiumDepositArray",
           "type": "uint256[]"
         },
         {

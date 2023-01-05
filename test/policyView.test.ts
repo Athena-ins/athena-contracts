@@ -169,7 +169,7 @@ describe("View policy", () => {
         await policyTaker1.getAddress()
       );
 
-      expect(response.__remainingPremium).to.be.equal("2130");
+      expect(response.__premiumLeft).to.be.equal("2130");
       expect(response.__currentEmissionRate).to.be.equal("12");
       expect(response.__remainingSeconds).to.be.equal("15336000");
     });
