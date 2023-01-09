@@ -16,7 +16,7 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
   IAthena public immutable core;
   IPolicyManager public immutable policyManagerInterface;
   uint256 public challengeDelay = 14 days;
-  uint256 public claimIndex = 0;
+  uint256 public claimIndex;
   uint256 public collateralAmount = 0.1 ether;
 
   // @dev the 'Accepted' status is virtual as it is never written to the blockchain

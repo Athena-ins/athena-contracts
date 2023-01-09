@@ -36,7 +36,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   address public stakedAtensGP;
   /// @notice Staking Pool Contract: Policy
   address public stakedAtensPo;
-  address public rewardsToken;
+  address public atenToken;
   address public atensVault;
 
   struct AtenFeeLevel {
@@ -60,10 +60,10 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
 
   constructor(
     address _stablecoinUsed,
-    address _rewardsToken,
+    address atenTokenAddress_,
     address _aaveAddressesRegistry
   ) {
-    rewardsToken = _rewardsToken;
+    atenToken = atenTokenAddress_;
     stablecoin = _stablecoinUsed;
     aaveAddressesRegistry = _aaveAddressesRegistry;
   }
@@ -471,6 +471,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
         protocolsMapping[__position.poolIds[index]].deployed
       );
 
+      // @bw should check commit delay elapsed in this contract to avoid multiple calls to the protocols
       require(
         __protocol.isWithdrawLiquidityDelayOk(tokenId),
         "Withdraw reserve"

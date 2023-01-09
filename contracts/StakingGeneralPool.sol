@@ -33,10 +33,18 @@ contract StakingGeneralPool is
     core = _core;
   }
 
+  /// =========================== ///
+  /// ========== MODIFIERS ========== ///
+  /// =========================== ///
+
   modifier onlyCore() {
     require(msg.sender == core, "SGP: Only Core");
     _;
   }
+
+  /// =========================== ///
+  /// ========== VIEWS ========== ///
+  /// =========================== ///
 
   /**
    * @notice
@@ -49,6 +57,10 @@ contract StakingGeneralPool is
 
     return userStake.amount + reward;
   }
+
+  /// =============================== ///
+  /// ======= STAKE / UNSTAKE ======= ///
+  /// =============================== ///
 
   function stake(
     address _account,
@@ -79,9 +91,9 @@ contract StakingGeneralPool is
     IERC20(underlyingAssetAddress).safeTransfer(_account, amountToReturn);
   }
 
-  /// ================================== ///
-  /// ========= ADMINISTRATION ========= ///
-  /// ================================== ///
+  /// ========================= ///
+  /// ========= ADMIN ========= ///
+  /// ========================= ///
 
   function setStakingRewards(RewardRateLevel[] calldata stakingLevels_)
     public
