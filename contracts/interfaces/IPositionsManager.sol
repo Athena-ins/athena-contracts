@@ -15,6 +15,8 @@ interface IPositionsManager is IERC721Enumerable {
   struct PositionInfo {
     uint256 positionId;
     uint256 premiumReceived;
+    // @bw move withdraw commit check to pos manager
+    uint256 withdrawCommitTimestamp;
     Position position;
   }
 

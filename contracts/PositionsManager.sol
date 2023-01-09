@@ -103,6 +103,8 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
       positionList[i] = PositionInfo({
         positionId: tokenList[i],
         premiumReceived: totalRewards,
+        // @bw move withdraw commit check to pos manager
+        withdrawCommitTimestamp: 0,
         position: __position
       });
     }
