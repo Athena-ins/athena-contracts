@@ -19,6 +19,7 @@ contract StakingPolicy is ERC20WithSnapshot {
 
   // A staking position of a user
   struct StakingPosition {
+    uint256 policyId;
     uint256 amount;
     uint128 timestamp;
     uint128 rate;
@@ -120,19 +121,19 @@ contract StakingPolicy is ERC20WithSnapshot {
    * @notice
    * Returns all staking position of a user.
    * @param account_ is the address of the user
-   * @return _stakingPositions all staking positions if there are any
+   * @return stakingPositions all staking positions if there are any
    */
   function allAccountStakingPositions(address account_)
     external
     view
-    returns (StakingPosition[] memory _stakingPositions)
+    returns (StakingPosition[] memory stakingPositions)
   {
     StakeAccount storage userStakingPositions = _stakes[account_];
 
     for (uint256 i = 0; i < userStakingPositions.policyTokenIds.length; i++) {
       uint256 tokenId = userStakingPositions.policyTokenIds[i];
 
-      _stakingPositions[i] = userStakingPositions.positions[tokenId];
+      stakingPositions[i] = userStakingPositions.positions[tokenId];
     }
   }
 
@@ -216,6 +217,7 @@ contract StakingPolicy is ERC20WithSnapshot {
     // Save the user's staking position
     uint128 timestamp = uint128(block.timestamp);
     stakingAccount.positions[policyId_] = StakingPosition(
+      policyId_,
       amount_,
       timestamp,
       rewardsAnnualRate,
