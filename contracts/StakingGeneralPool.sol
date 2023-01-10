@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-// import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+
 import "./libraries/ERC20withSnapshot.sol";
+
 import "./FixedRateStakeable.sol";
 import "./interfaces/IStakedAten.sol";
 
@@ -13,9 +12,7 @@ import "./interfaces/IStakedAten.sol";
 contract StakingGeneralPool is
   IStakedAten,
   ERC20WithSnapshot,
-  FixedRateStakeable,
-  ReentrancyGuard,
-  Ownable
+  FixedRateStakeable
 {
   using SafeERC20 for IERC20;
   address public immutable underlyingAssetAddress;
@@ -111,9 +108,10 @@ contract StakingGeneralPool is
   /// ========= ADMIN ========= ///
   /// ========================= ///
 
+  // @bw change to onlycore and add to core contract
   function setStakingRewards(RewardRateLevel[] calldata stakingLevels_)
-    public
-    onlyOwner
+    external
+    onlyCore
   {
     _setStakingRewards(stakingLevels_);
   }

@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8;
 
+import "./interfaces/IFixedRateStakeable.sol";
+
 /**
  * @notice Staking Pool Parent: General Pool (GP)
  * @notice Stakeable is a contract who is ment to be inherited by other contract that wants Staking capabilities
  * @dev initially inspired from @percybolmer/DevToken
  */
-contract FixedRateStakeable {
+contract FixedRateStakeable is IFixedRateStakeable {
   /**
    * @notice Stakeholder is a staker that has a stake
    */
@@ -34,11 +36,6 @@ contract FixedRateStakeable {
      */
   /// Available staking reward levels (10_000 = 100% APR)
   RewardRateLevel[] internal stakingRewardRates;
-
-  struct RewardRateLevel {
-    uint256 amountSupplied;
-    uint128 aprStaking;
-  }
 
   /**
    * @notice

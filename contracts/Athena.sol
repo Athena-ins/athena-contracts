@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8;
 
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
@@ -840,6 +841,12 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
       // save to storage
       supplyFeeLevels.push(level);
     }
+  }
+
+  function setStakingRewardRates(
+    IStakedAten.RewardRateLevel[] calldata stakingLevels_
+  ) external onlyOwner {
+    IStakedAten(stakedAtensGP).setStakingRewards(stakingLevels_);
   }
 
   /// -------- PROTOCOL POOLS -------- ///
