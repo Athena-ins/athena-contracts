@@ -6,42 +6,43 @@ import "./interfaces/IVaultERC20.sol";
 
 /// @notice Vault holding the locked supply of ATEN rewards
 contract TokenVault is IVaultERC20 {
-  uint256 private constant MAX_UINT256 = type(uint256).max;
-  address public immutable underlyingAssetAddress;
+  using SafeERC20 for IERC20;
   address public immutable core;
-  mapping(address => uint256) public userBalances;
 
-  constructor(address _tokenAddress, address _core) {
-    underlyingAssetAddress = _tokenAddress;
-    core = _core;
-    IERC20(underlyingAssetAddress).approve(_core, MAX_UINT256);
+  IERC20 public atenTokenInterface;
+
+  constructor(address tokenAddress_, address core_) {
+    atenTokenInterface = IERC20(tokenAddress_);
+    core = core_;
   }
 
+  /// ============================ ///
+  /// ========= MODIFIERS ======== ///
+  /// ============================ ///
+
   modifier onlyCore() {
-    require(msg.sender == core, "Only core");
+    require(msg.sender == core, "TV: only core");
     _;
   }
 
-  function deposit(uint256 _amount) external {
-    require(
-      IERC20(underlyingAssetAddress).balanceOf(msg.sender) >= _amount,
-      "Insufficient balance for deposit"
-    );
-    IERC20(underlyingAssetAddress).transferFrom(
-      msg.sender,
-      address(this),
-      _amount
-    );
-    // userBalances[msg.sender] += _amount;
-  }
+  /// ================================= ///
+  /// ========= DEPOSIT & SEND ======== ///
+  /// ================================= ///
 
-  function transfer(address _account, uint256 _amount) external onlyCore {
-    require(
-      IERC20(underlyingAssetAddress).balanceOf(address(this)) >= _amount,
-      "Insufficient balance for transfer"
+  // @bw function is kinda useless
+  function depositFrom(address account_, uint256 amount_) external {
+    // Check if the sender has enough tokens
+    uint256 senderBalance = atenTokenInterface.balanceOf(account_);
+    require(amount_ <= senderBalance, "TV: insufficient balance");
+
+    // Check if the vault has enough allowance
+    uint256 vaultAllowance = atenTokenInterface.allowance(
+      account_,
+      address(this)
     );
-    // userBalances[msg.sender] -= _amount;
-    IERC20(underlyingAssetAddress).transfer(_account, _amount);
+    require(amount_ <= vaultAllowance, "TV: insufficient allowance");
+
+    atenTokenInterface.transferFrom(account_, address(this), amount_);
   }
 
   /**
@@ -52,12 +53,10 @@ contract TokenVault is IVaultERC20 {
    */
   function sendReward(address to_, uint256 amount_) external onlyCore {
     // Check if the contract has enough tokens
-    require(
-      amount_ <= IERC20(underlyingAssetAddress).balanceOf(address(this)),
-      "AV: insufficient balance"
-    );
+    uint256 vaultBalance = atenTokenInterface.balanceOf(address(this));
+    require(amount_ <= vaultBalance, "TV: insufficient balance");
 
     // Transfer the amount to the user
-    IERC20(underlyingAssetAddress).transfer(to_, amount_);
+    atenTokenInterface.transfer(to_, amount_);
   }
 }
