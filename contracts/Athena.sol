@@ -100,7 +100,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   /// ============================ ///
 
   modifier onlyClaimManager() {
-    require(msg.sender == claimManager, "Only Claim Manager");
+    require(msg.sender == claimManager, "A: only claim manager");
     _;
   }
 
@@ -349,6 +349,22 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   }
 
   /** @notice
+   * Gets all the cover supply fee levels according to the amount of staked ATEN.
+   * @return levels all the fee levels
+   **/
+  function getAtenStakingFeeLevels()
+    public
+    view
+    returns (AtenFeeLevel[] memory levels)
+  {
+    uint256 nbLevels = supplyFeeLevels.length;
+
+    for (uint256 i = 0; i < nbLevels; i++) {
+      levels[i] = supplyFeeLevels[i];
+    }
+  }
+
+  /** @notice
    * Retrieves the fee rate according to amount of staked ATEN.
    * @dev Returns displays warning but levels require an amountAten of 0
    * @param stakedAten_ amount of ATEN the user stakes in GP
@@ -469,6 +485,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
       positionsManager
     ).position(tokenId);
 
+    // @bw committingWithdrawLiquidity should be saved in the core instead of each pool
     for (uint256 index = 0; index < __position.poolIds.length; index++)
       IProtocolPool(protocolsMapping[__position.poolIds[index]].deployed)
         .committingWithdrawLiquidity(tokenId);
