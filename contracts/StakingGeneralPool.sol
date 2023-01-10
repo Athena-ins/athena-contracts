@@ -58,6 +58,22 @@ contract StakingGeneralPool is
     return userStake.amount + reward;
   }
 
+  /** @notice
+   * Gets all the ATEN staking reward levels according to the amount of capital supplied.
+   * @return levels all the fee levels
+   **/
+  function getStakingRewardsLevels()
+    public
+    view
+    returns (RewardRateLevel[] memory levels)
+  {
+    uint256 nbLevels = stakingRewardRates.length;
+
+    for (uint256 i = 0; i < nbLevels; i++) {
+      levels[i] = stakingRewardRates[i];
+    }
+  }
+
   /// =============================== ///
   /// ======= STAKE / UNSTAKE ======= ///
   /// =============================== ///
