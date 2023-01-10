@@ -318,10 +318,10 @@ describe("Deploy protocol", () => {
       });
 
       it("Should set reward Rates ATEN with USD", async () => {
-        const STAKED_ATENS_CONTRACT = ProtocolHelper.getStakedAtenContract();
+        const ATHENA_CONTRACT = ProtocolHelper.getAthenaContract();
 
         await expect(
-          STAKED_ATENS_CONTRACT.connect(owner).setStakingRewards([
+          ATHENA_CONTRACT.connect(owner).setStakingRewardRates([
             [0, 1_000],
             [100_000, 1_600],
             [10_000, 1_200],
@@ -329,9 +329,11 @@ describe("Deploy protocol", () => {
           ])
         ).to.be.rejectedWith("SA: Sort in ascending order");
 
-        const tx = await ProtocolHelper.setStakingRewards(owner);
+        const tx = await ProtocolHelper.setStakingRewardRates(owner);
 
         expect(tx).to.haveOwnProperty("hash");
+
+        const STAKED_ATENS_CONTRACT = ProtocolHelper.getStakedAtenContract();
 
         expect(
           await STAKED_ATENS_CONTRACT.connect(owner).getStakingRewardRate(0)

@@ -180,9 +180,9 @@ describe("Staking Policy Rewards", function () {
       "bafybeiafebm3zdtzmn5mcquacgd47enhsjnebvegnzfunbbbbbbbbbbbbb"
     );
 
-    const tx2 = await STAKED_ATENS_CONTRACT.connect(
+    const tx2 = await ATHENA_CONTRACT.connect(
       allSigners[0]
-    ).setStakingRewards([
+    ).setStakingRewardRates([
       [0, 1_000],
       [10_000, 1_200],
       [100_000, 1_600],

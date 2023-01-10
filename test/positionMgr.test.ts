@@ -324,7 +324,9 @@ describe("Position Manager", function () {
 
   it("Should set reward Rates ATEN with USD", async function () {
     await expect(
-      STAKED_ATENS_CONTRACT.connect(allSigners[1]).setStakingRewards([
+      STAKED_ATENS_CONTRACT.ATHENA_CONTRACT(
+        allSigners[1]
+      ).setStakingRewardRates([
         [0, 1_000],
         [10_000, 1_200],
         [100_000, 1_600],
@@ -333,7 +335,7 @@ describe("Position Manager", function () {
     ).to.be.rejectedWith("Ownable: caller is not the owner");
 
     await expect(
-      STAKED_ATENS_CONTRACT.connect(owner).setStakingRewards([
+      ATHENA_CONTRACT.connect(owner).setStakingRewardRates([
         [0, 1_000],
         [100_000, 1_600],
         [10_000, 1_200],
@@ -342,7 +344,7 @@ describe("Position Manager", function () {
     ).to.be.rejectedWith("SA: Sort in ascending order");
 
     await expect(
-      STAKED_ATENS_CONTRACT.connect(owner).setStakingRewards([
+      ATHENA_CONTRACT.connect(owner).setStakingRewardRates([
         [1, 1_000],
         [10_000, 1_200],
         [100_000, 1_600],
@@ -351,7 +353,7 @@ describe("Position Manager", function () {
     ).to.be.rejectedWith("SA: Must specify base rate");
 
     await expect(
-      STAKED_ATENS_CONTRACT.connect(owner).setStakingRewards([
+      ATHENA_CONTRACT.connect(owner).setStakingRewardRates([
         [0, 1_000],
         [10_000, 1_200],
         [100_000, 1_600],
@@ -359,7 +361,7 @@ describe("Position Manager", function () {
       ])
     ).to.be.rejectedWith("SA: APR > 100%");
 
-    const tx = await STAKED_ATENS_CONTRACT.connect(owner).setStakingRewards([
+    const tx = await ATHENA_CONTRACT.connect(owner).setStakingRewardRates([
       [0, 1_000],
       [10_000, 1_200],
       [100_000, 1_600],

@@ -255,14 +255,14 @@ describe("Protocol Pool", function () {
 
     it("Should set reward Rates ATEN with USD", async function () {
       await expect(
-        STAKED_ATENS_CONTRACT.connect(owner).setStakingRewards([
+        ATHENA_CONTRACT.connect(owner).setStakingRewardRates([
           [0, 1_000],
           [10_000, 1_200],
           [1_000_000, 2_000],
           [100_000, 1_600],
         ])
       ).to.be.rejectedWith("SA: Sort in ascending order");
-      const tx = await STAKED_ATENS_CONTRACT.connect(owner).setStakingRewards([
+      const tx = await ATHENA_CONTRACT.connect(owner).setStakingRewardRates([
         [0, 1_000],
         [10_000, 1_200],
         [100_000, 1_600],

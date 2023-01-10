@@ -150,8 +150,8 @@ async function setFeeLevelsWithAten(owner: ethers.Signer) {
   ]);
 }
 
-async function setStakingRewards(owner: ethers.Signer) {
-  return await STAKED_ATENS_CONTRACT.connect(owner).setStakingRewards([
+async function setStakingRewardRates(owner: ethers.Signer) {
+  return await ATHENA_CONTRACT.connect(owner).setStakingRewardRates([
     [0, 1_000],
     [10_000, 1_200],
     [100_000, 1_600],
@@ -170,7 +170,7 @@ async function deployAllContractsAndInitializeProtocol(owner: ethers.Signer) {
   await deployVaultAtenContract(owner);
   await initializeProtocol();
   await setFeeLevelsWithAten(owner);
-  await setStakingRewards(owner);
+  await setStakingRewardRates(owner);
 }
 
 async function addNewProtocolPool(protocolPoolName: string) {
@@ -330,7 +330,7 @@ export default {
   getClaimManagerContract,
   initializeProtocol,
   setFeeLevelsWithAten,
-  setStakingRewards,
+  setStakingRewardRates,
   deployAllContractsAndInitializeProtocol,
   addNewProtocolPool,
   getProtocolPoolDataById,
