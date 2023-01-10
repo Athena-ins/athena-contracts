@@ -37,25 +37,9 @@ contract FixedRateStakeable is IFixedRateStakeable {
   /// Available staking reward levels (10_000 = 100% APR)
   RewardRateLevel[] internal stakingRewardRates;
 
-  /**
-   * @notice
-   * _Stake is used to make a stake for an sender. It will remove the amount staked from the stakers account and place those tokens inside a stake container
-   * StakeID
-   */
-  function _stake(
-    address _account,
-    uint256 _amount,
-    uint256 _usdCapitalSupplied // in USD
-  ) internal {
-    require(_amount > 0, "Cannot stake nothing");
-    uint256 timestamp = block.timestamp;
-    Stakeholder storage _userStake = stakes[_account];
-    _userStake.amount += _amount;
-    _userStake.since = timestamp;
-    _userStake.rate = getStakingRewardRate(_usdCapitalSupplied);
-
-    emit Staked(_account, _amount, timestamp);
-  }
+  /// =========================== ///
+  /// ========== VIEWS ========== ///
+  /// =========================== ///
 
   /** @notice
    * Retrieves the fee rate according to amount of staked ATEN.
@@ -98,6 +82,44 @@ contract FixedRateStakeable is IFixedRateStakeable {
 
   /**
    * @notice
+   * public function to view rewards available for a stake
+   */
+  function rewardsOf(address _staker)
+    public
+    view
+    returns (uint256 rewards, uint128 rate)
+  {
+    Stakeholder memory _userStake = stakes[_staker];
+    rewards = calculateStakeReward(_userStake);
+    return (rewards, _userStake.rate);
+  }
+
+  /// =============================== ///
+  /// ======= STAKE / UNSTAKE ======= ///
+  /// =============================== ///
+
+  /**
+   * @notice
+   * _Stake is used to make a stake for an sender. It will remove the amount staked from the stakers account and place those tokens inside a stake container
+   * StakeID
+   */
+  function _stake(
+    address _account,
+    uint256 _amount,
+    uint256 _usdCapitalSupplied // in USD
+  ) internal {
+    require(_amount > 0, "SGP: cannot stake 0");
+    uint256 timestamp = block.timestamp;
+    Stakeholder storage _userStake = stakes[_account];
+    _userStake.amount += _amount;
+    _userStake.since = timestamp;
+    _userStake.rate = getStakingRewardRate(_usdCapitalSupplied);
+
+    emit Staked(_account, _amount, timestamp);
+  }
+
+  /**
+   * @notice
    * withdrawStake takes in an amount and a index of the stake and will remove tokens from that stake
    * Notice index of the stake is the users stake counter, starting at 0 for the first stake
    * Will return the amount to MINT onto the acount
@@ -122,23 +144,9 @@ contract FixedRateStakeable is IFixedRateStakeable {
     return amount + reward;
   }
 
-  /**
-   * @notice
-   * public function to view rewards available for a stake
-   */
-  function rewardsOf(address _staker)
-    public
-    view
-    returns (uint256 rewards, uint128 rate)
-  {
-    Stakeholder memory _userStake = stakes[_staker];
-    rewards = calculateStakeReward(_userStake);
-    return (rewards, _userStake.rate);
-  }
-
-  /// ================================== ///
-  /// ========= ADMINISTRATION ========= ///
-  /// ================================== ///
+  /// ========================= ///
+  /// ========= ADMIN ========= ///
+  /// ========================= ///
 
   /** @notice
    * Setter for staking rewards according to supplied cover capital.
