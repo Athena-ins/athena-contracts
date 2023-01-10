@@ -12,6 +12,9 @@ interface IStakedAten is IFixedRateStakeable {
 
   function withdraw(address _account, uint256 _amount) external;
 
+  function updateUserRewardRate(address account_, uint256 newUsdCapital_)
+    external;
+
   function setStakingRewards(RewardRateLevel[] calldata stakingLevels_)
     external;
 

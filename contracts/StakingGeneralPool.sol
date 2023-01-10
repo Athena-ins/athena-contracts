@@ -101,7 +101,35 @@ contract StakingGeneralPool is
     _beforeTokenTransfer(_account, address(0), _amount);
 
     // @bw should handle only staked amount and have rewards paid out by vault in Athena
-    IERC20(underlyingAssetAddress).safeTransfer(_account, amountToReturn);
+  }
+
+  /// =========================== ///
+  /// ======= UPDATE RATE ======= ///
+  /// =========================== ///
+
+  /** @notice
+   * Updates the reward rate for a user when the amount of capital supplied changes.
+   * @param account_ the account whose reward rate is updated
+   * @param newUsdCapital_ the new amount of capital supplied by the user
+   */
+  function updateUserRewardRate(address account_, uint256 newUsdCapital_)
+    external
+    override
+    onlyCore
+  {
+    uint128 newRewardRate = getStakingRewardRate(newUsdCapital_);
+    Stakeholder storage userStake = stakes[account_];
+
+    // Check if the change in the amount of capital causes a change in reward rate
+    if (newRewardRate != userStake.rate) {
+      // Save the rewards already earned by staker
+      uint256 accruedReward = calculateStakeReward(userStake);
+      userStake.accruedRewards += accruedReward;
+
+      // Reset the staking having saved the accrued rewards
+      userStake.rate = newRewardRate;
+      userStake.since = block.timestamp;
+    }
   }
 
   /// ========================= ///

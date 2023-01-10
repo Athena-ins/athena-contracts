@@ -409,28 +409,42 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     payable
     validePoolIds(poolIds)
   {
+    IPositionsManager positionManagerInterface = IPositionsManager(
+      positionsManager
+    );
+
     // retrieve user funds for coverage
     IERC20(stablecoin).safeTransferFrom(msg.sender, address(this), amount);
 
     // Deposit the funds into AAVE and get the new scaled balance
     uint256 newAaveScaledBalance = transferLiquidityToAAVE(amount);
 
-    // check the user's balance of staked ATEN + staking rewards
+    // Check the user's balance of staked ATEN + staking rewards
     uint256 stakedAten = IStakedAten(stakedAtensGP).positionOf(msg.sender);
 
-    // if user has staked ATEN then get feeRate
+    // If user has staked ATEN then get feeRate
     uint128 stakingFeeRate;
     if (stakedAten > 0) {
       stakingFeeRate = getFeeRateWithAten(stakedAten);
     }
 
     // deposit assets in the pool and create position NFT
-    IPositionsManager(positionsManager).deposit(
+    positionManagerInterface.deposit(
       msg.sender,
       amount,
       newAaveScaledBalance,
       stakingFeeRate,
       poolIds
+    );
+
+    // Get the new total amount of capital supplied by the user
+    uint256 usdCapitalSupplied = positionManagerInterface
+      .allCapitalSuppliedByAccount(msg.sender);
+
+    // Check if his staking reward rate needs to be updated
+    IStakedAten(stakedAtensGP).updateUserRewardRate(
+      msg.sender,
+      usdCapitalSupplied
     );
   }
 
@@ -449,6 +463,10 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     external
     onlyPositionTokenOwner(tokenId)
   {
+    IPositionsManager positionManagerInterface = IPositionsManager(
+      positionsManager
+    );
+
     // retrieve user funds for coverage
     IERC20(stablecoin).safeTransferFrom(msg.sender, address(this), amount);
 
@@ -464,12 +482,22 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
       newStakingFeeRate = getFeeRateWithAten(stakedAten);
     }
 
-    IPositionsManager(positionsManager).updatePosition(
+    positionManagerInterface.updatePosition(
       msg.sender,
       tokenId,
       amount,
       newAaveScaledBalance,
       newStakingFeeRate
+    );
+
+    // Get the new total amount of capital supplied by the user
+    uint256 usdCapitalSupplied = positionManagerInterface
+      .allCapitalSuppliedByAccount(msg.sender);
+
+    // Check if his staking reward rate needs to be updated
+    IStakedAten(stakedAtensGP).updateUserRewardRate(
+      msg.sender,
+      usdCapitalSupplied
     );
   }
 
@@ -496,11 +524,12 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     external
     onlyPositionTokenOwner(tokenId)
   {
-    IPositionsManager __positionsManager = IPositionsManager(positionsManager);
-
-    IPositionsManager.Position memory __position = __positionsManager.position(
-      tokenId
+    IPositionsManager positionManagerInterface = IPositionsManager(
+      positionsManager
     );
+
+    IPositionsManager.Position memory __position = positionManagerInterface
+      .position(tokenId);
 
     uint256 __newUserCapital;
     uint256 __aaveScaledBalanceToRemove;
@@ -531,7 +560,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
       __protocol.removeLPInfo(tokenId);
     }
 
-    __positionsManager.burn(tokenId);
+    positionManagerInterface.burn(tokenId);
 
     address __lendingPool = ILendingPoolAddressesProvider(aaveAddressesRegistry)
       .getLendingPool();
@@ -544,6 +573,16 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
       stablecoin,
       _amountToWithdrawFromAAVE,
       msg.sender
+    );
+
+    // Get the new total amount of capital supplied by the user
+    uint256 usdCapitalSupplied = positionManagerInterface
+      .allCapitalSuppliedByAccount(msg.sender);
+
+    // Check if his staking reward rate needs to be updated
+    IStakedAten(stakedAtensGP).updateUserRewardRate(
+      msg.sender,
+      usdCapitalSupplied
     );
   }
 
