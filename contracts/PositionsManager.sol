@@ -144,6 +144,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
   function deposit(
     address account,
     uint256 amount,
+      uint256 newAaveScaledBalance,
     uint128 feeRate,
     uint128[] calldata poolIds
   ) external override onlyCore {
@@ -181,12 +182,10 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
       currentPool.deposit(tokenId, amount);
     }
 
-    uint256 __aaveScaledBalance = _core.transferLiquidityToAAVE(amount);
-
     _positions[tokenId] = Position({
       createdAt: block.timestamp,
       amountSupplied: amount,
-      aaveScaledBalance: __aaveScaledBalance,
+      aaveScaledBalance: newAaveScaledBalance,
       feeRate: feeRate,
       poolIds: poolIds
     });
@@ -235,6 +234,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
     address account,
     uint256 tokenId,
     uint256 amount,
+    uint256 newAaveScaledBalance,
     uint128 newStakingFeeRate
   ) external override onlyCore {
     IPositionsManager.Position memory userPosition = _positions[tokenId];
@@ -278,10 +278,8 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
     }
 
     _positions[tokenId].amountSupplied += amount;
-    // @bw this can probably be optimized with a single aave deposit (also present elsewhere)
-    _positions[tokenId].aaveScaledBalance += _core.transferLiquidityToAAVE(
-      amount
-    );
+    // @bw seems this should overwrite the old value not increment it
+    _positions[tokenId].aaveScaledBalance += newAaveScaledBalance;
   }
 
   /// ================================= ///

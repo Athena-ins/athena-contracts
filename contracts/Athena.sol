@@ -375,6 +375,18 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   /// ========== COVERS ========== ///
   /// ============================ ///
 
+  function transferLiquidityToAAVE(uint256 amount) private returns (uint256) {
+    address lendingPool = ILendingPoolAddressesProvider(aaveAddressesRegistry)
+      .getLendingPool();
+
+    ILendingPool(lendingPool).deposit(stablecoin, amount, address(this), 0);
+
+    return
+      amount.rayDiv(
+        ILendingPool(lendingPool).getReserveNormalizedIncome(stablecoin)
+      );
+  }
+
   function deposit(uint256 amount, uint128[] calldata poolIds)
     public
     payable
@@ -382,6 +394,9 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   {
     // retrieve user funds for coverage
     IERC20(stablecoin).safeTransferFrom(msg.sender, address(this), amount);
+
+    // Deposit the funds into AAVE and get the new scaled balance
+    uint256 newAaveScaledBalance = transferLiquidityToAAVE(amount);
 
     // check the user's balance of staked ATEN + staking rewards
     uint256 stakedAten = IStakedAten(stakedAtensGP).positionOf(msg.sender);
@@ -396,6 +411,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     IPositionsManager(positionsManager).deposit(
       msg.sender,
       amount,
+      newAaveScaledBalance,
       stakingFeeRate,
       poolIds
     );
@@ -419,6 +435,9 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     // retrieve user funds for coverage
     IERC20(stablecoin).safeTransferFrom(msg.sender, address(this), amount);
 
+    // Deposit the funds into AAVE and get the new scaled balance
+    uint256 newAaveScaledBalance = transferLiquidityToAAVE(amount);
+
     // check the user's balance of staked ATEN + staking rewards
     uint256 stakedAten = IStakedAten(stakedAtensGP).positionOf(msg.sender);
 
@@ -432,6 +451,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
       msg.sender,
       tokenId,
       amount,
+      newAaveScaledBalance,
       newStakingFeeRate
     );
   }
@@ -874,23 +894,5 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
       ILendingPoolAddressesProvider(aaveAddressesRegistry).getLendingPool(),
       2**256 - 1
     );
-  }
-
-  //onlyPositionManager
-  // @bw onlyPositionManager
-  function transferLiquidityToAAVE(uint256 amount)
-    external
-    override
-    returns (uint256)
-  {
-    address lendingPool = ILendingPoolAddressesProvider(aaveAddressesRegistry)
-      .getLendingPool();
-
-    ILendingPool(lendingPool).deposit(stablecoin, amount, address(this), 0);
-
-    return
-      amount.rayDiv(
-        ILendingPool(lendingPool).getReserveNormalizedIncome(stablecoin)
-      );
   }
 }

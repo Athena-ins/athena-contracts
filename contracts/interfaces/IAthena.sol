@@ -24,8 +24,6 @@ interface IAthena {
 
   function nextPoolId() external view returns (uint128);
 
-  function transferLiquidityToAAVE(uint256 amount) external returns (uint256);
-
   function actualizingProtocolAndRemoveExpiredPolicies(address protocolAddress)
     external;
 
