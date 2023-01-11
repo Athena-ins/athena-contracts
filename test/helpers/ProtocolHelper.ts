@@ -47,27 +47,17 @@ async function deployStakedAtenContract(owner: ethers.Signer) {
     await hre_ethers.getContractFactory("StakingGeneralPool")
   )
     .connect(owner)
-    .deploy(HardhatHelper.ATEN, ATHENA_CONTRACT.address);
+    .deploy(
+      HardhatHelper.ATEN,
+      ATHENA_CONTRACT.address,
+      POSITIONS_MANAGER_CONTRACT.address
+    );
 
   await STAKED_ATENS_CONTRACT.deployed();
 }
 
 function getStakedAtenContract() {
   return STAKED_ATENS_CONTRACT;
-}
-
-async function deployProtocolFactoryContract(owner: ethers.Signer) {
-  FACTORY_PROTOCOL_CONTRACT = await (
-    await hre_ethers.getContractFactory("ProtocolFactory")
-  )
-    .connect(owner)
-    .deploy(ATHENA_CONTRACT.address, 14 * 24 * 60 * 60);
-
-  await FACTORY_PROTOCOL_CONTRACT.deployed();
-}
-
-function getProtocolFactoryContract() {
-  return FACTORY_PROTOCOL_CONTRACT;
 }
 
 async function deployPolicyManagerContract(owner: ethers.Signer) {
@@ -82,6 +72,24 @@ async function deployPolicyManagerContract(owner: ethers.Signer) {
 
 function getPolicyManagerContract() {
   return POLICY_MANAGER_CONTRACT;
+}
+
+async function deployProtocolFactoryContract(owner: ethers.Signer) {
+  FACTORY_PROTOCOL_CONTRACT = await (
+    await hre_ethers.getContractFactory("ProtocolFactory")
+  )
+    .connect(owner)
+    .deploy(
+      ATHENA_CONTRACT.address,
+      POLICY_MANAGER_CONTRACT.address,
+      14 * 24 * 60 * 60
+    );
+
+  await FACTORY_PROTOCOL_CONTRACT.deployed();
+}
+
+function getProtocolFactoryContract() {
+  return FACTORY_PROTOCOL_CONTRACT;
 }
 
 async function deployClaimManagerContract(owner: ethers.Signer) {
@@ -163,8 +171,8 @@ async function deployAllContractsAndInitializeProtocol(owner: ethers.Signer) {
   await deployAthenaContract(owner);
   await deployPositionManagerContract(owner);
   await deployStakedAtenContract(owner);
-  await deployProtocolFactoryContract(owner);
   await deployPolicyManagerContract(owner);
+  await deployProtocolFactoryContract(owner);
   await deployClaimManagerContract(owner);
   await deployStakedAtensPolicyContract(owner);
   await deployVaultAtenContract(owner);
@@ -176,9 +184,7 @@ async function deployAllContractsAndInitializeProtocol(owner: ethers.Signer) {
 async function addNewProtocolPool(protocolPoolName: string) {
   return await ATHENA_CONTRACT.addNewProtocol(
     protocolPoolName,
-    0,
     30,
-    HardhatHelper.WETH,
     [],
     "bafybeiafebm3zdtzmn5mcquacgd47enhsjnebvegnzfunbbbbbbbbbbbbb"
   );
@@ -219,7 +225,7 @@ async function deposit(
 
   await HardhatHelper.ATEN_approve(
     user,
-    STAKED_ATENS_CONTRACT.address,
+    ATHENA_CONTRACT.address,
     hre_ethers.utils.parseUnits(ATEN_amount, 18)
   );
 

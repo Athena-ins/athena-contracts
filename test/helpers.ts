@@ -91,7 +91,11 @@ export const deployAndInitProtocol = async (
   );
   const STAKED_ATENS_CONTRACT = await factoryStakedAtens
     .connect(allSigners[0])
-    .deploy(opts?.ATEN || ATEN_TOKEN, ATHENA_CONTRACT.address);
+    .deploy(
+      opts?.ATEN || ATEN_TOKEN,
+      ATHENA_CONTRACT.address,
+      POS_CONTRACT.address
+    );
   await STAKED_ATENS_CONTRACT.deployed();
   console.log("Deployed Staked Atens");
 
@@ -104,6 +108,14 @@ export const deployAndInitProtocol = async (
   await STAKED_ATENS_CONTRACT_POLICY.deployed();
   console.log("Deployed Staked Atens Policy");
 
+  /** Policy Manager */
+  const factoryPolicy = await hre.ethers.getContractFactory("PolicyManager");
+  const POLICY_CONTRACT = await factoryPolicy
+    .connect(allSigners[0])
+    .deploy(ATHENA_CONTRACT.address);
+  await POLICY_CONTRACT.deployed();
+  console.log("Deployed Policy Manager");
+
   const factoryProtocol = await hre.ethers.getContractFactory(
     "ProtocolFactory"
   );
@@ -111,6 +123,7 @@ export const deployAndInitProtocol = async (
     .connect(allSigners[0])
     .deploy(
       ATHENA_CONTRACT.address,
+      POLICY_CONTRACT.address,
       opts?.commitDelayForWithdraw || 14 * 24 * 60 * 60
     );
   await FACTORY_PROTOCOL_CONTRACT.deployed();
@@ -123,27 +136,18 @@ export const deployAndInitProtocol = async (
   await VAULT_ATENS_CONTRACT.deployed();
   console.log("Deployed Vault Atens");
 
-  /** Policy Manager */
-  const factoryPolicy = await hre.ethers.getContractFactory("PolicyManager");
-  const POLICY_CONTRACT = await factoryPolicy
-    .connect(allSigners[0])
-    .deploy(ATHENA_CONTRACT.address);
-  await POLICY_CONTRACT.deployed();
-  console.log("Deployed Policy Manager");
   /**
    * Initialize protocol with required values
    */
   const init = await ATHENA_CONTRACT.initialize(
-    POS_CONTRACT.address,
-    STAKED_ATENS_CONTRACT.address,
-    STAKED_ATENS_CONTRACT_POLICY.address,
-    VAULT_ATENS_CONTRACT.address,
-    POLICY_CONTRACT.address,
-    opts?.USDT_AAVE_TOKEN || USDT_AAVE_ATOKEN,
-    FACTORY_PROTOCOL_CONTRACT.address,
-    opts?.ARBITRATOR_ADDRESS || ARBITRATOR_ADDRESS,
-    NULL_ADDRESS
-    // AAVELP_CONTRACT.address
+    POS_CONTRACT.address, // _positionsAddress
+    STAKED_ATENS_CONTRACT.address, // _stakedAtensGP
+    STAKED_ATENS_CONTRACT_POLICY.address, // _stakedAtensPo
+    VAULT_ATENS_CONTRACT.address, // _atensVault
+    POLICY_CONTRACT.address, // _policyManagerAddress
+    // opts?.USDT_AAVE_TOKEN || USDT_AAVE_ATOKEN,
+    FACTORY_PROTOCOL_CONTRACT.address, // _protocolFactory
+    opts?.ARBITRATOR_ADDRESS || ARBITRATOR_ADDRESS // _claimManager
   );
   await init.wait(opts?.confirmations);
   return [

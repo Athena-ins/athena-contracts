@@ -102,7 +102,6 @@ describe("Claims view", () => {
       .connect(owner)
       .linearClaimsView(0, 5);
 
-    console.log(result);
     expect(result.length).to.be.equal(2);
 
     expect(result[0].from).to.be.equal(await policyTaker1.getAddress());

@@ -100,23 +100,10 @@ describe("Protocol Pool", function () {
       );
       STAKED_ATENS_CONTRACT = await factoryStakedAtens
         .connect(owner)
-        .deploy(ATEN_TOKEN, ATHENA_CONTRACT.address);
+        .deploy(ATEN_TOKEN, ATHENA_CONTRACT.address, POS_CONTRACT.address);
       await STAKED_ATENS_CONTRACT.deployed();
       expect(
         await ethers.provider.getCode(STAKED_ATENS_CONTRACT.address)
-      ).to.not.equal("0x");
-    });
-
-    it("Should deploy ProtocolFactory contract", async function () {
-      const factoryProtocol = await ethers.getContractFactory(
-        "ProtocolFactory"
-      );
-      FACTORY_PROTOCOL_CONTRACT = await factoryProtocol
-        .connect(owner)
-        .deploy(ATHENA_CONTRACT.address, 14 * 24 * 60 * 60);
-      await FACTORY_PROTOCOL_CONTRACT.deployed();
-      expect(
-        await ethers.provider.getCode(FACTORY_PROTOCOL_CONTRACT.address)
       ).to.not.equal("0x");
     });
 
@@ -128,6 +115,23 @@ describe("Protocol Pool", function () {
       await POLICY_CONTRACT.deployed();
       expect(
         await ethers.provider.getCode(POLICY_CONTRACT.address)
+      ).to.not.equal("0x");
+    });
+
+    it("Should deploy ProtocolFactory contract", async function () {
+      const factoryProtocol = await ethers.getContractFactory(
+        "ProtocolFactory"
+      );
+      FACTORY_PROTOCOL_CONTRACT = await factoryProtocol
+        .connect(owner)
+        .deploy(
+          ATHENA_CONTRACT.address,
+          POLICY_CONTRACT.address,
+          14 * 24 * 60 * 60
+        );
+      await FACTORY_PROTOCOL_CONTRACT.deployed();
+      expect(
+        await ethers.provider.getCode(FACTORY_PROTOCOL_CONTRACT.address)
       ).to.not.equal("0x");
     });
   });
@@ -153,9 +157,7 @@ describe("Protocol Pool", function () {
     it("Should set new active Protocol 0", async function () {
       const tx = await ATHENA_CONTRACT.addNewProtocol(
         "Test protocol 0",
-        0,
         30,
-        WETH,
         [],
         "bafybeiafebm3zdtzmn5mcquacgd47enhsjnebvegnzfunbbbbbbbbbbbbb"
       );
@@ -168,9 +170,7 @@ describe("Protocol Pool", function () {
     it("Should set new active Protocol 1", async function () {
       const tx = await ATHENA_CONTRACT.addNewProtocol(
         "Test protocol 1",
-        0,
         30,
-        NULL_ADDRESS,
         [],
         "bafybeiafebm3zdtzmn5mcquacgd47enhsjnebvegnzfunbbbbbbbbbbbbb"
       );
@@ -186,9 +186,7 @@ describe("Protocol Pool", function () {
     it("Should set new active Protocol 2 not compatible with 0", async function () {
       const tx = await ATHENA_CONTRACT.addNewProtocol(
         "Test protocol 2",
-        0,
         30,
-        NULL_ADDRESS,
         [0],
         "bafybeiafebm3zdtzmn5mcquacgd47enhsjnebvegnzfunbbbbbbbbbbbbb"
       );

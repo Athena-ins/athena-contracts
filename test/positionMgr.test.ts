@@ -181,9 +181,7 @@ describe("Position Manager", function () {
     await expect(
       ATHENA_CONTRACT.connect(user).addNewProtocol(
         "Test protocol",
-        0,
         1,
-        WETH,
         [0],
         "bafybeiafebm3zdtzmn5mcquacgd47enhsjnebvegnzfunbbbbbbbbbbbbb"
       )
@@ -192,9 +190,7 @@ describe("Position Manager", function () {
   it("Should set new active Protocol 0", async function () {
     const tx = await ATHENA_CONTRACT.addNewProtocol(
       "Test protocol 0",
-      0,
       30,
-      WETH,
       [],
       "bafybeiafebm3zdtzmn5mcquacgd47enhsjnebvegnzfunbbbbbbbbbbbbb"
     );
@@ -206,9 +202,7 @@ describe("Position Manager", function () {
   it("Should set new active Protocol 1 ", async function () {
     const tx = await ATHENA_CONTRACT.addNewProtocol(
       "Test protocol 1",
-      0,
       30,
-      NULL_ADDRESS,
       [],
       "bafybeiafebm3zdtzmn5mcquacgd47enhsjnebvegnzfunbbbbbbbbbbbbb"
     );
@@ -220,9 +214,7 @@ describe("Position Manager", function () {
   it("Should set new active Protocol 2 not compatible with 0", async function () {
     const tx = await ATHENA_CONTRACT.addNewProtocol(
       "Test protocol 2",
-      0,
       30,
-      NULL_ADDRESS,
       [0],
       "bafybeiafebm3zdtzmn5mcquacgd47enhsjnebvegnzfunbbbbbbbbbbbbb"
     );

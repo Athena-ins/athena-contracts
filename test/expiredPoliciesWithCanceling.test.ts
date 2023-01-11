@@ -239,8 +239,6 @@ describe("expired policies", () => {
         .connect(owner)
         .getExpiredPolicies(await policyTaker1.getAddress());
 
-      console.log(expiredPolicies);
-
       expect(expiredPolicies.length).to.be.equal(2);
 
       expect(expiredPolicies[0].policyId).to.be.equal(2);
@@ -257,8 +255,6 @@ describe("expired policies", () => {
         .connect(owner)
         .getExpiredPolicies(await policyTaker2.getAddress());
 
-      console.log(expiredPolicies);
-
       expect(expiredPolicies.length).to.be.equal(1);
 
       expect(expiredPolicies[0].poolId).to.be.equal(0);
@@ -269,8 +265,6 @@ describe("expired policies", () => {
         .connect(owner)
         .getExpiredPolicies(await policyTaker3.getAddress());
 
-      console.log(expiredPolicies);
-
       expect(expiredPolicies.length).to.be.equal(1);
 
       expect(expiredPolicies[0].poolId).to.be.equal(2);
@@ -280,8 +274,6 @@ describe("expired policies", () => {
       const expiredPolicies = await ProtocolHelper.getPolicyManagerContract()
         .connect(owner)
         .getExpiredPolicies(await policyTaker4.getAddress());
-
-      console.log(expiredPolicies);
 
       expect(expiredPolicies.length).to.be.equal(1);
 

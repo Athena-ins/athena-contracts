@@ -114,7 +114,6 @@ describe("Liquidity provider withdraw", () => {
         .withdrawAll(provider1tokenId);
 
       const result = await withdraw_tx.wait();
-      //   console.log(result);
 
       //protocol0
       const p0_contract = await ProtocolHelper.getProtocolPoolContract(

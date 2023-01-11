@@ -326,8 +326,6 @@ describe("Buy policy", () => {
       const allPositions = await POSITIONS_MANAGER_CONTRACT.allPositionsOfOwner(
         liquidityProvider2.getAddress()
       );
-
-      console.log("allPositions:\n", allPositions);
     });
   });
 });

@@ -148,35 +148,10 @@ function updateDepositAmount(_owner: string, _poolId: number) {
         __ratioBetweenDepositAndIntersec
       );
 
-      console.log("__totalCapital:", __totalCapital);
-      console.log(
-        "__intersecAmount:",
-        __protocolPool.intersectingAmounts[__claim.poolId]
-      );
-      console.log("__depositAmount:", __depositAmount);
-      console.log("__claim.ratio:", __claim.ratio);
-      console.log("__intersecAmount:", __intersecAmount);
-      console.log(
-        "__amountToRemoveFromIntersecAndCapital:",
-        __amountToRemoveFromIntersecAndCapital
-      );
-      console.log(
-        "__ratioBetweenDepositAndIntersec:",
-        __ratioBetweenDepositAndIntersec
-      );
-      console.log("__amountToRemoveFromDeposit:", __amountToRemoveFromDeposit);
-
       __totalCapital -= __amountToRemoveFromIntersecAndCapital;
       __protocolPool.intersectingAmounts[__claim.poolId] -=
         __amountToRemoveFromIntersecAndCapital;
       __depositAmount -= __amountToRemoveFromDeposit;
-      console.log("__totalCapital:", __totalCapital);
-      console.log(
-        "__intersecAmount:",
-        __protocolPool.intersectingAmounts[__claim.poolId]
-      );
-      console.log("__depositAmount:", __depositAmount);
-      console.log();
     }
   }
 }
@@ -196,8 +171,6 @@ deposit("user3", 8000, [0, 1, 3], [8000, 8000, 8000]);
 startClaim(1, 700, 0);
 // startClaim(1, 700, 1);
 startClaim(3, 400, 1);
-
-// console.log(JSON.stringify(protocolPools, null, 2), "\n");
 
 updateDepositAmount("user1", 0);
 

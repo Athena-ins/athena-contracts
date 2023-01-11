@@ -50,22 +50,22 @@ describe("Deploy protocol", () => {
         ).to.not.equal("0x");
       });
 
-      it("Should deploy ProtocolFactory contract", async () => {
-        await ProtocolHelper.deployProtocolFactoryContract(owner);
-
-        expect(
-          await hre_ethers.provider.getCode(
-            ProtocolHelper.getProtocolFactoryContract().address
-          )
-        ).to.not.equal("0x");
-      });
-
       it("Should deploy PolicyManager contract", async () => {
         await ProtocolHelper.deployPolicyManagerContract(owner);
 
         expect(
           await hre_ethers.provider.getCode(
             ProtocolHelper.getPolicyManagerContract().address
+          )
+        ).to.not.equal("0x");
+      });
+
+      it("Should deploy ProtocolFactory contract", async () => {
+        await ProtocolHelper.deployProtocolFactoryContract(owner);
+
+        expect(
+          await hre_ethers.provider.getCode(
+            ProtocolHelper.getProtocolFactoryContract().address
           )
         ).to.not.equal("0x");
       });
@@ -327,7 +327,7 @@ describe("Deploy protocol", () => {
             [10_000, 1_200],
             [1_000_000, 2_000],
           ])
-        ).to.be.rejectedWith("SA: Sort in ascending order");
+        ).to.be.rejectedWith("SGP: sort in ascending order");
 
         const tx = await ProtocolHelper.setStakingRewardRates(owner);
 

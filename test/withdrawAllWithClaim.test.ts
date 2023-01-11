@@ -141,7 +141,6 @@ describe("Liquidity provider withdraw", () => {
         .withdrawAll(provider1tokenId);
 
       const result = await withdraw_tx.wait();
-      //   console.log(result);
 
       const p0_event =
         result.events.find(

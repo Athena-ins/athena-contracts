@@ -100,7 +100,6 @@ describe("Ongoing coverage policies", () => {
         policyTaker1.getAddress()
       );
 
-    console.log(result);
     expect(result.length).to.be.equals(2);
     expect(result[0].policyId).to.be.equals(0);
     expect(result[0].amountCovered).to.be.equals(109500);
@@ -128,8 +127,6 @@ describe("Ongoing coverage policies", () => {
       policyTaker2,
       ProtocolHelper.getAthenaContract().address
     );
-
-    console.log("pass aprove");
 
     await HardhatHelper.setNextBlockTimestamp(400 * 24 * 60 * 60);
 
@@ -160,8 +157,6 @@ describe("Ongoing coverage policies", () => {
         policyTaker1.getAddress()
       );
 
-    // console.log(result);
-
     expect(result.length).to.be.equals(1);
     expect(result[0].policyId).to.be.equals(2);
     expect(result[0].poolId).to.be.equals(2);
@@ -171,7 +166,6 @@ describe("Ongoing coverage policies", () => {
         policyTaker1.getAddress()
       );
 
-    // console.log("expired:\n", result1);
     expect(result1.length).to.be.equals(1);
     expect(result1[0].policyId).to.be.equals(0);
     expect(result1[0].poolId).to.be.equals(0);
@@ -181,7 +175,6 @@ describe("Ongoing coverage policies", () => {
         policyTaker1.getAddress()
       );
 
-    console.log(result2);
     expect(result2.length).to.be.equals(1);
   });
 });

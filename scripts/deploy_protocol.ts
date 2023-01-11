@@ -113,8 +113,6 @@ const addNewProtocol = async (signer: SignerWithAddress) => {
   const start = await contract.addNewProtocol(
     "Beefy Polygon",
     0,
-    0,
-    "0xfbdd194376de19a88118e84e279b977f165d01b8",
     [1],
     "bafybeiafebm3zdtzmn5mcquacgd47enhsjnebvegnzfunbbbbbbbbbbbbb"
   );

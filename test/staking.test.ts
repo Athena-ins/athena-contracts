@@ -160,9 +160,7 @@ describe("Staking Policy Rewards", function () {
   it("Should set new active Protocol 0", async function () {
     const tx = await ATHENA_CONTRACT.connect(allSigners[0]).addNewProtocol(
       "Test protocol 0",
-      0,
       30,
-      WETH,
       [],
       "bafybeiafebm3zdtzmn5mcquacgd47enhsjnebvegnzfunbbbbbbbbbbbbb"
     );
@@ -173,9 +171,7 @@ describe("Staking Policy Rewards", function () {
     expect(prot.name).to.equal("Test protocol 0");
     const tx1bis = await ATHENA_CONTRACT.connect(allSigners[0]).addNewProtocol(
       "Test protocol 1",
-      0,
       30,
-      WETH,
       [],
       "bafybeiafebm3zdtzmn5mcquacgd47enhsjnebvegnzfunbbbbbbbbbbbbb"
     );
