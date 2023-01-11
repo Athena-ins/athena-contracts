@@ -287,6 +287,40 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     );
   }
 
+  function transferLiquidityToAAVE(uint256 amount) private returns (uint256) {
+    address lendingPool = ILendingPoolAddressesProvider(aaveAddressesRegistry)
+      .getLendingPool();
+
+    ILendingPool(lendingPool).deposit(stablecoin, amount, address(this), 0);
+
+    return
+      amount.rayDiv(
+        ILendingPool(lendingPool).getReserveNormalizedIncome(stablecoin)
+      );
+  }
+
+  /**
+   * @notice
+   * Manages the withdrawal of staked ATEN in policy pool and rewards payment.
+   * @param account_ the address of the user
+   * @param policyId_ the id of the policy position
+   */
+  function _processPolicyStakingPayout(address account_, uint256 policyId_)
+    private
+  {
+    // Get the amount of rewards, consume the staking position and send back staked ATEN to user
+    uint256 amountRewards = IStakedAtenPolicy(stakedAtensPo).withdraw(
+      account_,
+      policyId_
+    );
+
+    // Check the amount is above 0
+    require(amountRewards > 0, "A: withdrawable amount is 0");
+
+    // Send the rewards to the user from the vault
+    IVaultERC20(atensVault).sendReward(account_, amountRewards);
+  }
+
   /// ================================== ///
   /// ========== ATEN STAKING ========== ///
   /// ================================== ///
@@ -403,18 +437,6 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   /// ============================ ///
   /// ========== COVERS ========== ///
   /// ============================ ///
-
-  function transferLiquidityToAAVE(uint256 amount) private returns (uint256) {
-    address lendingPool = ILendingPoolAddressesProvider(aaveAddressesRegistry)
-      .getLendingPool();
-
-    ILendingPool(lendingPool).deposit(stablecoin, amount, address(this), 0);
-
-    return
-      amount.rayDiv(
-        ILendingPool(lendingPool).getReserveNormalizedIncome(stablecoin)
-      );
-  }
 
   function deposit(uint256 amount, uint128[] calldata poolIds)
     public
@@ -723,28 +745,6 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     );
 
     policyManagerInterface.burn(policyId_);
-  }
-
-  /**
-   * @notice
-   * Manages the withdrawal of staked ATEN in policy pool and rewards payment.
-   * @param account_ the address of the user
-   * @param policyId_ the id of the policy position
-   */
-  function _processPolicyStakingPayout(address account_, uint256 policyId_)
-    private
-  {
-    // Get the amount of rewards, consume the staking position and send back staked ATEN to user
-    uint256 amountRewards = IStakedAtenPolicy(stakedAtensPo).withdraw(
-      account_,
-      policyId_
-    );
-
-    // Check the amount is above 0
-    require(amountRewards > 0, "A: withdrawable amount is 0");
-
-    // Send the rewards to the user from the vault
-    IVaultERC20(atensVault).sendReward(account_, amountRewards);
   }
 
   /**
