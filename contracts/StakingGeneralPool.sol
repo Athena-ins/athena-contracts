@@ -103,10 +103,10 @@ contract StakingGeneralPool is IStakedAten, ERC20WithSnapshot {
    * @notice
    * public function to view rewards available for a stake
    */
-  function rewardsOf(address staker_) public view returns (uint256 rewards) {
+  function rewardsOf(address staker_) public view returns (uint256) {
     Stakeholder memory _userStake = stakes[staker_];
-    rewards = calculateStakeReward(_userStake);
-    return rewards + _userStake.accruedRewards;
+    uint256 newRewards = calculateStakeReward(_userStake);
+    return newRewards + _userStake.accruedRewards;
   }
 
   /**
@@ -116,9 +116,9 @@ contract StakingGeneralPool is IStakedAten, ERC20WithSnapshot {
    */
   function positionOf(address account_) public view returns (uint256) {
     Stakeholder storage userStake = stakes[account_];
-    uint256 reward = calculateStakeReward(userStake);
+    uint256 newRewards = calculateStakeReward(userStake);
 
-    return userStake.amount + reward + userStake.accruedRewards;
+    return userStake.amount + newRewards + userStake.accruedRewards;
   }
 
   /** @notice
@@ -159,6 +159,16 @@ contract StakingGeneralPool is IStakedAten, ERC20WithSnapshot {
     }
   }
 
+  function getUserStakingPosition(address account_)
+    external
+    view
+    returns (Stakeholder memory userStake)
+  {
+    userStake = stakes[account_];
+    uint256 newRewards = calculateStakeReward(userStake);
+    userStake.accruedRewards += newRewards;
+  }
+
   /// ============================= ///
   /// ======= USER FEATURES ======= ///
   /// ============================= ///
@@ -179,8 +189,8 @@ contract StakingGeneralPool is IStakedAten, ERC20WithSnapshot {
 
     // If the user already have tokens staked then we must save his accrued rewards
     if (0 < userStake.amount) {
-      uint256 accruedRewards = calculateStakeReward(userStake);
-      userStake.accruedRewards += accruedRewards;
+      uint256 newRewards = calculateStakeReward(userStake);
+      userStake.accruedRewards += newRewards;
     }
     // If the user had no staking position we need to get his staking APR
     else {
@@ -222,8 +232,8 @@ contract StakingGeneralPool is IStakedAten, ERC20WithSnapshot {
     require(amount_ <= userStake.amount, "SGP: amount too big");
 
     // Save accred rewards before updating the amount staked
-    uint256 accruedRewards = calculateStakeReward(userStake);
-    userStake.accruedRewards += accruedRewards;
+    uint256 newRewards = calculateStakeReward(userStake);
+    userStake.accruedRewards += newRewards;
 
     // Remove token from user position
     userStake.amount -= amount_;
@@ -256,8 +266,8 @@ contract StakingGeneralPool is IStakedAten, ERC20WithSnapshot {
       // Check if the change in the amount of capital causes a change in reward rate
       if (newRewardRate != userStake.rate) {
         // Save the rewards already earned by staker
-        uint256 accruedReward = calculateStakeReward(userStake);
-        userStake.accruedRewards += accruedReward;
+        uint256 newRewards = calculateStakeReward(userStake);
+        userStake.accruedRewards += newRewards;
 
         // Reset the staking having saved the accrued rewards
         userStake.rate = newRewardRate;
