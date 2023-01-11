@@ -2,46 +2,106 @@
 pragma solidity ^0.8;
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-
 import "./libraries/ERC20withSnapshot.sol";
 
-import "./FixedRateStakeable.sol";
 import "./interfaces/IStakedAten.sol";
 
 // @notice Staking Pool Contract: General Pool (GP)
-contract StakingGeneralPool is
-  IStakedAten,
-  ERC20WithSnapshot,
-  FixedRateStakeable
-{
+contract StakingGeneralPool is IStakedAten, ERC20WithSnapshot {
   using SafeERC20 for IERC20;
   address public immutable underlyingAssetAddress;
   address public immutable core;
 
   /**
-   * @notice constructs Pool LP Tokens for staking, decimals defaults to 18
-   * @param _underlyingAsset is the address of the staked token
-   * @param _core is the address of the core contract
+   * @notice Stakeholder is a staker that has a stake
    */
-  constructor(address _underlyingAsset, address _core)
-    ERC20WithSnapshot("ATEN General Pool Staking", "ATENgps")
-  {
-    underlyingAssetAddress = _underlyingAsset;
-    core = _core;
+  struct Stakeholder {
+    address user;
+    uint256 amount;
+    uint256 since;
+    uint256 accruedRewards;
+    uint128 rate;
   }
 
-  /// =========================== ///
+  /**
+   * @notice
+   * stakes is used to keep track of the INDEX for the stakers in the stakes array
+   */
+  mapping(address => Stakeholder) public stakes;
+
+  /**
+     * @notice
+      Structure for getting fixed rewards depending on amount staked
+      Need to be set before use !
+     */
+  /// Available staking reward levels (10_000 = 100% APR)
+  RewardRateLevel[] public stakingRewardRates;
+
+  /**
+   * @notice constructs Pool LP Tokens for staking, decimals defaults to 18
+   * @param underlyingAsset_ is the address of the staked token
+   * @param core_ is the address of the core contract
+   */
+  constructor(address underlyingAsset_, address core_)
+    ERC20WithSnapshot("ATEN General Pool Staking", "ATENgps")
+  {
+    underlyingAssetAddress = underlyingAsset_;
+    core = core_;
+  }
+
+  /// ============================ ///
+  /// ========== EVENTS ========== ///
+  /// ============================ ///
+
+  /**
+   * @notice Staked event is triggered whenever a user stakes tokens, address is indexed to make it filterable
+   */
+  event Staked(address indexed user, uint256 amount, uint256 timestamp);
+
+  /// =============================== ///
   /// ========== MODIFIERS ========== ///
-  /// =========================== ///
+  /// =============================== ///
 
   modifier onlyCore() {
     require(msg.sender == core, "SGP: only Core");
     _;
   }
 
+  /// ============================= ///
+  /// ========== HELPERS ========== ///
+  /// ============================= ///
+
+  /**
+   * @notice
+   * calculateStakeReward is used to calculate how much a user should be rewarded for their stakes
+   * and the duration the stake has been active
+   */
+  function calculateStakeReward(Stakeholder memory userStake_)
+    internal
+    view
+    returns (uint256)
+  {
+    if (userStake_.amount == 0 || userStake_.rate == 0) return 0;
+    uint256 divRewardPerSecond = ((365 days) * 10_000) / userStake_.rate;
+
+    return
+      ((block.timestamp - userStake_.since) * userStake_.amount) /
+      divRewardPerSecond;
+  }
+
   /// =========================== ///
   /// ========== VIEWS ========== ///
   /// =========================== ///
+
+  /**
+   * @notice
+   * public function to view rewards available for a stake
+   */
+  function rewardsOf(address staker_) public view returns (uint256 rewards) {
+    Stakeholder memory _userStake = stakes[staker_];
+    rewards = calculateStakeReward(_userStake);
+    return rewards + _userStake.accruedRewards;
+  }
 
   /**
    * @notice
@@ -52,7 +112,29 @@ contract StakingGeneralPool is
     Stakeholder storage userStake = stakes[account_];
     uint256 reward = calculateStakeReward(userStake);
 
-    return userStake.amount + reward;
+    return userStake.amount + reward + userStake.accruedRewards;
+  }
+
+  /** @notice
+   * Retrieves the fee rate according to amount of staked ATEN.
+   * @dev Returns displays warning but levels require an amountSupplied of 0
+   * @param suppliedCapital_ USD amount of the user's cover positions
+   * @return uint128 staking APR of user in GP
+   **/
+  function getStakingRewardRate(uint256 suppliedCapital_)
+    public
+    view
+    returns (uint128)
+  {
+    // Lazy check to avoid loop if user doesn't supply
+    if (suppliedCapital_ == 0) return stakingRewardRates[0].aprStaking;
+
+    // Inversed loop starts with the end to find adequate level
+    for (uint256 index = stakingRewardRates.length - 1; index >= 0; index--) {
+      // Rate level with amountSupplied of 0 will always be true
+      if (stakingRewardRates[index].amountSupplied <= suppliedCapital_)
+        return stakingRewardRates[index].aprStaking;
+    }
   }
 
   /** @notice
@@ -71,44 +153,82 @@ contract StakingGeneralPool is
     }
   }
 
-  /// =============================== ///
-  /// ======= STAKE / UNSTAKE ======= ///
-  /// =============================== ///
+  /// ============================= ///
+  /// ======= USER FEATURES ======= ///
+  /// ============================= ///
 
   function stake(
-    address _account,
-    uint256 _amount,
-    uint256 _usdCapitalSupplied
+    address account_,
+    uint256 amount_,
+    uint256 usdCapitalSupplied_
   ) external override onlyCore {
     // we put from & to opposite so as token owner has a Snapshot balance when staking
-    _beforeTokenTransfer(address(0), _account, _amount);
+    _beforeTokenTransfer(address(0), account_, amount_);
     IERC20(underlyingAssetAddress).safeTransferFrom(
-      _account,
+      account_,
       address(this),
-      _amount
+      amount_
     );
-    _stake(_account, _amount, _usdCapitalSupplied);
+
+    require(amount_ > 0, "SGP: cannot stake 0");
+
+    Stakeholder storage userStake = stakes[account_];
+
+    // If the user already have tokens staked then we must save his accrued rewards
+    if (0 < userStake.amount) {
+      uint256 accruedRewards = calculateStakeReward(userStake);
+      userStake.accruedRewards += accruedRewards;
+    }
+    // If the user had no staking position we need to get his staking APR
+    else {
+      userStake.rate = getStakingRewardRate(usdCapitalSupplied_);
+    }
+
+    userStake.amount += amount_;
+    userStake.since = block.timestamp;
+
+    emit Staked(account_, amount_, block.timestamp);
   }
 
   function claimRewards(address account_)
     external
     override
     onlyCore
-    returns (uint256)
+    returns (uint256 totalRewards)
   {
-    return _claimRewards(account_);
+    Stakeholder storage userStake = stakes[account_];
+    uint256 newRewards = calculateStakeReward(userStake);
+
+    // Returns the full amount of rewards
+    totalRewards = userStake.accruedRewards + newRewards;
+
+    // We need to remove all user rewards
+    userStake.accruedRewards = 0;
+    userStake.since = block.timestamp;
   }
 
-  function withdraw(address _account, uint256 _amount)
+  function withdraw(address account_, uint256 amount_)
     external
     override
     onlyCore
   {
-    _withdrawStake(_account, _amount);
-    // we put from & to opposite so as token owner has a Snapshot balance when staking
-    _beforeTokenTransfer(_account, address(0), _amount);
+    Stakeholder storage userStake = stakes[account_];
+    require(amount_ <= userStake.amount, "SGP: amount too big");
 
-    IERC20(underlyingAssetAddress).safeTransfer(_account, _amount);
+    // Save accred rewards before updating the amount staked
+    uint256 accruedRewards = calculateStakeReward(userStake);
+    userStake.accruedRewards += accruedRewards;
+
+    // Remove token from user position
+    userStake.amount -= amount_;
+
+    // We reset the timer with the new amount of tokens staked
+    userStake.since = block.timestamp;
+
+    // we put from & to opposite so as token owner has a Snapshot balance when staking
+    _beforeTokenTransfer(account_, address(0), amount_);
+
+    IERC20(underlyingAssetAddress).safeTransfer(account_, amount_);
   }
 
   /// =========================== ///
@@ -125,8 +245,11 @@ contract StakingGeneralPool is
     override
     onlyCore
   {
-    uint128 newRewardRate = getStakingRewardRate(newUsdCapital_);
     Stakeholder storage userStake = stakes[account_];
+
+    // We only update the rate if the user has staked tokens
+    if (0 < userStake.amount) {
+    uint128 newRewardRate = getStakingRewardRate(newUsdCapital_);
 
     // Check if the change in the amount of capital causes a change in reward rate
     if (newRewardRate != userStake.rate) {
@@ -137,6 +260,7 @@ contract StakingGeneralPool is
       // Reset the staking having saved the accrued rewards
       userStake.rate = newRewardRate;
       userStake.since = block.timestamp;
+      }
     }
   }
 
@@ -149,6 +273,29 @@ contract StakingGeneralPool is
     external
     onlyCore
   {
-    _setStakingRewards(stakingLevels_);
+    // First clean the storage
+    delete stakingRewardRates;
+
+    // Set all cover supply fee levels
+    for (uint256 index = 0; index < stakingLevels_.length; index++) {
+      RewardRateLevel calldata level = stakingLevels_[index];
+
+      if (index == 0) {
+        // Require that the first level indicates fees for atenAmount 0
+        require(level.amountSupplied == 0, "SGP: must specify base rate");
+      } else {
+        // If it isn't the first item check that items are ascending
+        require(
+          stakingLevels_[index - 1].amountSupplied < level.amountSupplied,
+          "SGP: sort in ascending order"
+        );
+      }
+
+      // Check that APR is not higher than 100%
+      require(level.aprStaking <= 10_000, "SGP: 100% < APR");
+
+      // save to storage
+      stakingRewardRates.push(level);
+    }
   }
 }

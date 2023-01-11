@@ -1,9 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8;
 
-import "./IFixedRateStakeable.sol";
+interface IStakedAten {
+  struct RewardRateLevel {
+    uint256 amountSupplied;
+    uint128 aprStaking;
+  }
 
-interface IStakedAten is IFixedRateStakeable {
   function stake(
     address _account,
     uint256 _amount,
