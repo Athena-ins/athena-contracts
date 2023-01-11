@@ -130,6 +130,14 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
   /// ========= VIEWS ======== ///
   /// ======================== ///
 
+  function getProtocolAgreement(uint256 poolId)
+    external
+    view
+    returns (string memory)
+  {
+    return protocolToAgreement[poolId];
+  }
+
   /**
    * @notice
    * Returns the claimant of a claim.
