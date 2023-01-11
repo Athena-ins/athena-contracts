@@ -13,8 +13,6 @@ interface IAthena {
     string name; //Protocol name
   }
 
-  function policyManager() external view returns (address);
-
   function getProtocolAddressById(uint128 poolId)
     external
     view
