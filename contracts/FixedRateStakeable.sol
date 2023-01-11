@@ -16,7 +16,7 @@ contract FixedRateStakeable is IFixedRateStakeable {
     address user;
     uint256 amount;
     uint256 since;
-    uint256 claimable;
+    uint256 accruedRewards;
     uint128 rate;
   }
   /**
@@ -75,6 +75,7 @@ contract FixedRateStakeable is IFixedRateStakeable {
   {
     if (_userStake.amount == 0 || _userStake.rate == 0) return 0;
     uint256 divRewardPerSecond = ((365 days) * 10_000) / _userStake.rate;
+
     return
       ((block.timestamp - _userStake.since) * _userStake.amount) /
       divRewardPerSecond;
@@ -84,14 +85,10 @@ contract FixedRateStakeable is IFixedRateStakeable {
    * @notice
    * public function to view rewards available for a stake
    */
-  function rewardsOf(address _staker)
-    public
-    view
-    returns (uint256 rewards, uint128 rate)
-  {
+  function rewardsOf(address _staker) public view returns (uint256 rewards) {
     Stakeholder memory _userStake = stakes[_staker];
     rewards = calculateStakeReward(_userStake);
-    return (rewards, _userStake.rate);
+    return rewards + _userStake.accruedRewards;
   }
 
   /// =============================== ///
@@ -106,12 +103,26 @@ contract FixedRateStakeable is IFixedRateStakeable {
   function _stake(
     address _account,
     uint256 _amount,
-    uint256 _usdCapitalSupplied // in USD
+    uint256 _usdCapitalSupplied
   ) internal {
     require(_amount > 0, "SGP: cannot stake 0");
-    uint256 timestamp = block.timestamp;
+
     Stakeholder storage _userStake = stakes[_account];
+
+    // If the user already have tokens staked then we must save his accrued rewards
+    if (0 < _userStake.amount) {
+      uint256 accruedRewards = calculateStakeReward(_userStake);
+      _userStake.accruedRewards += accruedRewards;
+    }
+    // If the user had no staking position we need to get his staking APR
+    else {
+      _userStake.rate = getStakingRewardRate(_usdCapitalSupplied);
+    }
+
     _userStake.amount += _amount;
+    _userStake.since = block.timestamp;
+
+    emit Staked(_account, _amount, block.timestamp);
   }
 
   function _claimRewards(address account_)
@@ -136,23 +147,19 @@ contract FixedRateStakeable is IFixedRateStakeable {
    * Will return the amount to MINT onto the acount
    * Will also calculateStakeReward and reset timer
    */
-  function _withdrawStake(address _account, uint256 amount)
-    internal
-    returns (uint256)
-  {
+  function _withdrawStake(address _account, uint256 amount) internal {
     Stakeholder storage userStake = stakes[_account];
-    require(userStake.amount >= amount, "Invalid amount");
+    require(amount <= userStake.amount, "SGP: amount too big");
 
-    // Calculate available Reward first before we start modifying data
-    uint256 reward = calculateStakeReward(userStake);
-    // Remove by subtracting the money unstaked
-    userStake.amount = userStake.amount - amount;
+    // Save accred rewards before updating the amount staked
+    uint256 accruedRewards = calculateStakeReward(userStake);
+    userStake.accruedRewards += accruedRewards;
 
-    // Reset timer of stake
+    // Remove token from user position
+    userStake.amount -= amount;
+
+    // We reset the timer with the new amount of tokens staked
     userStake.since = block.timestamp;
-    // stakeholders[userIndex].addressStakes[index].since = block.timestamp;
-
-    return amount + reward;
   }
 
   /// ========================= ///

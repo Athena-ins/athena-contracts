@@ -35,7 +35,7 @@ contract StakingGeneralPool is
   /// =========================== ///
 
   modifier onlyCore() {
-    require(msg.sender == core, "SGP: Only Core");
+    require(msg.sender == core, "SGP: only Core");
     _;
   }
 
@@ -104,11 +104,11 @@ contract StakingGeneralPool is
     override
     onlyCore
   {
-    uint256 amountToReturn = _withdrawStake(_account, _amount);
+    _withdrawStake(_account, _amount);
     // we put from & to opposite so as token owner has a Snapshot balance when staking
     _beforeTokenTransfer(_account, address(0), _amount);
 
-    // @bw should handle only staked amount and have rewards paid out by vault in Athena
+    IERC20(underlyingAssetAddress).safeTransfer(_account, _amount);
   }
 
   /// =========================== ///
