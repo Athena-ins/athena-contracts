@@ -5,12 +5,14 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./libraries/ERC20withSnapshot.sol";
 
 import "./interfaces/IStakedAten.sol";
+import "./interfaces/IPositionsManager.sol";
 
 // @notice Staking Pool Contract: General Pool (GP)
 contract StakingGeneralPool is IStakedAten, ERC20WithSnapshot {
   using SafeERC20 for IERC20;
   address public immutable underlyingAssetAddress;
   address public immutable core;
+  IPositionsManager public immutable positionManagerInterface;
 
   /**
    * @notice Stakeholder is a staker that has a stake
@@ -42,12 +44,15 @@ contract StakingGeneralPool is IStakedAten, ERC20WithSnapshot {
    * @param underlyingAsset_ is the address of the staked token
    * @param core_ is the address of the core contract
    */
-  constructor(address underlyingAsset_, address core_)
-    ERC20WithSnapshot("ATEN General Pool Staking", "ATENgps")
-  {
+  constructor(
+    address underlyingAsset_,
+    address core_,
+    address positionManager_
+  ) ERC20WithSnapshot("ATEN General Pool Staking", "ATENgps") {
     underlyingAssetAddress = underlyingAsset_;
     IERC20(underlyingAssetAddress).approve(core_, type(uint256).max);
     core = core_;
+    positionManagerInterface = IPositionsManager(positionManager_);
   }
 
   /// ============================ ///
@@ -158,14 +163,19 @@ contract StakingGeneralPool is IStakedAten, ERC20WithSnapshot {
   /// ======= USER FEATURES ======= ///
   /// ============================= ///
 
-  function stake(
-    address account_,
-    uint256 amount_,
-    uint256 usdCapitalSupplied_
-  ) external override onlyCore {
+  function stake(address account_, uint256 amount_) external override onlyCore {
     require(amount_ > 0, "SGP: cannot stake 0");
 
     Stakeholder storage userStake = stakes[account_];
+
+    uint256 usdCapitalSupplied;
+    // We only get the user's capital if he is staking for the first time
+    /// @dev After this the movements in position update the rate
+    if (userStake.amount == 0) {
+      usdCapitalSupplied = positionManagerInterface.allCapitalSuppliedByAccount(
+          account_
+        );
+    }
 
     // If the user already have tokens staked then we must save his accrued rewards
     if (0 < userStake.amount) {
@@ -174,7 +184,7 @@ contract StakingGeneralPool is IStakedAten, ERC20WithSnapshot {
     }
     // If the user had no staking position we need to get his staking APR
     else {
-      userStake.rate = getStakingRewardRate(usdCapitalSupplied_);
+      userStake.rate = getStakingRewardRate(usdCapitalSupplied);
     }
 
     userStake.amount += amount_;
@@ -232,18 +242,16 @@ contract StakingGeneralPool is IStakedAten, ERC20WithSnapshot {
   /** @notice
    * Updates the reward rate for a user when the amount of capital supplied changes.
    * @param account_ the account whose reward rate is updated
-   * @param newUsdCapital_ the new amount of capital supplied by the user
    */
-  function updateUserRewardRate(address account_, uint256 newUsdCapital_)
-    external
-    override
-    onlyCore
-  {
+  function updateUserRewardRate(address account_) external override onlyCore {
+    uint256 usdCapitalSupplied = positionManagerInterface
+      .allCapitalSuppliedByAccount(account_);
+
     Stakeholder storage userStake = stakes[account_];
 
     // We only update the rate if the user has staked tokens
     if (0 < userStake.amount) {
-      uint128 newRewardRate = getStakingRewardRate(newUsdCapital_);
+      uint128 newRewardRate = getStakingRewardRate(usdCapitalSupplied);
 
       // Check if the change in the amount of capital causes a change in reward rate
       if (newRewardRate != userStake.rate) {

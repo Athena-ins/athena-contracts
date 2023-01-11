@@ -316,6 +316,38 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     IVaultERC20(atensVault).sendReward(account_, amountRewards);
   }
 
+  function _updateUserPositionFeeRate(address account_) private {
+    // Check if user has positions that will require an update
+    uint256[] memory tokenList = positionManagerInterface
+      .allPositionTokensOfOwner(account_);
+
+    // If the user has positions check if unstaking affects fee level
+    if (tokenList.length != 0) {
+      // Get the user's first position
+      IPositionsManager.Position memory userPosition = positionManagerInterface
+        .position(tokenList[0]);
+      uint128 currentFeeLevel = userPosition.feeRate;
+
+      // Check the user's balance of staked ATEN + staking rewards
+      uint256 newbalance = stakedAtensGPInterface.positionOf(account_);
+
+      // Compute the fee level after adding accrued interests and removing withdrawal
+      uint128 newFeeLevel = getFeeRateWithAten(newbalance);
+
+      // If the fee level changes, update all positions
+      if (currentFeeLevel != newFeeLevel) {
+        for (uint256 i = 0; i < tokenList.length; i++) {
+          positionManagerInterface.takeInterestsInAllPools(
+            account_,
+            tokenList[i]
+          );
+
+          positionManagerInterface.updateFeeLevel(tokenList[i], newFeeLevel);
+        }
+      }
+    }
+  }
+
   /// ================================== ///
   /// ========== ATEN STAKING ========== ///
   /// ================================== ///
@@ -326,54 +358,15 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
    * @param amount_ the amount of ATEN to stake
    **/
   function stakeAtens(uint256 amount_) external override {
-    IPositionsManager positionManagerInterface = IPositionsManager(
-      positionsManager
+    // Deposit ATEN in the staking pool
+    stakedAtensGPInterface.stake(msg.sender, amount_);
+    IERC20(atenToken).safeTransferFrom(
+      msg.sender,
+      address(stakedAtensGPInterface),
+      amount_
     );
 
-    // Check the user's balance of staked ATEN + staking rewards
-    uint256 stakedAten = IStakedAten(stakedAtensGP).positionOf(msg.sender);
-
-    uint256 usdCapitalSupplied;
-    // We only get the user's capital if he is staking for the first time
-    /// @dev After this the movements in position update the rate
-    if (stakedAten == 0) {
-      usdCapitalSupplied = positionManagerInterface.allCapitalSuppliedByAccount(
-          msg.sender
-        );
-    }
-
-    // Deposit ATEN in the staking pool
-    IStakedAten(stakedAtensGP).stake(msg.sender, amount_, usdCapitalSupplied);
-    IERC20(atenToken).safeTransferFrom(msg.sender, stakedAtensGP, amount_);
-
-    // Check if user has positions that will require an update
-    uint256[] memory tokenList = positionManagerInterface
-      .allPositionTokensOfOwner(msg.sender);
-
-    // If the user has positions check if unstaking affects fee level
-    if (tokenList.length != 0) {
-      // Get the user's first position
-      /// @dev We only check the first position because the fee level is the same for all positions
-      IPositionsManager.Position memory userPosition = positionManagerInterface
-        .position(tokenList[0]);
-      uint128 currentFeeLevel = userPosition.feeRate;
-
-      // Compute the fee level including accrued interests
-      uint256 balanceAfterDeposit = stakedAten + amount_;
-      uint128 newFeeLevel = getFeeRateWithAten(balanceAfterDeposit);
-
-      // If the fee level changes, update all positions
-      if (currentFeeLevel != newFeeLevel) {
-        for (uint256 i = 0; i < tokenList.length; i++) {
-          positionManagerInterface.takeInterestsInAllPools(
-            msg.sender,
-            tokenList[i]
-          );
-
-          positionManagerInterface.updateFeeLevel(tokenList[i], newFeeLevel);
-        }
-      }
-    }
+    _updateUserPositionFeeRate(msg.sender);
   }
 
   /** @notice
@@ -392,45 +385,15 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
    * @param amount_ the amount of ATEN to withdraw
    **/
   function unstakeAtens(uint256 amount_) external {
-    IPositionsManager positionManagerInterface = IPositionsManager(
-      positionsManager
-    );
-
     // Withdraw from the staking pool
-    IStakedAten(stakedAtensGP).withdraw(msg.sender, amount_);
-    IERC20(atenToken).safeTransferFrom(stakedAtensGP, msg.sender, amount_);
-
-    // Check if user has positions that will require an update
-    uint256[] memory tokenList = positionManagerInterface
-      .allPositionTokensOfOwner(msg.sender);
-
-    // If the user has positions check if unstaking affects fee level
-    if (tokenList.length != 0) {
-      // Get the user's first position
-      IPositionsManager.Position memory userPosition = positionManagerInterface
-        .position(tokenList[0]);
-      uint128 currentFeeLevel = userPosition.feeRate;
-
-      // Check the user's balance of staked ATEN + staking rewards
-      uint256 balanceAfterWithdraw = IStakedAten(stakedAtensGP).positionOf(
-        msg.sender
-      );
-
-      // Compute the fee level after adding accrued interests and removing withdrawal
-      uint128 newFeeLevel = getFeeRateWithAten(balanceAfterWithdraw);
-
-      // If the fee level changes, update all positions
-      if (currentFeeLevel != newFeeLevel) {
-        for (uint256 i = 0; i < tokenList.length; i++) {
-          positionManagerInterface.takeInterestsInAllPools(
+    stakedAtensGPInterface.withdraw(msg.sender, amount_);
+    IERC20(atenToken).safeTransferFrom(
+      address(stakedAtensGPInterface),
             msg.sender,
-            tokenList[i]
+      amount_
           );
 
-          positionManagerInterface.updateFeeLevel(tokenList[i], newFeeLevel);
-        }
-      }
-    }
+    _updateUserPositionFeeRate(msg.sender);
   }
 
   /// ============================ ///
@@ -465,10 +428,6 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
       stakingFeeRate,
       poolIds
     );
-
-    // Get the new total amount of capital supplied by the user
-    uint256 usdCapitalSupplied = positionManagerInterface
-      .allCapitalSuppliedByAccount(msg.sender);
 
     // Check if his staking reward rate needs to be updated
     stakedAtensGPInterface.updateUserRewardRate(msg.sender);
@@ -507,10 +466,6 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
       newAaveScaledBalance,
       newStakingFeeRate
     );
-
-    // Get the new total amount of capital supplied by the user
-    uint256 usdCapitalSupplied = positionManagerInterface
-      .allCapitalSuppliedByAccount(msg.sender);
 
     // Check if his staking reward rate needs to be updated
     stakedAtensGPInterface.updateUserRewardRate(msg.sender);
@@ -584,10 +539,6 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
       _amountToWithdrawFromAAVE,
       msg.sender
     );
-
-    // Get the new total amount of capital supplied by the user
-    uint256 usdCapitalSupplied = positionManagerInterface
-      .allCapitalSuppliedByAccount(msg.sender);
 
     // Check if his staking reward rate needs to be updated
     stakedAtensGPInterface.updateUserRewardRate(msg.sender);
