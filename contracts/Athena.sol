@@ -15,7 +15,6 @@ import "./interfaces/IProtocolPool.sol";
 import "./interfaces/IStakedAten.sol";
 import "./interfaces/IStakedAtenPolicy.sol";
 import "./interfaces/IPolicyManager.sol";
-import "./interfaces/IScaledBalanceToken.sol";
 import "./interfaces/IClaimManager.sol";
 import "./interfaces/IVaultERC20.sol";
 
@@ -89,7 +88,11 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
 
     protocolFactory = _protocolFactory;
     atensVault = _atensVault;
-    approveLendingPool();
+
+    IERC20(stablecoin).safeApprove(
+      ILendingPoolAddressesProvider(aaveAddressesRegistry).getLendingPool(),
+      type(uint256).max
+    );
     //initialized = true; //@dev required ?
   }
 
@@ -175,7 +178,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   }
 
   function getProtocol(uint128 poolId)
-    external
+    public
     view
     returns (ProtocolView memory)
   {
@@ -282,7 +285,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     );
   }
 
-  function transferLiquidityToAAVE(uint256 amount) private returns (uint256) {
+  function _transferLiquidityToAAVE(uint256 amount) private returns (uint256) {
     address lendingPool = ILendingPoolAddressesProvider(aaveAddressesRegistry)
       .getLendingPool();
 
@@ -389,9 +392,9 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     stakedAtensGPInterface.withdraw(msg.sender, amount_);
     IERC20(atenToken).safeTransferFrom(
       address(stakedAtensGPInterface),
-            msg.sender,
+      msg.sender,
       amount_
-          );
+    );
 
     _updateUserPositionFeeRate(msg.sender);
   }
@@ -409,7 +412,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     IERC20(stablecoin).safeTransferFrom(msg.sender, address(this), amount);
 
     // Deposit the funds into AAVE and get the new scaled balance
-    uint256 newAaveScaledBalance = transferLiquidityToAAVE(amount);
+    uint256 newAaveScaledBalance = _transferLiquidityToAAVE(amount);
 
     // Check the user's balance of staked ATEN + staking rewards
     uint256 stakedAten = stakedAtensGPInterface.positionOf(msg.sender);
@@ -448,7 +451,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     IERC20(stablecoin).safeTransferFrom(msg.sender, address(this), amount);
 
     // Deposit the funds into AAVE and get the new scaled balance
-    uint256 newAaveScaledBalance = transferLiquidityToAAVE(amount);
+    uint256 newAaveScaledBalance = _transferLiquidityToAAVE(amount);
 
     // check the user's balance of staked ATEN + staking rewards
     uint256 stakedAten = stakedAtensGPInterface.positionOf(msg.sender);
@@ -845,12 +848,10 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
       ipfsAgreementHash_
     );
 
-    Protocol memory newProtocol = Protocol({
+    protocolsMapping[newPoolId] = Protocol({
       id: newPoolId,
       name: name,
-      protocolAddress: iface,
       premiumRate: premiumRate,
-      guarantee: guaranteeType,
       deployed: _protocolDeployed,
       active: true,
       claimsOngoing: 0
@@ -859,8 +860,6 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     for (uint256 i = 0; i < protocolsNotCompat.length; i++) {
       incompatibilityProtocols[newPoolId][protocolsNotCompat[i]] = true;
     }
-
-    protocolsMapping[newPoolId] = newProtocol;
 
     emit NewProtocol(newPoolId);
   }
@@ -877,12 +876,5 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     onlyOwner
   {
     aaveAddressesRegistry = _aaveAddressesRegistry;
-  }
-
-  function approveLendingPool() internal {
-    IERC20(stablecoin).safeApprove(
-      ILendingPoolAddressesProvider(aaveAddressesRegistry).getLendingPool(),
-      2**256 - 1
-    );
   }
 }
