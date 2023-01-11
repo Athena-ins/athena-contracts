@@ -367,7 +367,8 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
       uint256 insuredCapital,
       uint256 availableCapacity,
       uint256 utilizationRate,
-      uint256 premiumRate
+      uint256 premiumRate,
+      Formula memory computingConfig
     )
   {
     uint256 __uRate = _utilisationRate(
@@ -381,7 +382,8 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
       slot0.totalInsuredCapital,
       availableCapital - slot0.totalInsuredCapital,
       __uRate,
-      getPremiumRate(__uRate)
+      getPremiumRate(__uRate),
+      f
     );
   }
 }

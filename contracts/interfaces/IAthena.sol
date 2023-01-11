@@ -4,13 +4,13 @@ pragma solidity ^0.8;
 interface IAthena {
   struct Protocol {
     uint128 id; //id in mapping
-    uint128 claimsOngoing; // claim ongoing, lock funds when claim is ongoing
-    address deployed; //Protocol Pool Address deployed
-    address protocolAddress; //address for the protocol interface to be unique
-    uint8 premiumRate; //Premium rate to pay for this protocol
-    uint8 guarantee; //Protocol guarantee type, could be 0 = smart contract vuln, 1 = unpeg, 2 = rug pull ...
-    bool active; //is Active or paused
     string name; //Protocol name
+    uint8 premiumRate; //Premium rate to pay for this protocol
+    // address protocolAddress; //address for the protocol interface to be unique
+    // uint8 guarantee; //Protocol guarantee type, could be 0 = smart contract vuln, 1 = unpeg, 2 = rug pull ...
+    bool active; //is Active or paused
+    address deployed; //Protocol Pool Address deployed
+    uint128 claimsOngoing; // claim ongoing, lock funds when claim is ongoing
   }
 
   function getProtocolAddressById(uint128 poolId)

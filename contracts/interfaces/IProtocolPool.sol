@@ -91,6 +91,7 @@ interface IProtocolPool is IPolicyCover {
       uint256 insuredCapital,
       uint256 availableCapacity,
       uint256 utilizationRate,
-      uint256 premiumRate
+      uint256 premiumRate,
+      Formula memory computingConfig
     );
 }

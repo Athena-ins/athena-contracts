@@ -57,6 +57,8 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     uint256 availableCapacity;
     uint256 utilizationRate;
     uint256 premiumRate;
+    IProtocolPool.Formula computingConfig;
+    string claimAgreement;
   }
 
   constructor(
@@ -182,21 +184,27 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     address poolAddress = protocolsMapping[poolId].deployed;
 
     (
-      string memory name,
       uint256 insuredCapital,
       uint256 availableCapacity,
       uint256 utilizationRate,
-      uint256 premiumRate
+      uint256 premiumRate,
+      IProtocolPool.Formula memory computingConfig
     ) = IProtocolPool(poolAddress).protocolInfo();
+
+    string memory claimAgreement = claimManagerInterface.getProtocolAgreement(
+      poolId
+    );
 
     return
       ProtocolView(
-        name,
+        protocolsMapping[poolId].name,
         poolId,
         insuredCapital,
         availableCapacity,
         utilizationRate,
-        premiumRate
+        premiumRate,
+        computingConfig,
+        claimAgreement
       );
   }
 
@@ -206,22 +214,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     returns (ProtocolView[] memory protocols)
   {
     for (uint128 i = 0; i < nextPoolId; i++) {
-      (
-        string memory name,
-        uint256 insuredCapital,
-        uint256 availableCapacity,
-        uint256 utilizationRate,
-        uint256 premiumRate
-      ) = IProtocolPool(protocolsMapping[i].deployed).protocolInfo();
-
-      protocols[i] = ProtocolView(
-        name,
-        i,
-        insuredCapital,
-        availableCapacity,
-        utilizationRate,
-        premiumRate
-      );
+      protocols[i] = getProtocol(i);
     }
   }
 
