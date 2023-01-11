@@ -88,7 +88,15 @@ contract StakingGeneralPool is
       _amount
     );
     _stake(_account, _amount, _usdCapitalSupplied);
-    _mint(_account, _amount);
+  }
+
+  function claimRewards(address account_)
+    external
+    override
+    onlyCore
+    returns (uint256)
+  {
+    return _claimRewards(account_);
   }
 
   function withdraw(address _account, uint256 _amount)

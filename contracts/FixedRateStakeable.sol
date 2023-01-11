@@ -112,10 +112,21 @@ contract FixedRateStakeable is IFixedRateStakeable {
     uint256 timestamp = block.timestamp;
     Stakeholder storage _userStake = stakes[_account];
     _userStake.amount += _amount;
-    _userStake.since = timestamp;
-    _userStake.rate = getStakingRewardRate(_usdCapitalSupplied);
+  }
 
-    emit Staked(_account, _amount, timestamp);
+  function _claimRewards(address account_)
+    internal
+    returns (uint256 totalRewards)
+  {
+    Stakeholder storage _userStake = stakes[account_];
+    uint256 newRewards = calculateStakeReward(_userStake);
+
+    // Returns the full amount of rewards
+    totalRewards = _userStake.accruedRewards + newRewards;
+
+    // We need to remove all user rewards
+    _userStake.accruedRewards = 0;
+    _userStake.since = block.timestamp;
   }
 
   /**
