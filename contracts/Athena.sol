@@ -335,6 +335,22 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
       positionsManager
     );
 
+    // Check the user's balance of staked ATEN + staking rewards
+    uint256 stakedAten = IStakedAten(stakedAtensGP).positionOf(msg.sender);
+
+    uint256 usdCapitalSupplied;
+    // We only get the user's capital if he is staking for the first time
+    /// @dev After this the movements in position update the rate
+    if (stakedAten == 0) {
+      usdCapitalSupplied = positionManagerInterface.allCapitalSuppliedByAccount(
+          msg.sender
+        );
+    }
+
+    // Deposit ATEN in the staking pool
+    IStakedAten(stakedAtensGP).stake(msg.sender, amount_, usdCapitalSupplied);
+    IERC20(atenToken).safeTransferFrom(msg.sender, stakedAtensGP, amount_);
+
     // Check if user has positions that will require an update
     uint256[] memory tokenList = positionManagerInterface
       .allPositionTokensOfOwner(msg.sender);
@@ -342,19 +358,14 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     // If the user has positions check if unstaking affects fee level
     if (tokenList.length != 0) {
       // Get the user's first position
-      // @dev We only check the first position because the fee level is the same for all positions
+      /// @dev We only check the first position because the fee level is the same for all positions
       IPositionsManager.Position memory userPosition = positionManagerInterface
         .position(tokenList[0]);
-
-      // Check the position's fee level
       uint128 currentFeeLevel = userPosition.feeRate;
 
-      // Check the user's balance of staked ATEN + staking rewards
-      uint256 stakedAten = IStakedAten(stakedAtensGP).positionOf(msg.sender);
-
-      // Compute the fee level after adding accrued interests and removing withdrawal
-      uint256 balanceAfterWithdraw = stakedAten + amount_;
-      uint128 newFeeLevel = getFeeRateWithAten(balanceAfterWithdraw);
+      // Compute the fee level including accrued interests
+      uint256 balanceAfterDeposit = stakedAten + amount_;
+      uint128 newFeeLevel = getFeeRateWithAten(balanceAfterDeposit);
 
       // If the fee level changes, update all positions
       if (currentFeeLevel != newFeeLevel) {
@@ -368,13 +379,6 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
         }
       }
     }
-
-    // Get the amount of capital supplied by the user
-    uint256 usdCapitalSupplied = positionManagerInterface
-      .allCapitalSuppliedByAccount(msg.sender);
-
-    // Deposit ATEN in the staking pool
-    IStakedAten(stakedAtensGP).stake(msg.sender, amount_, usdCapitalSupplied);
   }
 
   /** @notice
@@ -397,6 +401,10 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
       positionsManager
     );
 
+    // Withdraw from the staking pool
+    IStakedAten(stakedAtensGP).withdraw(msg.sender, amount_);
+    IERC20(atenToken).safeTransferFrom(stakedAtensGP, msg.sender, amount_);
+
     // Check if user has positions that will require an update
     uint256[] memory tokenList = positionManagerInterface
       .allPositionTokensOfOwner(msg.sender);
@@ -406,15 +414,14 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
       // Get the user's first position
       IPositionsManager.Position memory userPosition = positionManagerInterface
         .position(tokenList[0]);
-
-      // Check the position's fee level
       uint128 currentFeeLevel = userPosition.feeRate;
 
       // Check the user's balance of staked ATEN + staking rewards
-      uint256 stakedAten = IStakedAten(stakedAtensGP).positionOf(msg.sender);
+      uint256 balanceAfterWithdraw = IStakedAten(stakedAtensGP).positionOf(
+        msg.sender
+      );
 
       // Compute the fee level after adding accrued interests and removing withdrawal
-      uint256 balanceAfterWithdraw = stakedAten - amount_;
       uint128 newFeeLevel = getFeeRateWithAten(balanceAfterWithdraw);
 
       // If the fee level changes, update all positions
@@ -429,9 +436,6 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
         }
       }
     }
-
-    // Withdraw from the staking pool
-    IStakedAten(stakedAtensGP).withdraw(msg.sender, amount_);
   }
 
   /// ============================ ///

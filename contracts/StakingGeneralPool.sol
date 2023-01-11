@@ -46,6 +46,7 @@ contract StakingGeneralPool is IStakedAten, ERC20WithSnapshot {
     ERC20WithSnapshot("ATEN General Pool Staking", "ATENgps")
   {
     underlyingAssetAddress = underlyingAsset_;
+    IERC20(underlyingAssetAddress).approve(core_, type(uint256).max);
     core = core_;
   }
 
@@ -162,14 +163,6 @@ contract StakingGeneralPool is IStakedAten, ERC20WithSnapshot {
     uint256 amount_,
     uint256 usdCapitalSupplied_
   ) external override onlyCore {
-    // we put from & to opposite so as token owner has a Snapshot balance when staking
-    _beforeTokenTransfer(address(0), account_, amount_);
-    IERC20(underlyingAssetAddress).safeTransferFrom(
-      account_,
-      address(this),
-      amount_
-    );
-
     require(amount_ > 0, "SGP: cannot stake 0");
 
     Stakeholder storage userStake = stakes[account_];
@@ -188,6 +181,9 @@ contract StakingGeneralPool is IStakedAten, ERC20WithSnapshot {
     userStake.since = block.timestamp;
 
     emit Staked(account_, amount_, block.timestamp);
+
+    // we put from & to opposite so as token owner has a Snapshot balance when staking
+    _beforeTokenTransfer(address(0), account_, amount_);
   }
 
   function claimRewards(address account_)
@@ -227,8 +223,6 @@ contract StakingGeneralPool is IStakedAten, ERC20WithSnapshot {
 
     // we put from & to opposite so as token owner has a Snapshot balance when staking
     _beforeTokenTransfer(account_, address(0), amount_);
-
-    IERC20(underlyingAssetAddress).safeTransfer(account_, amount_);
   }
 
   /// =========================== ///
@@ -249,17 +243,17 @@ contract StakingGeneralPool is IStakedAten, ERC20WithSnapshot {
 
     // We only update the rate if the user has staked tokens
     if (0 < userStake.amount) {
-    uint128 newRewardRate = getStakingRewardRate(newUsdCapital_);
+      uint128 newRewardRate = getStakingRewardRate(newUsdCapital_);
 
-    // Check if the change in the amount of capital causes a change in reward rate
-    if (newRewardRate != userStake.rate) {
-      // Save the rewards already earned by staker
-      uint256 accruedReward = calculateStakeReward(userStake);
-      userStake.accruedRewards += accruedReward;
+      // Check if the change in the amount of capital causes a change in reward rate
+      if (newRewardRate != userStake.rate) {
+        // Save the rewards already earned by staker
+        uint256 accruedReward = calculateStakeReward(userStake);
+        userStake.accruedRewards += accruedReward;
 
-      // Reset the staking having saved the accrued rewards
-      userStake.rate = newRewardRate;
-      userStake.since = block.timestamp;
+        // Reset the staking having saved the accrued rewards
+        userStake.rate = newRewardRate;
+        userStake.since = block.timestamp;
       }
     }
   }
