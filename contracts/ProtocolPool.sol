@@ -12,7 +12,6 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
 
   address public underlyingAsset;
   uint128 public id;
-  string public _poolName;
   uint256 public immutable commitDelay;
 
   mapping(uint256 => uint256) public withdrawReserves;
@@ -20,19 +19,18 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
 
   constructor(
     address _core,
+    address policyManager_,
     address _underlyingAsset,
     uint128 _id,
     uint256 _uOptimal,
     uint256 _r0,
     uint256 _rSlope1,
     uint256 _rSlope2,
-    string memory poolName_,
     uint256 _commitDelay
-  ) PolicyCover(_core, _uOptimal, _r0, _rSlope1, _rSlope2) {
+  ) PolicyCover(_core, policyManager_, _uOptimal, _r0, _rSlope1, _rSlope2) {
     underlyingAsset = _underlyingAsset;
     commitDelay = _commitDelay;
     id = _id;
-    _poolName = poolName_;
     relatedProtocols.push(_id);
     // intersectingAmountIndexes[_id] = 0;
     intersectingAmounts.push();
@@ -41,10 +39,6 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
   modifier onlyCore() {
     require(msg.sender == core, "Only Core");
     _;
-  }
-
-  function poolName() public view returns (string memory) {
-    return _poolName;
   }
 
   function getRelatedProtocols()
@@ -291,7 +285,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
         slot0.totalInsuredCapital,
         availableCapital - _userCapital
       ) <= RayMath.RAY * 100,
-      string(abi.encodePacked(poolName(), ": use rate > 100%"))
+      "PP: use rate > 100%"
     );
 
     (
@@ -370,7 +364,6 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     external
     view
     returns (
-      string memory name,
       uint256 insuredCapital,
       uint256 availableCapacity,
       uint256 utilizationRate,
@@ -385,7 +378,6 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     );
 
     return (
-      poolName(),
       slot0.totalInsuredCapital,
       availableCapital - slot0.totalInsuredCapital,
       __uRate,

@@ -88,7 +88,6 @@ interface IProtocolPool is IPolicyCover {
     external
     view
     returns (
-      string memory name,
       uint256 insuredCapital,
       uint256 availableCapacity,
       uint256 utilizationRate,

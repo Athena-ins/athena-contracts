@@ -3,7 +3,6 @@ pragma solidity ^0.8;
 
 interface IProtocolFactory {
   function deployProtocol(
-    string calldata name,
     address stablecoin,
     uint128 newPoolId,
     uint256 _uOptimal,

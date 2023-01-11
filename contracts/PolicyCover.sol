@@ -19,6 +19,7 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
   using PremiumPosition for mapping(address => PremiumPosition.Info);
 
   address internal immutable core;
+  address internal immutable policyManager;
   mapping(uint32 => address[]) internal ticks;
   mapping(uint24 => uint256) internal tickBitmap;
   mapping(address => PremiumPosition.Info) public premiumPositions;
@@ -28,12 +29,14 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
 
   constructor(
     address _core,
+    address policyManager_,
     uint256 _uOptimal, //Ray
     uint256 _r0, //Ray
     uint256 _rSlope1, //Ray
     uint256 _rSlope2 //Ray
   ) {
     core = _core;
+    policyManager = policyManager_;
 
     f = Formula({
       uOptimal: _uOptimal,
@@ -78,9 +81,7 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
     address[] memory __owners = ticks[_tick];
     uint256[] memory __tokensId = new uint256[](__owners.length);
 
-    IPolicyManager policyManager_ = IPolicyManager(
-      IAthena(core).policyManager()
-    );
+    IPolicyManager policyManager_ = IPolicyManager(policyManager);
     for (uint256 i = 0; i < __owners.length; i++) {
       uint256 tokenId = premiumPositions.removeOwner(__owners[i]);
       __tokensId[i] = tokenId;
@@ -146,9 +147,7 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
     uint256 _availableCapital,
     uint32 _tick
   ) internal view {
-    IPolicyManager policyManager_ = IPolicyManager(
-      IAthena(core).policyManager()
-    );
+    IPolicyManager policyManager_ = IPolicyManager(policyManager);
     address[] memory owners = ticks[_tick];
     uint256 __insuredCapitalToRemove;
     for (uint256 i = 0; i < owners.length; i++) {
@@ -462,11 +461,10 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
 
     require(__slot0.tick <= __position.lastTick, "Policy Expired");
 
-    uint256 __beginOwnerEmissionRate = IPolicyManager(
-      IAthena(core).policyManager()
-    ).policy(__position.tokenId).amountCovered.rayMul(
-        __position.beginPremiumRate / 100
-      ) / 365;
+    uint256 __beginOwnerEmissionRate = IPolicyManager(policyManager)
+      .policy(__position.tokenId)
+      .amountCovered
+      .rayMul(__position.beginPremiumRate / 100) / 365;
 
     uint256 __currentPremiumRate = getPremiumRate(
       _utilisationRate(0, 0, __slot0.totalInsuredCapital, __availableCapital)

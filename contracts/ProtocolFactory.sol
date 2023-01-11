@@ -6,9 +6,15 @@ import "@openzeppelin/contracts/utils/Strings.sol";
 contract ProtocolFactory {
   address private immutable core;
   uint256 public immutable commitDelay;
+  address public immutable policyManager;
 
-  constructor(address _core, uint256 _commitDelay) {
+  constructor(
+    address _core,
+    address policyManager_,
+    uint256 _commitDelay
+  ) {
     core = _core;
+    policyManager = policyManager_;
     commitDelay = _commitDelay;
   }
 
@@ -18,7 +24,6 @@ contract ProtocolFactory {
   }
 
   function deployProtocol(
-    string calldata name,
     address stablecoin,
     uint128 newPoolId,
     uint256 _uOptimal,
@@ -30,13 +35,13 @@ contract ProtocolFactory {
       address(
         new ProtocolPool(
           core,
+          policyManager,
           stablecoin,
           newPoolId,
           _uOptimal,
           _r0,
           _rSlope1,
           _rSlope2,
-          name,
           commitDelay
         )
       );
