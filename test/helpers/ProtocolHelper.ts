@@ -3,6 +3,8 @@ import { ethers as hre_ethers } from "hardhat";
 import HardhatHelper from "./HardhatHelper";
 import protocolPoolAbi from "../../artifacts/contracts/ProtocolPool.sol/ProtocolPool.json";
 
+let ATEN_CONTRACT: ethers.Contract;
+let ARBITRATOR_CONTRACT: ethers.Contract;
 let ATHENA_CONTRACT: ethers.Contract;
 let POSITIONS_MANAGER_CONTRACT: ethers.Contract;
 let STAKED_ATENS_CONTRACT: ethers.Contract;
@@ -12,14 +14,44 @@ let CLAIM_MANAGER_CONTRACT: ethers.Contract;
 let STAKED_ATENS_POLICY_CONTRACT: ethers.Contract;
 let VAULT_ATENS_CONTRACT: ethers.Contract;
 
-async function deployAthenaContract(owner: ethers.Signer) {
+async function deployAtenTokenContract(owner: ethers.Signer) {
+  ATEN_CONTRACT = await (await hre_ethers.getContractFactory("ATEN"))
+    .connect(owner)
+    .deploy();
+
+  await ATEN_CONTRACT.deployed();
+}
+
+function getAtenTokenContract() {
+  return ATEN_CONTRACT;
+}
+
+async function deployArbitratorContract(owner: ethers.Signer) {
+  ARBITRATOR_CONTRACT = await (
+    await hre_ethers.getContractFactory("CentralizedArbitrator")
+  )
+    .connect(owner)
+    .deploy(ethers.utils.parseEther("0.01")); // Arbitration fee
+
+  await ARBITRATOR_CONTRACT.deployed();
+}
+
+function getArbitratorContract() {
+  return ARBITRATOR_CONTRACT;
+}
+
+async function deployAthenaContract(
+  owner: ethers.Signer,
+  usdt?: string,
+  aave_registry?: string
+) {
+  const useAtenAddress = ATEN_CONTRACT?.address || HardhatHelper.ATEN;
+  const useUsdtAddress = usdt || HardhatHelper.USDT;
+  const useAaveRegistryAddress = aave_registry || HardhatHelper.AAVE_REGISTRY;
+
   ATHENA_CONTRACT = await (await hre_ethers.getContractFactory("Athena"))
     .connect(owner)
-    .deploy(
-      HardhatHelper.USDT,
-      HardhatHelper.ATEN,
-      HardhatHelper.AAVE_REGISTRY
-    );
+    .deploy(useUsdtAddress, useAtenAddress, useAaveRegistryAddress);
 
   await ATHENA_CONTRACT.deployed();
 }
@@ -43,12 +75,13 @@ function getPositionManagerContract() {
 }
 
 async function deployStakedAtenContract(owner: ethers.Signer) {
+  const useAtenAddress = ATEN_CONTRACT?.address || HardhatHelper.ATEN;
   STAKED_ATENS_CONTRACT = await (
     await hre_ethers.getContractFactory("StakingGeneralPool")
   )
     .connect(owner)
     .deploy(
-      HardhatHelper.ATEN,
+      useAtenAddress,
       ATHENA_CONTRACT.address,
       POSITIONS_MANAGER_CONTRACT.address
     );
@@ -92,7 +125,11 @@ function getProtocolFactoryContract() {
   return FACTORY_PROTOCOL_CONTRACT;
 }
 
-async function deployClaimManagerContract(owner: ethers.Signer) {
+async function deployClaimManagerContract(
+  owner: ethers.Signer,
+  arbitrator?: string
+) {
+  const useArbitratorAddress = arbitrator || HardhatHelper.ARBITRATOR_ADDRESS;
   CLAIM_MANAGER_CONTRACT = await (
     await hre_ethers.getContractFactory("ClaimManager")
   )
@@ -100,7 +137,7 @@ async function deployClaimManagerContract(owner: ethers.Signer) {
     .deploy(
       ATHENA_CONTRACT.address,
       POLICY_MANAGER_CONTRACT.address,
-      HardhatHelper.ARBITRATOR_ADDRESS
+      useArbitratorAddress
     );
 
   await CLAIM_MANAGER_CONTRACT.deployed();
@@ -111,11 +148,12 @@ function getClaimManagerContract() {
 }
 
 async function deployStakedAtensPolicyContract(owner: ethers.Signer) {
+  const useAtenAddress = ATEN_CONTRACT?.address || HardhatHelper.ATEN;
   STAKED_ATENS_POLICY_CONTRACT = await (
     await hre_ethers.getContractFactory("StakingPolicy")
   )
     .connect(owner)
-    .deploy(HardhatHelper.ATEN, ATHENA_CONTRACT.address);
+    .deploy(useAtenAddress, ATHENA_CONTRACT.address);
 
   await STAKED_ATENS_POLICY_CONTRACT.deployed();
 }
@@ -125,11 +163,12 @@ function getStakedAtensPolicyContract() {
 }
 
 async function deployVaultAtenContract(owner: ethers.Signer) {
+  const useAtenAddress = ATEN_CONTRACT?.address || HardhatHelper.ATEN;
   VAULT_ATENS_CONTRACT = await (
     await hre_ethers.getContractFactory("TokenVault")
   )
     .connect(owner)
-    .deploy(HardhatHelper.ATEN, ATHENA_CONTRACT.address);
+    .deploy(useAtenAddress, ATHENA_CONTRACT.address);
   await VAULT_ATENS_CONTRACT.deployed();
 }
 
@@ -318,6 +357,10 @@ async function takeInterest(
 }
 
 export default {
+  deployAtenTokenContract,
+  getAtenTokenContract,
+  deployArbitratorContract,
+  getArbitratorContract,
   deployAthenaContract,
   getAthenaContract,
   deployPositionManagerContract,
