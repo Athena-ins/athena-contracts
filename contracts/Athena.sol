@@ -26,7 +26,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   mapping(uint128 => Protocol) public protocolsMapping;
 
   address public stablecoin;
-  address public aaveAddressesRegistry; // AAVE lending pool
+  ILendingPoolAddressesProvider public aaveAddressesRegistryInterface; // AAVE lending pool
   address public protocolFactory;
   IPositionsManager public positionManagerInterface;
   IPolicyManager public policyManagerInterface;
@@ -61,13 +61,15 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   }
 
   constructor(
-    address _stablecoinUsed,
+    address stablecoinUsed_,
     address atenTokenAddress_,
-    address _aaveAddressesRegistry
+    address aaveAddressesRegistry_
   ) {
     atenToken = atenTokenAddress_;
-    stablecoin = _stablecoinUsed;
-    aaveAddressesRegistry = _aaveAddressesRegistry;
+    stablecoin = stablecoinUsed_;
+    aaveAddressesRegistryInterface = ILendingPoolAddressesProvider(
+      aaveAddressesRegistry_
+    );
   }
 
   function initialize(
@@ -90,7 +92,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     atensVault = _atensVault;
 
     IERC20(stablecoin).safeApprove(
-      ILendingPoolAddressesProvider(aaveAddressesRegistry).getLendingPool(),
+      aaveAddressesRegistryInterface.getLendingPool(),
       type(uint256).max
     );
     //initialized = true; //@dev required ?
@@ -286,8 +288,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   }
 
   function _transferLiquidityToAAVE(uint256 amount) private returns (uint256) {
-    address lendingPool = ILendingPoolAddressesProvider(aaveAddressesRegistry)
-      .getLendingPool();
+    address lendingPool = aaveAddressesRegistryInterface.getLendingPool();
 
     ILendingPool(lendingPool).deposit(stablecoin, amount, address(this), 0);
 
@@ -530,14 +531,15 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
 
     positionManagerInterface.burn(tokenId);
 
-    address __lendingPool = ILendingPoolAddressesProvider(aaveAddressesRegistry)
-      .getLendingPool();
+    address __lendingPool = aaveAddressesRegistryInterface.getLendingPool();
+
+    ILendingPool lendingPoolInterface = ILendingPool(__lendingPool);
 
     uint256 _amountToWithdrawFromAAVE = __position.aaveScaledBalance.rayMul(
-      ILendingPool(__lendingPool).getReserveNormalizedIncome(stablecoin)
+      lendingPoolInterface.getReserveNormalizedIncome(stablecoin)
     );
 
-    ILendingPool(__lendingPool).withdraw(
+    lendingPoolInterface.withdraw(
       stablecoin,
       _amountToWithdrawFromAAVE,
       msg.sender
@@ -735,7 +737,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     uint256 ratio = poolInterface.ratioWithAvailableCapital(amount_);
 
     ILendingPool lendingPoolInterface = ILendingPool(
-      ILendingPoolAddressesProvider(aaveAddressesRegistry).getLendingPool()
+      aaveAddressesRegistryInterface.getLendingPool()
     );
 
     uint256 reserveNormalizedIncome = lendingPoolInterface
@@ -871,10 +873,12 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
 
   /// -------- AAVE -------- ///
 
-  function setAAVEAddressesRegistry(address _aaveAddressesRegistry)
+  function setAAVEAddressesRegistry(address aaveAddressesRegistry_)
     external
     onlyOwner
   {
-    aaveAddressesRegistry = _aaveAddressesRegistry;
+    aaveAddressesRegistryInterface = ILendingPoolAddressesProvider(
+      aaveAddressesRegistry_
+    );
   }
 }
