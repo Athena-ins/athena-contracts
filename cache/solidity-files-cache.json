@@ -110,8 +110,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\Athena.sol": {
-      "lastModificationDate": 1673446168358,
-      "contentHash": "2e233b09fc4c5ef982cc0ad3fa730d0d",
+      "lastModificationDate": 1673539302855,
+      "contentHash": "961a91b8ca9538e85d5268cf48ad4c87",
       "sourceName": "contracts/Athena.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -557,8 +557,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\interfaces\\IVaultERC20.sol": {
-      "lastModificationDate": 1673368238091,
-      "contentHash": "3787a4bf79f2d228f23dcd1137be0f99",
+      "lastModificationDate": 1673539229853,
+      "contentHash": "8a128007f49755f236e72c822a256883",
       "sourceName": "contracts/interfaces/IVaultERC20.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -1100,8 +1100,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\TokenVault.sol": {
-      "lastModificationDate": 1673368245244,
-      "contentHash": "229238e754e0c21f23e796a3ff197bcc",
+      "lastModificationDate": 1673539234811,
+      "contentHash": "dc1ea5605f9da8f33f4d49ad3a75c9b2",
       "sourceName": "contracts/TokenVault.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -1217,8 +1217,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\StakingGeneralPool.sol": {
-      "lastModificationDate": 1673445375204,
-      "contentHash": "b90cbe9ff311f7b10931bfefbbb92919",
+      "lastModificationDate": 1673452013059,
+      "contentHash": "b14af76749c967ddcda10a0e56146ed9",
       "sourceName": "contracts/StakingGeneralPool.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -1939,8 +1939,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\ClaimManager.sol": {
-      "lastModificationDate": 1673444529758,
-      "contentHash": "39616bd27913b01926e219d037834b68",
+      "lastModificationDate": 1673450577232,
+      "contentHash": "6bb7dfa1390d8e97d64edbb49e7be0a4",
       "sourceName": "contracts/ClaimManager.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -1981,8 +1981,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\interfaces\\IArbitrable.sol": {
-      "lastModificationDate": 1672653178669,
-      "contentHash": "71a9c009f144000ff0cf119e1bc4bc4f",
+      "lastModificationDate": 1673529138625,
+      "contentHash": "97bd0796e2a623c830c6217ce41d53a0",
       "sourceName": "contracts/interfaces/IArbitrable.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -2011,15 +2011,15 @@
         "./IArbitrator.sol"
       ],
       "versionPragmas": [
-        "^0.8.0"
+        "^0.8"
       ],
       "artifacts": [
         "IArbitrable"
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\interfaces\\IArbitrator.sol": {
-      "lastModificationDate": 1668511363361,
-      "contentHash": "7505cfd859d34779fb2d7e8c7ae3ac70",
+      "lastModificationDate": 1673529135565,
+      "contentHash": "90c47fca9903bdb46a12f77f221fdcac",
       "sourceName": "contracts/interfaces/IArbitrator.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -2092,7 +2092,7 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\interfaces\\IEvidence.sol": {
-      "lastModificationDate": 1671638626739,
+      "lastModificationDate": 1673528899491,
       "contentHash": "8abcd6dd62146fe364473808742e03d1",
       "sourceName": "contracts/interfaces/IEvidence.sol",
       "solcConfig": {
@@ -2281,8 +2281,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\ICO\\ATEN.sol": {
-      "lastModificationDate": 1664788756610,
-      "contentHash": "0db13e15a18beda90bcdda4336402089",
+      "lastModificationDate": 1673532009214,
+      "contentHash": "f7612632b1b1cce3e78cea40860e398b",
       "sourceName": "contracts/ICO/ATEN.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -2318,6 +2318,80 @@
         "IERC20",
         "Ownable",
         "SafeMath"
+      ]
+    },
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\kleros\\Arbitrator.sol": {
+      "lastModificationDate": 1673529109880,
+      "contentHash": "aa51424e23d6c51249e016b927f60ec2",
+      "sourceName": "contracts/kleros/Arbitrator.sol",
+      "solcConfig": {
+        "version": "0.8.11",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "../interfaces/IArbitrable.sol"
+      ],
+      "versionPragmas": [
+        "^0.8"
+      ],
+      "artifacts": [
+        "Arbitrator"
+      ]
+    },
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\kleros\\CentralizedArbitrator.sol": {
+      "lastModificationDate": 1673533491294,
+      "contentHash": "79f8850c98f366443e15e1251f86bb00",
+      "sourceName": "contracts/kleros/CentralizedArbitrator.sol",
+      "solcConfig": {
+        "version": "0.8.11",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./Arbitrator.sol"
+      ],
+      "versionPragmas": [
+        "^0.8"
+      ],
+      "artifacts": [
+        "CentralizedArbitrator"
       ]
     }
   }
