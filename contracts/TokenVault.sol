@@ -29,22 +29,6 @@ contract TokenVault is IVaultERC20 {
   /// ========= DEPOSIT & SEND ======== ///
   /// ================================= ///
 
-  // @bw function is kinda useless
-  function depositFrom(address account_, uint256 amount_) external {
-    // Check if the sender has enough tokens
-    uint256 senderBalance = atenTokenInterface.balanceOf(account_);
-    require(amount_ <= senderBalance, "TV: insufficient balance");
-
-    // Check if the vault has enough allowance
-    uint256 vaultAllowance = atenTokenInterface.allowance(
-      account_,
-      address(this)
-    );
-    require(amount_ <= vaultAllowance, "TV: insufficient allowance");
-
-    atenTokenInterface.transferFrom(account_, address(this), amount_);
-  }
-
   /**
    * @notice
    * Sends policy or general staking rewards to a user

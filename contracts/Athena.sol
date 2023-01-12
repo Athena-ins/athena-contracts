@@ -771,7 +771,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
 
   function depositRewardForPolicyStaking(uint256 amount_) external onlyOwner {
     // Transfer the ATEN to the vault
-    IVaultERC20(atensVault).depositFrom(msg.sender, amount_);
+    IERC20(atenToken).safeTransferFrom(msg.sender, atensVault, amount_);
 
     // Make the rewards available to users by registering it in the staking pool
     stakedAtensPoInterface.addAvailableRewards(amount_);
