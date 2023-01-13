@@ -358,6 +358,41 @@ describe("Deploy protocol", () => {
             1_000_000
           )
         ).to.equal(BN(2000));
+
+        const stakingLevels = await STAKED_ATENS_CONTRACT.connect(
+          owner
+        ).getStakingRewardsLevels();
+
+        expect(stakingLevels.length).to.equal(4);
+      });
+    });
+
+    describe("View all array data", () => {
+      it("Should get all pool data", async () => {
+        const ATHENA_CONTRACT = ProtocolHelper.getAthenaContract();
+
+        const poolData = await ATHENA_CONTRACT.connect(owner).getAllProtocols();
+
+        expect(poolData.length).to.equal(3);
+      });
+
+      it("Should get all fee level data", async () => {
+        const ATHENA_CONTRACT = ProtocolHelper.getAthenaContract();
+        const feeLevels = await ATHENA_CONTRACT.connect(
+          owner
+        ).getAtenStakingFeeLevels();
+
+        expect(feeLevels.length).to.equal(4);
+      });
+
+      it("Should get all staking levels data", async () => {
+        const STAKED_ATENS_CONTRACT = ProtocolHelper.getStakedAtenContract();
+
+        const stakingLevels = await STAKED_ATENS_CONTRACT.connect(
+          owner
+        ).getStakingRewardsLevels();
+
+        expect(stakingLevels.length).to.equal(4);
       });
     });
   });
