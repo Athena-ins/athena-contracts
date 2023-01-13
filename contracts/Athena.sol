@@ -218,6 +218,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     view
     returns (ProtocolView[] memory protocols)
   {
+    protocols = new ProtocolView[](nextPoolId);
     for (uint128 i = 0; i < nextPoolId; i++) {
       protocols[i] = getProtocol(i);
     }
@@ -235,6 +236,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     returns (AtenFeeLevel[] memory levels)
   {
     uint256 nbLevels = supplyFeeLevels.length;
+    levels = new AtenFeeLevel[](nbLevels);
 
     for (uint256 i = 0; i < nbLevels; i++) {
       levels[i] = supplyFeeLevels[i];

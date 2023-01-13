@@ -103,8 +103,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
       positionList[i] = PositionInfo({
         positionId: tokenList[i],
         premiumReceived: totalRewards,
-        // @bw move withdraw commit check to pos manager
-        withdrawCommitTimestamp: 0,
+        withdrawCommitTimestamp: 0, // @bw move withdraw commit check to pos manager
         position: __position
       });
     }
@@ -144,7 +143,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
   function deposit(
     address account,
     uint256 amount,
-      uint256 newAaveScaledBalance,
+    uint256 newAaveScaledBalance,
     uint128 feeRate,
     uint128[] calldata poolIds
   ) external override onlyCore {

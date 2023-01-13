@@ -154,6 +154,8 @@ contract StakingGeneralPool is IStakedAten, ERC20WithSnapshot {
   {
     uint256 nbLevels = stakingRewardRates.length;
 
+    levels = new RewardRateLevel[](nbLevels);
+
     for (uint256 i = 0; i < nbLevels; i++) {
       levels[i] = stakingRewardRates[i];
     }

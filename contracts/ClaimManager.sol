@@ -200,6 +200,9 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
     returns (Claim[] memory claimsInfo)
   {
     require(endIndex < claimIndex, "CM: outside of range");
+    require(beginIndex < endIndex, "CM: bad range");
+
+    claimsInfo = new Claim[](endIndex - beginIndex);
 
     for (uint256 i = beginIndex; i < endIndex; i++) {
       Claim memory claim = claims[i];
@@ -231,6 +234,13 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
     view
     returns (Claim[] memory claimsInfo)
   {
+    uint256 nbClaims = 0;
+    for (uint256 i = 0; i < claimIndex; i++) {
+      if (claims[i].from == account_) nbClaims++;
+    }
+
+    claimsInfo = new Claim[](nbClaims);
+
     for (uint256 i = 0; i < claimIndex; i++) {
       Claim memory claim = claims[i];
 
@@ -263,6 +273,13 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
     view
     returns (Claim[] memory claimsInfo)
   {
+    uint256 nbClaims = 0;
+    for (uint256 i = 0; i < claimIndex; i++) {
+      if (claims[i].poolId == poolId_) nbClaims++;
+    }
+
+    claimsInfo = new Claim[](nbClaims);
+
     for (uint256 i = 0; i < claimIndex; i++) {
       Claim memory claim = claims[i];
 
@@ -446,6 +463,7 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
     sendValue(userClaim.from, userClaim.arbitrationCost + collateralAmount);
 
     // Call Athena core to pay the compensation
+    // @bw this should close the user's policy to avoid stress on the pool
     core.compensateClaimant(
       userClaim.policyId,
       userClaim.amount,
@@ -576,6 +594,7 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
     userClaim.status = ClaimStatus.CompensatedAfterAcceptation;
 
     // Call Athena core to pay the compensation
+    // @bw this should close the user's policy to avoid stress on the pool
     core.compensateClaimant(
       userClaim.policyId,
       userClaim.amount,

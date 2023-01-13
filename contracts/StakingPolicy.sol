@@ -130,6 +130,10 @@ contract StakingPolicy is ERC20WithSnapshot {
   {
     StakeAccount storage userStakingPositions = _stakes[account_];
 
+    stakingPositions = new StakingPosition[](
+      userStakingPositions.policyTokenIds.length
+    );
+
     for (uint256 i = 0; i < userStakingPositions.policyTokenIds.length; i++) {
       uint256 tokenId = userStakingPositions.policyTokenIds[i];
 
