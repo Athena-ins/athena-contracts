@@ -537,7 +537,7 @@ contract ATEN is Context, IERC20, Ownable {
   mapping(address => bool) private _isExcluded;
   address[] private _excluded;
 
-  string private _name = "ATEN";
+  string private _name = "Athena Ins.";
   string private _symbol = "ATEN";
   uint256 private _decimals = 18;
   address private FeeAddress = 0xB47bcc2354b1d99607797553df1DEBcA2eccb30E;
