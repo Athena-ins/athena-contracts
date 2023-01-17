@@ -32,8 +32,6 @@ const amountTransfers = BigNumber.from(20_000_000).mul(
 
 async function main() {
   try {
-    await hre.run("compile");
-
     console.log("== STARTING ==");
     const signers = await hre_ethers.getSigners();
     const deployer = signers[0];
@@ -100,31 +98,19 @@ async function main() {
       ADDRESS.ATHENA,
       amountApprove
     );
-    await ATEN_CONTRACT.connect(deployer).approve(
-      ADDRESS.ATHENA,
-      amountApprove
-    );
-    await ATEN_CONTRACT.connect(deployer).approve(
-      ADDRESS.TOKEN_VAULT,
-      amountApprove
-    );
 
-    console.log("== OK 4 ==");
-
-    // =====> deposit ATEN in rewards vault & send ATEN to user
-
-    await ATHENA_CONTRACT.connect(deployer).depositRewardForPolicyStaking(
-      amountTransfers
-    );
-
-    await ATEN_CONTRACT.connect(deployer).transfer(
-      ADDRESS.TOKEN_VAULT,
-      amountTransfers
-    );
     await ATEN_CONTRACT.connect(deployer).transfer(
       ADDRESS.user_1,
       amountTransfers
     );
+
+    console.log("== OK 4 ==");
+
+    // =====> deposit ATEN in rewards vault
+
+    await ProtocolHelper.depositRewardsToVault(deployer, amountTransfers);
+
+    // =====> send ATEN to user
 
     console.log("====== OK ======");
 
