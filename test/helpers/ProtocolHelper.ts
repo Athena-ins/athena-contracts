@@ -1,4 +1,4 @@
-import { ethers } from "ethers";
+import { BigNumberish, ethers } from "ethers";
 import { ethers as hre_ethers } from "hardhat";
 import HardhatHelper from "./HardhatHelper";
 import protocolPoolAbi from "../../artifacts/contracts/ProtocolPool.sol/ProtocolPool.json";
@@ -120,7 +120,11 @@ async function deployClaimManagerContract(
   owner: ethers.Signer,
   arbitrator?: string
 ) {
-  const useArbitratorAddress = arbitrator || HardhatHelper.ARBITRATOR_ADDRESS;
+  const useArbitratorAddress =
+    arbitrator ||
+    CONTRACT.ARBITRATOR?.address ||
+    HardhatHelper.ARBITRATOR_ADDRESS;
+
   CONTRACT.CLAIM_MANAGER = await (
     await hre_ethers.getContractFactory("ClaimManager")
   )
@@ -217,6 +221,9 @@ async function depositRewardsToVault(
 }
 
 async function deployAllContractsAndInitializeProtocol(owner: ethers.Signer) {
+  await deployAtenTokenContract(owner);
+  await deployArbitratorContract(owner);
+
   await deployAthenaContract(owner);
   await deployPositionManagerContract(owner);
   await deployStakedAtenContract(owner);
@@ -225,9 +232,14 @@ async function deployAllContractsAndInitializeProtocol(owner: ethers.Signer) {
   await deployClaimManagerContract(owner);
   await deployStakedAtensPolicyContract(owner);
   await deployVaultAtenContract(owner);
+
   await initializeProtocol();
+
   await setFeeLevelsWithAten(owner);
   await setStakingRewardRates(owner);
+
+  const rewardsAmount = ethers.utils.parseEther("20000000"); // 20M ATEN
+  await depositRewardsToVault(owner, rewardsAmount);
 }
 
 async function addNewProtocolPool(protocolPoolName: string) {
