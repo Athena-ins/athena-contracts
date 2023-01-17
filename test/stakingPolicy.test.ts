@@ -1,8 +1,6 @@
-import chai, { expect } from "chai";
 import hre from "hardhat";
-import { BigNumber, Contract, ethers, ethers as ethersOriginal } from "ethers";
+import { BigNumber, Contract, ethers as ethersOriginal } from "ethers";
 import weth_abi from "../abis/weth.json";
-import chaiAsPromised from "chai-as-promised";
 
 import {
   ATEN_TOKEN,
@@ -19,7 +17,27 @@ import {
   increaseTimeAndMine,
 } from "./helpers";
 
+///
+
+import chai, { expect } from "chai";
+import { ethers as hre_ethers } from "hardhat";
+import { ethers } from "ethers";
+import chaiAsPromised from "chai-as-promised";
+
+import HardhatHelper from "./helpers/HardhatHelper";
+import ProtocolHelper from "./helpers/ProtocolHelper";
+
 chai.use(chaiAsPromised);
+
+const BN = (num: string | number) => hre_ethers.BigNumber.from(num);
+
+let owner: ethers.Signer;
+let liquidityProvider1: ethers.Signer;
+let liquidityProvider2: ethers.Signer;
+let liquidityProvider3: ethers.Signer;
+let policyTaker1: ethers.Signer;
+let policyTaker2: ethers.Signer;
+let policyTaker3: ethers.Signer;
 
 let ATHENA_CONTRACT: ethersOriginal.Contract,
   POS_CONTRACT: ethersOriginal.Contract,

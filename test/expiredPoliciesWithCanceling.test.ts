@@ -38,6 +38,8 @@ describe("expired policies", () => {
     await ProtocolHelper.addNewProtocolPool("Test protocol 2");
     await ProtocolHelper.addNewProtocolPool("Test protocol 3");
 
+    // ================= Cover Providers ================= //
+
     const USDT_amount1 = "4000000";
     const ATEN_amount1 = "100000";
     await ProtocolHelper.deposit(
@@ -67,6 +69,8 @@ describe("expired policies", () => {
       [1, 3],
       1 * 24 * 60 * 60
     );
+
+    // ================= Policy Buyers ================= //
 
     await HardhatHelper.USDT_maxApprove(
       policyTaker3,
