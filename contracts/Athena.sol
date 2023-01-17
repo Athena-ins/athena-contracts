@@ -691,7 +691,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
    * @param policyId_ the id of the policy position
    */
   function withdrawAtensPolicy(uint256 policyId_)
-    external
+    public
     onlyPolicyTokenOwner(policyId_)
   {
     // Get the protocol ID of the policy
@@ -711,6 +711,20 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
 
     // Process withdrawal and rewards payment
     _processPolicyStakingPayout(msg.sender, policyId_);
+  }
+
+  /**
+   * @notice
+   * Withdraws ATEN and policy staking rewards from multiple policy staking positions.
+   * @param policyIds_ the ids of the policy positions
+   */
+  function withdrawAllAtensFromPolicies(uint256[] calldata policyIds_)
+    external
+  {
+    uint256 policyIdLength = policyIds_.length;
+    for (uint256 i = 0; i < policyIdLength; i++) {
+      withdrawAtensPolicy(policyIds_[i]);
+    }
   }
 
   /// ============================ ///
