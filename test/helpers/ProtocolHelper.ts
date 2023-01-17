@@ -170,12 +170,12 @@ function getVaultAtenContract() {
 async function initializeProtocol() {
   return await CONTRACT.ATHENA.initialize(
     CONTRACT.POSITIONS_MANAGER.address,
+    CONTRACT.POLICY_MANAGER.address,
+    CONTRACT.CLAIM_MANAGER.address,
     CONTRACT.STAKING_GP.address,
     CONTRACT.STAKING_POLICY.address,
-    CONTRACT.TOKEN_VAULT.address,
-    CONTRACT.POLICY_MANAGER.address,
     CONTRACT.FACTORY_PROTOCOL.address,
-    CONTRACT.CLAIM_MANAGER.address
+    CONTRACT.TOKEN_VAULT.address
   );
 }
 

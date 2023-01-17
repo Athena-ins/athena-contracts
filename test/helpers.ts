@@ -141,13 +141,12 @@ export const deployAndInitProtocol = async (
    */
   const init = await ATHENA_CONTRACT.initialize(
     POS_CONTRACT.address, // _positionsAddress
+    POLICY_CONTRACT.address, // _policyManagerAddress
+    opts?.ARBITRATOR_ADDRESS || ARBITRATOR_ADDRESS, // _claimManager
     STAKED_ATENS_CONTRACT.address, // _stakedAtensGP
     STAKED_ATENS_CONTRACT_POLICY.address, // _stakedAtensPo
-    VAULT_ATENS_CONTRACT.address, // _atensVault
-    POLICY_CONTRACT.address, // _policyManagerAddress
-    // opts?.USDT_AAVE_TOKEN || USDT_AAVE_ATOKEN,
     FACTORY_PROTOCOL_CONTRACT.address, // _protocolFactory
-    opts?.ARBITRATOR_ADDRESS || ARBITRATOR_ADDRESS // _claimManager
+    VAULT_ATENS_CONTRACT.address // _atensVault
   );
   await init.wait(opts?.confirmations);
   return [

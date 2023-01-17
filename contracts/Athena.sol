@@ -26,7 +26,8 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   mapping(uint128 => Protocol) public protocolsMapping;
 
   address public stablecoin;
-  ILendingPoolAddressesProvider public aaveAddressesRegistryInterface; // AAVE lending pool
+  /// @dev AAVE LendingPoolAddressesProvider Interface
+  ILendingPoolAddressesProvider public aaveAddressesRegistryInterface;
   address public protocolFactory;
   IPositionsManager public positionManagerInterface;
   IPolicyManager public policyManagerInterface;
@@ -70,32 +71,31 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     aaveAddressesRegistryInterface = ILendingPoolAddressesProvider(
       aaveAddressesRegistry_
     );
+
+    address lendingPool = aaveAddressesRegistryInterface.getLendingPool();
+    IERC20(stablecoin).safeApprove(lendingPool, type(uint256).max);
   }
 
   function initialize(
-    address _positionsAddress,
+    address _positionManagerAddress,
+    address _policyManagerAddress,
+    address _claimManagerAddress,
     address _stakedAtensGP,
     address _stakedAtensPo,
-    address _atensVault,
-    address _policyManagerAddress,
     address _protocolFactory,
-    address _claimManager
+    address _atensVault
   ) external onlyOwner {
-    positionManagerInterface = IPositionsManager(_positionsAddress);
+    positionManagerInterface = IPositionsManager(_positionManagerAddress);
     policyManagerInterface = IPolicyManager(_policyManagerAddress);
-    claimManagerInterface = IClaimManager(_claimManager);
+    claimManagerInterface = IClaimManager(_claimManagerAddress);
 
     stakedAtensGPInterface = IStakedAten(_stakedAtensGP);
     stakedAtensPoInterface = IStakedAtenPolicy(_stakedAtensPo);
 
     protocolFactory = _protocolFactory;
     atensVault = _atensVault;
-
-    IERC20(stablecoin).safeApprove(
-      aaveAddressesRegistryInterface.getLendingPool(),
-      type(uint256).max
-    );
-    //initialized = true; //@dev required ?
+    // @bw do we keep it upgradable ?
+    //initialized = true;
   }
 
   /// ========================= ///

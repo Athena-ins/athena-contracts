@@ -139,9 +139,10 @@ describe("Protocol Pool", function () {
   describe("Initialize Protocol", async () => {
     it("Should initialize protocol with required values", async () => {
       const init = await ATHENA_CONTRACT.initialize(
+        // @bw bad ordering
         POS_CONTRACT.address,
-        STAKED_ATENS_CONTRACT.address,
         POLICY_CONTRACT.address,
+        STAKED_ATENS_CONTRACT.address,
         USDT_AAVE_ATOKEN,
         FACTORY_PROTOCOL_CONTRACT.address,
         ARBITRATOR_ADDRESS,
