@@ -197,6 +197,25 @@ async function setStakingRewardRates(owner: ethers.Signer) {
   ]);
 }
 
+async function depositRewardsToVault(
+  owner: ethers.Signer,
+  amountToTransfer: BigNumberish
+) {
+  await CONTRACT.ATEN.connect(owner).approve(
+    CONTRACT.ATHENA.address,
+    amountToTransfer
+  );
+
+  await CONTRACT.ATHENA.connect(owner).depositRewardForPolicyStaking(
+    amountToTransfer
+  );
+
+  await CONTRACT.ATEN.connect(owner).transfer(
+    CONTRACT.TOKEN_VAULT.address,
+    amountToTransfer
+  );
+}
+
 async function deployAllContractsAndInitializeProtocol(owner: ethers.Signer) {
   await deployAthenaContract(owner);
   await deployPositionManagerContract(owner);
@@ -277,6 +296,34 @@ async function buyPolicy(
   await HardhatHelper.USDT_transfer(
     await user.getAddress(),
     hre_ethers.utils.parseUnits(premium, 6)
+  );
+
+  await HardhatHelper.setNextBlockTimestamp(timeLapse);
+
+  await CONTRACT.ATHENA.connect(user).buyPolicies(
+    [capital],
+    [premium],
+    [atensLocked],
+    [poolId]
+  );
+}
+
+async function buyPolicies(
+  user: ethers.Signer,
+  capital: string[],
+  premium: string[],
+  atensLocked: string[],
+  poolId: number[],
+  timeLapse: number
+) {
+  const premiumTotal = premium
+    .map((el) => parseFloat(el))
+    .reduce((acc, el) => acc + el, 0)
+    .toString();
+
+  await HardhatHelper.USDT_transfer(
+    await user.getAddress(),
+    hre_ethers.utils.parseUnits(premiumTotal, 6)
   );
 
   await HardhatHelper.setNextBlockTimestamp(timeLapse);
@@ -377,7 +424,9 @@ export default {
   getProtocolPoolContract,
   deposit,
   buyPolicy,
+  buyPolicies,
   createClaim,
   resolveClaimWithoutDispute,
+  depositRewardsToVault,
   takeInterest,
 };
