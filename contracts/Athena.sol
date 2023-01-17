@@ -99,6 +99,27 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   }
 
   /// ========================= ///
+  /// ========= ERRORS ======== ///
+  /// ========================= ///
+
+  error NotClaimManager();
+  error NotPositionOwner();
+  error NotPolicyOwner();
+  error PolicyExpired();
+  error ProtocolIsInactive();
+  error SamePoolIds();
+  error IncompatibleProtocol(uint256, uint256);
+  error OutOfRange();
+  error WithdrawableAmountIsZero();
+  error UserHasNoPositions();
+  error WithdrawCommitDelayNotReached();
+  error AmountEqualToZero();
+  error AmountAtenTooHigh();
+  error MissingBaseRate();
+  error MustSortInAscendingOrder();
+  error FeeGreaterThan100Percent();
+
+  /// ========================= ///
   /// ========= EVENTS ======== ///
   /// ========================= ///
 
@@ -109,10 +130,9 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   /// ============================ ///
 
   modifier onlyClaimManager() {
-    require(
-      msg.sender == address(claimManagerInterface),
-      "A: only claim manager"
-    );
+    if (msg.sender != address(claimManagerInterface)) {
+      revert NotClaimManager();
+    }
     _;
   }
 
@@ -123,7 +143,9 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
    */
   modifier onlyPositionTokenOwner(uint256 positionId_) {
     address ownerOfToken = positionManagerInterface.ownerOf(positionId_);
-    require(msg.sender == ownerOfToken, "A: not position owner");
+    if (msg.sender != ownerOfToken) {
+      revert NotPositionOwner();
+    }
     _;
   }
 
@@ -134,7 +156,9 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
    */
   modifier onlyPolicyTokenOwner(uint256 policyId_) {
     address ownerOfToken = policyManagerInterface.ownerOf(policyId_);
-    require(msg.sender == ownerOfToken, "A: not policy owner");
+    if (msg.sender != ownerOfToken) {
+      revert NotPolicyOwner();
+    }
     _;
   }
 
@@ -142,24 +166,25 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   modifier validePoolIds(uint128[] calldata poolIds) {
     for (uint256 firstIndex = 0; firstIndex < poolIds.length; firstIndex++) {
       Protocol memory firstProtocol = protocolsMapping[poolIds[firstIndex]];
-      require(firstProtocol.active == true, "PA");
+
+      if (firstProtocol.active != true) revert ProtocolIsInactive();
 
       for (
         uint256 secondIndex = firstIndex + 1;
         secondIndex < poolIds.length;
         secondIndex++
       ) {
-        require(poolIds[firstIndex] != poolIds[secondIndex], "DTSP");
+        if (poolIds[firstIndex] == poolIds[secondIndex]) revert SamePoolIds();
 
-        require(
-          incompatibilityProtocols[poolIds[firstIndex]][poolIds[secondIndex]] ==
-            false &&
-            incompatibilityProtocols[poolIds[secondIndex]][
-              poolIds[firstIndex]
-            ] ==
-            false,
-          "PC"
-        );
+        bool isIncompatible = incompatibilityProtocols[poolIds[firstIndex]][
+          poolIds[secondIndex]
+        ];
+        bool isIncompatibleReverse = incompatibilityProtocols[
+          poolIds[secondIndex]
+        ][poolIds[firstIndex]];
+
+        if (isIncompatible == true || isIncompatibleReverse == true)
+          revert IncompatibleProtocol(firstIndex, secondIndex);
       }
     }
 
@@ -184,7 +209,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     view
     returns (ProtocolView memory)
   {
-    require(poolId < nextPoolId, "A: out of range");
+    if (nextPoolId <= poolId) revert OutOfRange();
 
     address poolAddress = protocolsMapping[poolId].deployed;
 
@@ -316,7 +341,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     );
 
     // Check the amount is above 0
-    require(amountRewards > 0, "A: withdrawable amount is 0");
+    if (amountRewards == 0) revert WithdrawableAmountIsZero();
 
     // Send the rewards to the user from the vault
     IVaultERC20(atensVault).sendReward(account_, amountRewards);
@@ -354,9 +379,9 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     }
   }
 
-  /// ================================== ///
-  /// ========== ATEN STAKING ========== ///
-  /// ================================== ///
+  /// ===================================== ///
+  /// ========== ATEN GP STAKING ========== ///
+  /// ===================================== ///
 
   /** @notice
    * Stake ATEN in the general staking pool to earn interests.
@@ -481,10 +506,8 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     external
     onlyPositionTokenOwner(tokenId)
   {
-    require(
-      positionManagerInterface.balanceOf(msg.sender) > 0,
-      "No position to commit withdraw"
-    );
+    uint256 userBalance = positionManagerInterface.balanceOf(msg.sender);
+    if (userBalance == 0) revert UserHasNoPositions();
 
     IPositionsManager.Position memory __position = positionManagerInterface
       .position(tokenId);
@@ -510,10 +533,8 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
       );
 
       // @bw should check commit delay elapsed in this contract to avoid multiple calls to the protocols
-      require(
-        __protocol.isWithdrawLiquidityDelayOk(tokenId),
-        "Withdraw reserve"
-      );
+      bool delayElapsed = __protocol.isWithdrawLiquidityDelayOk(tokenId);
+      if (delayElapsed != true) revert WithdrawCommitDelayNotReached();
 
       __protocol.removeCommittedWithdrawLiquidity(tokenId);
 
@@ -570,10 +591,8 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
       uint256 _atensLocked = atensLockedArray_[i];
       uint128 _poolId = poolIdArray_[i];
 
-      require(
-        _amountCovered > 0 && _premiumDeposit > 0,
-        "Must be greater than 0"
-      );
+      if (_amountCovered == 0 || _premiumDeposit == 0)
+        revert AmountEqualToZero();
 
       IERC20(stablecoin).safeTransferFrom(
         msg.sender,
@@ -605,11 +624,11 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
         uint256 pricePrecision = 10000;
         uint256 __price = 100; // = 100 / 10.000 = 0.01 USDT
         uint256 __decimalsRatio = 1e18 / 10**ERC20(stablecoin).decimals();
-        require(
-          (__price * _atensLocked) / pricePrecision <=
-            (_premiumDeposit * __decimalsRatio),
-          "A: amount ATEN too high"
-        );
+
+        if (
+          (_premiumDeposit * __decimalsRatio) <
+          (__price * _atensLocked) / pricePrecision
+        ) revert AmountAtenTooHigh();
 
         stakedAtensPoInterface.stake(msg.sender, policyId, _atensLocked);
       }
@@ -640,7 +659,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     // Require that the policy is still active
     // @bw maybe wrong fn for checking
     bool isStillActive = policyManagerInterface.policyActive(policyId_);
-    require(isStillActive, "A: policy is expired");
+    if (isStillActive != true) revert PolicyExpired();
 
     // If ATEN was staked along with the policy then process the staking withdrawal
     if (0 < userPolicy.atensLocked) {
@@ -707,7 +726,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     // @bw no need to be active, no fn for exit post expiration
     // withdrawAtensPolicyWithoutRewards should not remove rewards if expired post 1 year
     bool isStillActive = policyManagerInterface.policyActive(policyId_);
-    require(isStillActive, "A: policy is expired");
+    if (isStillActive != true) revert PolicyExpired();
 
     // Process withdrawal and rewards payment
     _processPolicyStakingPayout(msg.sender, policyId_);
@@ -818,22 +837,22 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     delete supplyFeeLevels;
 
     // Set all cover supply fee levels
+    uint256 previousAtenAmount = 0;
     for (uint256 index = 0; index < levels_.length; index++) {
       AtenFeeLevel calldata level = levels_[index];
 
       if (index == 0) {
         // Require that the first level indicates fees for atenAmount 0
-        require(level.atenAmount == 0, "A: Must specify base rate");
+        if (level.atenAmount != 0) revert MissingBaseRate();
       } else {
         // If it isn't the first item check that items are ascending
-        require(
-          levels_[index - 1].atenAmount < level.atenAmount,
-          "A: Sort rates in ascending order"
-        );
+        if (level.atenAmount < previousAtenAmount)
+          revert MustSortInAscendingOrder();
+        previousAtenAmount = level.atenAmount;
       }
 
       // Check that APR is not higher than 100%
-      require(level.feeRate < 10_000, "A: fee >= 100%");
+      if (10_000 < level.feeRate) revert FeeGreaterThan100Percent();
 
       // save to storage
       supplyFeeLevels.push(level);
