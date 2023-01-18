@@ -20,6 +20,16 @@ describe("Deploy protocol", () => {
 
   describe("Should prepare Protocol", () => {
     describe("Should deploy all Contracts and initialize Protocol", () => {
+      it("Should deploy ATEN contract", async () => {
+        await ProtocolHelper.deployAtenTokenContract(owner);
+
+        expect(
+          await hre_ethers.provider.getCode(
+            ProtocolHelper.getAtenTokenContract().address
+          )
+        ).to.not.equal("0x");
+      });
+
       it("Should deploy Athena contract", async () => {
         await ProtocolHelper.deployAthenaContract(owner);
 
