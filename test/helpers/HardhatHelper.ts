@@ -1,13 +1,13 @@
 import hre, { ethers as hre_ethers, network } from "hardhat";
 import { HardhatNetworkConfig } from "hardhat/types";
-import { ethers } from "ethers";
+import { ethers, BigNumber, BigNumberish } from "ethers";
 import weth_abi from "../../abis/weth.json";
 import lendingPoolAbi from "../../abis/lendingPool.json";
-import { CONTRACT } from "./ProtocolHelper";
+import { contract } from "./TypedContracts";
 
 const WETH = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2";
 const ATEN =
-  CONTRACT?.ATEN?.address || "0x86ceb9fa7f5ac373d275d328b7aca1c05cfb0283";
+  contract?.ATEN?.address || "0x86ceb9fa7f5ac373d275d328b7aca1c05cfb0283";
 
 // ==== Mainnet ==== //
 // const USDT_HOLDER = "0xF977814e90dA44bFA03b6295A0616a897441aceC"; // Mainnet
@@ -25,22 +25,19 @@ const AAVE_REGISTRY = "0x5e52dec931ffb32f609681b8438a51c675cc232d";
 const AAVE_LENDING_POOL = "0x4bd5643ac6f66a5237e18bfa7d47cf22f1c9f210";
 const ARBITRATOR_ADDRESS = "0x77AB8C2174A770BdbFF9a4eda19C8c4D609A8eA4"; // Self deployed
 
-const USDT_TOKEN_CONTRACT = new hre_ethers.Contract(USDT, weth_abi);
-const ATEN_TOKEN_CONTRACT = new hre_ethers.Contract(ATEN, weth_abi);
-
 const NULL_ADDRESS = "0x" + "0".repeat(40);
 
 let binanceSigner: ethers.Signer;
 let atenOwnerSigner: ethers.Signer;
 
-let currentTime = 1646220000;
+let currentTime = 1674000000;
 
 async function allSigners() {
   return await hre_ethers.getSigners();
 }
 
 async function reset() {
-  currentTime = 1646220000;
+  currentTime = 1674000000;
 
   const originalFork = (network.config as HardhatNetworkConfig).forking?.url;
   const forkTarget = originalFork || process.env.GOERLI_URL;
@@ -63,13 +60,13 @@ async function reset() {
   });
 
   binanceSigner = await impersonateAccount(USDT_HOLDER);
-  const getAllSigners: any = allSigners();
+  const getAllSigners: any = await allSigners();
   atenOwnerSigner = getAllSigners[0];
 }
 
 async function initSigners() {
   binanceSigner = await impersonateAccount(USDT_HOLDER);
-  const getAllSigners: any = allSigners();
+  const getAllSigners: any = await allSigners();
   atenOwnerSigner = getAllSigners[0];
 }
 
@@ -95,42 +92,54 @@ function getCurrentTime() {
 }
 
 async function USDT_balanceOf(address: string) {
-  return await USDT_TOKEN_CONTRACT.connect(binanceSigner).balanceOf(address);
+  return await contract.USDT.connect(binanceSigner).balanceOf(address);
 }
 
-async function USDT_transfer(address: string, amount: ethers.BigNumber) {
-  await USDT_TOKEN_CONTRACT.connect(binanceSigner).transfer(address, amount);
+async function USDT_transfer(address: string, amount: BigNumberish) {
+  return (
+    await contract.USDT.connect(binanceSigner).transfer(address, amount)
+  ).wait();
 }
 
 async function USDT_approve(
-  sender: ethers.Signer,
-  recipient: string,
-  amount: ethers.BigNumber
+  owner: ethers.Signer,
+  spender: string,
+  amount: BigNumberish
 ) {
-  return await USDT_TOKEN_CONTRACT.connect(sender).approve(recipient, amount);
+  return (await contract.USDT.connect(owner).approve(spender, amount)).wait();
 }
 
-async function USDT_maxApprove(sender: ethers.Signer, recipient: string) {
-  return await USDT_TOKEN_CONTRACT.connect(sender).approve(
-    recipient,
-    ethers.BigNumber.from(2).pow(256).sub(1)
-  );
+async function USDT_maxApprove(owner: ethers.Signer, spender: string) {
+  return (
+    await contract.USDT.connect(owner).approve(
+      spender,
+      ethers.BigNumber.from(2).pow(256).sub(1)
+    )
+  ).wait();
 }
 
 async function ATEN_balanceOf(address: string) {
-  return await ATEN_TOKEN_CONTRACT.connect(atenOwnerSigner).balanceOf(address);
+  return await contract.ATEN.connect(atenOwnerSigner).balanceOf(address);
 }
 
-async function ATEN_transfer(address: string, amount: ethers.BigNumber) {
-  await ATEN_TOKEN_CONTRACT.connect(atenOwnerSigner).transfer(address, amount);
+async function ATEN_transfer(address: string, amount: BigNumberish) {
+  // Add 20% to cover transfer fees
+  const amountForFees = BigNumber.from(amount).mul(120).div(100);
+
+  (
+    await contract.ATEN.connect(atenOwnerSigner).transfer(
+      address,
+      amountForFees
+    )
+  ).wait();
 }
 
 async function ATEN_approve(
-  to: ethers.Signer,
-  from: string,
-  amount: ethers.BigNumber
+  owner: ethers.Signer,
+  spender: string,
+  amount: BigNumberish
 ) {
-  return await ATEN_TOKEN_CONTRACT.connect(to).approve(from, amount);
+  return (await contract.ATEN.connect(owner).approve(spender, amount)).wait();
 }
 
 async function getATokenBalance(

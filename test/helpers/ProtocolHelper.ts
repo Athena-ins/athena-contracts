@@ -1,34 +1,36 @@
-import { BigNumberish, ethers } from "ethers";
+import { BigNumberish, BigNumber, ethers } from "ethers";
 import { ethers as hre_ethers } from "hardhat";
-import HardhatHelper from "./HardhatHelper";
-import protocolPoolAbi from "../../artifacts/contracts/ProtocolPool.sol/ProtocolPool.json";
 
-export const CONTRACT: { [key: string]: ethers.Contract } = {};
+import HardhatHelper from "./HardhatHelper";
+import { contract } from "./TypedContracts";
+
+import { abi as abiProtocolPool } from "../../artifacts/contracts/ProtocolPool.sol/ProtocolPool.json";
+import { ProtocolPool as typeProtocolPool } from "../../typechain/ProtocolPool";
 
 async function deployAtenTokenContract(owner: ethers.Signer) {
-  CONTRACT.ATEN = await (await hre_ethers.getContractFactory("ATEN"))
+  contract.ATEN = await (await hre_ethers.getContractFactory("ATEN"))
     .connect(owner)
     .deploy();
 
-  await CONTRACT.ATEN.deployed();
+  await contract.ATEN.deployed();
 }
 
 function getAtenTokenContract() {
-  return CONTRACT.ATEN;
+  return contract.ATEN;
 }
 
 async function deployArbitratorContract(owner: ethers.Signer) {
-  CONTRACT.ARBITRATOR = await (
+  contract.ARBITRATOR = await (
     await hre_ethers.getContractFactory("CentralizedArbitrator")
   )
     .connect(owner)
     .deploy(ethers.utils.parseEther("0.01")); // Arbitration fee
 
-  await CONTRACT.ARBITRATOR.deployed();
+  await contract.ARBITRATOR.deployed();
 }
 
 function getArbitratorContract() {
-  return CONTRACT.ARBITRATOR;
+  return contract.ARBITRATOR;
 }
 
 async function deployAthenaContract(
@@ -36,84 +38,84 @@ async function deployAthenaContract(
   usdt?: string,
   aave_registry?: string
 ) {
-  const useAtenAddress = CONTRACT.ATEN?.address || HardhatHelper.ATEN;
+  const useAtenAddress = contract.ATEN?.address || HardhatHelper.ATEN;
   const useUsdtAddress = usdt || HardhatHelper.USDT;
   const useAaveRegistryAddress = aave_registry || HardhatHelper.AAVE_REGISTRY;
 
-  CONTRACT.ATHENA = await (await hre_ethers.getContractFactory("Athena"))
+  contract.ATHENA = await (await hre_ethers.getContractFactory("Athena"))
     .connect(owner)
     .deploy(useUsdtAddress, useAtenAddress, useAaveRegistryAddress);
 
-  await CONTRACT.ATHENA.deployed();
+  await contract.ATHENA.deployed();
 }
 
 function getAthenaContract() {
-  return CONTRACT.ATHENA;
+  return contract.ATHENA;
 }
 
 async function deployPositionManagerContract(owner: ethers.Signer) {
-  CONTRACT.POSITIONS_MANAGER = await (
+  contract.POSITIONS_MANAGER = await (
     await hre_ethers.getContractFactory("PositionsManager")
   )
     .connect(owner)
-    .deploy(CONTRACT.ATHENA.address);
+    .deploy(contract.ATHENA.address);
 
-  await CONTRACT.POSITIONS_MANAGER.deployed();
+  await contract.POSITIONS_MANAGER.deployed();
 }
 
 function getPositionManagerContract() {
-  return CONTRACT.POSITIONS_MANAGER;
+  return contract.POSITIONS_MANAGER;
 }
 
 async function deployStakedAtenContract(owner: ethers.Signer) {
-  const useAtenAddress = CONTRACT.ATEN?.address || HardhatHelper.ATEN;
-  CONTRACT.STAKING_GP = await (
+  const useAtenAddress = contract.ATEN?.address || HardhatHelper.ATEN;
+  contract.STAKING_GP = await (
     await hre_ethers.getContractFactory("StakingGeneralPool")
   )
     .connect(owner)
     .deploy(
       useAtenAddress,
-      CONTRACT.ATHENA.address,
-      CONTRACT.POSITIONS_MANAGER.address
+      contract.ATHENA.address,
+      contract.POSITIONS_MANAGER.address
     );
 
-  await CONTRACT.STAKING_GP.deployed();
+  await contract.STAKING_GP.deployed();
 }
 
 function getStakedAtenContract() {
-  return CONTRACT.STAKING_GP;
+  return contract.STAKING_GP;
 }
 
 async function deployPolicyManagerContract(owner: ethers.Signer) {
-  CONTRACT.POLICY_MANAGER = await (
+  contract.POLICY_MANAGER = await (
     await hre_ethers.getContractFactory("PolicyManager")
   )
     .connect(owner)
-    .deploy(CONTRACT.ATHENA.address);
+    .deploy(contract.ATHENA.address);
 
-  await CONTRACT.POLICY_MANAGER.deployed();
+  await contract.POLICY_MANAGER.deployed();
 }
 
 function getPolicyManagerContract() {
-  return CONTRACT.POLICY_MANAGER;
+  return contract.POLICY_MANAGER;
 }
 
 async function deployProtocolFactoryContract(owner: ethers.Signer) {
-  CONTRACT.FACTORY_PROTOCOL = await (
+  contract.FACTORY_PROTOCOL = await (
     await hre_ethers.getContractFactory("ProtocolFactory")
   )
     .connect(owner)
     .deploy(
-      CONTRACT.ATHENA.address,
-      CONTRACT.POLICY_MANAGER.address,
+      contract.ATHENA.address,
+      contract.POLICY_MANAGER.address,
       14 * 24 * 60 * 60
     );
 
-  await CONTRACT.FACTORY_PROTOCOL.deployed();
+  await contract.FACTORY_PROTOCOL.deployed();
 }
 
 function getProtocolFactoryContract() {
-  return CONTRACT.FACTORY_PROTOCOL;
+  return contract.FACTORY_PROTOCOL;
 }
 
 async function deployClaimManagerContract(
@@ -122,82 +124,82 @@ async function deployClaimManagerContract(
 ) {
   const useArbitratorAddress =
     arbitrator ||
-    CONTRACT.ARBITRATOR?.address ||
+    contract.ARBITRATOR?.address ||
     HardhatHelper.ARBITRATOR_ADDRESS;
 
-  CONTRACT.CLAIM_MANAGER = await (
+  contract.CLAIM_MANAGER = await (
     await hre_ethers.getContractFactory("ClaimManager")
   )
     .connect(owner)
     .deploy(
-      CONTRACT.ATHENA.address,
-      CONTRACT.POLICY_MANAGER.address,
+      contract.ATHENA.address,
+      contract.POLICY_MANAGER.address,
       useArbitratorAddress
     );
 
-  await CONTRACT.CLAIM_MANAGER.deployed();
+  await contract.CLAIM_MANAGER.deployed();
 }
 
 function getClaimManagerContract() {
-  return CONTRACT.CLAIM_MANAGER;
+  return contract.CLAIM_MANAGER;
 }
 
 async function deployStakedAtensPolicyContract(owner: ethers.Signer) {
-  const useAtenAddress = CONTRACT.ATEN?.address || HardhatHelper.ATEN;
-  CONTRACT.STAKING_POLICY = await (
+  const useAtenAddress = contract.ATEN?.address || HardhatHelper.ATEN;
+  contract.STAKING_POLICY = await (
     await hre_ethers.getContractFactory("StakingPolicy")
   )
     .connect(owner)
-    .deploy(useAtenAddress, CONTRACT.ATHENA.address);
+    .deploy(useAtenAddress, contract.ATHENA.address);
 
-  await CONTRACT.STAKING_POLICY.deployed();
+  await contract.STAKING_POLICY.deployed();
 }
 
 function getStakedAtensPolicyContract() {
-  return CONTRACT.STAKING_POLICY;
+  return contract.STAKING_POLICY;
 }
 
 async function deployVaultAtenContract(owner: ethers.Signer) {
-  const useAtenAddress = CONTRACT.ATEN?.address || HardhatHelper.ATEN;
-  CONTRACT.TOKEN_VAULT = await (
+  const useAtenAddress = contract.ATEN?.address || HardhatHelper.ATEN;
+  contract.TOKEN_VAULT = await (
     await hre_ethers.getContractFactory("TokenVault")
   )
     .connect(owner)
-    .deploy(useAtenAddress, CONTRACT.ATHENA.address);
-  await CONTRACT.TOKEN_VAULT.deployed();
+    .deploy(useAtenAddress, contract.ATHENA.address);
+  await contract.TOKEN_VAULT.deployed();
 }
 
 function getVaultAtenContract() {
-  return CONTRACT.TOKEN_VAULT;
+  return contract.TOKEN_VAULT;
 }
 
 async function initializeProtocol() {
-  return await CONTRACT.ATHENA.initialize(
-    CONTRACT.POSITIONS_MANAGER.address,
-    CONTRACT.POLICY_MANAGER.address,
-    CONTRACT.CLAIM_MANAGER.address,
-    CONTRACT.STAKING_GP.address,
-    CONTRACT.STAKING_POLICY.address,
-    CONTRACT.FACTORY_PROTOCOL.address,
-    CONTRACT.TOKEN_VAULT.address
+  return await contract.ATHENA.initialize(
+    contract.POSITIONS_MANAGER.address,
+    contract.POLICY_MANAGER.address,
+    contract.CLAIM_MANAGER.address,
+    contract.STAKING_GP.address,
+    contract.STAKING_POLICY.address,
+    contract.FACTORY_PROTOCOL.address,
+    contract.TOKEN_VAULT.address
   );
 }
 
 async function setFeeLevelsWithAten(owner: ethers.Signer) {
-  return await CONTRACT.ATHENA.connect(owner).setFeeLevelsWithAten([
-    [0, 250],
-    [1_000, 200],
-    [100_000, 150],
-    [1_000_000, 50],
+  return await contract.ATHENA.connect(owner).setFeeLevelsWithAten([
+    { atenAmount: 0, feeRate: 250 },
+    { atenAmount: 1_000, feeRate: 200 },
+    { atenAmount: 100_000, feeRate: 150 },
+    { atenAmount: 1_000_000, feeRate: 50 },
   ]);
 }
 
 async function setStakingRewardRates(owner: ethers.Signer) {
-  return await CONTRACT.ATHENA.connect(owner).setStakingRewardRates([
-    [0, 1_000],
-    [10_000, 1_200],
-    [100_000, 1_600],
-    [1_000_000, 2_000],
+  return await contract.ATHENA.connect(owner).setStakingRewardRates([
+    { amountSupplied: 0, aprStaking: 1_000 },
+    { amountSupplied: 10_000, aprStaking: 1_200 },
+    { amountSupplied: 100_000, aprStaking: 1_600 },
+    { amountSupplied: 1_000_000, aprStaking: 2_000 },
   ]);
 }
 
@@ -205,17 +207,17 @@ async function depositRewardsToVault(
   owner: ethers.Signer,
   amountToTransfer: BigNumberish
 ) {
-  await CONTRACT.ATEN.connect(owner).approve(
-    CONTRACT.ATHENA.address,
+  await contract.ATEN.connect(owner).approve(
+    contract.ATHENA.address,
     amountToTransfer
   );
 
-  await CONTRACT.ATHENA.connect(owner).depositRewardForPolicyStaking(
+  await contract.ATHENA.connect(owner).depositRewardForPolicyStaking(
     amountToTransfer
   );
 
-  await CONTRACT.ATEN.connect(owner).transfer(
-    CONTRACT.TOKEN_VAULT.address,
+  await contract.ATEN.connect(owner).transfer(
+    contract.TOKEN_VAULT.address,
     amountToTransfer
   );
 }
@@ -243,7 +245,7 @@ async function deployAllContractsAndInitializeProtocol(owner: ethers.Signer) {
 }
 
 async function addNewProtocolPool(protocolPoolName: string) {
-  return await CONTRACT.ATHENA.addNewProtocol(
+  return await contract.ATHENA.addNewProtocol(
     protocolPoolName,
     30,
     [],
@@ -252,13 +254,17 @@ async function addNewProtocolPool(protocolPoolName: string) {
 }
 
 async function getProtocolPoolDataById(protocolPoolId: number) {
-  return await CONTRACT.ATHENA.protocolsMapping(protocolPoolId);
+  return await contract.ATHENA.protocolsMapping(protocolPoolId);
 }
 
 async function getProtocolPoolContract(user: ethers.Signer, poolId: number) {
-  const protocol = await CONTRACT.ATHENA.connect(user).protocolsMapping(poolId);
+  const protocol = await contract.ATHENA.connect(user).protocolsMapping(poolId);
 
-  return new ethers.Contract(protocol.deployed, protocolPoolAbi.abi, user);
+  return new ethers.Contract(
+    protocol.deployed,
+    abiProtocolPool,
+    user
+  ) as typeProtocolPool;
 }
 
 async function deposit(
@@ -268,33 +274,24 @@ async function deposit(
   protocols: number[],
   timeLapse: number
 ) {
-  await HardhatHelper.USDT_transfer(
-    await user.getAddress(),
-    hre_ethers.utils.parseUnits(USDT_amount, 6)
-  );
+  const userAddress = await user.getAddress();
 
-  await HardhatHelper.USDT_approve(
-    user,
-    CONTRACT.ATHENA.address,
-    hre_ethers.utils.parseUnits(USDT_amount, 6)
-  );
+  await HardhatHelper.USDT_transfer(userAddress, USDT_amount);
+  await HardhatHelper.USDT_approve(user, contract.ATHENA.address, USDT_amount);
 
-  await HardhatHelper.ATEN_transfer(
-    await user.getAddress(),
-    hre_ethers.utils.parseEther(ATEN_amount)
-  );
-
+  if (BigNumber.from(ATEN_amount).gt(0)) {
+    await HardhatHelper.ATEN_transfer(userAddress, ATEN_amount);
   await HardhatHelper.ATEN_approve(
     user,
-    CONTRACT.ATHENA.address,
-    hre_ethers.utils.parseUnits(ATEN_amount, 18)
+      contract.ATHENA.address,
+      ATEN_amount
   );
+  }
 
   await HardhatHelper.setNextBlockTimestamp(timeLapse);
 
-  await (await CONTRACT.ATHENA.connect(user).stakeAtens(ATEN_amount)).wait();
-
-  await CONTRACT.ATHENA.connect(user).deposit(USDT_amount, protocols);
+  await (await contract.ATHENA.connect(user).stakeAtens(ATEN_amount)).wait();
+  await contract.ATHENA.connect(user).deposit(USDT_amount, protocols);
 }
 
 async function buyPolicy(
@@ -305,14 +302,23 @@ async function buyPolicy(
   poolId: number,
   timeLapse: number
 ) {
-  await HardhatHelper.USDT_transfer(
-    await user.getAddress(),
-    hre_ethers.utils.parseUnits(premium, 6)
+  const userAddress = await user.getAddress();
+
+  await HardhatHelper.USDT_transfer(userAddress, premium);
+  await HardhatHelper.USDT_approve(user, contract.ATHENA.address, premium);
+
+  if (BigNumber.from(atensLocked).gt(0)) {
+    await HardhatHelper.ATEN_transfer(userAddress, atensLocked);
+    await HardhatHelper.ATEN_approve(
+      user,
+      contract.ATHENA.address,
+      atensLocked
   );
+  }
 
   await HardhatHelper.setNextBlockTimestamp(timeLapse);
 
-  await CONTRACT.ATHENA.connect(user).buyPolicies(
+  await contract.ATHENA.connect(user).buyPolicies(
     [capital],
     [premium],
     [atensLocked],
@@ -328,23 +334,37 @@ async function buyPolicies(
   poolId: number[],
   timeLapse: number
 ) {
-  const premiumTotal = premium
-    .map((el) => parseFloat(el))
-    .reduce((acc, el) => acc + el, 0)
-    .toString();
+  const userAddress = await user.getAddress();
 
-  await HardhatHelper.USDT_transfer(
-    await user.getAddress(),
-    hre_ethers.utils.parseUnits(premiumTotal, 6)
+  const premiumTotal = premium.reduce(
+    (acc, el) => acc.add(BigNumber.from(el)),
+    BigNumber.from(0)
   );
+
+  const atensLockedTotal = atensLocked.reduce(
+    (acc, el) => acc.add(BigNumber.from(el)),
+    BigNumber.from(0)
+  );
+
+  await HardhatHelper.USDT_transfer(userAddress, premiumTotal);
+  await HardhatHelper.USDT_approve(user, contract.ATHENA.address, premiumTotal);
+
+  if (atensLockedTotal.gt(0)) {
+    await HardhatHelper.ATEN_transfer(userAddress, atensLockedTotal);
+    await HardhatHelper.ATEN_approve(
+      user,
+      contract.ATHENA.address,
+      atensLockedTotal
+  );
+  }
 
   await HardhatHelper.setNextBlockTimestamp(timeLapse);
 
-  await CONTRACT.ATHENA.connect(user).buyPolicies(
-    [capital],
-    [premium],
-    [atensLocked],
-    [poolId]
+  await contract.ATHENA.connect(user).buyPolicies(
+    capital,
+    premium,
+    atensLocked,
+    poolId
   );
 }
 
@@ -356,14 +376,14 @@ async function createClaim(
 ) {
   // Get the cost of arbitration + challenge collateral
   const [arbitrationCost, collateralAmount] = await Promise.all([
-    CONTRACT.CLAIM_MANAGER.connect(policyHolder).arbitrationCost(),
-    CONTRACT.CLAIM_MANAGER.connect(policyHolder).collateralAmount(),
+    contract.CLAIM_MANAGER.connect(policyHolder).arbitrationCost(),
+    contract.CLAIM_MANAGER.connect(policyHolder).collateralAmount(),
   ]);
 
   const valueForTx = valueOverride || arbitrationCost.add(collateralAmount);
 
   // Create the claim
-  await CONTRACT.CLAIM_MANAGER.connect(policyHolder).inititateClaim(
+  await contract.CLAIM_MANAGER.connect(policyHolder).inititateClaim(
     policyId,
     amountClaimed,
     "bafybeiafebm3zdtzmn5mcquacgd47enhsjnebvegnzfunaaaaaaaaaaaaa",
@@ -376,13 +396,13 @@ async function resolveClaimWithoutDispute(
   policyId: number,
   timeLapse: number
 ) {
-  const claimId = await CONTRACT.CLAIM_MANAGER.connect(
+  const claimId = await contract.CLAIM_MANAGER.connect(
     policyHolder
   ).policyIdToLatestClaimId(policyId);
 
   await HardhatHelper.setNextBlockTimestamp(timeLapse);
 
-  await CONTRACT.CLAIM_MANAGER.connect(
+  await contract.CLAIM_MANAGER.connect(
     policyHolder
   ).withdrawCompensationWithoutDispute(claimId);
 }
@@ -396,10 +416,11 @@ async function takeInterest(
 ) {
   await HardhatHelper.setNextBlockTimestamp(timeLapse);
 
-  const tx = await CONTRACT.ATHENA.connect(user).takeInterest(tokenId, poolId);
+  const tx = await contract.ATHENA.connect(user).takeInterest(tokenId, poolId);
   const events = (await tx.wait()).events;
-  const event = events[eventIndex];
+  const event = events?.[eventIndex];
 
+  if (!event) throw new Error("Event not found");
   return (await getProtocolPoolContract(user, 0)).interface.decodeEventLog(
     event.topics[0],
     event.data
