@@ -201,13 +201,6 @@ contract StakingPolicy is ERC20WithSnapshot {
     // @bw is this really useful ?
     _beforeTokenTransfer(address(0), account_, amount_);
 
-    // Get tokens from user to staking pool
-    IERC20(underlyingAssetAddress).safeTransferFrom(
-      account_,
-      address(this),
-      amount_
-    );
-
     // Calc the max rewards and check there is enough rewards left
     uint256 maxReward = (amount_ * rewardsAnnualRate) / 10_000;
     require(maxReward <= rewardsRemaining, "SP: not enough rewards left");

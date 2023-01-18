@@ -630,6 +630,13 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
           (__price * _atensLocked) / pricePrecision
         ) revert AmountAtenTooHigh();
 
+        // Get tokens from user to staking pool
+        // @bw send in one go after checks are passed instead of multiple transfers
+        IERC20(atenToken).safeTransferFrom(
+          msg.sender,
+          address(stakedAtensPoInterface),
+          _atensLocked
+        );
         stakedAtensPoInterface.stake(msg.sender, policyId, _atensLocked);
       }
     }
