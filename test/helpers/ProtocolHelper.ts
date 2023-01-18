@@ -281,11 +281,11 @@ async function deposit(
 
   if (BigNumber.from(ATEN_amount).gt(0)) {
     await HardhatHelper.ATEN_transfer(userAddress, ATEN_amount);
-  await HardhatHelper.ATEN_approve(
-    user,
+    await HardhatHelper.ATEN_approve(
+      user,
       contract.ATHENA.address,
       ATEN_amount
-  );
+    );
   }
 
   await HardhatHelper.setNextBlockTimestamp(timeLapse);
@@ -313,7 +313,7 @@ async function buyPolicy(
       user,
       contract.ATHENA.address,
       atensLocked
-  );
+    );
   }
 
   await HardhatHelper.setNextBlockTimestamp(timeLapse);
@@ -355,7 +355,7 @@ async function buyPolicies(
       user,
       contract.ATHENA.address,
       atensLockedTotal
-  );
+    );
   }
 
   await HardhatHelper.setNextBlockTimestamp(timeLapse);
@@ -427,7 +427,16 @@ async function takeInterest(
   );
 }
 
+const atenAmountPostHelperTransfer = (amount: BigNumberish) => {
+  if (BigNumber.from(amount).eq(0)) return BigNumber.from(0);
+  return BigNumber.from(amount)
+    .mul(120)
+    .mul(99975)
+    .div(100 * 100000);
+};
+
 export default {
+  atenAmountPostHelperTransfer,
   deployAtenTokenContract,
   getAtenTokenContract,
   deployArbitratorContract,
