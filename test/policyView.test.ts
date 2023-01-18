@@ -184,7 +184,9 @@ describe("View policy", () => {
 
       const result = await tx.wait();
       // console.log(result);
-      const event = result.events[2];
+      const event = result?.events?.[2];
+
+      if (!event) throw new Error("Event not found");
 
       const protocolContract = await ProtocolHelper.getProtocolPoolContract(
         policyTaker1,
@@ -233,7 +235,9 @@ describe("View policy", () => {
         .withdrawPolicy(1);
 
       const result = await tx.wait();
-      const event = result.events[2];
+      const event = result?.events?.[2];
+
+      if (!event) throw new Error("Event not found");
 
       const protocolContract = await ProtocolHelper.getProtocolPoolContract(
         policyTaker2,

@@ -322,10 +322,10 @@ describe("Deploy protocol", () => {
 
         await expect(
           ATHENA_CONTRACT.connect(owner).setStakingRewardRates([
-            [0, 1_000],
-            [100_000, 1_600],
-            [10_000, 1_200],
-            [1_000_000, 2_000],
+            { amountSupplied: 0, aprStaking: 1_000 },
+            { amountSupplied: 100_000, aprStaking: 1_600 },
+            { amountSupplied: 10_000, aprStaking: 1_200 },
+            { amountSupplied: 1_000_000, aprStaking: 2_000 },
           ])
         ).to.be.rejectedWith("SGP: sort in ascending order");
 

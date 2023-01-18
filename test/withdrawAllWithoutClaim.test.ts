@@ -46,7 +46,7 @@ describe("Liquidity provider withdraw", () => {
       const provider1tokenIds =
         await ProtocolHelper.getPositionManagerContract()
           .connect(liquidityProvider1)
-          .allPositionTokensOfOwner(liquidityProvider1.getAddress());
+          .allPositionTokensOfOwner(await liquidityProvider1.getAddress());
       provider1tokenId = provider1tokenIds[0];
 
       const USDT_amount2 = "547500";
@@ -62,7 +62,7 @@ describe("Liquidity provider withdraw", () => {
       const provider2tokenIds =
         await ProtocolHelper.getPositionManagerContract()
           .connect(liquidityProvider2)
-          .allPositionTokensOfOwner(liquidityProvider2.getAddress());
+          .allPositionTokensOfOwner(await liquidityProvider2.getAddress());
       provider2tokenId = provider2tokenIds[0];
 
       await HardhatHelper.USDT_maxApprove(
@@ -121,17 +121,18 @@ describe("Liquidity provider withdraw", () => {
         0
       );
 
-      const p0_event =
-        result.events.find(
-          (el: any) =>
-            el.topics[0] ===
-              "0x620d50d2ff399522b99eeffadbd9b188529ed4c6ce9a4ecf9e85fc3c00edc79f" &&
-            el.data.includes(`${"25".padStart(64, "0")}${"".padStart(62, "0")}`)
-        ) || {};
+      const p0_event = result?.events?.find(
+        (el: any) =>
+          el.topics[0] ===
+            "0x620d50d2ff399522b99eeffadbd9b188529ed4c6ce9a4ecf9e85fc3c00edc79f" &&
+          el.data.includes(`${"25".padStart(64, "0")}${"".padStart(62, "0")}`)
+      );
+
+      if (!p0_event) throw new Error("Event not found");
 
       const p0_decodedData = p0_contract.interface.decodeEventLog(
-        p0_event.topics[0],
-        p0_event.data
+        p0_event?.topics?.[0],
+        p0_event?.data
       );
 
       expect(p0_decodedData.tokenId).to.be.equal(provider1tokenId);
@@ -158,13 +159,14 @@ describe("Liquidity provider withdraw", () => {
         liquidityProvider1,
         2
       );
-      const p2_event =
-        result.events.find(
-          (el: any) =>
-            el.topics[0] ===
-              "0x620d50d2ff399522b99eeffadbd9b188529ed4c6ce9a4ecf9e85fc3c00edc79f" &&
-            el.data.includes(`${"43".padStart(64, "0")}${"".padStart(62, "0")}`)
-        ) || {};
+      const p2_event = result?.events?.find(
+        (el: any) =>
+          el.topics[0] ===
+            "0x620d50d2ff399522b99eeffadbd9b188529ed4c6ce9a4ecf9e85fc3c00edc79f" &&
+          el.data.includes(`${"43".padStart(64, "0")}${"".padStart(62, "0")}`)
+      );
+
+      if (!p2_event) throw new Error("Event not found");
 
       const p2_decodedData = p2_contract.interface.decodeEventLog(
         p2_event.topics[0],

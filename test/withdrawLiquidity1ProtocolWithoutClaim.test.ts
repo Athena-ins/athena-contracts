@@ -91,18 +91,19 @@ describe("Liquidity provider withdraw", () => {
 
       const commit_tx = await ProtocolHelper.getAthenaContract()
         .connect(liquidityProvider1)
-        .committingWithdrawInOneProtocol(0);
+        .committingWithdrawAll(0);
 
       await HardhatHelper.setNextBlockTimestamp(14 * 24 * 60 * 60);
 
       const withdraw_tx = await ProtocolHelper.getAthenaContract()
         .connect(liquidityProvider1)
-        .withdrawLiquidityInOneProtocol(0);
+        .withdrawAll(0);
 
       const result = await withdraw_tx.wait();
       // console.log(result);
 
-      const event = result.events[3];
+      const event = result?.events?.[3];
+      if (!event) throw new Error("Event not found");
 
       const protocolContract = await ProtocolHelper.getProtocolPoolContract(
         liquidityProvider1,
@@ -142,7 +143,7 @@ describe("Liquidity provider withdraw", () => {
       );
 
       const lpInfoBefore = await protocolContract.LPsInfo(
-        liquidityProvider2.getAddress()
+        await liquidityProvider2.getAddress()
       );
 
       const days = 10;
@@ -162,7 +163,7 @@ describe("Liquidity provider withdraw", () => {
       expect(decodedData.fee).to.be.equal(45);
 
       const lpInfoAfter = await protocolContract.LPsInfo(
-        liquidityProvider2.getAddress()
+        await liquidityProvider2.getAddress()
       );
 
       expect(

@@ -51,7 +51,7 @@ describe("Liquidity provider takeInterest", () => {
 
     const provider1tokenIds = await ProtocolHelper.getPositionManagerContract()
       .connect(liquidityProvider1)
-      .allPositionTokensOfOwner(liquidityProvider1.getAddress());
+      .allPositionTokensOfOwner(await liquidityProvider1.getAddress());
     provider1tokenId = provider1tokenIds[0];
 
     const USDT_amount2 = "365000";
@@ -66,7 +66,7 @@ describe("Liquidity provider takeInterest", () => {
 
     const provider2tokenIds = await ProtocolHelper.getPositionManagerContract()
       .connect(liquidityProvider2)
-      .allPositionTokensOfOwner(liquidityProvider2.getAddress());
+      .allPositionTokensOfOwner(await liquidityProvider2.getAddress());
     provider2tokenId = provider2tokenIds[0];
 
     // ================= Policy Buyers ================= //
@@ -389,7 +389,7 @@ describe("Liquidity provider takeInterest", () => {
     const lpInfoAfter = await protocolContract.LPsInfo(provider2tokenId);
 
     expect(decodedData.tokenId).to.be.equal(provider2tokenId);
-    expect(decodedData.userCapital.lt(365000)).to.be.equal(true);
+    expect(decodedData.userCapital.lt("365000000000")).to.be.equal(true);
     expect(decodedData.userCapital.eq(365000 - 500 - 1000 - 1000)).to.be.equal(
       true
     );

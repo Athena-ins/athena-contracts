@@ -10,7 +10,7 @@ async function initProtocol(poolNumber: number) {
 
   await ProtocolHelper.deployAllContractsAndInitializeProtocol(owner);
   console.log("Athena:", ProtocolHelper.getAthenaContract().address);
-  console.log("Athena View:", ProtocolHelper.getAthenaViewContract().address);
+  // console.log("Athena View:", ProtocolHelper.getAthenaViewContract().address);
   console.log(
     "Position Manager",
     ProtocolHelper.getPositionManagerContract().address
@@ -68,7 +68,7 @@ async function deposit() {
 
   await ProtocolHelper.getAthenaContract()
     .connect(liquidityProvider1)
-    .deposit(ethers.utils.parseUnits(USDT_amount, 6), ATEN_amount, [0, 2, 5]);
+    .deposit(ethers.utils.parseUnits(USDT_amount, 6), [0, 2, 5]);
 
   console.log("Fin deposit");
 }

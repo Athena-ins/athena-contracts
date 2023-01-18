@@ -63,7 +63,7 @@ describe("Buy policies", () => {
         ProtocolHelper.getAthenaContract().address
       );
 
-      expect(USDT_Approved).to.haveOwnProperty("hash");
+      expect(USDT_Approved).to.haveOwnProperty("transactionHash");
 
       await HardhatHelper.setNextBlockTimestamp(20 * 24 * 60 * 60);
 
@@ -221,7 +221,7 @@ describe("Buy policies", () => {
         ProtocolHelper.getAthenaContract().address
       );
 
-      expect(USDT_Approved).to.haveOwnProperty("hash");
+      expect(USDT_Approved).to.haveOwnProperty("transactionHash");
 
       await HardhatHelper.setNextBlockTimestamp(20 * 24 * 60 * 60);
 

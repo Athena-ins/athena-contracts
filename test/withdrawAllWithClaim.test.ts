@@ -53,7 +53,7 @@ describe("Liquidity provider withdraw", () => {
       const provider1tokenIds =
         await ProtocolHelper.getPositionManagerContract()
           .connect(liquidityProvider1)
-          .allPositionTokensOfOwner(liquidityProvider1.getAddress());
+          .allPositionTokensOfOwner(await liquidityProvider1.getAddress());
       provider1tokenId = provider1tokenIds[0];
 
       const USDT_amount2 = "547500";
@@ -69,7 +69,7 @@ describe("Liquidity provider withdraw", () => {
       const provider2tokenIds =
         await ProtocolHelper.getPositionManagerContract()
           .connect(liquidityProvider2)
-          .allPositionTokensOfOwner(liquidityProvider2.getAddress());
+          .allPositionTokensOfOwner(await liquidityProvider2.getAddress());
       provider2tokenId = provider2tokenIds[0];
 
       // ================= Policy Buyers ================= //
@@ -142,12 +142,15 @@ describe("Liquidity provider withdraw", () => {
 
       const result = await withdraw_tx.wait();
 
-      const p0_event =
-        result.events.find(
-          (el: any) =>
-            el.topics[0] ===
-            "0x620d50d2ff399522b99eeffadbd9b188529ed4c6ce9a4ecf9e85fc3c00edc79f"
-        ) || {};
+      if (!result.events) throw new Error("No events emitted");
+
+      const p0_event = result.events.find(
+        (el: any) =>
+          el.topics[0] ===
+          "0x620d50d2ff399522b99eeffadbd9b188529ed4c6ce9a4ecf9e85fc3c00edc79f"
+      );
+
+      if (!p0_event) throw new Error("No events emitted");
 
       const p0_decodedData = protocolPool0.interface.decodeEventLog(
         p0_event.topics[0],
@@ -175,12 +178,13 @@ describe("Liquidity provider withdraw", () => {
 
       //protocol2
 
-      const p2_event =
-        result.events.find(
-          (el: any) =>
-            el.topics[0] ===
-            "0x620d50d2ff399522b99eeffadbd9b188529ed4c6ce9a4ecf9e85fc3c00edc79f"
-        ) || {};
+      const p2_event: any = result.events.find(
+        (el: any) =>
+          el.topics[0] ===
+          "0x620d50d2ff399522b99eeffadbd9b188529ed4c6ce9a4ecf9e85fc3c00edc79f"
+      );
+
+      if (!p2_event) throw new Error("No events emitted");
 
       const p2_decodedData = protocolPool2.interface.decodeEventLog(
         p2_event.topics[0],

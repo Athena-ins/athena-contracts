@@ -67,14 +67,17 @@ describe("Liquidity provider deposit", () => {
 
         await HardhatHelper.ATEN_transfer(
           await liquidityProvider1.getAddress(),
-          hre_ethers.utils.parseEther(ATEN_amount)
+          ATEN_amount
         );
+
+        const amountExpected =
+          ProtocolHelper.atenAmountPostHelperTransfer(ATEN_amount);
 
         expect(
           await HardhatHelper.ATEN_balanceOf(
             await liquidityProvider1.getAddress()
           )
-        ).to.be.equal(hre_ethers.utils.parseEther(ATEN_amount));
+        ).to.be.equal(amountExpected);
       });
 
       it("Should success deposit funds into the protocols 0 and 2", async () => {
@@ -84,7 +87,7 @@ describe("Liquidity provider deposit", () => {
           hre_ethers.utils.parseUnits(USDT_AMOUNT, 6)
         );
 
-        expect(USDT_Approved).to.haveOwnProperty("hash");
+        expect(USDT_Approved).to.haveOwnProperty("transactionHash");
 
         const ATEN_Approved = await HardhatHelper.ATEN_approve(
           liquidityProvider1,
@@ -92,7 +95,7 @@ describe("Liquidity provider deposit", () => {
           hre_ethers.utils.parseUnits(ATEN_AMOUNT, 18)
         );
 
-        expect(ATEN_Approved).to.haveOwnProperty("hash");
+        expect(ATEN_Approved).to.haveOwnProperty("transactionHash");
 
         await HardhatHelper.setNextBlockTimestamp(5 * 24 * 60 * 60);
 
@@ -103,7 +106,7 @@ describe("Liquidity provider deposit", () => {
         const provider1tokenIds =
           await ProtocolHelper.getPositionManagerContract()
             .connect(liquidityProvider1)
-            .allPositionTokensOfOwner(liquidityProvider1.getAddress());
+            .allPositionTokensOfOwner(await liquidityProvider1.getAddress());
         provider1tokenId = provider1tokenIds[0];
 
         expect(tx).to.haveOwnProperty("hash");
@@ -219,14 +222,17 @@ describe("Liquidity provider deposit", () => {
 
         await HardhatHelper.ATEN_transfer(
           await liquidityProvider2.getAddress(),
-          hre_ethers.utils.parseEther(ATEN_amount)
+          ATEN_amount
         );
+
+        const amountExpected =
+          ProtocolHelper.atenAmountPostHelperTransfer(ATEN_amount);
 
         expect(
           await HardhatHelper.ATEN_balanceOf(
             await liquidityProvider2.getAddress()
           )
-        ).to.be.equal(hre_ethers.utils.parseEther(ATEN_amount));
+        ).to.be.equal(amountExpected);
       });
 
       it("Should success deposit funds into protocol 0, 1 and 2", async () => {
@@ -236,7 +242,7 @@ describe("Liquidity provider deposit", () => {
           hre_ethers.utils.parseUnits(USDT_AMOUNT, 6)
         );
 
-        expect(USDT_Approved).to.haveOwnProperty("hash");
+        expect(USDT_Approved).to.haveOwnProperty("transactionHash");
 
         const ATEN_Approved = await await HardhatHelper.ATEN_approve(
           liquidityProvider2,
@@ -244,7 +250,7 @@ describe("Liquidity provider deposit", () => {
           hre_ethers.utils.parseUnits(ATEN_AMOUNT, 18)
         );
 
-        expect(ATEN_Approved).to.haveOwnProperty("hash");
+        expect(ATEN_Approved).to.haveOwnProperty("transactionHash");
 
         await HardhatHelper.setNextBlockTimestamp(10 * 24 * 60 * 60);
 
@@ -255,7 +261,7 @@ describe("Liquidity provider deposit", () => {
         const provider2tokenIds =
           await ProtocolHelper.getPositionManagerContract()
             .connect(liquidityProvider2)
-            .allPositionTokensOfOwner(liquidityProvider2.getAddress());
+            .allPositionTokensOfOwner(await liquidityProvider2.getAddress());
         provider2tokenId = provider2tokenIds[0];
 
         expect(tx).to.haveOwnProperty("hash");

@@ -49,7 +49,7 @@ describe("Liquidity provider rewards", () => {
 
     const provider1tokenIds = await ProtocolHelper.getPositionManagerContract()
       .connect(liquidityProvider1)
-      .allPositionTokensOfOwner(liquidityProvider1.getAddress());
+      .allPositionTokensOfOwner(await liquidityProvider1.getAddress());
     provider1tokenId = provider1tokenIds[0];
 
     const USDT_amount2 = "365000";
@@ -64,7 +64,7 @@ describe("Liquidity provider rewards", () => {
 
     const provider2tokenIds = await ProtocolHelper.getPositionManagerContract()
       .connect(liquidityProvider2)
-      .allPositionTokensOfOwner(liquidityProvider2.getAddress());
+      .allPositionTokensOfOwner(await liquidityProvider2.getAddress());
     provider2tokenId = provider2tokenIds[0];
 
     // ================= Policy Buyers ================= //

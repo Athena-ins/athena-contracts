@@ -134,7 +134,7 @@ describe("Claims", () => {
 
       expect(slot0.tick).to.be.equal(20);
       expect(slot0.secondsPerTick).to.be.equal(6 * 60 * 60);
-      expect(slot0.totalInsuredCapital).to.be.equal("328500");
+      expect(slot0.totalInsuredCapital).to.be.equal(328500);
       expect(slot0.remainingPolicies).to.be.equal("2");
       expect(slot0.lastUpdateTimestamp).to.be.equal(
         HardhatHelper.getCurrentTime()
