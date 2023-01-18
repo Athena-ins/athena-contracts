@@ -1,6 +1,7 @@
 import * as dotenv from "dotenv";
 import { ethers } from "ethers";
 import { HardhatUserConfig, task } from "hardhat/config";
+import { HardhatNetworkUserConfig } from "hardhat/types";
 import "@nomiclabs/hardhat-etherscan";
 import "@nomiclabs/hardhat-ethers";
 import "@nomiclabs/hardhat-waffle";
@@ -10,8 +11,6 @@ import "solidity-coverage";
 
 dotenv.config();
 
-// This is a sample Hardhat task. To learn how to create your own go to
-// https://hardhat.org/guides/create-task.html
 task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
   const accounts = await hre.ethers.getSigners();
 
@@ -20,7 +19,7 @@ task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
   }
 });
 
-const mainnetForkConfig = {
+const mainnetForkConfig: HardhatNetworkUserConfig = {
   forking: {
     url: process.env.MAINNET_URL || "",
     blockNumber: !process.env.FORKING_BLOCK
@@ -35,30 +34,31 @@ const mainnetForkConfig = {
   },
 };
 
-const goerliForkConfig = {
+const goerliForkConfig: HardhatNetworkUserConfig = {
   forking: {
     url: process.env.GOERLI_URL || "",
-    blockNumber: 8328120,
+    blockNumber: 8328120, // Fixed to take advantage of the cache
   },
   mining: {
     auto: true,
+    interval: 2000,
   },
   accounts: [
     // Deployer
     {
       privateKey: process.env.DEPLOY_TESTNET_PK as string,
-      balance: "10000000000000000000000",
+      balance: ethers.utils.parseEther("1000").toString(),
     },
     // Users 1,2,3,4
     {
       privateKey: (process.env.DEPLOY_TESTNET_PK as string).replace("8", "9"),
-      balance: "10000000000000000000046",
+      balance: ethers.utils.parseEther("1000").toString(),
     },
     ...Array(300)
       .fill("")
-      .map((_) => ({
-        privateKey: ethers.Wallet.createRandom().privateKey,
-        balance: "10000000000000000",
+      .map((_, i) => ({
+        privateKey: ethers.utils.id(`Athena ${i}`),
+        balance: ethers.utils.parseEther("1000").toString(),
       })),
   ],
 };
