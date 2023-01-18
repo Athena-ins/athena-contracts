@@ -10,7 +10,7 @@ import "./interfaces/IPositionsManager.sol";
 // @notice Staking Pool Contract: General Pool (GP)
 contract StakingGeneralPool is IStakedAten, ERC20WithSnapshot {
   using SafeERC20 for IERC20;
-  address public immutable underlyingAssetAddress;
+  address public immutable atenTokenAddress;
   address public immutable core;
   IPositionsManager public immutable positionManagerInterface;
 
@@ -41,18 +41,19 @@ contract StakingGeneralPool is IStakedAten, ERC20WithSnapshot {
 
   /**
    * @notice constructs Pool LP Tokens for staking, decimals defaults to 18
-   * @param underlyingAsset_ is the address of the staked token
+   * @param atenTokenAddress_ is the address of the staked token
    * @param core_ is the address of the core contract
    */
   constructor(
-    address underlyingAsset_,
+    address atenTokenAddress_,
     address core_,
     address positionManager_
   ) ERC20WithSnapshot("ATEN General Pool Staking", "ATENgps") {
-    underlyingAssetAddress = underlyingAsset_;
-    IERC20(underlyingAssetAddress).approve(core_, type(uint256).max);
+    atenTokenAddress = atenTokenAddress_;
     core = core_;
     positionManagerInterface = IPositionsManager(positionManager_);
+
+    IERC20(atenTokenAddress).safeApprove(core, type(uint256).max);
   }
 
   /// ============================ ///

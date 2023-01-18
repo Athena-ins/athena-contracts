@@ -232,11 +232,12 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
 
     __newLPInfo.beginLiquidityIndex = __liquidityIndex;
 
-    //transfer to account:
+    // transfer to account:
     uint256 __interestNet = (__totalRewards * (1000 - _feeRate)) / 1000;
     IERC20(underlyingAsset).safeTransfer(account_, __interestNet);
 
-    //transfer to treasury
+    // transfer to treasury
+    // @bw WARN! core has no way of using funds
     IERC20(underlyingAsset).safeTransfer(core, __totalRewards - __interestNet);
 
     LPsInfo[tokenId_] = __newLPInfo;
