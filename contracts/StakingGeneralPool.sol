@@ -2,13 +2,14 @@
 pragma solidity ^0.8;
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "./libraries/ERC20withSnapshot.sol";
 
 import "./interfaces/IStakedAten.sol";
 import "./interfaces/IPositionsManager.sol";
 
+import "hardhat/console.sol";
+
 // @notice Staking Pool Contract: General Pool (GP)
-contract StakingGeneralPool is IStakedAten, ERC20WithSnapshot {
+contract StakingGeneralPool is IStakedAten {
   using SafeERC20 for IERC20;
   address public immutable atenTokenAddress;
   address public immutable core;
@@ -48,7 +49,7 @@ contract StakingGeneralPool is IStakedAten, ERC20WithSnapshot {
     address atenTokenAddress_,
     address core_,
     address positionManager_
-  ) ERC20WithSnapshot("ATEN General Pool Staking", "ATENgps") {
+  ) {
     atenTokenAddress = atenTokenAddress_;
     core = core_;
     positionManagerInterface = IPositionsManager(positionManager_);
@@ -168,6 +169,8 @@ contract StakingGeneralPool is IStakedAten, ERC20WithSnapshot {
     returns (Stakeholder memory userStake)
   {
     userStake = stakes[account_];
+
+    userStake.user = account_;
     uint256 newRewards = calculateStakeReward(userStake);
     userStake.accruedRewards += newRewards;
   }
@@ -204,9 +207,6 @@ contract StakingGeneralPool is IStakedAten, ERC20WithSnapshot {
     userStake.since = block.timestamp;
 
     emit Staked(account_, amount_, block.timestamp);
-
-    // we put from & to opposite so as token owner has a Snapshot balance when staking
-    _beforeTokenTransfer(address(0), account_, amount_);
   }
 
   function claimRewards(address account_)
@@ -243,9 +243,6 @@ contract StakingGeneralPool is IStakedAten, ERC20WithSnapshot {
 
     // We reset the timer with the new amount of tokens staked
     userStake.since = block.timestamp;
-
-    // we put from & to opposite so as token owner has a Snapshot balance when staking
-    _beforeTokenTransfer(account_, address(0), amount_);
   }
 
   /// =========================== ///
