@@ -1,13 +1,9 @@
+import hre from "hardhat";
 import { ethers } from "hardhat";
 
-// Uses the latest deployment addresses on Goerli
-export const deploymentAddress = {
-  deployer: "0x745A6BE3C44883979FC43e1Df2F7e83eE7b9f73A",
-  user_1: "0xB15DdF55984b39005C64Bc2Cdbc1b38A7bD848E9",
-  //
-  USDT: "0x65E2fe35C30eC218b46266F89847c63c2eDa7Dc7",
-  aave_registry: "0x5E52dEc931FFb32f609681B8438A51c675cc232d",
-  //
+console.log("hre: ", hre.network.name);
+
+const addressHardhat = {
   ATEN: "0xb927A2185C1cE07f235F336Bf6bd3190C2Edc8F8",
   ARBITRATOR: "0x45CaEE014eE6684Bb05e1f09ebe5e55D98aa35c6",
   ATHENA: "0x6a12fe9a151Ec80Ccbee3c368f4Ae03A9c0B4f71",
@@ -18,6 +14,39 @@ export const deploymentAddress = {
   STAKING_POLICY: "0x2fC7213A30e3Ec1d0100c731C03651B914D7d88d",
   TOKEN_VAULT: "0x3BAAA3Ff32b55EE1e41833FAcF0cb29023f37018",
   CLAIM_MANAGER: "0x3a6EDEE021927218CcD904595247A341596cA41B",
+};
+
+const addressGoerli = {
+  USDT: "0x65E2fe35C30eC218b46266F89847c63c2eDa7Dc7",
+  ATEN: "0x45CaEE014eE6684Bb05e1f09ebe5e55D98aa35c6",
+  ATHENA: "0xAB56FA5D4Aa0D47f23B9b1a7bEAa60dFd6883cC9",
+  TOKEN_VAULT: "0x3a6EDEE021927218CcD904595247A341596cA41B",
+  STAKING_GP: "0xD854eBae523aAdCeDb6b49D24cA40037b06A7EDa",
+  STAKING_POLICY: "0x3BAAA3Ff32b55EE1e41833FAcF0cb29023f37018",
+  POSITIONS_MANAGER: "0x907D90B32B5bdd84cC0aE6b0431167AD5b565D80",
+  POLICY_MANAGER: "0x7E91125309BE380038F8969D0DEE99C2914AFc24",
+  CLAIM_MANAGER: "0xe6D86620EccB362d4E0a069aFc0f50D9700FF20C",
+  ARBITRATOR: "0x6a12fe9a151Ec80Ccbee3c368f4Ae03A9c0B4f71",
+  FACTORY_PROTOCOL: "0x2fC7213A30e3Ec1d0100c731C03651B914D7d88d",
+};
+
+// Defaults to Goerli addresses
+const chooseAddressSet = () => {
+  if (hre.network.name === "hardhat") {
+    return addressHardhat;
+  }
+  return addressGoerli;
+};
+
+// Uses the latest deployment addresses on Goerli
+export const deploymentAddress = {
+  deployer: "0x745A6BE3C44883979FC43e1Df2F7e83eE7b9f73A",
+  user_1: "0xB15DdF55984b39005C64Bc2Cdbc1b38A7bD848E9",
+  //
+  USDT: "0x65E2fe35C30eC218b46266F89847c63c2eDa7Dc7",
+  aave_registry: "0x5E52dEc931FFb32f609681B8438A51c675cc232d",
+  //
+  ...chooseAddressSet(),
 };
 
 // ABIs
