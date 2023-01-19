@@ -47,7 +47,7 @@ async function main() {
       deploymentAddress.ARBITRATOR
     );
 
-    await ProtocolHelper.initializeProtocol();
+    await ProtocolHelper.initializeProtocol(deployer);
 
     console.log("== OK 2 ==");
 

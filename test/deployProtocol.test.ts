@@ -111,7 +111,7 @@ describe("Deploy protocol", () => {
       });
 
       it("Should initialize protocol with required values", async () => {
-        const init = await ProtocolHelper.initializeProtocol();
+        const init = await ProtocolHelper.initializeProtocol(owner);
 
         expect(init).to.haveOwnProperty("hash");
       });

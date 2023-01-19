@@ -173,8 +173,8 @@ function getVaultAtenContract() {
   return contract.TOKEN_VAULT;
 }
 
-async function initializeProtocol() {
-  return await contract.ATHENA.initialize(
+async function initializeProtocol(owner: ethers.Signer) {
+  return await contract.ATHENA.connect(owner).initialize(
     contract.POSITIONS_MANAGER.address,
     contract.POLICY_MANAGER.address,
     contract.CLAIM_MANAGER.address,
@@ -235,7 +235,7 @@ async function deployAllContractsAndInitializeProtocol(owner: ethers.Signer) {
   await deployStakedAtensPolicyContract(owner);
   await deployVaultAtenContract(owner);
 
-  await initializeProtocol();
+  await initializeProtocol(owner);
 
   await setFeeLevelsWithAten(owner);
   await setStakingRewardRates(owner);
