@@ -39,7 +39,7 @@ describe("Staking General Pool", function () {
     // ================= Cover Providers ================= //
 
     const USDT_amount1 = "4000000";
-    const ATEN_amount1 = "100";
+    const ATEN_amount1 = "0";
     await ProtocolHelper.deposit(
       liquidityProvider1,
       USDT_amount1,
@@ -123,12 +123,86 @@ describe("Staking General Pool", function () {
     );
   });
 
-  it("Should check staking rate of liquidity providers", async function () {
-    const ATHENA_CONTRACT = ProtocolHelper.getAthenaContract();
-    const feeLevels = await ATHENA_CONTRACT.connect(
-      owner
-    ).getAtenStakingFeeLevels();
+  // it("Should check staking rate of liquidity providers", async function () {
+  //   const ATHENA_CONTRACT = ProtocolHelper.getAthenaContract();
+  //   const feeLevels = await ATHENA_CONTRACT.connect(
+  //     owner
+  //   ).getAtenStakingFeeLevels();
 
-    console.log("feeLevels: ", feeLevels);
+  //   console.log("feeLevels: ", feeLevels);
+  // });
+
+  it("Should try and stake, wait, extract interests and withdraw from GP", async function () {
+    const STAKING_GP_CONTRACT =
+      ProtocolHelper.getStakedAtenContract().connect(liquidityProvider1);
+    const ATHENA_CONTRACT =
+      ProtocolHelper.getAthenaContract().connect(liquidityProvider1);
+
+    const liquidityProvider1Address = await liquidityProvider1.getAddress();
+
+    const stakingPosBefore = await STAKING_GP_CONTRACT.getUserStakingPosition(
+      liquidityProvider1Address
+    );
+
+    expect(stakingPosBefore.amount).to.equal("0");
+    expect(stakingPosBefore.since).to.equal("0");
+    expect(stakingPosBefore.accruedRewards).to.equal("0");
+    expect(stakingPosBefore.rate).to.equal("0");
+
+    const stakingAmount = 1000000;
+    await ProtocolHelper.stakingGeneralPoolDeposit(
+      liquidityProvider1,
+      stakingAmount
+    );
+
+    const stakingPosAfter = await STAKING_GP_CONTRACT.getUserStakingPosition(
+      liquidityProvider1Address
+    );
+
+    expect(stakingPosAfter.amount).to.equal(stakingAmount);
+    expect(stakingPosAfter.since).to.equal("1677715204");
+    expect(stakingPosAfter.accruedRewards).to.equal("0");
+    expect(stakingPosAfter.rate).to.equal("2000");
+
+    const nbRewardDays = 30;
+    await HardhatHelper.setNextBlockTimestamp(30 * 24 * 60 * 60);
+
+    const rewards = await STAKING_GP_CONTRACT.rewardsOf(
+      liquidityProvider1Address
+    );
+
+    const expectedRewards = Math.round(
+      stakingAmount *
+        (stakingPosAfter.rate.toNumber() / 10_000) *
+        (nbRewardDays / 365)
+    );
+
+    expect(rewards).to.equal(expectedRewards);
+    const balanceBefore = await HardhatHelper.ATEN_balanceOf(
+      liquidityProvider1Address
+    );
+    await (await ATHENA_CONTRACT.takeStakingProfits()).wait();
+
+    const balanceAfter = await HardhatHelper.ATEN_balanceOf(
+      liquidityProvider1Address
+    );
+
+    // Substract 4 because of the fees
+    expect(balanceAfter).to.equal(balanceBefore.add(expectedRewards).sub(4));
+
+    const amountUnstaked = 10_000;
+    await (await ATHENA_CONTRACT.unstakeAtens(amountUnstaked)).wait();
+
+    const stakingPosAfterWithdraw =
+      await STAKING_GP_CONTRACT.getUserStakingPosition(
+        liquidityProvider1Address
+      );
+
+    expect(stakingPosAfterWithdraw.amount).to.equal(
+      stakingAmount - amountUnstaked
+    );
+    expect(stakingPosAfterWithdraw.since).to.equal("1680307202");
+    expect(stakingPosAfterWithdraw.accruedRewards).to.equal("0");
+    expect(stakingPosAfterWithdraw.rate).to.equal("2000");
   });
 });
