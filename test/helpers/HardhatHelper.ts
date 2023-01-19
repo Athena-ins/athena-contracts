@@ -81,10 +81,12 @@ async function impersonateAccount(address: string) {
 
 async function setNextBlockTimestamp(addingTime: number) {
   currentTime += addingTime;
+
   await hre.network.provider.request({
     method: "evm_setNextBlockTimestamp",
     params: [currentTime],
   });
+  await hre.network.provider.request({ method: "evm_mine" });
 }
 
 function getCurrentTime() {

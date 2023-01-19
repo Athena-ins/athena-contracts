@@ -286,11 +286,12 @@ async function deposit(
       contract.ATHENA.address,
       ATEN_amount
     );
+
+    await (await contract.ATHENA.connect(user).stakeAtens(ATEN_amount)).wait();
   }
 
   await HardhatHelper.setNextBlockTimestamp(timeLapse);
 
-  await (await contract.ATHENA.connect(user).stakeAtens(ATEN_amount)).wait();
   await contract.ATHENA.connect(user).deposit(USDT_amount, protocols);
 }
 
@@ -435,6 +436,18 @@ const atenAmountPostHelperTransfer = (amount: BigNumberish) => {
     .div(100 * 100000);
 };
 
+const stakingGeneralPoolDeposit = async (
+  user: ethers.Signer,
+  amount: BigNumberish
+) => {
+  const userAddress = await user.getAddress();
+
+  await HardhatHelper.ATEN_transfer(userAddress, amount);
+  await HardhatHelper.ATEN_approve(user, contract.ATHENA.address, amount);
+
+  await contract.ATHENA.connect(user).stakeAtens(amount);
+};
+
 export default {
   atenAmountPostHelperTransfer,
   deployAtenTokenContract,
@@ -471,4 +484,5 @@ export default {
   resolveClaimWithoutDispute,
   depositRewardsToVault,
   takeInterest,
+  stakingGeneralPoolDeposit,
 };
