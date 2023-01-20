@@ -471,6 +471,13 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     positionManagerInterface.takeInterest(msg.sender, tokenId, poolId);
   }
 
+  function takeInterestInAllPools(uint256 tokenId)
+    public
+    onlyPositionTokenOwner(tokenId)
+  {
+    positionManagerInterface.takeInterestsInAllPools(msg.sender, tokenId);
+  }
+
   function addLiquidityToPosition(uint256 tokenId, uint256 amount)
     external
     onlyPositionTokenOwner(tokenId)
