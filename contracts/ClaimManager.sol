@@ -324,25 +324,25 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
    * @notice
    * Adds the document associated to the protocol's insurance terms.
    * @param poolId_ The new protocol ID
-   * @param agreementIpfsHash_ The IPFS hash of the meta evidence
+   * @param ipfsAgreementCid_ The IPFS CID of the meta evidence
    */
   function addAgreementForProtocol(
     uint256 poolId_,
-    string calldata agreementIpfsHash_
+    string calldata ipfsAgreementCid_
   ) external onlyCore {
     // @bw should add a fn to update this file without breaking the pool
-    _addAgreementForProtocol(poolId_, agreementIpfsHash_);
+    _addAgreementForProtocol(poolId_, ipfsAgreementCid_);
   }
 
   /**
    * @notice
-   * Adds evidence IPFS hashes for a claim.
+   * Adds evidence IPFS CIDs for a claim.
    * @param claimId_ The claim ID
-   * @param ipfsEvidenceHashes_ The IPFS hashes of the evidence
+   * @param ipfsEvidenceCids_ The IPFS CIDs of the evidence
    */
   function submitEvidenceForClaim(
     uint256 claimId_,
-    string[] calldata ipfsEvidenceHashes_
+    string[] calldata ipfsEvidenceCids_
   ) external {
     Claim storage userClaim = claims[claimId_];
 
@@ -355,7 +355,7 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
       "CM: invalid party"
     );
 
-    _submitKlerosEvidence(claimId_, msg.sender, ipfsEvidenceHashes_);
+    _submitKlerosEvidence(claimId_, msg.sender, ipfsEvidenceCids_);
   }
 
   /// ============================ ///
@@ -368,12 +368,12 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
    * Initiates a payment claim to Kleros by a policy holder.
    * @param policyId_ The policy ID
    * @param amountClaimed_ The amount claimed by the policy holder
-   * @param ipfsMetaEvidenceHash_ The IPFS hash of the meta evidence file
+   * @param ipfsMetaEvidenceCid_ The IPFS CID of the meta evidence file
    */
   function inititateClaim(
     uint256 policyId_,
     uint256 amountClaimed_,
-    string calldata ipfsMetaEvidenceHash_
+    string calldata ipfsMetaEvidenceCid_
   ) external payable onlyPolicyTokenOwner(policyId_) {
     // Get the policy
     IPolicyManager.Policy memory userPolicy = policyManagerInterface.policy(
@@ -429,7 +429,7 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
       policyId: policyId_,
       poolId: poolId,
       amount: amountClaimed_,
-      metaEvidence: ipfsMetaEvidenceHash_
+      metaEvidence: ipfsMetaEvidenceCid_
     });
 
     // Emit Athena claim creation event

@@ -13,6 +13,6 @@ interface IClaimManager {
 
   function addAgreementForProtocol(
     uint256 poolId_,
-    string calldata agreementIpfsHash_
+    string calldata ipfsAgreementCid_
   ) external;
 }

@@ -6,7 +6,7 @@ import "./interfaces/IEvidence.sol";
 contract ClaimEvidence is IEvidence {
   IArbitrator public immutable arbitrator;
 
-  // Maps a protocol ID to its generic meta-evidence IPFS file hash
+  // Maps a protocol ID to its generic meta-evidence IPFS file CID
   mapping(uint256 => string) public protocolToAgreement;
 
   // Maps a claim ID to its submited evidence
@@ -28,7 +28,7 @@ contract ClaimEvidence is IEvidence {
     address challenger_,
     uint256 disputeId_,
     uint256 poolId_,
-    string storage ipfsMetaEvidenceHash_
+    string storage ipfsMetaEvidenceCid_
   ) internal {
     // Generate a meta-evidence ID based on inputs
     uint256 metaEvidenceId = _genMetaEvidenceId(poolId_, disputeId_);
@@ -37,7 +37,7 @@ contract ClaimEvidence is IEvidence {
     emit Dispute(arbitrator, disputeId_, metaEvidenceId, disputeId_);
 
     // Emit the meta-evidence event
-    emit MetaEvidence(metaEvidenceId, ipfsMetaEvidenceHash_);
+    emit MetaEvidence(metaEvidenceId, ipfsMetaEvidenceCid_);
 
     // Send agreement information as evidence
     emit Evidence(
@@ -51,26 +51,26 @@ contract ClaimEvidence is IEvidence {
   function _submitKlerosEvidence(
     uint256 claimId_,
     address party_,
-    string[] calldata ipfsEvidenceHashes_
+    string[] calldata ipfsEvidenceCids_
   ) internal {
-    for (uint256 i = 0; i < ipfsEvidenceHashes_.length; i++) {
+    for (uint256 i = 0; i < ipfsEvidenceCids_.length; i++) {
       // Save evidence files
-      claimIdToEvidence[claimId_].push(ipfsEvidenceHashes_[i]);
+      claimIdToEvidence[claimId_].push(ipfsEvidenceCids_[i]);
 
       // Emit event for Kleros to pick up the evidence
       emit Evidence(
         arbitrator, // IArbitrator indexed _arbitrator
         claimId_, // uint256 indexed _evidenceGroupID
         party_, // address indexed _party
-        ipfsEvidenceHashes_[i] // string _evidence
+        ipfsEvidenceCids_[i] // string _evidence
       );
     }
   }
 
   function _addAgreementForProtocol(
     uint256 poolId_,
-    string calldata agreementIpfsHash_
+    string calldata ipfsAgreementCid_
   ) internal {
-    protocolToAgreement[poolId_] = agreementIpfsHash_;
+    protocolToAgreement[poolId_] = ipfsAgreementCid_;
   }
 }

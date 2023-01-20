@@ -878,7 +878,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     string calldata name,
     uint8 premiumRate, //Thao@NOTE: not used
     uint128[] calldata protocolsNotCompat,
-    string calldata ipfsAgreementHash_
+    string calldata ipfsAgreementCid_
   ) public onlyOwner {
     uint128 newPoolId = nextPoolId;
     nextPoolId++;
@@ -887,10 +887,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
       .deployProtocol(stablecoin, newPoolId, 75 * 1e27, 1e27, 5e27, 11e26);
 
     // Add the meta evidence IPFS address to the registry
-    claimManagerInterface.addAgreementForProtocol(
-      newPoolId,
-      ipfsAgreementHash_
-    );
+    claimManagerInterface.addAgreementForProtocol(newPoolId, ipfsAgreementCid_);
 
     protocolsMapping[newPoolId] = Protocol({
       id: newPoolId,
