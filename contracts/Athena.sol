@@ -736,9 +736,11 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     );
 
     // Require that the policy is still active
+    // @bw removing expired policies should also close staking position
+    // But if it is expires post 1 year then payout rewards
+    // To be valid the policy does not need to be active but have been active for 1y
+    //
     // @bw maybe wrong fn for checking
-    // @bw no need to be active, no fn for exit post expiration
-    // withdrawAtensPolicyWithoutRewards should not remove rewards if expired post 1 year
     bool isStillActive = policyManagerInterface.policyActive(policyId_);
     if (isStillActive != true) revert PolicyExpired();
 
@@ -751,7 +753,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
    * Withdraws ATEN and policy staking rewards from multiple policy staking positions.
    * @param policyIds_ the ids of the policy positions
    */
-  function withdrawAllAtensFromPolicies(uint256[] calldata policyIds_)
+  function withdrawAtensFromMultiPolicies(uint256[] calldata policyIds_)
     external
   {
     uint256 policyIdLength = policyIds_.length;

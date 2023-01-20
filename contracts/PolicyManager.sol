@@ -13,6 +13,8 @@ contract PolicyManager is IPolicyManager, ERC721Enumerable {
   /// @dev The token ID policy data
   mapping(uint256 => Policy) public policies;
 
+  // @bw separation between expired and active is a problem for processing
+  // eg: policy staking exit
   mapping(address => ExpiredPolicy[]) public expiredPolicies;
 
   /// @dev The ID of the next token that will be minted.
@@ -180,7 +182,7 @@ contract PolicyManager is IPolicyManager, ERC721Enumerable {
         premiumSpent: _premiumSpent,
         atensLocked: _policy.atensLocked,
         beginCoveredTime: _policy.beginCoveredTime,
-        endCoveredTime: block.timestamp, // @bw ce n'est pas bon
+        endCoveredTime: block.timestamp, // @bw WARN bad timestamps (time updated but not expired)
         poolId: _policy.poolId,
         isCancelled: _isCanceled
       })

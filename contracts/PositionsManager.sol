@@ -354,7 +354,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
     }
   }
 
-  function takeInterestsInAllPools(address account, uint256 tokenId) external {
+  function takeInterestsInAllPools(address account, uint256 tokenId) external onlyCore {
     _takeInterestsInAllPools(account, tokenId);
   }
 
