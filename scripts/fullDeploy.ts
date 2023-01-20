@@ -83,6 +83,13 @@ async function main() {
       amountApprove
     );
 
+    await ATEN_CONTRACT.connect(deployer).approve(
+      deploymentAddress.ATHENA,
+      amountApprove
+    );
+
+    // =====> transfer tokens to user 1
+
     await ATEN_CONTRACT.connect(deployer).transfer(
       deploymentAddress.user_1,
       amountTransfers

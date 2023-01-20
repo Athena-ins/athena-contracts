@@ -1,8 +1,6 @@
 import hre from "hardhat";
 import { ethers } from "hardhat";
 
-console.log("hre: ", hre.network.name);
-
 const addressHardhat = {
   ATEN: "0xb927A2185C1cE07f235F336Bf6bd3190C2Edc8F8",
   ARBITRATOR: "0x45CaEE014eE6684Bb05e1f09ebe5e55D98aa35c6",
