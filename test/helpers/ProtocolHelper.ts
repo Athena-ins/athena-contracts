@@ -384,7 +384,7 @@ async function createClaim(
   const valueForTx = valueOverride || arbitrationCost.add(collateralAmount);
 
   // Create the claim
-  await contract.CLAIM_MANAGER.connect(policyHolder).inititateClaim(
+  await contract.CLAIM_MANAGER.connect(policyHolder).initiateClaim(
     policyId,
     amountClaimed,
     "bafybeiafebm3zdtzmn5mcquacgd47enhsjnebvegnzfunaaaaaaaaaaaaa",

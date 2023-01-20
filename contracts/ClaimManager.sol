@@ -370,7 +370,7 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
    * @param amountClaimed_ The amount claimed by the policy holder
    * @param ipfsMetaEvidenceCid_ The IPFS CID of the meta evidence file
    */
-  function inititateClaim(
+  function initiateClaim(
     uint256 policyId_,
     uint256 amountClaimed_,
     string calldata ipfsMetaEvidenceCid_
