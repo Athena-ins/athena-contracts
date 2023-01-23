@@ -10,6 +10,7 @@ interface IPositionsManager is IERC721Enumerable {
     uint256 aaveScaledBalance;
     uint128 feeRate;
     uint128[] poolIds;
+    uint256 commitDelay;
   }
 
   struct PositionInfo {

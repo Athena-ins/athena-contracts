@@ -59,6 +59,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     uint256 premiumRate;
     IProtocolPool.Formula computingConfig;
     string claimAgreement;
+    uint256 commitDelay;
   }
 
   constructor(
@@ -218,7 +219,8 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
       uint256 availableCapacity,
       uint256 utilizationRate,
       uint256 premiumRate,
-      IProtocolPool.Formula memory computingConfig
+      IProtocolPool.Formula memory computingConfig,
+      uint256 commitDelay
     ) = IProtocolPool(poolAddress).protocolInfo();
 
     string memory claimAgreement = claimManagerInterface.getProtocolAgreement(
@@ -234,7 +236,8 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
         utilizationRate,
         premiumRate,
         computingConfig,
-        claimAgreement
+        claimAgreement,
+        commitDelay
       );
   }
 

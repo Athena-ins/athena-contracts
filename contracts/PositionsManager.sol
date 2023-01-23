@@ -155,6 +155,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
 
     // Ensure that all capital dependencies between pools are registered
     // Loop through each of the pools (i)
+    uint256 maxCommitDelay;
     for (uint256 i = 0; i < poolIds.length; i++) {
       uint128 currentPoolId = poolIds[i];
 
@@ -162,6 +163,14 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
       IProtocolPool currentPool = IProtocolPool(
         _core.getProtocolAddressById(currentPoolId)
       );
+
+      // A position's commit delay is the highest commit delay among its pools
+      /// @dev create context to avoid stack too deep error
+      // @bw test to see if it works
+      {
+        uint256 poolCommitDelay = currentPool.commitDelay();
+        if (maxCommitDelay < poolCommitDelay) maxCommitDelay = poolCommitDelay;
+      }
 
       // Loop through each latter pool (j)
       for (uint256 j = i + 1; j < poolIds.length; j++) {
@@ -186,7 +195,8 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
       amountSupplied: amount,
       aaveScaledBalance: newAaveScaledBalance,
       feeRate: feeRate,
-      poolIds: poolIds
+      poolIds: poolIds,
+      commitDelay: maxCommitDelay
     });
 
     _mint(account, tokenId);
@@ -354,7 +364,10 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
     }
   }
 
-  function takeInterestsInAllPools(address account, uint256 tokenId) external onlyCore {
+  function takeInterestsInAllPools(address account, uint256 tokenId)
+    external
+    onlyCore
+  {
     _takeInterestsInAllPools(account, tokenId);
   }
 

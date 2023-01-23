@@ -11,6 +11,8 @@ interface IProtocolPool is IPolicyCover {
     uint256 beginClaimIndex;
   }
 
+  function commitDelay() external view returns (uint256);
+
   function deposit(uint256 tokenId, uint256 amount) external;
 
   function committingWithdrawLiquidity(uint256 tokenId) external;
@@ -92,6 +94,7 @@ interface IProtocolPool is IPolicyCover {
       uint256 availableCapacity,
       uint256 utilizationRate,
       uint256 premiumRate,
-      Formula memory computingConfig
+      Formula memory computingConfig,
+      uint256 commitDelay
     );
 }
