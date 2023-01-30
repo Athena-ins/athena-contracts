@@ -10,6 +10,10 @@ const amountApprove = BigNumber.from(2).pow(256).sub(1);
 const amountTransfers = BigNumber.from(20_000_000).mul(
   BigNumber.from(10).pow(18)
 );
+// Set at 25 ATEN = 1 USDT
+const initialAtenOraclePrice = BigNumber.from(25).mul(
+  BigNumber.from(10).pow(18)
+);
 
 async function main() {
   try {
@@ -45,6 +49,10 @@ async function main() {
     await ProtocolHelper.deployClaimManagerContract(
       deployer,
       deploymentAddress.ARBITRATOR
+    );
+    await ProtocolHelper.deployPriceOracleV1Contract(
+      deployer,
+      initialAtenOraclePrice
     );
 
     await ProtocolHelper.initializeProtocol(deployer);

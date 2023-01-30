@@ -110,6 +110,16 @@ describe("Deploy protocol", () => {
         ).to.not.equal("0x");
       });
 
+      it("Should deploy PriceOracleV1 contract", async () => {
+        await ProtocolHelper.deployPriceOracleV1Contract(owner);
+
+        expect(
+          await hre_ethers.provider.getCode(
+            ProtocolHelper.getPriceOracleV1Contract().address
+          )
+        ).to.not.equal("0x");
+      });
+
       it("Should initialize protocol with required values", async () => {
         const init = await ProtocolHelper.initializeProtocol(owner);
 
