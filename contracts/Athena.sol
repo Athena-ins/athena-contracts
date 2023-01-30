@@ -17,6 +17,7 @@ import "./interfaces/IStakedAtenPolicy.sol";
 import "./interfaces/IPolicyManager.sol";
 import "./interfaces/IClaimManager.sol";
 import "./interfaces/IVaultERC20.sol";
+import "./interfaces/IPriceOracle.sol";
 
 contract Athena is IAthena, ReentrancyGuard, Ownable {
   using SafeERC20 for IERC20;
@@ -26,9 +27,11 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   mapping(uint128 => Protocol) public protocolsMapping;
 
   address public stablecoin;
+  uint8 public stablecoinDecimals;
+  address public protocolFactory;
   /// @dev AAVE LendingPoolAddressesProvider Interface
   ILendingPoolAddressesProvider public aaveAddressesRegistryInterface;
-  address public protocolFactory;
+  IPriceOracle public priceOracleInterface;
   IPositionsManager public positionManagerInterface;
   IPolicyManager public policyManagerInterface;
   IClaimManager public claimManagerInterface;
@@ -69,6 +72,8 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   ) {
     atenToken = atenTokenAddress_;
     stablecoin = stablecoinUsed_;
+    /// @dev we typecast the decimals to uint8 since USDT uses unconventional uint256 for decimals
+    stablecoinDecimals = uint8(ERC20(stablecoin).decimals());
     aaveAddressesRegistryInterface = ILendingPoolAddressesProvider(
       aaveAddressesRegistry_
     );
@@ -84,7 +89,8 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     address _stakedAtensGP,
     address _stakedAtensPo,
     address _protocolFactory,
-    address _atensVault
+    address _atensVault,
+    address _priceOracle
   ) external onlyOwner {
     positionManagerInterface = IPositionsManager(_positionManagerAddress);
     policyManagerInterface = IPolicyManager(_policyManagerAddress);
@@ -92,6 +98,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
 
     stakedAtensGPInterface = IStakedAten(_stakedAtensGP);
     stakedAtensPoInterface = IStakedAtenPolicy(_stakedAtensPo);
+    priceOracleInterface = IPriceOracle(_priceOracle);
 
     protocolFactory = _protocolFactory;
     atensVault = _atensVault;
@@ -630,15 +637,11 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
       );
 
       if (_atensLocked > 0) {
-        // @bw TODO get oracle price !
-        uint256 pricePrecision = 10000;
-        uint256 __price = 100; // = 100 / 10.000 = 0.01 USDT
-        uint256 __decimalsRatio = 1e18 / 10**ERC20(stablecoin).decimals();
+        uint256 atenPrice = priceOracleInterface.getAtenPrice();
+        uint256 maxStakableAten = (_premiumDeposit * atenPrice) /
+          10**stablecoinDecimals;
 
-        if (
-          (_premiumDeposit * __decimalsRatio) <
-          (__price * _atensLocked) / pricePrecision
-        ) revert AmountAtenTooHigh();
+        if (maxStakableAten < _atensLocked) revert AmountAtenTooHigh();
 
         // Get tokens from user to staking pool
         // @bw send in one go after checks are passed instead of multiple transfers
@@ -651,6 +654,8 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
       }
     }
   }
+
+  // @bw missing add to existing policy
 
   /**
    * @notice
