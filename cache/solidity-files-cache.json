@@ -1,8 +1,8 @@
 {
   "_format": "hh-sol-cache-2",
   "files": {
-    "C:\\Users\\blackwhale\\Desktop\\Code\\athena-contracts\\contracts\\AAVE\\DataTypes.sol": {
-      "lastModificationDate": 1663158738423,
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\AAVE\\DataTypes.sol": {
+      "lastModificationDate": 1664788756595,
       "contentHash": "624d544e7f326f11f49579f9f9278bd1",
       "sourceName": "contracts/AAVE/DataTypes.sol",
       "solcConfig": {
@@ -36,8 +36,8 @@
         "DataTypes"
       ]
     },
-    "C:\\Users\\blackwhale\\Desktop\\Code\\athena-contracts\\contracts\\AAVE\\ILendingPool.sol": {
-      "lastModificationDate": 1663158738424,
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\AAVE\\ILendingPool.sol": {
+      "lastModificationDate": 1664788756597,
       "contentHash": "b142bf8c36feaf00f9cf44b4220be3cd",
       "sourceName": "contracts/AAVE/ILendingPool.sol",
       "solcConfig": {
@@ -74,8 +74,8 @@
         "ILendingPool"
       ]
     },
-    "C:\\Users\\blackwhale\\Desktop\\Code\\athena-contracts\\contracts\\AAVE\\ILendingPoolAddressesProvider.sol": {
-      "lastModificationDate": 1663158738424,
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\AAVE\\ILendingPoolAddressesProvider.sol": {
+      "lastModificationDate": 1664788756598,
       "contentHash": "d11a5fc1b878491b40de58c1c4856469",
       "sourceName": "contracts/AAVE/ILendingPoolAddressesProvider.sol",
       "solcConfig": {
@@ -109,9 +109,9 @@
         "ILendingPoolAddressesProvider"
       ]
     },
-    "C:\\Users\\blackwhale\\Desktop\\Code\\athena-contracts\\contracts\\Athena.sol": {
-      "lastModificationDate": 1674136717017,
-      "contentHash": "e68eafbf5b8f906fc388155fcb2f4884",
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\Athena.sol": {
+      "lastModificationDate": 1675099230514,
+      "contentHash": "a5d125b0036c068794a2b58e0b12e7d7",
       "sourceName": "contracts/Athena.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -150,7 +150,8 @@
         "./interfaces/IStakedAtenPolicy.sol",
         "./interfaces/IPolicyManager.sol",
         "./interfaces/IClaimManager.sol",
-        "./interfaces/IVaultERC20.sol"
+        "./interfaces/IVaultERC20.sol",
+        "./interfaces/IPriceOracle.sol"
       ],
       "versionPragmas": [
         "^0.8"
@@ -159,8 +160,8 @@
         "Athena"
       ]
     },
-    "C:\\Users\\blackwhale\\Desktop\\Code\\athena-contracts\\node_modules\\@openzeppelin\\contracts\\access\\Ownable.sol": {
-      "lastModificationDate": 1663665256366,
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\node_modules\\@openzeppelin\\contracts\\access\\Ownable.sol": {
+      "lastModificationDate": 1664873472040,
       "contentHash": "8398972af73b4e9e5ff3b31cad86234f",
       "sourceName": "@openzeppelin/contracts/access/Ownable.sol",
       "solcConfig": {
@@ -196,8 +197,8 @@
         "Ownable"
       ]
     },
-    "C:\\Users\\blackwhale\\Desktop\\Code\\athena-contracts\\node_modules\\@openzeppelin\\contracts\\token\\ERC20\\utils\\SafeERC20.sol": {
-      "lastModificationDate": 1663665256388,
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\node_modules\\@openzeppelin\\contracts\\token\\ERC20\\utils\\SafeERC20.sol": {
+      "lastModificationDate": 1664873472373,
       "contentHash": "76814c83c32552ed2b521c816b4d801a",
       "sourceName": "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol",
       "solcConfig": {
@@ -234,8 +235,8 @@
         "SafeERC20"
       ]
     },
-    "C:\\Users\\blackwhale\\Desktop\\Code\\athena-contracts\\node_modules\\@openzeppelin\\contracts\\security\\ReentrancyGuard.sol": {
-      "lastModificationDate": 1663665256382,
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\node_modules\\@openzeppelin\\contracts\\security\\ReentrancyGuard.sol": {
+      "lastModificationDate": 1664873472327,
       "contentHash": "92f9448b23a90ea3bb932ee55cc3ccce",
       "sourceName": "@openzeppelin/contracts/security/ReentrancyGuard.sol",
       "solcConfig": {
@@ -269,8 +270,8 @@
         "ReentrancyGuard"
       ]
     },
-    "C:\\Users\\blackwhale\\Desktop\\Code\\athena-contracts\\contracts\\interfaces\\IAthena.sol": {
-      "lastModificationDate": 1674123866132,
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\interfaces\\IAthena.sol": {
+      "lastModificationDate": 1673436022081,
       "contentHash": "36a9e2abcf10800dad389a456ceab0bd",
       "sourceName": "contracts/interfaces/IAthena.sol",
       "solcConfig": {
@@ -304,9 +305,9 @@
         "IAthena"
       ]
     },
-    "C:\\Users\\blackwhale\\Desktop\\Code\\athena-contracts\\contracts\\interfaces\\IPositionsManager.sol": {
-      "lastModificationDate": 1674123866133,
-      "contentHash": "ae0e11b981064c0090a0ed8e46a208fc",
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\interfaces\\IPositionsManager.sol": {
+      "lastModificationDate": 1674484268972,
+      "contentHash": "5b135d04daf6b7e02774688d3f802c03",
       "sourceName": "contracts/interfaces/IPositionsManager.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -341,8 +342,8 @@
         "IPositionsManager"
       ]
     },
-    "C:\\Users\\blackwhale\\Desktop\\Code\\athena-contracts\\contracts\\interfaces\\IProtocolFactory.sol": {
-      "lastModificationDate": 1674123866134,
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\interfaces\\IProtocolFactory.sol": {
+      "lastModificationDate": 1673438840582,
       "contentHash": "5974c200a6f9d1370c39f38b7192efb4",
       "sourceName": "contracts/interfaces/IProtocolFactory.sol",
       "solcConfig": {
@@ -376,9 +377,9 @@
         "IProtocolFactory"
       ]
     },
-    "C:\\Users\\blackwhale\\Desktop\\Code\\athena-contracts\\contracts\\interfaces\\IProtocolPool.sol": {
-      "lastModificationDate": 1674123866134,
-      "contentHash": "bfcce8ea24118bb5d1805b53b6a189ea",
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\interfaces\\IProtocolPool.sol": {
+      "lastModificationDate": 1674485306150,
+      "contentHash": "674952644756a63b438252624439484d",
       "sourceName": "contracts/interfaces/IProtocolPool.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -414,8 +415,8 @@
         "IProtocolPool"
       ]
     },
-    "C:\\Users\\blackwhale\\Desktop\\Code\\athena-contracts\\contracts\\interfaces\\IStakedAten.sol": {
-      "lastModificationDate": 1674123866134,
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\interfaces\\IStakedAten.sol": {
+      "lastModificationDate": 1673445308528,
       "contentHash": "4a988bfa6432a45862a6f4a2fd90aa1c",
       "sourceName": "contracts/interfaces/IStakedAten.sol",
       "solcConfig": {
@@ -449,8 +450,8 @@
         "IStakedAten"
       ]
     },
-    "C:\\Users\\blackwhale\\Desktop\\Code\\athena-contracts\\contracts\\interfaces\\IStakedAtenPolicy.sol": {
-      "lastModificationDate": 1674123866135,
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\interfaces\\IStakedAtenPolicy.sol": {
+      "lastModificationDate": 1673368155876,
       "contentHash": "e3ac7ea88832d0269d050b87871ae701",
       "sourceName": "contracts/interfaces/IStakedAtenPolicy.sol",
       "solcConfig": {
@@ -486,8 +487,8 @@
         "IStakedAtenPolicy"
       ]
     },
-    "C:\\Users\\blackwhale\\Desktop\\Code\\athena-contracts\\contracts\\interfaces\\IPolicyManager.sol": {
-      "lastModificationDate": 1673264238044,
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\interfaces\\IPolicyManager.sol": {
+      "lastModificationDate": 1672935947351,
       "contentHash": "bfd4066aa433970ad46ae83b69d8a638",
       "sourceName": "contracts/interfaces/IPolicyManager.sol",
       "solcConfig": {
@@ -523,9 +524,9 @@
         "IPolicyManager"
       ]
     },
-    "C:\\Users\\blackwhale\\Desktop\\Code\\athena-contracts\\contracts\\interfaces\\IClaimManager.sol": {
-      "lastModificationDate": 1674123866133,
-      "contentHash": "95c02fce4d44ebe36e266518e3e657fe",
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\interfaces\\IClaimManager.sol": {
+      "lastModificationDate": 1674232682962,
+      "contentHash": "55369048e0c4753ece451a6bc9568e41",
       "sourceName": "contracts/interfaces/IClaimManager.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -558,8 +559,8 @@
         "IClaimManager"
       ]
     },
-    "C:\\Users\\blackwhale\\Desktop\\Code\\athena-contracts\\contracts\\interfaces\\IVaultERC20.sol": {
-      "lastModificationDate": 1674123866135,
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\interfaces\\IVaultERC20.sol": {
+      "lastModificationDate": 1673539229853,
       "contentHash": "8a128007f49755f236e72c822a256883",
       "sourceName": "contracts/interfaces/IVaultERC20.sol",
       "solcConfig": {
@@ -593,8 +594,8 @@
         "IVaultERC20"
       ]
     },
-    "C:\\Users\\blackwhale\\Desktop\\Code\\athena-contracts\\node_modules\\@openzeppelin\\contracts\\utils\\Context.sol": {
-      "lastModificationDate": 1663665256120,
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\node_modules\\@openzeppelin\\contracts\\utils\\Context.sol": {
+      "lastModificationDate": 1664873469182,
       "contentHash": "5f2c5c4b6af2dd4551027144797bc8be",
       "sourceName": "@openzeppelin/contracts/utils/Context.sol",
       "solcConfig": {
@@ -628,8 +629,8 @@
         "Context"
       ]
     },
-    "C:\\Users\\blackwhale\\Desktop\\Code\\athena-contracts\\node_modules\\@openzeppelin\\contracts\\token\\ERC20\\IERC20.sol": {
-      "lastModificationDate": 1663665256313,
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\node_modules\\@openzeppelin\\contracts\\token\\ERC20\\IERC20.sol": {
+      "lastModificationDate": 1664873471214,
       "contentHash": "a44d1a099633876550ad2476b21bafbe",
       "sourceName": "@openzeppelin/contracts/token/ERC20/IERC20.sol",
       "solcConfig": {
@@ -663,8 +664,8 @@
         "IERC20"
       ]
     },
-    "C:\\Users\\blackwhale\\Desktop\\Code\\athena-contracts\\node_modules\\@openzeppelin\\contracts\\utils\\Address.sol": {
-      "lastModificationDate": 1663665256099,
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\node_modules\\@openzeppelin\\contracts\\utils\\Address.sol": {
+      "lastModificationDate": 1664873468899,
       "contentHash": "ad714a6368ee7d43cded6bbe8af0b155",
       "sourceName": "@openzeppelin/contracts/utils/Address.sol",
       "solcConfig": {
@@ -698,8 +699,8 @@
         "Address"
       ]
     },
-    "C:\\Users\\blackwhale\\Desktop\\Code\\athena-contracts\\node_modules\\@openzeppelin\\contracts\\token\\ERC721\\extensions\\IERC721Enumerable.sol": {
-      "lastModificationDate": 1663665256329,
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\node_modules\\@openzeppelin\\contracts\\token\\ERC721\\extensions\\IERC721Enumerable.sol": {
+      "lastModificationDate": 1664873471428,
       "contentHash": "f4dd06783f321aa26179bc2b6e361c29",
       "sourceName": "@openzeppelin/contracts/token/ERC721/extensions/IERC721Enumerable.sol",
       "solcConfig": {
@@ -735,8 +736,8 @@
         "IERC721Enumerable"
       ]
     },
-    "C:\\Users\\blackwhale\\Desktop\\Code\\athena-contracts\\node_modules\\@openzeppelin\\contracts\\token\\ERC721\\IERC721.sol": {
-      "lastModificationDate": 1663665256327,
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\node_modules\\@openzeppelin\\contracts\\token\\ERC721\\IERC721.sol": {
+      "lastModificationDate": 1664873471374,
       "contentHash": "27d219ec6f69478d065fdbfa7931da68",
       "sourceName": "@openzeppelin/contracts/token/ERC721/IERC721.sol",
       "solcConfig": {
@@ -772,8 +773,8 @@
         "IERC721"
       ]
     },
-    "C:\\Users\\blackwhale\\Desktop\\Code\\athena-contracts\\node_modules\\@openzeppelin\\contracts\\utils\\introspection\\IERC165.sol": {
-      "lastModificationDate": 1663665256303,
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\node_modules\\@openzeppelin\\contracts\\utils\\introspection\\IERC165.sol": {
+      "lastModificationDate": 1664873471119,
       "contentHash": "03e6768535ac4da0e9756f1d8a4a018a",
       "sourceName": "@openzeppelin/contracts/utils/introspection/IERC165.sol",
       "solcConfig": {
@@ -807,8 +808,8 @@
         "IERC165"
       ]
     },
-    "C:\\Users\\blackwhale\\Desktop\\Code\\athena-contracts\\contracts\\interfaces\\IPolicyCover.sol": {
-      "lastModificationDate": 1673264238044,
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\interfaces\\IPolicyCover.sol": {
+      "lastModificationDate": 1672933703559,
       "contentHash": "cf44ac3358f5f2189782e5104c7594d9",
       "sourceName": "contracts/interfaces/IPolicyCover.sol",
       "solcConfig": {
@@ -842,8 +843,8 @@
         "IPolicyCover"
       ]
     },
-    "C:\\Users\\blackwhale\\Desktop\\Code\\athena-contracts\\contracts\\ClaimCover.sol": {
-      "lastModificationDate": 1673264238038,
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\ClaimCover.sol": {
+      "lastModificationDate": 1672853965319,
       "contentHash": "44bcf2fc0029dad4c700ee028afc32af",
       "sourceName": "contracts/ClaimCover.sol",
       "solcConfig": {
@@ -879,8 +880,8 @@
         "ClaimCover"
       ]
     },
-    "C:\\Users\\blackwhale\\Desktop\\Code\\athena-contracts\\contracts\\LiquidityCover.sol": {
-      "lastModificationDate": 1673264238040,
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\LiquidityCover.sol": {
+      "lastModificationDate": 1672846266510,
       "contentHash": "7f8979160c0956853117e6eaa6d041c6",
       "sourceName": "contracts/LiquidityCover.sol",
       "solcConfig": {
@@ -916,8 +917,8 @@
         "LiquidityCover"
       ]
     },
-    "C:\\Users\\blackwhale\\Desktop\\Code\\athena-contracts\\contracts\\libraries\\RayMath.sol": {
-      "lastModificationDate": 1663158738440,
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\libraries\\RayMath.sol": {
+      "lastModificationDate": 1664788756647,
       "contentHash": "a0f05132f79c7ac55e470185d234d8d7",
       "sourceName": "contracts/libraries/RayMath.sol",
       "solcConfig": {
@@ -951,8 +952,8 @@
         "RayMath"
       ]
     },
-    "C:\\Users\\blackwhale\\Desktop\\Code\\athena-contracts\\node_modules\\@openzeppelin\\contracts\\token\\ERC20\\ERC20.sol": {
-      "lastModificationDate": 1663665256209,
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\node_modules\\@openzeppelin\\contracts\\token\\ERC20\\ERC20.sol": {
+      "lastModificationDate": 1664873469862,
       "contentHash": "bab063ddd80e9cc9e313361fef7ef07f",
       "sourceName": "@openzeppelin/contracts/token/ERC20/ERC20.sol",
       "solcConfig": {
@@ -990,8 +991,8 @@
         "ERC20"
       ]
     },
-    "C:\\Users\\blackwhale\\Desktop\\Code\\athena-contracts\\node_modules\\@openzeppelin\\contracts\\token\\ERC20\\extensions\\IERC20Metadata.sol": {
-      "lastModificationDate": 1663665256318,
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\node_modules\\@openzeppelin\\contracts\\token\\ERC20\\extensions\\IERC20Metadata.sol": {
+      "lastModificationDate": 1664873471243,
       "contentHash": "909ab67fc5c25033fe6cd364f8c056f9",
       "sourceName": "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol",
       "solcConfig": {
@@ -1027,8 +1028,8 @@
         "IERC20Metadata"
       ]
     },
-    "C:\\Users\\blackwhale\\Desktop\\Code\\athena-contracts\\contracts\\TokenVault.sol": {
-      "lastModificationDate": 1674123866131,
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\TokenVault.sol": {
+      "lastModificationDate": 1673539234811,
       "contentHash": "dc1ea5605f9da8f33f4d49ad3a75c9b2",
       "sourceName": "contracts/TokenVault.sol",
       "solcConfig": {
@@ -1065,8 +1066,8 @@
         "TokenVault"
       ]
     },
-    "C:\\Users\\blackwhale\\Desktop\\Code\\athena-contracts\\contracts\\StrategicSale\\StrategicSale.sol": {
-      "lastModificationDate": 1663158738432,
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\StrategicSale\\StrategicSale.sol": {
+      "lastModificationDate": 1664788756625,
       "contentHash": "2a71bc97f5d0b9b9849f09b04fb266e7",
       "sourceName": "contracts/StrategicSale/StrategicSale.sol",
       "solcConfig": {
@@ -1104,8 +1105,8 @@
         "StrategicSale"
       ]
     },
-    "C:\\Users\\blackwhale\\Desktop\\Code\\athena-contracts\\contracts\\PrivateSale\\PrivateSale.sol": {
-      "lastModificationDate": 1663158738430,
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\PrivateSale\\PrivateSale.sol": {
+      "lastModificationDate": 1664788756618,
       "contentHash": "a89c2d96f4b5403ec461dacd093e8c1a",
       "sourceName": "contracts/PrivateSale/PrivateSale.sol",
       "solcConfig": {
@@ -1144,8 +1145,8 @@
         "PrivateSale"
       ]
     },
-    "C:\\Users\\blackwhale\\Desktop\\Code\\athena-contracts\\contracts\\ICO\\AthenaICO.sol": {
-      "lastModificationDate": 1663158738428,
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\ICO\\AthenaICO.sol": {
+      "lastModificationDate": 1664788756611,
       "contentHash": "ad1847863f39c00237442fd942a20a1a",
       "sourceName": "contracts/ICO/AthenaICO.sol",
       "solcConfig": {
@@ -1185,8 +1186,8 @@
         "AthenaICO"
       ]
     },
-    "C:\\Users\\blackwhale\\Desktop\\Code\\athena-contracts\\node_modules\\@chainlink\\contracts\\src\\v0.8\\interfaces\\AggregatorV3Interface.sol": {
-      "lastModificationDate": 1663665265079,
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\node_modules\\@chainlink\\contracts\\src\\v0.8\\interfaces\\AggregatorV3Interface.sol": {
+      "lastModificationDate": 1664873477788,
       "contentHash": "611f626b2447ccff9ba5332460fd217f",
       "sourceName": "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol",
       "solcConfig": {
@@ -1220,8 +1221,8 @@
         "AggregatorV3Interface"
       ]
     },
-    "C:\\Users\\blackwhale\\Desktop\\Code\\athena-contracts\\node_modules\\@openzeppelin\\contracts\\token\\ERC721\\ERC721.sol": {
-      "lastModificationDate": 1663665256235,
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\node_modules\\@openzeppelin\\contracts\\token\\ERC721\\ERC721.sol": {
+      "lastModificationDate": 1664873470379,
       "contentHash": "49295810dc45f300e5f84b4b50d88a59",
       "sourceName": "@openzeppelin/contracts/token/ERC721/ERC721.sol",
       "solcConfig": {
@@ -1263,8 +1264,8 @@
         "ERC721"
       ]
     },
-    "C:\\Users\\blackwhale\\Desktop\\Code\\athena-contracts\\node_modules\\@openzeppelin\\contracts\\token\\ERC721\\IERC721Receiver.sol": {
-      "lastModificationDate": 1663665256336,
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\node_modules\\@openzeppelin\\contracts\\token\\ERC721\\IERC721Receiver.sol": {
+      "lastModificationDate": 1664873471514,
       "contentHash": "592df588492d45fdcf46b3cb608c0fbf",
       "sourceName": "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol",
       "solcConfig": {
@@ -1298,8 +1299,8 @@
         "IERC721Receiver"
       ]
     },
-    "C:\\Users\\blackwhale\\Desktop\\Code\\athena-contracts\\node_modules\\@openzeppelin\\contracts\\token\\ERC721\\extensions\\IERC721Metadata.sol": {
-      "lastModificationDate": 1663665256331,
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\node_modules\\@openzeppelin\\contracts\\token\\ERC721\\extensions\\IERC721Metadata.sol": {
+      "lastModificationDate": 1664873471474,
       "contentHash": "efbc0d15b80a74e34dbe8da0f3e879bb",
       "sourceName": "@openzeppelin/contracts/token/ERC721/extensions/IERC721Metadata.sol",
       "solcConfig": {
@@ -1335,8 +1336,8 @@
         "IERC721Metadata"
       ]
     },
-    "C:\\Users\\blackwhale\\Desktop\\Code\\athena-contracts\\node_modules\\@openzeppelin\\contracts\\utils\\Strings.sol": {
-      "lastModificationDate": 1663665256396,
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\node_modules\\@openzeppelin\\contracts\\utils\\Strings.sol": {
+      "lastModificationDate": 1664873472522,
       "contentHash": "9c54c6c065d9e590fdcdd72c451425b9",
       "sourceName": "@openzeppelin/contracts/utils/Strings.sol",
       "solcConfig": {
@@ -1370,8 +1371,8 @@
         "Strings"
       ]
     },
-    "C:\\Users\\blackwhale\\Desktop\\Code\\athena-contracts\\node_modules\\@openzeppelin\\contracts\\utils\\introspection\\ERC165.sol": {
-      "lastModificationDate": 1663665256197,
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\node_modules\\@openzeppelin\\contracts\\utils\\introspection\\ERC165.sol": {
+      "lastModificationDate": 1664873469750,
       "contentHash": "0e7db055ce108f9da7bb6686a00287c0",
       "sourceName": "@openzeppelin/contracts/utils/introspection/ERC165.sol",
       "solcConfig": {
@@ -1407,8 +1408,8 @@
         "ERC165"
       ]
     },
-    "C:\\Users\\blackwhale\\Desktop\\Code\\athena-contracts\\node_modules\\@openzeppelin\\contracts\\token\\ERC721\\extensions\\ERC721Enumerable.sol": {
-      "lastModificationDate": 1663665256239,
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\node_modules\\@openzeppelin\\contracts\\token\\ERC721\\extensions\\ERC721Enumerable.sol": {
+      "lastModificationDate": 1664873470433,
       "contentHash": "88095889e59d16821879a8083f906503",
       "sourceName": "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol",
       "solcConfig": {
@@ -1445,9 +1446,9 @@
         "ERC721Enumerable"
       ]
     },
-    "C:\\Users\\blackwhale\\Desktop\\Code\\athena-contracts\\contracts\\PositionsManager.sol": {
-      "lastModificationDate": 1674123866128,
-      "contentHash": "c72eb36bfc8b20122ce88d34fb5a0472",
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\PositionsManager.sol": {
+      "lastModificationDate": 1674485008653,
+      "contentHash": "b0cb3ada4a0e4716285a0d75c289dd46",
       "sourceName": "contracts/PositionsManager.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -1486,8 +1487,8 @@
         "PositionsManager"
       ]
     },
-    "C:\\Users\\blackwhale\\Desktop\\Code\\athena-contracts\\contracts\\libraries\\PositionsLibrary.sol": {
-      "lastModificationDate": 1673264238046,
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\libraries\\PositionsLibrary.sol": {
+      "lastModificationDate": 1672846266510,
       "contentHash": "788712952bfeaa4fa41befe17a3c540e",
       "sourceName": "contracts/libraries/PositionsLibrary.sol",
       "solcConfig": {
@@ -1521,8 +1522,8 @@
         "PositionsLibrary"
       ]
     },
-    "C:\\Users\\blackwhale\\Desktop\\Code\\athena-contracts\\contracts\\StakingGeneralPool.sol": {
-      "lastModificationDate": 1674140205454,
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\StakingGeneralPool.sol": {
+      "lastModificationDate": 1674217196587,
       "contentHash": "295d17b6dae387edb2bcee4913ff626c",
       "sourceName": "contracts/StakingGeneralPool.sol",
       "solcConfig": {
@@ -1561,10 +1562,10 @@
         "StakingGeneralPool"
       ]
     },
-    "C:\\Users\\blackwhale\\Desktop\\Code\\athena-contracts\\contracts\\libraries\\ERC20withSnapshot.sol": {
-      "lastModificationDate": 1674132849453,
-      "contentHash": "2c75aa4084b22277d8292adf4ddb5ad5",
-      "sourceName": "contracts/libraries/ERC20withSnapshot.sol",
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\node_modules\\hardhat\\console.sol": {
+      "lastModificationDate": 1664873479764,
+      "contentHash": "cc4777addd464ea56fa35b1c45df0591",
+      "sourceName": "hardhat/console.sol",
       "solcConfig": {
         "version": "0.8.11",
         "settings": {
@@ -1588,94 +1589,17 @@
           }
         }
       },
-      "imports": [
-        "@openzeppelin/contracts/token/ERC20/ERC20.sol"
-      ],
+      "imports": [],
       "versionPragmas": [
-        "^0.8"
+        ">=0.4.22 <0.9.0"
       ],
       "artifacts": [
-        "ERC20WithSnapshot"
+        "console"
       ]
     },
-    "C:\\Users\\blackwhale\\Desktop\\Code\\athena-contracts\\contracts\\StakingPolicy.sol": {
-      "lastModificationDate": 1674123866130,
-      "contentHash": "e7663151707e87ee110467a597c35125",
-      "sourceName": "contracts/StakingPolicy.sol",
-      "solcConfig": {
-        "version": "0.8.11",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 1000
-          },
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [
-        "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol",
-        "./libraries/ERC20withSnapshot.sol"
-      ],
-      "versionPragmas": [
-        "^0.8"
-      ],
-      "artifacts": [
-        "StakingPolicy"
-      ]
-    },
-    "C:\\Users\\blackwhale\\Desktop\\Code\\athena-contracts\\contracts\\USDT_testnet\\USDT.sol": {
-      "lastModificationDate": 1663158738433,
-      "contentHash": "c03b28e54103a386b30a27b897b0c772",
-      "sourceName": "contracts/USDT_testnet/USDT.sol",
-      "solcConfig": {
-        "version": "0.8.11",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 1000
-          },
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [
-        "@openzeppelin/contracts/token/ERC20/ERC20.sol"
-      ],
-      "versionPragmas": [
-        "^0.8"
-      ],
-      "artifacts": [
-        "USDT"
-      ]
-    },
-    "C:\\Users\\blackwhale\\Desktop\\Code\\athena-contracts\\contracts\\ProtocolPool.sol": {
-      "lastModificationDate": 1674123866129,
-      "contentHash": "8e47bd02520e15153baa465be6ad3e49",
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\ProtocolPool.sol": {
+      "lastModificationDate": 1674485349414,
+      "contentHash": "aa18c525a93045953d6f04d5b677f5f5",
       "sourceName": "contracts/ProtocolPool.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -1712,8 +1636,8 @@
         "ProtocolPool"
       ]
     },
-    "C:\\Users\\blackwhale\\Desktop\\Code\\athena-contracts\\contracts\\PolicyCover.sol": {
-      "lastModificationDate": 1674123866127,
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\PolicyCover.sol": {
+      "lastModificationDate": 1673435052084,
       "contentHash": "4ad1713bc59e51402bcf025396b199b3",
       "sourceName": "contracts/PolicyCover.sol",
       "solcConfig": {
@@ -1756,8 +1680,8 @@
         "PolicyCover"
       ]
     },
-    "C:\\Users\\blackwhale\\Desktop\\Code\\athena-contracts\\contracts\\libraries\\Tick.sol": {
-      "lastModificationDate": 1668359136380,
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\libraries\\Tick.sol": {
+      "lastModificationDate": 1664788756648,
       "contentHash": "371c50110a0dc9697d138ee1bc77153f",
       "sourceName": "contracts/libraries/Tick.sol",
       "solcConfig": {
@@ -1793,8 +1717,8 @@
         "Tick"
       ]
     },
-    "C:\\Users\\blackwhale\\Desktop\\Code\\athena-contracts\\contracts\\libraries\\TickBitmap.sol": {
-      "lastModificationDate": 1663158738441,
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\libraries\\TickBitmap.sol": {
+      "lastModificationDate": 1664788756648,
       "contentHash": "875a54eb7e8744efe5a80ad3334320d1",
       "sourceName": "contracts/libraries/TickBitmap.sol",
       "solcConfig": {
@@ -1830,8 +1754,8 @@
         "TickBitmap"
       ]
     },
-    "C:\\Users\\blackwhale\\Desktop\\Code\\athena-contracts\\contracts\\libraries\\PremiumPosition.sol": {
-      "lastModificationDate": 1668359136379,
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\libraries\\PremiumPosition.sol": {
+      "lastModificationDate": 1664788756646,
       "contentHash": "f096791fbdd6ec042c6467317ef0dc80",
       "sourceName": "contracts/libraries/PremiumPosition.sol",
       "solcConfig": {
@@ -1867,8 +1791,8 @@
         "PremiumPosition"
       ]
     },
-    "C:\\Users\\blackwhale\\Desktop\\Code\\athena-contracts\\contracts\\libraries\\BitMath.sol": {
-      "lastModificationDate": 1663158738438,
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\libraries\\BitMath.sol": {
+      "lastModificationDate": 1664788756642,
       "contentHash": "a3dd880bf21ac17ea0997e79d23e8028",
       "sourceName": "contracts/libraries/BitMath.sol",
       "solcConfig": {
@@ -1902,9 +1826,9 @@
         "BitMath"
       ]
     },
-    "C:\\Users\\blackwhale\\Desktop\\Code\\athena-contracts\\contracts\\PolicyManager.sol": {
-      "lastModificationDate": 1673264238040,
-      "contentHash": "90ce0f5211f87a55102eb272e1ccfc3c",
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\PolicyManager.sol": {
+      "lastModificationDate": 1674230322482,
+      "contentHash": "caade8f8c65abb6a2664d48a88ef076b",
       "sourceName": "contracts/PolicyManager.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -1942,9 +1866,9 @@
         "PolicyManager"
       ]
     },
-    "C:\\Users\\blackwhale\\Desktop\\Code\\athena-contracts\\contracts\\ClaimManager.sol": {
-      "lastModificationDate": 1674123866126,
-      "contentHash": "effedb66d330a732de984384cad8914e",
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\ClaimManager.sol": {
+      "lastModificationDate": 1674563549282,
+      "contentHash": "3067a44f905c5493da56740242e03984",
       "sourceName": "contracts/ClaimManager.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -1984,8 +1908,8 @@
         "ClaimManager"
       ]
     },
-    "C:\\Users\\blackwhale\\Desktop\\Code\\athena-contracts\\contracts\\interfaces\\IArbitrable.sol": {
-      "lastModificationDate": 1674123866131,
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\interfaces\\IArbitrable.sol": {
+      "lastModificationDate": 1673529138625,
       "contentHash": "97bd0796e2a623c830c6217ce41d53a0",
       "sourceName": "contracts/interfaces/IArbitrable.sol",
       "solcConfig": {
@@ -2021,8 +1945,8 @@
         "IArbitrable"
       ]
     },
-    "C:\\Users\\blackwhale\\Desktop\\Code\\athena-contracts\\contracts\\interfaces\\IArbitrator.sol": {
-      "lastModificationDate": 1674123866132,
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\interfaces\\IArbitrator.sol": {
+      "lastModificationDate": 1673529135565,
       "contentHash": "90c47fca9903bdb46a12f77f221fdcac",
       "sourceName": "contracts/interfaces/IArbitrator.sol",
       "solcConfig": {
@@ -2058,9 +1982,9 @@
         "IArbitrator"
       ]
     },
-    "C:\\Users\\blackwhale\\Desktop\\Code\\athena-contracts\\contracts\\ClaimEvidence.sol": {
-      "lastModificationDate": 1673264238039,
-      "contentHash": "6f63e71686778cef0b0482ca52759d71",
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\ClaimEvidence.sol": {
+      "lastModificationDate": 1674232786357,
+      "contentHash": "95750115c679a1013fd6300c2426ab14",
       "sourceName": "contracts/ClaimEvidence.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -2095,8 +2019,8 @@
         "ClaimEvidence"
       ]
     },
-    "C:\\Users\\blackwhale\\Desktop\\Code\\athena-contracts\\contracts\\interfaces\\IEvidence.sol": {
-      "lastModificationDate": 1671700557485,
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\interfaces\\IEvidence.sol": {
+      "lastModificationDate": 1673528899491,
       "contentHash": "8abcd6dd62146fe364473808742e03d1",
       "sourceName": "contracts/interfaces/IEvidence.sol",
       "solcConfig": {
@@ -2132,8 +2056,8 @@
         "IEvidence"
       ]
     },
-    "C:\\Users\\blackwhale\\Desktop\\Code\\athena-contracts\\contracts\\kleros\\Arbitrator.sol": {
-      "lastModificationDate": 1674125871180,
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\kleros\\Arbitrator.sol": {
+      "lastModificationDate": 1673529109880,
       "contentHash": "aa51424e23d6c51249e016b927f60ec2",
       "sourceName": "contracts/kleros/Arbitrator.sol",
       "solcConfig": {
@@ -2169,8 +2093,8 @@
         "Arbitrator"
       ]
     },
-    "C:\\Users\\blackwhale\\Desktop\\Code\\athena-contracts\\contracts\\kleros\\CentralizedArbitrator.sol": {
-      "lastModificationDate": 1674123866136,
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\kleros\\CentralizedArbitrator.sol": {
+      "lastModificationDate": 1673533491294,
       "contentHash": "79f8850c98f366443e15e1251f86bb00",
       "sourceName": "contracts/kleros/CentralizedArbitrator.sol",
       "solcConfig": {
@@ -2206,8 +2130,8 @@
         "CentralizedArbitrator"
       ]
     },
-    "C:\\Users\\blackwhale\\Desktop\\Code\\athena-contracts\\contracts\\ProtocolFactory.sol": {
-      "lastModificationDate": 1674123866128,
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\ProtocolFactory.sol": {
+      "lastModificationDate": 1673438820801,
       "contentHash": "e98a162bedf9621d26d0be05f85dae9d",
       "sourceName": "contracts/ProtocolFactory.sol",
       "solcConfig": {
@@ -2244,8 +2168,120 @@
         "ProtocolFactory"
       ]
     },
-    "C:\\Users\\blackwhale\\Desktop\\Code\\athena-contracts\\contracts\\interfaces\\IAToken.sol": {
-      "lastModificationDate": 1663158738433,
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\USDT_testnet\\USDT.sol": {
+      "lastModificationDate": 1664788756627,
+      "contentHash": "c03b28e54103a386b30a27b897b0c772",
+      "sourceName": "contracts/USDT_testnet/USDT.sol",
+      "solcConfig": {
+        "version": "0.8.11",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "@openzeppelin/contracts/token/ERC20/ERC20.sol"
+      ],
+      "versionPragmas": [
+        "^0.8"
+      ],
+      "artifacts": [
+        "USDT"
+      ]
+    },
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\libraries\\ERC20withSnapshot.sol": {
+      "lastModificationDate": 1671657506913,
+      "contentHash": "2c75aa4084b22277d8292adf4ddb5ad5",
+      "sourceName": "contracts/libraries/ERC20withSnapshot.sol",
+      "solcConfig": {
+        "version": "0.8.11",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "@openzeppelin/contracts/token/ERC20/ERC20.sol"
+      ],
+      "versionPragmas": [
+        "^0.8"
+      ],
+      "artifacts": [
+        "ERC20WithSnapshot"
+      ]
+    },
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\StakingPolicy.sol": {
+      "lastModificationDate": 1674063404016,
+      "contentHash": "e7663151707e87ee110467a597c35125",
+      "sourceName": "contracts/StakingPolicy.sol",
+      "solcConfig": {
+        "version": "0.8.11",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol",
+        "./libraries/ERC20withSnapshot.sol"
+      ],
+      "versionPragmas": [
+        "^0.8"
+      ],
+      "artifacts": [
+        "StakingPolicy"
+      ]
+    },
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\interfaces\\IAToken.sol": {
+      "lastModificationDate": 1664788756628,
       "contentHash": "917a00f33bd393fbd8b06a7809e80574",
       "sourceName": "contracts/interfaces/IAToken.sol",
       "solcConfig": {
@@ -2282,8 +2318,8 @@
         "IAToken"
       ]
     },
-    "C:\\Users\\blackwhale\\Desktop\\Code\\athena-contracts\\contracts\\interfaces\\IScaledBalanceToken.sol": {
-      "lastModificationDate": 1663158738437,
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\interfaces\\IScaledBalanceToken.sol": {
+      "lastModificationDate": 1664788756639,
       "contentHash": "15c4a362ede26f89102f328e78839bbd",
       "sourceName": "contracts/interfaces/IScaledBalanceToken.sol",
       "solcConfig": {
@@ -2317,8 +2353,8 @@
         "IScaledBalanceToken"
       ]
     },
-    "C:\\Users\\blackwhale\\Desktop\\Code\\athena-contracts\\contracts\\ICO\\ATEN.sol": {
-      "lastModificationDate": 1674123866127,
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\ICO\\ATEN.sol": {
+      "lastModificationDate": 1673616576778,
       "contentHash": "06e7cb01cfc118b83a0b4f36398f7292",
       "sourceName": "contracts/ICO/ATEN.sol",
       "solcConfig": {
@@ -2357,10 +2393,51 @@
         "SafeMath"
       ]
     },
-    "C:\\Users\\blackwhale\\Desktop\\Code\\athena-contracts\\node_modules\\hardhat\\console.sol": {
-      "lastModificationDate": 1663665256423,
-      "contentHash": "cc4777addd464ea56fa35b1c45df0591",
-      "sourceName": "hardhat/console.sol",
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\uniswap\\PriceOracleV2.sol": {
+      "lastModificationDate": 1675094671554,
+      "contentHash": "f5e8ad4cd1b8e7dfcd624ae7ef5cb187",
+      "sourceName": "contracts/uniswap/PriceOracleV2.sol",
+      "solcConfig": {
+        "version": "0.8.11",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "@openzeppelin/contracts/access/Ownable.sol",
+        "./IUniswapV3Pool.sol",
+        "./TickMath.sol",
+        "./FixedPoint96.sol",
+        "./FullMath.sol"
+      ],
+      "versionPragmas": [
+        "^0.8"
+      ],
+      "artifacts": [
+        "PriceOracleV2"
+      ]
+    },
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\uniswap\\IUniswapV3Pool.sol": {
+      "lastModificationDate": 1675089595653,
+      "contentHash": "92e4f52153ca2c55134c70ecc09db498",
+      "sourceName": "contracts/uniswap/IUniswapV3Pool.sol",
       "solcConfig": {
         "version": "0.8.11",
         "settings": {
@@ -2386,10 +2463,187 @@
       },
       "imports": [],
       "versionPragmas": [
-        ">=0.4.22 <0.9.0"
+        ">=0.8.0"
       ],
       "artifacts": [
-        "console"
+        "IUniswapV3Pool"
+      ]
+    },
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\uniswap\\TickMath.sol": {
+      "lastModificationDate": 1675086094869,
+      "contentHash": "530df62646ed63bd85e8121752f9422d",
+      "sourceName": "contracts/uniswap/TickMath.sol",
+      "solcConfig": {
+        "version": "0.8.11",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        ">=0.8.0"
+      ],
+      "artifacts": [
+        "TickMath"
+      ]
+    },
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\uniswap\\FixedPoint96.sol": {
+      "lastModificationDate": 1675086050634,
+      "contentHash": "de43a713c1388f117195cf59a2e6763c",
+      "sourceName": "contracts/uniswap/FixedPoint96.sol",
+      "solcConfig": {
+        "version": "0.8.11",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        ">=0.8.0"
+      ],
+      "artifacts": [
+        "FixedPoint96"
+      ]
+    },
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\uniswap\\FullMath.sol": {
+      "lastModificationDate": 1675086004086,
+      "contentHash": "1d382fa4cddb0fcdd4c34d26fd4c61de",
+      "sourceName": "contracts/uniswap/FullMath.sol",
+      "solcConfig": {
+        "version": "0.8.11",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        ">=0.8.0"
+      ],
+      "artifacts": [
+        "FullMath"
+      ]
+    },
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\PriceOracleV1.sol": {
+      "lastModificationDate": 1675095896155,
+      "contentHash": "c83032f73b95a224219ce6107144b562",
+      "sourceName": "contracts/PriceOracleV1.sol",
+      "solcConfig": {
+        "version": "0.8.11",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "@openzeppelin/contracts/access/Ownable.sol"
+      ],
+      "versionPragmas": [
+        "^0.8"
+      ],
+      "artifacts": [
+        "PriceOracleV1"
+      ]
+    },
+    "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\interfaces\\IPriceOracle.sol": {
+      "lastModificationDate": 1675096052568,
+      "contentHash": "62b12b6f39172e47394ddaf86b714964",
+      "sourceName": "contracts/interfaces/IPriceOracle.sol",
+      "solcConfig": {
+        "version": "0.8.11",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 1000
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8"
+      ],
+      "artifacts": [
+        "IPriceOracle"
       ]
     }
   }
