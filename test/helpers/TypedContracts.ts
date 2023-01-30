@@ -3,19 +3,19 @@ import { ethers } from "hardhat";
 
 const addressHardhat = {
   ATEN: "0xb927A2185C1cE07f235F336Bf6bd3190C2Edc8F8",
-  ARBITRATOR: "0x45CaEE014eE6684Bb05e1f09ebe5e55D98aa35c6",
   ATHENA: "0x6a12fe9a151Ec80Ccbee3c368f4Ae03A9c0B4f71",
-  POSITIONS_MANAGER: "0xAB56FA5D4Aa0D47f23B9b1a7bEAa60dFd6883cC9",
-  STAKING_GP: "0x907D90B32B5bdd84cC0aE6b0431167AD5b565D80",
-  POLICY_MANAGER: "0xD854eBae523aAdCeDb6b49D24cA40037b06A7EDa",
-  FACTORY_PROTOCOL: "0x7E91125309BE380038F8969D0DEE99C2914AFc24",
-  STAKING_POLICY: "0x2fC7213A30e3Ec1d0100c731C03651B914D7d88d",
   TOKEN_VAULT: "0x3BAAA3Ff32b55EE1e41833FAcF0cb29023f37018",
+  STAKING_GP: "0x907D90B32B5bdd84cC0aE6b0431167AD5b565D80",
+  STAKING_POLICY: "0x2fC7213A30e3Ec1d0100c731C03651B914D7d88d",
+  POSITIONS_MANAGER: "0xAB56FA5D4Aa0D47f23B9b1a7bEAa60dFd6883cC9",
+  POLICY_MANAGER: "0xD854eBae523aAdCeDb6b49D24cA40037b06A7EDa",
   CLAIM_MANAGER: "0x3a6EDEE021927218CcD904595247A341596cA41B",
+  ARBITRATOR: "0x45CaEE014eE6684Bb05e1f09ebe5e55D98aa35c6",
+  FACTORY_PROTOCOL: "0x7E91125309BE380038F8969D0DEE99C2914AFc24",
+  PRICE_ORACLE_V1: "0xe6D86620EccB362d4E0a069aFc0f50D9700FF20C",
 };
 
 const addressGoerli = {
-  USDT: "0x65E2fe35C30eC218b46266F89847c63c2eDa7Dc7",
   ATEN: "0x45CaEE014eE6684Bb05e1f09ebe5e55D98aa35c6",
   ATHENA: "0xAB56FA5D4Aa0D47f23B9b1a7bEAa60dFd6883cC9",
   TOKEN_VAULT: "0x3a6EDEE021927218CcD904595247A341596cA41B",
@@ -26,6 +26,7 @@ const addressGoerli = {
   CLAIM_MANAGER: "0xe6D86620EccB362d4E0a069aFc0f50D9700FF20C",
   ARBITRATOR: "0x6a12fe9a151Ec80Ccbee3c368f4Ae03A9c0B4f71",
   FACTORY_PROTOCOL: "0x2fC7213A30e3Ec1d0100c731C03651B914D7d88d",
+  PRICE_ORACLE_V1: "0xafc88899e0b7d6de92d770048e86eebde7544e15",
 };
 
 // Defaults to Goerli addresses
@@ -59,6 +60,7 @@ import { abi as abiPolicyManager } from "../../artifacts/contracts/PolicyManager
 import { abi as abiClaimManager } from "../../artifacts/contracts/ClaimManager.sol/ClaimManager.json";
 import { abi as abiArbitrator } from "../../artifacts/contracts/kleros/Arbitrator.sol/Arbitrator.json";
 import { abi as abiProtocolFactory } from "../../artifacts/contracts/ProtocolFactory.sol/ProtocolFactory.json";
+import { abi as abiPriceOracleV1 } from "../../artifacts/contracts/PriceOracleV1.sol/PriceOracleV1.json";
 
 // typechain
 import type { USDT as typeUSDT } from "../../typechain/USDT";
@@ -72,6 +74,7 @@ import type { PolicyManager as typePolicyManager } from "../../typechain/PolicyM
 import type { ClaimManager as typeClaimManager } from "../../typechain/ClaimManager";
 import type { Arbitrator as typeArbitrator } from "../../typechain/Arbitrator";
 import type { ProtocolFactory as typeProtocolFactory } from "../../typechain/ProtocolFactory";
+import type { PriceOracleV1 as typePriceOracleV1 } from "../../typechain/PriceOracleV1";
 
 export const contract = {
   USDT: new ethers.Contract(deploymentAddress.USDT, abiUSDT) as typeUSDT,
@@ -112,6 +115,10 @@ export const contract = {
     deploymentAddress.FACTORY_PROTOCOL,
     abiProtocolFactory
   ) as typeProtocolFactory,
+  PRICE_ORACLE_V1: new ethers.Contract(
+    deploymentAddress.PRICE_ORACLE_V1,
+    abiPriceOracleV1
+  ) as typePriceOracleV1,
 };
 
 export type {
@@ -126,6 +133,7 @@ export type {
   abiClaimManager,
   abiArbitrator,
   abiProtocolFactory,
+  abiPriceOracleV1,
   typeUSDT,
   typeATEN,
   typeAthena,
@@ -137,4 +145,5 @@ export type {
   typeClaimManager,
   typeArbitrator,
   typeProtocolFactory,
+  typePriceOracleV1,
 };

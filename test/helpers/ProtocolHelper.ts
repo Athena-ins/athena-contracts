@@ -144,6 +144,27 @@ function getClaimManagerContract() {
   return contract.CLAIM_MANAGER;
 }
 
+async function deployPriceOracleV1Contract(
+  owner: ethers.Signer,
+  initialPrice?: BigNumberish
+) {
+  // Default price at 25 ATEN = 1 USDT
+  const useInitialPrice =
+    initialPrice || BigNumber.from(25).mul(BigNumber.from(10).pow(18));
+
+  contract.PRICE_ORACLE_V1 = await (
+    await hre_ethers.getContractFactory("PriceOracleV1")
+  )
+    .connect(owner)
+    .deploy(useInitialPrice);
+
+  await contract.PRICE_ORACLE_V1.deployed();
+}
+
+function getPriceOracleV1Contract() {
+  return contract.PRICE_ORACLE_V1;
+}
+
 async function deployStakedAtensPolicyContract(owner: ethers.Signer) {
   const useAtenAddress = contract.ATEN?.address || HardhatHelper.ATEN;
   contract.STAKING_POLICY = await (
@@ -181,7 +202,8 @@ async function initializeProtocol(owner: ethers.Signer) {
     contract.STAKING_GP.address,
     contract.STAKING_POLICY.address,
     contract.FACTORY_PROTOCOL.address,
-    contract.TOKEN_VAULT.address
+    contract.TOKEN_VAULT.address,
+    contract.PRICE_ORACLE_V1.address
   );
 }
 
@@ -234,6 +256,7 @@ async function deployAllContractsAndInitializeProtocol(owner: ethers.Signer) {
   await deployClaimManagerContract(owner);
   await deployStakedAtensPolicyContract(owner);
   await deployVaultAtenContract(owner);
+  await deployPriceOracleV1Contract(owner);
 
   await initializeProtocol(owner);
 
@@ -485,4 +508,6 @@ export default {
   depositRewardsToVault,
   takeInterest,
   stakingGeneralPoolDeposit,
+  deployPriceOracleV1Contract,
+  getPriceOracleV1Contract,
 };
