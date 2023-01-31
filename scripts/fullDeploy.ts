@@ -26,7 +26,8 @@ async function main() {
     deploymentAddress.user_1 = await user_1.getAddress();
 
     // =====> deploy ATEN token & deploy arbitrator
-    await ProtocolHelper.deployAtenTokenContract(deployer);
+    // @dev for the moment do not redeploy ATEN token to reuse existing one
+    // await ProtocolHelper.deployAtenTokenContract(deployer);
     await ProtocolHelper.deployArbitratorContract(deployer);
 
     const ARBITRATOR_CONTRACT = ProtocolHelper.getArbitratorContract();

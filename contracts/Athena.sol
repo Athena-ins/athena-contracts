@@ -655,7 +655,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     }
   }
 
-  // @bw missing add to existing policy
+  // @bw need extend cover fn
 
   /**
    * @notice
