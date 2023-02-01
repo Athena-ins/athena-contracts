@@ -470,7 +470,7 @@ describe("Liquidity provider takeInterest", () => {
         1 * 24 * 60 * 60
       );
 
-      // @bw calc method
+      // @dev calc method
       //PT1: UR = 30%; PR = 3%; ER = 9, (PT1 -> 9)
       //10 days => LP1 <- 9 * 10 = 90; PT1 <- 2190 - 90 = 2100
       //PT2: UR = 60%; PR = 5%; ER = 30, (PT1 -> 15; PT2 -> 15)

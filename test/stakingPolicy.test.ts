@@ -45,7 +45,7 @@ describe("Staking Policy Rewards", function () {
     await ProtocolHelper.addNewProtocolPool("Test protocol 2");
     await ProtocolHelper.addNewProtocolPool("Test protocol 3");
 
-    // ================= Cover Providers ================= //
+    // ================= Get Contracts ================= //
 
     ATEN = ProtocolHelper.getAtenTokenContract();
     ATHENA_CONTRACT = ProtocolHelper.getAthenaContract();
@@ -112,35 +112,45 @@ describe("Staking Policy Rewards", function () {
   });
 
   it("Should fail to buy Policy with Atens cause too many ATENS", async function () {
-    await expect(
-      ATHENA_CONTRACT.connect(policyTaker1).buyPolicies(
-        [1000],
-        [100],
-        [20000],
-        [0]
+    const oneMillionAten = BigNumber.from(1_000_000).mul(
+      BigNumber.from(10).pow(18)
+    );
+
+    expect(
+      ProtocolHelper.buyPolicy(
+        policyTaker3,
+        "1000",
+        "10",
+        oneMillionAten.toString(),
+        0,
+        0
       )
-    ).to.eventually.be.rejectedWith("Too many ATENS");
+    ).to.eventually.be.rejectedWith("AmountAtenTooHigh()");
   });
 
   it("Should buy Policy with Atens", async function () {
-    const policy = await ATHENA_CONTRACT.connect(policyTaker1).buyPolicies(
-      [1000],
-      [100],
-      [10000],
-      [0]
+    const policy = await ProtocolHelper.buyPolicy(
+      policyTaker3,
+      "1000",
+      "100",
+      "10000",
+      0,
+      3
     );
-    await policy.wait();
+
     expect(policy).to.haveOwnProperty("hash");
   });
 
   it("Should buy Policy 2 with Atens", async function () {
-    const policy = await ATHENA_CONTRACT.connect(policyTaker1).buyPolicies(
-      [1000],
-      [100],
-      [6000],
-      [1]
+    const policy = await ProtocolHelper.buyPolicy(
+      policyTaker1,
+      "1000",
+      "100",
+      "6000",
+      1,
+      3
     );
-    await policy.wait();
+
     expect(policy).to.haveOwnProperty("hash");
   });
 
@@ -148,21 +158,20 @@ describe("Staking Policy Rewards", function () {
     const userStakes = await STAKING_POLICY.connect(
       policyTaker1
     ).allAccountStakingPositions(await policyTaker1.getAddress());
-    console.log("User stakes", userStakes);
 
     expect(userStakes[1].timestamp.toNumber()).to.not.equal(0);
   });
 
-  it("Should reject invalid withdraw Atens amount", async function () {
+  it("Should reject withdraw of other user's policy rewards", async function () {
     await expect(
-      ATHENA_CONTRACT.connect(policyTaker1).withdrawAtensPolicy(1)
-    ).to.eventually.be.rejectedWith("Invalid amount");
+      ATHENA_CONTRACT.connect(policyTaker3).withdrawAtensPolicy(1)
+    ).to.eventually.be.rejectedWith("NotPolicyOwner()");
   });
 
-  it("Should lock ATENS on 1 year", async function () {
+  it("Should reject withdrawal before 1 year lock time", async function () {
     await expect(
       ATHENA_CONTRACT.connect(policyTaker1).withdrawAtensPolicy(0)
-    ).to.eventually.be.rejectedWith("Locked window");
+    ).to.eventually.be.rejectedWith("SP: year has not elapsed");
   });
 
   it("Expect 12 months rewards for 100% APR", async function () {
@@ -170,7 +179,7 @@ describe("Staking Policy Rewards", function () {
       await policyTaker1.getAddress(),
       0
     );
-    expect(rewards.toNumber()).to.be.lessThanOrEqual(0.001);
+    expect(rewards.toNumber()).to.equal(13);
 
     await HardhatHelper.setNextBlockTimestamp(60 * 60 * 24 * 365 + 10);
 
@@ -179,7 +188,7 @@ describe("Staking Policy Rewards", function () {
       0
     );
 
-    expect(rewards2.toString()).to.equal(10000);
+    expect(rewards2.toString()).to.equal("500");
   });
 
   it("Should return 2 staking Policy ", async function () {
@@ -187,26 +196,24 @@ describe("Staking Policy Rewards", function () {
       policyTaker1
     ).allAccountStakingPositions(await policyTaker1.getAddress());
 
-    expect(indexUser.length).to.equal(2);
+    expect(indexUser.length).to.equal(3);
   });
 
   it("Should unlock ATENS and withdraw after 1 year", async function () {
-    await ATEN.connect(policyTaker2).transfer(STAKING_POLICY.address, 100);
-    await ATEN.connect(policyTaker2).transfer(STAKING_POLICY.address, 100);
-    const balBefore = await ATEN.connect(policyTaker2).balanceOf(
+    const balBefore = await ATEN.connect(policyTaker1).balanceOf(
       await policyTaker1.getAddress()
     );
-    await expect(
-      ATHENA_CONTRACT.connect(policyTaker1).withdrawAtensPolicy(0)
-    ).to.eventually.haveOwnProperty("hash");
-    const balAfter = await ATEN.connect(policyTaker2).balanceOf(
+
+    const txWithdrawAten = await (
+      await ATHENA_CONTRACT.connect(policyTaker1).withdrawAtensPolicy(0)
+    ).wait();
+    expect(txWithdrawAten).to.haveOwnProperty("transactionHash");
+
+    const balAfter = await ATEN.connect(policyTaker1).balanceOf(
       await policyTaker1.getAddress()
     );
-    expect(balAfter.sub(balBefore).toString()).to.equal(
-      BigNumber.from(10000).mul(99975).div(100000).mul(2).toString()
-    );
-    await expect(
-      ATHENA_CONTRACT.connect(policyTaker1).withdrawAtensPolicy(1)
-    ).to.eventually.haveOwnProperty("hash");
+
+    // 1000 = 500 staked + 500 rewards
+    expect(balAfter.sub(balBefore).toString()).to.equal("1000");
   });
 });
