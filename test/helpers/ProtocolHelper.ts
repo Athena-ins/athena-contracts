@@ -230,16 +230,15 @@ async function depositRewardsToVault(
   amountToTransfer: BigNumberish
 ) {
   await contract.ATEN.connect(owner).approve(
-    contract.ATHENA.address,
-    amountToTransfer
-  );
-
-  await contract.ATHENA.connect(owner).depositRewardForPolicyStaking(
-    amountToTransfer
-  );
-
-  await contract.ATEN.connect(owner).transfer(
     contract.TOKEN_VAULT.address,
+    BigNumber.from(amountToTransfer).mul(2)
+  );
+
+  await contract.TOKEN_VAULT.connect(owner).depositPolicyRefundRewards(
+    amountToTransfer
+  );
+
+  await contract.TOKEN_VAULT.connect(owner).depositStakingRewards(
     amountToTransfer
   );
 }
@@ -340,9 +339,11 @@ async function buyPolicy(
     );
   }
 
-  await HardhatHelper.setNextBlockTimestamp(timeLapse);
+  if (timeLapse) {
+    await HardhatHelper.setNextBlockTimestamp(timeLapse);
+  }
 
-  await contract.ATHENA.connect(user).buyPolicies(
+  return await contract.ATHENA.connect(user).buyPolicies(
     [capital],
     [premium],
     [atensLocked],
