@@ -354,7 +354,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     if (amountRewards == 0) revert WithdrawableAmountIsZero();
 
     // Send the rewards to the user from the vault
-    IVaultERC20(atensVault).sendReward(account_, amountRewards);
+    IVaultERC20(atensVault).sendPolicyRefundReward(account_, amountRewards);
   }
 
   function _updateUserPositionFeeRate(address account_) private {
@@ -417,7 +417,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     uint256 amountRewards = stakedAtensGPInterface.claimRewards(msg.sender);
 
     // Send the rewards to the user from the vault
-    IVaultERC20(atensVault).sendReward(msg.sender, amountRewards);
+    IVaultERC20(atensVault).sendStakingReward(msg.sender, amountRewards);
   }
 
   /** @notice
@@ -664,7 +664,6 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
    */
   function withdrawPolicy(uint256 policyId_)
     public
-    payable
     onlyPolicyTokenOwner(policyId_)
     nonReentrant
   {
@@ -829,14 +828,6 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   /// =========================== ///
 
   /// -------- STAKING -------- ///
-
-  function depositRewardForPolicyStaking(uint256 amount_) external onlyOwner {
-    // Transfer the ATEN to the vault
-    IERC20(atenToken).safeTransferFrom(msg.sender, atensVault, amount_);
-
-    // Make the rewards available to users by registering it in the staking pool
-    stakedAtensPoInterface.addAvailableRewards(amount_);
-  }
 
   /**
    * @notice

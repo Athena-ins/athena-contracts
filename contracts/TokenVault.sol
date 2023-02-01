@@ -11,36 +11,101 @@ contract TokenVault is IVaultERC20 {
 
   IERC20 public atenTokenInterface;
 
+  uint256 policyRefundRewardsTotal;
+  uint256 stakingRewardsTotal;
+
   constructor(address tokenAddress_, address core_) {
     atenTokenInterface = IERC20(tokenAddress_);
     core = core_;
   }
+
+  /// ========================= ///
+  /// ========= ERRORS ======== ///
+  /// ========================= ///
+
+  error TV_SenderIsNotCore();
+  error TV_SenderMustBeEOA();
 
   /// ============================ ///
   /// ========= MODIFIERS ======== ///
   /// ============================ ///
 
   modifier onlyCore() {
-    require(msg.sender == core, "TV: only core");
+    if (msg.sender != core) revert TV_SenderIsNotCore();
     _;
   }
 
-  /// ================================= ///
-  /// ========= DEPOSIT & SEND ======== ///
-  /// ================================= ///
+  /// ========================== ///
+  /// ========= DEPOSIT ======== ///
+  /// ========================== ///
+
+  function depositPolicyRefundRewards(uint256 amount_) external {
+    // Transfer the ATEN to the vault
+    atenTokenInterface.safeTransferFrom(msg.sender, address(this), amount_);
+
+    policyRefundRewardsTotal += amount_;
+  }
+
+  function depositStakingRewards(uint256 amount_) external {
+    // Transfer the ATEN to the vault
+    atenTokenInterface.safeTransferFrom(msg.sender, address(this), amount_);
+
+    stakingRewardsTotal += amount_;
+  }
+
+  /// ======================= ///
+  /// ========= SEND ======== ///
+  /// ======================= ///
 
   /**
    * @notice
-   * Sends policy or general staking rewards to a user
+   * Sends policy refund rewards to a user
    * @param to_ the address of the user
    * @param amount_ the amount of rewards to send
    */
-  function sendReward(address to_, uint256 amount_) external onlyCore {
+  function sendPolicyRefundReward(address to_, uint256 amount_)
+    external
+    onlyCore
+  {
     // Check if the contract has enough tokens
-    uint256 vaultBalance = atenTokenInterface.balanceOf(address(this));
-    require(amount_ <= vaultBalance, "TV: insufficient balance");
+    if (amount_ <= policyRefundRewardsTotal) {
+      policyRefundRewardsTotal = 0;
+      atenTokenInterface.transfer(to_, policyRefundRewardsTotal);
+    } else {
+      policyRefundRewardsTotal -= amount_;
+      atenTokenInterface.transfer(to_, amount_);
+    }
+  }
 
-    // Transfer the amount to the user
-    atenTokenInterface.transfer(to_, amount_);
+  /**
+   * @notice
+   * Sends general staking rewards to a user
+   * @param to_ the address of the user
+   * @param amount_ the amount of rewards to send
+   */
+  function sendStakingReward(address to_, uint256 amount_) external onlyCore {
+    // Check if the contract has enough tokens
+    if (amount_ <= stakingRewardsTotal) {
+      stakingRewardsTotal = 0;
+      atenTokenInterface.transfer(to_, stakingRewardsTotal);
+    } else {
+      stakingRewardsTotal -= amount_;
+      atenTokenInterface.transfer(to_, amount_);
+    }
+  }
+
+  /// ======================== ///
+  /// ========= ADMIN ======== ///
+  /// ======================== ///
+
+  function syncBalances() external {
+    // Reject contract calls to secure the function
+    if (msg.sender != tx.origin) revert TV_SenderMustBeEOA();
+
+    uint256 atenBalance = atenTokenInterface.balanceOf(address(this));
+
+    if (policyRefundRewardsTotal + stakingRewardsTotal < atenBalance) {
+      stakingRewardsTotal = atenBalance - policyRefundRewardsTotal;
+    }
   }
 }
