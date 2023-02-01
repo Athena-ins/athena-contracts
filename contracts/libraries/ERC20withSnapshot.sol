@@ -69,17 +69,16 @@ contract ERC20WithSnapshot is ERC20 {
     address to,
     uint256 amount
   ) internal override {
-    if (from == to) {
-      return;
-    }
-
-    if (from != address(0)) {
-      uint256 fromBalance = balanceOf(from);
-      _writeSnapshot(from, uint128(fromBalance), uint128(fromBalance - amount));
-    }
-    if (to != address(0)) {
-      uint256 toBalance = balanceOf(to);
-      _writeSnapshot(to, uint128(toBalance), uint128(toBalance + amount));
-    }
+    // if (from == to) {
+    //   return;
+    // }
+    // if (from != address(0)) {
+    //   uint256 fromBalance = balanceOf(from);
+    //   _writeSnapshot(from, uint128(fromBalance), uint128(fromBalance - amount));
+    // }
+    // if (to != address(0)) {
+    //   uint256 toBalance = balanceOf(to);
+    //   _writeSnapshot(to, uint128(toBalance), uint128(toBalance + amount));
+    // }
   }
 }

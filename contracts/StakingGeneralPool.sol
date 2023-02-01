@@ -279,8 +279,7 @@ contract StakingGeneralPool is IStakedAten {
   /// ========================= ///
   /// ========= ADMIN ========= ///
   /// ========================= ///
-
-  // @bw change to onlycore and add to core contract
+ 
   function setStakingRewards(RewardRateLevel[] calldata stakingLevels_)
     external
     onlyCore

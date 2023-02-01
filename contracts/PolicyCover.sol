@@ -50,12 +50,15 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
   }
 
   modifier existedOwner(address _owner) {
-    require(premiumPositions.hasOwner(_owner), "Owner Not Exist");
+    require(premiumPositions.hasOwner(_owner), "PC: account has no cover");
     _;
   }
 
   modifier notExistedOwner(address _owner) {
-    require(!premiumPositions.hasOwner(_owner), "Owner exist");
+    require(
+      !premiumPositions.hasOwner(_owner),
+      "PC: account already has cover"
+    );
     _;
   }
 
