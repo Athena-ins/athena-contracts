@@ -44,6 +44,7 @@ export const deploymentAddress = {
   //
   USDT: "0x65E2fe35C30eC218b46266F89847c63c2eDa7Dc7",
   aave_registry: "0x5E52dEc931FFb32f609681B8438A51c675cc232d",
+  aave_lending_pool: "0x4bd5643ac6f66a5237e18bfa7d47cf22f1c9f210",
   //
   ...chooseAddressSet(),
 };
