@@ -110,8 +110,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\Athena.sol": {
-      "lastModificationDate": 1675099230514,
-      "contentHash": "a5d125b0036c068794a2b58e0b12e7d7",
+      "lastModificationDate": 1675273515741,
+      "contentHash": "af4d9dc7683c52d1a537259b0038d5fd",
       "sourceName": "contracts/Athena.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -151,7 +151,8 @@
         "./interfaces/IPolicyManager.sol",
         "./interfaces/IClaimManager.sol",
         "./interfaces/IVaultERC20.sol",
-        "./interfaces/IPriceOracle.sol"
+        "./interfaces/IPriceOracle.sol",
+        "hardhat/console.sol"
       ],
       "versionPragmas": [
         "^0.8"
@@ -560,8 +561,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\interfaces\\IVaultERC20.sol": {
-      "lastModificationDate": 1673539229853,
-      "contentHash": "8a128007f49755f236e72c822a256883",
+      "lastModificationDate": 1675274273706,
+      "contentHash": "9b15ea3a4ae8b32981543272a04baa28",
       "sourceName": "contracts/interfaces/IVaultERC20.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -1029,8 +1030,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\TokenVault.sol": {
-      "lastModificationDate": 1673539234811,
-      "contentHash": "dc1ea5605f9da8f33f4d49ad3a75c9b2",
+      "lastModificationDate": 1675274286222,
+      "contentHash": "75c10569db3d50fddda6c6add8fcd652",
       "sourceName": "contracts/TokenVault.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -1523,8 +1524,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\StakingGeneralPool.sol": {
-      "lastModificationDate": 1674217196587,
-      "contentHash": "295d17b6dae387edb2bcee4913ff626c",
+      "lastModificationDate": 1675248336128,
+      "contentHash": "68286944bf31d4b17168aaf40ec408ba",
       "sourceName": "contracts/StakingGeneralPool.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -1637,8 +1638,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\PolicyCover.sol": {
-      "lastModificationDate": 1673435052084,
-      "contentHash": "4ad1713bc59e51402bcf025396b199b3",
+      "lastModificationDate": 1675255572850,
+      "contentHash": "b415ca96c3edf6f63eb0e2a13c23b4a5",
       "sourceName": "contracts/PolicyCover.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -1867,8 +1868,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\ClaimManager.sol": {
-      "lastModificationDate": 1674563549282,
-      "contentHash": "3067a44f905c5493da56740242e03984",
+      "lastModificationDate": 1675248515934,
+      "contentHash": "af2aaca85ac376fbf1697d9b864e2b63",
       "sourceName": "contracts/ClaimManager.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -2206,8 +2207,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\libraries\\ERC20withSnapshot.sol": {
-      "lastModificationDate": 1671657506913,
-      "contentHash": "2c75aa4084b22277d8292adf4ddb5ad5",
+      "lastModificationDate": 1675264993979,
+      "contentHash": "3ad36313bf90aa712e4754cb0c96ea09",
       "sourceName": "contracts/libraries/ERC20withSnapshot.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -2243,8 +2244,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\StakingPolicy.sol": {
-      "lastModificationDate": 1674063404016,
-      "contentHash": "e7663151707e87ee110467a597c35125",
+      "lastModificationDate": 1675264642310,
+      "contentHash": "9f97cfed0bc754d4f3c378b10462b31f",
       "sourceName": "contracts/StakingPolicy.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -2271,7 +2272,8 @@
       },
       "imports": [
         "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol",
-        "./libraries/ERC20withSnapshot.sol"
+        "./libraries/ERC20withSnapshot.sol",
+        "hardhat/console.sol"
       ],
       "versionPragmas": [
         "^0.8"
@@ -2394,8 +2396,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\uniswap\\PriceOracleV2.sol": {
-      "lastModificationDate": 1675094671554,
-      "contentHash": "f5e8ad4cd1b8e7dfcd624ae7ef5cb187",
+      "lastModificationDate": 1675103563739,
+      "contentHash": "440a43221219123fa8b832254fe06749",
       "sourceName": "contracts/uniswap/PriceOracleV2.sol",
       "solcConfig": {
         "version": "0.8.11",
