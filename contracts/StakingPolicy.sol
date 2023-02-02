@@ -41,18 +41,6 @@ contract StakingPolicy is Ownable {
     bool withdrawn;
   }
 
-  // Staking account data of user
-  // @bw this could all be optimized by abstracting away the user address out of this staking pool
-  // we just need staking pos by policy id and a getter for all policy ids of a user (with policyTokenIds)
-  struct StakeAccount {
-    uint256[] policyTokenIds;
-    // Maps a policy token ID to a staking position
-    mapping(uint256 => StakingPosition) positions;
-  }
-
-  // Mapping of stakers addresses to their staking accounts
-  mapping(address => StakeAccount) private _stakes;
-
   // A premium refund position of a user
   struct RefundPosition {
     uint256 earnedRewards;
@@ -95,40 +83,25 @@ contract StakingPolicy is Ownable {
   /// ========== EVENTS ========== ///
   /// ============================ ///
 
-  /**
-   * @notice
-   * Triggered whenever a user stakes tokens
-   */
-  event Stake(
-    address indexed user,
-    uint256 indexed coverId,
-    uint256 amountStaked
+  /// @notice Triggered whenever a user creates a position
+  event Stake(uint256 indexed coverId, uint256 amount);
+  /// @notice Triggered whenever a user updates a position
+  event AddStake(uint256 indexed coverId, uint256 amount);
+  /// @notice Triggered whenever a user unstakes tokens
+  event Unstake(uint256 indexed coverId, uint256 amount);
+  /// @notice Triggered whenever a cover expires
+  event EndStake(uint256 indexed coverId);
+  /// @notice Triggered whenever a staking position is closed by the user
+  event CloseStake(uint256 indexed coverId);
+
+  /// @notice Triggered whenever the refund and/or penalty rates are updated
+  event RatesUpdated(
+    uint256 newRewardsRate,
+    uint64 newMinPenaltyRate,
+    uint256 newFullPenaltyRate
   );
-
-  /**
-   * @notice
-   * Triggered whenever a user unstakes tokens
-   * @dev isEarlyUnstake is true if the user unstakes before the policy is expired
-   */
-  event Unstake(
-    address indexed user,
-    uint256 indexed coverId,
-    uint256 amountUnstaked,
-    uint256 amountRewards,
-    bool indexed isEarlyUnstake
-  );
-
-  /**
-   * @notice
-   * Triggered whenever the rewards rate is updated
-   */
-  event RefundRateUpdated(uint256 newRewardsAnnualRate);
-
-  /**
-   * @notice
-   * Triggered whenever rewards are added to the staking pool
-   */
-  event RewardsAdded(uint256 newTotalRewards);
+  /// @notice Triggered whenever the short cover duration is updated
+  event ShortCoverDurationUpdated(uint64 newShortCoverDuration);
 
   /// =============================== ///
   /// ========== MODIFIERS ========== ///
