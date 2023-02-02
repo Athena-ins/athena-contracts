@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import "./interfaces/IPriceOracle.sol";
 import "./interfaces/IVaultERC20.sol";
+import "./interfaces/IPolicyManager.sol";
 
 import "hardhat/console.sol";
 
@@ -13,21 +14,22 @@ import "hardhat/console.sol";
 contract StakingPolicy is Ownable {
   using SafeERC20 for IERC20;
 
-  IPriceOracle public priceOracleInterface;
-  IVaultERC20 public atensVaultInterface;
-
-  // The amount of ATEN tokens still available for staking rewards
-  // @bw should remove since rewards are now non-deterministic
-  uint256 public unpaidRewards;
-
-  // Address of ATEN token
-  address public immutable underlyingAssetAddress;
   // Address of the core Athena contract
   address public immutable coreAddress;
-  // The current APR of the staking pool
+
+  IERC20 public atenTokenInterface;
+  IPriceOracle public priceOracleInterface;
+  IVaultERC20 public atensVaultInterface;
+  IPolicyManager public policyManagerInterface;
+
+  // The amount of ATEN tokens still available for staking rewards
+  uint256 public unpaidRewards;
+
+  // The current refund rate & penalty rate of the staking pool
   // @dev 10_000 = 100% APR
   uint64 public refundRate = 10_000;
-  uint64 public fullPenaltyRate = 3_000;
+  uint64 public basePenaltyRate = 1_000;
+  uint64 public durationPenaltyRate = 5_000;
   uint64 public shortCoverDuration = 300 days;
 
   // A staking position of a user
@@ -75,16 +77,18 @@ contract StakingPolicy is Ownable {
    * @param core_ is the address of the core contract
    */
   constructor(
-    address underlyingAsset_,
     address core_,
+    address atenToken_,
     address priceOracle_,
-    address atensVault_
+    address atensVault_,
+    address policyManager_
   ) {
+    coreAddress = core_;
+
+    atenTokenInterface = IERC20(atenToken_);
     priceOracleInterface = IPriceOracle(priceOracle_);
     atensVaultInterface = IVaultERC20(atensVault_);
-
-    underlyingAssetAddress = underlyingAsset_;
-    coreAddress = core_;
+    policyManagerInterface = IPolicyManager(policyManager_);
   }
 
   /// ============================ ///
@@ -363,27 +367,38 @@ contract StakingPolicy is Ownable {
   /// ========== ADMIN ========== ///
   /// =========================== ///
 
-  /**
-   * @notice
-   * Used to add more rewards to the staking pool.
-   * @param amount_ amount of rewards to add
-   */
-  // @bw need to call method when adding to vault
-  function addAvailableRewards(uint256 amount_) external onlyCore {
-    // Add rewards to existing rewards balance
-    rewardsRemaining += amount_;
+  function setShortCoverDuration(uint256 shortCoverDuration_)
+    external
+    onlyOwner
+  {
+    require(0 < shortCoverDuration_, "SP: duration of zero");
+    shortCoverDuration = shortCoverDuration_;
 
-    emit RewardsAdded(rewardsRemaining);
+    emit ShortCoverDurationUpdated(shortCoverDuration_);
   }
 
   /**
    * @notice
    * Sets the new staking rewards APR for newly created policies.
-   * @param newRate_ the new reward rate (100% APR = 10_000)
+   * A value of 10_000 corresponds to 100%.
+   * @param refundRate_ the premium refund rate
+   * @param basePenaltyRate_ the base penalty rate
+   * @param durationPenaltyRate_ the time based penalty rate
    */
-  function setRefundRate(uint128 newRate_) external onlyOwner {
-    refundRate = newRate_;
+  function setRefundAndPenaltyRate(
+    uint64 refundRate_,
+    uint64 basePenaltyRate_,
+    uint64 durationPenaltyRate_
+  ) external onlyOwner {
+    require(
+      basePenaltyRate_ + durationPenaltyRate_ < 10_000,
+      "SP: penalty rate too high"
+    );
 
-    emit RefundRateUpdated(newRate_);
+    refundRate = refundRate_;
+    basePenaltyRate = basePenaltyRate_;
+    durationPenaltyRate = durationPenaltyRate_;
+
+    emit RatesUpdated(refundRate_, basePenaltyRate_, durationPenaltyRate_);
   }
 }
