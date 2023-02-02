@@ -4,20 +4,31 @@ pragma solidity ^0.8;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
+import "./interfaces/IPriceOracle.sol";
+import "./interfaces/IVaultERC20.sol";
+
+import "hardhat/console.sol";
 
 /// @notice Staking Pool Contract: Policy
 contract StakingPolicy is Ownable {
   using SafeERC20 for IERC20;
 
+  IPriceOracle public priceOracleInterface;
+  IVaultERC20 public atensVaultInterface;
+
   // The amount of ATEN tokens still available for staking rewards
-  uint256 public rewardsRemaining;
+  // @bw should remove since rewards are now non-deterministic
+  uint256 public unpaidRewards;
+
   // Address of ATEN token
   address public immutable underlyingAssetAddress;
   // Address of the core Athena contract
   address public immutable coreAddress;
   // The current APR of the staking pool
   // @dev 10_000 = 100% APR
-  uint128 public refundRate = 10_000;
+  uint64 public refundRate = 10_000;
+  uint64 public fullPenaltyRate = 3_000;
+  uint64 public shortCoverDuration = 300 days;
 
   // A staking position of a user
   struct StakingPosition {
@@ -40,6 +51,24 @@ contract StakingPolicy is Ownable {
   // Mapping of stakers addresses to their staking accounts
   mapping(address => StakeAccount) private _stakes;
 
+  // A premium refund position of a user
+  struct RefundPosition {
+    uint256 earnedRewards;
+    uint256 stakedAmount;
+    uint256 atenPrice;
+    uint64 initTimestamp;
+    uint64 rewardsSinceTimestamp;
+    uint64 endTimestamp;
+    uint64 rate;
+  }
+
+  // Maps a user address to their cover IDs
+  // @bw call policy manager instead
+  mapping(address => uint256[]) public userCoverIds;
+
+  // Maps a cover ID to its premium refund
+  mapping(uint256 => RefundPosition) public positions;
+
   /**
    * @notice constructs Pool LP Tokens for staking, decimals defaults to 18
    * @param underlyingAsset_ is the address of ATEN token
@@ -48,7 +77,12 @@ contract StakingPolicy is Ownable {
   constructor(
     address underlyingAsset_,
     address core_,
+    address priceOracle_,
+    address atensVault_
   ) {
+    priceOracleInterface = IPriceOracle(priceOracle_);
+    atensVaultInterface = IVaultERC20(atensVault_);
+
     underlyingAssetAddress = underlyingAsset_;
     coreAddress = core_;
   }
@@ -148,37 +182,51 @@ contract StakingPolicy is Ownable {
    * @notice
    * Returns the amount of rewards a user has earned for a specific staking position.
    * @dev The rewards are capped at 365 days of staking at the specified APR.
-   * @param account_ is the address of the user
-   * @param policyId_ is the id of the policy
+   * @param coverId_ is the id of the policy
    * @ @return _ the amount of rewards earned
    */
-  function rewardsOf(address account_, uint256 policyId_)
-    external
+  function positionRefundRewards(uint256 coverId_)
+    public
     view
     returns (uint256)
   {
-    StakingPosition storage pos = _stakes[account_].positions[policyId_];
-
-    // If the staking position is empty return 0
-    if (pos.amount == 0) return 0;
+    RefundPosition storage userPosition = positions[coverId_];
+    uint64 rewardsSinceTimestamp = userPosition.rewardsSinceTimestamp;
+    uint64 endTimestamp = userPosition.endTimestamp;
+    uint64 amount = userPosition.amount;
+    uint64 rate = userPosition.rate;
 
     uint256 timeElapsed;
-    require(pos.timestamp < block.timestamp, "SP: timestamp is in the future");
+    // We want to cap the rewards to the covers expiration
+    uint256 upTo = endTimestamp != 0 ? endTimestamp : block.timestamp;
+    require(rewardsSinceTimestamp < upTo, "SP: timestamp is in the future");
     unchecked {
-      // Unckecked because we know that block.timestamp is always bigger than pos.timestamp
-      timeElapsed = block.timestamp - pos.timestamp;
+      // Unckecked because we checked that upTo is bigger
+      timeElapsed = upTo - rewardsSinceTimestamp;
     }
 
-    // Max reward is 365 days of rewards at specified APR
-    uint256 maxReward = (pos.amount * pos.rate) / 10_000;
+    // Return proportional rewards
+    uint256 yearlyReward = (amount * rate) / 10_000;
+    uint256 yearPercentage = (timeElapsed * 1e18) / 1 years;
+    return (yearPercentage * yearlyReward) / 1e18;
+    }
 
-    if (365 days <= timeElapsed) {
-      // Cap rewards at 365 days
-      return maxReward;
-    } else {
-      // Else return proportional rewards
-      uint256 yearPercentage = (timeElapsed * 10_000) / 365 days;
-      return (yearPercentage * maxReward) / 10_000;
+  /// ============================= ///
+  /// ========== HELPERS ========== ///
+  /// ============================= ///
+
+  function _reflectEarnedRewards(uint256 amount_) private {
+    uint256 rewardsLeft = atensVaultInterface.coverRefundRewardsTotal();
+    require(unpaidRewards + amount_ <= rewardsLeft, "SP: Not enough rewards");
+
+    unpaidRewards += amount_;
+  }
+
+  function _reflectPaidRewards(uint256 amount_) private {
+    require(amount_ <= unpaidRewards, "SP: Not enough unpaid rewards");
+    unchecked {
+      // Uncheck since unpaidRewards can only be bigger than amount_
+      unpaidRewards -= amount_;
     }
   }
 
@@ -186,42 +234,56 @@ contract StakingPolicy is Ownable {
   /// ========== DEPOSIT ========== ///
   /// ============================= ///
 
+  function _createPosition(uint256 coverId_, uint256 amount_) private {
+    uint256 atenPrice = priceOracleInterface.getAtenPrice();
+    uint64 timestamp = block.timestamp;
+
+    positions[coverId_] = RefundPosition({
+      earnedRewards: 0,
+      stakedAmount: amount_,
+      atenPrice: atenPrice,
+      rewardsSinceTimestamp: timestamp,
+      initTimestamp: timestamp,
+      endTimestamp: 0,
+      rate: refundRate
+    });
+
+    emit Stake(coverId_, amount_);
+  }
+
   /**
    * @notice
    * Deposit a policy holder's ATEN so they can earn staking rewards.
-   * @param account_ is the address of the user
-   * @param policyId_ is the id of the policy
+   * @param coverId_ is the id of the policy
    * @param amount_ is the amount of tokens to stake
    */
-  function stake(
-    address account_,
-    uint256 policyId_,
-    uint256 amount_
-  ) external onlyCore {
+  function stake(uint256 coverId_, uint256 amount_) external onlyCore {
     require(amount_ > 0, "SP: cannot stake 0 ATEN");
 
-    // Calc the max rewards and check there is enough rewards left
-    uint256 maxReward = (amount_ * refundRate) / 10_000;
-    require(maxReward <= rewardsRemaining, "SP: not enough rewards left");
-    unchecked {
-      // unchecked because we know that rewardsRemaining is always bigger than maxReward
-      rewardsRemaining -= maxReward;
+    RefundPosition storage userPosition = positions[coverId_];
+
+    if (userPosition.initTimestamp == 0) {
+      _createPosition(coverId_, amount_);
+    } else {
+      // We don't want users to stake after the cover is expired
+      require(userPosition.endTimestamp == 0, "SP: cover is expired");
+
+      uint256 atenPrice = priceOracleInterface.getAtenPrice();
+      uint64 timestamp = block.timestamp;
+
+      uint256 earnedRewards = positionRefundRewards(coverId_);
+      _reflectEarnedRewards(earnedRewards);
+
+      // Reset the staking & update ATEN oracle price and refund rate
+      userPosition.rewardsSinceTimestamp = timestamp;
+      userPosition.atenPrice = atenPrice;
+      userPosition.rate = refundRate;
+
+      userPosition.earnedRewards += earnedRewards;
+      userPosition.stakedAmount += amount_;
+
+      emit UpdateStake(coverId_, amount_);
     }
-
-    StakeAccount storage stakingAccount = _stakes[account_];
-
-    // Save the user's staking position
-    uint128 timestamp = uint128(block.timestamp);
-    stakingAccount.positions[policyId_] = StakingPosition(
-      policyId_,
-      amount_,
-      timestamp,
-      refundRate,
-      false
-    );
-    stakingAccount.policyTokenIds.push(policyId_);
-
-    emit Stake(account_, policyId_, amount_);
   }
 
   /// ============================== ///
