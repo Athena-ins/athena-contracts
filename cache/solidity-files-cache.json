@@ -110,8 +110,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\Athena.sol": {
-      "lastModificationDate": 1675273515741,
-      "contentHash": "af4d9dc7683c52d1a537259b0038d5fd",
+      "lastModificationDate": 1675275631934,
+      "contentHash": "9863ed7ceaddba1de57e3a2d5ec6eb7b",
       "sourceName": "contracts/Athena.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -561,7 +561,7 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\interfaces\\IVaultERC20.sol": {
-      "lastModificationDate": 1675274273706,
+      "lastModificationDate": 1675275584865,
       "contentHash": "9b15ea3a4ae8b32981543272a04baa28",
       "sourceName": "contracts/interfaces/IVaultERC20.sol",
       "solcConfig": {
@@ -1030,7 +1030,7 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\TokenVault.sol": {
-      "lastModificationDate": 1675274286222,
+      "lastModificationDate": 1675275584863,
       "contentHash": "75c10569db3d50fddda6c6add8fcd652",
       "sourceName": "contracts/TokenVault.sol",
       "solcConfig": {
@@ -1524,7 +1524,7 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\StakingGeneralPool.sol": {
-      "lastModificationDate": 1675248336128,
+      "lastModificationDate": 1675275585193,
       "contentHash": "68286944bf31d4b17168aaf40ec408ba",
       "sourceName": "contracts/StakingGeneralPool.sol",
       "solcConfig": {
@@ -1638,7 +1638,7 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\PolicyCover.sol": {
-      "lastModificationDate": 1675255572850,
+      "lastModificationDate": 1675275585190,
       "contentHash": "b415ca96c3edf6f63eb0e2a13c23b4a5",
       "sourceName": "contracts/PolicyCover.sol",
       "solcConfig": {
@@ -1868,7 +1868,7 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\ClaimManager.sol": {
-      "lastModificationDate": 1675248515934,
+      "lastModificationDate": 1675275585188,
       "contentHash": "af2aaca85ac376fbf1697d9b864e2b63",
       "sourceName": "contracts/ClaimManager.sol",
       "solcConfig": {
@@ -2207,7 +2207,7 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\libraries\\ERC20withSnapshot.sol": {
-      "lastModificationDate": 1675264993979,
+      "lastModificationDate": 1675275585197,
       "contentHash": "3ad36313bf90aa712e4754cb0c96ea09",
       "sourceName": "contracts/libraries/ERC20withSnapshot.sol",
       "solcConfig": {
@@ -2244,8 +2244,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\StakingPolicy.sol": {
-      "lastModificationDate": 1675264642310,
-      "contentHash": "9f97cfed0bc754d4f3c378b10462b31f",
+      "lastModificationDate": 1675275585718,
+      "contentHash": "c1f6dbe6d44ea2af42ba8d9d48c20185",
       "sourceName": "contracts/StakingPolicy.sol",
       "solcConfig": {
         "version": "0.8.11",
