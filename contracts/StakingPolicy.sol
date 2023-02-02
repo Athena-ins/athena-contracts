@@ -120,17 +120,18 @@ contract StakingPolicy is Ownable {
    * @notice
    * Returns a user's staking position for a specific policy.
    * @param account_ is the address of the user
-   * @param policyId_ is the id of the policy
+   * @param coverId_ is the id of the policy
    * @return _ the corresponding staking position if it exists
    */
-  function accountStakingPositions(address account_, uint256 policyId_)
+  function accountStakingPositions(address account_, uint256 coverId_)
     external
     view
     returns (StakingPosition memory)
   {
-    return _stakes[account_].positions[policyId_];
+    return _stakes[account_].positions[coverId_];
   }
 
+  // @bw use coverIds from policy manager instead of local array
   /**
    * @notice
    * Returns all staking position of a user.
@@ -167,7 +168,7 @@ contract StakingPolicy is Ownable {
     view
     returns (uint256)
   {
-    RefundPosition storage userPosition = positions[coverId_];
+    RefundPosition memory userPosition = positions[coverId_];
     uint64 rewardsSinceTimestamp = userPosition.rewardsSinceTimestamp;
     uint64 endTimestamp = userPosition.endTimestamp;
     uint64 amount = userPosition.amount;
@@ -185,7 +186,9 @@ contract StakingPolicy is Ownable {
     // Return proportional rewards
     uint256 yearlyReward = (amount * rate) / 10_000;
     uint256 yearPercentage = (timeElapsed * 1e18) / 1 years;
-    return (yearPercentage * yearlyReward) / 1e18;
+    uint256 maxReward = (yearPercentage * yearlyReward) / 1e18;
+
+    return maxReward;
     }
 
   /// ============================= ///
@@ -211,11 +214,16 @@ contract StakingPolicy is Ownable {
   /// ========== DEPOSIT ========== ///
   /// ============================= ///
 
-  function _createPosition(uint256 coverId_, uint256 amount_) private {
+  function createStakingPosition(uint256 coverId_, uint256 amount_) private {
+    require(amount_ > 0, "SP: cannot stake 0 ATEN");
+
+    RefundPosition storage userPosition = positions[coverId_];
+    require(userPosition.initTimestamp == 0, "SP: position already exists");
+
     uint256 atenPrice = priceOracleInterface.getAtenPrice();
     uint64 timestamp = block.timestamp;
 
-    positions[coverId_] = RefundPosition({
+    userPosition = RefundPosition({
       earnedRewards: 0,
       stakedAmount: amount_,
       atenPrice: atenPrice,
@@ -234,16 +242,14 @@ contract StakingPolicy is Ownable {
    * @param coverId_ is the id of the policy
    * @param amount_ is the amount of tokens to stake
    */
-  function stake(uint256 coverId_, uint256 amount_) external onlyCore {
+  function addToStake(uint256 coverId_, uint256 amount_) external onlyCore {
     require(amount_ > 0, "SP: cannot stake 0 ATEN");
 
     RefundPosition storage userPosition = positions[coverId_];
 
-    if (userPosition.initTimestamp == 0) {
-      _createPosition(coverId_, amount_);
-    } else {
       // We don't want users to stake after the cover is expired
       require(userPosition.endTimestamp == 0, "SP: cover is expired");
+    require(userPosition.initTimestamp != 0, "SP: position does not exist");
 
       uint256 atenPrice = priceOracleInterface.getAtenPrice();
       uint64 timestamp = block.timestamp;
@@ -259,81 +265,99 @@ contract StakingPolicy is Ownable {
       userPosition.earnedRewards += earnedRewards;
       userPosition.stakedAmount += amount_;
 
-      emit UpdateStake(coverId_, amount_);
-    }
+    emit AddStake(coverId_, amount_);
   }
 
   /// ============================== ///
   /// ========== WITHDRAW ========== ///
   /// ============================== ///
 
-  /**
-   * @notice
-   * Used when a user closes his policy before a year has elapsed.
-   * @param account_ address of the user
-   * @param policyId_ id of the policy
-   */
-  function earlyWithdraw(address account_, uint256 policyId_)
-    external
-    onlyCore
-  {
-    StakingPosition storage pos = _stakes[account_].positions[policyId_];
+  function withdrawStakedAten(
+    uint256 coverId_,
+    address account_,
+    uint256 amount_
+  ) external onlyCore {
+    RefundPosition storage userPosition = positions[coverId_];
+    require(userPosition.initTimestamp != 0, "SP: position does not exist");
 
-    require(!pos.withdrawn, "SP: already withdrawn");
-    // Close staking position by setting withdrawn to true
-    pos.withdrawn = true;
+    uint256 atenPrice = priceOracleInterface.getAtenPrice();
+    uint64 timestamp = block.timestamp;
 
-    // Get the amount of ATEN initially deposited for staking
-    uint256 initialAmount = pos.amount;
+    uint256 earnedRewards = positionRefundRewards(coverId_);
+    _reflectEarnedRewards(earnedRewards);
 
-    // Calc the amount of rewards the position had reserved
-    uint256 maxReward = (pos.amount * pos.rate) / 10_000;
-    // Add back the allocated rewards to the rewards pool
-    rewardsRemaining += maxReward;
+    // Reset the staking & update ATEN oracle price and refund rate
+    userPosition.rewardsSinceTimestamp = timestamp;
+    userPosition.atenPrice = atenPrice;
+    userPosition.rate = refundRate;
 
-    // Send initial staked tokens to user
-    IERC20(underlyingAssetAddress).safeTransfer(account_, initialAmount);
+    userPosition.earnedRewards += earnedRewards;
+    userPosition.stakedAmount -= amount_;
 
-    emit Unstake(account_, policyId_, initialAmount, 0, true);
+    atenTokenInterface.safeTransfer(account_, amount_);
+    emit Unstake(coverId_, amount_);
   }
 
-  /**
-   * @notice
-   * Used when a user claims his staking rewards after a year has elapsed.
-   * @param account_ address of the user
-   * @param policyId_ id of the policy
-   * @return _ the amount of rewards to send to user
-   */
-  function withdraw(address account_, uint256 policyId_)
+  function withdrawRewards(uint256 coverId_)
     external
     onlyCore
     returns (uint256)
   {
-    StakingPosition storage pos = _stakes[account_].positions[policyId_];
+    RefundPosition storage userPosition = positions[coverId_];
+    require(userPosition.initTimestamp != 0, "SP: position does not exist");
 
-    require(!pos.withdrawn, "SP: already withdrawn");
-    // Close staking position by setting withdrawn to true
-    pos.withdrawn = true;
+    uint256 atenPrice = priceOracleInterface.getAtenPrice();
+    uint64 timestamp = block.timestamp;
 
-    // Check that a year has elapsed since staking position creation
-    require(
-      365 days <= block.timestamp - pos.timestamp,
-      "SP: year has not elapsed"
-    );
+    uint256 newEarnedRewards = positionRefundRewards(coverId_);
+    _reflectEarnedRewards(newEarnedRewards);
 
-    // Get the amount of ATEN initially deposited for staking
-    uint256 initialAmount = pos.amount;
+    // Reset the staking & update ATEN oracle price and refund rate
+    userPosition.rewardsSinceTimestamp = timestamp;
+    userPosition.atenPrice = atenPrice;
+    userPosition.rate = refundRate;
 
-    // Send initial staked tokens to user
-    IERC20(underlyingAssetAddress).safeTransfer(account_, pos.amount);
+    uint256 totalRewards = userPosition.earnedRewards + newEarnedRewards;
+    uint64 timeElapsed = timestamp - userPosition.initTimestamp;
+    userPosition.earnedRewards = 0;
+    userPosition.initTimestamp = timestamp;
 
-    // Max reward is 365 days of rewards at specified APR
-    uint256 maxReward = (pos.amount * pos.rate) / 10_000;
+    // Always reflect full amount since penalties are not included
+    _reflectPaidRewards(totalRewards);
 
-    emit Unstake(account_, policyId_, initialAmount, maxReward, false);
+    if (shortCoverDuration < timeElapsed) {
+      return totalRewards;
+    } else {
+      // We apply an early withdrawal penalty
+      uint64 penaltyRate = basePenaltyRate +
+        (((shortCoverDuration - timeElapsed) * durationPenaltyRate) /
+          shortCoverDuration);
 
-    // Return 365 days of rewards at specified APR
-    return maxReward;
+      return (totalRewards * (10_000 - penaltyRate)) / 10_000;
+    }
+  }
+
+  /// =============================== ///
+  /// ========== END STAKE ========== ///
+  /// =============================== ///
+
+  function closePosition(uint256 coverId_) external onlyCore {
+    RefundPosition storage userPosition = positions[coverId_];
+
+    // can be ended
+    // withdraw stake + take profit
+  }
+
+  function endStakingPositions(uint256[] calldata coverIds_) external onlyCore {
+    for (uint256 i = 0; i < coverIds_.length; i++) {
+      uint256 coverId_ = coverIds_[i];
+      RefundPosition storage userPosition = positions[coverId_];
+
+      if (userPosition.initTimestamp != 0 && userPosition.endTimestamp == 0) {
+        userPosition.endTimestamp = block.timestamp;
+        emit EndStake(coverId_);
+      }
+    }
   }
 
   /// =========================== ///
