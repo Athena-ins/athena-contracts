@@ -36,7 +36,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   IPolicyManager public policyManagerInterface;
   IClaimManager public claimManagerInterface;
 
-  address public atenToken;
+  IERC20 public atenTokenInterface;
   IVaultERC20 public atensVaultInterface;
   /// @notice Staking Pool Contract: General Pool (GP)
   IStakedAten public stakedAtensGPInterface;
@@ -70,13 +70,14 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     address atenTokenAddress_,
     address aaveAddressesRegistry_
   ) {
-    atenToken = atenTokenAddress_;
     stablecoin = stablecoinUsed_;
     /// @dev we typecast the decimals to uint8 since USDT uses unconventional uint256 for decimals
     stablecoinDecimals = uint8(ERC20(stablecoin).decimals());
+
     aaveAddressesRegistryInterface = ILendingPoolAddressesProvider(
       aaveAddressesRegistry_
     );
+    atenTokenInterface = IERC20(atenTokenAddress_);
 
     address lendingPool = aaveAddressesRegistryInterface.getLendingPool();
     IERC20(stablecoin).safeApprove(lendingPool, type(uint256).max);
@@ -399,7 +400,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   function stakeAtens(uint256 amount_) external override {
     // Deposit ATEN in the staking pool
     stakedAtensGPInterface.stake(msg.sender, amount_);
-    IERC20(atenToken).safeTransferFrom(
+    atenTokenInterface.safeTransferFrom(
       msg.sender,
       address(stakedAtensGPInterface),
       amount_
@@ -426,7 +427,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   function unstakeAtens(uint256 amount_) external {
     // Withdraw from the staking pool
     stakedAtensGPInterface.withdraw(msg.sender, amount_);
-    IERC20(atenToken).safeTransferFrom(
+    atenTokenInterface.safeTransferFrom(
       address(stakedAtensGPInterface),
       msg.sender,
       amount_
@@ -635,15 +636,9 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
       );
 
       if (_atensLocked > 0) {
-        uint256 atenPrice = priceOracleInterface.getAtenPrice();
-        uint256 maxStakableAten = (_premiumDeposit * atenPrice) /
-          10**stablecoinDecimals;
-
-        if (maxStakableAten < _atensLocked) revert AmountAtenTooHigh();
-
         // Get tokens from user to staking pool
         // @bw send in one go after checks are passed instead of multiple transfers
-        IERC20(atenToken).safeTransferFrom(
+        atenTokenInterface.safeTransferFrom(
           msg.sender,
           address(stakedAtensPoInterface),
           _atensLocked
