@@ -3,10 +3,10 @@ pragma solidity ^0.8;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "./libraries/ERC20withSnapshot.sol";
+
 
 /// @notice Staking Pool Contract: Policy
-contract StakingPolicy is ERC20WithSnapshot, Ownable {
+contract StakingPolicy is Ownable {
   using SafeERC20 for IERC20;
 
   // The amount of ATEN tokens still available for staking rewards
@@ -45,9 +45,10 @@ contract StakingPolicy is ERC20WithSnapshot, Ownable {
    * @param underlyingAsset_ is the address of ATEN token
    * @param core_ is the address of the core contract
    */
-  constructor(address underlyingAsset_, address core_)
-    ERC20WithSnapshot("ATEN Policy Staking", "ATENps")
-  {
+  constructor(
+    address underlyingAsset_,
+    address core_,
+  ) {
     underlyingAssetAddress = underlyingAsset_;
     coreAddress = core_;
   }
@@ -199,10 +200,6 @@ contract StakingPolicy is ERC20WithSnapshot, Ownable {
   ) external onlyCore {
     require(amount_ > 0, "SP: cannot stake 0 ATEN");
 
-    // Make a snapshot of the user's balance
-    // @bw is this really useful ?
-    _beforeTokenTransfer(address(0), account_, amount_);
-
     // Calc the max rewards and check there is enough rewards left
     uint256 maxReward = (amount_ * refundRate) / 10_000;
     require(maxReward <= rewardsRemaining, "SP: not enough rewards left");
@@ -255,10 +252,6 @@ contract StakingPolicy is ERC20WithSnapshot, Ownable {
     // Add back the allocated rewards to the rewards pool
     rewardsRemaining += maxReward;
 
-    // Make a snapshot of the user's balance
-    // @bw is this really useful ?
-    _beforeTokenTransfer(account_, address(0), initialAmount);
-
     // Send initial staked tokens to user
     IERC20(underlyingAssetAddress).safeTransfer(account_, initialAmount);
 
@@ -291,9 +284,6 @@ contract StakingPolicy is ERC20WithSnapshot, Ownable {
 
     // Get the amount of ATEN initially deposited for staking
     uint256 initialAmount = pos.amount;
-
-    // Make a snapshot of the user's balance
-    _beforeTokenTransfer(account_, address(0), initialAmount);
 
     // Send initial staked tokens to user
     IERC20(underlyingAssetAddress).safeTransfer(account_, pos.amount);
