@@ -11,7 +11,7 @@ contract TokenVault is IVaultERC20 {
 
   IERC20 public atenTokenInterface;
 
-  uint256 policyRefundRewardsTotal;
+  uint256 coverRefundRewardsTotal;
   uint256 stakingRewardsTotal;
 
   constructor(address tokenAddress_, address core_) {
@@ -39,11 +39,11 @@ contract TokenVault is IVaultERC20 {
   /// ========= DEPOSIT ======== ///
   /// ========================== ///
 
-  function depositPolicyRefundRewards(uint256 amount_) external {
+  function depositCoverRefundRewards(uint256 amount_) external {
     // Transfer the ATEN to the vault
     atenTokenInterface.safeTransferFrom(msg.sender, address(this), amount_);
 
-    policyRefundRewardsTotal += amount_;
+    coverRefundRewardsTotal += amount_;
   }
 
   function depositStakingRewards(uint256 amount_) external {
@@ -59,22 +59,22 @@ contract TokenVault is IVaultERC20 {
 
   /**
    * @notice
-   * Sends policy refund rewards to a user
+   * Sends cover refund rewards to a user
    * @param to_ the address of the user
    * @param amount_ the amount of rewards to send
    */
-  function sendPolicyRefundReward(address to_, uint256 amount_)
+  function sendCoverRefundReward(address to_, uint256 amount_)
     external
     onlyCore
   {
-    if (policyRefundRewardsTotal == 0) return;
+    if (coverRefundRewardsTotal == 0) return;
 
     // Check if the contract has enough tokens
-    if (amount_ <= policyRefundRewardsTotal) {
-      policyRefundRewardsTotal = 0;
-      atenTokenInterface.transfer(to_, policyRefundRewardsTotal);
+    if (amount_ <= coverRefundRewardsTotal) {
+      coverRefundRewardsTotal = 0;
+      atenTokenInterface.transfer(to_, coverRefundRewardsTotal);
     } else {
-      policyRefundRewardsTotal -= amount_;
+      coverRefundRewardsTotal -= amount_;
       atenTokenInterface.transfer(to_, amount_);
     }
   }
@@ -108,8 +108,8 @@ contract TokenVault is IVaultERC20 {
 
     uint256 atenBalance = atenTokenInterface.balanceOf(address(this));
 
-    if (policyRefundRewardsTotal + stakingRewardsTotal < atenBalance) {
-      stakingRewardsTotal = atenBalance - policyRefundRewardsTotal;
+    if (coverRefundRewardsTotal + stakingRewardsTotal < atenBalance) {
+      stakingRewardsTotal = atenBalance - coverRefundRewardsTotal;
     }
   }
 }

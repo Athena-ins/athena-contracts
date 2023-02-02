@@ -352,7 +352,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     if (amountRewards == 0) revert WithdrawableAmountIsZero();
 
     // Send the rewards to the user from the vault
-    atensVaultInterface.sendPolicyRefundReward(account_, amountRewards);
+    atensVaultInterface.sendCoverRefundReward(account_, amountRewards);
   }
 
   function _updateUserPositionFeeRate(address account_) private {
