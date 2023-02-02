@@ -36,12 +36,12 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   IPolicyManager public policyManagerInterface;
   IClaimManager public claimManagerInterface;
 
+  address public atenToken;
+  IVaultERC20 public atensVaultInterface;
   /// @notice Staking Pool Contract: General Pool (GP)
   IStakedAten public stakedAtensGPInterface;
   /// @notice Staking Pool Contract: Policy
   IStakedAtenPolicy public stakedAtensPoInterface;
-  address public atenToken;
-  address public atensVault;
 
   struct AtenFeeLevel {
     uint256 atenAmount;
@@ -98,12 +98,10 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
 
     stakedAtensGPInterface = IStakedAten(_stakedAtensGP);
     stakedAtensPoInterface = IStakedAtenPolicy(_stakedAtensPo);
+    atensVaultInterface = IVaultERC20(_atensVault);
     priceOracleInterface = IPriceOracle(_priceOracle);
 
     protocolFactory = _protocolFactory;
-    atensVault = _atensVault;
-    // @bw do we keep it upgradable ?
-    //initialized = true;
   }
 
   /// ========================= ///
@@ -354,7 +352,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     if (amountRewards == 0) revert WithdrawableAmountIsZero();
 
     // Send the rewards to the user from the vault
-    IVaultERC20(atensVault).sendPolicyRefundReward(account_, amountRewards);
+    atensVaultInterface.sendPolicyRefundReward(account_, amountRewards);
   }
 
   function _updateUserPositionFeeRate(address account_) private {
@@ -417,7 +415,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     uint256 amountRewards = stakedAtensGPInterface.claimRewards(msg.sender);
 
     // Send the rewards to the user from the vault
-    IVaultERC20(atensVault).sendStakingReward(msg.sender, amountRewards);
+    atensVaultInterface.sendStakingReward(msg.sender, amountRewards);
   }
 
   /** @notice
