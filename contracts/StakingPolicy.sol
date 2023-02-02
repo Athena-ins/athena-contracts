@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8;
+
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./libraries/ERC20withSnapshot.sol";
 
 /// @notice Staking Pool Contract: Policy
-contract StakingPolicy is ERC20WithSnapshot {
+contract StakingPolicy is ERC20WithSnapshot, Ownable {
   using SafeERC20 for IERC20;
 
   // The amount of ATEN tokens still available for staking rewards
@@ -15,7 +17,7 @@ contract StakingPolicy is ERC20WithSnapshot {
   address public immutable coreAddress;
   // The current APR of the staking pool
   // @dev 10_000 = 100% APR
-  uint128 public rewardsAnnualRate = 10_000;
+  uint128 public refundRate = 10_000;
 
   // A staking position of a user
   struct StakingPosition {
@@ -60,7 +62,7 @@ contract StakingPolicy is ERC20WithSnapshot {
    */
   event Stake(
     address indexed user,
-    uint256 indexed tokenId,
+    uint256 indexed coverId,
     uint256 amountStaked
   );
 
@@ -71,7 +73,7 @@ contract StakingPolicy is ERC20WithSnapshot {
    */
   event Unstake(
     address indexed user,
-    uint256 indexed tokenId,
+    uint256 indexed coverId,
     uint256 amountUnstaked,
     uint256 amountRewards,
     bool indexed isEarlyUnstake
@@ -81,7 +83,7 @@ contract StakingPolicy is ERC20WithSnapshot {
    * @notice
    * Triggered whenever the rewards rate is updated
    */
-  event RewardsRateUpdated(uint256 newRewardsAnnualRate);
+  event RefundRateUpdated(uint256 newRewardsAnnualRate);
 
   /**
    * @notice
@@ -135,9 +137,9 @@ contract StakingPolicy is ERC20WithSnapshot {
     );
 
     for (uint256 i = 0; i < userStakingPositions.policyTokenIds.length; i++) {
-      uint256 tokenId = userStakingPositions.policyTokenIds[i];
+      uint256 coverId = userStakingPositions.policyTokenIds[i];
 
-      stakingPositions[i] = userStakingPositions.positions[tokenId];
+      stakingPositions[i] = userStakingPositions.positions[coverId];
     }
   }
 
@@ -202,7 +204,7 @@ contract StakingPolicy is ERC20WithSnapshot {
     _beforeTokenTransfer(address(0), account_, amount_);
 
     // Calc the max rewards and check there is enough rewards left
-    uint256 maxReward = (amount_ * rewardsAnnualRate) / 10_000;
+    uint256 maxReward = (amount_ * refundRate) / 10_000;
     require(maxReward <= rewardsRemaining, "SP: not enough rewards left");
     unchecked {
       // unchecked because we know that rewardsRemaining is always bigger than maxReward
@@ -217,7 +219,7 @@ contract StakingPolicy is ERC20WithSnapshot {
       policyId_,
       amount_,
       timestamp,
-      rewardsAnnualRate,
+      refundRate,
       false
     );
     stakingAccount.policyTokenIds.push(policyId_);
@@ -327,9 +329,9 @@ contract StakingPolicy is ERC20WithSnapshot {
    * Sets the new staking rewards APR for newly created policies.
    * @param newRate_ the new reward rate (100% APR = 10_000)
    */
-  function setRewardsPerYear(uint128 newRate_) external onlyCore {
-    rewardsAnnualRate = newRate_;
+  function setRefundRate(uint128 newRate_) external onlyOwner {
+    refundRate = newRate_;
 
-    emit RewardsRateUpdated(newRate_);
+    emit RefundRateUpdated(newRate_);
   }
 }

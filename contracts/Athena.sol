@@ -829,15 +829,6 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
 
   /// -------- STAKING -------- ///
 
-  /**
-   * @notice
-   * Sets the APR applied to newly created policies that stake ATEN in the policy staking pool.
-   * @param newRate_ the new reward rate (100% APR = 10_000)
-   */
-  function setPolicyStakingRewards(uint128 newRate_) external onlyOwner {
-    stakedAtensPoInterface.setRewardsPerYear(newRate_);
-  }
-
   /** @notice
    * Set the fee levels on cover interests according to amount of staked ATEN in general pool.
    * @dev Levels must be in ascending order of atenAmount
