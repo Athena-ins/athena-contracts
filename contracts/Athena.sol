@@ -19,6 +19,8 @@ import "./interfaces/IClaimManager.sol";
 import "./interfaces/IVaultERC20.sol";
 import "./interfaces/IPriceOracle.sol";
 
+import "./libraries/RayMath.sol";
+
 contract Athena is IAthena, ReentrancyGuard, Ownable {
   using SafeERC20 for IERC20;
   using RayMath for uint256;
@@ -27,7 +29,6 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   mapping(uint128 => Protocol) public protocolsMapping;
 
   address public stablecoin;
-  uint8 public stablecoinDecimals;
   address public protocolFactory;
   /// @dev AAVE LendingPoolAddressesProvider Interface
   ILendingPoolAddressesProvider public aaveAddressesRegistryInterface;
@@ -71,8 +72,6 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     address aaveAddressesRegistry_
   ) {
     stablecoin = stablecoinUsed_;
-    /// @dev we typecast the decimals to uint8 since USDT uses unconventional uint256 for decimals
-    stablecoinDecimals = uint8(ERC20(stablecoin).decimals());
 
     aaveAddressesRegistryInterface = ILendingPoolAddressesProvider(
       aaveAddressesRegistry_

@@ -11,8 +11,8 @@ contract TokenVault is IVaultERC20 {
 
   IERC20 public atenTokenInterface;
 
-  uint256 coverRefundRewardsTotal;
-  uint256 stakingRewardsTotal;
+  uint256 public coverRefundRewardsTotal;
+  uint256 public stakingRewardsTotal;
 
   constructor(address tokenAddress_, address core_) {
     atenTokenInterface = IERC20(tokenAddress_);
