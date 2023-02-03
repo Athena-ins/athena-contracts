@@ -3,8 +3,8 @@ pragma solidity ^0.8;
 
 interface IPolicyCover {
   event BuyPolicy(address owner, uint256 premium, uint256 capitalInsured);
-  event WithdrawPolicy(address owner, uint256 remainedAmount);
-  event ExpiredPolicy(address owner, uint256 insuredCapital, uint32 tick);
+  event WithdrawPolicy(uint256 coverId, uint256 remainedAmount);
+  event ExpiredPolicy(uint256 coverId, uint32 tick);
 
   struct Slot0 {
     uint32 tick;

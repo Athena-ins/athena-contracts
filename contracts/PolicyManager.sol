@@ -105,10 +105,13 @@ contract PolicyManager is IPolicyManager, ERC721Enumerable {
     view
     returns (OngoingCoveragePolicy[] memory ongoingCoverages)
   {
-    uint256[] memory _tokens = allPolicyTokensOfOwner(account);
-    ongoingCoverages = new OngoingCoveragePolicy[](_tokens.length);
-    for (uint256 i = 0; i < _tokens.length; i++) {
-      Policy memory _policy = policy(_tokens[i]);
+    uint256[] memory coverIds = allPolicyTokensOfOwner(account);
+
+    ongoingCoverages = new OngoingCoveragePolicy[](coverIds.length);
+    for (uint256 i = 0; i < coverIds.length; i++) {
+      uint256 coverId = coverIds[i];
+      Policy memory _policy = policy(coverId);
+
       address protocolAddress = IAthena(core).getProtocolAddressById(
         _policy.poolId
       );
@@ -116,10 +119,10 @@ contract PolicyManager is IPolicyManager, ERC721Enumerable {
         uint256 _premiumLeft,
         uint256 _dailyCost,
         uint256 _estDuration
-      ) = IProtocolPool(protocolAddress).getInfo(account);
+      ) = IProtocolPool(protocolAddress).getInfo(coverId);
 
       ongoingCoverages[i] = OngoingCoveragePolicy({
-        policyId: _tokens[i],
+        policyId: coverId,
         amountCovered: _policy.amountCovered,
         premiumDeposit: _policy.premiumDeposit,
         premiumLeft: _premiumLeft,

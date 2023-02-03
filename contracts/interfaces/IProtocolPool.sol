@@ -2,7 +2,6 @@
 pragma solidity ^0.8;
 
 import "./IPolicyCover.sol";
-import "../ClaimCover.sol";
 
 //Thao@TODO: remove IPolicyCover
 interface IProtocolPool is IPolicyCover {
@@ -63,14 +62,16 @@ interface IProtocolPool is IPolicyCover {
 
   function buyPolicy(
     address owner,
-    uint256 tokenId,
-    uint256 premium,
-    uint256 insuredCapital
+    uint256 coverId,
+    uint256 premiums,
+    uint256 amountCovered
   ) external;
 
-  function withdrawPolicy(address owner, uint256 amountCovered)
-    external
-    returns (uint256 remainedPremium);
+  function withdrawPolicy(
+    address owner,
+    uint256 coverId,
+    uint256 amountCovered
+  ) external returns (uint256 coverPremiumsLeft);
 
   function processClaim(
     uint128 fromPoolId,

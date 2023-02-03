@@ -50,6 +50,8 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     return relatedProtocols;
   }
 
+  // @bw only protocol pools should be able to call this function
+  // @bw why not updated on withdraw ?
   function addRelatedProtocol(uint128 _poolId, uint256 _amount)
     external
   // onlyCore
@@ -93,27 +95,27 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
   }
 
   function buyPolicy(
-    address _owner,
-    uint256 _tokenId,
-    uint256 _premium,
-    uint256 _insuredCapital
-  ) external onlyCore notExistedOwner(_owner) {
-    _buyPolicy(_owner, _tokenId, _premium, _insuredCapital);
+    address owner,
+    uint256 coverId,
+    uint256 premiums,
+    uint256 amountCovered
+  ) external onlyCore {
+    _buyPolicy(coverId, premiums, amountCovered);
 
-    emit BuyPolicy(_owner, _premium, _insuredCapital);
+    // @bw event should be moved to policy manager
+    emit BuyPolicy(owner, premiums, amountCovered);
   }
 
-  function withdrawPolicy(address _owner, uint256 _amountCovered)
-    external
-    onlyCore
-    existedOwner(_owner)
-    returns (uint256 __remainedPremium)
-  {
-    __remainedPremium = _withdrawPolicy(_owner, _amountCovered);
+  function withdrawPolicy(
+    address owner,
+    uint256 coverId,
+    uint256 amountCovered
+  ) external onlyCore returns (uint256 coverPremiumsLeft) {
+    coverPremiumsLeft = _withdrawPolicy(coverId, amountCovered);
 
-    IERC20(underlyingAsset).safeTransfer(_owner, __remainedPremium);
+    IERC20(underlyingAsset).safeTransfer(owner, coverPremiumsLeft);
 
-    emit WithdrawPolicy(_owner, __remainedPremium);
+    emit WithdrawPolicy(coverId, coverPremiumsLeft);
   }
 
   function _actualizingLPInfoWithClaims(

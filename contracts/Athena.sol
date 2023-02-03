@@ -689,7 +689,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     // Updates pool liquidity and withdraws remaining funds to user
     uint256 _premiumLeft = IProtocolPool(
       protocolsMapping[userPolicy.poolId].deployed
-    ).withdrawPolicy(msg.sender, userPolicy.amountCovered);
+    ).withdrawPolicy(msg.sender, policyId_, userPolicy.amountCovered);
 
     uint256 premiumSpent = userPolicy.premiumDeposit - _premiumLeft;
 
