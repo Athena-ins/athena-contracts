@@ -7,42 +7,19 @@ library PremiumPosition {
   using RayMath for uint256;
 
   struct Info {
-    uint256 tokenId;
     uint256 beginPremiumRate;
     uint32 lastTick;
-    uint224 ownerIndex;
+    uint224 coverIdIndex;
   }
 
-  function get(
-    mapping(address => PremiumPosition.Info) storage self,
-    address owner
-  ) internal view returns (PremiumPosition.Info storage) {
-    return self[owner];
-  }
-
-  function replaceAndRemoveOwner(
-    mapping(address => PremiumPosition.Info) storage self,
-    address ownerToRemove,
-    address ownerToReplace
+  function replaceAndRemoveCoverId(
+    mapping(uint256 => PremiumPosition.Info) storage self,
+    uint256 coverIdToRemove,
+    uint256 coverIdToReplace
   ) internal {
-    if (ownerToRemove != ownerToReplace)
-      self[ownerToReplace].ownerIndex = self[ownerToRemove].ownerIndex;
+    if (coverIdToRemove != coverIdToReplace)
+      self[coverIdToReplace].coverIdIndex = self[coverIdToRemove].coverIdIndex;
 
-    delete self[ownerToRemove];
-  }
-
-  function removeOwner(
-    mapping(address => PremiumPosition.Info) storage self,
-    address owner
-  ) internal returns (uint256 tokenId) {
-    tokenId = self[owner].tokenId;
-    delete self[owner];
-  }
-
-  function hasOwner(
-    mapping(address => PremiumPosition.Info) storage self,
-    address owner
-  ) internal view returns (bool) {
-    return self[owner].beginPremiumRate > 0;
+    delete self[coverIdToRemove];
   }
 }
