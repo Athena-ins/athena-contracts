@@ -61,8 +61,11 @@ contract StakingPolicy is Ownable {
 
   /**
    * @notice constructs Pool LP Tokens for staking, decimals defaults to 18
-   * @param underlyingAsset_ is the address of ATEN token
    * @param core_ is the address of the core contract
+   * @param atenToken_ is the address of ATEN token
+   * @param priceOracle_ is the address of ATEN price oracle
+   * @param atensVault_ is the address of ATEN rewards vault
+   * @param policyManager_ is the address of cover manager
    */
   constructor(
     address core_,
@@ -116,45 +119,45 @@ contract StakingPolicy is Ownable {
   /// ========== VIEWS ========== ///
   /// =========================== ///
 
-  /**
-   * @notice
-   * Returns a user's staking position for a specific policy.
-   * @param account_ is the address of the user
-   * @param coverId_ is the id of the policy
-   * @return _ the corresponding staking position if it exists
-   */
-  function accountStakingPositions(address account_, uint256 coverId_)
-    external
-    view
-    returns (StakingPosition memory)
-  {
-    return _stakes[account_].positions[coverId_];
-  }
+  // /**
+  //  * @notice
+  //  * Returns a user's staking position for a specific policy.
+  //  * @param account_ is the address of the user
+  //  * @param coverId_ is the id of the policy
+  //  * @return _ the corresponding staking position if it exists
+  //  */
+  // function accountStakingPositions(address account_, uint256 coverId_)
+  //   external
+  //   view
+  //   returns (StakingPosition memory)
+  // {
+  //   return _stakes[account_].positions[coverId_];
+  // }
 
-  // @bw use coverIds from policy manager instead of local array
-  /**
-   * @notice
-   * Returns all staking position of a user.
-   * @param account_ is the address of the user
-   * @return stakingPositions all staking positions if there are any
-   */
-  function allAccountStakingPositions(address account_)
-    external
-    view
-    returns (StakingPosition[] memory stakingPositions)
-  {
-    StakeAccount storage userStakingPositions = _stakes[account_];
+  // // @bw use coverIds from policy manager instead of local array
+  // /**
+  //  * @notice
+  //  * Returns all staking position of a user.
+  //  * @param account_ is the address of the user
+  //  * @return stakingPositions all staking positions if there are any
+  //  */
+  // function allAccountStakingPositions(address account_)
+  //   external
+  //   view
+  //   returns (StakingPosition[] memory stakingPositions)
+  // {
+  //   StakeAccount storage userStakingPositions = _stakes[account_];
 
-    stakingPositions = new StakingPosition[](
-      userStakingPositions.policyTokenIds.length
-    );
+  //   stakingPositions = new StakingPosition[](
+  //     userStakingPositions.policyTokenIds.length
+  //   );
 
-    for (uint256 i = 0; i < userStakingPositions.policyTokenIds.length; i++) {
-      uint256 coverId = userStakingPositions.policyTokenIds[i];
+  //   for (uint256 i = 0; i < userStakingPositions.policyTokenIds.length; i++) {
+  //     uint256 coverId = userStakingPositions.policyTokenIds[i];
 
-      stakingPositions[i] = userStakingPositions.positions[coverId];
-    }
-  }
+  //     stakingPositions[i] = userStakingPositions.positions[coverId];
+  //   }
+  // }
 
   /**
    * @notice
@@ -169,9 +172,9 @@ contract StakingPolicy is Ownable {
     returns (uint256)
   {
     RefundPosition memory userPosition = positions[coverId_];
+    uint256 amount = userPosition.stakedAmount;
     uint64 rewardsSinceTimestamp = userPosition.rewardsSinceTimestamp;
     uint64 endTimestamp = userPosition.endTimestamp;
-    uint64 amount = userPosition.amount;
     uint64 rate = userPosition.rate;
 
     uint256 timeElapsed;
@@ -185,11 +188,11 @@ contract StakingPolicy is Ownable {
 
     // Return proportional rewards
     uint256 yearlyReward = (amount * rate) / 10_000;
-    uint256 yearPercentage = (timeElapsed * 1e18) / 1 years;
+    uint256 yearPercentage = (timeElapsed * 1e18) / 365 days;
     uint256 maxReward = (yearPercentage * yearlyReward) / 1e18;
 
     return maxReward;
-    }
+  }
 
   /// ============================= ///
   /// ========== HELPERS ========== ///
@@ -221,9 +224,9 @@ contract StakingPolicy is Ownable {
     require(userPosition.initTimestamp == 0, "SP: position already exists");
 
     uint256 atenPrice = priceOracleInterface.getAtenPrice();
-    uint64 timestamp = block.timestamp;
+    uint64 timestamp = uint64(block.timestamp);
 
-    userPosition = RefundPosition({
+    positions[coverId_] = RefundPosition({
       earnedRewards: 0,
       stakedAmount: amount_,
       atenPrice: atenPrice,
@@ -247,23 +250,23 @@ contract StakingPolicy is Ownable {
 
     RefundPosition storage userPosition = positions[coverId_];
 
-      // We don't want users to stake after the cover is expired
-      require(userPosition.endTimestamp == 0, "SP: cover is expired");
+    // We don't want users to stake after the cover is expired
+    require(userPosition.endTimestamp == 0, "SP: cover is expired");
     require(userPosition.initTimestamp != 0, "SP: position does not exist");
 
-      uint256 atenPrice = priceOracleInterface.getAtenPrice();
-      uint64 timestamp = block.timestamp;
+    uint256 atenPrice = priceOracleInterface.getAtenPrice();
+    uint64 timestamp = uint64(block.timestamp);
 
-      uint256 earnedRewards = positionRefundRewards(coverId_);
-      _reflectEarnedRewards(earnedRewards);
+    uint256 earnedRewards = positionRefundRewards(coverId_);
+    _reflectEarnedRewards(earnedRewards);
 
-      // Reset the staking & update ATEN oracle price and refund rate
-      userPosition.rewardsSinceTimestamp = timestamp;
-      userPosition.atenPrice = atenPrice;
-      userPosition.rate = refundRate;
+    // Reset the staking & update ATEN oracle price and refund rate
+    userPosition.rewardsSinceTimestamp = timestamp;
+    userPosition.atenPrice = atenPrice;
+    userPosition.rate = refundRate;
 
-      userPosition.earnedRewards += earnedRewards;
-      userPosition.stakedAmount += amount_;
+    userPosition.earnedRewards += earnedRewards;
+    userPosition.stakedAmount += amount_;
 
     emit AddStake(coverId_, amount_);
   }
@@ -281,7 +284,7 @@ contract StakingPolicy is Ownable {
     require(userPosition.initTimestamp != 0, "SP: position does not exist");
 
     uint256 atenPrice = priceOracleInterface.getAtenPrice();
-    uint64 timestamp = block.timestamp;
+    uint64 timestamp = uint64(block.timestamp);
 
     uint256 earnedRewards = positionRefundRewards(coverId_);
     _reflectEarnedRewards(earnedRewards);
@@ -307,7 +310,7 @@ contract StakingPolicy is Ownable {
     require(userPosition.initTimestamp != 0, "SP: position does not exist");
 
     uint256 atenPrice = priceOracleInterface.getAtenPrice();
-    uint64 timestamp = block.timestamp;
+    uint64 timestamp = uint64(block.timestamp);
 
     uint256 newEarnedRewards = positionRefundRewards(coverId_);
     _reflectEarnedRewards(newEarnedRewards);
@@ -354,7 +357,7 @@ contract StakingPolicy is Ownable {
       RefundPosition storage userPosition = positions[coverId_];
 
       if (userPosition.initTimestamp != 0 && userPosition.endTimestamp == 0) {
-        userPosition.endTimestamp = block.timestamp;
+        userPosition.endTimestamp = uint64(block.timestamp);
         emit EndStake(coverId_);
       }
     }
@@ -364,7 +367,7 @@ contract StakingPolicy is Ownable {
   /// ========== ADMIN ========== ///
   /// =========================== ///
 
-  function setShortCoverDuration(uint256 shortCoverDuration_)
+  function setShortCoverDuration(uint64 shortCoverDuration_)
     external
     onlyOwner
   {
