@@ -14,14 +14,17 @@ import "./ClaimCover.sol";
 
 abstract contract PolicyCover is IPolicyCover, ClaimCover {
   using RayMath for uint256;
-  using Tick for mapping(uint32 => address[]);
+  using Tick for mapping(uint32 => uint256[]);
   using TickBitmap for mapping(uint24 => uint256);
-  using PremiumPosition for mapping(address => PremiumPosition.Info);
+  using PremiumPosition for mapping(uint256 => PremiumPosition.Info);
 
   address internal immutable core;
   IPolicyManager public policyManagerInterface;
   mapping(uint24 => uint256) internal tickBitmap;
-  mapping(address => PremiumPosition.Info) public premiumPositions;
+  // Maps a tick to the list of cover IDs
+  mapping(uint32 => uint256[]) internal ticks;
+  // Maps a cover ID to the premium position of the cover
+  mapping(uint256 => PremiumPosition.Info) public premiumPositions;
 
   Formula internal f;
   Slot0 public slot0;
@@ -53,11 +56,12 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
     uint256 _beginPremiumRate,
     uint32 _tick
   ) private {
-    premiumPositions[_owner] = PremiumPosition.Info(
-      _tokenId,
+    uint224 nbCoversInTick = ticks.addCoverId(_tokenId, _tick);
+
+    premiumPositions[_tokenId] = PremiumPosition.Info(
       _beginPremiumRate,
       _tick,
-      ticks.addOwner(_owner, _tick)
+      nbCoversInTick
     );
 
     if (!tickBitmap.isInitializedTick(_tick)) {
@@ -65,26 +69,21 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
     }
   }
 
-  function removeTick(uint32 _tick) private returns (uint256[] memory) {
-    address[] memory __owners = ticks[_tick];
-    uint256[] memory __tokensId = new uint256[](__owners.length);
+  function removeTick(uint32 _tick)
+    private
+    returns (uint256[] memory coverIds)
+  {
+    coverIds = ticks[_tick];
 
-    IPolicyManager policyManager_ = IPolicyManager(policyManager);
-    for (uint256 i = 0; i < __owners.length; i++) {
-      uint256 tokenId = premiumPositions.removeOwner(__owners[i]);
-      __tokensId[i] = tokenId;
+    for (uint256 i = 0; i < coverIds.length; i++) {
+      uint256 coverId = coverIds[i];
+      delete premiumPositions[coverId];
 
-      emit ExpiredPolicy(
-        __owners[i],
-        policyManager_.policy(tokenId).amountCovered,
-        _tick
-      );
+      emit ExpiredPolicy(coverId, _tick);
     }
 
     ticks.clear(_tick);
     tickBitmap.flipTick(_tick);
-
-    return __tokensId;
   }
 
   function getPremiumRate(uint256 _utilisationRate)
@@ -135,9 +134,12 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
     uint256 _availableCapital,
     uint32 _tick
   ) internal view {
-    IPolicyManager policyManager_ = IPolicyManager(policyManager);
-    address[] memory owners = ticks[_tick];
+    uint256[] memory coverIds = ticks[_tick];
     uint256 __insuredCapitalToRemove;
+
+    for (uint256 i = 0; i < coverIds.length; i++) {
+      uint256 coverId = coverIds[i];
+
       __insuredCapitalToRemove += policyManagerInterface
         .policy(coverId)
         .amountCovered;
@@ -163,8 +165,7 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
     );
 
     _slot0.totalInsuredCapital -= __insuredCapitalToRemove;
-
-    _slot0.remainingPolicies -= owners.length;
+    _slot0.remainingPolicies -= coverIds.length;
   }
 
   function _updateSlot0WhenAvailableCapitalChange(
@@ -307,7 +308,6 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
   }
 
   function _buyPolicy(
-    address _owner,
     uint256 _tokenId,
     uint256 _premium,
     uint256 _insuredCapital
@@ -350,7 +350,7 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
     uint32 __lastTick = slot0.tick +
       uint32(__durationInSeconds / __newSecondsPerTick);
 
-    addPremiumPosition(_owner, _tokenId, __newPremiumRate, __lastTick);
+    addPremiumPosition(_tokenId, __newPremiumRate, __lastTick);
 
     slot0.totalInsuredCapital += _insuredCapital;
     slot0.secondsPerTick = __newSecondsPerTick;
@@ -358,11 +358,11 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
     slot0.remainingPolicies++;
   }
 
-  function _withdrawPolicy(address _owner, uint256 _amountCovered)
+  function _withdrawPolicy(uint256 coverId, uint256 _amountCovered)
     internal
     returns (uint256 __remainedPremium)
   {
-    PremiumPosition.Info memory __position = premiumPositions.get(_owner);
+    PremiumPosition.Info memory __position = premiumPositions[coverId];
     uint32 __currentTick = slot0.tick;
 
     require(__currentTick <= __position.lastTick, "Policy Expired");
@@ -403,13 +403,13 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
       __newPremiumRate
     );
 
-    if (ticks.getOwnerNumber(__position.lastTick) > 1) {
-      premiumPositions.replaceAndRemoveOwner(
-        _owner,
-        ticks.getLastOwnerInTick(__position.lastTick)
+    if (ticks.getCoverIdNumber(__position.lastTick) > 1) {
+      premiumPositions.replaceAndRemoveCoverId(
+        coverId,
+        ticks.getLastCoverIdInTick(__position.lastTick)
       );
 
-      ticks.removeOwner(__position.ownerIndex, __position.lastTick);
+      ticks.removeCoverId(__position.coverIdIndex, __position.lastTick);
     } else {
       removeTick(__position.lastTick);
     }
@@ -432,10 +432,9 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
     }
   }
 
-  function getInfo(address _owner)
+  function getInfo(uint256 coverId)
     public
     view
-    existedOwner(_owner)
     returns (
       uint256 __premiumLeft,
       uint256 __currentEmissionRate,
@@ -444,12 +443,12 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
   {
     uint256 __availableCapital = availableCapital;
     (Slot0 memory __slot0, ) = _actualizingUntil(block.timestamp);
-    PremiumPosition.Info memory __position = premiumPositions[_owner];
+    PremiumPosition.Info memory __position = premiumPositions[coverId];
 
     require(__slot0.tick <= __position.lastTick, "Policy Expired");
 
     uint256 __coverBeginEmissionRate = policyManagerInterface
-      .policy(__position.tokenId)
+      .policy(coverId)
       .amountCovered
       .rayMul(__position.beginPremiumRate / 100) / 365;
 
@@ -458,12 +457,12 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
     );
 
     __currentEmissionRate = getEmissionRate(
-      __beginOwnerEmissionRate,
+      __coverBeginEmissionRate,
       __position.beginPremiumRate,
       __currentPremiumRate
     );
 
-    uint256 __currentOwnerEmissionRate = __currentEmissionRate;
+    uint256 __coverCurrentEmissionRate = __currentEmissionRate;
 
     while (__slot0.tick < __position.lastTick) {
       (uint32 __tickNext, bool __initialized) = tickBitmap
@@ -475,7 +474,7 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
       uint256 __secondsPassed = (__tick - __slot0.tick) *
         __slot0.secondsPerTick;
 
-      __premiumLeft += (__secondsPassed * __currentOwnerEmissionRate) / 86400;
+      __premiumLeft += (__secondsPassed * __coverCurrentEmissionRate) / 86400;
 
       __remainingSeconds += __secondsPassed;
 
@@ -493,8 +492,8 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
           )
         );
 
-        __currentOwnerEmissionRate = getEmissionRate(
-          __beginOwnerEmissionRate,
+        __coverCurrentEmissionRate = getEmissionRate(
+          __coverBeginEmissionRate,
           __position.beginPremiumRate,
           __currentPremiumRate
         );
