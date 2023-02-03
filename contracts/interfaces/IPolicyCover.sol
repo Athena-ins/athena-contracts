@@ -21,12 +21,7 @@ interface IPolicyCover {
     uint256 rSlope2;
   }
 
-  function actualizingUntilGivenDate(uint256 dateInSecond)
-    external
-    view
-    returns (Slot0 memory slot0, uint256 liquidityIndex);
-
-  function getInfo(address owner)
+  function getInfo(uint256 coverId)
     external
     view
     returns (

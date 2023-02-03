@@ -48,21 +48,7 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
     slot0.lastUpdateTimestamp = block.timestamp;
   }
 
-  modifier existedOwner(address _owner) {
-    require(premiumPositions.hasOwner(_owner), "PC: account has no cover");
-    _;
-  }
-
-  modifier notExistedOwner(address _owner) {
-    require(
-      !premiumPositions.hasOwner(_owner),
-      "PC: account already has cover"
-    );
-    _;
-  }
-
   function addPremiumPosition(
-    address _owner,
     uint256 _tokenId,
     uint256 _beginPremiumRate,
     uint32 _tick
