@@ -26,7 +26,7 @@ contract PolicyManager is IPolicyManager, ERC721Enumerable {
   /// =========================== ///
 
   modifier onlyCore() {
-    require(msg.sender == core, "Only core");
+    require(msg.sender == core, "CM: Only core");
     _;
   }
 
@@ -42,8 +42,10 @@ contract PolicyManager is IPolicyManager, ERC721Enumerable {
 
   function poolIdOfPolicy(uint256 coverId) external view returns (uint128) {
     return covers[coverId].poolId;
-  function poolIdOfPolicy(uint256 _tokenId) external view returns (uint128) {
-    return policies[_tokenId].poolId;
+  }
+
+  function getCover(uint256 coverId) public view returns (Policy memory) {
+    return covers[coverId];
   }
 
   function policy(uint256 _tokenId)

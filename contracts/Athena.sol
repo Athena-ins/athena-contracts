@@ -619,7 +619,6 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
         msg.sender,
         _amountCovered,
         _premiumDeposit,
-        _atensLocked,
         _poolId
       );
 
@@ -675,7 +674,8 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     if (isStillActive != true) revert PolicyExpired();
 
     // If ATEN was staked along with the policy then process the staking withdrawal
-    if (0 < userPolicy.atensLocked) {
+    // @bw replace with check in policy staking
+    if (0 < 11111111111) {
       if (userPolicy.beginCoveredTime + 365 days <= block.timestamp) {
         // If a year has elapsed then consume staking position and withdraw ATEN + rewards
         _processPolicyStakingPayout(msg.sender, policyId_);
@@ -690,18 +690,8 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
       protocolsMapping[userPolicy.poolId].deployed
     ).withdrawPolicy(msg.sender, policyId_, userPolicy.amountCovered);
 
-    uint256 premiumSpent = userPolicy.premiumDeposit - _premiumLeft;
-
-    // Delete policy from registry and saves historical data
-    policyManagerInterface.saveExpiredPolicy(
-      msg.sender,
-      policyId_,
-      userPolicy,
-      premiumSpent,
-      true
-    );
-
-    policyManagerInterface.burn(policyId_);
+    // Expire the cover of the user
+    policyManagerInterface.expireCover(policyId_, true);
   }
 
   /**
