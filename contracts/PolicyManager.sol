@@ -21,7 +21,7 @@ contract PolicyManager is IPolicyManager, ERC721Enumerable {
   uint176 private nextId = 0;
 
   constructor(address coreAddress)
-    ERC721("ATHENA-Policy", "Athena Insurance Policy")
+    ERC721("Athena-Cover", "Athena Insurance User Cover")
   {
     core = coreAddress;
   }
@@ -92,6 +92,7 @@ contract PolicyManager is IPolicyManager, ERC721Enumerable {
       policyList[i] = policies[tokenList[i]];
   }
 
+  // @bw replace with filtered policies
   function getExpiredPolicies(address account)
     public
     view
@@ -133,6 +134,23 @@ contract PolicyManager is IPolicyManager, ERC721Enumerable {
         poolId: _policy.poolId
       });
     }
+  }
+
+  function getCoverPremiumSpent(uint256 coverId)
+    external
+    view
+    returns (uint256 premiumSpent)
+  {
+    Policy memory _policy = policy(coverId);
+
+    if (_policy.amountCovered == 0) return 0;
+
+    address protocolAddress = IAthena(core).getProtocolAddressById(
+      _policy.poolId
+    );
+    (uint256 premiumLeft, , ) = IProtocolPool(protocolAddress).getInfo(coverId);
+
+    premiumSpent = _policy.premiumDeposit - premiumLeft;
   }
 
   /// ========================= ///

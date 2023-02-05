@@ -66,4 +66,9 @@ interface IPolicyManager is IERC721Enumerable {
   function policyActive(uint256 _tokenId) external view returns (bool);
 
   function poolIdOfPolicy(uint256 _tokenId) external view returns (uint128);
+
+  function getCoverPremiumSpent(uint256 coverId)
+    external
+    view
+    returns (uint256 premiumSpent);
 }
