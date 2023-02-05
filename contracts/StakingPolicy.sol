@@ -32,19 +32,11 @@ contract StakingPolicy is Ownable {
   uint64 public durationPenaltyRate = 5_000;
   uint64 public shortCoverDuration = 300 days;
 
-  // A staking position of a user
-  struct StakingPosition {
-    uint256 policyId;
-    uint256 amount;
-    uint128 timestamp;
-    uint128 rate;
-    bool withdrawn;
-  }
-
   // A premium refund position of a user
   struct RefundPosition {
     uint256 earnedRewards;
     uint256 stakedAmount;
+    uint256 lastPremiumSpent;
     uint256 atenPrice;
     uint64 initTimestamp;
     uint64 rewardsSinceTimestamp;
@@ -169,9 +161,10 @@ contract StakingPolicy is Ownable {
   function positionRefundRewards(uint256 coverId_)
     public
     view
-    returns (uint256)
+    returns (uint256 rewards, uint256 premiumSpent)
   {
     RefundPosition memory userPosition = positions[coverId_];
+
     uint256 amount = userPosition.stakedAmount;
     uint64 rewardsSinceTimestamp = userPosition.rewardsSinceTimestamp;
     uint64 endTimestamp = userPosition.endTimestamp;
@@ -187,11 +180,16 @@ contract StakingPolicy is Ownable {
     }
 
     // Return proportional rewards
-    uint256 yearlyReward = (amount * rate) / 10_000;
-    uint256 yearPercentage = (timeElapsed * 1e18) / 365 days;
-    uint256 maxReward = (yearPercentage * yearlyReward) / 1e18;
+    uint256 maxYearlyReward = (amount * rate) / 10_000;
+    uint256 maxYearPercentage = (timeElapsed * 1e18) / 365 days;
+    uint256 maxReward = (maxYearPercentage * maxYearlyReward) / 1e18;
 
-    return maxReward;
+    // Compute reward based on the premium spent for the cover
+    premiumSpent = policyManagerInterface.getCoverPremiumSpent(coverId_);
+    uint256 trueReward = (premiumSpent - userPosition.lastPremiumSpent) *
+      userPosition.atenPrice;
+
+    rewards = trueReward < maxReward ? trueReward : maxReward;
   }
 
   /// ============================= ///
@@ -223,12 +221,17 @@ contract StakingPolicy is Ownable {
     RefundPosition storage userPosition = positions[coverId_];
     require(userPosition.initTimestamp == 0, "SP: position already exists");
 
+    uint256 premiumSpent = policyManagerInterface.getCoverPremiumSpent(
+      coverId_
+    );
+
     uint256 atenPrice = priceOracleInterface.getAtenPrice();
     uint64 timestamp = uint64(block.timestamp);
 
     positions[coverId_] = RefundPosition({
       earnedRewards: 0,
       stakedAmount: amount_,
+      lastPremiumSpent: premiumSpent,
       atenPrice: atenPrice,
       rewardsSinceTimestamp: timestamp,
       initTimestamp: timestamp,
@@ -257,10 +260,13 @@ contract StakingPolicy is Ownable {
     uint256 atenPrice = priceOracleInterface.getAtenPrice();
     uint64 timestamp = uint64(block.timestamp);
 
-    uint256 earnedRewards = positionRefundRewards(coverId_);
+    (uint256 earnedRewards, uint256 premiumSpent) = positionRefundRewards(
+      coverId_
+    );
     _reflectEarnedRewards(earnedRewards);
 
     // Reset the staking & update ATEN oracle price and refund rate
+    userPosition.lastPremiumSpent = premiumSpent;
     userPosition.rewardsSinceTimestamp = timestamp;
     userPosition.atenPrice = atenPrice;
     userPosition.rate = refundRate;
@@ -286,10 +292,13 @@ contract StakingPolicy is Ownable {
     uint256 atenPrice = priceOracleInterface.getAtenPrice();
     uint64 timestamp = uint64(block.timestamp);
 
-    uint256 earnedRewards = positionRefundRewards(coverId_);
+    (uint256 earnedRewards, uint256 premiumSpent) = positionRefundRewards(
+      coverId_
+    );
     _reflectEarnedRewards(earnedRewards);
 
     // Reset the staking & update ATEN oracle price and refund rate
+    userPosition.lastPremiumSpent = premiumSpent;
     userPosition.rewardsSinceTimestamp = timestamp;
     userPosition.atenPrice = atenPrice;
     userPosition.rate = refundRate;
@@ -312,10 +321,13 @@ contract StakingPolicy is Ownable {
     uint256 atenPrice = priceOracleInterface.getAtenPrice();
     uint64 timestamp = uint64(block.timestamp);
 
-    uint256 newEarnedRewards = positionRefundRewards(coverId_);
+    (uint256 newEarnedRewards, uint256 premiumSpent) = positionRefundRewards(
+      coverId_
+    );
     _reflectEarnedRewards(newEarnedRewards);
 
     // Reset the staking & update ATEN oracle price and refund rate
+    userPosition.lastPremiumSpent = premiumSpent;
     userPosition.rewardsSinceTimestamp = timestamp;
     userPosition.atenPrice = atenPrice;
     userPosition.rate = refundRate;
