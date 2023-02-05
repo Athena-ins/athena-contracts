@@ -10,15 +10,10 @@ import "./interfaces/IProtocolPool.sol";
 contract PolicyManager is IPolicyManager, ERC721Enumerable {
   address private core;
 
-  /// @dev The token ID policy data
-  mapping(uint256 => Policy) public policies;
-
-  // @bw separation between expired and active is a problem for processing
-  // eg: policy staking exit
-  mapping(address => ExpiredPolicy[]) public expiredPolicies;
-
-  /// @dev The ID of the next token that will be minted.
-  uint176 private nextId = 0;
+  /// Maps a cover ID to the cover data
+  mapping(uint256 => Policy) public covers;
+  /// The ID of the next cover to be minted
+  uint176 private nextCoverId = 0;
 
   constructor(address coreAddress)
     ERC721("Athena-Cover", "Athena Insurance User Cover")
@@ -39,10 +34,14 @@ contract PolicyManager is IPolicyManager, ERC721Enumerable {
   /// ========= VIEWS ======== ///
   /// ======================== ///
 
-  function policyActive(uint256 _tokenId) external view returns (bool) {
-    return policies[_tokenId].amountCovered != 0;
+  function policyActive(uint256 coverId) external view returns (bool) {
+    Policy memory cover = covers[coverId];
+
+    return cover.amountCovered != 0 && cover.endTimestamp == 0;
   }
 
+  function poolIdOfPolicy(uint256 coverId) external view returns (uint128) {
+    return covers[coverId].poolId;
   function poolIdOfPolicy(uint256 _tokenId) external view returns (uint128) {
     return policies[_tokenId].poolId;
   }
@@ -53,21 +52,7 @@ contract PolicyManager is IPolicyManager, ERC721Enumerable {
     override
     returns (Policy memory)
   {
-    return policies[_tokenId];
-  }
-
-  function checkAndGetPolicy(
-    address account,
-    uint256 policyId,
-    uint256 index
-  ) external view override returns (Policy memory) {
-    require(account == ownerOf(policyId), "Policy is not owned");
-    require(
-      policyId == tokenOfOwnerByIndex(account, index),
-      "Wrong Token Id for Policy"
-    );
-
-    return policy(policyId);
+    return covers[_tokenId];
   }
 
   function allPolicyTokensOfOwner(address owner)
@@ -89,50 +74,56 @@ contract PolicyManager is IPolicyManager, ERC721Enumerable {
     uint256[] memory tokenList = allPolicyTokensOfOwner(owner);
     policyList = new Policy[](tokenList.length);
     for (uint256 i = 0; i < tokenList.length; i++)
-      policyList[i] = policies[tokenList[i]];
+      policyList[i] = covers[tokenList[i]];
   }
 
-  // @bw replace with filtered policies
-  function getExpiredPolicies(address account)
+  function fullCoverData(uint256 coverId)
     public
     view
-    returns (ExpiredPolicy[] memory)
+    returns (FullCoverData memory)
   {
-    return expiredPolicies[account];
+    Policy memory cover = policy(coverId);
+
+    uint256 premiumLeft;
+    uint256 dailyCost;
+    uint256 estDuration;
+
+    // We only want to read additional cover data if it is ongoing
+    if (cover.endTimestamp == 0) {
+      address protocolAddress = IAthena(core).getProtocolAddressById(
+        cover.poolId
+      );
+      (premiumLeft, dailyCost, estDuration) = IProtocolPool(protocolAddress)
+        .getInfo(coverId);
+    }
+
+    return
+      FullCoverData({
+        coverId: coverId,
+        poolId: cover.poolId,
+        cancelledByUser: cover.cancelledByUser,
+        amountCovered: cover.amountCovered,
+        premiumDeposit: cover.premiumDeposit,
+        beginCoveredTime: cover.beginCoveredTime,
+        endTimestamp: cover.endTimestamp,
+        premiumLeft: premiumLeft,
+        dailyCost: dailyCost,
+        remainingDuration: estDuration
+      });
   }
 
-  function getOngoingCoveragePolicies(address account)
+  function fullCoverDataByAccount(address account)
     public
     view
-    returns (OngoingCoveragePolicy[] memory ongoingCoverages)
+    returns (FullCoverData[] memory accountCovers)
   {
     uint256[] memory coverIds = allPolicyTokensOfOwner(account);
 
-    ongoingCoverages = new OngoingCoveragePolicy[](coverIds.length);
+    accountCovers = new FullCoverData[](coverIds.length);
     for (uint256 i = 0; i < coverIds.length; i++) {
       uint256 coverId = coverIds[i];
-      Policy memory _policy = policy(coverId);
 
-      address protocolAddress = IAthena(core).getProtocolAddressById(
-        _policy.poolId
-      );
-      (
-        uint256 _premiumLeft,
-        uint256 _dailyCost,
-        uint256 _estDuration
-      ) = IProtocolPool(protocolAddress).getInfo(coverId);
-
-      ongoingCoverages[i] = OngoingCoveragePolicy({
-        policyId: coverId,
-        amountCovered: _policy.amountCovered,
-        premiumDeposit: _policy.premiumDeposit,
-        premiumLeft: _premiumLeft,
-        atensLocked: _policy.atensLocked,
-        dailyCost: _dailyCost,
-        beginCoveredTime: _policy.beginCoveredTime,
-        remainingDuration: _estDuration,
-        poolId: _policy.poolId
-      });
+      accountCovers[i] = fullCoverData(coverId);
     }
   }
 
@@ -161,73 +152,58 @@ contract PolicyManager is IPolicyManager, ERC721Enumerable {
     address _to,
     uint256 _amountCovered,
     uint256 _premiumDeposit,
-    uint256 _atensLocked,
     uint128 _poolId
-  ) external override onlyCore returns (uint256) {
-    policies[nextId] = Policy({
+  ) external onlyCore returns (uint256) {
+    uint256 coverId = nextCoverId;
+    nextCoverId++;
+
+    covers[coverId] = Policy({
       poolId: _poolId,
       amountCovered: _amountCovered,
       premiumDeposit: _premiumDeposit,
-      atensLocked: _atensLocked,
-      beginCoveredTime: block.timestamp
+      beginCoveredTime: block.timestamp,
+      endTimestamp: 0,
+      cancelledByUser: false
     });
 
-    _mint(_to, nextId);
-    nextId++;
+    _mint(_to, coverId);
 
-    return nextId - 1;
+    return coverId;
   }
 
   /// ======================== ///
   /// ========= CLOSE ======== ///
   /// ======================== ///
 
-  function burn(uint256 tokenId) public override onlyCore {
-    _burn(tokenId);
-    delete policies[tokenId];
-  }
+  function expireCover(uint256 coverId, bool cancelledByUser) public onlyCore {
+    Policy storage cover = covers[coverId];
 
-  function saveExpiredPolicy(
-    address _owner,
-    uint256 _policyId,
-    Policy memory _policy,
-    uint256 _premiumSpent,
-    bool _isCanceled
-  ) public override onlyCore {
-    // @bw should only save token id of expired or set to expired state
-    expiredPolicies[_owner].push(
-      ExpiredPolicy({
-        policyId: _policyId,
-        amountCovered: _policy.amountCovered,
-        premiumDeposit: _policy.premiumDeposit,
-        premiumSpent: _premiumSpent,
-        atensLocked: _policy.atensLocked,
-        beginCoveredTime: _policy.beginCoveredTime,
-        endCoveredTime: block.timestamp, // @bw WARN bad timestamps (time updated but not expired)
-        poolId: _policy.poolId,
-        isCancelled: _isCanceled
-      })
-    );
+    cover.endTimestamp = block.timestamp;
+    cover.cancelledByUser = cancelledByUser;
+
+    // @bw check if spent premium is correct after manual expiration
+    // if (cancelledByUser) {
+    //   address protocolAddress = IAthena(core).getProtocolAddressById(
+    //     cover.poolId
+    //   );
+    //   (uint256 premiumLeft, , ) = IProtocolPool(protocolAddress).getInfo(
+    //     coverId
+    //   );
+    //   cover.premiumSpent = cover.premiumDeposit - premiumLeft;
+    // } else {
+    //   //
+    // }
   }
 
   //Thao@TODO: cette fct doit retourner capitalToRemove
-  function processExpiredTokens(uint256[] calldata _expiredTokens)
+  function processExpiredTokens(uint256[] calldata expiredCoverIds)
     external
     override
     onlyCore
   {
-    for (uint256 i = 0; i < _expiredTokens.length; i++) {
-      IPolicyManager.Policy memory policy_ = policy(_expiredTokens[i]);
-
-      saveExpiredPolicy(
-        ownerOf(_expiredTokens[i]),
-        _expiredTokens[i],
-        policy_,
-        policy_.premiumDeposit,
-        false
-      );
-
-      burn(_expiredTokens[i]);
+    for (uint256 i = 0; i < expiredCoverIds.length; i++) {
+      uint256 coverId = expiredCoverIds[i];
+      expireCover(coverId, false);
     }
   }
 }

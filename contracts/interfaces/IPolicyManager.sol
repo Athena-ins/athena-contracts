@@ -4,36 +4,28 @@ import "@openzeppelin/contracts/token/ERC721/extensions/IERC721Enumerable.sol";
 
 interface IPolicyManager is IERC721Enumerable {
   struct Policy {
+    uint128 poolId;
+    bool cancelledByUser;
     uint256 amountCovered;
     uint256 premiumDeposit;
-    uint256 atensLocked;
     uint256 beginCoveredTime;
-    uint128 poolId;
+    uint256 endTimestamp;
   }
 
-  struct OngoingCoveragePolicy {
-    uint256 policyId;
+  struct FullCoverData {
+    uint256 coverId;
+    uint128 poolId;
+    bool cancelledByUser;
     uint256 amountCovered;
     uint256 premiumDeposit;
+    uint256 beginCoveredTime;
+    uint256 endTimestamp;
     uint256 premiumLeft;
     uint256 dailyCost;
-    uint256 atensLocked;
-    uint256 beginCoveredTime;
     uint256 remainingDuration;
-    uint128 poolId;
   }
 
-  struct ExpiredPolicy {
-    uint256 policyId;
-    uint256 amountCovered;
-    uint256 premiumDeposit;
-    uint256 premiumSpent;
-    uint256 atensLocked;
-    uint256 beginCoveredTime;
-    uint256 endCoveredTime;
-    uint128 poolId;
-    bool isCancelled;
-  }
+  function getCover(uint256 coverId) external view returns (Policy calldata);
 
   function policy(uint256 tokenId) external view returns (Policy memory);
 
@@ -41,25 +33,10 @@ interface IPolicyManager is IERC721Enumerable {
     address to,
     uint256 amountCovered,
     uint256 premiumDeposit,
-    uint256 atensLocked,
     uint128 poolId
   ) external returns (uint256);
 
-  function burn(uint256 tokenId) external;
-
-  function saveExpiredPolicy(
-    address owner,
-    uint256 policyId,
-    Policy memory policy,
-    uint256 premiumSpent,
-    bool isCanceled
-  ) external;
-
-  function checkAndGetPolicy(
-    address account,
-    uint256 policyId,
-    uint256 index
-  ) external view returns (Policy memory);
+  function expireCover(uint256 coverId, bool cancelledByUser) external;
 
   function processExpiredTokens(uint256[] calldata expiredTokens) external;
 
