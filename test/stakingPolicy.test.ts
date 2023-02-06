@@ -175,18 +175,16 @@ describe("Staking Policy Rewards", function () {
   });
 
   it("Expect 12 months rewards for 100% APR", async function () {
-    const rewards = await STAKING_POLICY.connect(policyTaker1).rewardsOf(
-      await policyTaker1.getAddress(),
-      0
-    );
+    const rewards = await STAKING_POLICY.connect(
+      policyTaker1
+    ).positionRefundRewards(0);
     expect(rewards.toNumber()).to.equal(13);
 
     await HardhatHelper.setNextBlockTimestamp(60 * 60 * 24 * 365 + 10);
 
-    const rewards2 = await STAKING_POLICY.connect(policyTaker1).rewardsOf(
-      await policyTaker1.getAddress(),
-      0
-    );
+    const rewards2 = await STAKING_POLICY.connect(
+      policyTaker1
+    ).positionRefundRewards(0);
 
     expect(rewards2.toString()).to.equal("500");
   });

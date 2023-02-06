@@ -104,7 +104,7 @@ describe("Buy policy", () => {
       expect(policyInfo.beginPremiumRate).to.be.equal(
         "2000000000000000000000000000"
       );
-      expect(policyInfo.ownerIndex).to.be.equal("0");
+      expect(policyInfo.coverIdIndex).to.be.equal("0");
       expect(policyInfo.lastTick).to.be.equal(730);
     });
 
@@ -228,7 +228,7 @@ describe("Buy policy", () => {
       expect(policyInfo.beginPremiumRate).to.be.equal(
         "4000000000000000000000000000"
       );
-      expect(policyInfo.ownerIndex).to.be.equal("0");
+      expect(policyInfo.coverIdIndex).to.be.equal("0");
       expect(policyInfo.lastTick).to.be.equal(1480);
     });
 

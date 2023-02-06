@@ -80,16 +80,6 @@ describe("Deploy protocol", () => {
         ).to.not.equal("0x");
       });
 
-      it("Should deploy StakedAtensPolicy contract", async () => {
-        await ProtocolHelper.deployStakedAtensPolicyContract(owner);
-
-        expect(
-          await hre_ethers.provider.getCode(
-            ProtocolHelper.getStakedAtensPolicyContract().address
-          )
-        ).to.not.equal("0x");
-      });
-
       it("Should deploy VaultAtens contract", async () => {
         await ProtocolHelper.deployVaultAtenContract(owner);
 
@@ -116,6 +106,16 @@ describe("Deploy protocol", () => {
         expect(
           await hre_ethers.provider.getCode(
             ProtocolHelper.getPriceOracleV1Contract().address
+          )
+        ).to.not.equal("0x");
+      });
+
+      it("Should deploy StakedAtensPolicy contract", async () => {
+        await ProtocolHelper.deployStakedAtensPolicyContract(owner);
+
+        expect(
+          await hre_ethers.provider.getCode(
+            ProtocolHelper.getStakedAtensPolicyContract().address
           )
         ).to.not.equal("0x");
       });

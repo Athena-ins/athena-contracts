@@ -490,7 +490,7 @@ describe("Liquidity provider takeInterest", () => {
       expect(policyInfo.beginPremiumRate).to.be.equal(
         "3000000000000000000000000000"
       );
-      expect(policyInfo.ownerIndex).to.be.equal("0");
+      expect(policyInfo.coverIdIndex).to.be.equal("0");
       expect(policyInfo.lastTick).to.be.equal(730);
     });
 
@@ -521,7 +521,7 @@ describe("Liquidity provider takeInterest", () => {
       expect(policyInfo.beginPremiumRate).to.be.equal(
         "5000000000000000000000000000"
       );
-      expect(policyInfo.ownerIndex).to.be.equal("0");
+      expect(policyInfo.coverIdIndex).to.be.equal("0");
       expect(policyInfo.lastTick).to.be.equal(1490);
     });
 
