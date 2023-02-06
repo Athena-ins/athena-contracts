@@ -7,12 +7,13 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./interfaces/IPriceOracle.sol";
 import "./interfaces/IVaultERC20.sol";
 import "./interfaces/IPolicyManager.sol";
+import "./interfaces/IStakedAtenPolicy.sol";
 
 /**
  * @notice
  * Cover Refund Staking Pool
  **/
-contract StakingPolicy is Ownable {
+contract StakingPolicy is IStakedAtenPolicy, Ownable {
   using SafeERC20 for IERC20;
 
   // Address of the core Athena contract
@@ -38,7 +39,7 @@ contract StakingPolicy is Ownable {
     uint256 coverId;
     uint256 earnedRewards;
     uint256 stakedAmount;
-    uint256 lastPremiumSpent;
+    uint256 premiumSpent;
     uint256 atenPrice;
     uint64 initTimestamp;
     uint64 rewardsSinceTimestamp;
@@ -167,49 +168,50 @@ contract StakingPolicy is Ownable {
     }
 
     // Return proportional rewards
-    uint256 maxYearlyReward = (pos.stakedAmount * rate) / 10_000;
+    uint256 maxYearlyReward = (pos_.stakedAmount * rate) / 10_000;
     uint256 maxYearPercentage = (timeElapsed * 1e18) / 365 days;
     uint256 maxReward = (maxYearPercentage * maxYearlyReward) / 1e18;
 
     // Compute reward based on the premium spent for the cover
-    uint256 trueReward = (premiumSpent - pos.lastPremiumSpent) * pos.atenPrice;
+    uint256 trueReward = (lastPremiumSpent_ - pos_.premiumSpent) *
+      pos_.atenPrice;
 
     rewards = trueReward < maxReward ? trueReward : maxReward;
   }
 
-  function _applyPenalty(uint256 totalRewards, uint64 timeElapsed)
-    internal
+  function _applyPenalty(uint256 totalRewards_, uint64 timeElapsed_)
+    private
     view
     returns (uint256)
   {
-    if (shortCoverDuration < timeElapsed) {
-      return totalRewards;
+    if (shortCoverDuration < timeElapsed_) {
+      return totalRewards_;
     } else {
       // We apply an early withdrawal penalty
       uint64 penaltyRate = basePenaltyRate +
-        (((shortCoverDuration - timeElapsed) * durationPenaltyRate) /
+        (((shortCoverDuration - timeElapsed_) * durationPenaltyRate) /
           shortCoverDuration);
 
-      return (totalRewards * (10_000 - penaltyRate)) / 10_000;
+      return (totalRewards_ * (10_000 - penaltyRate)) / 10_000;
     }
   }
 
-  function _updatePositionRewards(RefundPosition storage pos)
-    internal
+  function _updatePositionRewards(RefundPosition storage pos_)
+    private
     returns (uint256)
   {
     uint256 atenPrice = priceOracleInterface.getAtenPrice();
     uint64 timestamp = uint64(block.timestamp);
 
-    uint256 premiumSpent = _getSpentPremium(pos.coverId);
-    uint256 earnedRewards = _computeRewards(pos, premiumSpent);
+    uint256 lastPremiumSpent = _getSpentPremium(pos_.coverId);
+    uint256 earnedRewards = _computeRewards(pos_, lastPremiumSpent);
     _reflectEarnedRewards(earnedRewards);
 
     // Register last reward update & update position with latest config
-    pos.lastPremiumSpent = premiumSpent;
-    pos.rewardsSinceTimestamp = timestamp;
-    pos.atenPrice = atenPrice;
-    pos.rate = refundRate;
+    pos_.premiumSpent = lastPremiumSpent;
+    pos_.rewardsSinceTimestamp = timestamp;
+    pos_.atenPrice = atenPrice;
+    pos_.rate = refundRate;
 
     return earnedRewards;
   }
@@ -218,17 +220,16 @@ contract StakingPolicy is Ownable {
   /// ========== VIEWS ========== ///
   /// =========================== ///
 
-  function hasPosition(uint256 coverId) external view returns (bool) {
-    RefundPosition memory pos = positions[coverId];
-    return pos.initTimestamp != 0;
+  function hasPosition(uint256 coverId_) public view returns (bool) {
+    return positions[coverId_].initTimestamp != 0;
   }
 
   /**
    * @notice
    * Returns the amount of rewards a user has earned for a specific staking position.
    * @dev The rewards are capped at 365 days of staking at the specified APR.
-   * @param coverId_ is the id of the policy
-   * @ @return _ the amount of rewards earned
+   * @param coverId_  is the id of the cover
+   * @return earnedRewards the amount of rewards earned
    */
   function positionRefundRewards(uint256 coverId_)
     external
@@ -237,8 +238,8 @@ contract StakingPolicy is Ownable {
   {
     RefundPosition memory pos = positions[coverId_];
 
-    uint256 premiumSpent = _getSpentPremium(coverId_);
-    earnedRewards = _computeRewards(pos, premiumSpent);
+    uint256 lastPremiumSpent = _getSpentPremium(coverId_);
+    earnedRewards = _computeRewards(pos, lastPremiumSpent);
   }
 
   function netPositionRefundRewards(uint256 coverId_)
@@ -249,8 +250,8 @@ contract StakingPolicy is Ownable {
     RefundPosition memory pos = positions[coverId_];
     uint64 timestamp = uint64(block.timestamp);
 
-    uint256 premiumSpent = _getSpentPremium(coverId_);
-    uint256 newEarnedRewards = _computeRewards(pos, premiumSpent);
+    uint256 lastPremiumSpent = _getSpentPremium(coverId_);
+    uint256 newEarnedRewards = _computeRewards(pos, lastPremiumSpent);
 
     uint256 totalRewards = pos.earnedRewards + newEarnedRewards;
     uint64 timeElapsed = timestamp - pos.initTimestamp;
@@ -296,7 +297,7 @@ contract StakingPolicy is Ownable {
     for (uint256 i = 0; i < accountCoverIds.length; i++) {
       uint256 coverId = accountCoverIds[i];
       if (positions[coverId].initTimestamp != 0) nbPositions++;
-  }
+    }
 
     accountPositions = new RefundPosition[](nbPositions);
 
@@ -314,7 +315,10 @@ contract StakingPolicy is Ownable {
   /// ========== DEPOSIT ========== ///
   /// ============================= ///
 
-  function createStakingPosition(uint256 coverId_, uint256 amount_) private {
+  function createStakingPosition(uint256 coverId_, uint256 amount_)
+    external
+    onlyCore
+  {
     if (amount_ == 0) revert CannotStakeZero();
 
     RefundPosition storage pos = positions[coverId_];
@@ -331,7 +335,7 @@ contract StakingPolicy is Ownable {
       coverId: coverId_,
       earnedRewards: 0,
       stakedAmount: amount_,
-      lastPremiumSpent: premiumSpent,
+      premiumSpent: lastPremiumSpent,
       atenPrice: atenPrice,
       rewardsSinceTimestamp: timestamp,
       initTimestamp: timestamp,
@@ -344,8 +348,8 @@ contract StakingPolicy is Ownable {
 
   /**
    * @notice
-   * Deposit a policy holder's ATEN so they can earn staking rewards.
-   * @param coverId_ is the id of the policy
+   * Deposit a cover holder's ATEN so they can earn staking rewards.
+   * @param coverId_ is the id of the cover
    * @param amount_ is the amount of tokens to stake
    */
   function addToStake(uint256 coverId_, uint256 amount_) external onlyCore {
@@ -389,7 +393,7 @@ contract StakingPolicy is Ownable {
   function withdrawRewards(uint256 coverId_)
     external
     onlyCore
-    returns (uint256)
+    returns (uint256 netRewards)
   {
     RefundPosition storage pos = positions[coverId_];
     if (pos.initTimestamp == 0) revert PositionDoesNotExist();
@@ -408,7 +412,7 @@ contract StakingPolicy is Ownable {
 
     emit WithdrawRewards(coverId_, totalRewards);
 
-    return _applyPenalty(totalRewards, timeElapsed);
+    netRewards = _applyPenalty(totalRewards, timeElapsed);
   }
 
   /// =============================== ///
@@ -418,7 +422,7 @@ contract StakingPolicy is Ownable {
   function closePosition(uint256 coverId_, address account_)
     external
     onlyCore
-    returns (uint256)
+    returns (uint256 netRewards)
   {
     RefundPosition storage pos = positions[coverId_];
 
@@ -443,7 +447,7 @@ contract StakingPolicy is Ownable {
 
     emit CloseStake(coverId_);
 
-    return _applyPenalty(totalRewards, timeElapsed);
+    netRewards = _applyPenalty(totalRewards, timeElapsed);
   }
 
   // Should be called for expired cover tokens
