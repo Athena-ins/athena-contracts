@@ -392,21 +392,47 @@ contract StakingPolicy is Ownable {
   /// ========== END STAKE ========== ///
   /// =============================== ///
 
-  function closePosition(uint256 coverId_) external onlyCore {
+  function closePosition(uint256 coverId_, address account_)
+    external
+    onlyCore
+    returns (uint256)
+  {
     RefundPosition storage pos = positions[coverId_];
 
-    // can be ended
-    // withdraw stake + take profit
+    uint64 initTimestamp = pos.initTimestamp;
+    require(initTimestamp != 0, "SP: position does not exist");
+
+    uint256 amountStaked = pos.stakedAmount;
+    uint256 earnedRewards = pos.earnedRewards;
+    uint256 newEarnedRewards = _updatePositionRewards(pos);
+
+    // We can already delete the position since all necessary data is in memory
+    delete positions[coverId_];
+
+    atenTokenInterface.safeTransfer(account_, amountStaked);
+
+    uint256 totalRewards = earnedRewards + newEarnedRewards;
+    uint64 timestamp = uint64(block.timestamp);
+    uint64 timeElapsed = timestamp - initTimestamp;
+
+    // Always reflect full amount since penalties are not included
+    _reflectPaidRewards(totalRewards);
+
+    emit CloseStake(coverId_);
+
+    return _applyPenalty(totalRewards, timeElapsed);
   }
 
   // Should be called for expired cover tokens
   function endStakingPositions(uint256[] calldata coverIds_) external onlyCore {
+    uint64 timestamp = uint64(block.timestamp);
+
     for (uint256 i = 0; i < coverIds_.length; i++) {
       uint256 coverId_ = coverIds_[i];
       RefundPosition storage pos = positions[coverId_];
 
       if (pos.initTimestamp != 0 && pos.endTimestamp == 0) {
-        pos.endTimestamp = uint64(block.timestamp);
+        pos.endTimestamp = timestamp;
         emit EndStake(coverId_);
       }
     }
