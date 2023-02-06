@@ -81,6 +81,8 @@ contract StakingPolicy is Ownable {
   event AddStake(uint256 indexed coverId, uint256 amount);
   /// @notice Triggered whenever a user unstakes tokens
   event Unstake(uint256 indexed coverId, uint256 amount);
+  /// @notice Triggered whenever a user unstakes tokens
+  event WithdrawRewards(uint256 indexed coverId, uint256 amount);
   /// @notice Triggered whenever a cover expires
   event EndStake(uint256 indexed coverId);
   /// @notice Triggered whenever a staking position is closed by the user
@@ -143,6 +145,23 @@ contract StakingPolicy is Ownable {
     uint256 trueReward = (premiumSpent - pos.lastPremiumSpent) * pos.atenPrice;
 
     rewards = trueReward < maxReward ? trueReward : maxReward;
+  }
+
+  function _applyPenalty(uint256 totalRewards, uint64 timeElapsed)
+    internal
+    view
+    returns (uint256)
+  {
+    if (shortCoverDuration < timeElapsed) {
+      return totalRewards;
+    } else {
+      // We apply an early withdrawal penalty
+      uint64 penaltyRate = basePenaltyRate +
+        (((shortCoverDuration - timeElapsed) * durationPenaltyRate) /
+          shortCoverDuration);
+
+      return (totalRewards * (10_000 - penaltyRate)) / 10_000;
+    }
   }
 
   function _updatePositionRewards(RefundPosition storage pos)
@@ -246,16 +265,7 @@ contract StakingPolicy is Ownable {
     uint256 totalRewards = pos.earnedRewards + newEarnedRewards;
     uint64 timeElapsed = timestamp - pos.initTimestamp;
 
-    if (shortCoverDuration < timeElapsed) {
-      return totalRewards;
-    } else {
-      // We apply an early withdrawal penalty
-      uint64 penaltyRate = basePenaltyRate +
-        (((shortCoverDuration - timeElapsed) * durationPenaltyRate) /
-          shortCoverDuration);
-
-      return (totalRewards * (10_000 - penaltyRate)) / 10_000;
-    }
+    return _applyPenalty(totalRewards, timeElapsed);
   }
 
   /// ============================= ///
@@ -373,16 +383,9 @@ contract StakingPolicy is Ownable {
     // Always reflect full amount since penalties are not included
     _reflectPaidRewards(totalRewards);
 
-    if (shortCoverDuration < timeElapsed) {
-      return totalRewards;
-    } else {
-      // We apply an early withdrawal penalty
-      uint64 penaltyRate = basePenaltyRate +
-        (((shortCoverDuration - timeElapsed) * durationPenaltyRate) /
-          shortCoverDuration);
+    emit WithdrawRewards(coverId_, totalRewards);
 
-      return (totalRewards * (10_000 - penaltyRate)) / 10_000;
-    }
+    return _applyPenalty(totalRewards, timeElapsed);
   }
 
   /// =============================== ///
