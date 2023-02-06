@@ -239,25 +239,25 @@ describe("expired policies", () => {
     });
 
     it("Should get expired policies for policyTaker1", async () => {
-      const expiredPolicies = await ProtocolHelper.getPolicyManagerContract()
-        .connect(owner)
-        .getExpiredPolicies(await policyTaker1.getAddress());
+      const expiredPolicies = await ProtocolHelper.getExpiredCovers(
+        policyTaker1
+      );
 
       expect(expiredPolicies.length).to.be.equal(2);
 
-      expect(expiredPolicies[0].policyId).to.be.equal(2);
+      expect(expiredPolicies[0].coverId).to.be.equal(2);
       expect(expiredPolicies[0].poolId).to.be.equal(0);
-      expect(expiredPolicies[0].isCancelled).to.be.equal(true);
+      expect(expiredPolicies[0].cancelledByUser).to.be.equal(true);
 
-      expect(expiredPolicies[1].policyId).to.be.equal(3);
+      expect(expiredPolicies[1].coverId).to.be.equal(3);
       expect(expiredPolicies[1].poolId).to.be.equal(3);
-      expect(expiredPolicies[1].isCancelled).to.be.equal(false);
+      expect(expiredPolicies[1].cancelledByUser).to.be.equal(false);
     });
 
     it("Should get expired policies for policyTaker2", async () => {
-      const expiredPolicies = await ProtocolHelper.getPolicyManagerContract()
-        .connect(owner)
-        .getExpiredPolicies(await policyTaker2.getAddress());
+      const expiredPolicies = await ProtocolHelper.getExpiredCovers(
+        policyTaker2
+      );
 
       expect(expiredPolicies.length).to.be.equal(1);
 
@@ -265,9 +265,9 @@ describe("expired policies", () => {
     });
 
     it("Should get expired policies for policyTaker3", async () => {
-      const expiredPolicies = await ProtocolHelper.getPolicyManagerContract()
-        .connect(owner)
-        .getExpiredPolicies(await policyTaker3.getAddress());
+      const expiredPolicies = await ProtocolHelper.getExpiredCovers(
+        policyTaker3
+      );
 
       expect(expiredPolicies.length).to.be.equal(1);
 
@@ -275,9 +275,9 @@ describe("expired policies", () => {
     });
 
     it("Should get expired policies for policyTaker4", async () => {
-      const expiredPolicies = await ProtocolHelper.getPolicyManagerContract()
-        .connect(owner)
-        .getExpiredPolicies(await policyTaker4.getAddress());
+      const expiredPolicies = await ProtocolHelper.getExpiredCovers(
+        policyTaker4
+      );
 
       expect(expiredPolicies.length).to.be.equal(1);
 

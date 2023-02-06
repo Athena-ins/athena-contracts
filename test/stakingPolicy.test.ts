@@ -157,21 +157,15 @@ describe("Staking Policy Rewards", function () {
   it("Should return remaining lock time ", async function () {
     const userStakes = await STAKING_POLICY.connect(
       policyTaker1
-    ).allAccountStakingPositions(await policyTaker1.getAddress());
+    ).getRefundPositionsByAccount(await policyTaker1.getAddress());
 
-    expect(userStakes[1].timestamp.toNumber()).to.not.equal(0);
+    expect(userStakes[1].initTimestamp.toNumber()).to.not.equal(0);
   });
 
   it("Should reject withdraw of other user's policy rewards", async function () {
     await expect(
-      ATHENA_CONTRACT.connect(policyTaker3).withdrawAtensPolicy(1)
+      ATHENA_CONTRACT.connect(policyTaker3).withdrawCoverRefundStakedAten(1, 10)
     ).to.eventually.be.rejectedWith("NotPolicyOwner()");
-  });
-
-  it("Should reject withdrawal before 1 year lock time", async function () {
-    await expect(
-      ATHENA_CONTRACT.connect(policyTaker1).withdrawAtensPolicy(0)
-    ).to.eventually.be.rejectedWith("SP: year has not elapsed");
   });
 
   it("Expect 12 months rewards for 100% APR", async function () {
@@ -192,7 +186,7 @@ describe("Staking Policy Rewards", function () {
   it("Should return 2 staking Policy ", async function () {
     const indexUser = await STAKING_POLICY.connect(
       policyTaker1
-    ).allAccountStakingPositions(await policyTaker1.getAddress());
+    ).getRefundPositionsByAccount(await policyTaker1.getAddress());
 
     expect(indexUser.length).to.equal(3);
   });
@@ -203,7 +197,10 @@ describe("Staking Policy Rewards", function () {
     );
 
     const txWithdrawAten = await (
-      await ATHENA_CONTRACT.connect(policyTaker1).withdrawAtensPolicy(0)
+      await ATHENA_CONTRACT.connect(policyTaker1).withdrawCoverRefundStakedAten(
+        0,
+        10
+      )
     ).wait();
     expect(txWithdrawAten).to.haveOwnProperty("transactionHash");
 

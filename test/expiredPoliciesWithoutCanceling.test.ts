@@ -217,9 +217,9 @@ describe("expired policies", () => {
     });
 
     it("Should get expired policies for policyTaker1", async () => {
-      const expiredPolicies = await ProtocolHelper.getPolicyManagerContract()
-        .connect(owner)
-        .getExpiredPolicies(await policyTaker1.getAddress());
+      const expiredPolicies = await ProtocolHelper.getExpiredCovers(
+        policyTaker1
+      );
 
       expect(expiredPolicies.length).to.be.equal(2);
 
@@ -228,9 +228,9 @@ describe("expired policies", () => {
     });
 
     it("Should get expired policies for policyTaker2", async () => {
-      const expiredPolicies = await ProtocolHelper.getPolicyManagerContract()
-        .connect(owner)
-        .getExpiredPolicies(await policyTaker2.getAddress());
+      const expiredPolicies = await ProtocolHelper.getExpiredCovers(
+        policyTaker2
+      );
 
       expect(expiredPolicies.length).to.be.equal(1);
 
@@ -238,9 +238,9 @@ describe("expired policies", () => {
     });
 
     it("Should get expired policies for policyTaker3", async () => {
-      const expiredPolicies = await ProtocolHelper.getPolicyManagerContract()
-        .connect(owner)
-        .getExpiredPolicies(await policyTaker3.getAddress());
+      const expiredPolicies = await ProtocolHelper.getExpiredCovers(
+        policyTaker3
+      );
 
       expect(expiredPolicies.length).to.be.equal(1);
 
@@ -248,9 +248,9 @@ describe("expired policies", () => {
     });
 
     it("Should get expired policies for policyTaker4", async () => {
-      const expiredPolicies = await ProtocolHelper.getPolicyManagerContract()
-        .connect(owner)
-        .getExpiredPolicies(await policyTaker4.getAddress());
+      const expiredPolicies = await ProtocolHelper.getExpiredCovers(
+        policyTaker4
+      );
 
       expect(expiredPolicies.length).to.be.equal(1);
 

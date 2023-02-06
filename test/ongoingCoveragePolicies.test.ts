@@ -94,35 +94,33 @@ describe("Ongoing coverage policies", () => {
     );
   });
 
-  it("Should call PolicyManager.getOngoingCoveragePolicies for PT1", async () => {
+  it("Should call PolicyManager.fullCoverDataByAccount for PT1", async () => {
     const result =
-      await ProtocolHelper.getPolicyManagerContract().getOngoingCoveragePolicies(
+      await ProtocolHelper.getPolicyManagerContract().fullCoverDataByAccount(
         await policyTaker1.getAddress()
       );
 
     expect(result.length).to.be.equals(2);
-    expect(result[0].policyId).to.be.equals(0);
+    expect(result[0].coverId).to.be.equals(0);
     expect(result[0].amountCovered).to.be.equals(109500);
     expect(result[0].premiumDeposit).to.be.equals(2190);
     expect(result[0].premiumLeft).to.be.equals(2094);
     expect(result[0].dailyCost).to.be.equals(9);
-    expect(result[0].atensLocked).to.be.equals(0);
     expect(result[0].beginCoveredTime).to.be.equals(1675900801);
     expect(result[0].remainingDuration).to.be.equals(20102400);
     expect(result[0].poolId).to.be.equals(0);
 
-    expect(result[1].policyId).to.be.equals(2);
+    expect(result[1].coverId).to.be.equals(2);
     expect(result[1].amountCovered).to.be.equals(219000);
     expect(result[1].premiumDeposit).to.be.equals(8760);
     expect(result[1].premiumLeft).to.be.equals(8760);
     expect(result[1].dailyCost).to.be.equals(18);
-    expect(result[1].atensLocked).to.be.equals(0);
     expect(result[1].beginCoveredTime).to.be.equals(1676851201);
     expect(result[1].remainingDuration).to.be.equals(42048000);
     expect(result[1].poolId).to.be.equals(2);
   });
 
-  it("Should call PolicyManager.getOngoingCoveragePolicies for PT1 after expireing of token 0", async () => {
+  it("Should call PolicyManager.fullCoverDataByAccount for PT1 after expireing of token 0", async () => {
     await HardhatHelper.USDT_maxApprove(
       policyTaker2,
       ProtocolHelper.getAthenaContract().address
@@ -153,21 +151,18 @@ describe("Ongoing coverage policies", () => {
     );
 
     const result =
-      await ProtocolHelper.getPolicyManagerContract().getOngoingCoveragePolicies(
+      await ProtocolHelper.getPolicyManagerContract().fullCoverDataByAccount(
         await policyTaker1.getAddress()
       );
 
     expect(result.length).to.be.equals(1);
-    expect(result[0].policyId).to.be.equals(2);
+    expect(result[0].coverId).to.be.equals(2);
     expect(result[0].poolId).to.be.equals(2);
 
-    const result1 =
-      await ProtocolHelper.getPolicyManagerContract().getExpiredPolicies(
-        await policyTaker1.getAddress()
-      );
+    const result1 = await ProtocolHelper.getExpiredCovers(policyTaker1);
 
     expect(result1.length).to.be.equals(1);
-    expect(result1[0].policyId).to.be.equals(0);
+    expect(result1[0].coverId).to.be.equals(0);
     expect(result1[0].poolId).to.be.equals(0);
 
     const result2 =
