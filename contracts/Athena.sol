@@ -625,7 +625,26 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     }
   }
 
-  // @bw need extend cover fn
+  function addToCoverRefundStake(uint256 coverId_, uint256 amount_)
+    external
+    onlyPolicyTokenOwner(coverId_)
+  {
+    // Core contracts is responsible for incoming tokens
+    atenTokenInterface.safeTransferFrom(
+      msg.sender,
+      address(stakedAtensPoInterface),
+      amount_
+    );
+    stakedAtensPoInterface.addToStake(coverId_, amount_);
+  }
+
+  function withdrawCoverRefundStakedAten(uint256 coverId_, uint256 amount_)
+    external
+    onlyPolicyTokenOwner(coverId_)
+  {
+    // Cover refund contracts is responsible for outgoing tokens
+    stakedAtensPoInterface.withdrawStakedAten(coverId_, amount_, msg.sender);
+  }
 
   /**
    * @notice

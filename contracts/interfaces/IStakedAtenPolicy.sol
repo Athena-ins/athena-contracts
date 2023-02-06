@@ -10,8 +10,8 @@ interface IStakedAtenPolicy {
 
   function withdrawStakedAten(
     uint256 coverId,
-    address account,
-    uint256 amount
+    uint256 amount,
+    address account
   ) external;
 
   function withdrawRewards(uint256 coverId)

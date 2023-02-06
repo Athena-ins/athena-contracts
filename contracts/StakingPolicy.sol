@@ -375,8 +375,8 @@ contract StakingPolicy is IStakedAtenPolicy, Ownable {
 
   function withdrawStakedAten(
     uint256 coverId_,
-    address account_,
-    uint256 amount_
+    uint256 amount_,
+    address account_
   ) external onlyCore {
     RefundPosition storage pos = positions[coverId_];
     if (pos.initTimestamp == 0) revert PositionDoesNotExist();
