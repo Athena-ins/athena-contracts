@@ -71,7 +71,7 @@ interface IProtocolPool is IPolicyCover {
     address owner,
     uint256 coverId,
     uint256 amountCovered
-  ) external returns (uint256 coverPremiumsLeft);
+  ) external;
 
   function processClaim(
     uint128 fromPoolId,

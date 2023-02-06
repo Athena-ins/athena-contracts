@@ -168,6 +168,11 @@ contract StakingPolicy is Ownable {
   /// ========== VIEWS ========== ///
   /// =========================== ///
 
+  function hasPosition(uint256 coverId) external view returns (bool) {
+    RefundPosition memory pos = positions[coverId];
+    return 0 < pos.stakedAmount && pos.endTimestamp == 0;
+  }
+
   // /**
   //  * @notice
   //  * Returns a user's staking position for a specific policy.

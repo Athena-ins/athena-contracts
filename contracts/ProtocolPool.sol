@@ -110,8 +110,8 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     address owner,
     uint256 coverId,
     uint256 amountCovered
-  ) external onlyCore returns (uint256 coverPremiumsLeft) {
-    coverPremiumsLeft = _withdrawPolicy(coverId, amountCovered);
+  ) external onlyCore {
+    uint256 coverPremiumsLeft = _withdrawPolicy(coverId, amountCovered);
 
     IERC20(underlyingAsset).safeTransfer(owner, coverPremiumsLeft);
 
