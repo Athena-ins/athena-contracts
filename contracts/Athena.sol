@@ -312,6 +312,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
       .actualizing();
 
     policyManagerInterface.processExpiredTokens(__expiredTokens);
+    stakedAtensPoInterface.endStakingPositions(__expiredTokens);
   }
 
   function actualizingProtocolAndRemoveExpiredPoliciesByPoolId(uint128 poolId_)
@@ -331,28 +332,6 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
       amount.rayDiv(
         ILendingPool(lendingPool).getReserveNormalizedIncome(stablecoin)
       );
-  }
-
-  /**
-   * @notice
-   * Manages the withdrawal of staked ATEN in policy pool and rewards payment.
-   * @param account_ the address of the user
-   * @param policyId_ the id of the policy position
-   */
-  function _processPolicyStakingPayout(address account_, uint256 policyId_)
-    private
-  {
-    // Get the amount of rewards, consume the staking position and send back staked ATEN to user
-    uint256 amountRewards = stakedAtensPoInterface.withdraw(
-      account_,
-      policyId_
-    );
-
-    // Check the amount is above 0
-    if (amountRewards == 0) revert WithdrawableAmountIsZero();
-
-    // Send the rewards to the user from the vault
-    atensVaultInterface.sendCoverRefundReward(account_, amountRewards);
   }
 
   function _updateUserPositionFeeRate(address account_) private {
@@ -633,7 +612,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
         _amountCovered
       );
 
-      if (_atensLocked > 0) {
+      if (0 < _atensLocked) {
         // Get tokens from user to staking pool
         // @bw send in one go after checks are passed instead of multiple transfers
         atenTokenInterface.safeTransferFrom(
@@ -641,7 +620,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
           address(stakedAtensPoInterface),
           _atensLocked
         );
-        stakedAtensPoInterface.stake(msg.sender, policyId, _atensLocked);
+        stakedAtensPoInterface.createStakingPosition(policyId, _atensLocked);
       }
     }
   }
@@ -673,11 +652,8 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     bool isStillActive = policyManagerInterface.policyActive(policyId_);
     if (isStillActive != true) revert PolicyExpired();
 
-    // If ATEN was staked along with the policy then process the staking withdrawal
-    bool hasPosition = stakedAtensPoInterface.hasPosition(policyId_);
-    if (hasPosition) {
-      stakedAtensPoInterface.closePosition(policyId_);
-    }
+    // The cover refund pool will close the position if it exists
+    closeCoverRefundPosition(policyId_);
 
     // Updates pool liquidity and withdraws remaining funds to user
     IProtocolPool(protocolsMapping[userPolicy.poolId].deployed).withdrawPolicy(
@@ -692,58 +668,63 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
 
   /**
    * @notice
-   * Enables ATEN withdrawals from policy staking pool either with anticipation or from expired policies.
+   * Allows a user to withdraw cover refund rewards.
    * @param policyId_ the id of the policy position
    */
-  function withdrawAtensPolicyWithoutRewards(uint256 policyId_)
+  function withdrawCoverRefundRewards(uint256 policyId_)
     external
     onlyPolicyTokenOwner(policyId_)
   {
-    // Consume the staking position and send back staked ATEN to user
-    stakedAtensPoInterface.earlyWithdraw(msg.sender, policyId_);
+    // Update the cover refund position and retrieve the net rewards
+    uint256 netRewards = stakedAtensPoInterface.withdrawRewards(policyId_);
+    if (0 < netRewards) {
+      atensVaultInterface.sendCoverRefundReward(msg.sender, netRewards);
+    }
   }
 
   /**
    * @notice
-   * Withdraws the staking rewards generated from a policy staking position.
+   * Closes a cover refund position while returning staked ATEN and distributing earned rewards.
    * @param policyId_ the id of the policy position
    */
-  function withdrawAtensPolicy(uint256 policyId_)
+  function closeCoverRefundPosition(uint256 policyId_)
     public
     onlyPolicyTokenOwner(policyId_)
   {
-    // Get the protocol ID of the policy
-    uint128 poolId = policyManagerInterface.poolIdOfPolicy(policyId_);
-
-    // Remove expired policies
-    actualizingProtocolAndRemoveExpiredPolicies(
-      protocolsMapping[poolId].deployed
+    // Update the cover refund position and retrieve the net rewards
+    uint256 netRewards = stakedAtensPoInterface.closePosition(
+      policyId_,
+      msg.sender
     );
-
-    // Require that the policy is still active
-    // @bw removing expired policies should also close staking position
-    // But if it is expires post 1 year then payout rewards
-    // To be valid the policy does not need to be active but have been active for 1y
-    //
-    // @bw maybe wrong fn for checking
-    bool isStillActive = policyManagerInterface.policyActive(policyId_);
-    if (isStillActive != true) revert PolicyExpired();
-
-    // Process withdrawal and rewards payment
-    _processPolicyStakingPayout(msg.sender, policyId_);
+    if (0 < netRewards) {
+      atensVaultInterface.sendCoverRefundReward(msg.sender, netRewards);
+    }
   }
 
   /**
    * @notice
-   * Withdraws ATEN and policy staking rewards from multiple policy staking positions.
+   * Closes multiple cover refund positions while returning staked ATEN and distributing earned rewards.
    * @param policyIds_ the ids of the policy positions
    */
-  function withdrawAtensFromMultiPolicies(uint256[] calldata policyIds_)
+  function closeMultiCoverRefundPositions(uint256[] calldata policyIds_)
     external
   {
-    uint256 policyIdLength = policyIds_.length;
-    for (uint256 i = 0; i < policyIdLength; i++) {
-      withdrawAtensPolicy(policyIds_[i]);
+    uint256 totalNetRewards;
+
+    for (uint256 i = 0; i < policyIds_.length; i++) {
+      uint256 policyId = policyIds_[i];
+
+      address ownerOfToken = policyManagerInterface.ownerOf(policyId);
+      if (msg.sender != ownerOfToken) revert NotPolicyOwner();
+
+      totalNetRewards += stakedAtensPoInterface.closePosition(
+        policyId,
+        msg.sender
+      );
+    }
+
+    if (0 < totalNetRewards) {
+      atensVaultInterface.sendCoverRefundReward(msg.sender, totalNetRewards);
     }
   }
 
