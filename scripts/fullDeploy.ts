@@ -45,7 +45,6 @@ async function main() {
     await ProtocolHelper.deployStakedAtenContract(deployer);
     await ProtocolHelper.deployPolicyManagerContract(deployer);
     await ProtocolHelper.deployProtocolFactoryContract(deployer);
-    await ProtocolHelper.deployStakedAtensPolicyContract(deployer);
     await ProtocolHelper.deployVaultAtenContract(deployer);
     await ProtocolHelper.deployClaimManagerContract(
       deployer,
@@ -55,6 +54,7 @@ async function main() {
       deployer,
       initialAtenOraclePrice
     );
+    await ProtocolHelper.deployStakedAtensPolicyContract(deployer);
 
     await ProtocolHelper.initializeProtocol(deployer);
 
@@ -63,6 +63,7 @@ async function main() {
     // =====> set fee levels & reward levels
     await ProtocolHelper.setFeeLevelsWithAten(deployer);
     await ProtocolHelper.setStakingRewardRates(deployer);
+    await ProtocolHelper.setCoverRefundConfig(deployer);
 
     // =====> deploy pools
     await ProtocolHelper.addNewProtocolPool("FTX Reserve Insurance");

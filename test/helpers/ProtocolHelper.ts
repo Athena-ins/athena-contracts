@@ -171,7 +171,13 @@ async function deployStakedAtensPolicyContract(owner: ethers.Signer) {
     await hre_ethers.getContractFactory("StakingPolicy")
   )
     .connect(owner)
-    .deploy(useAtenAddress, contract.ATHENA.address);
+    .deploy(
+      contract.ATHENA.address, // address core_
+      useAtenAddress, // address atenToken_
+      contract.PRICE_ORACLE_V1.address, // address priceOracle_
+      contract.TOKEN_VAULT.address, // address atensVault_
+      contract.POLICY_MANAGER.address // address coverManager_
+    );
 
   await contract.STAKING_POLICY.deployed();
 }
@@ -225,6 +231,42 @@ async function setStakingRewardRates(owner: ethers.Signer) {
   ]);
 }
 
+async function setCoverRefundConfig(
+  owner: ethers.Signer,
+  options?: {
+    shortCoverDuration?: number;
+    refundRate?: number;
+    basePenaltyRate?: number;
+    durationPenaltyRate?: number;
+  }
+) {
+  const config = {
+    shortCoverDuration: 180 * 24 * 60 * 60,
+    refundRate: 10_000, // 10_000 = 100%
+    basePenaltyRate: 1_000, // 10_000 = 100%
+    durationPenaltyRate: 3_500, // 10_000 = 100%
+    ...options,
+  };
+
+  try {
+    await (
+      await contract.STAKING_POLICY.connect(owner).setShortCoverDuration(
+        config.shortCoverDuration
+      )
+    ).wait();
+
+    await (
+      await contract.STAKING_POLICY.connect(owner).setRefundAndPenaltyRate(
+        config.refundRate,
+        config.basePenaltyRate,
+        config.durationPenaltyRate
+      )
+    ).wait();
+  } catch (err: any) {
+    throw Error(err);
+  }
+}
+
 async function depositRewardsToVault(
   owner: ethers.Signer,
   amountToTransfer: BigNumberish
@@ -234,7 +276,7 @@ async function depositRewardsToVault(
     BigNumber.from(amountToTransfer).mul(2)
   );
 
-  await contract.TOKEN_VAULT.connect(owner).depositPolicyRefundRewards(
+  await contract.TOKEN_VAULT.connect(owner).depositCoverRefundRewards(
     amountToTransfer
   );
 
@@ -253,9 +295,9 @@ async function deployAllContractsAndInitializeProtocol(owner: ethers.Signer) {
   await deployPolicyManagerContract(owner);
   await deployProtocolFactoryContract(owner);
   await deployClaimManagerContract(owner);
-  await deployStakedAtensPolicyContract(owner);
   await deployVaultAtenContract(owner);
   await deployPriceOracleV1Contract(owner);
+  await deployStakedAtensPolicyContract(owner);
 
   await initializeProtocol(owner);
 
@@ -511,4 +553,5 @@ export default {
   stakingGeneralPoolDeposit,
   deployPriceOracleV1Contract,
   getPriceOracleV1Contract,
+  setCoverRefundConfig,
 };
