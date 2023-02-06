@@ -514,6 +514,14 @@ const stakingGeneralPoolDeposit = async (
   await contract.ATHENA.connect(user).stakeAtens(amount);
 };
 
+const getExpiredCovers = async (user: ethers.Signer) => {
+  const allCovers = await contract.POLICY_MANAGER.connect(
+    user
+  ).fullCoverDataByAccount(await user.getAddress());
+
+  return allCovers.filter((cover) => !cover.endTimestamp.eq(0));
+};
+
 export default {
   atenAmountPostHelperTransfer,
   deployAtenTokenContract,
@@ -554,4 +562,5 @@ export default {
   deployPriceOracleV1Contract,
   getPriceOracleV1Contract,
   setCoverRefundConfig,
+  getExpiredCovers,
 };
