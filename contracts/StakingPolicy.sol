@@ -44,10 +44,6 @@ contract StakingPolicy is Ownable {
     uint64 rate;
   }
 
-  // Maps a user address to their cover IDs
-  // @bw call policy manager instead
-  mapping(address => uint256[]) public userCoverIds;
-
   // Maps a cover ID to its premium refund
   mapping(uint256 => RefundPosition) public positions;
 
@@ -105,6 +101,67 @@ contract StakingPolicy is Ownable {
   modifier onlyCore() {
     require(msg.sender == coreAddress, "SP: Only Core");
     _;
+  }
+
+  /// ============================= ///
+  /// ========== HELPERS ========== ///
+  /// ============================= ///
+
+  function _getSpentPremium(uint256 coverId)
+    internal
+    view
+    returns (uint256 premiumSpent)
+  {
+    return policyManagerInterface.getCoverPremiumSpent(coverId);
+  }
+
+  function _computeRewards(RefundPosition memory pos, uint256 premiumSpent)
+    internal
+    view
+    returns (uint256 rewards)
+  {
+    uint64 rewardsSinceTimestamp = pos.rewardsSinceTimestamp;
+    uint64 endTimestamp = pos.endTimestamp;
+    uint64 rate = pos.rate;
+
+    uint256 timeElapsed;
+    // We want to cap the rewards to the covers expiration
+    uint256 upTo = endTimestamp != 0 ? endTimestamp : block.timestamp;
+    require(rewardsSinceTimestamp < upTo, "SP: timestamp is in the future");
+    unchecked {
+      // Unckecked because we checked that upTo is bigger
+      timeElapsed = upTo - rewardsSinceTimestamp;
+    }
+
+    // Return proportional rewards
+    uint256 maxYearlyReward = (pos.stakedAmount * rate) / 10_000;
+    uint256 maxYearPercentage = (timeElapsed * 1e18) / 365 days;
+    uint256 maxReward = (maxYearPercentage * maxYearlyReward) / 1e18;
+
+    // Compute reward based on the premium spent for the cover
+    uint256 trueReward = (premiumSpent - pos.lastPremiumSpent) * pos.atenPrice;
+
+    rewards = trueReward < maxReward ? trueReward : maxReward;
+  }
+
+  function _updatePositionRewards(RefundPosition storage pos)
+    internal
+    returns (uint256)
+  {
+    uint256 atenPrice = priceOracleInterface.getAtenPrice();
+    uint64 timestamp = uint64(block.timestamp);
+
+    uint256 premiumSpent = _getSpentPremium(pos.coverId);
+    uint256 earnedRewards = _computeRewards(pos, premiumSpent);
+    _reflectEarnedRewards(earnedRewards);
+
+    // Register last reward update & update position with latest config
+    pos.lastPremiumSpent = premiumSpent;
+    pos.rewardsSinceTimestamp = timestamp;
+    pos.atenPrice = atenPrice;
+    pos.rate = refundRate;
+
+    return earnedRewards;
   }
 
   /// =========================== ///
