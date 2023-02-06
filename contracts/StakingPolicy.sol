@@ -21,7 +21,7 @@ contract StakingPolicy is Ownable {
   IERC20 public atenTokenInterface;
   IPriceOracle public priceOracleInterface;
   IVaultERC20 public atensVaultInterface;
-  IPolicyManager public policyManagerInterface;
+  IPolicyManager public coverManagerInterface;
 
   // The amount of ATEN tokens still available for staking rewards
   uint256 public unpaidRewards;
@@ -55,21 +55,21 @@ contract StakingPolicy is Ownable {
    * @param atenToken_ is the address of ATEN token
    * @param priceOracle_ is the address of ATEN price oracle
    * @param atensVault_ is the address of ATEN rewards vault
-   * @param policyManager_ is the address of cover manager
+   * @param coverManager_ is the address of cover manager
    */
   constructor(
     address core_,
     address atenToken_,
     address priceOracle_,
     address atensVault_,
-    address policyManager_
+    address coverManager_
   ) {
     coreAddress = core_;
 
     atenTokenInterface = IERC20(atenToken_);
     priceOracleInterface = IPriceOracle(priceOracle_);
     atensVaultInterface = IVaultERC20(atensVault_);
-    policyManagerInterface = IPolicyManager(policyManager_);
+    coverManagerInterface = IPolicyManager(coverManager_);
   }
 
   /// ============================ ///
@@ -126,22 +126,36 @@ contract StakingPolicy is Ownable {
   /// ========== HELPERS ========== ///
   /// ============================= ///
 
-  function _getSpentPremium(uint256 coverId)
-    internal
-    view
-    returns (uint256 premiumSpent)
-  {
-    return policyManagerInterface.getCoverPremiumSpent(coverId);
+  function _reflectEarnedRewards(uint256 amount_) private {
+    uint256 rewardsLeft = atensVaultInterface.coverRefundRewardsTotal();
+    if (rewardsLeft < unpaidRewards + amount_) revert NotEnoughRewardsLeft();
+
+    unpaidRewards += amount_;
   }
 
-  function _computeRewards(RefundPosition memory pos, uint256 premiumSpent)
-    internal
+  function _reflectPaidRewards(uint256 amount_) private {
+    if (unpaidRewards < amount_) revert NotEnoughUnpaidRewards();
+    unchecked {
+      // Uncheck since unpaidRewards can only be bigger than amount_
+      unpaidRewards -= amount_;
+    }
+  }
+
+  function _getSpentPremium(uint256 coverId_)
+    private
     view
-    returns (uint256 rewards)
+    returns (uint256 lastPremiumSpent)
   {
-    uint64 rewardsSinceTimestamp = pos.rewardsSinceTimestamp;
-    uint64 endTimestamp = pos.endTimestamp;
-    uint64 rate = pos.rate;
+    return coverManagerInterface.getCoverPremiumSpent(coverId_);
+  }
+
+  function _computeRewards(
+    RefundPosition memory pos_,
+    uint256 lastPremiumSpent_
+  ) private view returns (uint256 rewards) {
+    uint64 rewardsSinceTimestamp = pos_.rewardsSinceTimestamp;
+    uint64 endTimestamp = pos_.endTimestamp;
+    uint64 rate = pos_.rate;
 
     uint256 timeElapsed;
     // We want to cap the rewards to the covers expiration
@@ -209,46 +223,6 @@ contract StakingPolicy is Ownable {
     return pos.initTimestamp != 0;
   }
 
-  // /**
-  //  * @notice
-  //  * Returns a user's staking position for a specific policy.
-  //  * @param account_ is the address of the user
-  //  * @param coverId_ is the id of the policy
-  //  * @return _ the corresponding staking position if it exists
-  //  */
-  // function accountStakingPositions(address account_, uint256 coverId_)
-  //   external
-  //   view
-  //   returns (StakingPosition memory)
-  // {
-  //   return _stakes[account_].positions[coverId_];
-  // }
-
-  // // @bw use coverIds from policy manager instead of local array
-  // /**
-  //  * @notice
-  //  * Returns all staking position of a user.
-  //  * @param account_ is the address of the user
-  //  * @return stakingPositions all staking positions if there are any
-  //  */
-  // function allAccountStakingPositions(address account_)
-  //   external
-  //   view
-  //   returns (StakingPosition[] memory stakingPositions)
-  // {
-  //   StakeAccount storage userStakingPositions = _stakes[account_];
-
-  //   stakingPositions = new StakingPosition[](
-  //     userStakingPositions.policyTokenIds.length
-  //   );
-
-  //   for (uint256 i = 0; i < userStakingPositions.policyTokenIds.length; i++) {
-  //     uint256 coverId = userStakingPositions.policyTokenIds[i];
-
-  //     stakingPositions[i] = userStakingPositions.positions[coverId];
-  //   }
-  // }
-
   /**
    * @notice
    * Returns the amount of rewards a user has earned for a specific staking position.
@@ -284,22 +258,55 @@ contract StakingPolicy is Ownable {
     return _applyPenalty(totalRewards, timeElapsed);
   }
 
-  /// ============================= ///
-  /// ========== HELPERS ========== ///
-  /// ============================= ///
+  /**
+   * @notice
+   * Returns the staking position of a cover
+   * @param coverId_ is the id of the cover
+   * @return pos the corresponding staking position if it exists
+   */
+  function getRefundPosition(uint256 coverId_)
+    public
+    view
+    returns (RefundPosition memory pos)
+  {
+    pos = positions[coverId_];
 
-  function _reflectEarnedRewards(uint256 amount) private {
-    uint256 rewardsLeft = atensVaultInterface.coverRefundRewardsTotal();
-    if (rewardsLeft < unpaidRewards + amount) revert NotEnoughRewardsLeft();
+    pos.premiumSpent = _getSpentPremium(coverId_);
+    pos.earnedRewards += _computeRewards(pos, pos.premiumSpent);
 
-    unpaidRewards += amount;
+    return pos;
   }
 
-  function _reflectPaidRewards(uint256 amount) private {
-    if (unpaidRewards < amount) revert NotEnoughUnpaidRewards();
-    unchecked {
-      // Uncheck since unpaidRewards can only be bigger than amount
-      unpaidRewards -= amount;
+  /**
+   * @notice
+   * Returns all staking position of an account.
+   * @param account_ address of the account
+   * @return accountPositions all staking positions of the user
+   */
+  function getRefundPositionsByAccount(address account_)
+    external
+    view
+    returns (RefundPosition[] memory accountPositions)
+  {
+    uint256[] memory accountCoverIds = coverManagerInterface
+      .allPolicyTokensOfOwner(account_);
+
+    // We need to compute the number of positions to create the array
+    uint256 nbPositions = 0;
+    for (uint256 i = 0; i < accountCoverIds.length; i++) {
+      uint256 coverId = accountCoverIds[i];
+      if (positions[coverId].initTimestamp != 0) nbPositions++;
+  }
+
+    accountPositions = new RefundPosition[](nbPositions);
+
+    for (uint256 i = 0; i < accountCoverIds.length; i++) {
+      uint256 coverId = accountCoverIds[i];
+
+      if (positions[coverId].initTimestamp != 0) {
+        uint256 index = accountPositions.length;
+        accountPositions[index] = getRefundPosition(coverId);
+      }
     }
   }
 
@@ -313,7 +320,7 @@ contract StakingPolicy is Ownable {
     RefundPosition storage pos = positions[coverId_];
     if (pos.initTimestamp != 0) revert PositionAlreadyExists();
 
-    uint256 premiumSpent = policyManagerInterface.getCoverPremiumSpent(
+    uint256 lastPremiumSpent = coverManagerInterface.getCoverPremiumSpent(
       coverId_
     );
 
