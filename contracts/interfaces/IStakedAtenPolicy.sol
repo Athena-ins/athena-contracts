@@ -1,23 +1,26 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8;
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-interface IStakedAtenPolicy is IERC20 {
+interface IStakedAtenPolicy {
   function hasPosition(uint256 coverId) external view returns (bool);
 
-  function stake(
-    address account_,
-    uint256 policyId_,
-    uint256 amount_
+  function createStakingPosition(uint256 coverId, uint256 amount) external;
+
+  function addToStake(uint256 coverId, uint256 amount) external;
+
+  function withdrawStakedAten(
+    uint256 coverId,
+    address account,
+    uint256 amount
   ) external;
 
-  function withdraw(address account_, uint256 policyId_)
+  function withdrawRewards(uint256 coverId)
     external
-    returns (uint256);
+    returns (uint256 netRewards);
 
-  function addAvailableRewards(uint256 amount_) external;
+  function endStakingPositions(uint256[] calldata coverIds) external;
 
-  function earlyWithdraw(address account_, uint256 policyId_) external;
-
-  function closePosition(uint256 coverId_) external;
+  function closePosition(uint256 coverId, address account)
+    external
+    returns (uint256 netRewards);
 }

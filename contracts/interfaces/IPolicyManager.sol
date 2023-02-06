@@ -25,6 +25,11 @@ interface IPolicyManager is IERC721Enumerable {
     uint256 remainingDuration;
   }
 
+  function allPolicyTokensOfOwner(address owner)
+    external
+    view
+    returns (uint256[] calldata tokenList);
+
   function getCover(uint256 coverId) external view returns (Policy calldata);
 
   function policy(uint256 tokenId) external view returns (Policy memory);
