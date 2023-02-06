@@ -29,10 +29,10 @@ contract StakingPolicy is IStakedAtenPolicy, Ownable {
 
   // The current refund rate & penalty rate of the staking pool
   // @dev 10_000 = 100% APR
-  uint64 public refundRate = 10_000;
-  uint64 public basePenaltyRate = 1_000;
-  uint64 public durationPenaltyRate = 5_000;
-  uint64 public shortCoverDuration = 300 days;
+  uint64 public refundRate;
+  uint64 public basePenaltyRate;
+  uint64 public durationPenaltyRate;
+  uint64 public shortCoverDuration;
 
   // A premium refund position of a user
   struct RefundPosition {
@@ -427,27 +427,28 @@ contract StakingPolicy is IStakedAtenPolicy, Ownable {
     RefundPosition storage pos = positions[coverId_];
 
     uint64 initTimestamp = pos.initTimestamp;
-    if (initTimestamp == 0) revert PositionDoesNotExist();
+    // If there is no position we just skip the process without reverting
+    if (initTimestamp != 0) {
+      uint256 amountStaked = pos.stakedAmount;
+      uint256 earnedRewards = pos.earnedRewards;
+      uint256 newEarnedRewards = _updatePositionRewards(pos);
 
-    uint256 amountStaked = pos.stakedAmount;
-    uint256 earnedRewards = pos.earnedRewards;
-    uint256 newEarnedRewards = _updatePositionRewards(pos);
+      // We can already delete the position since all necessary data is in memory
+      delete positions[coverId_];
 
-    // We can already delete the position since all necessary data is in memory
-    delete positions[coverId_];
+      atenTokenInterface.safeTransfer(account_, amountStaked);
 
-    atenTokenInterface.safeTransfer(account_, amountStaked);
+      uint256 totalRewards = earnedRewards + newEarnedRewards;
+      uint64 timestamp = uint64(block.timestamp);
+      uint64 timeElapsed = timestamp - initTimestamp;
 
-    uint256 totalRewards = earnedRewards + newEarnedRewards;
-    uint64 timestamp = uint64(block.timestamp);
-    uint64 timeElapsed = timestamp - initTimestamp;
+      // Always reflect full amount since penalties are not included
+      _reflectPaidRewards(totalRewards);
 
-    // Always reflect full amount since penalties are not included
-    _reflectPaidRewards(totalRewards);
+      emit CloseStake(coverId_);
 
-    emit CloseStake(coverId_);
-
-    netRewards = _applyPenalty(totalRewards, timeElapsed);
+      netRewards = _applyPenalty(totalRewards, timeElapsed);
+    }
   }
 
   // Should be called for expired cover tokens
