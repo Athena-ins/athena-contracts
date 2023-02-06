@@ -34,6 +34,7 @@ contract StakingPolicy is Ownable {
 
   // A premium refund position of a user
   struct RefundPosition {
+    uint256 coverId;
     uint256 earnedRewards;
     uint256 stakedAmount;
     uint256 lastPremiumSpent;
@@ -221,37 +222,40 @@ contract StakingPolicy is Ownable {
    * @ @return _ the amount of rewards earned
    */
   function positionRefundRewards(uint256 coverId_)
-    public
+    external
     view
-    returns (uint256 rewards, uint256 premiumSpent)
+    returns (uint256 earnedRewards)
   {
-    RefundPosition memory userPosition = positions[coverId_];
+    RefundPosition memory pos = positions[coverId_];
 
-    uint256 amount = userPosition.stakedAmount;
-    uint64 rewardsSinceTimestamp = userPosition.rewardsSinceTimestamp;
-    uint64 endTimestamp = userPosition.endTimestamp;
-    uint64 rate = userPosition.rate;
+    uint256 premiumSpent = _getSpentPremium(coverId_);
+    earnedRewards = _computeRewards(pos, premiumSpent);
+  }
 
-    uint256 timeElapsed;
-    // We want to cap the rewards to the covers expiration
-    uint256 upTo = endTimestamp != 0 ? endTimestamp : block.timestamp;
-    require(rewardsSinceTimestamp < upTo, "SP: timestamp is in the future");
-    unchecked {
-      // Unckecked because we checked that upTo is bigger
-      timeElapsed = upTo - rewardsSinceTimestamp;
+  function netPositionRefundRewards(uint256 coverId_)
+    external
+    view
+    returns (uint256)
+  {
+    RefundPosition memory pos = positions[coverId_];
+    uint64 timestamp = uint64(block.timestamp);
+
+    uint256 premiumSpent = _getSpentPremium(coverId_);
+    uint256 newEarnedRewards = _computeRewards(pos, premiumSpent);
+
+    uint256 totalRewards = pos.earnedRewards + newEarnedRewards;
+    uint64 timeElapsed = timestamp - pos.initTimestamp;
+
+    if (shortCoverDuration < timeElapsed) {
+      return totalRewards;
+    } else {
+      // We apply an early withdrawal penalty
+      uint64 penaltyRate = basePenaltyRate +
+        (((shortCoverDuration - timeElapsed) * durationPenaltyRate) /
+          shortCoverDuration);
+
+      return (totalRewards * (10_000 - penaltyRate)) / 10_000;
     }
-
-    // Return proportional rewards
-    uint256 maxYearlyReward = (amount * rate) / 10_000;
-    uint256 maxYearPercentage = (timeElapsed * 1e18) / 365 days;
-    uint256 maxReward = (maxYearPercentage * maxYearlyReward) / 1e18;
-
-    // Compute reward based on the premium spent for the cover
-    premiumSpent = policyManagerInterface.getCoverPremiumSpent(coverId_);
-    uint256 trueReward = (premiumSpent - userPosition.lastPremiumSpent) *
-      userPosition.atenPrice;
-
-    rewards = trueReward < maxReward ? trueReward : maxReward;
   }
 
   /// ============================= ///
@@ -280,8 +284,8 @@ contract StakingPolicy is Ownable {
   function createStakingPosition(uint256 coverId_, uint256 amount_) private {
     require(amount_ > 0, "SP: cannot stake 0 ATEN");
 
-    RefundPosition storage userPosition = positions[coverId_];
-    require(userPosition.initTimestamp == 0, "SP: position already exists");
+    RefundPosition storage pos = positions[coverId_];
+    require(pos.initTimestamp == 0, "SP: position already exists");
 
     uint256 premiumSpent = policyManagerInterface.getCoverPremiumSpent(
       coverId_
@@ -291,6 +295,7 @@ contract StakingPolicy is Ownable {
     uint64 timestamp = uint64(block.timestamp);
 
     positions[coverId_] = RefundPosition({
+      coverId: coverId_,
       earnedRewards: 0,
       stakedAmount: amount_,
       lastPremiumSpent: premiumSpent,
@@ -313,28 +318,16 @@ contract StakingPolicy is Ownable {
   function addToStake(uint256 coverId_, uint256 amount_) external onlyCore {
     require(amount_ > 0, "SP: cannot stake 0 ATEN");
 
-    RefundPosition storage userPosition = positions[coverId_];
+    RefundPosition storage pos = positions[coverId_];
 
     // We don't want users to stake after the cover is expired
-    require(userPosition.endTimestamp == 0, "SP: cover is expired");
-    require(userPosition.initTimestamp != 0, "SP: position does not exist");
+    require(pos.endTimestamp == 0, "SP: cover is expired");
+    require(pos.initTimestamp != 0, "SP: position does not exist");
 
-    uint256 atenPrice = priceOracleInterface.getAtenPrice();
-    uint64 timestamp = uint64(block.timestamp);
+    uint256 earnedRewards = _updatePositionRewards(pos);
 
-    (uint256 earnedRewards, uint256 premiumSpent) = positionRefundRewards(
-      coverId_
-    );
-    _reflectEarnedRewards(earnedRewards);
-
-    // Reset the staking & update ATEN oracle price and refund rate
-    userPosition.lastPremiumSpent = premiumSpent;
-    userPosition.rewardsSinceTimestamp = timestamp;
-    userPosition.atenPrice = atenPrice;
-    userPosition.rate = refundRate;
-
-    userPosition.earnedRewards += earnedRewards;
-    userPosition.stakedAmount += amount_;
+    pos.earnedRewards += earnedRewards;
+    pos.stakedAmount += amount_;
 
     emit AddStake(coverId_, amount_);
   }
@@ -348,25 +341,13 @@ contract StakingPolicy is Ownable {
     address account_,
     uint256 amount_
   ) external onlyCore {
-    RefundPosition storage userPosition = positions[coverId_];
-    require(userPosition.initTimestamp != 0, "SP: position does not exist");
+    RefundPosition storage pos = positions[coverId_];
+    require(pos.initTimestamp != 0, "SP: position does not exist");
 
-    uint256 atenPrice = priceOracleInterface.getAtenPrice();
-    uint64 timestamp = uint64(block.timestamp);
+    uint256 earnedRewards = _updatePositionRewards(pos);
 
-    (uint256 earnedRewards, uint256 premiumSpent) = positionRefundRewards(
-      coverId_
-    );
-    _reflectEarnedRewards(earnedRewards);
-
-    // Reset the staking & update ATEN oracle price and refund rate
-    userPosition.lastPremiumSpent = premiumSpent;
-    userPosition.rewardsSinceTimestamp = timestamp;
-    userPosition.atenPrice = atenPrice;
-    userPosition.rate = refundRate;
-
-    userPosition.earnedRewards += earnedRewards;
-    userPosition.stakedAmount -= amount_;
+    pos.earnedRewards += earnedRewards;
+    pos.stakedAmount -= amount_;
 
     atenTokenInterface.safeTransfer(account_, amount_);
     emit Unstake(coverId_, amount_);
@@ -377,27 +358,17 @@ contract StakingPolicy is Ownable {
     onlyCore
     returns (uint256)
   {
-    RefundPosition storage userPosition = positions[coverId_];
-    require(userPosition.initTimestamp != 0, "SP: position does not exist");
+    RefundPosition storage pos = positions[coverId_];
+    require(pos.initTimestamp != 0, "SP: position does not exist");
 
-    uint256 atenPrice = priceOracleInterface.getAtenPrice();
+    uint256 newEarnedRewards = _updatePositionRewards(pos);
+
+    uint256 totalRewards = pos.earnedRewards + newEarnedRewards;
     uint64 timestamp = uint64(block.timestamp);
+    uint64 timeElapsed = timestamp - pos.initTimestamp;
 
-    (uint256 newEarnedRewards, uint256 premiumSpent) = positionRefundRewards(
-      coverId_
-    );
-    _reflectEarnedRewards(newEarnedRewards);
-
-    // Reset the staking & update ATEN oracle price and refund rate
-    userPosition.lastPremiumSpent = premiumSpent;
-    userPosition.rewardsSinceTimestamp = timestamp;
-    userPosition.atenPrice = atenPrice;
-    userPosition.rate = refundRate;
-
-    uint256 totalRewards = userPosition.earnedRewards + newEarnedRewards;
-    uint64 timeElapsed = timestamp - userPosition.initTimestamp;
-    userPosition.earnedRewards = 0;
-    userPosition.initTimestamp = timestamp;
+    pos.earnedRewards = 0;
+    pos.initTimestamp = timestamp;
 
     // Always reflect full amount since penalties are not included
     _reflectPaidRewards(totalRewards);
@@ -419,19 +390,20 @@ contract StakingPolicy is Ownable {
   /// =============================== ///
 
   function closePosition(uint256 coverId_) external onlyCore {
-    RefundPosition storage userPosition = positions[coverId_];
+    RefundPosition storage pos = positions[coverId_];
 
     // can be ended
     // withdraw stake + take profit
   }
 
+  // Should be called for expired cover tokens
   function endStakingPositions(uint256[] calldata coverIds_) external onlyCore {
     for (uint256 i = 0; i < coverIds_.length; i++) {
       uint256 coverId_ = coverIds_[i];
-      RefundPosition storage userPosition = positions[coverId_];
+      RefundPosition storage pos = positions[coverId_];
 
-      if (userPosition.initTimestamp != 0 && userPosition.endTimestamp == 0) {
-        userPosition.endTimestamp = uint64(block.timestamp);
+      if (pos.initTimestamp != 0 && pos.endTimestamp == 0) {
+        pos.endTimestamp = uint64(block.timestamp);
         emit EndStake(coverId_);
       }
     }
