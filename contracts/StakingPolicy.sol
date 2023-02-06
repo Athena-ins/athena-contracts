@@ -8,9 +8,10 @@ import "./interfaces/IPriceOracle.sol";
 import "./interfaces/IVaultERC20.sol";
 import "./interfaces/IPolicyManager.sol";
 
-import "hardhat/console.sol";
-
-/// @notice Staking Pool Contract: Policy
+/**
+ * @notice
+ * Cover Refund Staking Pool
+ **/
 contract StakingPolicy is Ownable {
   using SafeERC20 for IERC20;
 
@@ -72,6 +73,21 @@ contract StakingPolicy is Ownable {
   }
 
   /// ============================ ///
+  /// ========== ERRORS ========== ///
+  /// ============================ ///
+
+  error OnlyCore();
+  error TimestampIsInTheFuture();
+  error NotEnoughRewardsLeft();
+  error NotEnoughUnpaidRewards();
+  error CannotStakeZero();
+  error PositionAlreadyExists();
+  error PositionClosedOrExpired();
+  error PositionDoesNotExist();
+  error DurationOfZero();
+  error PenaltyRatesTooHigh();
+
+  /// ============================ ///
   /// ========== EVENTS ========== ///
   /// ============================ ///
 
@@ -102,7 +118,7 @@ contract StakingPolicy is Ownable {
   /// =============================== ///
 
   modifier onlyCore() {
-    require(msg.sender == coreAddress, "SP: Only Core");
+    if (msg.sender != coreAddress) revert OnlyCore();
     _;
   }
 
@@ -130,7 +146,7 @@ contract StakingPolicy is Ownable {
     uint256 timeElapsed;
     // We want to cap the rewards to the covers expiration
     uint256 upTo = endTimestamp != 0 ? endTimestamp : block.timestamp;
-    require(rewardsSinceTimestamp < upTo, "SP: timestamp is in the future");
+    if (upTo < rewardsSinceTimestamp) revert TimestampIsInTheFuture();
     unchecked {
       // Unckecked because we checked that upTo is bigger
       timeElapsed = upTo - rewardsSinceTimestamp;
@@ -190,7 +206,7 @@ contract StakingPolicy is Ownable {
 
   function hasPosition(uint256 coverId) external view returns (bool) {
     RefundPosition memory pos = positions[coverId];
-    return 0 < pos.stakedAmount && pos.endTimestamp == 0;
+    return pos.initTimestamp != 0;
   }
 
   // /**
@@ -272,18 +288,18 @@ contract StakingPolicy is Ownable {
   /// ========== HELPERS ========== ///
   /// ============================= ///
 
-  function _reflectEarnedRewards(uint256 amount_) private {
+  function _reflectEarnedRewards(uint256 amount) private {
     uint256 rewardsLeft = atensVaultInterface.coverRefundRewardsTotal();
-    require(unpaidRewards + amount_ <= rewardsLeft, "SP: Not enough rewards");
+    if (rewardsLeft < unpaidRewards + amount) revert NotEnoughRewardsLeft();
 
-    unpaidRewards += amount_;
+    unpaidRewards += amount;
   }
 
-  function _reflectPaidRewards(uint256 amount_) private {
-    require(amount_ <= unpaidRewards, "SP: Not enough unpaid rewards");
+  function _reflectPaidRewards(uint256 amount) private {
+    if (unpaidRewards < amount) revert NotEnoughUnpaidRewards();
     unchecked {
-      // Uncheck since unpaidRewards can only be bigger than amount_
-      unpaidRewards -= amount_;
+      // Uncheck since unpaidRewards can only be bigger than amount
+      unpaidRewards -= amount;
     }
   }
 
@@ -292,10 +308,10 @@ contract StakingPolicy is Ownable {
   /// ============================= ///
 
   function createStakingPosition(uint256 coverId_, uint256 amount_) private {
-    require(amount_ > 0, "SP: cannot stake 0 ATEN");
+    if (amount_ == 0) revert CannotStakeZero();
 
     RefundPosition storage pos = positions[coverId_];
-    require(pos.initTimestamp == 0, "SP: position already exists");
+    if (pos.initTimestamp != 0) revert PositionAlreadyExists();
 
     uint256 premiumSpent = policyManagerInterface.getCoverPremiumSpent(
       coverId_
@@ -326,13 +342,13 @@ contract StakingPolicy is Ownable {
    * @param amount_ is the amount of tokens to stake
    */
   function addToStake(uint256 coverId_, uint256 amount_) external onlyCore {
-    require(amount_ > 0, "SP: cannot stake 0 ATEN");
+    if (amount_ == 0) revert CannotStakeZero();
 
     RefundPosition storage pos = positions[coverId_];
 
     // We don't want users to stake after the cover is expired
-    require(pos.endTimestamp == 0, "SP: cover is expired");
-    require(pos.initTimestamp != 0, "SP: position does not exist");
+    if (pos.endTimestamp != 0) revert PositionClosedOrExpired();
+    if (pos.initTimestamp == 0) revert PositionDoesNotExist();
 
     uint256 earnedRewards = _updatePositionRewards(pos);
 
@@ -352,7 +368,7 @@ contract StakingPolicy is Ownable {
     uint256 amount_
   ) external onlyCore {
     RefundPosition storage pos = positions[coverId_];
-    require(pos.initTimestamp != 0, "SP: position does not exist");
+    if (pos.initTimestamp == 0) revert PositionDoesNotExist();
 
     uint256 earnedRewards = _updatePositionRewards(pos);
 
@@ -369,7 +385,7 @@ contract StakingPolicy is Ownable {
     returns (uint256)
   {
     RefundPosition storage pos = positions[coverId_];
-    require(pos.initTimestamp != 0, "SP: position does not exist");
+    if (pos.initTimestamp == 0) revert PositionDoesNotExist();
 
     uint256 newEarnedRewards = _updatePositionRewards(pos);
 
@@ -400,7 +416,7 @@ contract StakingPolicy is Ownable {
     RefundPosition storage pos = positions[coverId_];
 
     uint64 initTimestamp = pos.initTimestamp;
-    require(initTimestamp != 0, "SP: position does not exist");
+    if (initTimestamp == 0) revert PositionDoesNotExist();
 
     uint256 amountStaked = pos.stakedAmount;
     uint256 earnedRewards = pos.earnedRewards;
@@ -446,7 +462,7 @@ contract StakingPolicy is Ownable {
     external
     onlyOwner
   {
-    require(0 < shortCoverDuration_, "SP: duration of zero");
+    if (shortCoverDuration_ == 0) revert DurationOfZero();
     shortCoverDuration = shortCoverDuration_;
 
     emit ShortCoverDurationUpdated(shortCoverDuration_);
@@ -465,10 +481,8 @@ contract StakingPolicy is Ownable {
     uint64 basePenaltyRate_,
     uint64 durationPenaltyRate_
   ) external onlyOwner {
-    require(
-      basePenaltyRate_ + durationPenaltyRate_ < 10_000,
-      "SP: penalty rate too high"
-    );
+    if (10_000 <= basePenaltyRate_ + durationPenaltyRate_)
+      revert PenaltyRatesTooHigh();
 
     refundRate = refundRate_;
     basePenaltyRate = basePenaltyRate_;
