@@ -303,7 +303,6 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   /// ========= HELPERS ======== ///
   /// ========================== ///
 
-  //Thao@WARN: also removing atensLocked !!!
   function actualizingProtocolAndRemoveExpiredPolicies(address protocolAddress)
     public
     override
@@ -366,6 +365,21 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     }
   }
 
+  function _prepareCoverUpdate(uint256 coverId_)
+    private
+    returns (uint256 amountInsured, address poolAddress)
+  {
+    uint128 poolId = policyManagerInterface.poolIdOfPolicy(coverId_);
+    poolAddress = protocolsMapping[poolId].deployed;
+
+    actualizingProtocolAndRemoveExpiredPolicies(poolAddress);
+
+    bool isStillActive = policyManagerInterface.policyActive(coverId_);
+    if (isStillActive != true) revert PolicyExpired();
+
+    amountInsured = policyManagerInterface.coverAmountOfPolicy(coverId_);
+  }
+
   /// ===================================== ///
   /// ========== ATEN GP STAKING ========== ///
   /// ===================================== ///
@@ -420,7 +434,6 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
 
   function deposit(uint256 amount, uint128[] calldata poolIds)
     public
-    payable
     validePoolIds(poolIds)
   {
     // retrieve user funds for coverage
@@ -576,7 +589,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     uint256[] calldata premiumDepositArray_,
     uint256[] calldata atensLockedArray_,
     uint128[] calldata poolIdArray_
-  ) public payable nonReentrant {
+  ) public nonReentrant {
     uint256 nbPolicies = poolIdArray_.length;
 
     for (uint256 i = 0; i < nbPolicies; i++) {
@@ -588,9 +601,11 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
       if (_amountCovered == 0 || _premiumDeposit == 0)
         revert AmountEqualToZero();
 
+      address poolAddress = protocolsMapping[_poolId].deployed;
+
       IERC20(stablecoin).safeTransferFrom(
         msg.sender,
-        protocolsMapping[_poolId].deployed,
+        poolAddress,
         _premiumDeposit
       );
 
@@ -601,11 +616,9 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
         _poolId
       );
 
-      actualizingProtocolAndRemoveExpiredPolicies(
-        protocolsMapping[_poolId].deployed
-      );
+      actualizingProtocolAndRemoveExpiredPolicies(poolAddress);
 
-      IProtocolPool(protocolsMapping[_poolId].deployed).buyPolicy(
+      IProtocolPool(poolAddress).buyPolicy(
         msg.sender,
         policyId,
         _premiumDeposit,
@@ -646,6 +659,8 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     stakedAtensPoInterface.withdrawStakedAten(coverId_, amount_, msg.sender);
   }
 
+  /// -------- CLOSE -------- ///
+
   /**
    * @notice
    * Closes the policy of a user and withdraws remaining funds, staked ATEN and potential staking rewards.
@@ -660,14 +675,12 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     IPolicyManager.Policy memory userPolicy = policyManagerInterface.policy(
       policyId_
     );
+    address poolAddress = protocolsMapping[userPolicy.poolId].deployed;
 
     // Remove expired policies
-    actualizingProtocolAndRemoveExpiredPolicies(
-      protocolsMapping[userPolicy.poolId].deployed
-    );
+    actualizingProtocolAndRemoveExpiredPolicies(poolAddress);
 
     // Require that the policy is still active
-    // @bw maybe wrong fn for checking
     bool isStillActive = policyManagerInterface.policyActive(policyId_);
     if (isStillActive != true) revert PolicyExpired();
 
@@ -675,7 +688,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     closeCoverRefundPosition(policyId_);
 
     // Updates pool liquidity and withdraws remaining funds to user
-    IProtocolPool(protocolsMapping[userPolicy.poolId].deployed).withdrawPolicy(
+    IProtocolPool(poolAddress).withdrawPolicy(
       msg.sender,
       policyId_,
       userPolicy.amountCovered
