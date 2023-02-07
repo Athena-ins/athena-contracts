@@ -366,37 +366,36 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
 
   /// -------- UPDATE -------- ///
 
-  function increaseCover(
-    uint256 coverId_,
-    uint256 amount_,
-    uint256 amountInsured_
-  ) external onlyCore {
-    _increaseCover(coverId_, amount_, amountInsured_);
+  function increaseCover(uint256 coverId_, uint256 amount_) external onlyCore {
+    uint256 amountInsured = policyManagerInterface.coverAmountOfPolicy(
+      coverId_
+    );
+    _increaseCover(coverId_, amount_, amountInsured);
   }
 
-  function decreaseCover(
-    uint256 coverId_,
-    uint256 amount_,
-    uint256 amountInsured_
-  ) external onlyCore {
-    _decreaseCover(coverId_, amount_, amountInsured_);
+  function decreaseCover(uint256 coverId_, uint256 amount_) external onlyCore {
+    uint256 amountInsured = policyManagerInterface.coverAmountOfPolicy(
+      coverId_
+    );
+    _decreaseCover(coverId_, amount_, amountInsured);
   }
 
-  function addPremiums(
-    uint256 coverId_,
-    uint256 amount_,
-    uint256 amountInsured_
-  ) external onlyCore {
-    _addPremiums(coverId_, amount_, amountInsured_);
+  function addPremiums(uint256 coverId_, uint256 amount_) external onlyCore {
+    uint256 amountInsured = policyManagerInterface.coverAmountOfPolicy(
+      coverId_
+    );
+    _addPremiums(coverId_, amount_, amountInsured);
   }
 
   function removePremiums(
     uint256 coverId_,
     uint256 amount_,
-    uint256 amountInsured_,
     address account_
   ) external onlyCore {
-    _removePremiums(coverId_, amount_, amountInsured_);
+    uint256 amountInsured = policyManagerInterface.coverAmountOfPolicy(
+      coverId_
+    );
+    _removePremiums(coverId_, amount_, amountInsured);
     IERC20(underlyingAsset).safeTransfer(account_, amount_);
   }
 
@@ -448,8 +447,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
   /// ========= ADMIN ======== ///
   /// ======================== ///
 
-  // @bw onlyCore?
-  function actualizing() external returns (uint256[] memory) {
+  function actualizing() external onlyCore returns (uint256[] memory) {
     return _actualizing();
   }
 

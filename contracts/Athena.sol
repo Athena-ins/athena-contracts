@@ -49,7 +49,6 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     uint256 atenAmount;
     uint128 feeRate;
   }
-
   /// Available reward levels (10_000 = 100% APR)
   AtenFeeLevel[] public supplyFeeLevels;
 
@@ -368,17 +367,11 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
 
   function _prepareCoverUpdate(uint256 coverId_)
     private
-    returns (uint256 amountInsured, address poolAddress)
+    returns (address poolAddress)
   {
     uint128 poolId = policyManagerInterface.poolIdOfPolicy(coverId_);
     poolAddress = protocolsMapping[poolId].deployed;
-
     actualizingProtocolAndRemoveExpiredPolicies(poolAddress);
-
-    bool isStillActive = policyManagerInterface.policyActive(coverId_);
-    if (isStillActive != true) revert PolicyExpired();
-
-    amountInsured = policyManagerInterface.coverAmountOfPolicy(coverId_);
   }
 
   /// ===================================== ///
@@ -646,53 +639,39 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     external
     onlyPolicyTokenOwner(coverId_)
   {
-    (uint256 amountInsured, address poolAddress) = _prepareCoverUpdate(
-      coverId_
-    );
+    address poolAddress = _prepareCoverUpdate(coverId_);
     policyManagerInterface.increaseCover(coverId_, amount_);
-    IProtocolPool(poolAddress).increaseCover(coverId_, amount_, amountInsured);
+    IProtocolPool(poolAddress).increaseCover(coverId_, amount_);
   }
 
   function decreaseCover(uint256 coverId_, uint256 amount_)
     external
     onlyPolicyTokenOwner(coverId_)
   {
-    (uint256 amountInsured, address poolAddress) = _prepareCoverUpdate(
-      coverId_
-    );
+    address poolAddress = _prepareCoverUpdate(coverId_);
     policyManagerInterface.decreaseCover(coverId_, amount_);
-    IProtocolPool(poolAddress).decreaseCover(coverId_, amount_, amountInsured);
+    IProtocolPool(poolAddress).decreaseCover(coverId_, amount_);
   }
 
   function addPremiums(uint256 coverId_, uint256 amount_)
     external
     onlyPolicyTokenOwner(coverId_)
   {
-    (uint256 amountInsured, address poolAddress) = _prepareCoverUpdate(
-      coverId_
-    );
+    address poolAddress = _prepareCoverUpdate(coverId_);
 
     IERC20(stablecoin).safeTransferFrom(msg.sender, poolAddress, amount_);
 
     policyManagerInterface.addPremiums(coverId_, amount_);
-    IProtocolPool(poolAddress).addPremiums(coverId_, amount_, amountInsured);
+    IProtocolPool(poolAddress).addPremiums(coverId_, amount_);
   }
 
   function removePremiums(uint256 coverId_, uint256 amount_)
     external
     onlyPolicyTokenOwner(coverId_)
   {
-    (uint256 amountInsured, address poolAddress) = _prepareCoverUpdate(
-      coverId_
-    );
-
+    address poolAddress = _prepareCoverUpdate(coverId_);
     policyManagerInterface.removePremiums(coverId_, amount_);
-    IProtocolPool(poolAddress).removePremiums(
-      coverId_,
-      amount_,
-      amountInsured,
-      msg.sender
-    );
+    IProtocolPool(poolAddress).removePremiums(coverId_, amount_, msg.sender);
   }
 
   /// -------- CLOSE -------- ///

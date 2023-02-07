@@ -67,28 +67,15 @@ interface IProtocolPool is IPolicyCover {
     uint256 amountCovered
   ) external;
 
-  function increaseCover(
-    uint256 coverId,
-    uint256 amount,
-    uint256 amountInsured
-  ) external;
+  function increaseCover(uint256 coverId, uint256 amount) external;
 
-  function decreaseCover(
-    uint256 coverId,
-    uint256 amount,
-    uint256 amountInsured
-  ) external;
+  function decreaseCover(uint256 coverId, uint256 amount) external;
 
-  function addPremiums(
-    uint256 coverId,
-    uint256 amount,
-    uint256 amountInsured
-  ) external;
+  function addPremiums(uint256 coverId, uint256 amount) external;
 
   function removePremiums(
     uint256 coverId,
     uint256 amount,
-    uint256 amountInsured,
     address account
   ) external;
 
