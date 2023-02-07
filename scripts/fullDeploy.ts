@@ -17,7 +17,8 @@ const initialAtenOraclePrice = BigNumber.from(25).mul(
 
 async function main() {
   try {
-    console.log("== STARTING ==");
+    console.log(`\n== DEPLOY ON ${hre.network.name.toUpperCase()} ==\n`);
+
     const signers = await hre_ethers.getSigners();
     const deployer = signers[0];
     const user_1 = signers[1];
@@ -27,51 +28,61 @@ async function main() {
 
     // =====> deploy ATEN token & deploy arbitrator
     // @dev for the moment do not redeploy ATEN token to reuse existing one
-    // await ProtocolHelper.deployAtenTokenContract(deployer);
+    if (hre.network.name === "hardhat") {
+      console.log("==> ATEN TOKEN");
+      await ProtocolHelper.deployAtenTokenContract(deployer);
+    }
+    console.log("==> ARBITRATOR");
     await ProtocolHelper.deployArbitratorContract(deployer);
 
     const ARBITRATOR_CONTRACT = ProtocolHelper.getArbitratorContract();
     deploymentAddress.ARBITRATOR = ARBITRATOR_CONTRACT.address;
 
-    console.log("== OK 1 ==");
-
     // =====> deploy athena contracts
+    console.log("==> CORE");
     await ProtocolHelper.deployAthenaContract(
       deployer,
       deploymentAddress.USDT,
       deploymentAddress.aave_registry
     );
+    console.log("==> MANAGER POSITIONS");
     await ProtocolHelper.deployPositionManagerContract(deployer);
+    console.log("==> STAKING GP");
     await ProtocolHelper.deployStakedAtenContract(deployer);
+    console.log("==> MANAGER COVERS");
     await ProtocolHelper.deployPolicyManagerContract(deployer);
+    console.log("==> POOL FACTORY");
     await ProtocolHelper.deployProtocolFactoryContract(deployer);
+    console.log("==> VAULT");
     await ProtocolHelper.deployVaultAtenContract(deployer);
+    console.log("==> MANAGER CLAIMS");
     await ProtocolHelper.deployClaimManagerContract(
       deployer,
       deploymentAddress.ARBITRATOR
     );
+    console.log("==> PRICE ORACLE");
     await ProtocolHelper.deployPriceOracleV1Contract(
       deployer,
       initialAtenOraclePrice
     );
+    console.log("==> COVER REFUND");
     await ProtocolHelper.deployStakedAtensPolicyContract(deployer);
 
+    console.log("==> INITIALIZE");
     await ProtocolHelper.initializeProtocol(deployer);
 
-    console.log("== OK 2 ==");
-
     // =====> set fee levels & reward levels
+    console.log("==> FEE + REWARD + REFUND CONFIG");
     await ProtocolHelper.setFeeLevelsWithAten(deployer);
     await ProtocolHelper.setStakingRewardRates(deployer);
     await ProtocolHelper.setCoverRefundConfig(deployer);
 
     // =====> deploy pools
+    console.log("==> ADD POOLS");
     await ProtocolHelper.addNewProtocolPool("FTX Reserve Insurance");
     await ProtocolHelper.addNewProtocolPool("Dog Theme Coin Rugpull");
     await ProtocolHelper.addNewProtocolPool("AAVE Lending Pool");
     await ProtocolHelper.addNewProtocolPool("Hotdog Swap Liquidity Pool");
-
-    console.log("== OK 3 ==");
 
     // =====> Make contract interfaces
 
@@ -86,37 +97,31 @@ async function main() {
     deploymentAddress.ATHENA = ATHENA_CONTRACT.address;
     deploymentAddress.TOKEN_VAULT = VAULT_CONTRACT.address;
 
+    console.log("==> APPROVE & TRANSFERS");
     // =====> approve tokens
-
     await USDT_CONTRACT.connect(deployer).approve(
       deploymentAddress.ATHENA,
       amountApprove
     );
-
     await ATEN_CONTRACT.connect(deployer).approve(
       deploymentAddress.ATHENA,
       amountApprove
     );
 
-    // =====> transfer tokens to user 1
-
+    // =====> transfer tokens
     await ATEN_CONTRACT.connect(deployer).transfer(
       deploymentAddress.user_1,
       amountTransfers
     );
 
-    console.log("== OK 4 ==");
-
     // =====> deposit ATEN in rewards vault
-
+    console.log("==> DEPOSIT TO VAULT");
     await ProtocolHelper.depositRewardsToVault(deployer, amountTransfers);
 
     // =====> send ATEN to user
 
-    console.log("====== OK ======");
-
     console.log(
-      "CONTRACT: ",
+      "\n==> Contracts: ",
       Object.entries(contract).reduce(
         (acc, [key, value]) =>
           (deploymentAddress as any)[key]
