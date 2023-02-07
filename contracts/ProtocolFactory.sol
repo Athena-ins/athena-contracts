@@ -55,10 +55,12 @@ contract ProtocolFactory is IProtocolFactory {
   }
 
   function getPoolAddress(uint128 poolId_) external view returns (address) {
+    if (nextPoolId <= poolId_) revert OutOfRange();
     return protocolsMapping[poolId_].deployed;
   }
 
   function getPool(uint128 poolId_) external view returns (Protocol memory) {
+    if (nextPoolId <= poolId_) revert OutOfRange();
     return protocolsMapping[poolId_];
   }
 
