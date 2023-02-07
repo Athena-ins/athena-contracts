@@ -5,12 +5,14 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 
 import "./interfaces/IAthena.sol";
 import "./interfaces/IProtocolPool.sol";
+import "./interfaces/IProtocolFactory.sol";
 import "./interfaces/IPositionsManager.sol";
 
 import "./libraries/PositionsLibrary.sol";
 
 contract PositionsManager is IPositionsManager, ERC721Enumerable {
   address private core;
+  IProtocolFactory public protocolFactoryInterface;
 
   /// The token ID position data
   mapping(uint256 => Position) private _positions;
@@ -18,8 +20,11 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
   /// The ID of the next token that will be minted.
   uint176 private _nextTokenId = 0;
 
-  constructor(address coreAddress) ERC721("ATHENA", "athena-co.io") {
+  constructor(address coreAddress, address protocolFactory)
+    ERC721("Athena-Position", "Athena Insurance User Position")
+  {
     core = coreAddress;
+    protocolFactoryInterface = IProtocolFactory(protocolFactory);
   }
 
   /// =========================== ///
@@ -78,7 +83,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
 
       // Loop through each poolId (j) in a tokenId
       for (uint256 j = 0; j < __position.poolIds.length; j++) {
-        address poolAddress = IAthena(core).getProtocolAddressById(
+        address poolAddress = protocolFactoryInterface.getPoolAddress(
           __position.poolIds[j]
         );
 
@@ -161,7 +166,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
 
       // Create an instance of the current pool
       IProtocolPool currentPool = IProtocolPool(
-        _core.getProtocolAddressById(currentPoolId)
+        protocolFactoryInterface.getPoolAddress(currentPoolId)
       );
 
       // A position's commit delay is the highest commit delay among its pools
@@ -180,7 +185,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
         currentPool.addRelatedProtocol(latterPoolId, amount);
 
         // Mirror the dependency of the current pool in the latter pool
-        IProtocolPool(_core.getProtocolAddressById(latterPoolId))
+        IProtocolPool(protocolFactoryInterface.getPoolAddress(latterPoolId))
           .addRelatedProtocol(currentPoolId, amount);
       }
 
@@ -260,7 +265,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
 
       // Create an instance of the current pool
       IProtocolPool currentPool = IProtocolPool(
-        _core.getProtocolAddressById(currentPoolId)
+        protocolFactoryInterface.getPoolAddress(currentPoolId)
       );
 
       // Loop through each latter pool (j)
@@ -271,7 +276,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
         currentPool.addRelatedProtocol(latterPoolId, amount);
 
         // Mirror the dependency of the current pool in the latter pool
-        IProtocolPool(_core.getProtocolAddressById(latterPoolId))
+        IProtocolPool(protocolFactoryInterface.getPoolAddress(latterPoolId))
           .addRelatedProtocol(currentPoolId, amount);
       }
 
@@ -308,7 +313,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
     );
 
     IAthena _core = IAthena(core);
-    address protocolAddress = _core.getProtocolAddressById(poolId);
+    address protocolAddress = protocolFactoryInterface.getPoolAddress(poolId);
     _core.actualizingProtocolAndRemoveExpiredPolicies(protocolAddress);
 
     (
@@ -337,7 +342,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
     for (uint256 i = 0; i < userPosition.poolIds.length; i++) {
       uint128 poolId = userPosition.poolIds[i];
 
-      address protocolAddress = _core.getProtocolAddressById(poolId);
+      address protocolAddress = protocolFactoryInterface.getPoolAddress(poolId);
       _core.actualizingProtocolAndRemoveExpiredPolicies(protocolAddress);
 
       (

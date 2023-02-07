@@ -4,21 +4,24 @@ pragma solidity ^0.8;
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 
 import "./interfaces/IPolicyManager.sol";
+import "./interfaces/IProtocolFactory.sol";
 import "./interfaces/IAthena.sol";
 import "./interfaces/IProtocolPool.sol";
 
 contract PolicyManager is IPolicyManager, ERC721Enumerable {
-  address private core;
+  address public core;
+  IProtocolFactory public protocolFactoryInterface;
 
   /// Maps a cover ID to the cover data
   mapping(uint256 => Policy) public covers;
   /// The ID of the next cover to be minted
-  uint176 private nextCoverId = 0;
+  uint176 public nextCoverId = 0;
 
-  constructor(address coreAddress)
+  constructor(address coreAddress, address protocolFactory)
     ERC721("Athena-Cover", "Athena Insurance User Cover")
   {
     core = coreAddress;
+    protocolFactoryInterface = IProtocolFactory(protocolFactory);
   }
 
   /// =========================== ///
@@ -100,7 +103,7 @@ contract PolicyManager is IPolicyManager, ERC721Enumerable {
 
     // We only want to read additional cover data if it is ongoing
     if (cover.endTimestamp == 0) {
-      address protocolAddress = IAthena(core).getProtocolAddressById(
+      address protocolAddress = protocolFactoryInterface.getPoolAddress(
         cover.poolId
       );
       (premiumLeft, dailyCost, estDuration) = IProtocolPool(protocolAddress)
@@ -146,7 +149,7 @@ contract PolicyManager is IPolicyManager, ERC721Enumerable {
 
     if (_policy.amountCovered == 0) return 0;
 
-    address protocolAddress = IAthena(core).getProtocolAddressById(
+    address protocolAddress = protocolFactoryInterface.getPoolAddress(
       _policy.poolId
     );
     (uint256 premiumLeft, , ) = IProtocolPool(protocolAddress).getInfo(coverId);
@@ -213,7 +216,7 @@ contract PolicyManager is IPolicyManager, ERC721Enumerable {
 
     // @bw check if spent premium is correct after manual expiration
     // if (cancelledByUser) {
-    //   address protocolAddress = IAthena(core).getProtocolAddressById(
+    //   address protocolAddress = protocolFactoryInterface.getPoolAddress(
     //     cover.poolId
     //   );
     //   (uint256 premiumLeft, , ) = IProtocolPool(protocolAddress).getInfo(
