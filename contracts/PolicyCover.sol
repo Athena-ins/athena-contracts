@@ -51,371 +51,9 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
     slot0.lastUpdateTimestamp = block.timestamp;
   }
 
-  function addPremiumPosition(
-    uint256 _tokenId,
-    uint256 _beginPremiumRate,
-    uint32 _tick
-  ) private {
-    uint224 nbCoversInTick = ticks.addCoverId(_tokenId, _tick);
-
-    premiumPositions[_tokenId] = PremiumPosition.Info(
-      _beginPremiumRate,
-      _tick,
-      nbCoversInTick
-    );
-
-    if (!tickBitmap.isInitializedTick(_tick)) {
-      tickBitmap.flipTick(_tick);
-    }
-  }
-
-  function removeTick(uint32 _tick)
-    private
-    returns (uint256[] memory coverIds)
-  {
-    coverIds = ticks[_tick];
-
-    for (uint256 i = 0; i < coverIds.length; i++) {
-      uint256 coverId = coverIds[i];
-      delete premiumPositions[coverId];
-
-      emit ExpiredPolicy(coverId, _tick);
-    }
-
-    ticks.clear(_tick);
-    tickBitmap.flipTick(_tick);
-  }
-
-  function getPremiumRate(uint256 _utilisationRate)
-    internal
-    view
-    returns (uint256)
-  {
-    // returns actual rate for insurance
-    if (_utilisationRate < f.uOptimal) {
-      return f.r0 + f.rSlope1.rayMul(_utilisationRate.rayDiv(f.uOptimal));
-    } else {
-      return
-        f.r0 +
-        f.rSlope1 +
-        (f.rSlope2 * (_utilisationRate - f.uOptimal)) /
-        (100 * RayMath.RAY - f.uOptimal) /
-        100;
-    }
-  }
-
-  function getEmissionRate(
-    uint256 _oldEmissionRate,
-    uint256 _oldPremiumRate,
-    uint256 _newPremiumRate
-  ) internal pure returns (uint256) {
-    return _oldEmissionRate.rayMul(_newPremiumRate).rayDiv(_oldPremiumRate);
-  }
-
-  function getSecondsPerTick(
-    uint256 _oldSecondsPerTick,
-    uint256 _oldPremiumRate,
-    uint256 _newPremiumRate
-  ) private pure returns (uint256) {
-    return _oldSecondsPerTick.rayMul(_oldPremiumRate).rayDiv(_newPremiumRate);
-  }
-
-  function durationSecondsUnit(
-    uint256 _premium,
-    uint256 _insuredCapital,
-    uint256 _premiumRate //Ray
-  ) private pure returns (uint256) {
-    //31536000 * 100 = (365 * 24 * 60 * 60) * 100 // total seconds per year * 100
-    return ((_premium * 3153600000) / _insuredCapital).rayDiv(_premiumRate);
-  }
-
-  function crossingInitializedTick(
-    Slot0 memory _slot0,
-    uint256 _availableCapital,
-    uint32 _tick
-  ) internal view {
-    uint256[] memory coverIds = ticks[_tick];
-    uint256 __insuredCapitalToRemove;
-
-    for (uint256 i = 0; i < coverIds.length; i++) {
-      uint256 coverId = coverIds[i];
-
-      __insuredCapitalToRemove += policyManagerInterface
-        .policy(coverId)
-        .amountCovered;
-    }
-
-    uint256 __currentPremiumRate = getPremiumRate(
-      _utilisationRate(0, 0, _slot0.totalInsuredCapital, _availableCapital)
-    );
-
-    uint256 __newPremiumRate = getPremiumRate(
-      _utilisationRate(
-        0,
-        __insuredCapitalToRemove,
-        _slot0.totalInsuredCapital,
-        _availableCapital
-      )
-    );
-
-    _slot0.secondsPerTick = getSecondsPerTick(
-      _slot0.secondsPerTick,
-      __currentPremiumRate,
-      __newPremiumRate
-    );
-
-    _slot0.totalInsuredCapital -= __insuredCapitalToRemove;
-    _slot0.remainingPolicies -= coverIds.length;
-  }
-
-  function _updateSlot0WhenAvailableCapitalChange(
-    uint256 _amountToAdd,
-    uint256 _amountToRemove
-  ) internal {
-    uint256 __availableCapital = availableCapital;
-    uint256 __totalInsuredCapital = slot0.totalInsuredCapital;
-
-    uint256 __currentPremiumRate = getPremiumRate(
-      _utilisationRate(0, 0, __totalInsuredCapital, __availableCapital)
-    );
-
-    uint256 __newPremiumRate = getPremiumRate(
-      _utilisationRate(
-        0,
-        0,
-        __totalInsuredCapital,
-        __availableCapital + _amountToAdd - _amountToRemove
-      )
-    );
-
-    slot0.secondsPerTick = getSecondsPerTick(
-      slot0.secondsPerTick,
-      __currentPremiumRate,
-      __newPremiumRate
-    );
-  }
-
-  function _actualizingUntil(uint256 _dateInSeconds)
-    internal
-    view
-    returns (Slot0 memory __slot0, uint256 __liquidityIndex)
-  {
-    __slot0 = Slot0({
-      tick: slot0.tick,
-      secondsPerTick: slot0.secondsPerTick,
-      totalInsuredCapital: slot0.totalInsuredCapital,
-      remainingPolicies: slot0.remainingPolicies,
-      lastUpdateTimestamp: slot0.lastUpdateTimestamp
-    });
-
-    __liquidityIndex = liquidityIndex;
-
-    uint256 __availableCapital = availableCapital;
-    uint256 __secondsGap = _dateInSeconds - __slot0.lastUpdateTimestamp;
-
-    uint256 __uRate = _utilisationRate(
-      0,
-      0,
-      __slot0.totalInsuredCapital,
-      __availableCapital
-    ) / 100;
-
-    uint256 __pRate = getPremiumRate(__uRate * 100) / 100;
-
-    while (__secondsGap > 0) {
-      (uint32 __tickNext, bool __initialized) = tickBitmap
-        .nextInitializedTickInTheRightWithinOneWord(__slot0.tick);
-
-      uint256 __secondsStep = (__tickNext - __slot0.tick) *
-        __slot0.secondsPerTick;
-
-      if (__secondsStep <= __secondsGap) {
-        __slot0.tick = __tickNext;
-        __liquidityIndex +=
-          (__uRate.rayMul(__pRate) * __secondsStep) /
-          31536000;
-        __secondsGap -= __secondsStep;
-
-        if (__initialized) {
-          crossingInitializedTick(__slot0, __availableCapital, __tickNext);
-
-          __uRate =
-            _utilisationRate(
-              0,
-              0,
-              __slot0.totalInsuredCapital,
-              __availableCapital
-            ) /
-            100;
-
-          __pRate = getPremiumRate(__uRate * 100) / 100;
-        }
-      } else {
-        __slot0.tick += uint32(__secondsGap / __slot0.secondsPerTick);
-        __liquidityIndex += (__uRate.rayMul(__pRate) * __secondsGap) / 31536000;
-        __secondsGap = 0;
-      }
-    }
-
-    __slot0.lastUpdateTimestamp = _dateInSeconds;
-  }
-
-  function _actualizing() internal returns (uint256[] memory) {
-    if (slot0.remainingPolicies > 0) {
-      (Slot0 memory __slot0, uint256 __liquidityIndex) = _actualizingUntil(
-        block.timestamp
-      );
-
-      //now, we remove all crossed ticks
-      uint256[] memory __expiredPoliciesTokens = new uint256[](
-        slot0.remainingPolicies - __slot0.remainingPolicies
-      );
-      uint256 __expiredPoliciesTokenIdCurrentIndex;
-
-      uint32 __observedTick = slot0.tick;
-      bool __initialized;
-      while (__observedTick < __slot0.tick) {
-        (__observedTick, __initialized) = tickBitmap
-          .nextInitializedTickInTheRightWithinOneWord(__observedTick);
-
-        if (__initialized && __observedTick <= __slot0.tick) {
-          uint256[] memory __currentExpiredPoliciesTokenId = removeTick(
-            __observedTick
-          );
-
-          for (uint256 i = 0; i < __currentExpiredPoliciesTokenId.length; i++) {
-            __expiredPoliciesTokens[
-              __expiredPoliciesTokenIdCurrentIndex
-            ] = __currentExpiredPoliciesTokenId[i];
-
-            __expiredPoliciesTokenIdCurrentIndex++;
-          }
-        }
-      }
-
-      slot0.tick = __slot0.tick;
-      slot0.secondsPerTick = __slot0.secondsPerTick;
-      slot0.totalInsuredCapital = __slot0.totalInsuredCapital;
-      slot0.remainingPolicies = __slot0.remainingPolicies;
-      slot0.lastUpdateTimestamp = block.timestamp;
-      liquidityIndex = __liquidityIndex;
-
-      return __expiredPoliciesTokens;
-    }
-
-    slot0.lastUpdateTimestamp = block.timestamp;
-    return new uint256[](0);
-  }
-
-  function _buyPolicy(
-    uint256 _tokenId,
-    uint256 _premium,
-    uint256 _insuredCapital
-  ) internal {
-    uint256 __availableCapital = availableCapital;
-    uint256 __totalInsuredCapital = slot0.totalInsuredCapital;
-
-    require(
-      __availableCapital >= __totalInsuredCapital + _insuredCapital,
-      "Insufficient capital"
-    );
-
-    uint256 __currentPremiumRate = getPremiumRate(
-      _utilisationRate(0, 0, __totalInsuredCapital, __availableCapital)
-    );
-
-    uint256 __newPremiumRate = getPremiumRate(
-      _utilisationRate(
-        _insuredCapital,
-        0,
-        __totalInsuredCapital,
-        __availableCapital
-      )
-    );
-
-    uint256 __durationInSeconds = durationSecondsUnit(
-      _premium,
-      _insuredCapital,
-      __newPremiumRate
-    );
-
-    uint256 __newSecondsPerTick = getSecondsPerTick(
-      slot0.secondsPerTick,
-      __currentPremiumRate,
-      __newPremiumRate
-    );
-
-    require(__durationInSeconds >= __newSecondsPerTick, "Min duration");
-
-    uint32 __lastTick = slot0.tick +
-      uint32(__durationInSeconds / __newSecondsPerTick);
-
-    addPremiumPosition(_tokenId, __newPremiumRate, __lastTick);
-
-    slot0.totalInsuredCapital += _insuredCapital;
-    slot0.secondsPerTick = __newSecondsPerTick;
-
-    slot0.remainingPolicies++;
-  }
-
-  function _withdrawPolicy(uint256 coverId, uint256 _amountCovered)
-    internal
-    returns (uint256 __remainedPremium)
-  {
-    PremiumPosition.Info memory __position = premiumPositions[coverId];
-    uint32 __currentTick = slot0.tick;
-
-    require(__currentTick <= __position.lastTick, "Policy Expired");
-
-    uint256 __totalInsuredCapital = slot0.totalInsuredCapital;
-    uint256 __availableCapital = availableCapital;
-
-    uint256 __currentPremiumRate = getPremiumRate(
-      _utilisationRate(0, 0, __totalInsuredCapital, __availableCapital)
-    );
-
-    uint256 __ownerCurrentEmissionRate = getEmissionRate(
-      _amountCovered.rayMul(__position.beginPremiumRate / 100) / 365,
-      __position.beginPremiumRate,
-      __currentPremiumRate
-    );
-
-    __remainedPremium =
-      ((__position.lastTick - __currentTick) *
-        slot0.secondsPerTick *
-        __ownerCurrentEmissionRate) /
-      86400;
-
-    uint256 __newPremiumRate = getPremiumRate(
-      _utilisationRate(
-        0,
-        _amountCovered,
-        __totalInsuredCapital,
-        __availableCapital
-      )
-    );
-
-    slot0.totalInsuredCapital -= _amountCovered;
-
-    slot0.secondsPerTick = getSecondsPerTick(
-      slot0.secondsPerTick,
-      __currentPremiumRate,
-      __newPremiumRate
-    );
-
-    if (ticks.getCoverIdNumber(__position.lastTick) > 1) {
-      premiumPositions.replaceAndRemoveCoverId(
-        coverId,
-        ticks.getLastCoverIdInTick(__position.lastTick)
-      );
-
-      ticks.removeCoverId(__position.coverIdIndex, __position.lastTick);
-    } else {
-      removeTick(__position.lastTick);
-    }
-
-    slot0.remainingPolicies--;
-  }
+  /// ======================== ///
+  /// ========= VIEWS ======== ///
+  /// ======================== ///
 
   function actualizingUntilGivenDate(uint256 _dateInSeconds)
     public
@@ -497,14 +135,396 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
           __position.beginPremiumRate,
           __currentPremiumRate
         );
-      }
+    }
     }
   }
 
   function getCurrentPremiumRate() public view returns (uint256) {
-    return
+      return
       getPremiumRate(
         _utilisationRate(0, 0, slot0.totalInsuredCapital, availableCapital)
       );
+  }
+
+  /// ================================= ///
+  /// ========= INTERNAL VIEWS ======== ///
+  /// ================================= ///
+
+  function getEmissionRate(
+    uint256 _oldEmissionRate,
+    uint256 _oldPremiumRate,
+    uint256 _newPremiumRate
+  ) internal pure returns (uint256) {
+    return _oldEmissionRate.rayMul(_newPremiumRate).rayDiv(_oldPremiumRate);
+  }
+
+  function getSecondsPerTick(
+    uint256 _oldSecondsPerTick,
+    uint256 _oldPremiumRate,
+    uint256 _newPremiumRate
+  ) private pure returns (uint256) {
+    return _oldSecondsPerTick.rayMul(_oldPremiumRate).rayDiv(_newPremiumRate);
+  }
+
+  function durationSecondsUnit(
+    uint256 _premium,
+    uint256 _insuredCapital,
+    uint256 _premiumRate //Ray
+  ) private pure returns (uint256) {
+    //31536000 * 100 = (365 * 24 * 60 * 60) * 100 // total seconds per year * 100
+    return ((_premium * 3153600000) / _insuredCapital).rayDiv(_premiumRate);
+  }
+
+  function getPremiumRate(uint256 _utilisationRate)
+    internal
+    view
+    returns (uint256)
+  {
+    // returns actual rate for insurance
+    if (_utilisationRate < f.uOptimal) {
+      return f.r0 + f.rSlope1.rayMul(_utilisationRate.rayDiv(f.uOptimal));
+    } else {
+      return
+        f.r0 +
+        f.rSlope1 +
+        (f.rSlope2 * (_utilisationRate - f.uOptimal)) /
+        (100 * RayMath.RAY - f.uOptimal) /
+        100;
+    }
+  }
+
+  function crossingInitializedTick(
+    Slot0 memory _slot0,
+    uint256 _availableCapital,
+    uint32 _tick
+  ) internal view {
+    uint256[] memory coverIds = ticks[_tick];
+    uint256 __insuredCapitalToRemove;
+
+    for (uint256 i = 0; i < coverIds.length; i++) {
+      uint256 coverId = coverIds[i];
+
+      __insuredCapitalToRemove += policyManagerInterface
+        .policy(coverId)
+        .amountCovered;
+    }
+
+    uint256 __currentPremiumRate = getPremiumRate(
+      _utilisationRate(0, 0, _slot0.totalInsuredCapital, _availableCapital)
+    );
+
+    uint256 __newPremiumRate = getPremiumRate(
+      _utilisationRate(
+        0,
+        __insuredCapitalToRemove,
+        _slot0.totalInsuredCapital,
+        _availableCapital
+      )
+    );
+
+    _slot0.secondsPerTick = getSecondsPerTick(
+      _slot0.secondsPerTick,
+      __currentPremiumRate,
+      __newPremiumRate
+    );
+
+    _slot0.totalInsuredCapital -= __insuredCapitalToRemove;
+    _slot0.remainingPolicies -= coverIds.length;
+  }
+
+  function _actualizingUntil(uint256 _dateInSeconds)
+    internal
+    view
+    returns (Slot0 memory __slot0, uint256 __liquidityIndex)
+  {
+    __slot0 = Slot0({
+      tick: slot0.tick,
+      secondsPerTick: slot0.secondsPerTick,
+      totalInsuredCapital: slot0.totalInsuredCapital,
+      remainingPolicies: slot0.remainingPolicies,
+      lastUpdateTimestamp: slot0.lastUpdateTimestamp
+    });
+
+    __liquidityIndex = liquidityIndex;
+
+    uint256 __availableCapital = availableCapital;
+    uint256 __secondsGap = _dateInSeconds - __slot0.lastUpdateTimestamp;
+
+    uint256 __uRate = _utilisationRate(
+      0,
+      0,
+      __slot0.totalInsuredCapital,
+      __availableCapital
+    ) / 100;
+
+    uint256 __pRate = getPremiumRate(__uRate * 100) / 100;
+
+    while (__secondsGap > 0) {
+      (uint32 __tickNext, bool __initialized) = tickBitmap
+        .nextInitializedTickInTheRightWithinOneWord(__slot0.tick);
+
+      uint256 __secondsStep = (__tickNext - __slot0.tick) *
+        __slot0.secondsPerTick;
+
+      if (__secondsStep <= __secondsGap) {
+        __slot0.tick = __tickNext;
+        __liquidityIndex +=
+          (__uRate.rayMul(__pRate) * __secondsStep) /
+          31536000;
+        __secondsGap -= __secondsStep;
+
+        if (__initialized) {
+          crossingInitializedTick(__slot0, __availableCapital, __tickNext);
+
+          __uRate =
+            _utilisationRate(
+              0,
+              0,
+              __slot0.totalInsuredCapital,
+              __availableCapital
+            ) /
+            100;
+
+          __pRate = getPremiumRate(__uRate * 100) / 100;
+        }
+      } else {
+        __slot0.tick += uint32(__secondsGap / __slot0.secondsPerTick);
+        __liquidityIndex += (__uRate.rayMul(__pRate) * __secondsGap) / 31536000;
+        __secondsGap = 0;
+      }
+    }
+
+    __slot0.lastUpdateTimestamp = _dateInSeconds;
+  }
+
+  /// ========================== ///
+  /// ========= HELPERS ======== ///
+  /// ========================== ///
+
+  function addPremiumPosition(
+    uint256 _tokenId,
+    uint256 _beginPremiumRate,
+    uint32 _tick
+  ) private {
+    uint224 nbCoversInTick = ticks.addCoverId(_tokenId, _tick);
+
+    premiumPositions[_tokenId] = PremiumPosition.Info(
+      _beginPremiumRate,
+      _tick,
+      nbCoversInTick
+    );
+
+    if (!tickBitmap.isInitializedTick(_tick)) {
+      tickBitmap.flipTick(_tick);
+    }
+  }
+
+  function removeTick(uint32 _tick)
+    private
+    returns (uint256[] memory coverIds)
+  {
+    coverIds = ticks[_tick];
+
+    for (uint256 i = 0; i < coverIds.length; i++) {
+      uint256 coverId = coverIds[i];
+      delete premiumPositions[coverId];
+
+      emit ExpiredPolicy(coverId, _tick);
+    }
+
+    ticks.clear(_tick);
+    tickBitmap.flipTick(_tick);
+  }
+
+  function _updateSlot0WhenAvailableCapitalChange(
+    uint256 _amountToAdd,
+    uint256 _amountToRemove
+  ) internal {
+    uint256 __availableCapital = availableCapital;
+    uint256 __totalInsuredCapital = slot0.totalInsuredCapital;
+
+    uint256 __currentPremiumRate = getPremiumRate(
+      _utilisationRate(0, 0, __totalInsuredCapital, __availableCapital)
+    );
+
+    uint256 __newPremiumRate = getPremiumRate(
+      _utilisationRate(
+        0,
+        0,
+        __totalInsuredCapital,
+        __availableCapital + _amountToAdd - _amountToRemove
+      )
+    );
+
+    slot0.secondsPerTick = getSecondsPerTick(
+      slot0.secondsPerTick,
+      __currentPremiumRate,
+      __newPremiumRate
+    );
+  }
+
+  function _actualizing() internal returns (uint256[] memory) {
+    if (slot0.remainingPolicies > 0) {
+      (Slot0 memory __slot0, uint256 __liquidityIndex) = _actualizingUntil(
+        block.timestamp
+      );
+
+      //now, we remove all crossed ticks
+      uint256[] memory __expiredPoliciesTokens = new uint256[](
+        slot0.remainingPolicies - __slot0.remainingPolicies
+      );
+      uint256 __expiredPoliciesTokenIdCurrentIndex;
+
+      uint32 __observedTick = slot0.tick;
+      bool __initialized;
+      while (__observedTick < __slot0.tick) {
+        (__observedTick, __initialized) = tickBitmap
+          .nextInitializedTickInTheRightWithinOneWord(__observedTick);
+
+        if (__initialized && __observedTick <= __slot0.tick) {
+          uint256[] memory __currentExpiredPoliciesTokenId = removeTick(
+            __observedTick
+          );
+
+          for (uint256 i = 0; i < __currentExpiredPoliciesTokenId.length; i++) {
+            __expiredPoliciesTokens[
+              __expiredPoliciesTokenIdCurrentIndex
+            ] = __currentExpiredPoliciesTokenId[i];
+
+            __expiredPoliciesTokenIdCurrentIndex++;
+          }
+        }
+      }
+
+      slot0.tick = __slot0.tick;
+      slot0.secondsPerTick = __slot0.secondsPerTick;
+      slot0.totalInsuredCapital = __slot0.totalInsuredCapital;
+      slot0.remainingPolicies = __slot0.remainingPolicies;
+      slot0.lastUpdateTimestamp = block.timestamp;
+      liquidityIndex = __liquidityIndex;
+
+      return __expiredPoliciesTokens;
+    }
+
+    slot0.lastUpdateTimestamp = block.timestamp;
+    return new uint256[](0);
+  }
+
+  /// ========================= ///
+  /// ========= COVERS ======== ///
+  /// ========================= ///
+
+  /// -------- BUY -------- ///
+
+  function _buyPolicy(
+    uint256 _tokenId,
+    uint256 _premium,
+    uint256 _insuredCapital
+  ) internal {
+    uint256 __availableCapital = availableCapital;
+    uint256 __totalInsuredCapital = slot0.totalInsuredCapital;
+
+    require(
+      __availableCapital >= __totalInsuredCapital + _insuredCapital,
+      "Insufficient capital"
+    );
+
+    uint256 __currentPremiumRate = getPremiumRate(
+      _utilisationRate(0, 0, __totalInsuredCapital, __availableCapital)
+    );
+
+    uint256 __newPremiumRate = getPremiumRate(
+      _utilisationRate(
+        _insuredCapital,
+        0,
+        __totalInsuredCapital,
+        __availableCapital
+      )
+    );
+
+    uint256 __durationInSeconds = durationSecondsUnit(
+      _premium,
+      _insuredCapital,
+      __newPremiumRate
+    );
+
+    uint256 __newSecondsPerTick = getSecondsPerTick(
+      slot0.secondsPerTick,
+      __currentPremiumRate,
+      __newPremiumRate
+    );
+
+    require(__durationInSeconds >= __newSecondsPerTick, "Min duration");
+
+    uint32 __lastTick = slot0.tick +
+      uint32(__durationInSeconds / __newSecondsPerTick);
+
+    addPremiumPosition(_tokenId, __newPremiumRate, __lastTick);
+
+    slot0.totalInsuredCapital += _insuredCapital;
+    slot0.secondsPerTick = __newSecondsPerTick;
+
+    slot0.remainingPolicies++;
+  }
+
+  /// -------- CLOSE -------- ///
+
+  function _withdrawPolicy(uint256 coverId, uint256 _amountCovered)
+    internal
+    returns (uint256 __remainedPremium)
+  {
+    PremiumPosition.Info memory __position = premiumPositions[coverId];
+    uint32 __currentTick = slot0.tick;
+
+    require(__currentTick <= __position.lastTick, "Policy Expired");
+
+    uint256 __totalInsuredCapital = slot0.totalInsuredCapital;
+    uint256 __availableCapital = availableCapital;
+
+    uint256 __currentPremiumRate = getPremiumRate(
+      _utilisationRate(0, 0, __totalInsuredCapital, __availableCapital)
+    );
+
+    uint256 __ownerCurrentEmissionRate = getEmissionRate(
+      _amountCovered.rayMul(__position.beginPremiumRate / 100) / 365,
+      __position.beginPremiumRate,
+      __currentPremiumRate
+    );
+
+    __remainedPremium =
+      ((__position.lastTick - __currentTick) *
+        slot0.secondsPerTick *
+        __ownerCurrentEmissionRate) /
+      86400;
+
+    uint256 __newPremiumRate = getPremiumRate(
+      _utilisationRate(
+        0,
+        _amountCovered,
+        __totalInsuredCapital,
+        __availableCapital
+      )
+    );
+
+    slot0.totalInsuredCapital -= _amountCovered;
+
+    slot0.secondsPerTick = getSecondsPerTick(
+      slot0.secondsPerTick,
+      __currentPremiumRate,
+      __newPremiumRate
+    );
+
+    if (ticks.getCoverIdNumber(__position.lastTick) > 1) {
+      premiumPositions.replaceAndRemoveCoverId(
+        coverId,
+        ticks.getLastCoverIdInTick(__position.lastTick)
+      );
+
+      ticks.removeCoverId(__position.coverIdIndex, __position.lastTick);
+    } else {
+      removeTick(__position.lastTick);
+    }
+
+    slot0.remainingPolicies--;
   }
 }
