@@ -20,6 +20,7 @@ import "./interfaces/IVaultERC20.sol";
 import "./interfaces/IPriceOracle.sol";
 
 import "./libraries/RayMath.sol";
+import "hardhat/console.sol";
 
 contract Athena is IAthena, ReentrancyGuard, Ownable {
   using SafeERC20 for IERC20;
@@ -638,25 +639,60 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     }
   }
 
-  function addToCoverRefundStake(uint256 coverId_, uint256 amount_)
+  /// -------- COVER UPDATE -------- ///
+
+  // @bw need update cover
+  function increaseCover(uint256 coverId_, uint256 amount_)
     external
     onlyPolicyTokenOwner(coverId_)
   {
-    // Core contracts is responsible for incoming tokens
-    atenTokenInterface.safeTransferFrom(
-      msg.sender,
-      address(stakedAtensPoInterface),
-      amount_
+    (uint256 amountInsured, address poolAddress) = _prepareCoverUpdate(
+      coverId_
     );
-    stakedAtensPoInterface.addToStake(coverId_, amount_);
+    policyManagerInterface.increaseCover(coverId_, amount_);
+    IProtocolPool(poolAddress).increaseCover(coverId_, amount_, amountInsured);
   }
 
-  function withdrawCoverRefundStakedAten(uint256 coverId_, uint256 amount_)
+  function decreaseCover(uint256 coverId_, uint256 amount_)
     external
     onlyPolicyTokenOwner(coverId_)
   {
-    // Cover refund contracts is responsible for outgoing tokens
-    stakedAtensPoInterface.withdrawStakedAten(coverId_, amount_, msg.sender);
+    (uint256 amountInsured, address poolAddress) = _prepareCoverUpdate(
+      coverId_
+    );
+    policyManagerInterface.decreaseCover(coverId_, amount_);
+    IProtocolPool(poolAddress).decreaseCover(coverId_, amount_, amountInsured);
+  }
+
+  function addPremiums(uint256 coverId_, uint256 amount_)
+    external
+    onlyPolicyTokenOwner(coverId_)
+  {
+    (uint256 amountInsured, address poolAddress) = _prepareCoverUpdate(
+      coverId_
+    );
+
+    IERC20(stablecoin).safeTransferFrom(msg.sender, poolAddress, amount_);
+
+    policyManagerInterface.addPremiums(coverId_, amount_);
+    IProtocolPool(poolAddress).addPremiums(coverId_, amount_, amountInsured);
+  }
+
+  function removePremiums(uint256 coverId_, uint256 amount_)
+    external
+    onlyPolicyTokenOwner(coverId_)
+  {
+    (uint256 amountInsured, address poolAddress) = _prepareCoverUpdate(
+      coverId_
+    );
+
+    policyManagerInterface.removePremiums(coverId_, amount_);
+    IProtocolPool(poolAddress).removePremiums(
+      coverId_,
+      amount_,
+      amountInsured,
+      msg.sender
+    );
   }
 
   /// -------- CLOSE -------- ///
@@ -696,6 +732,29 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
 
     // Expire the cover of the user
     policyManagerInterface.expireCover(policyId_, true);
+  }
+
+  /// -------- COVER REFUND -------- ///
+
+  function addToCoverRefundStake(uint256 coverId_, uint256 amount_)
+    external
+    onlyPolicyTokenOwner(coverId_)
+  {
+    // Core contracts is responsible for incoming tokens
+    atenTokenInterface.safeTransferFrom(
+      msg.sender,
+      address(stakedAtensPoInterface),
+      amount_
+    );
+    stakedAtensPoInterface.addToStake(coverId_, amount_);
+  }
+
+  function withdrawCoverRefundStakedAten(uint256 coverId_, uint256 amount_)
+    external
+    onlyPolicyTokenOwner(coverId_)
+  {
+    // Cover refund contracts is responsible for outgoing tokens
+    stakedAtensPoInterface.withdrawStakedAten(coverId_, amount_, msg.sender);
   }
 
   /**

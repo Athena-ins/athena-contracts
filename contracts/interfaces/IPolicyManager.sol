@@ -30,6 +30,8 @@ interface IPolicyManager is IERC721Enumerable {
     view
     returns (uint256[] calldata tokenList);
 
+  function poolIdOfPolicy(uint256 _tokenId) external view returns (uint128);
+
   function coverAmountOfPolicy(uint256 coverId) external view returns (uint256);
 
   function getCover(uint256 coverId) external view returns (Policy calldata);
@@ -43,21 +45,19 @@ interface IPolicyManager is IERC721Enumerable {
     uint128 poolId
   ) external returns (uint256);
 
-  function increaseCover(uint256 coverId_, uint256 amount_) external;
+  function increaseCover(uint256 coverId, uint256 amount) external;
 
-  function decreaseCover(uint256 coverId_, uint256 amount_) external;
+  function decreaseCover(uint256 coverId, uint256 amount) external;
 
-  function addPremiums(uint256 coverId_, uint256 amount_) external;
+  function addPremiums(uint256 coverId, uint256 amount) external;
 
-  function removePremiums(uint256 coverId_, uint256 amount_) external;
+  function removePremiums(uint256 coverId, uint256 amount) external;
 
   function expireCover(uint256 coverId, bool cancelledByUser) external;
 
   function processExpiredTokens(uint256[] calldata expiredTokens) external;
 
   function policyActive(uint256 _tokenId) external view returns (bool);
-
-  function poolIdOfPolicy(uint256 _tokenId) external view returns (uint128);
 
   function getCoverPremiumSpent(uint256 coverId)
     external
