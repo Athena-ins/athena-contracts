@@ -135,12 +135,12 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
           __position.beginPremiumRate,
           __currentPremiumRate
         );
-    }
+      }
     }
   }
 
   function getCurrentPremiumRate() public view returns (uint256) {
-      return
+    return
       getPremiumRate(
         _utilisationRate(0, 0, slot0.totalInsuredCapital, availableCapital)
       );
@@ -421,24 +421,23 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
     uint256 _premium,
     uint256 _insuredCapital
   ) internal {
-    uint256 __availableCapital = availableCapital;
-    uint256 __totalInsuredCapital = slot0.totalInsuredCapital;
+    uint256 totalInsuredCapital = slot0.totalInsuredCapital;
 
     require(
-      __availableCapital >= __totalInsuredCapital + _insuredCapital,
+      totalInsuredCapital + _insuredCapital < availableCapital,
       "Insufficient capital"
     );
 
     uint256 __currentPremiumRate = getPremiumRate(
-      _utilisationRate(0, 0, __totalInsuredCapital, __availableCapital)
+      _utilisationRate(0, 0, totalInsuredCapital, availableCapital)
     );
 
     uint256 __newPremiumRate = getPremiumRate(
       _utilisationRate(
         _insuredCapital,
         0,
-        __totalInsuredCapital,
-        __availableCapital
+        totalInsuredCapital,
+        availableCapital
       )
     );
 
@@ -465,6 +464,48 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
     slot0.secondsPerTick = __newSecondsPerTick;
 
     slot0.remainingPolicies++;
+  }
+
+  /// -------- UPDATE -------- ///
+
+  function _increaseCover(
+    uint256 coverId_,
+    uint256 amount_,
+    uint256 amountInsured
+  ) internal {
+    uint256 premiumsLeft = _withdrawPolicy(coverId_, amountInsured);
+    uint256 newInsuredAmount = amountInsured + amount_;
+    _buyPolicy(coverId_, premiumsLeft, newInsuredAmount);
+  }
+
+  function _decreaseCover(
+    uint256 coverId_,
+    uint256 amount_,
+    uint256 amountInsured
+  ) internal {
+    uint256 premiumsLeft = _withdrawPolicy(coverId_, amountInsured);
+    uint256 newInsuredAmount = amountInsured - amount_;
+    _buyPolicy(coverId_, premiumsLeft, newInsuredAmount);
+  }
+
+  function _addPremiums(
+    uint256 coverId_,
+    uint256 amount_,
+    uint256 amountInsured
+  ) internal {
+    uint256 premiumsLeft = _withdrawPolicy(coverId_, amountInsured);
+    uint256 newPremiumsAmount = premiumsLeft + amount_;
+    _buyPolicy(coverId_, newPremiumsAmount, amountInsured);
+  }
+
+  function _removePremiums(
+    uint256 coverId_,
+    uint256 amount_,
+    uint256 amountInsured
+  ) internal {
+    uint256 premiumsLeft = _withdrawPolicy(coverId_, amountInsured);
+    uint256 newPremiumsAmount = premiumsLeft - amount_;
+    _buyPolicy(coverId_, newPremiumsAmount, amountInsured);
   }
 
   /// -------- CLOSE -------- ///
