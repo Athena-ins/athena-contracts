@@ -350,7 +350,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
   /// ========= COVERS ======== ///
   /// ========================= ///
 
-  /// -------- BUY COVER -------- ///
+  /// -------- BUY -------- ///
 
   function buyPolicy(
     address owner,
@@ -364,7 +364,43 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     emit BuyPolicy(owner, premiums, amountCovered);
   }
 
-  /// -------- CLOSE COVER -------- ///
+  /// -------- UPDATE -------- ///
+
+  function increaseCover(
+    uint256 coverId_,
+    uint256 amount_,
+    uint256 amountInsured_
+  ) external onlyCore {
+    _increaseCover(coverId_, amount_, amountInsured_);
+  }
+
+  function decreaseCover(
+    uint256 coverId_,
+    uint256 amount_,
+    uint256 amountInsured_
+  ) external onlyCore {
+    _decreaseCover(coverId_, amount_, amountInsured_);
+  }
+
+  function addPremiums(
+    uint256 coverId_,
+    uint256 amount_,
+    uint256 amountInsured_
+  ) external onlyCore {
+    _addPremiums(coverId_, amount_, amountInsured_);
+  }
+
+  function removePremiums(
+    uint256 coverId_,
+    uint256 amount_,
+    uint256 amountInsured_,
+    address account_
+  ) external onlyCore {
+    _removePremiums(coverId_, amount_, amountInsured_);
+    IERC20(underlyingAsset).safeTransfer(account_, amount_);
+  }
+
+  /// -------- CLOSE -------- ///
 
   function withdrawPolicy(
     address owner,
