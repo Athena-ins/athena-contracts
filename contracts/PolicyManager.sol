@@ -44,6 +44,14 @@ contract PolicyManager is IPolicyManager, ERC721Enumerable {
     return covers[coverId].poolId;
   }
 
+  function coverAmountOfPolicy(uint256 coverId)
+    external
+    view
+    returns (uint256)
+  {
+    return covers[coverId].amountCovered;
+  }
+
   function getCover(uint256 coverId) public view returns (Policy memory) {
     return covers[coverId];
   }
