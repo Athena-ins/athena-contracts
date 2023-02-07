@@ -36,10 +36,38 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     intersectingAmounts.push();
   }
 
+  /// ========================= ///
+  /// ========= EVENTS ======== ///
+  /// ========================= ///
+
+  event TakeInterest(
+    uint256 tokenId,
+    uint256 userCapital,
+    uint256 rewardsGross,
+    uint256 rewardsNet,
+    uint256 fee
+  );
+
+  event WithdrawLiquidity(
+    uint256 tokenId,
+    uint256 capital,
+    uint256 rewardsGross,
+    uint256 rewardsNet,
+    uint256 fee
+  );
+
+  /// =========================== ///
+  /// ========= MODIFIER ======== ///
+  /// =========================== ///
+
   modifier onlyCore() {
     require(msg.sender == core, "Only Core");
     _;
   }
+
+  /// ======================== ///
+  /// ========= VIEWS ======== ///
+  /// ======================== ///
 
   function getRelatedProtocols()
     external
@@ -50,117 +78,33 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     return relatedProtocols;
   }
 
-  // @bw only protocol pools should be able to call this function
-  // @bw why not updated on withdraw ?
-  function addRelatedProtocol(uint128 _poolId, uint256 _amount)
+  function protocolInfo()
     external
-  // onlyCore
-  {
-    if (intersectingAmountIndexes[_poolId] == 0 && _poolId != id) {
-      intersectingAmountIndexes[_poolId] = intersectingAmounts.length;
-
-      relatedProtocols.push(_poolId);
-
-      intersectingAmounts.push();
-    }
-
-    intersectingAmounts[intersectingAmountIndexes[_poolId]] += _amount;
-  }
-
-  function committingWithdrawLiquidity(uint256 tokenId_) external onlyCore {
-    withdrawReserves[tokenId_] = block.timestamp;
-  }
-
-  function removeCommittedWithdrawLiquidity(uint256 tokenId_)
-    external
-    onlyCore
-  {
-    delete withdrawReserves[tokenId_];
-  }
-
-  function removeLPInfo(uint256 tokenId_) external onlyCore {
-    delete LPsInfo[tokenId_];
-  }
-
-  function deposit(
-    uint256 tokenId_,
-    uint256 amount_ // @bw onlyCore or onlyPositionManager ?
-  ) external {
-    // Add deposit to pool's own intersecting amounts
-    intersectingAmounts[0] += amount_;
-
-    _updateSlot0WhenAvailableCapitalChange(amount_, 0);
-    availableCapital += amount_;
-    LPsInfo[tokenId_] = LPInfo(liquidityIndex, processedClaims.length);
-  }
-
-  function buyPolicy(
-    address owner,
-    uint256 coverId,
-    uint256 premiums,
-    uint256 amountCovered
-  ) external onlyCore {
-    _buyPolicy(coverId, premiums, amountCovered);
-
-    // @bw event should be moved to policy manager
-    emit BuyPolicy(owner, premiums, amountCovered);
-  }
-
-  function withdrawPolicy(
-    address owner,
-    uint256 coverId,
-    uint256 amountCovered
-  ) external onlyCore {
-    uint256 coverPremiumsLeft = _withdrawPolicy(coverId, amountCovered);
-
-    IERC20(underlyingAsset).safeTransfer(owner, coverPremiumsLeft);
-
-    emit WithdrawPolicy(coverId, coverPremiumsLeft);
-  }
-
-  function _actualizingLPInfoWithClaims(
-    uint256 tokenId_,
-    uint256 _userCapital,
-    uint128[] calldata _poolIds
-  )
-    internal
     view
     returns (
-      uint256 __newUserCapital,
-      uint256 __totalRewards,
-      LPInfo memory __newLPInfo,
-      uint256 __aaveScaledBalanceToRemove
+      uint256 insuredCapital,
+      uint256 availableCapacity,
+      uint256 utilizationRate,
+      uint256 premiumRate,
+      Formula memory computingConfig,
+      uint256 _commitDelay
     )
   {
-    __newLPInfo = LPsInfo[tokenId_];
-    Claim[] memory __claims = _claims(__newLPInfo.beginClaimIndex);
+    uint256 __uRate = _utilisationRate(
+      0,
+      0,
+      slot0.totalInsuredCapital,
+      availableCapital
+    );
 
-    __newUserCapital = _userCapital;
-
-    for (uint256 i = 0; i < __claims.length; i++) {
-      Claim memory __claim = __claims[i];
-
-      __totalRewards += __newUserCapital.rayMul(
-        __claim.liquidityIndexBeforeClaim - __newLPInfo.beginLiquidityIndex
-      );
-
-      for (uint256 j = 0; j < _poolIds.length; j++) {
-        if (_poolIds[j] == __claim.fromPoolId) {
-          uint256 capitalToRemove = __newUserCapital.rayMul(__claim.ratio);
-
-          __aaveScaledBalanceToRemove += capitalToRemove.rayDiv(
-            __claim.aaveReserveNormalizedIncomeBeforeClaim
-          );
-
-          __newUserCapital = __newUserCapital - capitalToRemove;
-          break;
-        }
-      }
-
-      __newLPInfo.beginLiquidityIndex = __claim.liquidityIndexBeforeClaim;
-    }
-
-    __newLPInfo.beginClaimIndex += __claims.length;
+    return (
+      slot0.totalInsuredCapital,
+      availableCapital - slot0.totalInsuredCapital,
+      __uRate,
+      getPremiumRate(__uRate),
+      f,
+      commitDelay
+    );
   }
 
   function rewardsOf(
@@ -203,13 +147,91 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     __newLPInfo.beginLiquidityIndex = __liquidityIndex;
   }
 
-  event TakeInterest(
-    uint256 tokenId,
-    uint256 userCapital,
-    uint256 rewardsGross,
-    uint256 rewardsNet,
-    uint256 fee
-  );
+  function isWithdrawLiquidityDelayOk(uint256 tokenId_)
+    external
+    view
+    returns (bool)
+  {
+    uint256 withdrawReserveTime = withdrawReserves[tokenId_];
+    return
+      withdrawReserveTime != 0 &&
+      block.timestamp - withdrawReserveTime >= commitDelay;
+  }
+
+  function ratioWithAvailableCapital(uint256 _amount)
+    external
+    view
+    returns (uint256)
+  {
+    return _amount.rayDiv(availableCapital);
+  }
+
+  /// ========================== ///
+  /// ========= HELPERS ======== ///
+  /// ========================== ///
+
+  function _actualizingLPInfoWithClaims(
+    uint256 tokenId_,
+    uint256 _userCapital,
+    uint128[] calldata _poolIds
+  )
+    internal
+    view
+    returns (
+      uint256 __newUserCapital,
+      uint256 __totalRewards,
+      LPInfo memory __newLPInfo,
+      uint256 __aaveScaledBalanceToRemove
+    )
+  {
+    __newLPInfo = LPsInfo[tokenId_];
+    Claim[] memory __claims = _claims(__newLPInfo.beginClaimIndex);
+
+    __newUserCapital = _userCapital;
+
+    for (uint256 i = 0; i < __claims.length; i++) {
+      Claim memory __claim = __claims[i];
+
+      __totalRewards += __newUserCapital.rayMul(
+        __claim.liquidityIndexBeforeClaim - __newLPInfo.beginLiquidityIndex
+      );
+
+      for (uint256 j = 0; j < _poolIds.length; j++) {
+        if (_poolIds[j] == __claim.fromPoolId) {
+          uint256 capitalToRemove = __newUserCapital.rayMul(__claim.ratio);
+
+          __aaveScaledBalanceToRemove += capitalToRemove.rayDiv(
+            __claim.aaveReserveNormalizedIncomeBeforeClaim
+          );
+
+          __newUserCapital = __newUserCapital - capitalToRemove;
+          break;
+        }
+      }
+      __newLPInfo.beginLiquidityIndex = __claim.liquidityIndexBeforeClaim;
+    }
+    __newLPInfo.beginClaimIndex += __claims.length;
+  }
+
+  /// =================================== ///
+  /// ========= CAPITAL PROVIDER ======== ///
+  /// =================================== ///
+
+  /// -------- DEPOSIT -------- ///
+
+  function deposit(
+    uint256 tokenId_,
+    uint256 amount_ // @bw onlyCore or onlyPositionManager ?
+  ) external {
+    // Add deposit to pool's own intersecting amounts
+    intersectingAmounts[0] += amount_;
+
+    _updateSlot0WhenAvailableCapitalChange(amount_, 0);
+    availableCapital += amount_;
+    LPsInfo[tokenId_] = LPInfo(liquidityIndex, processedClaims.length);
+  }
+
+  /// -------- TAKE INTERESTS -------- ///
 
   //onlyPositionManager
   function takeInterest(
@@ -255,24 +277,18 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     return (__newUserCapital, __aaveScaledBalanceToRemove);
   }
 
-  function isWithdrawLiquidityDelayOk(uint256 tokenId_)
-    external
-    view
-    returns (bool)
-  {
-    uint256 withdrawReserveTime = withdrawReserves[tokenId_];
-    return
-      withdrawReserveTime != 0 &&
-      block.timestamp - withdrawReserveTime >= commitDelay;
+  /// -------- WITHDRAW -------- ///
+
+  function committingWithdrawLiquidity(uint256 tokenId_) external onlyCore {
+    withdrawReserves[tokenId_] = block.timestamp;
   }
 
-  event WithdrawLiquidity(
-    uint256 tokenId,
-    uint256 capital,
-    uint256 rewardsGross,
-    uint256 rewardsNet,
-    uint256 fee
-  );
+  function removeCommittedWithdrawLiquidity(uint256 tokenId_)
+    external
+    onlyCore
+  {
+    delete withdrawReserves[tokenId_];
+  }
 
   function withdrawLiquidity(
     address account_,
@@ -330,6 +346,46 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     return (__newUserCapital, __aaveScaledBalanceToRemove);
   }
 
+  /// ========================= ///
+  /// ========= COVERS ======== ///
+  /// ========================= ///
+
+  /// -------- BUY COVER -------- ///
+
+  function buyPolicy(
+    address owner,
+    uint256 coverId,
+    uint256 premiums,
+    uint256 amountCovered
+  ) external onlyCore {
+    _buyPolicy(coverId, premiums, amountCovered);
+
+    // @bw event should be moved to policy manager
+    emit BuyPolicy(owner, premiums, amountCovered);
+  }
+
+  /// -------- CLOSE COVER -------- ///
+
+  function withdrawPolicy(
+    address owner,
+    uint256 coverId,
+    uint256 amountCovered
+  ) external onlyCore {
+    uint256 coverPremiumsLeft = _withdrawPolicy(coverId, amountCovered);
+
+    IERC20(underlyingAsset).safeTransfer(owner, coverPremiumsLeft);
+
+    emit WithdrawPolicy(coverId, coverPremiumsLeft);
+  }
+
+  /// ========================= ///
+  /// ========= CLAIMS ======== ///
+  /// ========================= ///
+
+  function removeLPInfo(uint256 tokenId_) external onlyCore {
+    delete LPsInfo[tokenId_];
+  }
+
   // @bw DANGER should not be public
   function processClaim(
     uint128 _fromPoolId,
@@ -341,54 +397,40 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
       _ratio
     );
     _updateSlot0WhenAvailableCapitalChange(0, __amountToRemoveByClaim);
+
     availableCapital -= __amountToRemoveByClaim;
     intersectingAmounts[
       intersectingAmountIndexes[_fromPoolId]
     ] -= __amountToRemoveByClaim;
+
     processedClaims.push(
       Claim(_fromPoolId, _ratio, liquidityIndex, _aaveReserveNormalizedIncome)
     );
   }
 
-  function ratioWithAvailableCapital(uint256 _amount)
-    external
-    view
-    returns (uint256)
-  {
-    return _amount.rayDiv(availableCapital);
-  }
+  /// ======================== ///
+  /// ========= ADMIN ======== ///
+  /// ======================== ///
 
-  //onlyCore?
+  // @bw onlyCore?
   function actualizing() external returns (uint256[] memory) {
     return _actualizing();
   }
 
-  function protocolInfo()
+  // @bw only protocol pools should be able to call this function
+  // @bw why not updated on withdraw ?
+  function addRelatedProtocol(uint128 _poolId, uint256 _amount)
     external
-    view
-    returns (
-      uint256 insuredCapital,
-      uint256 availableCapacity,
-      uint256 utilizationRate,
-      uint256 premiumRate,
-      Formula memory computingConfig,
-      uint256 _commitDelay
-    )
+  // onlyCore
   {
-    uint256 __uRate = _utilisationRate(
-      0,
-      0,
-      slot0.totalInsuredCapital,
-      availableCapital
-    );
+    if (intersectingAmountIndexes[_poolId] == 0 && _poolId != id) {
+      intersectingAmountIndexes[_poolId] = intersectingAmounts.length;
 
-    return (
-      slot0.totalInsuredCapital,
-      availableCapital - slot0.totalInsuredCapital,
-      __uRate,
-      getPremiumRate(__uRate),
-      f,
-      commitDelay
-    );
+      relatedProtocols.push(_poolId);
+
+      intersectingAmounts.push();
+    }
+
+    intersectingAmounts[intersectingAmountIndexes[_poolId]] += _amount;
   }
 }
