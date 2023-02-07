@@ -11,27 +11,27 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
   using SafeERC20 for IERC20;
 
   address public underlyingAsset;
-  uint128 public id;
+  uint128 public poolId;
   uint256 public immutable commitDelay;
 
   mapping(uint256 => uint256) public withdrawReserves;
   mapping(uint256 => LPInfo) public LPsInfo;
 
   constructor(
+    uint128 poolId_,
     address _core,
     address policyManager_,
     address _underlyingAsset,
-    uint128 _id,
+    uint256 _commitDelay,
     uint256 _uOptimal,
     uint256 _r0,
     uint256 _rSlope1,
-    uint256 _rSlope2,
-    uint256 _commitDelay
+    uint256 _rSlope2
   ) PolicyCover(_core, policyManager_, _uOptimal, _r0, _rSlope1, _rSlope2) {
     underlyingAsset = _underlyingAsset;
     commitDelay = _commitDelay;
-    id = _id;
-    relatedProtocols.push(_id);
+    poolId = poolId_;
+    relatedProtocols.push(poolId_);
     // intersectingAmountIndexes[_id] = 0;
     intersectingAmounts.push();
   }
@@ -147,6 +147,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     __newLPInfo.beginLiquidityIndex = __liquidityIndex;
   }
 
+  // @bw move to core of factory
   function isWithdrawLiquidityDelayOk(uint256 tokenId_)
     external
     view
@@ -453,18 +454,20 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
 
   // @bw only protocol pools should be able to call this function
   // @bw why not updated on withdraw ?
-  function addRelatedProtocol(uint128 _poolId, uint256 _amount)
+  function addRelatedProtocol(uint128 relatedPoolId, uint256 _amount)
     external
   // onlyCore
   {
-    if (intersectingAmountIndexes[_poolId] == 0 && _poolId != id) {
-      intersectingAmountIndexes[_poolId] = intersectingAmounts.length;
+    if (
+      intersectingAmountIndexes[relatedPoolId] == 0 && relatedPoolId != poolId
+    ) {
+      intersectingAmountIndexes[relatedPoolId] = intersectingAmounts.length;
 
-      relatedProtocols.push(_poolId);
+      relatedProtocols.push(relatedPoolId);
 
       intersectingAmounts.push();
     }
 
-    intersectingAmounts[intersectingAmountIndexes[_poolId]] += _amount;
+    intersectingAmounts[intersectingAmountIndexes[relatedPoolId]] += _amount;
   }
 }
