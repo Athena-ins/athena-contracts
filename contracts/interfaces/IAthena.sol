@@ -1,26 +1,26 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8;
 
+import "./IProtocolPool.sol";
+
 interface IAthena {
-  struct Protocol {
-    uint128 id; //id in mapping
-    string name; //Protocol name
-    uint8 premiumRate; //Premium rate to pay for this protocol
-    // address protocolAddress; //address for the protocol interface to be unique
-    // uint8 guarantee; //Protocol guarantee type, could be 0 = smart contract vuln, 1 = unpeg, 2 = rug pull ...
-    bool active; //is Active or paused
-    address deployed; //Protocol Pool Address deployed
-    uint128 claimsOngoing; // claim ongoing, lock funds when claim is ongoing
+  struct ProtocolView {
+    string name;
+    bool paused;
+    uint128 claimsOngoing;
+    uint128 poolId;
+    address deployed;
+    address stablecoin;
+    uint256 insuredCapital;
+    uint256 availableCapacity;
+    uint256 utilizationRate;
+    uint256 premiumRate;
+    IProtocolPool.Formula computingConfig;
+    string claimAgreement;
+    uint256 commitDelay;
   }
 
-  function getProtocolAddressById(uint128 poolId)
-    external
-    view
-    returns (address);
-
   function getFeeRateWithAten(uint256 atens) external view returns (uint128);
-
-  function nextPoolId() external view returns (uint128);
 
   function actualizingProtocolAndRemoveExpiredPolicies(address protocolAddress)
     external;

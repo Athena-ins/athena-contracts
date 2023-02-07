@@ -26,24 +26,22 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   using SafeERC20 for IERC20;
   using RayMath for uint256;
 
-  mapping(uint128 => mapping(uint128 => bool)) public incompatibilityProtocols;
-  mapping(uint128 => Protocol) public protocolsMapping;
-
   address public stablecoin;
-  address public protocolFactory;
+
   /// @dev AAVE LendingPoolAddressesProvider Interface
+  IERC20 public atenTokenInterface;
   ILendingPoolAddressesProvider public aaveAddressesRegistryInterface;
-  IPriceOracle public priceOracleInterface;
+
   IPositionsManager public positionManagerInterface;
   IPolicyManager public policyManagerInterface;
   IClaimManager public claimManagerInterface;
 
-  IERC20 public atenTokenInterface;
-  IVaultERC20 public atensVaultInterface;
-  /// @notice Staking Pool Contract: General Pool (GP)
   IStakedAten public stakedAtensGPInterface;
-  /// @notice Staking Pool Contract: Policy
   IStakedAtenPolicy public stakedAtensPoInterface;
+
+  IProtocolFactory public protocolFactoryInterface;
+  IVaultERC20 public atensVaultInterface;
+  IPriceOracle public priceOracleInterface;
 
   struct AtenFeeLevel {
     uint256 atenAmount;
@@ -51,20 +49,6 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   }
   /// Available reward levels (10_000 = 100% APR)
   AtenFeeLevel[] public supplyFeeLevels;
-
-  uint128 public override nextPoolId;
-
-  struct ProtocolView {
-    string name;
-    uint128 poolId;
-    uint256 insuredCapital;
-    uint256 availableCapacity;
-    uint256 utilizationRate;
-    uint256 premiumRate;
-    IProtocolPool.Formula computingConfig;
-    string claimAgreement;
-    uint256 commitDelay;
-  }
 
   constructor(
     address stablecoinUsed_,
@@ -98,10 +82,10 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
 
     stakedAtensGPInterface = IStakedAten(_stakedAtensGP);
     stakedAtensPoInterface = IStakedAtenPolicy(_stakedAtensPo);
+
+    protocolFactoryInterface = IProtocolFactory(_protocolFactory);
     atensVaultInterface = IVaultERC20(_atensVault);
     priceOracleInterface = IPriceOracle(_priceOracle);
-
-    protocolFactory = _protocolFactory;
   }
 
   /// ========================= ///
@@ -168,35 +152,6 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     _;
   }
 
-  //////Thao@NOTE: LP
-  modifier validePoolIds(uint128[] calldata poolIds) {
-    for (uint256 firstIndex = 0; firstIndex < poolIds.length; firstIndex++) {
-      Protocol memory firstProtocol = protocolsMapping[poolIds[firstIndex]];
-
-      if (firstProtocol.active != true) revert ProtocolIsInactive();
-
-      for (
-        uint256 secondIndex = firstIndex + 1;
-        secondIndex < poolIds.length;
-        secondIndex++
-      ) {
-        if (poolIds[firstIndex] == poolIds[secondIndex]) revert SamePoolIds();
-
-        bool isIncompatible = incompatibilityProtocols[poolIds[firstIndex]][
-          poolIds[secondIndex]
-        ];
-        bool isIncompatibleReverse = incompatibilityProtocols[
-          poolIds[secondIndex]
-        ][poolIds[firstIndex]];
-
-        if (isIncompatible == true || isIncompatibleReverse == true)
-          revert IncompatibleProtocol(firstIndex, secondIndex);
-      }
-    }
-
-    _;
-  }
-
   /// ======================== ///
   /// ========= VIEWS ======== ///
   /// ======================== ///
@@ -210,14 +165,14 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     return protocolsMapping[poolId].deployed;
   }
 
-  function getProtocol(uint128 poolId)
+  function getProtocol(uint128 poolId_)
     public
     view
     returns (ProtocolView memory)
   {
-    if (nextPoolId <= poolId) revert OutOfRange();
-
-    address poolAddress = protocolsMapping[poolId].deployed;
+    IProtocolFactory.Protocol memory pool = protocolFactoryInterface.getPool(
+      poolId_
+    );
 
     (
       uint256 insuredCapital,
@@ -226,24 +181,28 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
       uint256 premiumRate,
       IProtocolPool.Formula memory computingConfig,
       uint256 commitDelay
-    ) = IProtocolPool(poolAddress).protocolInfo();
+    ) = IProtocolPool(pool.deployed).protocolInfo();
 
     string memory claimAgreement = claimManagerInterface.getProtocolAgreement(
-      poolId
+      poolId_
     );
 
     return
-      ProtocolView(
-        protocolsMapping[poolId].name,
-        poolId,
-        insuredCapital,
-        availableCapacity,
-        utilizationRate,
-        premiumRate,
-        computingConfig,
-        claimAgreement,
-        commitDelay
-      );
+      ProtocolView({
+        name: pool.name,
+        paused: pool.paused,
+        claimsOngoing: pool.claimsOngoing,
+        poolId: poolId_,
+        deployed: pool.deployed,
+        stablecoin: pool.stablecoin,
+        insuredCapital: insuredCapital,
+        availableCapacity: availableCapacity,
+        utilizationRate: utilizationRate,
+        premiumRate: premiumRate,
+        computingConfig: computingConfig,
+        claimAgreement: claimAgreement,
+        commitDelay: pool.commitDelay
+      });
   }
 
   function getAllProtocols()
@@ -251,6 +210,8 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     view
     returns (ProtocolView[] memory protocols)
   {
+    uint128 nextPoolId = protocolFactoryInterface.getNextPoolId();
+
     protocols = new ProtocolView[](nextPoolId);
     for (uint128 i = 0; i < nextPoolId; i++) {
       protocols[i] = getProtocol(i);
@@ -903,39 +864,28 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   /// -------- PROTOCOL POOLS -------- ///
 
   function addNewProtocol(
-    string calldata name,
-    uint8 premiumRate, //Thao@NOTE: not used
-    uint128[] calldata protocolsNotCompat,
-    string calldata ipfsAgreementCid_
+    string calldata name_,
+    uint128[] calldata incompatiblePools_,
+    uint128 commitDelay_,
+    string calldata ipfsAgreementCid_,
+    uint256 uOptimal_,
+    uint256 r0_,
+    uint256 rSlope1_,
+    uint256 rSlope2_
   ) public onlyOwner {
-    uint128 newPoolId = nextPoolId;
-    nextPoolId++;
-
-    address _protocolDeployed = IProtocolFactory(protocolFactory)
-      .deployProtocol(stablecoin, newPoolId, 75 * 1e27, 1e27, 5e27, 11e26);
+    uint128 poolId = protocolFactoryInterface.deployProtocol(
+      stablecoin,
+      name_,
+      incompatiblePools_,
+      commitDelay_,
+      uOptimal_,
+      r0_,
+      rSlope1_,
+      rSlope2_
+    );
 
     // Add the meta evidence IPFS address to the registry
-    claimManagerInterface.addAgreementForProtocol(newPoolId, ipfsAgreementCid_);
-
-    protocolsMapping[newPoolId] = Protocol({
-      id: newPoolId,
-      name: name,
-      premiumRate: premiumRate,
-      deployed: _protocolDeployed,
-      active: true,
-      claimsOngoing: 0
-    });
-
-    for (uint256 i = 0; i < protocolsNotCompat.length; i++) {
-      incompatibilityProtocols[newPoolId][protocolsNotCompat[i]] = true;
-    }
-
-    emit NewProtocol(newPoolId);
-  }
-
-  // @bw unused
-  function pauseProtocol(uint128 poolId, bool pause) external onlyOwner {
-    protocolsMapping[poolId].active = pause;
+    claimManagerInterface.addAgreementForProtocol(poolId, ipfsAgreementCid_);
   }
 
   /// -------- AAVE -------- ///
