@@ -41,6 +41,14 @@ interface IPolicyManager is IERC721Enumerable {
     uint128 poolId
   ) external returns (uint256);
 
+  function increaseCover(uint256 coverId_, uint256 amount_) external;
+
+  function decreaseCover(uint256 coverId_, uint256 amount_) external;
+
+  function addPremiums(uint256 coverId_, uint256 amount_) external;
+
+  function removePremiums(uint256 coverId_, uint256 amount_) external;
+
   function expireCover(uint256 coverId, bool cancelledByUser) external;
 
   function processExpiredTokens(uint256[] calldata expiredTokens) external;

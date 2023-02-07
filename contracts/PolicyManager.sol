@@ -173,6 +173,26 @@ contract PolicyManager is IPolicyManager, ERC721Enumerable {
     return coverId;
   }
 
+  /// ========================= ///
+  /// ========= UPDATE ======== ///
+  /// ========================= ///
+
+  function increaseCover(uint256 coverId_, uint256 amount_) external onlyCore {
+    covers[coverId_].amountCovered += amount_;
+  }
+
+  function decreaseCover(uint256 coverId_, uint256 amount_) external onlyCore {
+    covers[coverId_].amountCovered -= amount_;
+  }
+
+  function addPremiums(uint256 coverId_, uint256 amount_) external onlyCore {
+    covers[coverId_].premiumDeposit += amount_;
+  }
+
+  function removePremiums(uint256 coverId_, uint256 amount_) external onlyCore {
+    covers[coverId_].premiumDeposit -= amount_;
+  }
+
   /// ======================== ///
   /// ========= CLOSE ======== ///
   /// ======================== ///
