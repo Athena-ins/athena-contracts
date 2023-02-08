@@ -58,7 +58,7 @@ async function deployPositionManagerContract(owner: ethers.Signer) {
     await hre_ethers.getContractFactory("PositionsManager")
   )
     .connect(owner)
-    .deploy(contract.ATHENA.address);
+    .deploy(contract.ATHENA.address, contract.FACTORY_PROTOCOL.address);
 
   await contract.POSITIONS_MANAGER.deployed();
 }
@@ -91,7 +91,7 @@ async function deployPolicyManagerContract(owner: ethers.Signer) {
     await hre_ethers.getContractFactory("PolicyManager")
   )
     .connect(owner)
-    .deploy(contract.ATHENA.address);
+    .deploy(contract.ATHENA.address, contract.FACTORY_PROTOCOL.address);
 
   await contract.POLICY_MANAGER.deployed();
 }
@@ -105,11 +105,7 @@ async function deployProtocolFactoryContract(owner: ethers.Signer) {
     await hre_ethers.getContractFactory("ProtocolFactory")
   )
     .connect(owner)
-    .deploy(
-      contract.ATHENA.address,
-      contract.POLICY_MANAGER.address,
-      14 * 24 * 60 * 60
-    );
+    .deploy(contract.ATHENA.address, contract.POLICY_MANAGER.address);
 
   await contract.FACTORY_PROTOCOL.deployed();
 }
@@ -311,18 +307,22 @@ async function deployAllContractsAndInitializeProtocol(owner: ethers.Signer) {
 async function addNewProtocolPool(protocolPoolName: string) {
   return await contract.ATHENA.addNewProtocol(
     protocolPoolName,
-    30,
     [],
-    "bafybeiafebm3zdtzmn5mcquacgd47enhsjnebvegnzfunbbbbbbbbbbbbb"
+    14 * 24 * 60 * 60,
+    "bafybeiafebm3zdtzmn5mcquacgd47enhsjnebvegnzfunbbbbbbbbbbbbb",
+    BigNumber.from(75).mul(BigNumber.from(10).pow(27)), // uOptimal_
+    BigNumber.from(1).mul(BigNumber.from(10).pow(27)), // r0_
+    BigNumber.from(5).mul(BigNumber.from(10).pow(27)), // rSlope1_
+    BigNumber.from(11).mul(BigNumber.from(10).pow(26)) // rSlope2_
   );
 }
 
 async function getProtocolPoolDataById(protocolPoolId: number) {
-  return await contract.ATHENA.protocolsMapping(protocolPoolId);
+  return await contract.ATHENA.getProtocol(protocolPoolId);
 }
 
 async function getProtocolPoolContract(user: ethers.Signer, poolId: number) {
-  const protocol = await contract.ATHENA.connect(user).protocolsMapping(poolId);
+  const protocol = await contract.ATHENA.connect(user).getProtocol(poolId);
 
   return new ethers.Contract(
     protocol.deployed,
