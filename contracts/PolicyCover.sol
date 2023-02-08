@@ -77,7 +77,7 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
     }
   }
 
-  function getInfo(uint256 coverId)
+  function getInfo(uint256 coverId_)
     public
     view
     returns (
@@ -88,12 +88,12 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
   {
     uint256 __availableCapital = availableCapital;
     (Slot0 memory __slot0, ) = _actualizingUntil(block.timestamp);
-    PremiumPosition.Info memory __position = premiumPositions[coverId];
+    PremiumPosition.Info memory __position = premiumPositions[coverId_];
 
     require(__slot0.tick <= __position.lastTick, "Policy Expired");
 
     uint256 __coverBeginEmissionRate = policyManagerInterface
-      .policy(coverId)
+      .policy(coverId_)
       .amountCovered
       .rayMul(__position.beginPremiumRate / 100) / 365;
 

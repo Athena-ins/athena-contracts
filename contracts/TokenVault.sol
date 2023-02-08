@@ -67,7 +67,7 @@ contract TokenVault is IVaultERC20 {
     external
     onlyCore
   {
-    if (coverRefundRewardsTotal == 0) return;
+    if (amount_ == 0 || coverRefundRewardsTotal == 0) return;
 
     // Check if the contract has enough tokens
     if (amount_ <= coverRefundRewardsTotal) {
@@ -86,7 +86,7 @@ contract TokenVault is IVaultERC20 {
    * @param amount_ the amount of rewards to send
    */
   function sendStakingReward(address to_, uint256 amount_) external onlyCore {
-    if (stakingRewardsTotal == 0) return;
+    if (amount_ == 0 || stakingRewardsTotal == 0) return;
 
     // Check if the contract has enough tokens
     if (amount_ <= stakingRewardsTotal) {

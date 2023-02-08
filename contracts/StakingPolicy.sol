@@ -301,12 +301,13 @@ contract StakingPolicy is IStakedAtenPolicy, Ownable {
 
     accountPositions = new RefundPosition[](nbPositions);
 
+    uint256 positionCounter;
     for (uint256 i = 0; i < accountCoverIds.length; i++) {
       uint256 coverId = accountCoverIds[i];
 
       if (positions[coverId].initTimestamp != 0) {
-        uint256 index = accountPositions.length;
-        accountPositions[index] = getRefundPosition(coverId);
+        accountPositions[positionCounter] = getRefundPosition(coverId);
+        positionCounter++;
       }
     }
   }
