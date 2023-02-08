@@ -526,32 +526,44 @@ const getExpiredCovers = async (user: ethers.Signer) => {
   return allCovers.filter((cover) => !cover.endTimestamp.eq(0));
 };
 
+const getAccountCoverIdByIndex = async (user: ethers.Signer, index: number) => {
+  const allCoverIds = await contract.POLICY_MANAGER.connect(
+    user
+  ).allPolicyTokensOfOwner(await user.getAddress());
+
+  return allCoverIds[index];
+};
+
 export default {
-  atenAmountPostHelperTransfer,
   deployAtenTokenContract,
-  getAtenTokenContract,
   deployArbitratorContract,
-  getArbitratorContract,
   deployAthenaContract,
-  getAthenaContract,
   deployPositionManagerContract,
-  getPositionManagerContract,
   deployStakedAtenContract,
-  getStakedAtenContract,
   deployProtocolFactoryContract,
-  getProtocolFactoryContract,
   deployPolicyManagerContract,
-  getPolicyManagerContract,
   deployStakedAtensPolicyContract,
-  getStakedAtensPolicyContract,
   deployVaultAtenContract,
-  getVaultAtenContract,
   deployClaimManagerContract,
+  deployAllContractsAndInitializeProtocol,
+  deployPriceOracleV1Contract,
+  //
+  getAtenTokenContract,
+  getArbitratorContract,
+  getAthenaContract,
+  getPositionManagerContract,
+  getStakedAtenContract,
+  getProtocolFactoryContract,
+  getPolicyManagerContract,
+  getStakedAtensPolicyContract,
+  getVaultAtenContract,
   getClaimManagerContract,
+  getPriceOracleV1Contract,
+  //
+  atenAmountPostHelperTransfer,
   initializeProtocol,
   setFeeLevelsWithAten,
   setStakingRewardRates,
-  deployAllContractsAndInitializeProtocol,
   addNewProtocolPool,
   getProtocolPoolDataById,
   getProtocolPoolContract,
@@ -563,8 +575,7 @@ export default {
   depositRewardsToVault,
   takeInterest,
   stakingGeneralPoolDeposit,
-  deployPriceOracleV1Contract,
-  getPriceOracleV1Contract,
   setCoverRefundConfig,
   getExpiredCovers,
+  getAccountCoverIdByIndex,
 };
