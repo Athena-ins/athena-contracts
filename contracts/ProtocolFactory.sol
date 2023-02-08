@@ -9,16 +9,14 @@ import "./interfaces/IProtocolFactory.sol";
 
 contract ProtocolFactory is IProtocolFactory {
   address public immutable core;
-  address public immutable policyManager;
 
   uint128 public nextPoolId;
 
   mapping(uint128 => mapping(uint128 => bool)) public incompatibilityProtocols;
   mapping(uint128 => Protocol) public protocolsMapping;
 
-  constructor(address core_, address policyManager_) {
+  constructor(address core_) {
     core = core_;
-    policyManager = policyManager_;
   }
 
   /// ========================= ///
@@ -111,7 +109,6 @@ contract ProtocolFactory is IProtocolFactory {
       new ProtocolPool(
         poolId,
         core,
-        policyManager,
         stablecoin_,
         commitDelay_,
         uOptimal_,

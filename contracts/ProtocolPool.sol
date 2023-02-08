@@ -20,14 +20,13 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
   constructor(
     uint128 poolId_,
     address _core,
-    address policyManager_,
     address _underlyingAsset,
     uint256 _commitDelay,
     uint256 _uOptimal,
     uint256 _r0,
     uint256 _rSlope1,
     uint256 _rSlope2
-  ) PolicyCover(_core, policyManager_, _uOptimal, _r0, _rSlope1, _rSlope2) {
+  ) PolicyCover(_core, _uOptimal, _r0, _rSlope1, _rSlope2) {
     underlyingAsset = _underlyingAsset;
     commitDelay = _commitDelay;
     poolId = poolId_;

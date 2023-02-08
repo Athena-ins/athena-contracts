@@ -31,14 +31,15 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
 
   constructor(
     address _core,
-    address policyManager_,
     uint256 _uOptimal, //Ray
     uint256 _r0, //Ray
     uint256 _rSlope1, //Ray
     uint256 _rSlope2 //Ray
   ) {
     core = _core;
-    policyManagerInterface = IPolicyManager(policyManager_);
+    address coverManagerAddress = IAthena(_core).coverManager();
+    if (coverManagerAddress == address(0)) revert CoreIsUninitialized();
+    policyManagerInterface = IPolicyManager(coverManagerAddress);
 
     f = Formula({
       uOptimal: _uOptimal,
@@ -50,6 +51,12 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
     slot0.secondsPerTick = 86400;
     slot0.lastUpdateTimestamp = block.timestamp;
   }
+
+  /// ========================= ///
+  /// ========= ERRORS ======== ///
+  /// ========================= ///
+
+  error CoreIsUninitialized();
 
   /// ======================== ///
   /// ========= VIEWS ======== ///

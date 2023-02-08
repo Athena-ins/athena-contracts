@@ -20,6 +20,8 @@ interface IAthena {
     uint256 commitDelay;
   }
 
+  function coverManager() external view returns (address);
+
   function getFeeRateWithAten(uint256 atens) external view returns (uint128);
 
   function actualizingProtocolAndRemoveExpiredPolicies(address protocolAddress)

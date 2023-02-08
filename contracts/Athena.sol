@@ -156,6 +156,10 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   /// ========= VIEWS ======== ///
   /// ======================== ///
 
+  function coverManager() external view returns (address) {
+    return address(policyManagerInterface);
+  }
+
   function getPoolAddressById(uint128 poolId) public view returns (address) {
     return protocolFactoryInterface.getPoolAddress(poolId);
   }
