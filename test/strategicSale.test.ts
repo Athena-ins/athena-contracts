@@ -4,7 +4,7 @@ import { BigNumber, ethers as ethersOriginal } from "ethers";
 import weth_abi from "../abis/weth.json";
 import chaiAsPromised from "chai-as-promised";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { increaseTimeAndMine } from "./helpers";
+import HardhatHelper from "./helpers/HardhatHelper";
 
 chai.use(chaiAsPromised);
 
@@ -434,7 +434,7 @@ describe("Smart Contract STRATEGIC sale whitelist", function () {
     const month0 = await PRIVATE_SALE_CONTRACT.monthIndex();
     expect(month0).to.equal(0);
 
-    await increaseTimeAndMine(0 * 31 * 24 * 60 * 60);
+    await HardhatHelper.setNextBlockTimestamp(0 * 31 * 24 * 60 * 60);
     this.timeout(120000);
     const month = await PRIVATE_SALE_CONTRACT.monthIndex();
     expect(month).to.equal(0);
@@ -488,7 +488,7 @@ describe("Smart Contract STRATEGIC sale whitelist", function () {
   });
 
   it("Should users distribute and get tokens 12 / 20 ", async function () {
-    increaseTimeAndMine(12 * 60 * 60 * 24 * 31);
+    HardhatHelper.setNextBlockTimestamp(12 * 60 * 60 * 24 * 31);
     const month = await PRIVATE_SALE_CONTRACT.monthIndex();
     expect(month).to.equal(12);
 
@@ -519,7 +519,7 @@ describe("Smart Contract STRATEGIC sale whitelist", function () {
   });
 
   it("Should users distribute and get tokens 20 / 20 ", async function () {
-    increaseTimeAndMine(8 * 60 * 60 * 24 * 31);
+    HardhatHelper.setNextBlockTimestamp(8 * 60 * 60 * 24 * 31);
     const month = await PRIVATE_SALE_CONTRACT.monthIndex();
     expect(month).to.equal(20);
 
@@ -550,7 +550,7 @@ describe("Smart Contract STRATEGIC sale whitelist", function () {
   });
 
   it("Should distribute last tokens ", async function () {
-    // increaseTimeAndMine(12 * 60 * 60 * 24 * 31);
+    // HardhatHelper.setNextBlockTimestamp(12 * 60 * 60 * 24 * 31);
     this.timeout(120000);
     const ATEN_TOKEN_CONTRACT = new ethers.Contract(
       ATEN_TOKEN,
@@ -712,7 +712,7 @@ describe("Smart Contract STRATEGIC sale whitelist", function () {
   it("Should distribute on 2 tx ?", async function () {
     this.timeout(120000);
 
-    await increaseTimeAndMine(20 * 31 * 24 * 60 * 60);
+    await HardhatHelper.setNextBlockTimestamp(20 * 31 * 24 * 60 * 60);
     for (let index = 0; index < 20; index++) {
       const claim = await PRIVATE_SALE_CONTRACT.connect(
         allSigners[42]
@@ -768,4 +768,3 @@ describe("Smart Contract STRATEGIC sale whitelist", function () {
     expect(balATEN.lte(ethers.utils.parseEther("2000"))).to.be.true;
   });
 });
-

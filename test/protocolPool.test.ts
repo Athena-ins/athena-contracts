@@ -5,7 +5,7 @@ import { ethers as ethersOriginal, utils } from "ethers";
 import weth_abi from "../abis/weth.json";
 import atoken_abi from "../abis/AToken.json";
 import chaiAsPromised from "chai-as-promised";
-import { getATokenBalance, increaseTimeAndMine } from "./helpers";
+import HardhatHelper from "./helpers/HardhatHelper";
 import protocolPoolAbi from "../artifacts/contracts/ProtocolPool.sol/ProtocolPool.json";
 
 chai.use(chaiAsPromised);
@@ -83,11 +83,24 @@ describe("Protocol Pool", function () {
       ).to.not.equal("0x");
     });
 
+    it("Should deploy ProtocolFactory contract", async function () {
+      const factoryProtocol = await ethers.getContractFactory(
+        "ProtocolFactory"
+      );
+      FACTORY_PROTOCOL_CONTRACT = await factoryProtocol
+        .connect(owner)
+        .deploy(ATHENA_CONTRACT.address);
+      await FACTORY_PROTOCOL_CONTRACT.deployed();
+      expect(
+        await ethers.provider.getCode(FACTORY_PROTOCOL_CONTRACT.address)
+      ).to.not.equal("0x");
+    });
+
     it("Should deploy PositionsManager contract", async function () {
       const factoryPos = await ethers.getContractFactory("PositionsManager");
       POS_CONTRACT = await factoryPos
         .connect(owner)
-        .deploy(ATHENA_CONTRACT.address);
+        .deploy(ATHENA_CONTRACT.address, FACTORY_PROTOCOL_CONTRACT.address);
       await POS_CONTRACT.deployed();
       expect(await ethers.provider.getCode(POS_CONTRACT.address)).to.not.equal(
         "0x"
@@ -111,27 +124,10 @@ describe("Protocol Pool", function () {
       const factoryPolicy = await ethers.getContractFactory("PolicyManager");
       POLICY_CONTRACT = await factoryPolicy
         .connect(owner)
-        .deploy(ATHENA_CONTRACT.address);
+        .deploy(ATHENA_CONTRACT.address, FACTORY_PROTOCOL_CONTRACT.address);
       await POLICY_CONTRACT.deployed();
       expect(
         await ethers.provider.getCode(POLICY_CONTRACT.address)
-      ).to.not.equal("0x");
-    });
-
-    it("Should deploy ProtocolFactory contract", async function () {
-      const factoryProtocol = await ethers.getContractFactory(
-        "ProtocolFactory"
-      );
-      FACTORY_PROTOCOL_CONTRACT = await factoryProtocol
-        .connect(owner)
-        .deploy(
-          ATHENA_CONTRACT.address,
-          POLICY_CONTRACT.address,
-          14 * 24 * 60 * 60
-        );
-      await FACTORY_PROTOCOL_CONTRACT.deployed();
-      expect(
-        await ethers.provider.getCode(FACTORY_PROTOCOL_CONTRACT.address)
       ).to.not.equal("0x");
     });
   });
@@ -402,14 +398,7 @@ describe("Protocol Pool", function () {
 
       // we check AAVE aToken balance
       expect(
-        (
-          await getATokenBalance(
-            AAVE_LENDING_POOL,
-            ATHENA_CONTRACT,
-            USDT,
-            user1
-          )
-        ).toNumber()
+        (await HardhatHelper.getATokenBalance(user1)).toNumber()
       ).to.be.greaterThanOrEqual(9999);
     });
 
@@ -432,7 +421,7 @@ describe("Protocol Pool", function () {
     it("Should check funds and NFT", async function () {
       // Now its not USDT on contract anymore but AAVE LP !
       const balAtoken = (
-        await getATokenBalance(AAVE_LENDING_POOL, ATHENA_CONTRACT, USDT, user1)
+        await HardhatHelper.getATokenBalance(user1)
       ).toNumber();
 
       expect(balAtoken).to.be.greaterThanOrEqual(11000);
@@ -585,7 +574,7 @@ describe("Protocol Pool", function () {
         userInfo
       );
       // We already went 1 year into future, so user 3 should get half rewards 1 year from now
-      await increaseTimeAndMine(365 * 24 * 60 * 60);
+      await HardhatHelper.setNextBlockTimestamp(365 * 24 * 60 * 60);
 
       userInfo = await protocolContract.getInfo(await user1.getAddress());
       console.log(
@@ -619,7 +608,7 @@ describe("Protocol Pool", function () {
       await ATHENA_CONTRACT.connect(user1).committingWithdrawAll();
       await ATHENA_CONTRACT.connect(user2).committingWithdrawAll();
 
-      await increaseTimeAndMine(20 * 24 * 60 * 60);
+      await HardhatHelper.setNextBlockTimestamp(20 * 24 * 60 * 60);
 
       const balBefore3 = await USDT_TOKEN_CONTRACT.connect(user1).balanceOf(
         user3.getAddress()

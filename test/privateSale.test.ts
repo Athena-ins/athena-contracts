@@ -4,7 +4,7 @@ import { BigNumber, ethers as ethersOriginal } from "ethers";
 import weth_abi from "../abis/weth.json";
 import chaiAsPromised from "chai-as-promised";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { increaseTimeAndMine } from "./helpers";
+import HardhatHelper from "./helpers/HardhatHelper";
 
 chai.use(chaiAsPromised);
 
@@ -438,7 +438,7 @@ describe.skip("Smart Contract Private sale whitelist", function () {
     const month0 = await PRIVATE_SALE_CONTRACT.monthIndex();
     expect(month0).to.equal(0);
 
-    await increaseTimeAndMine(3 * 31 * 24 * 60 * 60);
+    await HardhatHelper.setNextBlockTimestamp(3 * 31 * 24 * 60 * 60);
     this.timeout(120000);
     const month = await PRIVATE_SALE_CONTRACT.monthIndex();
     expect(month).to.equal(3);
@@ -492,7 +492,7 @@ describe.skip("Smart Contract Private sale whitelist", function () {
   });
 
   it("Should users distribute and get tokens 12 / 12 ", async function () {
-    increaseTimeAndMine(12 * 60 * 60 * 24 * 31);
+    HardhatHelper.setNextBlockTimestamp(12 * 60 * 60 * 24 * 31);
     const month = await PRIVATE_SALE_CONTRACT.monthIndex();
     expect(month).to.equal(15);
 
@@ -523,7 +523,7 @@ describe.skip("Smart Contract Private sale whitelist", function () {
   });
 
   it("Should distribute last tokens ", async function () {
-    // increaseTimeAndMine(12 * 60 * 60 * 24 * 31);
+    // HardhatHelper.setNextBlockTimestamp(12 * 60 * 60 * 24 * 31);
     this.timeout(120000);
     const ATEN_TOKEN_CONTRACT = new ethers.Contract(
       ATEN_TOKEN,
