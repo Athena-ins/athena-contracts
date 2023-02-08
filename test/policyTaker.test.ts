@@ -97,9 +97,12 @@ describe("Buy policy", () => {
         policyTaker1,
         0
       );
-      const policyInfo = await protocolContract.premiumPositions(
-        await policyTaker1.getAddress()
+
+      const coverId = await ProtocolHelper.getAccountCoverIdByIndex(
+        policyTaker1,
+        0
       );
+      const policyInfo = await protocolContract.premiumPositions(coverId);
 
       expect(policyInfo.beginPremiumRate).to.be.equal(
         "2000000000000000000000000000"
@@ -114,9 +117,11 @@ describe("Buy policy", () => {
         0
       );
 
-      const response = await protocolContract.getInfo(
-        await policyTaker1.getAddress()
+      const coverId = await ProtocolHelper.getAccountCoverIdByIndex(
+        policyTaker1,
+        0
       );
+      const response = await protocolContract.getInfo(coverId);
 
       expect(response.__premiumLeft).to.be.equal(2190);
       expect(response.__currentEmissionRate).to.be.equal(6);
@@ -224,7 +229,7 @@ describe("Buy policy", () => {
         0
       );
       const policyInfo = await protocolContract.premiumPositions(
-        await policyTaker2.getAddress()
+        await ProtocolHelper.getAccountCoverIdByIndex(policyTaker2, 0)
       );
 
       expect(policyInfo.beginPremiumRate).to.be.equal(
@@ -240,9 +245,11 @@ describe("Buy policy", () => {
         0
       );
 
-      const response = await protocolContract.getInfo(
-        await policyTaker2.getAddress()
+      const coverId = await ProtocolHelper.getAccountCoverIdByIndex(
+        policyTaker2,
+        0
       );
+      const response = await protocolContract.getInfo(coverId);
 
       expect(response.__premiumLeft).to.be.equal("8760");
       expect(response.__currentEmissionRate).to.be.equal("24");
@@ -314,9 +321,11 @@ describe("Buy policy", () => {
         0
       );
 
-      const response = await protocolContract.getInfo(
-        await policyTaker1.getAddress()
+      const coverId = await ProtocolHelper.getAccountCoverIdByIndex(
+        policyTaker1,
+        0
       );
+      const response = await protocolContract.getInfo(coverId);
 
       expect(response.__premiumLeft).to.be.equal(2130);
       expect(response.__currentEmissionRate).to.be.equal(12);

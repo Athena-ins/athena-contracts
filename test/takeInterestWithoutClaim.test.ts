@@ -484,7 +484,7 @@ describe("Liquidity provider takeInterest", () => {
         0
       );
       const policyInfo = await protocolContract.premiumPositions(
-        await policyTaker1.getAddress()
+        await ProtocolHelper.getAccountCoverIdByIndex(policyTaker1, 0)
       );
 
       expect(policyInfo.beginPremiumRate).to.be.equal(
@@ -500,9 +500,11 @@ describe("Liquidity provider takeInterest", () => {
         0
       );
 
-      const response = await protocolContract.getInfo(
-        await policyTaker1.getAddress()
+      const coverId = await ProtocolHelper.getAccountCoverIdByIndex(
+        policyTaker1,
+        0
       );
+      const response = await protocolContract.getInfo(coverId);
 
       expect(response.__premiumLeft).to.be.equal(2085);
       expect(response.__currentEmissionRate).to.be.equal(9);
@@ -515,7 +517,7 @@ describe("Liquidity provider takeInterest", () => {
         0
       );
       const policyInfo = await protocolContract.premiumPositions(
-        await policyTaker2.getAddress()
+        await ProtocolHelper.getAccountCoverIdByIndex(policyTaker2, 0)
       );
 
       expect(policyInfo.beginPremiumRate).to.be.equal(
@@ -531,9 +533,11 @@ describe("Liquidity provider takeInterest", () => {
         0
       );
 
-      const response = await protocolContract.getInfo(
-        await policyTaker2.getAddress()
+      const coverId = await ProtocolHelper.getAccountCoverIdByIndex(
+        policyTaker2,
+        0
       );
+      const response = await protocolContract.getInfo(coverId);
 
       expect(response.__premiumLeft).to.be.equal(4365);
       expect(response.__currentEmissionRate).to.be.equal(9);

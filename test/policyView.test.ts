@@ -165,9 +165,11 @@ describe("View policy", () => {
         0
       );
 
-      const response = await protocolContract.getInfo(
-        await policyTaker1.getAddress()
+      const coverId = await ProtocolHelper.getAccountCoverIdByIndex(
+        policyTaker1,
+        0
       );
+      const response = await protocolContract.getInfo(coverId);
 
       expect(response.__premiumLeft).to.be.equal("2130");
       expect(response.__currentEmissionRate).to.be.equal("12");

@@ -283,7 +283,7 @@ describe("Liquidity provider rewards without claims", () => {
 
     it("Should check policy1 initial info", async () => {
       const policyInfo = await protocolPool0.premiumPositions(
-        await policyTaker1.getAddress()
+        await ProtocolHelper.getAccountCoverIdByIndex(policyTaker1, 0)
       );
 
       expect(policyInfo.beginPremiumRate).to.be.equal(
@@ -294,9 +294,11 @@ describe("Liquidity provider rewards without claims", () => {
     });
 
     it("Should get policy1 remaning info", async () => {
-      const response = await protocolPool0.getInfo(
-        await policyTaker1.getAddress()
+      const coverId = await ProtocolHelper.getAccountCoverIdByIndex(
+        policyTaker1,
+        0
       );
+      const response = await protocolPool0.getInfo(coverId);
 
       expect(response.__premiumLeft).to.be.equal(2085);
       expect(response.__currentEmissionRate).to.be.equal(9);
@@ -305,7 +307,7 @@ describe("Liquidity provider rewards without claims", () => {
 
     it("Should check policy2 initial info", async () => {
       const policyInfo = await protocolPool0.premiumPositions(
-        await policyTaker2.getAddress()
+        await ProtocolHelper.getAccountCoverIdByIndex(policyTaker2, 0)
       );
 
       expect(policyInfo.beginPremiumRate).to.be.equal(
@@ -316,9 +318,11 @@ describe("Liquidity provider rewards without claims", () => {
     });
 
     it("Should get policy2 remaning info", async () => {
-      const response = await protocolPool0.getInfo(
-        await policyTaker2.getAddress()
+      const coverId = await ProtocolHelper.getAccountCoverIdByIndex(
+        policyTaker2,
+        0
       );
+      const response = await protocolPool0.getInfo(coverId);
 
       expect(response.__premiumLeft).to.be.equal(4365);
       expect(response.__currentEmissionRate).to.be.equal(9);

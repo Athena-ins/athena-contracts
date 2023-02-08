@@ -7,6 +7,7 @@ import atoken_abi from "../abis/AToken.json";
 import chaiAsPromised from "chai-as-promised";
 import HardhatHelper from "./helpers/HardhatHelper";
 import protocolPoolAbi from "../artifacts/contracts/ProtocolPool.sol/ProtocolPool.json";
+import ProtocolHelper from "./helpers/ProtocolHelper";
 
 chai.use(chaiAsPromised);
 
@@ -514,7 +515,9 @@ describe("Protocol Pool", function () {
       ).balanceOf(protocol.deployed);
       expect(balanceProtocol).to.equal(BN(1000));
 
-      const userInfo = await protocolContract.getInfo(await user1.getAddress());
+      const coverId = await ProtocolHelper.getAccountCoverIdByIndex(user1, 0);
+      const userInfo = await protocolContract.getInfo(coverId);
+
       console.log(
         "Should buy Policy on 1 year protocol 0 >>> user1_Info0:",
         userInfo
@@ -568,7 +571,9 @@ describe("Protocol Pool", function () {
         __slot0
       );
 
-      let userInfo = await protocolContract.getInfo(await user1.getAddress());
+      const coverId = await ProtocolHelper.getAccountCoverIdByIndex(user1, 0);
+      const userInfo = await protocolContract.getInfo(coverId);
+
       console.log(
         "Should withdraw everything and get AAVE rewards >>> user1_Info1:",
         userInfo
@@ -576,10 +581,11 @@ describe("Protocol Pool", function () {
       // We already went 1 year into future, so user 3 should get half rewards 1 year from now
       await HardhatHelper.setNextBlockTimestamp(365 * 24 * 60 * 60);
 
-      userInfo = await protocolContract.getInfo(await user1.getAddress());
+      const userInfoAfter = await protocolContract.getInfo(coverId);
+
       console.log(
         "Should withdraw everything and get AAVE rewards >>> user1_Info2:",
-        userInfo
+        userInfoAfter
       );
 
       expect(await protocolContract.balanceOf(user3.getAddress())).to.not.equal(

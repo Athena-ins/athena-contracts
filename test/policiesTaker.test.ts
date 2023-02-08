@@ -84,7 +84,7 @@ describe("Buy policies", () => {
         0
       );
       const policyInfo = await protocolContract.premiumPositions(
-        await policyTaker1.getAddress()
+        await ProtocolHelper.getAccountCoverIdByIndex(policyTaker1, 0)
       );
 
       expect(policyInfo.beginPremiumRate).to.be.equal(
@@ -100,7 +100,7 @@ describe("Buy policies", () => {
         1
       );
       const policyInfo = await protocolContract.premiumPositions(
-        await policyTaker1.getAddress()
+        await ProtocolHelper.getAccountCoverIdByIndex(policyTaker1, 0)
       );
 
       expect(policyInfo.beginPremiumRate).to.be.equal(
@@ -116,7 +116,7 @@ describe("Buy policies", () => {
         2
       );
       const policyInfo = await protocolContract.premiumPositions(
-        await policyTaker1.getAddress()
+        await ProtocolHelper.getAccountCoverIdByIndex(policyTaker1, 0)
       );
 
       expect(policyInfo.beginPremiumRate).to.be.equal(
