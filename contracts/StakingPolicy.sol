@@ -9,6 +9,8 @@ import "./interfaces/IVaultERC20.sol";
 import "./interfaces/IPolicyManager.sol";
 import "./interfaces/IStakedAtenPolicy.sol";
 
+import "hardhat/console.sol";
+
 /**
  * @notice
  * Cover Refund Staking Pool
@@ -173,6 +175,9 @@ contract StakingPolicy is IStakedAtenPolicy, Ownable {
     uint256 maxReward = (maxYearPercentage * maxYearlyReward) / 1e18;
 
     // Compute reward based on the premium spent for the cover
+    console.log("lastPremiumSpent_: ", lastPremiumSpent_);
+    console.log("pos_.premiumSpent: ", pos_.premiumSpent);
+    console.log("pos_.atenPrice: ", pos_.atenPrice);
     uint256 trueReward = (lastPremiumSpent_ - pos_.premiumSpent) *
       pos_.atenPrice;
 

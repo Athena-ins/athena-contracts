@@ -110,8 +110,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\Athena.sol": {
-      "lastModificationDate": 1675275631934,
-      "contentHash": "9863ed7ceaddba1de57e3a2d5ec6eb7b",
+      "lastModificationDate": 1675871518814,
+      "contentHash": "2660df8f8d19c7ffb96981d30f976ecc",
       "sourceName": "contracts/Athena.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -152,6 +152,7 @@
         "./interfaces/IClaimManager.sol",
         "./interfaces/IVaultERC20.sol",
         "./interfaces/IPriceOracle.sol",
+        "./libraries/RayMath.sol",
         "hardhat/console.sol"
       ],
       "versionPragmas": [
@@ -272,8 +273,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\interfaces\\IAthena.sol": {
-      "lastModificationDate": 1673436022081,
-      "contentHash": "36a9e2abcf10800dad389a456ceab0bd",
+      "lastModificationDate": 1675865896726,
+      "contentHash": "f8f5a1ac16d8455427a8553089bc5c76",
       "sourceName": "contracts/interfaces/IAthena.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -298,7 +299,9 @@
           }
         }
       },
-      "imports": [],
+      "imports": [
+        "./IProtocolPool.sol"
+      ],
       "versionPragmas": [
         "^0.8"
       ],
@@ -344,8 +347,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\interfaces\\IProtocolFactory.sol": {
-      "lastModificationDate": 1673438840582,
-      "contentHash": "5974c200a6f9d1370c39f38b7192efb4",
+      "lastModificationDate": 1675792342593,
+      "contentHash": "e16e0b353337e43be1269b5c6c662a9e",
       "sourceName": "contracts/interfaces/IProtocolFactory.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -379,8 +382,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\interfaces\\IProtocolPool.sol": {
-      "lastModificationDate": 1674485306150,
-      "contentHash": "674952644756a63b438252624439484d",
+      "lastModificationDate": 1675784414503,
+      "contentHash": "d5d9938e75d7db76e102ff943fc11f54",
       "sourceName": "contracts/interfaces/IProtocolPool.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -406,8 +409,7 @@
         }
       },
       "imports": [
-        "./IPolicyCover.sol",
-        "../ClaimCover.sol"
+        "./IPolicyCover.sol"
       ],
       "versionPragmas": [
         "^0.8"
@@ -452,8 +454,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\interfaces\\IStakedAtenPolicy.sol": {
-      "lastModificationDate": 1673368155876,
-      "contentHash": "e3ac7ea88832d0269d050b87871ae701",
+      "lastModificationDate": 1675705540344,
+      "contentHash": "475bd503273be9f5e871ae034e9fba0c",
       "sourceName": "contracts/interfaces/IStakedAtenPolicy.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -478,9 +480,7 @@
           }
         }
       },
-      "imports": [
-        "@openzeppelin/contracts/token/ERC20/ERC20.sol"
-      ],
+      "imports": [],
       "versionPragmas": [
         "^0.8"
       ],
@@ -489,8 +489,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\interfaces\\IPolicyManager.sol": {
-      "lastModificationDate": 1672935947351,
-      "contentHash": "bfd4066aa433970ad46ae83b69d8a638",
+      "lastModificationDate": 1675780444995,
+      "contentHash": "ffd43ffc9b6bd3f1741161c29f363aae",
       "sourceName": "contracts/interfaces/IPolicyManager.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -561,8 +561,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\interfaces\\IVaultERC20.sol": {
-      "lastModificationDate": 1675275584865,
-      "contentHash": "9b15ea3a4ae8b32981543272a04baa28",
+      "lastModificationDate": 1675350530081,
+      "contentHash": "f8c600af2ed0f392be08089b36610279",
       "sourceName": "contracts/interfaces/IVaultERC20.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -810,8 +810,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\interfaces\\IPolicyCover.sol": {
-      "lastModificationDate": 1672933703559,
-      "contentHash": "cf44ac3358f5f2189782e5104c7594d9",
+      "lastModificationDate": 1675684211694,
+      "contentHash": "c1596b1639f2dea39123ad69102cc7e2",
       "sourceName": "contracts/interfaces/IPolicyCover.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -882,8 +882,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\LiquidityCover.sol": {
-      "lastModificationDate": 1672846266510,
-      "contentHash": "7f8979160c0956853117e6eaa6d041c6",
+      "lastModificationDate": 1675876205051,
+      "contentHash": "ada01255b500f1edd90d451ec8e439cb",
       "sourceName": "contracts/LiquidityCover.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -909,7 +909,8 @@
         }
       },
       "imports": [
-        "./libraries/RayMath.sol"
+        "./libraries/RayMath.sol",
+        "hardhat/console.sol"
       ],
       "versionPragmas": [
         "^0.8"
@@ -1030,8 +1031,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\TokenVault.sol": {
-      "lastModificationDate": 1675275584863,
-      "contentHash": "75c10569db3d50fddda6c6add8fcd652",
+      "lastModificationDate": 1675881220693,
+      "contentHash": "066a23c9275aee61702847c11251f422",
       "sourceName": "contracts/TokenVault.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -1448,8 +1449,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\PositionsManager.sol": {
-      "lastModificationDate": 1674485008653,
-      "contentHash": "b0cb3ada4a0e4716285a0d75c289dd46",
+      "lastModificationDate": 1675871545687,
+      "contentHash": "20faa0dd0d505d37469e3134f6088c9d",
       "sourceName": "contracts/PositionsManager.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -1478,8 +1479,10 @@
         "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol",
         "./interfaces/IAthena.sol",
         "./interfaces/IProtocolPool.sol",
+        "./interfaces/IProtocolFactory.sol",
         "./interfaces/IPositionsManager.sol",
-        "./libraries/PositionsLibrary.sol"
+        "./libraries/PositionsLibrary.sol",
+        "hardhat/console.sol"
       ],
       "versionPragmas": [
         "^0.8"
@@ -1599,8 +1602,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\ProtocolPool.sol": {
-      "lastModificationDate": 1674485349414,
-      "contentHash": "aa18c525a93045953d6f04d5b677f5f5",
+      "lastModificationDate": 1675865942176,
+      "contentHash": "c08909b39ca5eea26456d27e1ef05999",
       "sourceName": "contracts/ProtocolPool.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -1638,8 +1641,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\PolicyCover.sol": {
-      "lastModificationDate": 1675275585190,
-      "contentHash": "b415ca96c3edf6f63eb0e2a13c23b4a5",
+      "lastModificationDate": 1675878159652,
+      "contentHash": "0c528ab02cdc87cc057ec7e420f2d25a",
       "sourceName": "contracts/PolicyCover.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -1672,7 +1675,8 @@
         "./interfaces/IAthena.sol",
         "./interfaces/IPolicyManager.sol",
         "./interfaces/IPolicyCover.sol",
-        "./ClaimCover.sol"
+        "./ClaimCover.sol",
+        "hardhat/console.sol"
       ],
       "versionPragmas": [
         "^0.8"
@@ -1682,8 +1686,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\libraries\\Tick.sol": {
-      "lastModificationDate": 1664788756648,
-      "contentHash": "371c50110a0dc9697d138ee1bc77153f",
+      "lastModificationDate": 1675684211708,
+      "contentHash": "b73b7533f43eebf1aedbb5d6f3391f14",
       "sourceName": "contracts/libraries/Tick.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -1756,8 +1760,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\libraries\\PremiumPosition.sol": {
-      "lastModificationDate": 1664788756646,
-      "contentHash": "f096791fbdd6ec042c6467317ef0dc80",
+      "lastModificationDate": 1675684211706,
+      "contentHash": "63b55cd3f1ef287412039ed3561cc64c",
       "sourceName": "contracts/libraries/PremiumPosition.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -1828,8 +1832,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\PolicyManager.sol": {
-      "lastModificationDate": 1674230322482,
-      "contentHash": "caade8f8c65abb6a2664d48a88ef076b",
+      "lastModificationDate": 1675793752626,
+      "contentHash": "ce1ab04b8b0e596cd0cfd3342e724f1c",
       "sourceName": "contracts/PolicyManager.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -1857,6 +1861,7 @@
       "imports": [
         "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol",
         "./interfaces/IPolicyManager.sol",
+        "./interfaces/IProtocolFactory.sol",
         "./interfaces/IAthena.sol",
         "./interfaces/IProtocolPool.sol"
       ],
@@ -2132,8 +2137,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\ProtocolFactory.sol": {
-      "lastModificationDate": 1673438820801,
-      "contentHash": "e98a162bedf9621d26d0be05f85dae9d",
+      "lastModificationDate": 1675865967219,
+      "contentHash": "c057236edf028565527574e209ce70fe",
       "sourceName": "contracts/ProtocolFactory.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -2159,8 +2164,9 @@
         }
       },
       "imports": [
+        "@openzeppelin/contracts/utils/Strings.sol",
         "./ProtocolPool.sol",
-        "@openzeppelin/contracts/utils/Strings.sol"
+        "./interfaces/IProtocolFactory.sol"
       ],
       "versionPragmas": [
         "^0.8"
@@ -2244,8 +2250,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\StakingPolicy.sol": {
-      "lastModificationDate": 1675275585718,
-      "contentHash": "c1f6dbe6d44ea2af42ba8d9d48c20185",
+      "lastModificationDate": 1675881573422,
+      "contentHash": "04735bf9e4acb83e3724c6c61b5c6e0b",
       "sourceName": "contracts/StakingPolicy.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -2271,8 +2277,12 @@
         }
       },
       "imports": [
+        "@openzeppelin/contracts/access/Ownable.sol",
         "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol",
-        "./libraries/ERC20withSnapshot.sol",
+        "./interfaces/IPriceOracle.sol",
+        "./interfaces/IVaultERC20.sol",
+        "./interfaces/IPolicyManager.sol",
+        "./interfaces/IStakedAtenPolicy.sol",
         "hardhat/console.sol"
       ],
       "versionPragmas": [
