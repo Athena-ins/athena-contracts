@@ -147,13 +147,9 @@ describe("Liquidity provider deposit", () => {
         // we check AAVE aToken balance
         atokenBalance = atokenBalance.add(USDT_amount);
         expect(
-          (
-            await HardhatHelper.getATokenBalance(
-              ProtocolHelper.getAthenaContract(),
-              HardhatHelper.USDT,
-              liquidityProvider1
-            )
-          ).gte(atokenBalance)
+          (await HardhatHelper.getATokenBalance(liquidityProvider1)).gte(
+            atokenBalance
+          )
         ).to.be.true;
       });
 
@@ -302,13 +298,9 @@ describe("Liquidity provider deposit", () => {
         // we check AAVE aToken balance
         atokenBalance = atokenBalance.add(USDT_amount);
         expect(
-          (
-            await HardhatHelper.getATokenBalance(
-              ProtocolHelper.getAthenaContract(),
-              HardhatHelper.USDT,
-              liquidityProvider1
-            )
-          ).gte(atokenBalance)
+          (await HardhatHelper.getATokenBalance(liquidityProvider1)).gte(
+            atokenBalance
+          )
         ).to.be.true;
       });
 
