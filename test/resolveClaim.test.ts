@@ -137,7 +137,7 @@ describe("Claims", () => {
       expect(slot0.totalInsuredCapital).to.be.equal(328500);
       expect(slot0.remainingPolicies).to.be.equal("2");
       expect(slot0.lastUpdateTimestamp).to.be.equal(
-        HardhatHelper.getCurrentTime()
+        await HardhatHelper.getCurrentTime()
       );
 
       const premiumRate = await protocolPool0.getCurrentPremiumRate();
@@ -205,7 +205,7 @@ describe("Claims", () => {
       expect(slot0.totalInsuredCapital).to.be.equal("328500");
       expect(slot0.remainingPolicies).to.be.equal("1");
       expect(slot0.lastUpdateTimestamp).to.be.equal(
-        HardhatHelper.getCurrentTime()
+        await HardhatHelper.getCurrentTime()
       );
 
       const premiumRate = await protocolPool3.getCurrentPremiumRate();
@@ -219,7 +219,7 @@ describe("Claims", () => {
     it("Should get vSlot0 of Protocol 1 after 1 day claimed in Protocol 3", async () => {
       const days = 1;
       const result = await protocolPool1.actualizingUntilGivenDate(
-        HardhatHelper.getCurrentTime() + days * 24 * 60 * 60
+        (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60
       );
 
       expect(result.__slot0.tick).to.be.equal(80);
@@ -229,7 +229,7 @@ describe("Claims", () => {
       expect(result.__slot0.totalInsuredCapital).to.be.equal(328500);
       expect(result.__slot0.remainingPolicies).to.be.equal(2);
       expect(result.__slot0.lastUpdateTimestamp).to.be.equal(
-        HardhatHelper.getCurrentTime() + days * 24 * 60 * 60
+        (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60
       );
     });
 
@@ -246,7 +246,7 @@ describe("Claims", () => {
       expect(slot0.totalInsuredCapital).to.be.equal("328500");
       expect(slot0.remainingPolicies).to.be.equal(1);
       expect(slot0.lastUpdateTimestamp).to.be.equal(
-        HardhatHelper.getCurrentTime()
+        await HardhatHelper.getCurrentTime()
       );
 
       const premiumRate = await protocolPool3.getCurrentPremiumRate();

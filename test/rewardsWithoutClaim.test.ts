@@ -117,7 +117,7 @@ describe("Liquidity provider rewards without claims", () => {
         365000,
         [0, 2],
         0,
-        HardhatHelper.getCurrentTime() + days * 24 * 60 * 60
+        (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60
       );
 
       expect(result.__newUserCapital).to.be.equal(365000);
@@ -132,7 +132,7 @@ describe("Liquidity provider rewards without claims", () => {
         365000,
         [0, 1],
         0,
-        HardhatHelper.getCurrentTime() + days * 24 * 60 * 60
+        (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60
       );
 
       expect(result.__newUserCapital).to.be.equal(365000);
@@ -149,7 +149,7 @@ describe("Liquidity provider rewards without claims", () => {
         365000,
         [0, 2],
         0,
-        HardhatHelper.getCurrentTime() + days * 24 * 60 * 60
+        (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60
       );
 
       expect(result.__newUserCapital).to.be.equal(365000);
@@ -164,7 +164,7 @@ describe("Liquidity provider rewards without claims", () => {
         365000,
         [0, 1],
         0,
-        HardhatHelper.getCurrentTime() + days * 24 * 60 * 60
+        (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60
       );
 
       expect(result.__newUserCapital).to.be.equal(365000);
@@ -181,7 +181,7 @@ describe("Liquidity provider rewards without claims", () => {
         365000,
         [0, 2],
         0,
-        HardhatHelper.getCurrentTime() + days * 24 * 60 * 60
+        (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60
       );
 
       expect(result.__newUserCapital).to.be.equal(365000);
@@ -196,7 +196,7 @@ describe("Liquidity provider rewards without claims", () => {
         365000,
         [0, 1],
         0,
-        HardhatHelper.getCurrentTime() + days * 24 * 60 * 60
+        (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60
       );
 
       expect(result.__newUserCapital).to.be.equal(365000);
@@ -346,7 +346,7 @@ describe("Liquidity provider rewards without claims", () => {
           365000,
           [0, 2],
           0,
-          HardhatHelper.getCurrentTime() + days * 24 * 60 * 60
+          (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60
         );
 
         expect(result.__newUserCapital).to.be.equal(365000);
@@ -359,7 +359,7 @@ describe("Liquidity provider rewards without claims", () => {
           365000,
           [0, 1],
           0,
-          HardhatHelper.getCurrentTime() + days * 24 * 60 * 60
+          (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60
         );
 
         expect(result.__newUserCapital).to.be.equal(365000);
@@ -376,7 +376,7 @@ describe("Liquidity provider rewards without claims", () => {
           365000,
           [0, 2],
           0,
-          HardhatHelper.getCurrentTime() + days * 24 * 60 * 60
+          (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60
         );
 
         expect(result.__newUserCapital).to.be.equal(365000);
@@ -389,7 +389,7 @@ describe("Liquidity provider rewards without claims", () => {
           365000,
           [0, 1],
           0,
-          HardhatHelper.getCurrentTime() + days * 24 * 60 * 60
+          (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60
         );
 
         expect(result.__newUserCapital).to.be.equal(365000);
@@ -406,7 +406,7 @@ describe("Liquidity provider rewards without claims", () => {
           365000,
           [0, 2],
           0,
-          HardhatHelper.getCurrentTime() + days * 24 * 60 * 60
+          (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60
         );
 
         expect(result.__newUserCapital).to.be.equal(365000);
@@ -419,7 +419,7 @@ describe("Liquidity provider rewards without claims", () => {
           365000,
           [0, 1],
           0,
-          HardhatHelper.getCurrentTime() + days * 24 * 60 * 60
+          (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60
         );
 
         expect(result.__newUserCapital).to.be.equal(365000);
@@ -436,7 +436,7 @@ describe("Liquidity provider rewards without claims", () => {
           365000,
           [0, 2],
           0,
-          HardhatHelper.getCurrentTime() + days * 24 * 60 * 60
+          (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60
         );
 
         expect(result.__newUserCapital).to.be.equal(365000);
@@ -449,7 +449,7 @@ describe("Liquidity provider rewards without claims", () => {
           365000,
           [0, 1],
           0,
-          HardhatHelper.getCurrentTime() + days * 24 * 60 * 60
+          (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60
         );
 
         expect(result.__newUserCapital).to.be.equal(365000);
@@ -465,7 +465,7 @@ describe("Liquidity provider rewards without claims", () => {
           365000,
           [0, 2],
           0,
-          HardhatHelper.getCurrentTime() + days * 24 * 60 * 60
+          (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60
         );
 
         expect(result.__newUserCapital).to.be.equal(365000);
@@ -478,7 +478,7 @@ describe("Liquidity provider rewards without claims", () => {
           365000,
           [0, 1],
           0,
-          HardhatHelper.getCurrentTime() + days * 24 * 60 * 60
+          (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60
         );
 
         expect(result.__newUserCapital).to.be.equal(365000);
@@ -494,7 +494,7 @@ describe("Liquidity provider rewards without claims", () => {
           365000,
           [0, 2],
           0,
-          HardhatHelper.getCurrentTime() + days * 24 * 60 * 60
+          (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60
         );
 
         expect(result.__newUserCapital).to.be.equal(365000);
@@ -507,7 +507,7 @@ describe("Liquidity provider rewards without claims", () => {
           365000,
           [0, 1],
           0,
-          HardhatHelper.getCurrentTime() + days * 24 * 60 * 60
+          (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60
         );
 
         expect(result.__newUserCapital).to.be.equal(365000);
@@ -523,7 +523,7 @@ describe("Liquidity provider rewards without claims", () => {
           365000,
           [0, 2],
           0,
-          HardhatHelper.getCurrentTime() + days * 24 * 60 * 60
+          (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60
         );
 
         expect(result.__newUserCapital).to.be.equal(365000);
@@ -536,7 +536,7 @@ describe("Liquidity provider rewards without claims", () => {
           365000,
           [0, 1],
           0,
-          HardhatHelper.getCurrentTime() + days * 24 * 60 * 60
+          (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60
         );
 
         expect(result.__newUserCapital).to.be.equal(365000);
@@ -553,7 +553,7 @@ describe("Liquidity provider rewards without claims", () => {
           [0, 2],
           0,
 
-          HardhatHelper.getCurrentTime() + days * 24 * 60 * 60
+          (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60
         );
 
         expect(result.__newUserCapital).to.be.equal(365000);
@@ -566,7 +566,7 @@ describe("Liquidity provider rewards without claims", () => {
           365000,
           [0, 1],
           0,
-          HardhatHelper.getCurrentTime() + days * 24 * 60 * 60
+          (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60
         );
 
         expect(result.__newUserCapital).to.be.equal(365000);

@@ -135,7 +135,7 @@ describe("Buy policy", () => {
       expect(slot0.totalInsuredCapital).to.be.equal("109500");
       expect(slot0.remainingPolicies).to.be.equal("1");
       expect(slot0.lastUpdateTimestamp).to.be.equal(
-        HardhatHelper.getCurrentTime()
+        await HardhatHelper.getCurrentTime()
       );
 
       const premiumRate = await protocolContract.getCurrentPremiumRate();
@@ -260,7 +260,7 @@ describe("Buy policy", () => {
       expect(slot0.totalInsuredCapital).to.be.equal("328500");
       expect(slot0.remainingPolicies).to.be.equal("2");
       expect(slot0.lastUpdateTimestamp).to.be.equal(
-        HardhatHelper.getCurrentTime()
+        await HardhatHelper.getCurrentTime()
       );
 
       const premiumRate = await protocolContract.getCurrentPremiumRate();

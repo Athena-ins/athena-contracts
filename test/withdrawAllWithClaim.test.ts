@@ -173,7 +173,7 @@ describe("Liquidity provider withdraw", () => {
       expect(p0_slot0.totalInsuredCapital).to.be.equal("109500");
       expect(p0_slot0.remainingPolicies).to.be.equal("1");
       expect(p0_slot0.lastUpdateTimestamp).to.be.equal(
-        HardhatHelper.getCurrentTime()
+        await HardhatHelper.getCurrentTime()
       );
 
       //protocol2
@@ -207,7 +207,7 @@ describe("Liquidity provider withdraw", () => {
       expect(p2_slot0.totalInsuredCapital).to.be.equal("219000");
       expect(p2_slot0.remainingPolicies).to.be.equal("1");
       expect(p2_slot0.lastUpdateTimestamp).to.be.equal(
-        HardhatHelper.getCurrentTime()
+        await HardhatHelper.getCurrentTime()
       );
     });
 

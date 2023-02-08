@@ -60,6 +60,7 @@ async function impersonateAccount(address: string) {
 }
 
 async function setNextBlockTimestamp(addingTime: number) {
+  if (addingTime <= 0) return;
   const latestTimeStamp = (await hre.ethers.provider.getBlock("latest"))
     .timestamp;
 
@@ -72,8 +73,8 @@ async function setNextBlockTimestamp(addingTime: number) {
   await hre.network.provider.request({ method: "evm_mine" });
 }
 
-function getCurrentTime() {
-  return currentTime + 1;
+async function getCurrentTime() {
+  return (await hre.ethers.provider.getBlock("latest")).timestamp;
 }
 
 async function USDT_balanceOf(address: string) {

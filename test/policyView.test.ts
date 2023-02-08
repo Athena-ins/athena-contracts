@@ -92,7 +92,7 @@ describe("View policy", () => {
 
       const days = 10;
       const result = await protocolContract.actualizingUntilGivenDate(
-        HardhatHelper.getCurrentTime() + days * 24 * 60 * 60
+        (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60
       );
 
       expect(result.__slot0.tick).to.be.equal(60);
@@ -103,7 +103,7 @@ describe("View policy", () => {
       expect(result.__slot0.totalInsuredCapital).to.be.equal(328500);
       expect(result.__slot0.remainingPolicies).to.be.equal(2);
       expect(result.__slot0.lastUpdateTimestamp).to.be.equal(
-        HardhatHelper.getCurrentTime() + days * 24 * 60 * 60
+        (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60
       );
     });
 
@@ -115,7 +115,7 @@ describe("View policy", () => {
 
       const days = 178;
       const result = await protocolContract.actualizingUntilGivenDate(
-        HardhatHelper.getCurrentTime() + days * 24 * 60 * 60
+        (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60
       );
 
       // console.log("vSlot0 178:", result);
@@ -128,7 +128,7 @@ describe("View policy", () => {
       expect(result.__slot0.totalInsuredCapital).to.be.equal(219000);
       expect(result.__slot0.remainingPolicies).to.be.equal(1);
       expect(result.__slot0.lastUpdateTimestamp).to.be.equal(
-        HardhatHelper.getCurrentTime() + days * 24 * 60 * 60
+        (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60
       );
 
       expect(result.__liquidityIndex).to.be.equal("8847945205479452054794519");
@@ -142,7 +142,7 @@ describe("View policy", () => {
 
       const days = 428;
       const result = await protocolContract.actualizingUntilGivenDate(
-        HardhatHelper.getCurrentTime() + days * 24 * 60 * 60
+        (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60
       );
 
       expect(result.__slot0.tick).to.be.equal(1480);
@@ -153,7 +153,7 @@ describe("View policy", () => {
       expect(result.__slot0.totalInsuredCapital).to.be.equal(0);
       expect(result.__slot0.remainingPolicies).to.be.equal(0);
       expect(result.__slot0.lastUpdateTimestamp).to.be.equal(
-        HardhatHelper.getCurrentTime() + days * 24 * 60 * 60
+        (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60
       );
     });
   });
@@ -215,7 +215,7 @@ describe("View policy", () => {
       expect(slot0.totalInsuredCapital).to.be.equal("219000");
       expect(slot0.remainingPolicies).to.be.equal(1);
       expect(slot0.lastUpdateTimestamp).to.be.equal(
-        HardhatHelper.getCurrentTime()
+        await HardhatHelper.getCurrentTime()
       );
 
       const premiumRate = await protocolContract.getCurrentPremiumRate();
@@ -266,7 +266,7 @@ describe("View policy", () => {
       expect(slot0.totalInsuredCapital).to.be.equal("0");
       expect(slot0.remainingPolicies).to.be.equal(0);
       expect(slot0.lastUpdateTimestamp).to.be.equal(
-        HardhatHelper.getCurrentTime()
+        await HardhatHelper.getCurrentTime()
       );
 
       const premiumRate = await protocolContract.getCurrentPremiumRate();
