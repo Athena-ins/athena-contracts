@@ -128,25 +128,23 @@ async function ATEN_approve(
   return (await contract.ATEN.connect(owner).approve(spender, amount)).wait();
 }
 
-async function getATokenBalance(
-  ATHENA_CONTRACT: ethers.Contract,
-  stablecoin: string,
-  user: ethers.Signer
-) {
+async function getATokenBalance(user: ethers.Signer) {
   const AAVE_LENDING_POOL_CONTRACT = new ethers.Contract(
     deploymentAddress.aave_lending_pool,
     lendingPoolAbi,
     user
   );
+  const athenaAddress = contract.ATHENA.address;
+  const usdtAddress = contract.USDT.address;
   // we fetch lending pool data for USDT to get aToken address
-  const data = await AAVE_LENDING_POOL_CONTRACT.getReserveData(stablecoin);
+  const data = await AAVE_LENDING_POOL_CONTRACT.getReserveData(usdtAddress);
   // and now check our aToken balance in contract
   const aTokenContract = new ethers.Contract(
     data.aTokenAddress,
     weth_abi,
     user
   );
-  const bal = await aTokenContract.balanceOf(ATHENA_CONTRACT.address);
+  const bal = await aTokenContract.balanceOf(athenaAddress);
   return bal;
 }
 

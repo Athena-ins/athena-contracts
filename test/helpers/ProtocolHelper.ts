@@ -105,7 +105,7 @@ async function deployProtocolFactoryContract(owner: ethers.Signer) {
     await hre_ethers.getContractFactory("ProtocolFactory")
   )
     .connect(owner)
-    .deploy(contract.ATHENA.address, contract.POLICY_MANAGER.address);
+    .deploy(contract.ATHENA.address);
 
   await contract.FACTORY_PROTOCOL.deployed();
 }
@@ -285,14 +285,18 @@ async function deployAllContractsAndInitializeProtocol(owner: ethers.Signer) {
   await deployAtenTokenContract(owner);
   await deployArbitratorContract(owner);
 
+  // Deploy core
   await deployAthenaContract(owner);
-  await deployPositionManagerContract(owner);
-  await deployStakedAtenContract(owner);
-  await deployPolicyManagerContract(owner);
+  // Deploy peripherals
   await deployProtocolFactoryContract(owner);
-  await deployClaimManagerContract(owner);
-  await deployVaultAtenContract(owner);
   await deployPriceOracleV1Contract(owner);
+  await deployVaultAtenContract(owner);
+  // Deploy managers
+  await deployPositionManagerContract(owner);
+  await deployPolicyManagerContract(owner);
+  await deployClaimManagerContract(owner);
+  // Deploy staking
+  await deployStakedAtenContract(owner);
   await deployStakedAtensPolicyContract(owner);
 
   await initializeProtocol(owner);
