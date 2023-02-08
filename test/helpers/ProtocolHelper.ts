@@ -518,6 +518,14 @@ const stakingGeneralPoolDeposit = async (
   await contract.ATHENA.connect(user).stakeAtens(amount);
 };
 
+const getOngoingCovers = async (user: ethers.Signer) => {
+  const allCovers = await contract.POLICY_MANAGER.connect(
+    user
+  ).fullCoverDataByAccount(await user.getAddress());
+
+  return allCovers.filter((cover) => cover.endTimestamp.eq(0));
+};
+
 const getExpiredCovers = async (user: ethers.Signer) => {
   const allCovers = await contract.POLICY_MANAGER.connect(
     user
@@ -576,6 +584,7 @@ export default {
   takeInterest,
   stakingGeneralPoolDeposit,
   setCoverRefundConfig,
+  getOngoingCovers,
   getExpiredCovers,
   getAccountCoverIdByIndex,
 };
