@@ -189,7 +189,7 @@ describe("Claims", () => {
       expect(claim.fromPoolId).to.be.equal(2);
       expect(claim.ratio).to.be.equal("250000000000000000000000000");
       expect(claim.liquidityIndexBeforeClaim).to.be.equal(
-        "772608447488584474885844"
+        "772609969558599695585996"
       );
     });
 
@@ -249,7 +249,9 @@ describe("Claims", () => {
 
     it("Should actualizing after 1 day of adding claim, checking intersectingAmounts and slot0 in protocol 0", async () => {
       await HardhatHelper.setNextBlockTimestamp(1 * 24 * 60 * 60);
-      await protocolPool0.actualizing();
+      await ProtocolHelper.getAthenaContract()
+        .connect(owner)
+        .actualizingProtocolAndRemoveExpiredPolicies(protocolPool0.address);
 
       const intersecAmounts0 = await protocolPool0.intersectingAmounts(0);
       expect(intersecAmounts0).to.be.equal("730000");
@@ -282,7 +284,7 @@ describe("Claims", () => {
       expect(claim.fromPoolId).to.be.equal(2);
       expect(claim.ratio).to.be.equal("250000000000000000000000000");
       expect(claim.liquidityIndexBeforeClaim).to.be.equal(
-        "772608447488584474885844"
+        "772609969558599695585996"
       );
     });
 

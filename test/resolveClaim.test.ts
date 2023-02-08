@@ -19,7 +19,7 @@ let protocolPool1: ethers.Contract;
 let protocolPool2: ethers.Contract;
 let protocolPool3: ethers.Contract;
 
-describe("Claims", () => {
+describe("Resolve Claims", () => {
   before(async () => {
     await HardhatHelper.reset();
     const allSigners = await HardhatHelper.allSigners();
@@ -128,7 +128,7 @@ describe("Claims", () => {
     );
   });
 
-  describe("Claim", async () => {
+  describe("Resolve Claim", async () => {
     it("Should check slot0 in protocol 0 before claim", async () => {
       const slot0 = await protocolPool0.slot0();
 
@@ -173,7 +173,7 @@ describe("Claims", () => {
       expect(claim.fromPoolId).to.be.equal(3);
       expect(claim.ratio).to.be.equal("500000000000000000000000000");
       expect(claim.liquidityIndexBeforeClaim).to.be.equal(
-        "6516766731164383561643835"
+        "6516783873287671232876711"
       );
     });
 
@@ -235,7 +235,10 @@ describe("Claims", () => {
 
     it("Should update pool3 1d after claim, checking intersectingAmounts and slot0", async () => {
       await HardhatHelper.setNextBlockTimestamp(1 * 24 * 60 * 60);
-      await protocolPool3.actualizing();
+
+      await ProtocolHelper.getAthenaContract()
+        .connect(owner)
+        .actualizingProtocolAndRemoveExpiredPolicies(protocolPool3.address);
 
       const intersecAmounts0 = await protocolPool3.intersectingAmounts(0);
       expect(intersecAmounts0).to.be.equal("182500");
@@ -270,7 +273,7 @@ describe("Claims", () => {
       expect(claim.fromPoolId).to.be.equal(0);
       expect(claim.ratio).to.be.equal("250000000000000000000000000");
       expect(claim.liquidityIndexBeforeClaim).to.be.equal(
-        "1512340182648401826484017"
+        "1512343417047184170471840"
       );
     });
   });

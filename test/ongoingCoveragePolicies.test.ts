@@ -106,7 +106,7 @@ describe("Ongoing coverage policies", () => {
     expect(result[0].premiumDeposit).to.be.equals(2190);
     expect(result[0].premiumLeft).to.be.equals(2094);
     expect(result[0].dailyCost).to.be.equals(9);
-    expect(result[0].beginCoveredTime).to.be.equals(1675900801);
+    expect(result[0].beginCoveredTime).to.be.equals(1675877568);
     expect(result[0].remainingDuration).to.be.equals(20102400);
     expect(result[0].poolId).to.be.equals(0);
 
@@ -115,7 +115,7 @@ describe("Ongoing coverage policies", () => {
     expect(result[1].premiumDeposit).to.be.equals(8760);
     expect(result[1].premiumLeft).to.be.equals(8760);
     expect(result[1].dailyCost).to.be.equals(18);
-    expect(result[1].beginCoveredTime).to.be.equals(1676851201);
+    expect(result[1].beginCoveredTime).to.be.equals(1676827975);
     expect(result[1].remainingDuration).to.be.equals(42048000);
     expect(result[1].poolId).to.be.equals(2);
   });
@@ -150,10 +150,7 @@ describe("Ongoing coverage policies", () => {
       10 * 24 * 60 * 60
     );
 
-    const result =
-      await ProtocolHelper.getPolicyManagerContract().fullCoverDataByAccount(
-        await policyTaker1.getAddress()
-      );
+    const result = await ProtocolHelper.getOngoingCovers(policyTaker1);
 
     expect(result.length).to.be.equals(1);
     expect(result[0].coverId).to.be.equals(2);

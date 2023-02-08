@@ -160,7 +160,9 @@ describe("Staking General Pool", function () {
     );
 
     expect(stakingPosAfter.amount).to.equal(stakingAmount);
-    expect(stakingPosAfter.since).to.equal("1677715204");
+    expect(stakingPosAfter.since).to.equal(
+      await HardhatHelper.getCurrentTime()
+    );
     expect(stakingPosAfter.accruedRewards).to.equal("0");
     expect(stakingPosAfter.rate).to.equal("2000");
 

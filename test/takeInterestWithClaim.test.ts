@@ -18,7 +18,7 @@ let provider1tokenId: ethers.BigNumberish;
 let provider2tokenId: ethers.BigNumberish;
 let protocolPool0: ethers.Contract;
 
-describe("Liquidity provider takeInterest", () => {
+describe("Liquidity provider takeInterest with claims", () => {
   before(async () => {
     await HardhatHelper.reset();
     const allSigners = await HardhatHelper.allSigners();
@@ -152,7 +152,7 @@ describe("Liquidity provider takeInterest", () => {
     expect(claim.ratio).to.be.equal("500000000000000000000000000");
     expect(claim.liquidityIndexBeforeClaim).to.not.be.equal(0);
     expect(claim.liquidityIndexBeforeClaim).to.be.equal(
-      "1758909817351598173515981"
+      "1758915905631659056316590"
     );
   });
 

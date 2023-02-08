@@ -179,7 +179,7 @@ describe("Liquidity provider rewards", () => {
       expect(claim.ratio).to.be.equal("500000000000000000000000000");
       expect(claim.liquidityIndexBeforeClaim).to.not.be.equal(0);
       expect(claim.liquidityIndexBeforeClaim).to.be.equal(
-        "1265759132420091324200913"
+        "1265762937595129375951293"
       );
     });
 

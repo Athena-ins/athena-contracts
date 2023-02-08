@@ -17,7 +17,7 @@ let provider1tokenId: ethers.BigNumberish;
 let provider2tokenId: ethers.BigNumberish;
 let protocolPool0: ethers.Contract;
 
-describe("Liquidity provider takeInterest", () => {
+describe("Liquidity provider takeInterest without claims", () => {
   describe("LP1, LP2 then PT1, PT2 in pool 0", async () => {
     before(async () => {
       await HardhatHelper.reset();
@@ -280,7 +280,7 @@ describe("Liquidity provider takeInterest", () => {
         provider2tokenId,
         0,
         611 * 24 * 60 * 60,
-        8
+        4
       );
 
       const lpInfoAfter = await protocolContract.LPsInfo(provider2tokenId);

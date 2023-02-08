@@ -131,7 +131,7 @@ describe("View policy", () => {
         (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60
       );
 
-      expect(result.__liquidityIndex).to.be.equal("8847945205479452054794519");
+      expect(result.__liquidityIndex).to.be.equal("8847945585996955859969557");
     });
 
     it("Should get vSlot0 after 428 days", async () => {
@@ -200,7 +200,7 @@ describe("View policy", () => {
         event.data
       );
 
-      expect(decodedData.owner).to.be.equal(await policyTaker1.getAddress());
+      expect(decodedData.coverId.toNumber()).to.be.equal(0);
       expect(decodedData.remainedAmount).to.be.equal("2118");
     });
 
@@ -251,7 +251,7 @@ describe("View policy", () => {
         event.data
       );
 
-      expect(decodedData.owner).to.be.equal(await policyTaker2.getAddress());
+      expect(decodedData.coverId.toNumber()).to.be.equal(1);
       expect(decodedData.remainedAmount).to.be.equal("8556");
     });
 
