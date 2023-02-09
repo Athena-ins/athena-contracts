@@ -110,8 +110,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\Athena.sol": {
-      "lastModificationDate": 1675871518814,
-      "contentHash": "2660df8f8d19c7ffb96981d30f976ecc",
+      "lastModificationDate": 1675950907370,
+      "contentHash": "4a808c8f79233559ff9ba9273bdfe1de",
       "sourceName": "contracts/Athena.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -382,8 +382,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\interfaces\\IProtocolPool.sol": {
-      "lastModificationDate": 1675784414503,
-      "contentHash": "d5d9938e75d7db76e102ff943fc11f54",
+      "lastModificationDate": 1675950893866,
+      "contentHash": "03393f77209d7c046850c50f67b5f357",
       "sourceName": "contracts/interfaces/IProtocolPool.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -882,8 +882,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\LiquidityCover.sol": {
-      "lastModificationDate": 1675876205051,
-      "contentHash": "ada01255b500f1edd90d451ec8e439cb",
+      "lastModificationDate": 1675963526202,
+      "contentHash": "7f8979160c0956853117e6eaa6d041c6",
       "sourceName": "contracts/LiquidityCover.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -909,8 +909,7 @@
         }
       },
       "imports": [
-        "./libraries/RayMath.sol",
-        "hardhat/console.sol"
+        "./libraries/RayMath.sol"
       ],
       "versionPragmas": [
         "^0.8"
@@ -1031,8 +1030,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\TokenVault.sol": {
-      "lastModificationDate": 1675881220693,
-      "contentHash": "066a23c9275aee61702847c11251f422",
+      "lastModificationDate": 1675882382437,
+      "contentHash": "7988ada57f8df3ed7fdc7d8657eb33a8",
       "sourceName": "contracts/TokenVault.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -1449,8 +1448,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\PositionsManager.sol": {
-      "lastModificationDate": 1675871545687,
-      "contentHash": "20faa0dd0d505d37469e3134f6088c9d",
+      "lastModificationDate": 1675963551329,
+      "contentHash": "5a8dceaf27d33375dc959e167e83afc3",
       "sourceName": "contracts/PositionsManager.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -1481,8 +1480,7 @@
         "./interfaces/IProtocolPool.sol",
         "./interfaces/IProtocolFactory.sol",
         "./interfaces/IPositionsManager.sol",
-        "./libraries/PositionsLibrary.sol",
-        "hardhat/console.sol"
+        "./libraries/PositionsLibrary.sol"
       ],
       "versionPragmas": [
         "^0.8"
@@ -1602,8 +1600,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\ProtocolPool.sol": {
-      "lastModificationDate": 1675865942176,
-      "contentHash": "c08909b39ca5eea26456d27e1ef05999",
+      "lastModificationDate": 1675950892746,
+      "contentHash": "41f2ef9ff85a6b233f88f8d9ea34b711",
       "sourceName": "contracts/ProtocolPool.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -1641,8 +1639,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\PolicyCover.sol": {
-      "lastModificationDate": 1675878159652,
-      "contentHash": "0c528ab02cdc87cc057ec7e420f2d25a",
+      "lastModificationDate": 1675963546727,
+      "contentHash": "572f8cddab442ef46b57cf9306266639",
       "sourceName": "contracts/PolicyCover.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -1675,8 +1673,7 @@
         "./interfaces/IAthena.sol",
         "./interfaces/IPolicyManager.sol",
         "./interfaces/IPolicyCover.sol",
-        "./ClaimCover.sol",
-        "hardhat/console.sol"
+        "./ClaimCover.sol"
       ],
       "versionPragmas": [
         "^0.8"
@@ -1832,8 +1829,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\PolicyManager.sol": {
-      "lastModificationDate": 1675793752626,
-      "contentHash": "ce1ab04b8b0e596cd0cfd3342e724f1c",
+      "lastModificationDate": 1675963559086,
+      "contentHash": "8faecaa26380fa0caefc211120957554",
       "sourceName": "contracts/PolicyManager.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -2250,8 +2247,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\StakingPolicy.sol": {
-      "lastModificationDate": 1675881573422,
-      "contentHash": "04735bf9e4acb83e3724c6c61b5c6e0b",
+      "lastModificationDate": 1675963602753,
+      "contentHash": "ec38ec9176dd1007b0751e2fe2353760",
       "sourceName": "contracts/StakingPolicy.sol",
       "solcConfig": {
         "version": "0.8.11",

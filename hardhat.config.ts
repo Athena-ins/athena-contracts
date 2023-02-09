@@ -41,7 +41,7 @@ const goerliForkConfig: HardhatNetworkUserConfig = {
   },
   mining: {
     auto: true,
-    interval: 2000,
+    // interval: 2000,
   },
   accounts: [
     // Deployer
@@ -89,7 +89,7 @@ const config: HardhatUserConfig = {
   // ====== Networks ====== //
 
   networks: {
-    hardhat: chooseForkConfig(),
+    hardhat: { allowUnlimitedContractSize: false, ...chooseForkConfig() },
     mainnet: {
       url: process.env.MAINNET_URL || "",
       accounts:

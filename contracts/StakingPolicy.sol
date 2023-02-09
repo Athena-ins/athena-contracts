@@ -175,9 +175,6 @@ contract StakingPolicy is IStakedAtenPolicy, Ownable {
     uint256 maxReward = (maxYearPercentage * maxYearlyReward) / 1e18;
 
     // Compute reward based on the premium spent for the cover
-    console.log("lastPremiumSpent_: ", lastPremiumSpent_);
-    console.log("pos_.premiumSpent: ", pos_.premiumSpent);
-    console.log("pos_.atenPrice: ", pos_.atenPrice);
     uint256 trueReward = (lastPremiumSpent_ - pos_.premiumSpent) *
       pos_.atenPrice;
 
@@ -273,7 +270,6 @@ contract StakingPolicy is IStakedAtenPolicy, Ownable {
     returns (RefundPosition memory pos)
   {
     pos = positions[coverId_];
-
 
     uint256 lastPremiumSpent = _getSpentPremium(coverId_);
 

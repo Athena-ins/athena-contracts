@@ -31,7 +31,7 @@ const addressGoerli = {
 
 // Defaults to Goerli addresses
 const chooseAddressSet = () => {
-  console.log("NETWORK = ", hre.network.name.toUpperCase());
+  console.log("\nNETWORK =", hre.network.name.toUpperCase());
   if (hre.network.name === "hardhat") {
     return addressHardhat;
   }
