@@ -154,15 +154,16 @@ contract StakingPolicy is IStakedAtenPolicy, Ownable {
 
   function _computeRewards(
     RefundPosition memory pos_,
+    uint64 timestamp,
     uint256 lastPremiumSpent_
-  ) private view returns (uint256 rewards) {
+  ) private pure returns (uint256 rewards) {
     uint64 rewardsSinceTimestamp = pos_.rewardsSinceTimestamp;
     uint64 endTimestamp = pos_.endTimestamp;
     uint64 rate = pos_.rate;
 
     uint256 timeElapsed;
     // We want to cap the rewards to the covers expiration
-    uint256 upTo = endTimestamp != 0 ? endTimestamp : block.timestamp;
+    uint256 upTo = endTimestamp != 0 ? endTimestamp : timestamp;
     if (upTo < rewardsSinceTimestamp) revert TimestampIsInTheFuture();
     unchecked {
       // Unckecked because we checked that upTo is bigger
@@ -198,12 +199,12 @@ contract StakingPolicy is IStakedAtenPolicy, Ownable {
     }
   }
 
-  function _updatePositionRewards(RefundPosition storage pos_) private {
+  function _updatePositionAndRewards(RefundPosition storage pos_) private {
     uint256 atenPrice = priceOracleInterface.getAtenPrice();
     uint64 timestamp = uint64(block.timestamp);
 
     uint256 lastPremiumSpent = _getSpentPremium(pos_.coverId);
-    uint256 earnedRewards = _computeRewards(pos_, lastPremiumSpent);
+    uint256 earnedRewards = _computeRewards(pos_, timestamp, lastPremiumSpent);
     _reflectEarnedRewards(earnedRewards);
 
     // Register last reward update & update position with latest config
@@ -237,8 +238,9 @@ contract StakingPolicy is IStakedAtenPolicy, Ownable {
   {
     RefundPosition memory pos = positions[coverId_];
 
+    uint64 timestamp = uint64(block.timestamp);
     uint256 lastPremiumSpent = _getSpentPremium(coverId_);
-    earnedRewards = _computeRewards(pos, lastPremiumSpent);
+    earnedRewards = _computeRewards(pos, timestamp, lastPremiumSpent);
   }
 
   function netPositionRefundRewards(uint256 coverId_)
@@ -250,7 +252,11 @@ contract StakingPolicy is IStakedAtenPolicy, Ownable {
     uint64 timestamp = uint64(block.timestamp);
 
     uint256 lastPremiumSpent = _getSpentPremium(coverId_);
-    uint256 newEarnedRewards = _computeRewards(pos, lastPremiumSpent);
+    uint256 newEarnedRewards = _computeRewards(
+      pos,
+      timestamp,
+      lastPremiumSpent
+    );
 
     uint256 totalRewards = pos.earnedRewards + newEarnedRewards;
     uint64 timeElapsed = timestamp - pos.initTimestamp;
@@ -271,9 +277,10 @@ contract StakingPolicy is IStakedAtenPolicy, Ownable {
   {
     pos = positions[coverId_];
 
+    uint64 timestamp = uint64(block.timestamp);
     uint256 lastPremiumSpent = _getSpentPremium(coverId_);
 
-    pos.earnedRewards += _computeRewards(pos, lastPremiumSpent);
+    pos.earnedRewards += _computeRewards(pos, timestamp, lastPremiumSpent);
     pos.premiumSpent = lastPremiumSpent;
 
     return pos;
@@ -361,7 +368,7 @@ contract StakingPolicy is IStakedAtenPolicy, Ownable {
     if (pos.endTimestamp != 0) revert PositionClosedOrExpired();
     if (pos.initTimestamp == 0) revert PositionDoesNotExist();
 
-    _updatePositionRewards(pos);
+    _updatePositionAndRewards(pos);
 
     pos.stakedAmount += amount_;
 
@@ -380,7 +387,7 @@ contract StakingPolicy is IStakedAtenPolicy, Ownable {
     RefundPosition storage pos = positions[coverId_];
     if (pos.initTimestamp == 0) revert PositionDoesNotExist();
 
-    _updatePositionRewards(pos);
+    _updatePositionAndRewards(pos);
 
     pos.stakedAmount -= amount_;
 
@@ -396,7 +403,7 @@ contract StakingPolicy is IStakedAtenPolicy, Ownable {
     RefundPosition storage pos = positions[coverId_];
     if (pos.initTimestamp == 0) revert PositionDoesNotExist();
 
-    _updatePositionRewards(pos);
+    _updatePositionAndRewards(pos);
 
     uint256 totalRewards = pos.earnedRewards;
     uint64 timestamp = uint64(block.timestamp);
@@ -429,7 +436,7 @@ contract StakingPolicy is IStakedAtenPolicy, Ownable {
     if (initTimestamp != 0) {
       uint256 amountStaked = pos.stakedAmount;
 
-      _updatePositionRewards(pos);
+      _updatePositionAndRewards(pos);
 
       // We can already delete the position since all necessary data is in memory
       delete positions[coverId_];
