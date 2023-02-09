@@ -88,7 +88,7 @@ describe("Staking Policy Rewards", function () {
 
     const capital2 = toUsdt(2190);
     const premium2 = toUsdt(87);
-    const atensLocked2 = toAten(300);
+    const atensLocked2 = toAten(10);
     await ProtocolHelper.buyPolicy(
       policyTaker2,
       capital2,
@@ -162,7 +162,7 @@ describe("Staking Policy Rewards", function () {
     const rewards = await STAKING_POLICY.connect(
       policyTaker1
     ).positionRefundRewards(0);
-    expect(rewards.toNumber()).to.equal(13);
+    expect(rewards).to.equal("35616504946727549400000");
 
     await HardhatHelper.setNextBlockTimestamp(120 * 24 * 60 * 60);
 
@@ -170,7 +170,7 @@ describe("Staking Policy Rewards", function () {
       policyTaker1
     ).positionRefundRewards(0);
 
-    expect(rewards2.toString()).to.equal("500");
+    expect(rewards2.toString()).to.equal("68493217275494672700000");
   });
 
   it("Should return 2 staking Policy ", async function () {
@@ -181,23 +181,22 @@ describe("Staking Policy Rewards", function () {
     expect(indexUser.length).to.equal(3);
   });
 
-  it("Should unlock ATENS and withdraw after 1 year", async function () {
-    const balBefore = await ATEN.connect(policyTaker1).balanceOf(
-      await policyTaker1.getAddress()
+  it("Should claim rewards and be capped at amount of staked ATEN", async function () {
+    await HardhatHelper.setNextBlockTimestamp(125 * 24 * 60 * 60);
+
+    const balBefore = await ATEN.connect(policyTaker2).balanceOf(
+      await policyTaker2.getAddress()
     );
 
     const txWithdrawAten = await (
-      await ATHENA_CONTRACT.connect(policyTaker1).withdrawCoverRefundStakedAten(
-        0,
-        10
-      )
+      await ATHENA_CONTRACT.connect(policyTaker2).withdrawCoverRefundRewards(2)
     ).wait();
     expect(txWithdrawAten).to.haveOwnProperty("transactionHash");
 
-    const balAfter = await ATEN.connect(policyTaker1).balanceOf(
-      await policyTaker1.getAddress()
+    const balAfter = await ATEN.connect(policyTaker2).balanceOf(
+      await policyTaker2.getAddress()
     );
 
-    expect(balAfter.sub(balBefore).toString()).to.equal("100");
+    expect(balAfter.sub(balBefore).lt(toAten(12))).to.equal(true);
   });
 });

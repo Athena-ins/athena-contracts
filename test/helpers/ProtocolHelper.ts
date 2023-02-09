@@ -251,7 +251,7 @@ async function setCoverRefundConfig(
       )
     ).wait();
 
-    await (
+    return await (
       await contract.STAKING_POLICY.connect(owner).setRefundAndPenaltyRate(
         config.refundRate,
         config.basePenaltyRate,
@@ -303,6 +303,7 @@ async function deployAllContractsAndInitializeProtocol(owner: ethers.Signer) {
 
   await setFeeLevelsWithAten(owner);
   await setStakingRewardRates(owner);
+  await setCoverRefundConfig(owner);
 
   const rewardsAmount = ethers.utils.parseEther("20000000"); // 20M ATEN
   await depositRewardsToVault(owner, rewardsAmount);
