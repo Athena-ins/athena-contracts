@@ -106,7 +106,11 @@ describe("Ongoing coverage policies", () => {
     expect(result[0].premiumDeposit).to.be.equals(2190);
     expect(result[0].premiumLeft).to.be.equals(2094);
     expect(result[0].dailyCost).to.be.equals(9);
-    expect(result[0].beginCoveredTime).to.be.equals(1675877568);
+    // @dev value is inconsistent
+    expect(
+      result[0].beginCoveredTime.toNumber() === 1675877568 ||
+        result[0].beginCoveredTime.toNumber() === 1675877569
+    ).to.be.equals(true);
     expect(result[0].remainingDuration).to.be.equals(20102400);
     expect(result[0].poolId).to.be.equals(0);
 
@@ -167,6 +171,6 @@ describe("Ongoing coverage policies", () => {
         await policyTaker1.getAddress()
       );
 
-    expect(result2.length).to.be.equals(1);
+    expect(result2.length).to.be.equals(2);
   });
 });

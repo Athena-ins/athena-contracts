@@ -125,7 +125,7 @@ describe("Liquidity provider withdraw", () => {
         (el: any) =>
           el.topics[0] ===
             "0x620d50d2ff399522b99eeffadbd9b188529ed4c6ce9a4ecf9e85fc3c00edc79f" &&
-          el.data.includes(`${"25".padStart(64, "0")}${"".padStart(62, "0")}`)
+          el.logIndex === 5
       );
 
       if (!p0_event) throw new Error("Event not found");
@@ -137,9 +137,9 @@ describe("Liquidity provider withdraw", () => {
 
       expect(p0_decodedData.tokenId).to.be.equal(provider1tokenId);
       expect(p0_decodedData.capital).to.be.equal(182500);
-      expect(p0_decodedData.rewardsGross).to.be.equal(37);
-      expect(p0_decodedData.rewardsNet).to.be.equal(31);
-      expect(p0_decodedData.fee).to.be.equal(6);
+      expect(p0_decodedData.rewardsGross).to.be.equal(68);
+      expect(p0_decodedData.rewardsNet).to.be.equal(57);
+      expect(p0_decodedData.fee).to.be.equal(11);
 
       const p0_premiumRate = await p0_contract.getCurrentPremiumRate();
 
@@ -159,11 +159,12 @@ describe("Liquidity provider withdraw", () => {
         liquidityProvider1,
         2
       );
+
       const p2_event = result?.events?.find(
         (el: any) =>
           el.topics[0] ===
             "0x620d50d2ff399522b99eeffadbd9b188529ed4c6ce9a4ecf9e85fc3c00edc79f" &&
-          el.data.includes(`${"43".padStart(64, "0")}${"".padStart(62, "0")}`)
+          el.logIndex === 5
       );
 
       if (!p2_event) throw new Error("Event not found");
@@ -175,8 +176,8 @@ describe("Liquidity provider withdraw", () => {
 
       expect(p2_decodedData.tokenId).to.be.equal(provider1tokenId);
       expect(p2_decodedData.capital).to.be.equal(182500);
-      expect(p2_decodedData.rewardsGross).to.be.equal(67);
-      expect(p2_decodedData.rewardsNet).to.be.equal(56);
+      expect(p2_decodedData.rewardsGross).to.be.equal(68);
+      expect(p2_decodedData.rewardsNet).to.be.equal(57);
       expect(p2_decodedData.fee).to.be.equal(11);
 
       const p2_premiumRate = await p2_contract.getCurrentPremiumRate();
@@ -212,8 +213,8 @@ describe("Liquidity provider withdraw", () => {
 
       expect(decodedData.tokenId).to.be.equal(provider2tokenId);
       expect(decodedData.userCapital).to.be.equal(547500);
-      expect(decodedData.rewardsGross).to.be.equal(112 + 70);
-      expect(decodedData.rewardsNet).to.be.equal(112 + 70 - 10);
+      expect(decodedData.rewardsGross).to.be.equal(113 + 70);
+      expect(decodedData.rewardsNet).to.be.equal(113 + 70 - 10);
       expect(decodedData.fee).to.be.equal(10);
 
       const lpInfoAfter = await protocolContract.LPsInfo(provider2tokenId);

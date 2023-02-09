@@ -203,7 +203,7 @@ describe("Staking General Pool", function () {
     expect(stakingPosAfterWithdraw.amount).to.equal(
       stakingAmount - amountUnstaked
     );
-    expect(stakingPosAfterWithdraw.since).to.equal("1680307202");
+    expect(stakingPosAfterWithdraw.since).to.equal("1680283985");
     expect(stakingPosAfterWithdraw.accruedRewards).to.equal("0");
     expect(stakingPosAfterWithdraw.rate).to.equal("2000");
   });

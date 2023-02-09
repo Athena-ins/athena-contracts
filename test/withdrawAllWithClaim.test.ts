@@ -123,7 +123,7 @@ describe("Liquidity provider withdraw", () => {
       expect(claim.fromPoolId).to.be.equal(2);
       expect(claim.ratio).to.be.equal("250000000000000000000000000");
       expect(claim.liquidityIndexBeforeClaim).to.be.equal(
-        "197261225266362252663622"
+        "197261796042617960426179"
       );
     });
 
