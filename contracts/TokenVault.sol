@@ -71,11 +71,14 @@ contract TokenVault is IVaultERC20 {
 
     // Check if the contract has enough tokens
     if (amount_ <= coverRefundRewardsTotal) {
-      coverRefundRewardsTotal = 0;
-      atenTokenInterface.transfer(to_, coverRefundRewardsTotal);
-    } else {
-      coverRefundRewardsTotal -= amount_;
+      // We can allow unchecked because of the above check
+      unchecked {
+        coverRefundRewardsTotal -= amount_;
+      }
       atenTokenInterface.transfer(to_, amount_);
+    } else {
+      atenTokenInterface.transfer(to_, coverRefundRewardsTotal);
+      coverRefundRewardsTotal = 0;
     }
   }
 
@@ -90,11 +93,14 @@ contract TokenVault is IVaultERC20 {
 
     // Check if the contract has enough tokens
     if (amount_ <= stakingRewardsTotal) {
-      stakingRewardsTotal = 0;
-      atenTokenInterface.transfer(to_, stakingRewardsTotal);
-    } else {
-      stakingRewardsTotal -= amount_;
+      // We can allow unchecked because of the above check
+      unchecked {
+        stakingRewardsTotal -= amount_;
+      }
       atenTokenInterface.transfer(to_, amount_);
+    } else {
+      atenTokenInterface.transfer(to_, stakingRewardsTotal);
+      stakingRewardsTotal = 0;
     }
   }
 
