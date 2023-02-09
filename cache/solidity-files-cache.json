@@ -110,8 +110,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\Athena.sol": {
-      "lastModificationDate": 1675950907370,
-      "contentHash": "4a808c8f79233559ff9ba9273bdfe1de",
+      "lastModificationDate": 1675968711983,
+      "contentHash": "9f7dc89e49062b992bad87329226e261",
       "sourceName": "contracts/Athena.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -454,8 +454,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\interfaces\\IStakedAtenPolicy.sol": {
-      "lastModificationDate": 1675705540344,
-      "contentHash": "475bd503273be9f5e871ae034e9fba0c",
+      "lastModificationDate": 1675968703483,
+      "contentHash": "bf6141e8754c4409c60e009d8f0cf77d",
       "sourceName": "contracts/interfaces/IStakedAtenPolicy.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -489,7 +489,7 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\interfaces\\IPolicyManager.sol": {
-      "lastModificationDate": 1675780444995,
+      "lastModificationDate": 1675968018346,
       "contentHash": "ffd43ffc9b6bd3f1741161c29f363aae",
       "sourceName": "contracts/interfaces/IPolicyManager.sol",
       "solcConfig": {
@@ -1829,8 +1829,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\PolicyManager.sol": {
-      "lastModificationDate": 1675963559086,
-      "contentHash": "8faecaa26380fa0caefc211120957554",
+      "lastModificationDate": 1675968023743,
+      "contentHash": "2c9f433ae731c3281bea554eadd7906b",
       "sourceName": "contracts/PolicyManager.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -2247,8 +2247,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\StakingPolicy.sol": {
-      "lastModificationDate": 1675963602753,
-      "contentHash": "ec38ec9176dd1007b0751e2fe2353760",
+      "lastModificationDate": 1675969039526,
+      "contentHash": "25a0a3055f969cfc1e60d221f2e736a5",
       "sourceName": "contracts/StakingPolicy.sol",
       "solcConfig": {
         "version": "0.8.11",

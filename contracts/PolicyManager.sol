@@ -147,7 +147,7 @@ contract PolicyManager is IPolicyManager, ERC721Enumerable {
   {
     Policy memory _policy = policy(coverId);
 
-    if (_policy.amountCovered == 0) return 0;
+    if (_policy.beginCoveredTime == 0) return 0;
 
     address protocolAddress = protocolFactoryInterface.getPoolAddress(
       _policy.poolId
