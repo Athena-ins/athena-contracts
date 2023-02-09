@@ -154,7 +154,15 @@ contract PolicyManager is IPolicyManager, ERC721Enumerable {
     );
     (uint256 premiumLeft, , ) = IProtocolPool(protocolAddress).getInfo(coverId);
 
-    premiumSpent = _policy.premiumDeposit - premiumLeft;
+    // @bw Erronous behavior that grow premiums above deposited amount
+    if (_policy.premiumDeposit < premiumLeft) {
+      premiumSpent = _policy.premiumDeposit;
+    } else {
+      premiumSpent = _policy.premiumDeposit - premiumLeft;
+    }
+
+    // @thao comment abose if and uncomment following line for test
+    // premiumSpent = _policy.premiumDeposit - premiumLeft;
   }
 
   /// ========================= ///
