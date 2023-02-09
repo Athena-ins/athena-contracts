@@ -13,12 +13,11 @@ import ProtocolHelper from "./helpers/ProtocolHelper";
 
 chai.use(chaiAsPromised);
 
-const BN = (num: string | number) => hre_ethers.BigNumber.from(num);
+const { toUsdt, toAten } = ProtocolHelper;
 
 let owner: ethers.Signer;
 let liquidityProvider1: ethers.Signer;
 let liquidityProvider2: ethers.Signer;
-let liquidityProvider3: ethers.Signer;
 let policyTaker1: ethers.Signer;
 let policyTaker2: ethers.Signer;
 let policyTaker3: ethers.Signer;
@@ -34,7 +33,6 @@ describe("Staking Policy Rewards", function () {
     owner = allSigners[0];
     liquidityProvider1 = allSigners[1];
     liquidityProvider2 = allSigners[2];
-    liquidityProvider3 = allSigners[3];
     policyTaker1 = allSigners[100];
     policyTaker2 = allSigners[101];
     policyTaker3 = allSigners[102];
@@ -53,54 +51,44 @@ describe("Staking Policy Rewards", function () {
 
     // ================= Cover Providers ================= //
 
-    const USDT_amount1 = "4000000";
-    const ATEN_amount1 = "100";
+    const USDT_amount1 = toUsdt(400_000);
+    const ATEN_amount1 = toAten(100);
     await ProtocolHelper.deposit(
       liquidityProvider1,
       USDT_amount1,
       ATEN_amount1,
-      [0, 2],
+      [0, 1],
       1 * 24 * 60 * 60
     );
 
-    const USDT_amount2 = "330";
-    const ATEN_amount2 = "9000000";
+    const USDT_amount2 = toUsdt(75_000);
+    const ATEN_amount2 = toAten(950_000000);
     await ProtocolHelper.deposit(
       liquidityProvider2,
       USDT_amount2,
       ATEN_amount2,
-      [0, 1, 2],
-      1 * 24 * 60 * 60
-    );
-
-    const USDT_amount3 = "36500";
-    const ATEN_amount3 = "9000";
-    await ProtocolHelper.deposit(
-      liquidityProvider3,
-      USDT_amount3,
-      ATEN_amount3,
-      [1, 3],
-      1 * 24 * 60 * 60
+      [0, 1, 2, 3],
+      10 * 24 * 60 * 60
     );
 
     // ================= Policy Buyers ================= //
 
-    const capital1 = "109500";
-    const capital1_2 = "140";
-    const premium1 = "2190";
-    const atensLocked1 = "500";
+    const capital1 = toUsdt(47_500);
+    const capital1_2 = toUsdt(25_000);
+    const premium1 = toUsdt(10_000);
+    const atensLocked1 = toAten(100_000);
     await ProtocolHelper.buyPolicies(
       policyTaker1,
       [capital1, capital1_2],
       [premium1, premium1],
       [atensLocked1, atensLocked1],
-      [0, 3],
-      20 * 24 * 60 * 60
+      [0, 2],
+      10 * 24 * 60 * 60
     );
 
-    const capital2 = "219000";
-    const premium2 = "8760";
-    const atensLocked2 = "30000";
+    const capital2 = toUsdt(2190);
+    const premium2 = toUsdt(87);
+    const atensLocked2 = toAten(300);
     await ProtocolHelper.buyPolicy(
       policyTaker2,
       capital2,
@@ -135,7 +123,7 @@ describe("Staking Policy Rewards", function () {
       "100",
       "10000",
       0,
-      3
+      0 * 24 * 60 * 60
     );
 
     expect(policy).to.haveOwnProperty("hash");
@@ -148,7 +136,7 @@ describe("Staking Policy Rewards", function () {
       "100",
       "6000",
       1,
-      3
+      0 * 24 * 60 * 60
     );
 
     expect(policy).to.haveOwnProperty("hash");
@@ -168,13 +156,15 @@ describe("Staking Policy Rewards", function () {
     ).to.eventually.be.rejectedWith("NotPolicyOwner()");
   });
 
-  it("Expect 12 months rewards for 100% APR", async function () {
+  it("Check rewards after 120 & 240 days", async function () {
+    await HardhatHelper.setNextBlockTimestamp(120 * 24 * 60 * 60);
+
     const rewards = await STAKING_POLICY.connect(
       policyTaker1
     ).positionRefundRewards(0);
     expect(rewards.toNumber()).to.equal(13);
 
-    await HardhatHelper.setNextBlockTimestamp(60 * 60 * 24 * 365 + 10);
+    await HardhatHelper.setNextBlockTimestamp(120 * 24 * 60 * 60);
 
     const rewards2 = await STAKING_POLICY.connect(
       policyTaker1
@@ -208,7 +198,6 @@ describe("Staking Policy Rewards", function () {
       await policyTaker1.getAddress()
     );
 
-    // 1000 = 500 staked + 500 rewards
-    expect(balAfter.sub(balBefore).toString()).to.equal("1000");
+    expect(balAfter.sub(balBefore).toString()).to.equal("100");
   });
 });
