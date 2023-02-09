@@ -618,6 +618,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
 
     IERC20(stablecoin).safeTransferFrom(msg.sender, poolAddress, amount_);
 
+    stakedAtensPoInterface.updateBeforePremiumChange(coverId_);
     policyManagerInterface.addPremiums(coverId_, amount_);
     IProtocolPool(poolAddress).addPremiums(coverId_, amount_);
   }
@@ -627,6 +628,8 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     onlyPolicyTokenOwner(coverId_)
   {
     address poolAddress = _prepareCoverUpdate(coverId_);
+
+    stakedAtensPoInterface.updateBeforePremiumChange(coverId_);
     policyManagerInterface.removePremiums(coverId_, amount_);
     IProtocolPool(poolAddress).removePremiums(coverId_, amount_, msg.sender);
   }

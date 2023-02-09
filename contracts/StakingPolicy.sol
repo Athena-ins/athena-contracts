@@ -375,6 +375,26 @@ contract StakingPolicy is IStakedAtenPolicy, Ownable {
     emit AddStake(coverId_, amount_);
   }
 
+  /// ==================================== ///
+  /// ========== PREMIUM CHANGE ========== ///
+  /// ==================================== ///
+
+  function updateBeforePremiumChange(uint256 coverId) external onlyCore {
+    RefundPosition storage pos = positions[coverId];
+
+    if (pos.initTimestamp != 0) {
+      uint64 timestamp = uint64(block.timestamp);
+
+      uint256 lastPremiumSpent = _getSpentPremium(pos.coverId);
+      uint256 earnedRewards = _computeRewards(pos, timestamp, lastPremiumSpent);
+      _reflectEarnedRewards(earnedRewards);
+
+      pos.premiumSpent = 0;
+      pos.rewardsSinceTimestamp = timestamp;
+      pos.earnedRewards += earnedRewards;
+    }
+  }
+
   /// ============================== ///
   /// ========== WITHDRAW ========== ///
   /// ============================== ///

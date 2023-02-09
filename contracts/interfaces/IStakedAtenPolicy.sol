@@ -23,4 +23,6 @@ interface IStakedAtenPolicy {
   function closePosition(uint256 coverId, address account)
     external
     returns (uint256 netRewards);
+
+  function updateBeforePremiumChange(uint256 coverId) external;
 }
