@@ -201,10 +201,7 @@ contract StakingPolicy is IStakedAtenPolicy, Ownable {
     }
   }
 
-  function _updatePositionRewards(RefundPosition storage pos_)
-    private
-    returns (uint256)
-  {
+  function _updatePositionRewards(RefundPosition storage pos_) private {
     uint256 atenPrice = priceOracleInterface.getAtenPrice();
     uint64 timestamp = uint64(block.timestamp);
 
@@ -218,7 +215,7 @@ contract StakingPolicy is IStakedAtenPolicy, Ownable {
     pos_.atenPrice = atenPrice;
     pos_.rate = refundRate;
 
-    return earnedRewards;
+    pos_.earnedRewards += earnedRewards;
   }
 
   /// =========================== ///
@@ -277,8 +274,11 @@ contract StakingPolicy is IStakedAtenPolicy, Ownable {
   {
     pos = positions[coverId_];
 
-    pos.premiumSpent = _getSpentPremium(coverId_);
-    pos.earnedRewards += _computeRewards(pos, pos.premiumSpent);
+
+    uint256 lastPremiumSpent = _getSpentPremium(coverId_);
+
+    pos.earnedRewards += _computeRewards(pos, lastPremiumSpent);
+    pos.premiumSpent = lastPremiumSpent;
 
     return pos;
   }
@@ -330,9 +330,7 @@ contract StakingPolicy is IStakedAtenPolicy, Ownable {
     RefundPosition storage pos = positions[coverId_];
     if (pos.initTimestamp != 0) revert PositionAlreadyExists();
 
-    uint256 lastPremiumSpent = coverManagerInterface.getCoverPremiumSpent(
-      coverId_
-    );
+    uint256 lastPremiumSpent = _getSpentPremium(coverId_);
 
     uint256 atenPrice = priceOracleInterface.getAtenPrice();
     uint64 timestamp = uint64(block.timestamp);
@@ -367,9 +365,8 @@ contract StakingPolicy is IStakedAtenPolicy, Ownable {
     if (pos.endTimestamp != 0) revert PositionClosedOrExpired();
     if (pos.initTimestamp == 0) revert PositionDoesNotExist();
 
-    uint256 earnedRewards = _updatePositionRewards(pos);
+    _updatePositionRewards(pos);
 
-    pos.earnedRewards += earnedRewards;
     pos.stakedAmount += amount_;
 
     emit AddStake(coverId_, amount_);
@@ -387,9 +384,8 @@ contract StakingPolicy is IStakedAtenPolicy, Ownable {
     RefundPosition storage pos = positions[coverId_];
     if (pos.initTimestamp == 0) revert PositionDoesNotExist();
 
-    uint256 earnedRewards = _updatePositionRewards(pos);
+    _updatePositionRewards(pos);
 
-    pos.earnedRewards += earnedRewards;
     pos.stakedAmount -= amount_;
 
     atenTokenInterface.safeTransfer(account_, amount_);
@@ -404,9 +400,9 @@ contract StakingPolicy is IStakedAtenPolicy, Ownable {
     RefundPosition storage pos = positions[coverId_];
     if (pos.initTimestamp == 0) revert PositionDoesNotExist();
 
-    uint256 newEarnedRewards = _updatePositionRewards(pos);
+    _updatePositionRewards(pos);
 
-    uint256 totalRewards = pos.earnedRewards + newEarnedRewards;
+    uint256 totalRewards = pos.earnedRewards;
     uint64 timestamp = uint64(block.timestamp);
     uint64 timeElapsed = timestamp - pos.initTimestamp;
 
@@ -436,15 +432,15 @@ contract StakingPolicy is IStakedAtenPolicy, Ownable {
     // If there is no position we just skip the process without reverting
     if (initTimestamp != 0) {
       uint256 amountStaked = pos.stakedAmount;
-      uint256 earnedRewards = pos.earnedRewards;
-      uint256 newEarnedRewards = _updatePositionRewards(pos);
+
+      _updatePositionRewards(pos);
 
       // We can already delete the position since all necessary data is in memory
       delete positions[coverId_];
 
       atenTokenInterface.safeTransfer(account_, amountStaked);
 
-      uint256 totalRewards = earnedRewards + newEarnedRewards;
+      uint256 totalRewards = pos.earnedRewards;
       uint64 timestamp = uint64(block.timestamp);
       uint64 timeElapsed = timestamp - initTimestamp;
 
