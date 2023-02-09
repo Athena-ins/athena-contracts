@@ -337,8 +337,8 @@ async function getProtocolPoolContract(user: ethers.Signer, poolId: number) {
 
 async function deposit(
   user: ethers.Signer,
-  USDT_amount: string,
-  ATEN_amount: string,
+  USDT_amount: BigNumberish,
+  ATEN_amount: BigNumberish,
   protocols: number[],
   timeLapse: number
 ) {
@@ -365,9 +365,9 @@ async function deposit(
 
 async function buyPolicy(
   user: ethers.Signer,
-  capital: string,
-  premium: string,
-  atensLocked: string,
+  capital: BigNumberish,
+  premium: BigNumberish,
+  atensLocked: BigNumberish,
   poolId: number,
   timeLapse: number
 ) {
@@ -399,21 +399,21 @@ async function buyPolicy(
 
 async function buyPolicies(
   user: ethers.Signer,
-  capital: string[],
-  premium: string[],
-  atensLocked: string[],
+  capital: BigNumberish[],
+  premium: BigNumberish[],
+  atensLocked: BigNumberish[],
   poolId: number[],
   timeLapse: number
 ) {
   const userAddress = await user.getAddress();
 
   const premiumTotal = premium.reduce(
-    (acc, el) => acc.add(BigNumber.from(el)),
+    (acc: BigNumber, el) => acc.add(BigNumber.from(el)),
     BigNumber.from(0)
   );
 
   const atensLockedTotal = atensLocked.reduce(
-    (acc, el) => acc.add(BigNumber.from(el)),
+    (acc: BigNumber, el) => acc.add(BigNumber.from(el)),
     BigNumber.from(0)
   );
 
@@ -518,6 +518,12 @@ const stakingGeneralPoolDeposit = async (
   await contract.ATHENA.connect(user).stakeAtens(amount);
 };
 
+const getAllUserCovers = async (user: ethers.Signer) => {
+  return await contract.POLICY_MANAGER.connect(user).fullCoverDataByAccount(
+    await user.getAddress()
+  );
+};
+
 const getOngoingCovers = async (user: ethers.Signer) => {
   const allCovers = await contract.POLICY_MANAGER.connect(
     user
@@ -541,6 +547,11 @@ const getAccountCoverIdByIndex = async (user: ethers.Signer, index: number) => {
 
   return allCoverIds[index];
 };
+
+const toUsdt = (amount: number) =>
+  ethers.utils.parseUnits(amount.toString(), 6);
+const toAten = (amount: number) =>
+  ethers.utils.parseUnits(amount.toString(), 18);
 
 export default {
   deployAtenTokenContract,
@@ -584,7 +595,10 @@ export default {
   takeInterest,
   stakingGeneralPoolDeposit,
   setCoverRefundConfig,
+  getAllUserCovers,
   getOngoingCovers,
   getExpiredCovers,
   getAccountCoverIdByIndex,
+  toUsdt,
+  toAten,
 };
