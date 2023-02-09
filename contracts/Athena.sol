@@ -178,8 +178,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
       uint256 availableCapacity,
       uint256 utilizationRate,
       uint256 premiumRate,
-      IProtocolPool.Formula memory computingConfig,
-      uint256 commitDelay
+      IProtocolPool.Formula memory computingConfig
     ) = IProtocolPool(pool.deployed).protocolInfo();
 
     string memory claimAgreement = claimManagerInterface.getProtocolAgreement(

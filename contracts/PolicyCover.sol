@@ -428,15 +428,16 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
     uint256 _premium,
     uint256 _insuredCapital
   ) internal {
+    uint256 _availableCapital = availableCapital;
     uint256 totalInsuredCapital = slot0.totalInsuredCapital;
 
     require(
-      totalInsuredCapital + _insuredCapital < availableCapital,
+      totalInsuredCapital + _insuredCapital < _availableCapital,
       "Insufficient capital"
     );
 
     uint256 __currentPremiumRate = getPremiumRate(
-      _utilisationRate(0, 0, totalInsuredCapital, availableCapital)
+      _utilisationRate(0, 0, totalInsuredCapital, _availableCapital)
     );
 
     uint256 __newPremiumRate = getPremiumRate(
@@ -444,7 +445,7 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
         _insuredCapital,
         0,
         totalInsuredCapital,
-        availableCapital
+        _availableCapital
       )
     );
 
