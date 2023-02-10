@@ -479,20 +479,22 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
   function _increaseCover(
     uint256 coverId_,
     uint256 amount_,
-    uint256 amountInsured
+    uint256 newInsuredAmount
   ) internal {
-    uint256 premiumsLeft = _withdrawPolicy(coverId_, amountInsured);
-    uint256 newInsuredAmount = amountInsured + amount_;
+    // The insured amount is already updated in the Cover Manager
+    uint256 oldInsuredAmount = newInsuredAmount - amount_;
+    uint256 premiumsLeft = _withdrawPolicy(coverId_, oldInsuredAmount);
     _buyPolicy(coverId_, premiumsLeft, newInsuredAmount);
   }
 
   function _decreaseCover(
     uint256 coverId_,
     uint256 amount_,
-    uint256 amountInsured
+    uint256 newInsuredAmount
   ) internal {
-    uint256 premiumsLeft = _withdrawPolicy(coverId_, amountInsured);
-    uint256 newInsuredAmount = amountInsured - amount_;
+    // The insured amount is already updated in the Cover Manager
+    uint256 oldInsuredAmount = newInsuredAmount + amount_;
+    uint256 premiumsLeft = _withdrawPolicy(coverId_, oldInsuredAmount);
     _buyPolicy(coverId_, premiumsLeft, newInsuredAmount);
   }
 

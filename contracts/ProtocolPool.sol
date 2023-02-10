@@ -168,6 +168,14 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
   /// ========= HELPERS ======== ///
   /// ========================== ///
 
+  function _getAmountInsuredByCover(uint256 coverId_)
+    internal
+    view
+    returns (uint256)
+  {
+    return policyManagerInterface.coverAmountOfPolicy(coverId_);
+  }
+
   function _actualizingLPInfoWithClaims(
     uint256 tokenId_,
     uint256 _userCapital,
@@ -365,23 +373,19 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
   /// -------- UPDATE -------- ///
 
   function increaseCover(uint256 coverId_, uint256 amount_) external onlyCore {
-    uint256 amountInsured = policyManagerInterface.coverAmountOfPolicy(
-      coverId_
-    );
-    _increaseCover(coverId_, amount_, amountInsured);
+    // The insured amount is already updated in the Cover Manager
+    uint256 newInsuredAmount = _getAmountInsuredByCover(coverId_);
+    _increaseCover(coverId_, amount_, newInsuredAmount);
   }
 
   function decreaseCover(uint256 coverId_, uint256 amount_) external onlyCore {
-    uint256 amountInsured = policyManagerInterface.coverAmountOfPolicy(
-      coverId_
-    );
-    _decreaseCover(coverId_, amount_, amountInsured);
+    // The insured amount is already updated in the Cover Manager
+    uint256 newInsuredAmount = _getAmountInsuredByCover(coverId_);
+    _decreaseCover(coverId_, amount_, newInsuredAmount);
   }
 
   function addPremiums(uint256 coverId_, uint256 amount_) external onlyCore {
-    uint256 amountInsured = policyManagerInterface.coverAmountOfPolicy(
-      coverId_
-    );
+    uint256 amountInsured = _getAmountInsuredByCover(coverId_);
     _addPremiums(coverId_, amount_, amountInsured);
   }
 
@@ -390,9 +394,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     uint256 amount_,
     address account_
   ) external onlyCore {
-    uint256 amountInsured = policyManagerInterface.coverAmountOfPolicy(
-      coverId_
-    );
+    uint256 amountInsured = _getAmountInsuredByCover(coverId_);
     _removePremiums(coverId_, amount_, amountInsured);
     IERC20(underlyingAsset).safeTransfer(account_, amount_);
   }
