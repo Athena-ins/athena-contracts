@@ -77,6 +77,11 @@ async function getCurrentTime() {
   return (await hre.ethers.provider.getBlock("latest")).timestamp;
 }
 
+async function USDT_spenderBalance() {
+  const spenderAddress = await binanceSigner.getAddress();
+  return await contract.USDT.connect(binanceSigner).balanceOf(spenderAddress);
+}
+
 async function USDT_balanceOf(address: string) {
   return await contract.USDT.connect(binanceSigner).balanceOf(address);
 }
@@ -102,6 +107,11 @@ async function USDT_maxApprove(owner: ethers.Signer, spender: string) {
       ethers.BigNumber.from(2).pow(256).sub(1)
     )
   ).wait();
+}
+
+async function ATEN_spenderBalance() {
+  const spenderAddress = await atenOwnerSigner.getAddress();
+  return await contract.ATEN.connect(atenOwnerSigner).balanceOf(spenderAddress);
 }
 
 async function ATEN_balanceOf(address: string) {
@@ -155,18 +165,23 @@ export default {
   allSigners,
   impersonateAccount,
   setNextBlockTimestamp,
-  USDT: deploymentAddress.USDT,
-  ATEN: deploymentAddress.ATEN,
+  NULL_ADDRESS,
+  //
   AAVE_LENDING_POOL: deploymentAddress.aave_lending_pool,
   AAVE_REGISTRY: deploymentAddress.aave_registry,
   ARBITRATOR_ADDRESS: deploymentAddress.ARBITRATOR,
-  NULL_ADDRESS,
+  getATokenBalance,
+  // USDT
+  USDT: deploymentAddress.USDT,
   USDT_balanceOf,
   USDT_transfer,
   USDT_approve,
   USDT_maxApprove,
+  USDT_spenderBalance,
+  // ATEN
+  ATEN: deploymentAddress.ATEN,
   ATEN_balanceOf,
   ATEN_transfer,
   ATEN_approve,
-  getATokenBalance,
+  ATEN_spenderBalance,
 };
