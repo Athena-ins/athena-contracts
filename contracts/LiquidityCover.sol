@@ -43,7 +43,7 @@ abstract contract LiquidityCover {
       return 0;
     }
     return
-      ((_totalInsuredCapital + _insuredCapitalToAdd - _insuredCapitalToRemove) *
-        100).rayDiv(_availableCapital);
+      (((_totalInsuredCapital + _insuredCapitalToAdd) -
+        _insuredCapitalToRemove) * 100).rayDiv(_availableCapital);
   }
 }
