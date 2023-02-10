@@ -19,6 +19,13 @@ async function main() {
   try {
     console.log(`\n== DEPLOY ON ${hre.network.name.toUpperCase()} ==\n`);
 
+    if (
+      hre.network.name === "goerli" &&
+      (!process.env.TESTER_WALLET || process.env.TESTER_WALLET.length != 42)
+    ) {
+      throw Error("TESTER_WALLET not set");
+    }
+
     const signers = await hre_ethers.getSigners();
     const deployer = signers[0];
     const user_1 = signers[1];
@@ -97,7 +104,7 @@ async function main() {
     deploymentAddress.ATHENA = ATHENA_CONTRACT.address;
     deploymentAddress.TOKEN_VAULT = VAULT_CONTRACT.address;
 
-    console.log("==> APPROVE & TRANSFERS");
+    console.log("==> DEPLOYER APPROVE");
     // =====> approve tokens
     await USDT_CONTRACT.connect(deployer).approve(
       deploymentAddress.ATHENA,
@@ -109,10 +116,13 @@ async function main() {
     );
 
     // =====> transfer tokens
-    await ATEN_CONTRACT.connect(deployer).transfer(
-      deploymentAddress.user_1,
-      amountTransfers
-    );
+    if (hre.network.name === "goerli") {
+      console.log("==> TRANSFERS");
+      await ATEN_CONTRACT.connect(deployer).transfer(
+        process.env.TESTER_WALLET as string,
+        amountTransfers
+      );
+    }
 
     // =====> deposit ATEN in rewards vault
     console.log("==> DEPOSIT TO VAULT");
