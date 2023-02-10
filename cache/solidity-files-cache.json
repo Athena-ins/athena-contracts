@@ -2247,8 +2247,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\StakingPolicy.sol": {
-      "lastModificationDate": 1675969039526,
-      "contentHash": "25a0a3055f969cfc1e60d221f2e736a5",
+      "lastModificationDate": 1675970115457,
+      "contentHash": "dc999c8fb3d0c575d1819850a653e532",
       "sourceName": "contracts/StakingPolicy.sol",
       "solcConfig": {
         "version": "0.8.11",
