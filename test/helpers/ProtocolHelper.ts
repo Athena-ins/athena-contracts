@@ -549,6 +549,34 @@ const getAccountCoverIdByIndex = async (user: ethers.Signer, index: number) => {
   return allCoverIds[index];
 };
 
+const updateCover = async (
+  user: ethers.Signer,
+  action:
+    | "increaseCover"
+    | "decreaseCover"
+    | "addPremiums"
+    | "removePremiums"
+    | "addToCoverRefundStake"
+    | "withdrawCoverRefundStakedAten",
+  coverId: BigNumberish,
+  amount: BigNumberish
+) => {
+  const userAddress = await user.getAddress();
+
+  if (action === "addPremiums") {
+    await HardhatHelper.USDT_transfer(userAddress, amount);
+    await HardhatHelper.USDT_approve(user, contract.ATHENA.address, amount);
+  }
+  if (action === "addToCoverRefundStake") {
+    await HardhatHelper.ATEN_transfer(userAddress, amount);
+    await HardhatHelper.ATEN_approve(user, contract.ATHENA.address, amount);
+  }
+
+  return await (
+    await contract.ATHENA.connect(user)[action](coverId, amount)
+  ).wait();
+};
+
 const toUsdt = (amount: number) =>
   ethers.utils.parseUnits(amount.toString(), 6);
 const toAten = (amount: number) =>
@@ -602,4 +630,5 @@ export default {
   getAccountCoverIdByIndex,
   toUsdt,
   toAten,
+  updateCover,
 };
