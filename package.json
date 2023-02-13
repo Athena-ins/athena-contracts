@@ -14,7 +14,9 @@
     "testFBW": "npx hardhat test ./test/claims.test.ts ./test/rewardsWithClaims.test.ts ./test/takeInterestWithClaim.test.ts ./test/withdrawAllWithClaim.test.ts ./test/resolveClaim.test.ts",
     "testBW": "npx hardhat test ./test/deployProtocol.test.ts",
     "deploy_hardhat": "npx hardhat run --network hardhat scripts/fullDeploy.ts",
-    "deploy_goerli": "npx hardhat run --network goerli scripts/fullDeploy.ts"
+    "deploy_goerli": "npx hardhat run --network goerli scripts/fullDeploy.ts",
+    "gen-exports": "npx ts-node scripts/gen-exports.ts",
+    "gen-fnsigs": "npx ts-node scripts/gen-fnsigs.ts"
   },
   "repository": {
     "type": "git",
