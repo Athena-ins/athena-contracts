@@ -31,7 +31,7 @@ interface IAthena {
     external;
 
   function compensateClaimant(
-    uint256 policyId,
+    uint256 coverId,
     uint256 amount,
     address account
   ) external;

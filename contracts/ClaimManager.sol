@@ -42,7 +42,7 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
     uint256 createdAt;
     address from;
     uint256 amount;
-    uint256 policyId;
+    uint256 coverId;
     uint256 poolId;
     string metaEvidence;
     //
@@ -53,7 +53,7 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
 
   // Maps a claim ID to a claim's data
   mapping(uint256 => Claim) public claims;
-  // Maps a policyId to its latest Kleros disputeId
+  // Maps a coverId to its latest Kleros disputeId
   mapping(uint256 => uint256) public policyIdToLatestClaimId;
   // Maps a Kleros dispute ID to its claim ID
   mapping(uint256 => uint256) public disputeIdToClaimId;
@@ -74,7 +74,7 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
   // Emitted upon claim creation
   event ClaimCreated(
     address indexed claimant,
-    uint256 indexed policyId,
+    uint256 indexed coverId,
     uint256 indexed poolId
   );
 
@@ -82,7 +82,7 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
   event DisputeCreated(
     address indexed claimant,
     address indexed challenger,
-    uint256 policyId,
+    uint256 coverId,
     uint256 indexed poolId,
     uint256 disputeId
   );
@@ -91,13 +91,13 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
   event DisputeResolved(
     address indexed claimant,
     address indexed challenger,
-    uint256 policyId,
+    uint256 coverId,
     uint256 indexed poolId,
     uint256 disputeId,
     uint256 ruling
   );
 
-  event Solved(IArbitrator arbitrator, uint256 disputeId, uint256 policyId);
+  event Solved(IArbitrator arbitrator, uint256 disputeId, uint256 coverId);
 
   /// ============================ ///
   /// ========= MODIFIERS ======== ///
@@ -424,7 +424,7 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
       createdAt: block.timestamp,
       arbitrationCost: costOfArbitration,
       disputeId: 0,
-      policyId: policyId_,
+      coverId: policyId_,
       poolId: poolId,
       amount: amountClaimed_,
       metaEvidence: ipfsMetaEvidenceCid_
@@ -463,7 +463,7 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
     // Call Athena core to pay the compensation
     // @bw this should close the user's policy to avoid stress on the pool
     core.compensateClaimant(
-      userClaim.policyId,
+      userClaim.coverId,
       userClaim.amount,
       userClaim.from
     );
@@ -567,7 +567,7 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
     emit DisputeResolved({
       claimant: userClaim.from,
       challenger: challenger,
-      policyId: userClaim.policyId,
+      coverId: userClaim.coverId,
       poolId: userClaim.poolId,
       disputeId: disputeId_,
       ruling: ruling_
@@ -594,7 +594,7 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
     // Call Athena core to pay the compensation
     // @bw this should close the user's policy to avoid stress on the pool
     core.compensateClaimant(
-      userClaim.policyId,
+      userClaim.coverId,
       userClaim.amount,
       userClaim.from
     );

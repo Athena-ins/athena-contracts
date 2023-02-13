@@ -442,7 +442,7 @@ async function buyPolicies(
 
 async function createClaim(
   policyHolder: ethers.Signer,
-  policyId: number,
+  coverId: number,
   amountClaimed: string | number,
   valueOverride?: ethers.BigNumberish
 ) {
@@ -456,7 +456,7 @@ async function createClaim(
 
   // Create the claim
   await contract.CLAIM_MANAGER.connect(policyHolder).initiateClaim(
-    policyId,
+    coverId,
     amountClaimed,
     "bafybeiafebm3zdtzmn5mcquacgd47enhsjnebvegnzfunaaaaaaaaaaaaa",
     { value: valueForTx }
@@ -465,12 +465,12 @@ async function createClaim(
 
 async function resolveClaimWithoutDispute(
   policyHolder: ethers.Signer,
-  policyId: number,
+  coverId: number,
   timeLapse: number
 ) {
   const claimId = await contract.CLAIM_MANAGER.connect(
     policyHolder
-  ).policyIdToLatestClaimId(policyId);
+  ).policyIdToLatestClaimId(coverId);
 
   await HardhatHelper.setNextBlockTimestamp(timeLapse);
 

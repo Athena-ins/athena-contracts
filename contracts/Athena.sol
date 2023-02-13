@@ -560,7 +560,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
         _premiumDeposit
       );
 
-      uint256 policyId = policyManagerInterface.mint(
+      uint256 coverId = policyManagerInterface.mint(
         msg.sender,
         _amountCovered,
         _premiumDeposit,
@@ -571,7 +571,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
 
       IProtocolPool(poolAddress).buyPolicy(
         msg.sender,
-        policyId,
+        coverId,
         _premiumDeposit,
         _amountCovered
       );
@@ -584,7 +584,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
           address(stakedAtensPoInterface),
           _atensLocked
         );
-        stakedAtensPoInterface.createStakingPosition(policyId, _atensLocked);
+        stakedAtensPoInterface.createStakingPosition(coverId, _atensLocked);
       }
     }
   }
@@ -742,13 +742,13 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     uint256 totalNetRewards;
 
     for (uint256 i = 0; i < policyIds_.length; i++) {
-      uint256 policyId = policyIds_[i];
+      uint256 coverId = policyIds_[i];
 
-      address ownerOfToken = policyManagerInterface.ownerOf(policyId);
+      address ownerOfToken = policyManagerInterface.ownerOf(coverId);
       if (msg.sender != ownerOfToken) revert NotPolicyOwner();
 
       totalNetRewards += stakedAtensPoInterface.closePosition(
-        policyId,
+        coverId,
         msg.sender
       );
     }

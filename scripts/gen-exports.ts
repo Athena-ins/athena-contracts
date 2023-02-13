@@ -2,7 +2,7 @@ import fs from "fs";
 
 const abiPath = "artifacts/contracts/";
 const rootPathExport = "./uiExport";
-const abiPathExport = "./uiExport/abi/";
+const abiPathExport = "./uiExport/ABI/";
 const typechainPathExport = "./uiExport/typechain/";
 
 // { common_name: subpath/?filename }
