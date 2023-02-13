@@ -1,9 +1,18 @@
 import fs from "fs";
+import dotenv from "dotenv";
+dotenv.config();
+
+const writeToClientFolder = process.env.EXPORT_TO_CLIENT === "true";
+console.log("writeToClientFolder: ", writeToClientFolder, "\n");
 
 const abiPath = "artifacts/contracts/";
 const rootPathExport = "./uiExport";
-const abiPathExport = "./uiExport/ABI/";
-const typechainPathExport = "./uiExport/typechain/";
+const abiPathExport = writeToClientFolder
+  ? "../athena-dapp/src/data/ABI/"
+  : "./uiExport/ABI/";
+const typechainPathExport = writeToClientFolder
+  ? "../athena-dapp/src/types/typechain/"
+  : "./uiExport/typechain/";
 
 // { common_name: subpath/?filename }
 const targetList = {
@@ -23,9 +32,14 @@ let abiIndex = "";
 let typechainIndex = "";
 
 const main = async () => {
-  if (!fs.existsSync(rootPathExport)) fs.mkdirSync(rootPathExport);
-  if (!fs.existsSync(abiPathExport)) fs.mkdirSync(abiPathExport);
-  if (!fs.existsSync(typechainPathExport)) fs.mkdirSync(typechainPathExport);
+  if (writeToClientFolder) {
+    if (!fs.existsSync(abiPathExport) || !fs.existsSync(typechainPathExport))
+      throw Error("Client folder not found");
+  } else {
+    if (!fs.existsSync(rootPathExport)) fs.mkdirSync(rootPathExport);
+    if (!fs.existsSync(abiPathExport)) fs.mkdirSync(abiPathExport);
+    if (!fs.existsSync(typechainPathExport)) fs.mkdirSync(typechainPathExport);
+  }
 
   Object.entries(targetList).map(async ([name, path]) => {
     const file = path.replace(/^.*[\\\/]/, "");
@@ -62,7 +76,11 @@ const main = async () => {
   fs.writeFileSync(`${abiPathExport}index.ts`, abiIndex);
   fs.writeFileSync(`${typechainPathExport}index.ts`, typechainIndex);
 
-  console.log("\n=> Folders ready at ./uiExport\n");
+  if (writeToClientFolder) {
+    console.log("\n=> Files copied to athena-dapp\n");
+  } else {
+    console.log("\n=> Folders ready at uiExport/\n");
+  }
 };
 
 main();
