@@ -379,9 +379,9 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     _updateUserPositionFeeRate(msg.sender);
   }
 
-  /// ============================ ///
-  /// ========== COVERS ========== ///
-  /// ============================ ///
+  /// =============================== ///
+  /// ========== POSITIONS ========== ///
+  /// =============================== ///
 
   function deposit(uint256 amount, uint128[] calldata poolIds) public {
     // Check if the poolIds do not include incompatible pools

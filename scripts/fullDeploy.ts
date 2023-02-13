@@ -52,26 +52,29 @@ async function main() {
       deploymentAddress.USDT,
       deploymentAddress.aave_registry
     );
-    console.log("==> MANAGER POSITIONS");
-    await ProtocolHelper.deployPositionManagerContract(deployer);
-    console.log("==> STAKING GP");
-    await ProtocolHelper.deployStakedAtenContract(deployer);
-    console.log("==> MANAGER COVERS");
-    await ProtocolHelper.deployPolicyManagerContract(deployer);
+
     console.log("==> POOL FACTORY");
     await ProtocolHelper.deployProtocolFactoryContract(deployer);
-    console.log("==> VAULT");
-    await ProtocolHelper.deployVaultAtenContract(deployer);
-    console.log("==> MANAGER CLAIMS");
-    await ProtocolHelper.deployClaimManagerContract(
-      deployer,
-      deploymentAddress.ARBITRATOR
-    );
     console.log("==> PRICE ORACLE");
     await ProtocolHelper.deployPriceOracleV1Contract(
       deployer,
       initialAtenOraclePrice
     );
+    console.log("==> VAULT");
+    await ProtocolHelper.deployVaultAtenContract(deployer);
+
+    console.log("==> MANAGER POSITIONS");
+    await ProtocolHelper.deployPositionManagerContract(deployer);
+    console.log("==> MANAGER COVERS");
+    await ProtocolHelper.deployPolicyManagerContract(deployer);
+    console.log("==> MANAGER CLAIMS");
+    await ProtocolHelper.deployClaimManagerContract(
+      deployer,
+      deploymentAddress.ARBITRATOR
+    );
+
+    console.log("==> STAKING GP");
+    await ProtocolHelper.deployStakedAtenContract(deployer);
     console.log("==> COVER REFUND");
     await ProtocolHelper.deployStakedAtensPolicyContract(deployer);
 

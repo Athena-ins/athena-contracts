@@ -52,8 +52,8 @@ export const deploymentAddress = {
 };
 
 // ABIs
-import { abi as abiUSDT } from "../../artifacts/contracts/USDT_testnet/USDT.sol/USDT.json";
-import { abi as abiATEN } from "../../artifacts/contracts/ICO/ATEN.sol/ATEN.json";
+import { abi as abiUSDT } from "../../artifacts/contracts/erc20/USDT.sol/USDT.json";
+import { abi as abiATEN } from "../../artifacts/contracts/erc20/ATEN.sol/ATEN.json";
 import { abi as abiAthena } from "../../artifacts/contracts/Athena.sol/Athena.json";
 import { abi as abiTokenVault } from "../../artifacts/contracts/TokenVault.sol/TokenVault.json";
 import { abi as abiStakingGeneralPool } from "../../artifacts/contracts/StakingGeneralPool.sol/StakingGeneralPool.json";

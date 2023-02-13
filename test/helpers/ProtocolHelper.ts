@@ -198,14 +198,14 @@ function getVaultAtenContract() {
 
 async function initializeProtocol(owner: ethers.Signer) {
   return await contract.ATHENA.connect(owner).initialize(
-    contract.POSITIONS_MANAGER.address,
-    contract.POLICY_MANAGER.address,
-    contract.CLAIM_MANAGER.address,
-    contract.STAKING_GP.address,
-    contract.STAKING_POLICY.address,
-    contract.FACTORY_PROTOCOL.address,
-    contract.TOKEN_VAULT.address,
-    contract.PRICE_ORACLE_V1.address
+    contract.POSITIONS_MANAGER.address, // positionManager
+    contract.POLICY_MANAGER.address, // policyManager
+    contract.CLAIM_MANAGER.address, // claimManager
+    contract.STAKING_GP.address, // stakedAtensGP
+    contract.STAKING_POLICY.address, // stakedAtensPo
+    contract.FACTORY_PROTOCOL.address, // protocolFactory
+    contract.TOKEN_VAULT.address, // atensVault
+    contract.PRICE_ORACLE_V1.address // priceOracle
   );
 }
 
