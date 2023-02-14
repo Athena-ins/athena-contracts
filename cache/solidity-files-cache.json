@@ -110,8 +110,8 @@
       ]
     },
     "C:\\Users\\blackwhale\\Desktop\\Code\\athena-contracts\\contracts\\Athena.sol": {
-      "lastModificationDate": 1676286448276,
-      "contentHash": "9f7dc89e49062b992bad87329226e261",
+      "lastModificationDate": 1676302482706,
+      "contentHash": "de17e80de1897ebfd73224e1ece4db37",
       "sourceName": "contracts/Athena.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -273,8 +273,8 @@
       ]
     },
     "C:\\Users\\blackwhale\\Desktop\\Code\\athena-contracts\\contracts\\interfaces\\IAthena.sol": {
-      "lastModificationDate": 1676286448280,
-      "contentHash": "f8f5a1ac16d8455427a8553089bc5c76",
+      "lastModificationDate": 1676297500406,
+      "contentHash": "babe8d430a1eadcda7d7cef2b68515fe",
       "sourceName": "contracts/interfaces/IAthena.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -950,8 +950,8 @@
       ]
     },
     "C:\\Users\\blackwhale\\Desktop\\Code\\athena-contracts\\contracts\\StakingPolicy.sol": {
-      "lastModificationDate": 1676286448279,
-      "contentHash": "dc999c8fb3d0c575d1819850a653e532",
+      "lastModificationDate": 1676382285694,
+      "contentHash": "487f20e06e20221493c33a526e002358",
       "sourceName": "contracts/StakingPolicy.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -993,7 +993,7 @@
       ]
     },
     "C:\\Users\\blackwhale\\Desktop\\Code\\athena-contracts\\contracts\\PolicyManager.sol": {
-      "lastModificationDate": 1676286448277,
+      "lastModificationDate": 1676299131130,
       "contentHash": "2c9f433ae731c3281bea554eadd7906b",
       "sourceName": "contracts/PolicyManager.sol",
       "solcConfig": {
@@ -2315,8 +2315,8 @@
       ]
     },
     "C:\\Users\\blackwhale\\Desktop\\Code\\athena-contracts\\contracts\\ClaimManager.sol": {
-      "lastModificationDate": 1675438334376,
-      "contentHash": "af2aaca85ac376fbf1697d9b864e2b63",
+      "lastModificationDate": 1676297500378,
+      "contentHash": "2c47d76e002649ddb597ae3b42bbc0a5",
       "sourceName": "contracts/ClaimManager.sol",
       "solcConfig": {
         "version": "0.8.11",

@@ -26,7 +26,7 @@ let ATEN: typeATEN;
 let ATHENA_CONTRACT: typeAthena;
 let STAKING_POLICY: typeStakingPolicy;
 
-describe("Staking Policy Rewards", function () {
+describe("Cover Refund Staking", function () {
   before(async function () {
     await HardhatHelper.reset();
     const allSigners = await HardhatHelper.allSigners();
@@ -130,24 +130,29 @@ describe("Staking Policy Rewards", function () {
   });
 
   it("Should buy Policy 2 with Atens", async function () {
-    const policy = await ProtocolHelper.buyPolicy(
+    const capital = toUsdt(1000);
+    const premium = toUsdt(100);
+    const atensLocked = toAten(1000);
+    const policy = await ProtocolHelper.buyPolicies(
       policyTaker1,
-      "1000",
-      "100",
-      "6000",
-      1,
-      0 * 24 * 60 * 60
+      [capital, capital, capital, capital],
+      [premium, premium, premium, premium],
+      [atensLocked, 0, atensLocked, 0],
+      [0, 1, 2, 3],
+      0
     );
 
     expect(policy).to.haveOwnProperty("hash");
   });
 
-  it("Should return remaining lock time ", async function () {
+  it("Should check if position has been initialized", async function () {
     const userStakes = await STAKING_POLICY.connect(
       policyTaker1
     ).getRefundPositionsByAccount(await policyTaker1.getAddress());
 
-    expect(userStakes[1].initTimestamp.toNumber()).to.not.equal(0);
+    userStakes.map((stake) => {
+      expect(stake.initTimestamp.toNumber()).to.not.equal(0);
+    });
   });
 
   it("Should reject withdraw of other user's policy rewards", async function () {
@@ -178,7 +183,7 @@ describe("Staking Policy Rewards", function () {
       policyTaker1
     ).getRefundPositionsByAccount(await policyTaker1.getAddress());
 
-    expect(indexUser.length).to.equal(3);
+    expect(indexUser.length).to.equal(4);
   });
 
   it("Should claim rewards and be capped at amount of staked ATEN", async function () {

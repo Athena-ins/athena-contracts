@@ -432,7 +432,7 @@ async function buyPolicies(
 
   await HardhatHelper.setNextBlockTimestamp(timeLapse);
 
-  await contract.ATHENA.connect(user).buyPolicies(
+  return await contract.ATHENA.connect(user).buyPolicies(
     capital,
     premium,
     atensLocked,
