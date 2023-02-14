@@ -19,19 +19,19 @@ async function main() {
   try {
     console.log(`\n== DEPLOY ON ${hre.network.name.toUpperCase()} ==\n`);
 
-    if (
-      hre.network.name === "goerli" &&
-      (!process.env.TESTER_WALLET || process.env.TESTER_WALLET.length != 42)
-    ) {
-      throw Error("TESTER_WALLET not set");
-    }
-
     const signers = await hre_ethers.getSigners();
     const deployer = signers[0];
     const user_1 = signers[1];
 
     deploymentAddress.deployer = await deployer.getAddress();
     deploymentAddress.user_1 = await user_1.getAddress();
+
+    if (
+      hre.network.name === "goerli" &&
+      (!process.env.TESTER_WALLET || process.env.TESTER_WALLET.length != 42)
+    ) {
+      throw Error("TESTER_WALLET not set");
+    }
 
     // =====> deploy ATEN token & deploy arbitrator
     // @dev for the moment do not redeploy ATEN token to reuse existing one
@@ -41,7 +41,6 @@ async function main() {
     }
     console.log("==> ARBITRATOR");
     await ProtocolHelper.deployArbitratorContract(deployer);
-
     const ARBITRATOR_CONTRACT = ProtocolHelper.getArbitratorContract();
     deploymentAddress.ARBITRATOR = ARBITRATOR_CONTRACT.address;
 
