@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: UNLICENCED
 pragma solidity ^0.8;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -8,8 +8,6 @@ import "./interfaces/IPriceOracle.sol";
 import "./interfaces/IVaultERC20.sol";
 import "./interfaces/IPolicyManager.sol";
 import "./interfaces/IStakedAtenPolicy.sol";
-
-import "hardhat/console.sol";
 
 /**
  * @notice
@@ -157,29 +155,34 @@ contract StakingPolicy is IStakedAtenPolicy, Ownable {
     uint64 timestamp,
     uint256 lastPremiumSpent_
   ) private pure returns (uint256 rewards) {
-    uint64 rewardsSinceTimestamp = pos_.rewardsSinceTimestamp;
-    uint64 endTimestamp = pos_.endTimestamp;
-    uint64 rate = pos_.rate;
+    if (lastPremiumSpent_ < pos_.premiumSpent) {
+      // @bw Same problem of diminished spent premiums, avoid revert to not block the reads but fail fast
+      return 0;
+    } else {
+      uint64 rewardsSinceTimestamp = pos_.rewardsSinceTimestamp;
+      uint64 endTimestamp = pos_.endTimestamp;
+      uint64 rate = pos_.rate;
 
-    uint256 timeElapsed;
-    // We want to cap the rewards to the covers expiration
-    uint256 upTo = endTimestamp != 0 ? endTimestamp : timestamp;
-    if (upTo < rewardsSinceTimestamp) revert TimestampIsInTheFuture();
-    unchecked {
-      // Unckecked because we checked that upTo is bigger
-      timeElapsed = upTo - rewardsSinceTimestamp;
+      uint256 timeElapsed;
+      // We want to cap the rewards to the covers expiration
+      uint256 upTo = endTimestamp != 0 ? endTimestamp : timestamp;
+      if (upTo < rewardsSinceTimestamp) revert TimestampIsInTheFuture();
+      unchecked {
+        // Unckecked because we checked that upTo is bigger
+        timeElapsed = upTo - rewardsSinceTimestamp;
+      }
+
+      // Return proportional rewards
+      uint256 maxYearlyReward = (pos_.stakedAmount * rate) / 10_000;
+      uint256 maxYearPercentage = (timeElapsed * 1e18) / 365 days;
+      uint256 maxReward = (maxYearPercentage * maxYearlyReward) / 1e18;
+
+      // Compute reward based on the premium spent for the cover
+      uint256 newlySpentPremiums = lastPremiumSpent_ - pos_.premiumSpent;
+      uint256 trueReward = newlySpentPremiums * pos_.atenPrice;
+
+      rewards = trueReward < maxReward ? trueReward : maxReward;
     }
-
-    // Return proportional rewards
-    uint256 maxYearlyReward = (pos_.stakedAmount * rate) / 10_000;
-    uint256 maxYearPercentage = (timeElapsed * 1e18) / 365 days;
-    uint256 maxReward = (maxYearPercentage * maxYearlyReward) / 1e18;
-
-    // Compute reward based on the premium spent for the cover
-    uint256 trueReward = (lastPremiumSpent_ - pos_.premiumSpent) *
-      pos_.atenPrice;
-
-    rewards = trueReward < maxReward ? trueReward : maxReward;
   }
 
   function _applyPenalty(uint256 totalRewards_, uint64 timeElapsed_)
