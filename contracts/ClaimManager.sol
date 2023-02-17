@@ -1,6 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8;
 
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+import "./ClaimEvidence.sol";
+import "./VerifySignature.sol";
+
 import "./interfaces/IArbitrable.sol";
 import "./interfaces/IArbitrator.sol";
 
@@ -8,11 +13,16 @@ import "./interfaces/IPolicyManager.sol";
 import "./interfaces/IClaimManager.sol";
 import "./interfaces/IAthena.sol";
 
-import "./ClaimEvidence.sol";
-
-contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
+contract ClaimManager is
+  IClaimManager,
+  VerifySignature,
+  Ownable,
+  ClaimEvidence,
+  IArbitrable
+{
   IAthena public immutable core;
   IPolicyManager public immutable policyManagerInterface;
+  address public metaEvidenceGuardian;
   uint256 public challengeDelay = 14 days;
   uint256 public claimIndex;
   uint256 public collateralAmount = 0.1 ether;
@@ -61,10 +71,12 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
   constructor(
     address core_,
     address policyManager_,
-    IArbitrator arbitrator_
+    IArbitrator arbitrator_,
+    address metaEvidenceGuardian_
   ) ClaimEvidence(arbitrator_) {
     core = IAthena(core_);
     policyManagerInterface = IPolicyManager(policyManager_);
+    metaEvidenceGuardian = metaEvidenceGuardian_;
   }
 
   /// ========================= ///
@@ -371,11 +383,22 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
   function initiateClaim(
     uint256 policyId_,
     uint256 amountClaimed_,
-    string calldata ipfsMetaEvidenceCid_
+    string calldata ipfsMetaEvidenceCid_,
+    bytes calldata signature_
   ) external payable onlyPolicyTokenOwner(policyId_) {
     // Get the policy
     IPolicyManager.Policy memory userPolicy = policyManagerInterface.policy(
       policyId_
+    );
+
+    // Verify authenticity of the IPFS meta-evidence CID
+    address metaEvidenceSigner = recoverSigner(
+      ipfsMetaEvidenceCid_,
+      signature_
+    );
+    require(
+      metaEvidenceSigner == metaEvidenceGuardian,
+      "CM: invalid meta-evidence"
     );
 
     uint128 poolId = userPolicy.poolId;
@@ -510,6 +533,7 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
     disputeIdToClaimId[disputeId] = claimId_;
 
     // Emit Kleros events for dispute creation and meta-evidence association
+    // @bw challenger party should be this address or that of guardian
     _emitKlerosDisputeEvents(
       msg.sender,
       disputeId,
@@ -610,7 +634,18 @@ contract ClaimManager is IClaimManager, ClaimEvidence, IArbitrable {
    * @dev The collateral is paid to the challenger if the claim is disputed and rejected.
    * @param amount_ The new amount of collateral.
    */
-  function changeRequiredCollateral(uint256 amount_) external onlyCore {
+  function changeRequiredCollateral(uint256 amount_) external onlyOwner {
     collateralAmount = amount_;
+  }
+
+  function changeChallengeDelay(uint256 duration_) external onlyOwner {
+    challengeDelay = duration_;
+  }
+
+  function changeMetaEvidenceGuardian(address metaEvidenceGuardian_)
+    external
+    onlyOwner
+  {
+    metaEvidenceGuardian = metaEvidenceGuardian_;
   }
 }
