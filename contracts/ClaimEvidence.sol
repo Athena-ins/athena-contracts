@@ -16,6 +16,14 @@ contract ClaimEvidence is IEvidence {
     arbitrator = arbitrator_;
   }
 
+  function getClaimEvidence(uint256 claimId_)
+    external
+    view
+    returns (string[] memory)
+  {
+    return claimIdToEvidence[claimId_];
+  }
+
   function _genMetaEvidenceId(uint256 poolId_, uint256 disputeId_)
     internal
     pure

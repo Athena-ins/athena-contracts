@@ -24,7 +24,7 @@ contract ClaimManager is
   IPolicyManager public immutable policyManagerInterface;
   address public metaEvidenceGuardian;
   uint256 public challengeDelay = 14 days;
-  uint256 public claimIndex;
+  uint256 public nextClaimId;
   uint256 public collateralAmount = 0.1 ether;
 
   // @dev the 'Accepted' status is virtual as it is never written to the blockchain
@@ -63,8 +63,8 @@ contract ClaimManager is
 
   // Maps a claim ID to a claim's data
   mapping(uint256 => Claim) public claims;
-  // Maps a coverId to its latest Kleros disputeId
-  mapping(uint256 => uint256) public policyIdToLatestClaimId;
+  // Maps a coverId to its claim IDs
+  mapping(uint256 => uint256[]) public coverIdToClaimIds;
   // Maps a Kleros dispute ID to its claim ID
   mapping(uint256 => uint256) public disputeIdToClaimId;
 
@@ -140,6 +140,14 @@ contract ClaimManager is
   /// ========= VIEWS ======== ///
   /// ======================== ///
 
+  function getCoverIdToClaimIds(uint256 coverId)
+    external
+    view
+    returns (uint256[] memory)
+  {
+    return coverIdToClaimIds[coverId];
+  }
+
   function getProtocolAgreement(uint256 poolId)
     external
     view
@@ -209,7 +217,7 @@ contract ClaimManager is
     view
     returns (Claim[] memory claimsInfo)
   {
-    require(endIndex < claimIndex, "CM: outside of range");
+    require(endIndex < nextClaimId, "CM: outside of range");
     require(beginIndex < endIndex, "CM: bad range");
 
     claimsInfo = new Claim[](endIndex - beginIndex);
@@ -233,6 +241,48 @@ contract ClaimManager is
     }
   }
 
+  function claimIdsByCoverId(uint256 coverId_)
+    external
+    view
+    returns (uint256[] memory claimIds)
+  {
+    claimIds = coverIdToClaimIds[coverId_];
+  }
+
+  function latestCoverClaimId(uint256 coverId_) public view returns (uint256) {
+    uint256 nbClaims = coverIdToClaimIds[coverId_].length;
+    return coverIdToClaimIds[coverId_][nbClaims - 1];
+  }
+
+  function claimsByCoverId(uint256 coverId_)
+    public
+    view
+    returns (Claim[] memory claimsInfo)
+  {
+    uint256 nbClaims = coverIdToClaimIds[coverId_].length;
+
+    claimsInfo = new Claim[](nbClaims);
+
+    for (uint256 i = 0; i < nbClaims; i++) {
+      uint256 claimId = coverIdToClaimIds[coverId_][i];
+      claimsInfo[i] = claims[claimId];
+    }
+  }
+
+  function claimsByMultiCoverIds(uint256[] calldata coverIds_)
+    external
+    view
+    returns (Claim[][] memory claimsInfoArray)
+  {
+    uint256 nbCovers = coverIds_.length;
+
+    claimsInfoArray = new Claim[][](nbCovers);
+
+    for (uint256 i = 0; i < nbCovers; i++) {
+      claimsInfoArray[i] = claimsByCoverId(coverIds_[i]);
+    }
+  }
+
   /**
    * @notice
    * Returns all the claims of a user.
@@ -245,13 +295,13 @@ contract ClaimManager is
     returns (Claim[] memory claimsInfo)
   {
     uint256 nbClaims = 0;
-    for (uint256 i = 0; i < claimIndex; i++) {
+    for (uint256 i = 0; i < nextClaimId; i++) {
       if (claims[i].from == account_) nbClaims++;
     }
 
     claimsInfo = new Claim[](nbClaims);
 
-    for (uint256 i = 0; i < claimIndex; i++) {
+    for (uint256 i = 0; i < nextClaimId; i++) {
       Claim memory claim = claims[i];
 
       if (claim.from == account_) {
@@ -284,13 +334,13 @@ contract ClaimManager is
     returns (Claim[] memory claimsInfo)
   {
     uint256 nbClaims = 0;
-    for (uint256 i = 0; i < claimIndex; i++) {
+    for (uint256 i = 0; i < nextClaimId; i++) {
       if (claims[i].poolId == poolId_) nbClaims++;
     }
 
     claimsInfo = new Claim[](nbClaims);
 
-    for (uint256 i = 0; i < claimIndex; i++) {
+    for (uint256 i = 0; i < nextClaimId; i++) {
       Claim memory claim = claims[i];
 
       if (claim.poolId == poolId_) {
@@ -392,14 +442,17 @@ contract ClaimManager is
     );
 
     // Verify authenticity of the IPFS meta-evidence CID
-    address metaEvidenceSigner = recoverSigner(
-      ipfsMetaEvidenceCid_,
-      signature_
-    );
-    require(
-      metaEvidenceSigner == metaEvidenceGuardian,
-      "CM: invalid meta-evidence"
-    );
+    /// @dev Wrap in context to avoid stack too deep error
+    {
+      address metaEvidenceSigner = recoverSigner(
+        ipfsMetaEvidenceCid_,
+        signature_
+      );
+      require(
+        metaEvidenceSigner == metaEvidenceGuardian,
+        "CM: invalid meta-evidence"
+      );
+    }
 
     uint128 poolId = userPolicy.poolId;
 
@@ -421,8 +474,8 @@ contract ClaimManager is
     );
 
     // Check if there already an ongoing claim related to this policy
-    uint256 latestClaimIdOfPolicy = policyIdToLatestClaimId[policyId_];
-    if (latestClaimIdOfPolicy != 0) {
+    if (0 < coverIdToClaimIds[policyId_].length) {
+      uint256 latestClaimIdOfPolicy = latestCoverClaimId(policyId_);
       // Only allow for a new claim if it is not initiated or disputed
       // @dev a policy can lead to multiple claims but if the total claimed amount exceeds their coverage amount then the claim may be disputed
       Claim storage userClaim = claims[latestClaimIdOfPolicy];
@@ -434,9 +487,9 @@ contract ClaimManager is
     }
 
     // Save latest claim ID of policy and update claim index
-    uint256 claimId = claimIndex;
-    policyIdToLatestClaimId[policyId_] = claimId;
-    claimIndex++;
+    uint256 claimId = nextClaimId;
+    coverIdToClaimIds[policyId_].push(claimId);
+    nextClaimId++;
 
     // Save claim data
     claims[claimId] = Claim({
