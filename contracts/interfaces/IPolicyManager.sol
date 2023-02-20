@@ -13,6 +13,7 @@ interface IPolicyManager is IERC721Enumerable {
   }
 
   struct FullCoverData {
+    address owner;
     uint256 coverId;
     uint128 poolId;
     bool cancelledByUser;

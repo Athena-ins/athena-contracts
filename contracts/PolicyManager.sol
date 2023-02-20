@@ -110,8 +110,11 @@ contract PolicyManager is IPolicyManager, ERC721Enumerable {
         .getInfo(coverId);
     }
 
+    address coverOwner = ownerOf(coverId);
+
     return
       FullCoverData({
+        owner: coverOwner,
         coverId: coverId,
         poolId: cover.poolId,
         cancelledByUser: cover.cancelledByUser,
