@@ -123,6 +123,8 @@ async function deployClaimManagerContract(
     contract.ARBITRATOR?.address ||
     HardhatHelper.ARBITRATOR_ADDRESS;
 
+  const guardianAddress = HardhatHelper.getMetaEvidenceGuardian().address;
+
   contract.CLAIM_MANAGER = await (
     await hre_ethers.getContractFactory("ClaimManager")
   )
@@ -130,7 +132,8 @@ async function deployClaimManagerContract(
     .deploy(
       contract.ATHENA.address,
       contract.POLICY_MANAGER.address,
-      useArbitratorAddress
+      useArbitratorAddress,
+      guardianAddress
     );
 
   await contract.CLAIM_MANAGER.deployed();
@@ -454,11 +457,17 @@ async function createClaim(
 
   const valueForTx = valueOverride || arbitrationCost.add(collateralAmount);
 
+  const ipfsCid = "bafybeiafebm3zdtzmn5mcquacgd47enhsjnebvegnzfunaaaaaaaaaaaaa";
+  const signature = await HardhatHelper.getMetaEvidenceGuardian().signMessage(
+    ipfsCid
+  );
+
   // Create the claim
   await contract.CLAIM_MANAGER.connect(policyHolder).initiateClaim(
     coverId,
     amountClaimed,
-    "bafybeiafebm3zdtzmn5mcquacgd47enhsjnebvegnzfunaaaaaaaaaaaaa",
+    ipfsCid,
+    signature,
     { value: valueForTx }
   );
 }
@@ -468,15 +477,17 @@ async function resolveClaimWithoutDispute(
   coverId: number,
   timeLapse: number
 ) {
-  const claimId = await contract.CLAIM_MANAGER.connect(
+  const claimIds = await contract.CLAIM_MANAGER.connect(
     policyHolder
-  ).policyIdToLatestClaimId(coverId);
+  ).getCoverIdToClaimIds(coverId);
+
+  const latestClaimId = claimIds[claimIds.length - 1];
 
   await HardhatHelper.setNextBlockTimestamp(timeLapse);
 
   await contract.CLAIM_MANAGER.connect(
     policyHolder
-  ).withdrawCompensationWithoutDispute(claimId);
+  ).withdrawCompensationWithoutDispute(latestClaimId);
 }
 
 async function takeInterest(

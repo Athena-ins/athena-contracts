@@ -16,6 +16,12 @@ async function allSigners() {
   return await hre_ethers.getSigners();
 }
 
+const getMetaEvidenceGuardian = () => {
+  const EVIDENCE_GUARDIAN_PK = process.env.EVIDENCE_GUARDIAN_PK;
+  if (!EVIDENCE_GUARDIAN_PK) throw new Error("EVIDENCE_GUARDIAN_PK not set");
+  return new ethers.Wallet(EVIDENCE_GUARDIAN_PK);
+};
+
 async function reset() {
   currentTime = 1674000000;
 
@@ -163,6 +169,7 @@ export default {
   reset,
   initSigners,
   allSigners,
+  getMetaEvidenceGuardian,
   impersonateAccount,
   setNextBlockTimestamp,
   NULL_ADDRESS,
