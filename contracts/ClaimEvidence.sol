@@ -42,12 +42,15 @@ contract ClaimEvidence is IEvidence {
     uint256 metaEvidenceId = _genMetaEvidenceId(poolId_, disputeId_);
 
     // Annonces creation of dispute and linked meta-evidence items
+    // @bw should find deterministic metaevidenceid
     emit Dispute(arbitrator, disputeId_, metaEvidenceId, disputeId_);
 
     // Emit the meta-evidence event
+    // @bw should be emmitted at claim creationg
     emit MetaEvidence(metaEvidenceId, ipfsMetaEvidenceCid_);
 
     // Send agreement information as evidence
+    // @bw already included in meta
     emit Evidence(
       arbitrator,
       disputeId_,

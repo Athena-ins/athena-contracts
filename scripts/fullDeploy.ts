@@ -33,16 +33,16 @@ async function main() {
       throw Error("TESTER_WALLET not set");
     }
 
-    // =====> deploy ATEN token & deploy arbitrator
-    // @dev for the moment do not redeploy ATEN token to reuse existing one
-    if (hre.network.name === "hardhat") {
-      console.log("==> ATEN TOKEN");
-      await ProtocolHelper.deployAtenTokenContract(deployer);
-    }
-    console.log("==> ARBITRATOR");
-    await ProtocolHelper.deployArbitratorContract(deployer);
-    const ARBITRATOR_CONTRACT = ProtocolHelper.getArbitratorContract();
-    deploymentAddress.ARBITRATOR = ARBITRATOR_CONTRACT.address;
+    // // =====> deploy ATEN token & deploy arbitrator
+    // // @dev for the moment do not redeploy ATEN token to reuse existing one
+    // if (hre.network.name === "hardhat") {
+    //   console.log("==> ATEN TOKEN");
+    //   await ProtocolHelper.deployAtenTokenContract(deployer);
+    // }
+    // console.log("==> ARBITRATOR");
+    // await ProtocolHelper.deployArbitratorContract(deployer);
+    // const ARBITRATOR_CONTRACT = ProtocolHelper.getArbitratorContract();
+    // deploymentAddress.ARBITRATOR = ARBITRATOR_CONTRACT.address;
 
     // =====> deploy athena contracts
     console.log("==> CORE");
@@ -119,11 +119,11 @@ async function main() {
 
     // =====> transfer tokens
     if (hre.network.name === "goerli") {
-      console.log("==> TRANSFERS");
-      await ATEN_CONTRACT.connect(deployer).transfer(
-        process.env.TESTER_WALLET as string,
-        amountTransfers
-      );
+      // console.log("==> TRANSFERS");
+      // await ATEN_CONTRACT.connect(deployer).transfer(
+      //   process.env.TESTER_WALLET as string,
+      //   amountTransfers
+      // );
     }
 
     // =====> deposit ATEN in rewards vault

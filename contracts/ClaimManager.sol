@@ -22,8 +22,8 @@ contract ClaimManager is
 {
   IAthena public immutable core;
   IPolicyManager public immutable policyManagerInterface;
-  /// @dev Initiate at 1 to avoid the 0 default value for ecrecover
-  address public metaEvidenceGuardian = address(1);
+
+  address public metaEvidenceGuardian;
   uint256 public challengeDelay = 14 days;
   uint256 public nextClaimId;
   uint256 public collateralAmount = 0.1 ether;
