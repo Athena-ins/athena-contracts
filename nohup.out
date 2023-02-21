@@ -1,8 +1,0 @@
-22849:C 29 Mar 2022 11:57:46.248 # oO0OoO0OoO0Oo Redis is starting oO0OoO0OoO0Oo
-22849:C 29 Mar 2022 11:57:46.248 # Redis version=6.2.6, bits=64, commit=00000000, modified=0, pid=22849, just started
-22849:C 29 Mar 2022 11:57:46.248 # Warning: no config file specified, using the default config. In order to specify a config file use redis-server /path/to/redis.conf
-22849:M 29 Mar 2022 11:57:46.249 * Increased maximum number of open files to 10032 (it was originally set to 8192).
-22849:M 29 Mar 2022 11:57:46.249 * monotonic clock: POSIX clock_gettime
-22849:M 29 Mar 2022 11:57:46.251 * Running mode=standalone, port=6379.
-22849:M 29 Mar 2022 11:57:46.251 # Server initialized
-22849:M 29 Mar 2022 11:57:46.251 * Ready to accept connections

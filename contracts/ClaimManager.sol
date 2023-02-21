@@ -22,7 +22,8 @@ contract ClaimManager is
 {
   IAthena public immutable core;
   IPolicyManager public immutable policyManagerInterface;
-  address public metaEvidenceGuardian;
+  /// @dev Initiate at 1 to avoid the 0 default value for ecrecover
+  address public metaEvidenceGuardian = address(1);
   uint256 public challengeDelay = 14 days;
   uint256 public nextClaimId;
   uint256 public collateralAmount = 0.1 ether;
@@ -699,6 +700,10 @@ contract ClaimManager is
     external
     onlyOwner
   {
+    require(
+      metaEvidenceGuardian_ != address(0),
+      "CM: guardian set to address(0)"
+    );
     metaEvidenceGuardian = metaEvidenceGuardian_;
   }
 }
