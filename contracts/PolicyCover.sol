@@ -90,58 +90,63 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
     (Slot0 memory __slot0, ) = _actualizingUntil(block.timestamp);
     PremiumPosition.Info memory __position = premiumPositions[coverId_];
 
-    require(__slot0.tick <= __position.lastTick, "Policy Expired");
+    if (__position.lastTick < __slot0.tick) {
+      /// @dev If the tick in slot0 is greater than the position's last tick then the policy is expired
+      __premiumLeft = 0;
+      __currentEmissionRate = 0;
+      __remainingSeconds = 0;
+    } else {
+      uint256 __coverBeginEmissionRate = policyManagerInterface
+        .policy(coverId_)
+        .amountCovered
+        .rayMul(__position.beginPremiumRate / 100) / 365;
 
-    uint256 __coverBeginEmissionRate = policyManagerInterface
-      .policy(coverId_)
-      .amountCovered
-      .rayMul(__position.beginPremiumRate / 100) / 365;
+      uint256 __currentPremiumRate = getPremiumRate(
+        _utilisationRate(0, 0, __slot0.totalInsuredCapital, __availableCapital)
+      );
 
-    uint256 __currentPremiumRate = getPremiumRate(
-      _utilisationRate(0, 0, __slot0.totalInsuredCapital, __availableCapital)
-    );
+      __currentEmissionRate = getEmissionRate(
+        __coverBeginEmissionRate,
+        __position.beginPremiumRate,
+        __currentPremiumRate
+      );
 
-    __currentEmissionRate = getEmissionRate(
-      __coverBeginEmissionRate,
-      __position.beginPremiumRate,
-      __currentPremiumRate
-    );
+      uint256 __coverCurrentEmissionRate = __currentEmissionRate;
 
-    uint256 __coverCurrentEmissionRate = __currentEmissionRate;
+      while (__slot0.tick < __position.lastTick) {
+        (uint32 __tickNext, bool __initialized) = tickBitmap
+          .nextInitializedTickInTheRightWithinOneWord(__slot0.tick);
 
-    while (__slot0.tick < __position.lastTick) {
-      (uint32 __tickNext, bool __initialized) = tickBitmap
-        .nextInitializedTickInTheRightWithinOneWord(__slot0.tick);
+        uint32 __tick = __tickNext < __position.lastTick
+          ? __tickNext
+          : __position.lastTick;
+        uint256 __secondsPassed = (__tick - __slot0.tick) *
+          __slot0.secondsPerTick;
 
-      uint32 __tick = __tickNext < __position.lastTick
-        ? __tickNext
-        : __position.lastTick;
-      uint256 __secondsPassed = (__tick - __slot0.tick) *
-        __slot0.secondsPerTick;
+        __premiumLeft += (__secondsPassed * __coverCurrentEmissionRate) / 86400;
 
-      __premiumLeft += (__secondsPassed * __coverCurrentEmissionRate) / 86400;
+        __remainingSeconds += __secondsPassed;
 
-      __remainingSeconds += __secondsPassed;
+        __slot0.tick = __tick;
 
-      __slot0.tick = __tick;
+        if (__initialized && __tickNext < __position.lastTick) {
+          crossingInitializedTick(__slot0, __availableCapital, __tickNext);
 
-      if (__initialized && __tickNext < __position.lastTick) {
-        crossingInitializedTick(__slot0, __availableCapital, __tickNext);
+          __currentPremiumRate = getPremiumRate(
+            _utilisationRate(
+              0,
+              0,
+              __slot0.totalInsuredCapital,
+              __availableCapital
+            )
+          );
 
-        __currentPremiumRate = getPremiumRate(
-          _utilisationRate(
-            0,
-            0,
-            __slot0.totalInsuredCapital,
-            __availableCapital
-          )
-        );
-
-        __coverCurrentEmissionRate = getEmissionRate(
-          __coverBeginEmissionRate,
-          __position.beginPremiumRate,
-          __currentPremiumRate
-        );
+          __coverCurrentEmissionRate = getEmissionRate(
+            __coverBeginEmissionRate,
+            __position.beginPremiumRate,
+            __currentPremiumRate
+          );
+        }
       }
     }
   }

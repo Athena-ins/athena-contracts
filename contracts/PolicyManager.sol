@@ -98,7 +98,7 @@ contract PolicyManager is IPolicyManager, ERC721Enumerable {
     Policy memory cover = policy(coverId);
 
     uint256 premiumLeft;
-    uint256 dailyCost;
+    uint256 currentEmissionRate;
     uint256 estDuration;
 
     // We only want to read additional cover data if it is ongoing
@@ -106,8 +106,9 @@ contract PolicyManager is IPolicyManager, ERC721Enumerable {
       address protocolAddress = protocolFactoryInterface.getPoolAddress(
         cover.poolId
       );
-      (premiumLeft, dailyCost, estDuration) = IProtocolPool(protocolAddress)
-        .getInfo(coverId);
+      (premiumLeft, currentEmissionRate, estDuration) = IProtocolPool(
+        protocolAddress
+      ).getInfo(coverId);
     }
 
     address coverOwner = ownerOf(coverId);
@@ -123,7 +124,7 @@ contract PolicyManager is IPolicyManager, ERC721Enumerable {
         beginCoveredTime: cover.beginCoveredTime,
         endTimestamp: cover.endTimestamp,
         premiumLeft: premiumLeft,
-        dailyCost: dailyCost,
+        dailyCost: currentEmissionRate,
         remainingDuration: estDuration
       });
   }
