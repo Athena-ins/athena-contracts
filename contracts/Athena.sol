@@ -251,10 +251,10 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     if (stakedAten_ == 0) return supplyFeeLevels[0].feeRate;
 
     // Inversed loop starts with the end to find adequate level
-    for (uint256 index = supplyFeeLevels.length - 1; index >= 0; index--) {
+    for (uint256 i = supplyFeeLevels.length - 1; i >= 0; i--) {
       // Rate level with atenAmount of 0 will always be true
-      if (supplyFeeLevels[index].atenAmount <= stakedAten_)
-        return supplyFeeLevels[index].feeRate;
+      if (supplyFeeLevels[i].atenAmount <= stakedAten_)
+        return supplyFeeLevels[i].feeRate;
     }
   }
 
@@ -471,8 +471,8 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
       .position(tokenId);
 
     // @bw committingWithdrawLiquidity should be saved in the core instead of each pool
-    for (uint256 index = 0; index < __position.poolIds.length; index++)
-      IProtocolPool(getPoolAddressById(__position.poolIds[index]))
+    for (uint256 i = 0; i < __position.poolIds.length; i++)
+      IProtocolPool(getPoolAddressById(__position.poolIds[i]))
         .committingWithdrawLiquidity(tokenId);
   }
 
@@ -485,9 +485,9 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
 
     uint256 __newUserCapital;
     uint256 __aaveScaledBalanceToRemove;
-    for (uint256 index = 0; index < __position.poolIds.length; index++) {
+    for (uint256 i = 0; i < __position.poolIds.length; i++) {
       IProtocolPool __protocol = IProtocolPool(
-        getPoolAddressById(__position.poolIds[index])
+        getPoolAddressById(__position.poolIds[i])
       );
 
       // @bw should check commit delay elapsed in this contract to avoid multiple calls to the protocols
@@ -846,10 +846,10 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
 
     // Set all cover supply fee levels
     uint256 previousAtenAmount = 0;
-    for (uint256 index = 0; index < levels_.length; index++) {
-      AtenFeeLevel calldata level = levels_[index];
+    for (uint256 i = 0; i < levels_.length; i++) {
+      AtenFeeLevel calldata level = levels_[i];
 
-      if (index == 0) {
+      if (i == 0) {
         // Require that the first level indicates fees for atenAmount 0
         if (level.atenAmount != 0) revert MissingBaseRate();
       } else {

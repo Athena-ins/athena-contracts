@@ -138,10 +138,10 @@ contract StakingGeneralPool is IStakedAten {
     if (suppliedCapital_ == 0) return stakingRewardRates[0].aprStaking;
 
     // Inversed loop starts with the end to find adequate level
-    for (uint256 index = stakingRewardRates.length - 1; index >= 0; index--) {
+    for (uint256 i = stakingRewardRates.length - 1; i >= 0; i--) {
       // Rate level with amountSupplied of 0 will always be true
-      if (stakingRewardRates[index].amountSupplied <= suppliedCapital_)
-        return stakingRewardRates[index].aprStaking;
+      if (stakingRewardRates[i].amountSupplied <= suppliedCapital_)
+        return stakingRewardRates[i].aprStaking;
     }
   }
 
@@ -279,7 +279,7 @@ contract StakingGeneralPool is IStakedAten {
   /// ========================= ///
   /// ========= ADMIN ========= ///
   /// ========================= ///
- 
+
   function setStakingRewards(RewardRateLevel[] calldata stakingLevels_)
     external
     onlyCore
@@ -288,16 +288,16 @@ contract StakingGeneralPool is IStakedAten {
     delete stakingRewardRates;
 
     // Set all cover supply fee levels
-    for (uint256 index = 0; index < stakingLevels_.length; index++) {
-      RewardRateLevel calldata level = stakingLevels_[index];
+    for (uint256 i = 0; i < stakingLevels_.length; i++) {
+      RewardRateLevel calldata level = stakingLevels_[i];
 
-      if (index == 0) {
+      if (i == 0) {
         // Require that the first level indicates fees for atenAmount 0
         require(level.amountSupplied == 0, "SGP: must specify base rate");
       } else {
         // If it isn't the first item check that items are ascending
         require(
-          stakingLevels_[index - 1].amountSupplied < level.amountSupplied,
+          stakingLevels_[i - 1].amountSupplied < level.amountSupplied,
           "SGP: sort in ascending order"
         );
       }

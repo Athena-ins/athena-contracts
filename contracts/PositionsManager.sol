@@ -61,8 +61,8 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
   {
     uint256 tokenLength = balanceOf(owner);
     tokenList = new uint256[](tokenLength);
-    for (uint256 index = 0; index < tokenLength; index++)
-      tokenList[index] = tokenOfOwnerByIndex(owner, index);
+    for (uint256 i = 0; i < tokenLength; i++)
+      tokenList[i] = tokenOfOwnerByIndex(owner, i);
   }
 
   function allPositionsOfOwner(address owner)
@@ -123,8 +123,8 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
     // this should probably be adjusted with claims losses and APR gains
     uint256[] memory tokenList = allPositionTokensOfOwner(account_);
 
-    for (uint256 index = 0; index < tokenList.length; index++) {
-      Position memory _position = _positions[tokenList[index]];
+    for (uint256 i = 0; i < tokenList.length; i++) {
+      Position memory _position = _positions[tokenList[i]];
 
       _capitalSupplied += _position.amountSupplied;
     }
