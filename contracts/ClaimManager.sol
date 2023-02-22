@@ -223,22 +223,23 @@ contract ClaimManager is
 
     claimsInfo = new Claim[](endIndex - beginIndex);
 
+    uint256 positionCounter;
     for (uint256 i = beginIndex; i < endIndex; i++) {
       Claim memory claim = claims[i];
 
-      uint256 index = claimsInfo.length;
-      claimsInfo[index] = claim;
+      claimsInfo[positionCounter] = claim;
 
       // Fill the empty claimId with the item index
-      claimsInfo[index].claimId = i;
+      claimsInfo[positionCounter].claimId = i;
 
       // We should check if the claim is available for compensation
       if (
         claim.status == ClaimStatus.Initiated &&
         claim.createdAt + challengeDelay < block.timestamp
       ) {
-        claimsInfo[index].status = ClaimStatus.Accepted;
+        claimsInfo[positionCounter].status = ClaimStatus.Accepted;
       }
+      positionCounter++;
     }
   }
 
@@ -302,23 +303,25 @@ contract ClaimManager is
 
     claimsInfo = new Claim[](nbClaims);
 
+    uint256 positionCounter;
     for (uint256 i = 0; i < nextClaimId; i++) {
       Claim memory claim = claims[i];
 
       if (claim.from == account_) {
-        uint256 index = claimsInfo.length;
-        claimsInfo[index] = claim;
+        claimsInfo[positionCounter] = claim;
 
         // Fill the empty claimId with the item index
-        claimsInfo[index].claimId = i;
+        claimsInfo[positionCounter].claimId = i;
 
         // We should check if the claim is available for compensation
         if (
           claim.status == ClaimStatus.Initiated &&
           claim.createdAt + challengeDelay < block.timestamp
         ) {
-          claimsInfo[index].status = ClaimStatus.Accepted;
+          claimsInfo[positionCounter].status = ClaimStatus.Accepted;
         }
+
+        positionCounter++;
       }
     }
   }
@@ -341,23 +344,26 @@ contract ClaimManager is
 
     claimsInfo = new Claim[](nbClaims);
 
+    uint256 positionCounter;
+
     for (uint256 i = 0; i < nextClaimId; i++) {
       Claim memory claim = claims[i];
 
       if (claim.poolId == poolId_) {
-        uint256 index = claimsInfo.length;
-        claimsInfo[index] = claim;
+        claimsInfo[positionCounter] = claim;
 
         // Fill the empty claimId with the item index
-        claimsInfo[index].claimId = i;
+        claimsInfo[positionCounter].claimId = i;
 
         // We should check if the claim is available for compensation
         if (
           claim.status == ClaimStatus.Initiated &&
           claim.createdAt + challengeDelay < block.timestamp
         ) {
-          claimsInfo[index].status = ClaimStatus.Accepted;
+          claimsInfo[positionCounter].status = ClaimStatus.Accepted;
         }
+
+        positionCounter++;
       }
     }
   }
