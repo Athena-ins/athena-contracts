@@ -4,11 +4,7 @@ import { BigNumber, ethers } from "ethers";
 import chaiAsPromised from "chai-as-promised";
 
 import HardhatHelper from "./helpers/HardhatHelper";
-import type {
-  typeAthena,
-  typeStakingPolicy,
-  typeATEN,
-} from "./helpers/TypedContracts";
+import type { Athena, StakingPolicy, ATEN } from "../typechain";
 import ProtocolHelper from "./helpers/ProtocolHelper";
 
 chai.use(chaiAsPromised);
@@ -22,9 +18,9 @@ let policyTaker1: ethers.Signer;
 let policyTaker2: ethers.Signer;
 let policyTaker3: ethers.Signer;
 
-let ATEN: typeATEN;
-let ATHENA_CONTRACT: typeAthena;
-let STAKING_POLICY: typeStakingPolicy;
+let ATEN_TOKEN: ATEN;
+let ATHENA_CONTRACT: Athena;
+let STAKING_POLICY: StakingPolicy;
 
 describe("Cover Refund Staking", function () {
   before(async function () {
@@ -45,7 +41,7 @@ describe("Cover Refund Staking", function () {
 
     // ================= Get Contracts ================= //
 
-    ATEN = ProtocolHelper.getAtenTokenContract();
+    ATEN_TOKEN = ProtocolHelper.getAtenTokenContract();
     ATHENA_CONTRACT = ProtocolHelper.getAthenaContract();
     STAKING_POLICY = ProtocolHelper.getStakedAtensPolicyContract();
 
@@ -189,7 +185,7 @@ describe("Cover Refund Staking", function () {
   it("Should claim rewards and be capped at amount of staked ATEN", async function () {
     await HardhatHelper.setNextBlockTimestamp(125 * 24 * 60 * 60);
 
-    const balBefore = await ATEN.connect(policyTaker2).balanceOf(
+    const balBefore = await ATEN_TOKEN.connect(policyTaker2).balanceOf(
       await policyTaker2.getAddress()
     );
 
@@ -198,7 +194,7 @@ describe("Cover Refund Staking", function () {
     ).wait();
     expect(txWithdrawAten).to.haveOwnProperty("transactionHash");
 
-    const balAfter = await ATEN.connect(policyTaker2).balanceOf(
+    const balAfter = await ATEN_TOKEN.connect(policyTaker2).balanceOf(
       await policyTaker2.getAddress()
     );
 

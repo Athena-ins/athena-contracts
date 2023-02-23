@@ -4,7 +4,7 @@ import { ethers } from "ethers";
 
 import HardhatHelper from "./helpers/HardhatHelper";
 import ProtocolHelper from "./helpers/ProtocolHelper";
-import type { typeStakingPolicy } from "./helpers/TypedContracts";
+import type { StakingPolicy } from "../typechain";
 
 chai.use(chaiAsPromised);
 
@@ -16,7 +16,7 @@ let liquidityProvider2: ethers.Signer;
 let policyTaker1: ethers.Signer;
 let policyTaker2: ethers.Signer;
 
-let STAKING_POLICY: typeStakingPolicy;
+let STAKING_POLICY: StakingPolicy;
 
 describe("Update User Cover", function () {
   before(async function () {

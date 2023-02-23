@@ -4,7 +4,7 @@ import { ethers } from "ethers";
 
 import HardhatHelper from "./helpers/HardhatHelper";
 import ProtocolHelper from "./helpers/ProtocolHelper";
-import type { typeStakingPolicy } from "./helpers/TypedContracts";
+import { StakingPolicy } from "../typechain";
 
 chai.use(chaiAsPromised);
 
@@ -12,7 +12,7 @@ let owner: ethers.Signer;
 let liquidityProvider1: ethers.Signer;
 let policyTaker1: ethers.Signer;
 
-let STAKING_POLICY: typeStakingPolicy;
+let STAKING_POLICY: StakingPolicy;
 
 describe("Staking Policy Rewards", function () {
   before(async function () {
