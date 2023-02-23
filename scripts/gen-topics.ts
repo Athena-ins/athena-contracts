@@ -6,27 +6,27 @@ import * as factories from "../typechain";
 const toHash = (func: string) =>
   ethers.utils.keccak256(ethers.utils.toUtf8Bytes(func));
 
-const genFnSigs = async () => {
+const genEventTopics = async () => {
   const fns = Object.values(factories)
-    .map((factory) => Object.keys(factory.createInterface().functions))
+    .map((factory) => Object.keys(factory.createInterface().events))
     .flat();
 
   let sigs: any = fns.reduce(
     (acc, func) => ({
       ...acc,
-      [func]: toHash(func).slice(0, 10),
+      [func]: toHash(func),
     }),
     {}
   );
 
   fs.writeFileSync(
-    "./test/registries/signatureHashes.json",
+    "./test/registries/eventTopics.json",
     JSON.stringify(sigs, null, 2)
   );
 
   console.log(
-    `\n=> Generated ${fns.length} signatures in test/registries/signatureHashes.json\n`
+    `\n=> Generated ${fns.length} event topics in test/registries/eventTopics.json\n`
   );
 };
 
-genFnSigs();
+genEventTopics();
