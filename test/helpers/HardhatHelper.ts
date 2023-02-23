@@ -10,10 +10,13 @@ const NULL_ADDRESS = "0x" + "0".repeat(40);
 let binanceSigner: ethers.Signer;
 let atenOwnerSigner: ethers.Signer;
 
-let currentTime = 1674000000;
-
 async function allSigners() {
   return await hre_ethers.getSigners();
+}
+
+async function deployerSigner() {
+  const getAllSigners = await allSigners();
+  return getAllSigners[0];
 }
 
 const getMetaEvidenceGuardian = () => {
@@ -23,8 +26,6 @@ const getMetaEvidenceGuardian = () => {
 };
 
 async function reset() {
-  currentTime = 1674000000;
-
   const originalFork = (network.config as HardhatNetworkConfig).forking?.url;
   const forkTarget = originalFork || process.env.GOERLI_URL;
 
@@ -65,12 +66,12 @@ async function impersonateAccount(address: string) {
   return await hre_ethers.getSigner(address);
 }
 
-async function setNextBlockTimestamp(addingTime: number) {
-  if (addingTime <= 0) return;
+async function setNextBlockTimestamp(secondsToAdd: number) {
+  if (secondsToAdd <= 0) return;
   const latestTimeStamp = (await hre.ethers.provider.getBlock("latest"))
     .timestamp;
 
-  const newTime = latestTimeStamp + addingTime;
+  const newTime = latestTimeStamp + secondsToAdd;
 
   await hre.network.provider.request({
     method: "evm_setNextBlockTimestamp",
@@ -169,6 +170,7 @@ export default {
   reset,
   initSigners,
   allSigners,
+  deployerSigner,
   getMetaEvidenceGuardian,
   impersonateAccount,
   setNextBlockTimestamp,

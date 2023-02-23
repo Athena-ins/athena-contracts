@@ -313,7 +313,8 @@ async function deployAllContractsAndInitializeProtocol(owner: ethers.Signer) {
 }
 
 async function addNewProtocolPool(protocolPoolName: string) {
-  return await contract.ATHENA.addNewProtocol(
+  const deployer = await HardhatHelper.deployerSigner();
+  return await contract.ATHENA.connect(deployer).addNewProtocol(
     protocolPoolName,
     [],
     14 * 24 * 60 * 60,
