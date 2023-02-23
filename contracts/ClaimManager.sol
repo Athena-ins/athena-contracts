@@ -218,7 +218,7 @@ contract ClaimManager is
     view
     returns (Claim[] memory claimsInfo)
   {
-    require(endIndex < nextClaimId, "CM: outside of range");
+    require(endIndex <= nextClaimId, "CM: outside of range");
     require(beginIndex < endIndex, "CM: bad range");
 
     claimsInfo = new Claim[](endIndex - beginIndex);
