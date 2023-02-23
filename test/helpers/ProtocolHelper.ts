@@ -457,9 +457,11 @@ async function createClaim(
 
   const valueForTx = valueOverride || arbitrationCost.add(collateralAmount);
 
-  const ipfsCid = "bafybeiafebm3zdtzmn5mcquacgd47enhsjnebvegnzfunaaaaaaaaaaaaa";
+  const ipfsCid = "QmaRxRRcQXFRzjrr4hgBydu6QetaFr687kfd9EjtoLaSyq";
+
+  const hash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(ipfsCid));
   const signature = await HardhatHelper.getMetaEvidenceGuardian().signMessage(
-    ipfsCid
+    ethers.utils.arrayify(hash)
   );
 
   // Create the claim

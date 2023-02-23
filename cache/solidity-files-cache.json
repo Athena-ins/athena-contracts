@@ -110,8 +110,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\Athena.sol": {
-      "lastModificationDate": 1676549030174,
-      "contentHash": "62aeacffc3116094a3a29b3916511c5b",
+      "lastModificationDate": 1677085273002,
+      "contentHash": "6b89382457d1fcec93b3c73c4fb41951",
       "sourceName": "contracts/Athena.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -950,8 +950,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\StakingGeneralPool.sol": {
-      "lastModificationDate": 1675275585193,
-      "contentHash": "68286944bf31d4b17168aaf40ec408ba",
+      "lastModificationDate": 1677085316440,
+      "contentHash": "48992253001b508cce41bf3b7e4f2902",
       "sourceName": "contracts/StakingGeneralPool.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -990,8 +990,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\PositionsManager.sol": {
-      "lastModificationDate": 1675963551329,
-      "contentHash": "5a8dceaf27d33375dc959e167e83afc3",
+      "lastModificationDate": 1677085295060,
+      "contentHash": "d779be33514f9656e8141cedcd7eba9d",
       "sourceName": "contracts/PositionsManager.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -1370,8 +1370,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\PolicyCover.sol": {
-      "lastModificationDate": 1676466170554,
-      "contentHash": "ab276b9efad5250254aec84da754c182",
+      "lastModificationDate": 1677096475174,
+      "contentHash": "5461df88b7731e2afce7cb60988bed0d",
       "sourceName": "contracts/PolicyCover.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -1634,8 +1634,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\PolicyManager.sol": {
-      "lastModificationDate": 1676902081189,
-      "contentHash": "7c27694cce59f6d64908f63f774d2321",
+      "lastModificationDate": 1677096234095,
+      "contentHash": "309c9363e3ba531b5ba1a31eaf997b60",
       "sourceName": "contracts/PolicyManager.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -1675,8 +1675,8 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\ClaimManager.sol": {
-      "lastModificationDate": 1676993014282,
-      "contentHash": "b15845259ba45b16c43f4fadd5af154a",
+      "lastModificationDate": 1677090842843,
+      "contentHash": "bfef112b52ba98a7bfe81da56b44b790",
       "sourceName": "contracts/ClaimManager.sol",
       "solcConfig": {
         "version": "0.8.11",
@@ -2097,7 +2097,7 @@
       ]
     },
     "C:\\Users\\Victo\\OneDrive\\Bureau\\Code\\athena-contracts\\contracts\\PrivateSale\\PrivateSale.sol": {
-      "lastModificationDate": 1664788756618,
+      "lastModificationDate": 1677085349752,
       "contentHash": "a89c2d96f4b5403ec461dacd093e8c1a",
       "sourceName": "contracts/PrivateSale/PrivateSale.sol",
       "solcConfig": {

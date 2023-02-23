@@ -339,6 +339,32 @@ describe("Buy policy", () => {
       const allPositions = await POSITIONS_MANAGER_CONTRACT.allPositionsOfOwner(
         await liquidityProvider2.getAddress()
       );
+
+      expect(allPositions.length).to.be.equal(1);
+    });
+
+    it("Should get info after policy has expired", async () => {
+      const protocolContract =
+        await ProtocolHelper.getPolicyManagerContract().connect(policyTaker1);
+
+      const coverId = await ProtocolHelper.getAccountCoverIdByIndex(
+        policyTaker1,
+        0
+      );
+
+      await HardhatHelper.setNextBlockTimestamp(177 * 24 * 60 * 60);
+
+      const resBeforeExpire = await protocolContract.fullCoverData(coverId);
+      expect(resBeforeExpire.premiumLeft).to.be.equal(6);
+      expect(resBeforeExpire.dailyCost).to.be.equal(12);
+      expect(resBeforeExpire.remainingDuration).to.be.equal(43200);
+
+      await HardhatHelper.setNextBlockTimestamp(1 * 24 * 60 * 60);
+
+      const response = await protocolContract.fullCoverData(coverId);
+      expect(response.premiumLeft).to.be.equal(0);
+      expect(response.dailyCost).to.be.equal(0);
+      expect(response.remainingDuration).to.be.equal(0);
     });
   });
 });
