@@ -1,3 +1,4 @@
+import fs from "fs";
 import hre, { ethers as hre_ethers } from "hardhat";
 import ProtocolHelper from "../test/helpers/ProtocolHelper";
 import { deploymentAddress, contract } from "../test/helpers/TypedContracts";
@@ -16,9 +17,9 @@ const initialAtenOraclePrice = BigNumber.from(25).mul(
 );
 
 async function main() {
+  const chainName = hre.network.name;
+  console.log(`\n== DEPLOY ON ${chainName.toUpperCase()} ==\n`);
   try {
-    console.log(`\n== DEPLOY ON ${hre.network.name.toUpperCase()} ==\n`);
-
     const signers = await hre_ethers.getSigners();
     const deployer = signers[0];
     const user_1 = signers[1];
@@ -129,23 +130,25 @@ async function main() {
     // =====> deposit ATEN in rewards vault
     console.log("==> DEPOSIT TO VAULT");
     await ProtocolHelper.depositRewardsToVault(deployer, amountTransfers);
+  } catch (err: any) {
+    console.log("!!! ERROR !!!");
+    console.log(err);
+  }
 
-    // =====> send ATEN to user
-
-    console.log(
-      "\n==> Contracts: ",
+  // We want to save latest addresses even in case of an error
+  const newDeploys = JSON.stringify(
       Object.entries(contract).reduce(
         (acc, [key, value]) =>
           (deploymentAddress as any)[key]
             ? { ...acc, [key]: value.address }
             : acc,
         {}
-      )
+    ),
+    null,
+    2
     );
-  } catch (err: any) {
-    console.log("!!! ERROR !!!");
-    console.log(err);
-  }
+  console.log("\n==> Contracts: ", newDeploys);
+  fs.writeFileSync(`./test/registries/deploys-${chainName}.json`, newDeploys);
 }
 
 // We recommend this pattern to be able to use async/await everywhere
