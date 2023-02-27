@@ -26,7 +26,7 @@ contract ClaimManager is
   address public metaEvidenceGuardian;
   uint256 public challengeDelay = 14 days;
   uint256 public nextClaimId;
-  uint256 public collateralAmount = 0.1 ether;
+  uint256 public collateralAmount = 0.00042 ether;
 
   // @dev the 'Accepted' status is virtual as it is never written to the blockchain
   // It enables view functions to display the adequate state of the claim
@@ -413,12 +413,18 @@ contract ClaimManager is
   ) external {
     Claim storage userClaim = claims[claimId_];
 
-    require(userClaim.status == ClaimStatus.Disputed, "CM: wrong claim status");
+    require(
+      userClaim.status == ClaimStatus.Disputed ||
+        userClaim.status == ClaimStatus.Initiated,
+      "CM: wrong claim status"
+    );
 
     address claimant = userClaim.from;
     address challenger = userClaim.challenger;
     require(
-      msg.sender == claimant || msg.sender == challenger,
+      msg.sender == claimant ||
+        msg.sender == challenger ||
+        msg.sender == metaEvidenceGuardian,
       "CM: invalid party"
     );
 
