@@ -378,6 +378,7 @@ contract ClaimManager is
    * @param to_ The address to send value to
    * @param value_ The amount of ETH to send
    */
+  // @bw Will cause reverts on malicious receiver
   function sendValue(address to_, uint256 value_) private {
     (bool success, ) = to_.call{ value: value_ }("");
     require(success, "CM: transfer failed");
@@ -419,16 +420,16 @@ contract ClaimManager is
       "CM: wrong claim status"
     );
 
-    address claimant = userClaim.from;
+    bool isClaimant = msg.sender == userClaim.from;
     address challenger = userClaim.challenger;
     require(
-      msg.sender == claimant ||
+      isClaimant ||
         msg.sender == challenger ||
         msg.sender == metaEvidenceGuardian,
       "CM: invalid party"
     );
 
-    _submitKlerosEvidence(claimId_, msg.sender, ipfsEvidenceCids_);
+    _submitKlerosEvidence(claimId_, msg.sender, isClaimant, ipfsEvidenceCids_);
   }
 
   /// ============================ ///

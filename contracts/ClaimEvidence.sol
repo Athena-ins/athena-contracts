@@ -11,6 +11,7 @@ contract ClaimEvidence is IEvidence {
 
   // Maps a claim ID to its submited evidence
   mapping(uint256 => string[]) public claimIdToEvidence;
+  mapping(uint256 => string[]) public claimIdToCounterEvidence;
 
   constructor(IArbitrator arbitrator_) {
     arbitrator = arbitrator_;
@@ -22,6 +23,14 @@ contract ClaimEvidence is IEvidence {
     returns (string[] memory)
   {
     return claimIdToEvidence[claimId_];
+  }
+
+  function getClaimCounterEvidence(uint256 claimId_)
+    external
+    view
+    returns (string[] memory)
+  {
+    return claimIdToCounterEvidence[claimId_];
   }
 
   function _genMetaEvidenceId(uint256 poolId_, uint256 disputeId_)
@@ -62,11 +71,16 @@ contract ClaimEvidence is IEvidence {
   function _submitKlerosEvidence(
     uint256 claimId_,
     address party_,
+    bool isClaimant,
     string[] calldata ipfsEvidenceCids_
   ) internal {
+    string[] storage evidence = isClaimant
+      ? claimIdToEvidence[claimId_]
+      : claimIdToCounterEvidence[claimId_];
+
     for (uint256 i = 0; i < ipfsEvidenceCids_.length; i++) {
       // Save evidence files
-      claimIdToEvidence[claimId_].push(ipfsEvidenceCids_[i]);
+      evidence.push(ipfsEvidenceCids_[i]);
 
       // Emit event for Kleros to pick up the evidence
       emit Evidence(
