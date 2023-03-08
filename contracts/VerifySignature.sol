@@ -15,7 +15,7 @@ contract VerifySignature {
   function recoverSigner(string calldata message_, bytes memory signature_)
     public
     pure
-    returns (address)
+    returns (address signer)
   {
     bytes32 messageHash = keccak256(abi.encodePacked(message_));
     bytes32 ethSignedMessageHash = keccak256(
@@ -37,6 +37,14 @@ contract VerifySignature {
       v := byte(0, mload(add(signature_, 96)))
     }
 
-    return ecrecover(ethSignedMessageHash, v, r, s);
+    // Prevent signature malleability for ecrecover()
+    require(
+      uint256(s) <=
+        0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0,
+      "VS: bad s"
+    );
+
+    signer = ecrecover(ethSignedMessageHash, v, r, s);
+    require(signer != address(0), "VS: invalid signer");
   }
 }
