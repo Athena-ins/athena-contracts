@@ -16,16 +16,25 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
 
   /// The token ID position data
   mapping(uint256 => Position) private _positions;
+  /// Maps a position ID to the the withdrawal commit timestamp
+  mapping(uint256 => uint256) public withdrawCommitTimestamps;
 
   /// The ID of the next token that will be minted.
   uint176 private _nextTokenId = 0;
 
-  constructor(address coreAddress, address protocolFactory)
-    ERC721("Athena-Position", "Athena Insurance User Position")
-  {
+  constructor(
+    address coreAddress,
+    address protocolFactory
+  ) ERC721("Athena-Position", "Athena Insurance User Position") {
     core = coreAddress;
     protocolFactoryInterface = IProtocolFactory(protocolFactory);
   }
+
+  /// ========================= ///
+  /// ========= ERRORS ======== ///
+  /// ========================= ///
+
+  error WithdrawCommitDelayNotReached();
 
   /// =========================== ///
   /// ========= MODIFIER ======== ///
@@ -40,36 +49,26 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
   /// ========= VIEWS ======== ///
   /// ======================== ///
 
-  function position(uint256 tokenId)
-    external
-    view
-    override
-    returns (Position memory)
-  {
+  function position(uint256 tokenId) external view returns (Position memory) {
     return _positions[tokenId];
   }
 
-  function hasPositionOf(address to) external view override returns (bool) {
+  function hasPositionOf(address to) external view returns (bool) {
     return balanceOf(to) > 0;
   }
 
-  function allPositionTokensOfOwner(address owner)
-    public
-    view
-    override
-    returns (uint256[] memory tokenList)
-  {
+  function allPositionTokensOfOwner(
+    address owner
+  ) public view returns (uint256[] memory tokenList) {
     uint256 tokenLength = balanceOf(owner);
     tokenList = new uint256[](tokenLength);
     for (uint256 i = 0; i < tokenLength; i++)
       tokenList[i] = tokenOfOwnerByIndex(owner, i);
   }
 
-  function allPositionsOfOwner(address owner)
-    external
-    view
-    returns (PositionInfo[] memory positionList)
-  {
+  function allPositionsOfOwner(
+    address owner
+  ) external view returns (PositionInfo[] memory positionList) {
     uint256[] memory tokenList = allPositionTokensOfOwner(owner);
     positionList = new PositionInfo[](tokenList.length);
 
@@ -108,17 +107,14 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
       positionList[i] = PositionInfo({
         positionId: tokenList[i],
         premiumReceived: totalRewards,
-        withdrawCommitTimestamp: 0, // @bw move withdraw commit check to pos manager
         position: __position
       });
     }
   }
 
-  function allCapitalSuppliedByAccount(address account_)
-    external
-    view
-    returns (uint256 _capitalSupplied)
-  {
+  function allCapitalSuppliedByAccount(
+    address account_
+  ) external view returns (uint256 _capitalSupplied) {
     // @bw WARN this is ok for now but incomplete since the amount is the base capital
     // this should probably be adjusted with claims losses and APR gains
     uint256[] memory tokenList = allPositionTokensOfOwner(account_);
@@ -151,7 +147,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
     uint256 newAaveScaledBalance,
     uint128 feeRate,
     uint128[] calldata poolIds
-  ) external override onlyCore {
+  ) external onlyCore {
     IAthena _core = IAthena(core);
 
     // Save new position tokenId and update for next
@@ -160,7 +156,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
 
     // Ensure that all capital dependencies between pools are registered
     // Loop through each of the pools (i)
-    uint256 maxCommitDelay;
+    uint128 maxCommitDelay;
     for (uint256 i = 0; i < poolIds.length; i++) {
       uint128 currentPoolId = poolIds[i];
 
@@ -173,7 +169,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
       /// @dev create context to avoid stack too deep error
       // @bw test to see if it works
       {
-        uint256 poolCommitDelay = currentPool.commitDelay();
+        uint128 poolCommitDelay = currentPool.commitDelay();
         if (maxCommitDelay < poolCommitDelay) maxCommitDelay = poolCommitDelay;
       }
 
@@ -211,8 +207,19 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
   /// ========= CLOSE ======== ///
   /// ======================== ///
 
-  function burn(uint256 tokenId) external override onlyCore {
-    _burn(tokenId);
+  function committingWithdraw(uint256 tokenId_) external onlyCore {
+    withdrawCommitTimestamps[tokenId_] = block.timestamp;
+  }
+
+  function checkDelayAndClosePosition(uint tokenId_) external onlyCore {
+    uint128 commitDelay = _positions[tokenId_].commitDelay;
+    uint256 commitTimestamp = withdrawCommitTimestamps[tokenId_];
+
+    if (block.timestamp < commitTimestamp + commitDelay)
+      revert WithdrawCommitDelayNotReached();
+
+    delete commitTimestamp;
+    _burn(tokenId_);
   }
 
   /// ========================= ///
@@ -220,11 +227,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
   /// ========================= ///
 
   // @bw remove fn or check side effects - dangerous
-  function removePoolId(uint256 tokenId, uint128 _poolId)
-    external
-    override
-    onlyCore
-  {
+  function removePoolId(uint256 tokenId, uint128 _poolId) external onlyCore {
     uint128[] memory __poolIds = _positions[tokenId].poolIds;
 
     for (uint256 i = 0; i < __poolIds.length; i++) {
@@ -250,7 +253,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
     uint256 amount,
     uint256 newAaveScaledBalance,
     uint128 newStakingFeeRate
-  ) external override onlyCore {
+  ) external onlyCore {
     IPositionsManager.Position memory userPosition = _positions[tokenId];
 
     IAthena _core = IAthena(core);
@@ -304,7 +307,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
     address account,
     uint256 tokenId,
     uint128 poolId
-  ) external override onlyCore {
+  ) external onlyCore {
     Position memory _position = _positions[tokenId];
 
     require(
@@ -369,10 +372,10 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
     }
   }
 
-  function takeInterestsInAllPools(address account, uint256 tokenId)
-    external
-    onlyCore
-  {
+  function takeInterestsInAllPools(
+    address account,
+    uint256 tokenId
+  ) external onlyCore {
     _takeInterestsInAllPools(account, tokenId);
   }
 
@@ -386,11 +389,10 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
    * @param tokenId_ the position to be uptdated
    * @param newFeeRate_ the new fee rate of the position
    **/
-  function updateFeeLevel(uint256 tokenId_, uint128 newFeeRate_)
-    external
-    override
-    onlyCore
-  {
+  function updateFeeLevel(
+    uint256 tokenId_,
+    uint128 newFeeRate_
+  ) external onlyCore {
     // @bw should probably change feeRate to a global map instead of saving in each position
     _positions[tokenId_].feeRate = newFeeRate_;
   }

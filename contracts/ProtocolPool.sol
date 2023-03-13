@@ -12,7 +12,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
 
   address public underlyingAsset;
   uint128 public poolId;
-  uint256 public immutable commitDelay;
+  uint128 public commitDelay;
 
   mapping(uint256 => uint256) public withdrawReserves;
   mapping(uint256 => LPInfo) public LPsInfo;
@@ -21,7 +21,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     uint128 poolId_,
     address _core,
     address _underlyingAsset,
-    uint256 _commitDelay,
+    uint128 _commitDelay,
     uint256 _uOptimal,
     uint256 _r0,
     uint256 _rSlope1,
@@ -145,22 +145,18 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
   }
 
   // @bw move to core of factory
-  function isWithdrawLiquidityDelayOk(uint256 tokenId_)
-    external
-    view
-    returns (bool)
-  {
+  function isWithdrawLiquidityDelayOk(
+    uint256 tokenId_
+  ) external view returns (bool) {
     uint256 withdrawReserveTime = withdrawReserves[tokenId_];
     return
       withdrawReserveTime != 0 &&
       block.timestamp - withdrawReserveTime >= commitDelay;
   }
 
-  function ratioWithAvailableCapital(uint256 _amount)
-    external
-    view
-    returns (uint256)
-  {
+  function ratioWithAvailableCapital(
+    uint256 _amount
+  ) external view returns (uint256) {
     return _amount.rayDiv(availableCapital);
   }
 
@@ -168,11 +164,9 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
   /// ========= HELPERS ======== ///
   /// ========================== ///
 
-  function _getAmountInsuredByCover(uint256 coverId_)
-    internal
-    view
-    returns (uint256)
-  {
+  function _getAmountInsuredByCover(
+    uint256 coverId_
+  ) internal view returns (uint256) {
     return policyManagerInterface.coverAmountOfPolicy(coverId_);
   }
 
@@ -267,7 +261,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     IERC20(underlyingAsset).safeTransfer(account_, __interestNet);
 
     // transfer to treasury
-    // @bw WARN! core has no way of using funds
+    // @bw FEE WARN! core has no way of using funds
     IERC20(underlyingAsset).safeTransfer(core, __totalRewards - __interestNet);
 
     LPsInfo[tokenId_] = __newLPInfo;
@@ -285,15 +279,8 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
 
   /// -------- WITHDRAW -------- ///
 
-  function committingWithdrawLiquidity(uint256 tokenId_) external onlyCore {
-    withdrawReserves[tokenId_] = block.timestamp;
-  }
-
-  function removeCommittedWithdrawLiquidity(uint256 tokenId_)
-    external
-    onlyCore
-  {
-    delete withdrawReserves[tokenId_];
+  function removeLPInfo(uint256 tokenId_) private {
+    delete LPsInfo[tokenId_];
   }
 
   function withdrawLiquidity(
@@ -328,6 +315,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     if (__totalRewards > 0) {
       __rewardsNet = (__totalRewards * (1000 - _feeRate)) / 1000;
       IERC20(underlyingAsset).safeTransfer(account_, __rewardsNet);
+      // @bw FEES are sent to core here
       IERC20(underlyingAsset).safeTransfer(core, __totalRewards - __rewardsNet);
     }
 
@@ -348,6 +336,8 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
       __rewardsNet,
       __totalRewards - __rewardsNet
     );
+
+    removeLPInfo(tokenId_);
 
     return (__newUserCapital, __aaveScaledBalanceToRemove);
   }
@@ -417,10 +407,6 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
   /// ========= CLAIMS ======== ///
   /// ========================= ///
 
-  function removeLPInfo(uint256 tokenId_) external onlyCore {
-    delete LPsInfo[tokenId_];
-  }
-
   // @bw DANGER should not be public
   function processClaim(
     uint128 _fromPoolId,
@@ -453,10 +439,10 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
 
   // @bw only protocol pools should be able to call this function
   // @bw why not updated on withdraw ?
-  function addRelatedProtocol(uint128 relatedPoolId, uint256 _amount)
-    external
-  // onlyCore
-  {
+  function addRelatedProtocol(
+    uint128 relatedPoolId,
+    uint256 _amount // onlyCore
+  ) external {
     if (
       intersectingAmountIndexes[relatedPoolId] == 0 && relatedPoolId != poolId
     ) {

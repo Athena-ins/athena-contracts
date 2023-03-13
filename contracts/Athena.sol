@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8;
+pragma solidity ^0.8.11;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -20,7 +20,7 @@ import "./interfaces/IVaultERC20.sol";
 import "./interfaces/IPriceOracle.sol";
 
 import "./libraries/RayMath.sol";
-import "hardhat/console.sol";
+import { console } from "hardhat/console.sol";
 
 contract Athena is IAthena, ReentrancyGuard, Ownable {
   using SafeERC20 for IERC20;
@@ -164,11 +164,9 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     return protocolFactoryInterface.getPoolAddress(poolId);
   }
 
-  function getProtocol(uint128 poolId_)
-    public
-    view
-    returns (ProtocolView memory)
-  {
+  function getProtocol(
+    uint128 poolId_
+  ) public view returns (ProtocolView memory) {
     IProtocolFactory.Protocol memory pool = protocolFactoryInterface.getPool(
       poolId_
     );
@@ -241,12 +239,9 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
    * @param stakedAten_ amount of ATEN the user stakes in GP
    * @return _ amount of fees applied to cover supply interests
    **/
-  function getFeeRateWithAten(uint256 stakedAten_)
-    public
-    view
-    override
-    returns (uint128)
-  {
+  function getFeeRateWithAten(
+    uint256 stakedAten_
+  ) public view override returns (uint128) {
     // Lazy check to avoid loop if user doesn't stake
     if (stakedAten_ == 0) return supplyFeeLevels[0].feeRate;
 
@@ -262,10 +257,9 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   /// ========= HELPERS ======== ///
   /// ========================== ///
 
-  function actualizingProtocolAndRemoveExpiredPolicies(address protocolAddress)
-    public
-    override
-  {
+  function actualizingProtocolAndRemoveExpiredPolicies(
+    address protocolAddress
+  ) public override {
     uint256[] memory __expiredTokens = IProtocolPool(protocolAddress)
       .actualizing();
 
@@ -273,9 +267,9 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     stakedAtensPoInterface.endStakingPositions(__expiredTokens);
   }
 
-  function actualizingProtocolAndRemoveExpiredPoliciesByPoolId(uint128 poolId_)
-    public
-  {
+  function actualizingProtocolAndRemoveExpiredPoliciesByPoolId(
+    uint128 poolId_
+  ) public {
     actualizingProtocolAndRemoveExpiredPolicies(getPoolAddressById(poolId_));
   }
 
@@ -322,10 +316,9 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     }
   }
 
-  function _prepareCoverUpdate(uint256 coverId_)
-    private
-    returns (address poolAddress)
-  {
+  function _prepareCoverUpdate(
+    uint256 coverId_
+  ) private returns (address poolAddress) {
     uint128 poolId = policyManagerInterface.poolIdOfPolicy(coverId_);
     poolAddress = getPoolAddressById(poolId);
     actualizingProtocolAndRemoveExpiredPolicies(poolAddress);
@@ -415,24 +408,23 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     stakedAtensGPInterface.updateUserRewardRate(msg.sender);
   }
 
-  function takeInterest(uint256 tokenId, uint128 poolId)
-    public
-    onlyPositionTokenOwner(tokenId)
-  {
+  function takeInterest(
+    uint256 tokenId,
+    uint128 poolId
+  ) public onlyPositionTokenOwner(tokenId) {
     positionManagerInterface.takeInterest(msg.sender, tokenId, poolId);
   }
 
-  function takeInterestInAllPools(uint256 tokenId)
-    public
-    onlyPositionTokenOwner(tokenId)
-  {
+  function takeInterestInAllPools(
+    uint256 tokenId
+  ) public onlyPositionTokenOwner(tokenId) {
     positionManagerInterface.takeInterestsInAllPools(msg.sender, tokenId);
   }
 
-  function addLiquidityToPosition(uint256 tokenId, uint256 amount)
-    external
-    onlyPositionTokenOwner(tokenId)
-  {
+  function addLiquidityToPosition(
+    uint256 tokenId,
+    uint256 amount
+  ) external onlyPositionTokenOwner(tokenId) {
     // retrieve user funds for coverage
     IERC20(stablecoin).safeTransferFrom(msg.sender, address(this), amount);
 
@@ -460,26 +452,18 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     stakedAtensGPInterface.updateUserRewardRate(msg.sender);
   }
 
-  function committingWithdrawAll(uint256 tokenId)
-    external
-    onlyPositionTokenOwner(tokenId)
-  {
+  function committingWithdrawAll(
+    uint256 tokenId
+  ) external onlyPositionTokenOwner(tokenId) {
     uint256 userBalance = positionManagerInterface.balanceOf(msg.sender);
     if (userBalance == 0) revert UserHasNoPositions();
 
-    IPositionsManager.Position memory __position = positionManagerInterface
-      .position(tokenId);
-
-    // @bw committingWithdrawLiquidity should be saved in the core instead of each pool
-    for (uint256 i = 0; i < __position.poolIds.length; i++)
-      IProtocolPool(getPoolAddressById(__position.poolIds[i]))
-        .committingWithdrawLiquidity(tokenId);
+    positionManagerInterface.committingWithdraw(tokenId);
   }
 
-  function withdrawAll(uint256 tokenId)
-    external
-    onlyPositionTokenOwner(tokenId)
-  {
+  function withdrawAll(
+    uint256 tokenId
+  ) external onlyPositionTokenOwner(tokenId) {
     IPositionsManager.Position memory __position = positionManagerInterface
       .position(tokenId);
 
@@ -489,12 +473,6 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
       IProtocolPool __protocol = IProtocolPool(
         getPoolAddressById(__position.poolIds[i])
       );
-
-      // @bw should check commit delay elapsed in this contract to avoid multiple calls to the protocols
-      bool delayElapsed = __protocol.isWithdrawLiquidityDelayOk(tokenId);
-      if (delayElapsed != true) revert WithdrawCommitDelayNotReached();
-
-      __protocol.removeCommittedWithdrawLiquidity(tokenId);
 
       actualizingProtocolAndRemoveExpiredPolicies(address(__protocol));
 
@@ -506,16 +484,14 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
           __position.poolIds,
           __position.feeRate
         );
-
-      __protocol.removeLPInfo(tokenId);
     }
 
-    positionManagerInterface.burn(tokenId);
+    positionManagerInterface.checkDelayAndClosePosition(tokenId);
 
     address __lendingPool = aaveAddressesRegistryInterface.getLendingPool();
-
     ILendingPool lendingPoolInterface = ILendingPool(__lendingPool);
 
+    // @bw withdrawn amount is bad here
     uint256 _amountToWithdrawFromAAVE = __position.aaveScaledBalance.rayMul(
       lendingPoolInterface.getReserveNormalizedIncome(stablecoin)
     );
@@ -592,28 +568,28 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   /// -------- COVER UPDATE -------- ///
 
   // @bw need update cover
-  function increaseCover(uint256 coverId_, uint256 amount_)
-    external
-    onlyPolicyTokenOwner(coverId_)
-  {
+  function increaseCover(
+    uint256 coverId_,
+    uint256 amount_
+  ) external onlyPolicyTokenOwner(coverId_) {
     address poolAddress = _prepareCoverUpdate(coverId_);
     policyManagerInterface.increaseCover(coverId_, amount_);
     IProtocolPool(poolAddress).increaseCover(coverId_, amount_);
   }
 
-  function decreaseCover(uint256 coverId_, uint256 amount_)
-    external
-    onlyPolicyTokenOwner(coverId_)
-  {
+  function decreaseCover(
+    uint256 coverId_,
+    uint256 amount_
+  ) external onlyPolicyTokenOwner(coverId_) {
     address poolAddress = _prepareCoverUpdate(coverId_);
     policyManagerInterface.decreaseCover(coverId_, amount_);
     IProtocolPool(poolAddress).decreaseCover(coverId_, amount_);
   }
 
-  function addPremiums(uint256 coverId_, uint256 amount_)
-    external
-    onlyPolicyTokenOwner(coverId_)
-  {
+  function addPremiums(
+    uint256 coverId_,
+    uint256 amount_
+  ) external onlyPolicyTokenOwner(coverId_) {
     address poolAddress = _prepareCoverUpdate(coverId_);
 
     IERC20(stablecoin).safeTransferFrom(msg.sender, poolAddress, amount_);
@@ -623,10 +599,10 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     IProtocolPool(poolAddress).addPremiums(coverId_, amount_);
   }
 
-  function removePremiums(uint256 coverId_, uint256 amount_)
-    external
-    onlyPolicyTokenOwner(coverId_)
-  {
+  function removePremiums(
+    uint256 coverId_,
+    uint256 amount_
+  ) external onlyPolicyTokenOwner(coverId_) {
     address poolAddress = _prepareCoverUpdate(coverId_);
 
     stakedAtensPoInterface.updateBeforePremiumChange(coverId_);
@@ -641,11 +617,9 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
    * Closes the policy of a user and withdraws remaining funds, staked ATEN and potential staking rewards.
    * @param policyId_ id of the policy to close
    */
-  function withdrawPolicy(uint256 policyId_)
-    public
-    onlyPolicyTokenOwner(policyId_)
-    nonReentrant
-  {
+  function withdrawPolicy(
+    uint256 policyId_
+  ) public onlyPolicyTokenOwner(policyId_) nonReentrant {
     // Get the policy
     IPolicyManager.Policy memory userPolicy = policyManagerInterface.policy(
       policyId_
@@ -675,10 +649,10 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
 
   /// -------- COVER REFUND -------- ///
 
-  function createCoverRefundPosition(uint256 coverId_, uint256 amount_)
-    external
-    onlyPolicyTokenOwner(coverId_)
-  {
+  function createCoverRefundPosition(
+    uint256 coverId_,
+    uint256 amount_
+  ) external onlyPolicyTokenOwner(coverId_) {
     // Core contracts is responsible for incoming tokens
     atenTokenInterface.safeTransferFrom(
       msg.sender,
@@ -688,10 +662,10 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     stakedAtensPoInterface.createStakingPosition(coverId_, amount_);
   }
 
-  function addToCoverRefundStake(uint256 coverId_, uint256 amount_)
-    external
-    onlyPolicyTokenOwner(coverId_)
-  {
+  function addToCoverRefundStake(
+    uint256 coverId_,
+    uint256 amount_
+  ) external onlyPolicyTokenOwner(coverId_) {
     // Core contracts is responsible for incoming tokens
     atenTokenInterface.safeTransferFrom(
       msg.sender,
@@ -701,10 +675,10 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     stakedAtensPoInterface.addToStake(coverId_, amount_);
   }
 
-  function withdrawCoverRefundStakedAten(uint256 coverId_, uint256 amount_)
-    external
-    onlyPolicyTokenOwner(coverId_)
-  {
+  function withdrawCoverRefundStakedAten(
+    uint256 coverId_,
+    uint256 amount_
+  ) external onlyPolicyTokenOwner(coverId_) {
     // Cover refund contracts is responsible for outgoing tokens
     stakedAtensPoInterface.withdrawStakedAten(coverId_, amount_, msg.sender);
   }
@@ -714,10 +688,9 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
    * Allows a user to withdraw cover refund rewards.
    * @param policyId_ the id of the policy position
    */
-  function withdrawCoverRefundRewards(uint256 policyId_)
-    external
-    onlyPolicyTokenOwner(policyId_)
-  {
+  function withdrawCoverRefundRewards(
+    uint256 policyId_
+  ) external onlyPolicyTokenOwner(policyId_) {
     // Update the cover refund position and retrieve the net rewards
     uint256 netRewards = stakedAtensPoInterface.withdrawRewards(policyId_);
     if (0 < netRewards) {
@@ -730,10 +703,9 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
    * Closes a cover refund position while returning staked ATEN and distributing earned rewards.
    * @param policyId_ the id of the policy position
    */
-  function closeCoverRefundPosition(uint256 policyId_)
-    public
-    onlyPolicyTokenOwner(policyId_)
-  {
+  function closeCoverRefundPosition(
+    uint256 policyId_
+  ) public onlyPolicyTokenOwner(policyId_) {
     // Update the cover refund position and retrieve the net rewards
     uint256 netRewards = stakedAtensPoInterface.closePosition(
       policyId_,
@@ -749,9 +721,9 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
    * Closes multiple cover refund positions while returning staked ATEN and distributing earned rewards.
    * @param policyIds_ the ids of the policy positions
    */
-  function closeMultiCoverRefundPositions(uint256[] calldata policyIds_)
-    external
-  {
+  function closeMultiCoverRefundPositions(
+    uint256[] calldata policyIds_
+  ) external {
     uint256 totalNetRewards;
 
     for (uint256 i = 0; i < policyIds_.length; i++) {
@@ -837,10 +809,9 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
    * @dev The atenAmount indicates the upper limit for the level
    * @param levels_ array of fee level structs
    **/
-  function setFeeLevelsWithAten(AtenFeeLevel[] calldata levels_)
-    public
-    onlyOwner
-  {
+  function setFeeLevelsWithAten(
+    AtenFeeLevel[] calldata levels_
+  ) public onlyOwner {
     // First clean the storage
     delete supplyFeeLevels;
 
@@ -902,10 +873,9 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
 
   /// -------- AAVE -------- ///
 
-  function setAAVEAddressesRegistry(address aaveAddressesRegistry_)
-    external
-    onlyOwner
-  {
+  function setAAVEAddressesRegistry(
+    address aaveAddressesRegistry_
+  ) external onlyOwner {
     aaveAddressesRegistryInterface = ILendingPoolAddressesProvider(
       aaveAddressesRegistry_
     );
