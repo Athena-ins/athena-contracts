@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
-import "./ClaimEvidence.sol";
-import "./VerifySignature.sol";
+import { ClaimEvidence } from "./ClaimEvidence.sol";
+import { VerifySignature } from "./VerifySignature.sol";
 
-import "./interfaces/IArbitrable.sol";
-import "./interfaces/IArbitrator.sol";
+import { IArbitrable } from "./interfaces/IArbitrable.sol";
+import { IArbitrator } from "./interfaces/IArbitrator.sol";
 
-import "./interfaces/IPolicyManager.sol";
-import "./interfaces/IClaimManager.sol";
-import "./interfaces/IAthena.sol";
+import { IPolicyManager } from "./interfaces/IPolicyManager.sol";
+import { IClaimManager } from "./interfaces/IClaimManager.sol";
+import { IAthena } from "./interfaces/IAthena.sol";
 
 contract ClaimManager is
   IClaimManager,
@@ -88,29 +88,11 @@ contract ClaimManager is
   event ClaimCreated(
     address indexed claimant,
     uint256 indexed coverId,
-    uint256 indexed poolId
-  );
-
-  // Emit when a claim is challenged into a dispute
-  event DisputeCreated(
-    address indexed claimant,
-    address indexed challenger,
-    uint256 coverId,
-    uint256 indexed poolId,
-    uint256 disputeId
+    uint256 claimId
   );
 
   // Emit when a dispute is resolved
-  event DisputeResolved(
-    address indexed claimant,
-    address indexed challenger,
-    uint256 coverId,
-    uint256 indexed poolId,
-    uint256 disputeId,
-    uint256 ruling
-  );
-
-  event Solved(IArbitrator arbitrator, uint256 disputeId, uint256 coverId);
+  event DisputeResolved(uint256 claimId, uint256 disputeId, uint256 ruling);
 
   /// ============================ ///
   /// ========= MODIFIERS ======== ///
@@ -141,19 +123,15 @@ contract ClaimManager is
   /// ========= VIEWS ======== ///
   /// ======================== ///
 
-  function getCoverIdToClaimIds(uint256 coverId)
-    external
-    view
-    returns (uint256[] memory)
-  {
+  function getCoverIdToClaimIds(
+    uint256 coverId
+  ) external view returns (uint256[] memory) {
     return coverIdToClaimIds[coverId];
   }
 
-  function getProtocolAgreement(uint256 poolId)
-    external
-    view
-    returns (string memory)
-  {
+  function getProtocolAgreement(
+    uint256 poolId
+  ) external view returns (string memory) {
     return protocolToAgreement[poolId];
   }
 
@@ -192,11 +170,9 @@ contract ClaimManager is
    * @param claimId_ The claim ID
    * @return _ the remaining time to challenge
    */
-  function remainingTimeToChallenge(uint256 claimId_)
-    external
-    view
-    returns (uint256)
-  {
+  function remainingTimeToChallenge(
+    uint256 claimId_
+  ) external view returns (uint256) {
     Claim memory userClaim = claims[claimId_];
 
     // If the claim is not in the Initiated state it cannot be challenged
@@ -213,11 +189,10 @@ contract ClaimManager is
    * @param endIndex The index of the claim at which to stop
    * @return claimsInfo All the claims in the specified range
    */
-  function linearClaimsView(uint256 beginIndex, uint256 endIndex)
-    external
-    view
-    returns (Claim[] memory claimsInfo)
-  {
+  function linearClaimsView(
+    uint256 beginIndex,
+    uint256 endIndex
+  ) external view returns (Claim[] memory claimsInfo) {
     require(endIndex <= nextClaimId, "CM: outside of range");
     require(beginIndex < endIndex, "CM: bad range");
 
@@ -243,11 +218,9 @@ contract ClaimManager is
     }
   }
 
-  function claimIdsByCoverId(uint256 coverId_)
-    external
-    view
-    returns (uint256[] memory claimIds)
-  {
+  function claimIdsByCoverId(
+    uint256 coverId_
+  ) external view returns (uint256[] memory claimIds) {
     claimIds = coverIdToClaimIds[coverId_];
   }
 
@@ -256,11 +229,9 @@ contract ClaimManager is
     return coverIdToClaimIds[coverId_][nbClaims - 1];
   }
 
-  function claimsByCoverId(uint256 coverId_)
-    public
-    view
-    returns (Claim[] memory claimsInfo)
-  {
+  function claimsByCoverId(
+    uint256 coverId_
+  ) public view returns (Claim[] memory claimsInfo) {
     uint256 nbClaims = coverIdToClaimIds[coverId_].length;
 
     claimsInfo = new Claim[](nbClaims);
@@ -271,11 +242,9 @@ contract ClaimManager is
     }
   }
 
-  function claimsByMultiCoverIds(uint256[] calldata coverIds_)
-    external
-    view
-    returns (Claim[][] memory claimsInfoArray)
-  {
+  function claimsByMultiCoverIds(
+    uint256[] calldata coverIds_
+  ) external view returns (Claim[][] memory claimsInfoArray) {
     uint256 nbCovers = coverIds_.length;
 
     claimsInfoArray = new Claim[][](nbCovers);
@@ -291,11 +260,9 @@ contract ClaimManager is
    * @param account_ The user's address
    * @return claimsInfo All the user's claims
    */
-  function claimsByAccount(address account_)
-    external
-    view
-    returns (Claim[] memory claimsInfo)
-  {
+  function claimsByAccount(
+    address account_
+  ) external view returns (Claim[] memory claimsInfo) {
     uint256 nbClaims = 0;
     for (uint256 i = 0; i < nextClaimId; i++) {
       if (claims[i].from == account_) nbClaims++;
@@ -332,11 +299,9 @@ contract ClaimManager is
    * @param poolId_ The protocol's address
    * @return claimsInfo All the protocol's claims
    */
-  function claimsByProtocol(uint256 poolId_)
-    external
-    view
-    returns (Claim[] memory claimsInfo)
-  {
+  function claimsByProtocol(
+    uint256 poolId_
+  ) external view returns (Claim[] memory claimsInfo) {
     uint256 nbClaims = 0;
     for (uint256 i = 0; i < nextClaimId; i++) {
       if (claims[i].poolId == poolId_) nbClaims++;
@@ -521,42 +486,8 @@ contract ClaimManager is
     });
 
     // Emit Athena claim creation event
-    emit ClaimCreated(msg.sender, policyId_, poolId);
-  }
-
-  /**
-   * @notice
-   * Allows a policy holder to execute the claim if it has remained unchallenged.
-   * @param claimId_ The claim ID
-   */
-  function withdrawCompensationWithoutDispute(uint256 claimId_) external {
-    Claim storage userClaim = claims[claimId_];
-
-    // Check the claim is in the appropriate status
-    require(
-      userClaim.status == ClaimStatus.Initiated,
-      "CM: wrong claim status"
-    );
-
-    // Check the claim has passed the disputable delay
-    require(
-      userClaim.createdAt + challengeDelay < block.timestamp,
-      "CM: delay not elapsed"
-    );
-
-    // Update claim status
-    userClaim.status = ClaimStatus.CompensatedAfterAcceptation;
-
-    // Send back the collateral and arbitration cost to the claimant
-    sendValue(userClaim.from, userClaim.arbitrationCost + collateralAmount);
-
-    // Call Athena core to pay the compensation
-    // @bw this should close the user's policy to avoid stress on the pool
-    core.compensateClaimant(
-      userClaim.coverId,
-      userClaim.amount,
-      userClaim.from
-    );
+    emit ClaimCreated(msg.sender, policyId_, claimId);
+    emit MetaEvidence(claimId, ipfsMetaEvidenceCid_);
   }
 
   /// ============================= ///
@@ -599,15 +530,13 @@ contract ClaimManager is
     // Map the new dispute ID to be able to search it after ruling
     disputeIdToClaimId[disputeId] = claimId_;
 
-    // Emit Kleros events for dispute creation and meta-evidence association
-    // @bw challenger party should be this address or that of guardian
-    _emitKlerosDisputeEvents(
-      msg.sender,
-      disputeId,
-      userClaim.poolId,
-      userClaim.metaEvidence
-    );
+    // Emit Kleros event for dispute creation and meta-evidence association
+    emit Dispute(arbitrator, disputeId, claimId_, claimId_);
   }
+
+  /// ================================ ///
+  /// ========== RESOLUTION ========== ///
+  /// ================================ ///
 
   /**
    * @notice
@@ -618,8 +547,6 @@ contract ClaimManager is
   function rule(uint256 disputeId_, uint256 ruling_) external onlyArbitrator {
     uint256 claimId = disputeIdToClaimId[disputeId_];
     Claim storage userClaim = claims[claimId];
-
-    address challenger = userClaim.challenger;
 
     // Check the status of the claim
     require(
@@ -639,30 +566,65 @@ contract ClaimManager is
     } else if (ruling_ == uint256(RulingOptions.RejectClaim)) {
       userClaim.status = ClaimStatus.RejectedWithDispute;
 
+      address challenger = userClaim.challenger;
       // Refund arbitration cost to the challenger and pay them with collateral
       sendValue(challenger, userClaim.arbitrationCost + collateralAmount);
     } else {
       // This is the case where the arbitrator refuses to rule
       userClaim.status = ClaimStatus.RejectedWithDispute;
 
-      uint256 halfArbitrationCost = userClaim.arbitrationCost / 2;
+      /// @dev we remove 1 wei from the arbitration cost to avoid a rounding errors
+      uint256 halfArbitrationCost = (userClaim.arbitrationCost / 2) - 1;
+
+      address claimant = userClaim.challenger;
+      address challenger = userClaim.challenger;
 
       // Send back the collateral and half the arbitration cost to the claimant
-      address claimant = userClaim.challenger;
       sendValue(claimant, halfArbitrationCost + collateralAmount);
-
       // Send back half the arbitration cost to the challenger
       sendValue(challenger, halfArbitrationCost);
     }
 
     emit DisputeResolved({
-      claimant: userClaim.from,
-      challenger: challenger,
-      coverId: userClaim.coverId,
-      poolId: userClaim.poolId,
+      claimId: claimId,
       disputeId: disputeId_,
       ruling: ruling_
     });
+  }
+
+  /**
+   * @notice
+   * Allows a policy holder to execute the claim if it has remained unchallenged.
+   * @param claimId_ The claim ID
+   */
+  function withdrawCompensationWithoutDispute(uint256 claimId_) external {
+    Claim storage userClaim = claims[claimId_];
+
+    // Check the claim is in the appropriate status
+    require(
+      userClaim.status == ClaimStatus.Initiated,
+      "CM: wrong claim status"
+    );
+
+    // Check the claim has passed the disputable delay
+    require(
+      userClaim.createdAt + challengeDelay < block.timestamp,
+      "CM: delay not elapsed"
+    );
+
+    // Update claim status
+    userClaim.status = ClaimStatus.CompensatedAfterAcceptation;
+
+    // Send back the collateral and arbitration cost to the claimant
+    sendValue(userClaim.from, userClaim.arbitrationCost + collateralAmount);
+
+    // Call Athena core to pay the compensation
+    // @bw this should close the user's policy to avoid stress on the pool
+    core.compensateClaimant(
+      userClaim.coverId,
+      userClaim.amount,
+      userClaim.from
+    );
   }
 
   /**
@@ -709,10 +671,9 @@ contract ClaimManager is
     challengeDelay = duration_;
   }
 
-  function changeMetaEvidenceGuardian(address metaEvidenceGuardian_)
-    external
-    onlyOwner
-  {
+  function changeMetaEvidenceGuardian(
+    address metaEvidenceGuardian_
+  ) external onlyOwner {
     require(
       metaEvidenceGuardian_ != address(0),
       "CM: guardian set to address(0)"
