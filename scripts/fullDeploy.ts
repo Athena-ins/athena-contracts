@@ -78,8 +78,9 @@ async function main() {
     console.log("==> COVER REFUND");
     await ProtocolHelper.deployStakedAtensPolicyContract(deployer);
 
-    console.log("==> INITIALIZE");
+    console.log("==> INITIALIZE + SET CLAIM MANAGER");
     await ProtocolHelper.initializeProtocol(deployer);
+    await ProtocolHelper.setClaimManagerInProtocolFactory(deployer);
 
     // =====> set fee levels & reward levels
     console.log("==> FEE + REWARD + REFUND CONFIG");

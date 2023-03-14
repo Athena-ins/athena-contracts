@@ -110,6 +110,14 @@ async function deployProtocolFactoryContract(owner: ethers.Signer) {
   await contract.FACTORY_PROTOCOL.deployed();
 }
 
+async function setClaimManagerInProtocolFactory(owner: ethers.Signer) {
+  return await (
+    await contract.FACTORY_PROTOCOL.connect(owner).setClaimManager(
+      contract.CLAIM_MANAGER.address
+    )
+  ).wait();
+}
+
 function getProtocolFactoryContract() {
   return contract.FACTORY_PROTOCOL;
 }
@@ -132,6 +140,7 @@ async function deployClaimManagerContract(
     .deploy(
       contract.ATHENA.address,
       contract.POLICY_MANAGER.address,
+      contract.FACTORY_PROTOCOL.address,
       useArbitratorAddress,
       guardianAddress
     );
@@ -304,6 +313,7 @@ async function deployAllContractsAndInitializeProtocol(owner: ethers.Signer) {
 
   await initializeProtocol(owner);
 
+  await setClaimManagerInProtocolFactory(owner);
   await setFeeLevelsWithAten(owner);
   await setStakingRewardRates(owner);
   await setCoverRefundConfig(owner);
@@ -626,6 +636,7 @@ export default {
   initializeProtocol,
   setFeeLevelsWithAten,
   setStakingRewardRates,
+  setClaimManagerInProtocolFactory,
   addNewProtocolPool,
   getProtocolPoolDataById,
   getProtocolPoolContract,
