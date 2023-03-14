@@ -34,4 +34,12 @@ interface IProtocolFactory {
   function addClaimToPool(uint128 poolId_) external;
 
   function removeClaimFromPool(uint128 poolId_) external;
+
+  function canDepositToPools(
+    uint128[] calldata poolIds
+  ) external view returns (bool);
+
+  function canWithdrawFromPools(
+    uint128[] calldata poolIds
+  ) external view returns (bool);
 }

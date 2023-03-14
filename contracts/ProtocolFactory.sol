@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8;
 
-import "@openzeppelin/contracts/utils/Strings.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
+import { ProtocolPool } from "./ProtocolPool.sol";
+import { IProtocolFactory } from "./interfaces/IProtocolFactory.sol";
 
-import "./ProtocolPool.sol";
-
-import "./interfaces/IProtocolFactory.sol";
-
-contract ProtocolFactory is IProtocolFactory {
-  address public immutable core;
+contract ProtocolFactory is IProtocolFactory, Ownable {
+  address public core;
+  address public claimManager;
 
   uint128 public nextPoolId;
 
@@ -66,6 +66,27 @@ contract ProtocolFactory is IProtocolFactory {
   function getPool(uint128 poolId_) external view returns (Protocol memory) {
     if (nextPoolId <= poolId_) revert OutOfRange();
     return protocolsMapping[poolId_];
+  }
+
+  function canDepositToPools(
+    uint128[] calldata poolIds
+  ) external view returns (bool) {
+    for (uint256 i = 0; i < poolIds.length; i++) {
+      uint128 poolId_ = poolIds[i];
+      if (protocolsMapping[poolId_].paused != false) return false;
+    }
+    return true;
+  }
+
+  function canWithdrawFromPools(
+    uint128[] calldata poolIds
+  ) external view returns (bool) {
+    for (uint256 i = 0; i < poolIds.length; i++) {
+      uint128 poolId_ = poolIds[i];
+      if (protocolsMapping[poolId_].paused != false) return false;
+      if (protocolsMapping[poolId_].claimsOngoing != 0) return false;
+    }
+    return true;
   }
 
   /// ================================= ///
