@@ -29,6 +29,7 @@ contract ProtocolFactory is IProtocolFactory, Ownable {
   error ProtocolIsInactive();
   error SamePoolIds();
   error IncompatibleProtocol(uint256, uint256);
+  error PoolIsPaused();
 
   /// ========================= ///
   /// ========= EVENTS ======== ///
@@ -68,7 +69,7 @@ contract ProtocolFactory is IProtocolFactory, Ownable {
     return protocolsMapping[poolId_];
   }
 
-  function canDepositToPools(
+  function arePoolsPaused(
     uint128[] calldata poolIds
   ) external view returns (bool) {
     for (uint256 i = 0; i < poolIds.length; i++) {
@@ -94,27 +95,24 @@ contract ProtocolFactory is IProtocolFactory, Ownable {
   /// ================================= ///
 
   function validePoolIds(uint128[] calldata poolIds) external view {
-    for (uint256 firstIndex = 0; firstIndex < poolIds.length; firstIndex++) {
-      Protocol memory firstProtocol = protocolsMapping[poolIds[firstIndex]];
+    for (uint256 i = 0; i < poolIds.length; i++) {
+      uint128 poolId = poolIds[i];
+
+      if (protocolsMapping[poolId].paused != false) revert PoolIsPaused();
+      Protocol memory firstProtocol = protocolsMapping[poolId];
 
       if (firstProtocol.paused == true) revert ProtocolIsInactive();
 
-      for (
-        uint256 secondIndex = firstIndex + 1;
-        secondIndex < poolIds.length;
-        secondIndex++
-      ) {
-        if (poolIds[firstIndex] == poolIds[secondIndex]) revert SamePoolIds();
+      for (uint256 j = i + 1; j < poolIds.length; j++) {
+        if (poolId == poolIds[j]) revert SamePoolIds();
 
-        bool isIncompatible = incompatibilityProtocols[poolIds[firstIndex]][
-          poolIds[secondIndex]
+        bool isIncompatible = incompatibilityProtocols[poolId][poolIds[j]];
+        bool isIncompatibleReverse = incompatibilityProtocols[poolIds[j]][
+          poolId
         ];
-        bool isIncompatibleReverse = incompatibilityProtocols[
-          poolIds[secondIndex]
-        ][poolIds[firstIndex]];
 
         if (isIncompatible == true || isIncompatibleReverse == true)
-          revert IncompatibleProtocol(firstIndex, secondIndex);
+          revert IncompatibleProtocol(i, j);
       }
     }
   }

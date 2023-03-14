@@ -108,6 +108,8 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   error MissingBaseRate();
   error MustSortInAscendingOrder();
   error FeeGreaterThan100Percent();
+  error PoolPaused();
+  error PoolHasOngoingClaimsOrPaused();
 
   /// ========================= ///
   /// ========= EVENTS ======== ///
@@ -469,6 +471,12 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
 
     uint256 __newUserCapital;
     uint256 __aaveScaledBalanceToRemove;
+
+    bool canWithdraw = protocolFactoryInterface.canWithdrawFromPools(
+      __position.poolIds
+    );
+    if (!canWithdraw) revert PoolHasOngoingClaimsOrPaused();
+
     for (uint256 i = 0; i < __position.poolIds.length; i++) {
       IProtocolPool __protocol = IProtocolPool(
         getPoolAddressById(__position.poolIds[i])
@@ -518,6 +526,9 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     uint128[] calldata poolIdArray_
   ) public nonReentrant {
     uint256 nbPolicies = poolIdArray_.length;
+
+    bool poolsPaused = protocolFactoryInterface.arePoolsPaused(poolIdArray_);
+    if (!poolsPaused) revert PoolPaused();
 
     for (uint256 i = 0; i < nbPolicies; i++) {
       uint256 _amountCovered = amountCoveredArray_[i];
@@ -762,8 +773,9 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     IPolicyManager.Policy memory userPolicy = policyManagerInterface.policy(
       policyId_
     );
+    uint128 poolId = userPolicy.poolId;
 
-    address poolAddress = getPoolAddressById(userPolicy.poolId);
+    address poolAddress = getPoolAddressById(poolId);
 
     IProtocolPool poolInterface = IProtocolPool(poolAddress);
     uint256 ratio = poolInterface.ratioWithAvailableCapital(amount_);
@@ -784,17 +796,13 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
       actualizingProtocolAndRemoveExpiredPolicies(relatedPoolAddress);
 
       IProtocolPool(relatedPoolAddress).processClaim(
-        userPolicy.poolId,
+        poolId,
         ratio,
         reserveNormalizedIncome
       );
     }
 
     lendingPoolInterface.withdraw(stablecoin, amount_, account_);
-
-    //Thao@TODO: enable next line when adding modifier 'onlyClaimManager' and calling startClaim to increment claimsOngoing before resolve
-    // @bw is this necessary ?
-    // getPoolAddressById(__poolId].claimsOngoing -= 1;
   }
 
   /// =========================== ///

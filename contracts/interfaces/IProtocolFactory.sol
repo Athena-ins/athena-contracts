@@ -35,7 +35,7 @@ interface IProtocolFactory {
 
   function removeClaimFromPool(uint128 poolId_) external;
 
-  function canDepositToPools(
+  function arePoolsPaused(
     uint128[] calldata poolIds
   ) external view returns (bool);
 
