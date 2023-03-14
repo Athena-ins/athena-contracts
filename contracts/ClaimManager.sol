@@ -11,6 +11,7 @@ import { IArbitrator } from "./interfaces/IArbitrator.sol";
 
 import { IPolicyManager } from "./interfaces/IPolicyManager.sol";
 import { IClaimManager } from "./interfaces/IClaimManager.sol";
+import { IProtocolFactory } from "./interfaces/IProtocolFactory.sol";
 import { IAthena } from "./interfaces/IAthena.sol";
 
 contract ClaimManager is
@@ -20,8 +21,9 @@ contract ClaimManager is
   ClaimEvidence,
   IArbitrable
 {
-  IAthena public immutable core;
-  IPolicyManager public immutable policyManagerInterface;
+  IAthena public core;
+  IPolicyManager public policyManagerInterface;
+  IProtocolFactory public poolFactoryInterface;
 
   address public metaEvidenceGuardian;
   uint256 public challengeDelay = 14 days;
@@ -54,7 +56,7 @@ contract ClaimManager is
     address from;
     uint256 amount;
     uint256 coverId;
-    uint256 poolId;
+    uint128 poolId;
     string metaEvidence;
     //
     uint256 disputeId;
@@ -72,11 +74,13 @@ contract ClaimManager is
   constructor(
     address core_,
     address policyManager_,
+    address poolFactory_,
     IArbitrator arbitrator_,
     address metaEvidenceGuardian_
   ) ClaimEvidence(arbitrator_) {
     core = IAthena(core_);
     policyManagerInterface = IPolicyManager(policyManager_);
+    poolFactoryInterface = IProtocolFactory(poolFactory_);
     metaEvidenceGuardian = metaEvidenceGuardian_;
   }
 
@@ -130,7 +134,7 @@ contract ClaimManager is
   }
 
   function getProtocolAgreement(
-    uint256 poolId
+    uint128 poolId
   ) external view returns (string memory) {
     return protocolToAgreement[poolId];
   }
@@ -300,7 +304,7 @@ contract ClaimManager is
    * @return claimsInfo All the protocol's claims
    */
   function claimsByProtocol(
-    uint256 poolId_
+    uint128 poolId_
   ) external view returns (Claim[] memory claimsInfo) {
     uint256 nbClaims = 0;
     for (uint256 i = 0; i < nextClaimId; i++) {
@@ -359,7 +363,7 @@ contract ClaimManager is
    * @param ipfsAgreementCid_ The IPFS CID of the meta evidence
    */
   function addAgreementForProtocol(
-    uint256 poolId_,
+    uint128 poolId_,
     string calldata ipfsAgreementCid_
   ) external onlyCore {
     // @bw should add a fn to update this file without breaking the pool
@@ -434,6 +438,8 @@ contract ClaimManager is
 
     uint128 poolId = userPolicy.poolId;
 
+    // Register the claim to prevent exit from the pool untill resolution
+    poolFactoryInterface.addClaimToPool(poolId);
     // Update the protocol's policies
     // @bw is this really required as expired policies can open claims ?
     core.actualizingProtocolAndRemoveExpiredPoliciesByPoolId(poolId);
@@ -561,13 +567,16 @@ contract ClaimManager is
 
       // Send back the collateral and arbitration cost to the claimant
       address claimant = userClaim.challenger;
-      sendValue(claimant, userClaim.arbitrationCost + collateralAmount);
+      _sendValue(claimant, userClaim.arbitrationCost + collateralAmount);
     } else if (ruling_ == uint256(RulingOptions.RejectClaim)) {
       userClaim.status = ClaimStatus.RejectedWithDispute;
 
       address challenger = userClaim.challenger;
       // Refund arbitration cost to the challenger and pay them with collateral
-      sendValue(challenger, userClaim.arbitrationCost + collateralAmount);
+      _sendValue(challenger, userClaim.arbitrationCost + collateralAmount);
+
+      // Remove claims from pool to unblock withdrawals
+      poolFactoryInterface.removeClaimFromPool(userClaim.poolId);
     } else {
       // This is the case where the arbitrator refuses to rule
       userClaim.status = ClaimStatus.RejectedWithDispute;
@@ -579,9 +588,12 @@ contract ClaimManager is
       address challenger = userClaim.challenger;
 
       // Send back the collateral and half the arbitration cost to the claimant
-      sendValue(claimant, halfArbitrationCost + collateralAmount);
+      _sendValue(claimant, halfArbitrationCost + collateralAmount);
       // Send back half the arbitration cost to the challenger
-      sendValue(challenger, halfArbitrationCost);
+      _sendValue(challenger, halfArbitrationCost);
+
+      // Remove claims from pool to unblock withdrawals
+      poolFactoryInterface.removeClaimFromPool(userClaim.poolId);
     }
 
     emit DisputeResolved({
@@ -615,7 +627,10 @@ contract ClaimManager is
     userClaim.status = ClaimStatus.CompensatedAfterAcceptation;
 
     // Send back the collateral and arbitration cost to the claimant
-    sendValue(userClaim.from, userClaim.arbitrationCost + collateralAmount);
+    _sendValue(userClaim.from, userClaim.arbitrationCost + collateralAmount);
+
+    // Remove claims from pool to unblock withdrawals
+    poolFactoryInterface.removeClaimFromPool(userClaim.poolId);
 
     // Call Athena core to pay the compensation
     // @bw this should close the user's policy to avoid stress on the pool
@@ -642,6 +657,9 @@ contract ClaimManager is
 
     // Update claim status
     userClaim.status = ClaimStatus.CompensatedAfterAcceptation;
+
+    // Remove claims from pool to unblock withdrawals
+    poolFactoryInterface.removeClaimFromPool(userClaim.poolId);
 
     // Call Athena core to pay the compensation
     // @bw this should close the user's policy to avoid stress on the pool
