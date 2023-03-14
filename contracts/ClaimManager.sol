@@ -343,10 +343,9 @@ contract ClaimManager is
    * @param to_ The address to send value to
    * @param value_ The amount of ETH to send
    */
-  // @bw Will cause reverts on malicious receiver
-  function sendValue(address to_, uint256 value_) private {
-    (bool success, ) = to_.call{ value: value_ }("");
-    require(success, "CM: transfer failed");
+  function _sendValue(address to_, uint256 value_) private {
+    // We purposefully ignore return value to avoid malicious contracts to block the execution
+    payable(to_).send(value_);
   }
 
   /// ============================== ///
