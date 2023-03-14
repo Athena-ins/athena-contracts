@@ -1,25 +1,25 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.11;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { SafeERC20, IERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { ReentrancyGuard } from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-import "./AAVE/ILendingPoolAddressesProvider.sol";
-import "./AAVE/ILendingPool.sol";
+import { ILendingPoolAddressesProvider } from "./AAVE/ILendingPoolAddressesProvider.sol";
+import { ILendingPool } from "./AAVE/ILendingPool.sol";
 
-import "./interfaces/IAthena.sol";
-import "./interfaces/IPositionsManager.sol";
-import "./interfaces/IProtocolFactory.sol";
-import "./interfaces/IProtocolPool.sol";
-import "./interfaces/IStakedAten.sol";
-import "./interfaces/IStakedAtenPolicy.sol";
-import "./interfaces/IPolicyManager.sol";
-import "./interfaces/IClaimManager.sol";
-import "./interfaces/IVaultERC20.sol";
-import "./interfaces/IPriceOracle.sol";
+import { IAthena } from "./interfaces/IAthena.sol";
+import { IPositionsManager } from "./interfaces/IPositionsManager.sol";
+import { IProtocolFactory } from "./interfaces/IProtocolFactory.sol";
+import { IProtocolPool } from "./interfaces/IProtocolPool.sol";
+import { IStakedAten } from "./interfaces/IStakedAten.sol";
+import { IStakedAtenPolicy } from "./interfaces/IStakedAtenPolicy.sol";
+import { IPolicyManager } from "./interfaces/IPolicyManager.sol";
+import { IClaimManager } from "./interfaces/IClaimManager.sol";
+import { IVaultERC20 } from "./interfaces/IVaultERC20.sol";
+import { IPriceOracle } from "./interfaces/IPriceOracle.sol";
 
-import "./libraries/RayMath.sol";
+import { RayMath } from "./libraries/RayMath.sol";
 import { console } from "hardhat/console.sol";
 
 contract Athena is IAthena, ReentrancyGuard, Ownable {
@@ -855,6 +855,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   /// -------- PROTOCOL POOLS -------- ///
 
   function addNewProtocol(
+    address token_,
     string calldata name_,
     uint128[] calldata incompatiblePools_,
     uint128 commitDelay_,
@@ -865,7 +866,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     uint256 rSlope2_
   ) public onlyOwner {
     uint128 poolId = protocolFactoryInterface.deployProtocol(
-      stablecoin,
+      token_,
       name_,
       incompatiblePools_,
       commitDelay_,

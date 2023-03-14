@@ -154,6 +154,7 @@ describe("Protocol Pool", function () {
   describe("Set new active protocol", async function () {
     it("Should set new active Protocol 0", async function () {
       const tx = await ATHENA_CONTRACT.addNewProtocol(
+        USDT,
         "Test protocol 0",
         30,
         [],
