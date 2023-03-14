@@ -24,6 +24,7 @@ contract ProtocolFactory is IProtocolFactory {
   /// ========================= ///
 
   error OnlyCore();
+  error OnlyClaimManager();
   error OutOfRange();
   error ProtocolIsInactive();
   error SamePoolIds();
@@ -41,6 +42,11 @@ contract ProtocolFactory is IProtocolFactory {
 
   modifier onlyCore() {
     if (msg.sender != core) revert OnlyCore();
+    _;
+  }
+
+  modifier onlyClaimManager() {
+    if (msg.sender != claimManager) revert OnlyClaimManager();
     _;
   }
 
@@ -135,12 +141,37 @@ contract ProtocolFactory is IProtocolFactory {
     emit NewProtocol(poolId);
   }
 
+  /// ============================ ///
+  /// ========== CLAIMS ========== ///
+  /// ============================ ///
+
+  /*
+   * @notice
+   * Registeres the claim in the protocol to prevent withdrawals until resolution
+   * @param poolId_ The pool id of the protocol
+   */
+  function addClaimToPool(uint128 poolId_) external onlyClaimManager {
+    protocolsMapping[poolId_].claimsOngoing++;
+  }
+
+  /*
+   * @notice
+   * Removes a resolved claim to allow withdrawals
+   * @param poolId_ The pool id of the protocol
+   */
+  function removeClaimFromPool(uint128 poolId_) external onlyClaimManager {
+    protocolsMapping[poolId_].claimsOngoing--;
+  }
+
   /// =========================== ///
   /// ========== ADMIN ========== ///
   /// =========================== ///
 
-  // @bw unimplemented (+ ongoing claims)
-  function pauseProtocol(uint128 poolId, bool pause) external onlyCore {
-    protocolsMapping[poolId].paused = pause;
+  function setClaimManager(address claimManager_) external onlyOwner {
+    claimManager = claimManager_;
+  }
+
+  function pauseProtocol(uint128 poolId, bool status) external onlyOwner {
+    protocolsMapping[poolId].paused = status;
   }
 }

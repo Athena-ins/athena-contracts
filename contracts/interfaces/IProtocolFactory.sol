@@ -30,4 +30,8 @@ interface IProtocolFactory {
     uint256 rSlope1,
     uint256 rSlope2
   ) external returns (uint128 poolId);
+
+  function addClaimToPool(uint128 poolId_) external;
+
+  function removeClaimFromPool(uint128 poolId_) external;
 }
