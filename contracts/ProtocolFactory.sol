@@ -148,7 +148,7 @@ contract ProtocolFactory is IProtocolFactory, Ownable {
   }
 
   function deployProtocol(
-    address stablecoin_, // @bw variable here but hardcoded in core & other contracts
+    address token_, // @bw variable here but hardcoded in core & other contracts
     string calldata name_,
     uint128[] calldata incompatiblePools_,
     uint128 commitDelay_,
@@ -164,7 +164,7 @@ contract ProtocolFactory is IProtocolFactory, Ownable {
       new ProtocolPool(
         poolId,
         core,
-        stablecoin_,
+        token_,
         commitDelay_,
         uOptimal_,
         r0_,
@@ -183,7 +183,7 @@ contract ProtocolFactory is IProtocolFactory, Ownable {
       deployed: deployedAt,
       paused: false,
       claimsOngoing: 0,
-      stablecoin: stablecoin_,
+      token: token_,
       commitDelay: commitDelay_
     });
 

@@ -31,7 +31,6 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     commitDelay = _commitDelay;
     poolId = poolId_;
     relatedProtocols.push(poolId_);
-    // intersectingAmountIndexes[_id] = 0;
     intersectingAmounts.push();
   }
 
@@ -441,7 +440,6 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
       intersectingAmountIndexes[relatedPoolId] = intersectingAmounts.length;
 
       relatedProtocols.push(relatedPoolId);
-
       intersectingAmounts.push();
     }
 

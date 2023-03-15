@@ -8,7 +8,7 @@ interface IProtocolFactory {
     uint128 commitDelay;
     bool paused; //is Active or paused
     string name; //Protocol name
-    address stablecoin;
+    address token;
     address deployed; //Protocol Pool Address deployed
   }
 
@@ -21,7 +21,7 @@ interface IProtocolFactory {
   function validePoolIds(uint128[] calldata poolIds) external view;
 
   function deployProtocol(
-    address stablecoin,
+    address token,
     string calldata name,
     uint128[] calldata incompatiblePools,
     uint128 commitDelay,
