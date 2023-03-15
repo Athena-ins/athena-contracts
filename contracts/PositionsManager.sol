@@ -53,6 +53,12 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
     return _positions[tokenId];
   }
 
+  function getFirstPositionPoolId(
+    uint256 tokenId_
+  ) external view returns (uint128) {
+    return _positions[tokenId_].poolIds[0];
+  }
+
   function hasPositionOf(address to) external view returns (bool) {
     return balanceOf(to) > 0;
   }

@@ -64,6 +64,13 @@ contract ProtocolFactory is IProtocolFactory, Ownable {
     return protocolsMapping[poolId_].deployed;
   }
 
+  function getPoolUnderlyingToken(
+    uint128 poolId_
+  ) external view returns (address) {
+    if (nextPoolId <= poolId_) revert OutOfRange();
+    return protocolsMapping[poolId_].token;
+  }
+
   function getPool(uint128 poolId_) external view returns (Protocol memory) {
     if (nextPoolId <= poolId_) revert OutOfRange();
     return protocolsMapping[poolId_];
@@ -90,10 +97,33 @@ contract ProtocolFactory is IProtocolFactory, Ownable {
     return true;
   }
 
+  function getIncompatiblePools(
+    uint128 poolId_
+  ) external view returns (uint128[] memory incompatiblePools) {
+    uint128 nbPools = 0;
+    uint128 index;
+
+    // We need to compute the number of positions to create the array
+    for (uint128 i = 0; i < nextPoolId; i++) {
+      if (incompatibilityProtocols[poolId_][i] == true) nbPools++;
+    }
+
+    incompatiblePools = new uint128[](nbPools);
+
+    for (uint128 i = 0; i < nextPoolId; i++) {
+      if (incompatibilityProtocols[poolId_][i] == true) {
+        incompatiblePools[index] = i;
+        index++;
+      }
+    }
+  }
+
   /// ================================= ///
   /// ========== DEPLOY POOL ========== ///
   /// ================================= ///
 
+  // @bw a whitelist of compatible pools would be lighter & more secure
+  // @bw this should also control wether pool underlying tokens are compatible
   function validePoolIds(uint128[] calldata poolIds) external view {
     for (uint256 i = 0; i < poolIds.length; i++) {
       uint128 poolId = poolIds[i];

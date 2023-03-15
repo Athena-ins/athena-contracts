@@ -42,4 +42,12 @@ interface IProtocolFactory {
   function canWithdrawFromPools(
     uint128[] calldata poolIds
   ) external view returns (bool);
+
+  function getPoolUnderlyingToken(
+    uint128 poolId_
+  ) external view returns (address);
+
+  function getIncompatiblePools(
+    uint128 poolId_
+  ) external view returns (uint128[] memory);
 }

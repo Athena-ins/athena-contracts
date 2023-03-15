@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.19;
 
-import "@openzeppelin/contracts/token/ERC721/extensions/IERC721Enumerable.sol";
+import { IERC721Enumerable } from "@openzeppelin/contracts/token/ERC721/extensions/IERC721Enumerable.sol";
 
 interface IPositionsManager is IERC721Enumerable {
   struct Position {
@@ -61,4 +61,8 @@ interface IPositionsManager is IERC721Enumerable {
   function takeInterestsInAllPools(address account, uint256 tokenId) external;
 
   function updateFeeLevel(uint256 tokenId, uint128 newFeeLevel) external;
+
+  function getFirstPositionPoolId(
+    uint256 tokenId_
+  ) external view returns (uint128);
 }
