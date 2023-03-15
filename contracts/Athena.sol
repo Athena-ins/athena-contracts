@@ -25,8 +25,6 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   using SafeERC20 for IERC20;
   using RayMath for uint256;
 
-  address public stablecoin;
-
   /// @dev AAVE LendingPoolAddressesProvider Interface
   IERC20 public atenTokenInterface;
   ILendingPoolAddressesProvider public aaveAddressesRegistryInterface;
@@ -42,21 +40,14 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   IVaultERC20 public atensVaultInterface;
   IPriceOracle public priceOracleInterface;
 
-  constructor(
-    address stablecoinUsed_,
-    address atenTokenAddress_,
-    address aaveAddressesRegistry_
-  ) {
-    stablecoin = stablecoinUsed_;
+  // Maps tokens used by pool to its AAVE lending pool approval status
+  mapping(address token => bool isApproved) public approvedTokens;
 
+  constructor(address atenTokenAddress_, address aaveAddressesRegistry_) {
     aaveAddressesRegistryInterface = ILendingPoolAddressesProvider(
       aaveAddressesRegistry_
     );
     atenTokenInterface = IERC20(atenTokenAddress_);
-
-    address lendingPool = aaveAddressesRegistryInterface.getLendingPool();
-    // @bw add approve mapping and exec in pool add when not approved
-    IERC20(stablecoin).safeApprove(lendingPool, type(uint256).max);
   }
 
   function initialize(
@@ -102,6 +93,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   error MustSortInAscendingOrder();
   error PoolPaused();
   error PoolHasOngoingClaimsOrPaused();
+  error UnderlyingTokenMismatch();
 
   /// ========================= ///
   /// ========= EVENTS ======== ///
@@ -228,15 +220,26 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     actualizingProtocolAndRemoveExpiredPolicies(getPoolAddressById(poolId_));
   }
 
-  function _transferLiquidityToAAVE(uint256 amount) private returns (uint256) {
+  /*
+   * @notice
+   * Transfer liquidity to AAVE lending pool
+   * @param token_ address of the token to be deposited (not aToken)
+   * @param amount_ amount of tokens to be deposited
+   * @return normalizedIncome price in rays of the aToken
+   *
+   * @dev For example a return value of 2∗1e27 means 2 tokens = 1 aToken
+   */
+  function _transferLiquidityToAAVE(
+    address token_,
+    uint256 amount_
+  ) private returns (uint256 normalizedIncome) {
     address lendingPool = aaveAddressesRegistryInterface.getLendingPool();
 
-    ILendingPool(lendingPool).deposit(stablecoin, amount, address(this), 0);
+    ILendingPool(lendingPool).deposit(token_, amount_, address(this), 0);
 
-    return
-      amount.rayDiv(
-        ILendingPool(lendingPool).getReserveNormalizedIncome(stablecoin)
-      );
+    normalizedIncome = amount_.rayDiv(
+      ILendingPool(lendingPool).getReserveNormalizedIncome(token_)
+    );
   }
 
   function _updateUserPositionFeeRate(address account_) private {
@@ -270,8 +273,8 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
 
   function _prepareCoverUpdate(
     uint256 coverId_
-  ) private returns (address poolAddress) {
-    uint128 poolId = policyManagerInterface.poolIdOfPolicy(coverId_);
+  ) private returns (address poolAddress, uint128 poolId) {
+    poolId = policyManagerInterface.poolIdOfPolicy(coverId_);
     poolAddress = getPoolAddressById(poolId);
     actualizingProtocolAndRemoveExpiredPolicies(poolAddress);
   }
@@ -332,11 +335,28 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     // Check if the poolIds do not include incompatible pools
     protocolFactoryInterface.validePoolIds(poolIds);
 
+    // @bw This check should be delegated to validatePoolIds and deleted
+    // We only allow positions with the same underlying token
+    address underlyingToken = protocolFactoryInterface.getPoolUnderlyingToken(
+      poolIds[0]
+    );
+    if (poolIds.length != 1) {
+      for (uint256 i = 1; i < poolIds.length; i++) {
+        address nextUnderlyingToken = protocolFactoryInterface
+          .getPoolUnderlyingToken(poolIds[i]);
+        if (underlyingToken != nextUnderlyingToken)
+          revert UnderlyingTokenMismatch();
+      }
+    }
+
     // retrieve user funds for coverage
-    IERC20(stablecoin).safeTransferFrom(msg.sender, address(this), amount);
+    IERC20(underlyingToken).safeTransferFrom(msg.sender, address(this), amount);
 
     // Deposit the funds into AAVE and get the new scaled balance
-    uint256 newAaveScaledBalance = _transferLiquidityToAAVE(amount);
+    uint256 newAaveScaledBalance = _transferLiquidityToAAVE(
+      underlyingToken,
+      amount
+    );
 
     // If user has staked ATEN then get feeRate
     uint128 supplyFeeRate = stakedAtensGPInterface.getUserFeeRate(msg.sender);
@@ -371,11 +391,20 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     uint256 tokenId,
     uint256 amount
   ) external onlyPositionTokenOwner(tokenId) {
-    // retrieve user funds for coverage
-    IERC20(stablecoin).safeTransferFrom(msg.sender, address(this), amount);
+    // This is ok because we only allow positions with the same underlying token
+    uint128 firstPositionPoolId = positionManagerInterface
+      .getFirstPositionPoolId(tokenId);
+    address underlyingToken = protocolFactoryInterface.getPoolUnderlyingToken(
+      firstPositionPoolId
+    );
+    // Retrieve user funds for coverage
+    IERC20(underlyingToken).safeTransferFrom(msg.sender, address(this), amount);
 
     // Deposit the funds into AAVE and get the new scaled balance
-    uint256 newAaveScaledBalance = _transferLiquidityToAAVE(amount);
+    uint256 newAaveScaledBalance = _transferLiquidityToAAVE(
+      underlyingToken,
+      amount
+    );
 
     positionManagerInterface.updatePosition(
       msg.sender,
@@ -433,13 +462,17 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     address __lendingPool = aaveAddressesRegistryInterface.getLendingPool();
     ILendingPool lendingPoolInterface = ILendingPool(__lendingPool);
 
+    // This is ok because we only allow positions with the same underlying token
+    address underlyingToken = protocolFactoryInterface.getPoolUnderlyingToken(
+      __position.poolIds[0]
+    );
     // @bw withdrawn amount is bad here
     uint256 _amountToWithdrawFromAAVE = __position.aaveScaledBalance.rayMul(
-      lendingPoolInterface.getReserveNormalizedIncome(stablecoin)
+      lendingPoolInterface.getReserveNormalizedIncome(underlyingToken)
     );
 
     lendingPoolInterface.withdraw(
-      stablecoin,
+      underlyingToken,
       _amountToWithdrawFromAAVE,
       msg.sender
     );
@@ -475,7 +508,10 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
 
       address poolAddress = getPoolAddressById(_poolId);
 
-      IERC20(stablecoin).safeTransferFrom(
+      address underlyingToken = protocolFactoryInterface.getPoolUnderlyingToken(
+        _poolId
+      );
+      IERC20(underlyingToken).safeTransferFrom(
         msg.sender,
         poolAddress,
         _premiumDeposit
@@ -512,12 +548,11 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
 
   /// -------- COVER UPDATE -------- ///
 
-  // @bw need update cover
   function increaseCover(
     uint256 coverId_,
     uint256 amount_
   ) external onlyPolicyTokenOwner(coverId_) {
-    address poolAddress = _prepareCoverUpdate(coverId_);
+    (address poolAddress, ) = _prepareCoverUpdate(coverId_);
     policyManagerInterface.increaseCover(coverId_, amount_);
     IProtocolPool(poolAddress).increaseCover(coverId_, amount_);
   }
@@ -526,7 +561,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     uint256 coverId_,
     uint256 amount_
   ) external onlyPolicyTokenOwner(coverId_) {
-    address poolAddress = _prepareCoverUpdate(coverId_);
+    (address poolAddress, ) = _prepareCoverUpdate(coverId_);
     policyManagerInterface.decreaseCover(coverId_, amount_);
     IProtocolPool(poolAddress).decreaseCover(coverId_, amount_);
   }
@@ -535,9 +570,12 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     uint256 coverId_,
     uint256 amount_
   ) external onlyPolicyTokenOwner(coverId_) {
-    address poolAddress = _prepareCoverUpdate(coverId_);
+    (address poolAddress, uint128 poolId) = _prepareCoverUpdate(coverId_);
 
-    IERC20(stablecoin).safeTransferFrom(msg.sender, poolAddress, amount_);
+    address underlyingToken = protocolFactoryInterface.getPoolUnderlyingToken(
+      poolId
+    );
+    IERC20(underlyingToken).safeTransferFrom(msg.sender, poolAddress, amount_);
 
     stakedAtensPoInterface.updateBeforePremiumChange(coverId_);
     policyManagerInterface.addPremiums(coverId_, amount_);
@@ -548,7 +586,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     uint256 coverId_,
     uint256 amount_
   ) external onlyPolicyTokenOwner(coverId_) {
-    address poolAddress = _prepareCoverUpdate(coverId_);
+    (address poolAddress, ) = _prepareCoverUpdate(coverId_);
 
     stakedAtensPoInterface.updateBeforePremiumChange(coverId_);
     policyManagerInterface.removePremiums(coverId_, amount_);
@@ -718,8 +756,11 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
       aaveAddressesRegistryInterface.getLendingPool()
     );
 
+    address underlyingToken = protocolFactoryInterface.getPoolUnderlyingToken(
+      poolId
+    );
     uint256 reserveNormalizedIncome = lendingPoolInterface
-      .getReserveNormalizedIncome(stablecoin);
+      .getReserveNormalizedIncome(underlyingToken);
 
     uint128[] memory relatedProtocols = poolInterface.getRelatedProtocols();
     for (uint256 i = 0; i < relatedProtocols.length; i++) {
@@ -736,7 +777,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
       );
     }
 
-    lendingPoolInterface.withdraw(stablecoin, amount_, account_);
+    lendingPoolInterface.withdraw(underlyingToken, amount_, account_);
   }
 
   /// =========================== ///
@@ -756,6 +797,13 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     uint256 rSlope1_,
     uint256 rSlope2_
   ) public onlyOwner {
+    // @bw add approve mapping and exec in pool add when not approved
+    if (!approvedTokens[token_]) {
+      address lendingPool = aaveAddressesRegistryInterface.getLendingPool();
+      IERC20(token_).safeApprove(lendingPool, type(uint256).max);
+      approvedTokens[token_] = true;
+    }
+
     uint128 poolId = protocolFactoryInterface.deployProtocol(
       token_,
       name_,
