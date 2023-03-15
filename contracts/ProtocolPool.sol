@@ -160,6 +160,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     return policyManagerInterface.coverAmountOfPolicy(coverId_);
   }
 
+  // @bw high gas consumpton - only place saved claims are consummed
   function _actualizingLPInfoWithClaims(
     uint256 tokenId_,
     uint256 _userCapital,
@@ -429,6 +430,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
 
   // @bw only protocol pools should be able to call this function
   // @bw why not updated on withdraw ?
+  // @bw seems it is updated on withdraw & claim consumption
   function addRelatedProtocol(
     uint128 relatedPoolId,
     uint256 _amount // onlyCore

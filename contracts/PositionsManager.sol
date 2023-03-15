@@ -174,6 +174,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
       }
 
       // Loop through each latter pool (j)
+      // @bw This create a lot of calls to the pools - need refactoring
       for (uint256 j = i + 1; j < poolIds.length; j++) {
         uint128 latterPoolId = poolIds[j];
 

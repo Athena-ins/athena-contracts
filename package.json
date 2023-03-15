@@ -16,7 +16,8 @@
     "deploy-hardhat": "npx hardhat run --network hardhat scripts/fullDeploy.ts",
     "deploy-goerli": "npx hardhat run --network goerli scripts/fullDeploy.ts",
     "gen-exports": "npx ts-node scripts/gen-exports.ts",
-    "gen-fnsigs": "npx ts-node scripts/gen-fnsigs.ts"
+    "gen-fnsigs": "npx ts-node scripts/gen-fnsigs.ts",
+    "gen-topics": "npx ts-node scripts/gen-topics.ts"
   },
   "repository": {
     "type": "git",
