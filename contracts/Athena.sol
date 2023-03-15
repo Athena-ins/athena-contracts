@@ -43,13 +43,6 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   IVaultERC20 public atensVaultInterface;
   IPriceOracle public priceOracleInterface;
 
-  struct AtenFeeLevel {
-    uint256 atenAmount;
-    uint128 feeRate;
-  }
-  /// Available reward levels (10_000 = 100% APR)
-  AtenFeeLevel[] public supplyFeeLevels;
-
   constructor(
     address stablecoinUsed_,
     address atenTokenAddress_,
@@ -63,6 +56,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     atenTokenInterface = IERC20(atenTokenAddress_);
 
     address lendingPool = aaveAddressesRegistryInterface.getLendingPool();
+    // @bw add approve mapping and exec in pool add when not approved
     IERC20(stablecoin).safeApprove(lendingPool, type(uint256).max);
   }
 
@@ -107,7 +101,6 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   error AmountAtenTooHigh();
   error MissingBaseRate();
   error MustSortInAscendingOrder();
-  error FeeGreaterThan100Percent();
   error PoolPaused();
   error PoolHasOngoingClaimsOrPaused();
 
@@ -216,45 +209,6 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     }
   }
 
-  /// -------- STAKING -------- ///
-
-  /** @notice
-   * Gets all the cover supply fee levels according to the amount of staked ATEN.
-   * @return levels all the fee levels
-   **/
-  function getAtenStakingFeeLevels()
-    public
-    view
-    returns (AtenFeeLevel[] memory levels)
-  {
-    uint256 nbLevels = supplyFeeLevels.length;
-    levels = new AtenFeeLevel[](nbLevels);
-
-    for (uint256 i = 0; i < nbLevels; i++) {
-      levels[i] = supplyFeeLevels[i];
-    }
-  }
-
-  /** @notice
-   * Retrieves the fee rate according to amount of staked ATEN.
-   * @dev Returns displays warning but levels require an amountAten of 0
-   * @param stakedAten_ amount of ATEN the user stakes in GP
-   * @return _ amount of fees applied to cover supply interests
-   **/
-  function getFeeRateWithAten(
-    uint256 stakedAten_
-  ) public view override returns (uint128) {
-    // Lazy check to avoid loop if user doesn't stake
-    if (stakedAten_ == 0) return supplyFeeLevels[0].feeRate;
-
-    // Inversed loop starts with the end to find adequate level
-    for (uint256 i = supplyFeeLevels.length - 1; i >= 0; i--) {
-      // Rate level with atenAmount of 0 will always be true
-      if (supplyFeeLevels[i].atenAmount <= stakedAten_)
-        return supplyFeeLevels[i].feeRate;
-    }
-  }
-
   /// ========================== ///
   /// ========= HELPERS ======== ///
   /// ========================== ///
@@ -298,11 +252,8 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
         .position(tokenList[0]);
       uint128 currentFeeLevel = userPosition.feeRate;
 
-      // Check the user's balance of staked ATEN + staking rewards
-      uint256 newbalance = stakedAtensGPInterface.positionOf(account_);
-
       // Compute the fee level after adding accrued interests and removing withdrawal
-      uint128 newFeeLevel = getFeeRateWithAten(newbalance);
+      uint128 newFeeLevel = stakedAtensGPInterface.getUserFeeRate(account_);
 
       // If the fee level changes, update all positions
       if (currentFeeLevel != newFeeLevel) {
@@ -388,21 +339,15 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     // Deposit the funds into AAVE and get the new scaled balance
     uint256 newAaveScaledBalance = _transferLiquidityToAAVE(amount);
 
-    // Check the user's balance of staked ATEN + staking rewards
-    uint256 stakedAten = stakedAtensGPInterface.positionOf(msg.sender);
-
     // If user has staked ATEN then get feeRate
-    uint128 stakingFeeRate;
-    if (stakedAten > 0) {
-      stakingFeeRate = getFeeRateWithAten(stakedAten);
-    }
+    uint128 supplyFeeRate = stakedAtensGPInterface.getUserFeeRate(msg.sender);
 
     // deposit assets in the pool and create position NFT
     positionManagerInterface.deposit(
       msg.sender,
       amount,
       newAaveScaledBalance,
-      stakingFeeRate,
+      supplyFeeRate,
       poolIds
     );
 
@@ -433,21 +378,11 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     // Deposit the funds into AAVE and get the new scaled balance
     uint256 newAaveScaledBalance = _transferLiquidityToAAVE(amount);
 
-    // check the user's balance of staked ATEN + staking rewards
-    uint256 stakedAten = stakedAtensGPInterface.positionOf(msg.sender);
-
-    // if user has staked ATEN then get feeRate
-    uint128 newStakingFeeRate;
-    if (stakedAten > 0) {
-      newStakingFeeRate = getFeeRateWithAten(stakedAten);
-    }
-
     positionManagerInterface.updatePosition(
       msg.sender,
       tokenId,
       amount,
-      newAaveScaledBalance,
-      newStakingFeeRate
+      newAaveScaledBalance
     );
 
     // Check if his staking reward rate needs to be updated
@@ -808,49 +743,6 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   /// =========================== ///
   /// ========== ADMIN ========== ///
   /// =========================== ///
-
-  /// -------- STAKING -------- ///
-
-  /** @notice
-   * Set the fee levels on cover interests according to amount of staked ATEN in general pool.
-   * @dev Levels must be in ascending order of atenAmount
-   * @dev The atenAmount indicates the upper limit for the level
-   * @param levels_ array of fee level structs
-   **/
-  function setFeeLevelsWithAten(
-    AtenFeeLevel[] calldata levels_
-  ) public onlyOwner {
-    // First clean the storage
-    delete supplyFeeLevels;
-
-    // Set all cover supply fee levels
-    uint256 previousAtenAmount = 0;
-    for (uint256 i = 0; i < levels_.length; i++) {
-      AtenFeeLevel calldata level = levels_[i];
-
-      if (i == 0) {
-        // Require that the first level indicates fees for atenAmount 0
-        if (level.atenAmount != 0) revert MissingBaseRate();
-      } else {
-        // If it isn't the first item check that items are ascending
-        if (level.atenAmount < previousAtenAmount)
-          revert MustSortInAscendingOrder();
-        previousAtenAmount = level.atenAmount;
-      }
-
-      // Check that APR is not higher than 100%
-      if (10_000 < level.feeRate) revert FeeGreaterThan100Percent();
-
-      // save to storage
-      supplyFeeLevels.push(level);
-    }
-  }
-
-  function setStakingRewardRates(
-    IStakedAten.RewardRateLevel[] calldata stakingLevels_
-  ) external onlyOwner {
-    stakedAtensGPInterface.setStakingRewards(stakingLevels_);
-  }
 
   /// -------- PROTOCOL POOLS -------- ///
 

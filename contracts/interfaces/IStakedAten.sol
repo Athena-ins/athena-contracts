@@ -2,11 +2,6 @@
 pragma solidity ^0.8;
 
 interface IStakedAten {
-  struct RewardRateLevel {
-    uint256 amountSupplied;
-    uint128 aprStaking;
-  }
-
   function stake(address _account, uint256 _amount) external;
 
   function claimRewards(address account_) external returns (uint256);
@@ -15,8 +10,7 @@ interface IStakedAten {
 
   function updateUserRewardRate(address account_) external;
 
-  function setStakingRewards(RewardRateLevel[] calldata stakingLevels_)
-    external;
-
   function positionOf(address _account) external view returns (uint256);
+
+  function getUserFeeRate(address account_) external view returns (uint128);
 }

@@ -1,15 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8;
 
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { SafeERC20, IERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import "./interfaces/IStakedAten.sol";
-import "./interfaces/IPositionsManager.sol";
-
-import "hardhat/console.sol";
+import { IStakedAten } from "./interfaces/IStakedAten.sol";
+import { IPositionsManager } from "./interfaces/IPositionsManager.sol";
 
 // @notice Staking Pool Contract: General Pool (GP)
-contract StakingGeneralPool is IStakedAten {
+contract StakingGeneralPool is IStakedAten, Ownable {
   using SafeERC20 for IERC20;
   address public immutable atenTokenAddress;
   address public immutable core;
@@ -32,13 +31,19 @@ contract StakingGeneralPool is IStakedAten {
    */
   mapping(address => Stakeholder) public stakes;
 
-  /**
-     * @notice
-      Structure for getting fixed rewards depending on amount staked
-      Need to be set before use !
-     */
-  /// Available staking reward levels (10_000 = 100% APR)
+  struct RewardRateLevel {
+    uint256 amountSupplied;
+    uint128 aprStaking; // (10_000 = 100% APR)
+  }
+  // Available staking reward levels
   RewardRateLevel[] public stakingRewardRates;
+
+  struct AtenFeeLevel {
+    uint256 atenAmount;
+    uint128 feeRate; // (10_000 = 100% fee)
+  }
+  // Performance fee levels
+  AtenFeeLevel[] public supplyFeeLevels;
 
   /**
    * @notice constructs Pool LP Tokens for staking, decimals defaults to 18
@@ -56,6 +61,14 @@ contract StakingGeneralPool is IStakedAten {
 
     IERC20(atenTokenAddress).safeApprove(core, type(uint256).max);
   }
+
+  /// ============================ ///
+  /// ========== ERRORS ========== ///
+  /// ============================ ///
+
+  error MissingBaseRate();
+  error MustSortInAscendingOrder();
+  error GreaterThan100Percent();
 
   /// ============================ ///
   /// ========== EVENTS ========== ///
@@ -84,11 +97,9 @@ contract StakingGeneralPool is IStakedAten {
    * calculateStakeReward is used to calculate how much a user should be rewarded for their stakes
    * and the duration the stake has been active
    */
-  function calculateStakeReward(Stakeholder memory userStake_)
-    internal
-    view
-    returns (uint256)
-  {
+  function calculateStakeReward(
+    Stakeholder memory userStake_
+  ) internal view returns (uint256) {
     if (userStake_.amount == 0 || userStake_.rate == 0) return 0;
     uint256 divRewardPerSecond = ((365 days) * 10_000) / userStake_.rate;
 
@@ -123,27 +134,17 @@ contract StakingGeneralPool is IStakedAten {
     return userStake.amount + newRewards + userStake.accruedRewards;
   }
 
-  /** @notice
-   * Retrieves the fee rate according to amount of staked ATEN.
-   * @dev Returns displays warning but levels require an amountSupplied of 0
-   * @param suppliedCapital_ USD amount of the user's cover positions
-   * @return uint128 staking APR of user in GP
-   **/
-  function getStakingRewardRate(uint256 suppliedCapital_)
-    public
-    view
-    returns (uint128)
-  {
-    // Lazy check to avoid loop if user doesn't supply
-    if (suppliedCapital_ == 0) return stakingRewardRates[0].aprStaking;
+  function getUserStakingPosition(
+    address account_
+  ) external view returns (Stakeholder memory userStake) {
+    userStake = stakes[account_];
 
-    // Inversed loop starts with the end to find adequate level
-    for (uint256 i = stakingRewardRates.length - 1; i >= 0; i--) {
-      // Rate level with amountSupplied of 0 will always be true
-      if (stakingRewardRates[i].amountSupplied <= suppliedCapital_)
-        return stakingRewardRates[i].aprStaking;
-    }
+    userStake.user = account_;
+    uint256 newRewards = calculateStakeReward(userStake);
+    userStake.accruedRewards += newRewards;
   }
+
+  // ====== STAKING REWARD LEVELS ====== //
 
   /** @notice
    * Gets all the ATEN staking reward levels according to the amount of capital supplied.
@@ -163,16 +164,72 @@ contract StakingGeneralPool is IStakedAten {
     }
   }
 
-  function getUserStakingPosition(address account_)
-    external
-    view
-    returns (Stakeholder memory userStake)
-  {
-    userStake = stakes[account_];
+  /** @notice
+   * Retrieves the fee rate according to amount of staked ATEN.
+   * @dev Returns displays warning but levels require an amountSupplied of 0
+   * @param suppliedCapital_ USD amount of the user's cover positions
+   * @return uint128 staking APR of user in GP
+   **/
+  function getStakingRewardRate(
+    uint256 suppliedCapital_
+  ) public view returns (uint128) {
+    // Lazy check to avoid loop if user doesn't supply
+    if (suppliedCapital_ == 0) return stakingRewardRates[0].aprStaking;
 
-    userStake.user = account_;
-    uint256 newRewards = calculateStakeReward(userStake);
-    userStake.accruedRewards += newRewards;
+    // Inversed loop starts with the end to find adequate level
+    for (uint256 i = stakingRewardRates.length - 1; 0 <= i; i--) {
+      // Rate level with amountSupplied of 0 will always be true
+      if (stakingRewardRates[i].amountSupplied <= suppliedCapital_)
+        return stakingRewardRates[i].aprStaking;
+    }
+
+    return stakingRewardRates[0].aprStaking;
+  }
+
+  // ====== SUPPLY FEE LEVELS ====== //
+
+  /** @notice
+   * Gets all the cover supply fee levels according to the amount of staked ATEN.
+   * @return levels all the fee levels
+   **/
+  function getSupplyFeeLevels()
+    public
+    view
+    returns (AtenFeeLevel[] memory levels)
+  {
+    uint256 nbLevels = supplyFeeLevels.length;
+    levels = new AtenFeeLevel[](nbLevels);
+
+    for (uint256 i = 0; i < nbLevels; i++) {
+      levels[i] = supplyFeeLevels[i];
+    }
+  }
+
+  /** @notice
+   * Retrieves the fee rate according to amount of staked ATEN.
+   * @dev Returns displays warning but levels require an amountAten of 0
+   * @param stakedAten_ amount of ATEN the user stakes in GP
+   * @return _ amount of fees applied to cover supply interests
+   **/
+  function getFeeRateWithAten(
+    uint256 stakedAten_
+  ) public view returns (uint128) {
+    // Lazy check to avoid loop if user doesn't stake
+    if (stakedAten_ == 0) return supplyFeeLevels[0].feeRate;
+
+    // Inversed loop starts with the end to find adequate level
+    for (uint256 i = supplyFeeLevels.length - 1; 0 <= i; i--) {
+      // Rate level with atenAmount of 0 will always be true
+      if (supplyFeeLevels[i].atenAmount <= stakedAten_)
+        return supplyFeeLevels[i].feeRate;
+    }
+
+    return supplyFeeLevels[0].feeRate;
+  }
+
+  function getUserFeeRate(address account_) public view returns (uint128) {
+    uint256 stakedAten = positionOf(account_);
+    return getFeeRateWithAten(stakedAten);
   }
 
   /// ============================= ///
@@ -184,23 +241,16 @@ contract StakingGeneralPool is IStakedAten {
 
     Stakeholder storage userStake = stakes[account_];
 
-    uint256 usdCapitalSupplied;
-    // We only get the user's capital if he is staking for the first time
     /// @dev After this the movements in position update the rate
     if (userStake.amount == 0) {
-      usdCapitalSupplied = positionManagerInterface.allCapitalSuppliedByAccount(
-          account_
-        );
-    }
-
-    // If the user already have tokens staked then we must save his accrued rewards
-    if (0 < userStake.amount) {
+      // If the user had no staking position we need to get his staking APR
+      uint256 usdCapitalSupplied = positionManagerInterface
+        .allCapitalSuppliedByAccount(account_);
+      userStake.rate = getStakingRewardRate(usdCapitalSupplied);
+    } else {
+      // If the user already has stake then we save his accrued rewards
       uint256 newRewards = calculateStakeReward(userStake);
       userStake.accruedRewards += newRewards;
-    }
-    // If the user had no staking position we need to get his staking APR
-    else {
-      userStake.rate = getStakingRewardRate(usdCapitalSupplied);
     }
 
     userStake.amount += amount_;
@@ -209,12 +259,9 @@ contract StakingGeneralPool is IStakedAten {
     emit Staked(account_, amount_, block.timestamp);
   }
 
-  function claimRewards(address account_)
-    external
-    override
-    onlyCore
-    returns (uint256 totalRewards)
-  {
+  function claimRewards(
+    address account_
+  ) external override onlyCore returns (uint256 totalRewards) {
     Stakeholder storage userStake = stakes[account_];
     uint256 newRewards = calculateStakeReward(userStake);
 
@@ -226,11 +273,10 @@ contract StakingGeneralPool is IStakedAten {
     userStake.since = block.timestamp;
   }
 
-  function withdraw(address account_, uint256 amount_)
-    external
-    override
-    onlyCore
-  {
+  function withdraw(
+    address account_,
+    uint256 amount_
+  ) external override onlyCore {
     Stakeholder storage userStake = stakes[account_];
     require(amount_ <= userStake.amount, "SGP: amount too big");
 
@@ -280,33 +326,69 @@ contract StakingGeneralPool is IStakedAten {
   /// ========= ADMIN ========= ///
   /// ========================= ///
 
-  function setStakingRewards(RewardRateLevel[] calldata stakingLevels_)
-    external
-    onlyCore
-  {
+  function setStakingRewards(
+    RewardRateLevel[] calldata stakingLevels_
+  ) external onlyOwner {
     // First clean the storage
     delete stakingRewardRates;
 
     // Set all cover supply fee levels
+    uint256 previousAmountSupplied = 0;
     for (uint256 i = 0; i < stakingLevels_.length; i++) {
       RewardRateLevel calldata level = stakingLevels_[i];
 
       if (i == 0) {
         // Require that the first level indicates fees for atenAmount 0
-        require(level.amountSupplied == 0, "SGP: must specify base rate");
+        if (level.amountSupplied != 0) revert MissingBaseRate();
       } else {
         // If it isn't the first item check that items are ascending
-        require(
-          stakingLevels_[i - 1].amountSupplied < level.amountSupplied,
-          "SGP: sort in ascending order"
-        );
+        if (level.amountSupplied < previousAmountSupplied)
+          revert MustSortInAscendingOrder();
+
+        previousAmountSupplied = level.amountSupplied;
       }
 
       // Check that APR is not higher than 100%
-      require(level.aprStaking <= 10_000, "SGP: 100% < APR");
+      if (10_000 < level.aprStaking) revert GreaterThan100Percent();
 
       // save to storage
       stakingRewardRates.push(level);
+    }
+  }
+
+  /** @notice
+   * Set the fee levels on cover interests according to amount of staked ATEN in general pool.
+   * @dev Levels must be in ascending order of atenAmount
+   * @dev The atenAmount indicates the upper limit for the level
+   * @param levels_ array of fee level structs
+   **/
+  function setFeeLevelsWithAten(
+    AtenFeeLevel[] calldata levels_
+  ) public onlyOwner {
+    // First clean the storage
+    delete supplyFeeLevels;
+
+    // Set all cover supply fee levels
+    uint256 previousAtenAmount = 0;
+    for (uint256 i = 0; i < levels_.length; i++) {
+      AtenFeeLevel calldata level = levels_[i];
+
+      if (i == 0) {
+        // Require that the first level indicates fees for atenAmount 0
+        if (level.atenAmount != 0) revert MissingBaseRate();
+      } else {
+        // If it isn't the first item check that items are ascending
+        if (level.atenAmount < previousAtenAmount)
+          revert MustSortInAscendingOrder();
+
+        previousAtenAmount = level.atenAmount;
+      }
+
+      // Check that fee rate is not higher than 100%
+      if (10_000 < level.feeRate) revert GreaterThan100Percent();
+
+      // save to storage
+      supplyFeeLevels.push(level);
     }
   }
 }

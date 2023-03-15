@@ -22,13 +22,13 @@ interface IAthena {
 
   function coverManager() external view returns (address);
 
-  function getFeeRateWithAten(uint256 atens) external view returns (uint128);
+  function actualizingProtocolAndRemoveExpiredPolicies(
+    address protocolAddress
+  ) external;
 
-  function actualizingProtocolAndRemoveExpiredPolicies(address protocolAddress)
-    external;
-
-  function actualizingProtocolAndRemoveExpiredPoliciesByPoolId(uint128 poolId)
-    external;
+  function actualizingProtocolAndRemoveExpiredPoliciesByPoolId(
+    uint128 poolId
+  ) external;
 
   function compensateClaimant(
     uint256 coverId,
