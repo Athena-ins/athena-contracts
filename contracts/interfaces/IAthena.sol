@@ -10,14 +10,16 @@ interface IAthena {
     uint128 claimsOngoing;
     uint128 poolId;
     address deployed;
-    address stablecoin;
+    address token;
     uint256 insuredCapital;
     uint256 availableCapacity;
     uint256 utilizationRate;
     uint256 premiumRate;
+    uint256 aaveLiquidityRate;
     IProtocolPool.Formula computingConfig;
     string claimAgreement;
     uint256 commitDelay;
+    uint128[] incompatiblePools;
   }
 
   function coverManager() external view returns (address);

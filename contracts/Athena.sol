@@ -169,6 +169,13 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
       poolId_
     );
 
+    uint256 aaveLiquidityRate = ILendingPool(
+      aaveAddressesRegistryInterface.getLendingPool()
+    ).getReserveData(pool.token).currentLiquidityRate;
+
+    uint128[] memory incompatiblePools = protocolFactoryInterface
+      .getIncompatiblePools(poolId_);
+
     return
       ProtocolView({
         name: pool.name,
@@ -176,14 +183,16 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
         claimsOngoing: pool.claimsOngoing,
         poolId: poolId_,
         deployed: pool.deployed,
-        stablecoin: pool.stablecoin,
+        token: pool.token,
         insuredCapital: insuredCapital,
         availableCapacity: availableCapacity,
         utilizationRate: utilizationRate,
         premiumRate: premiumRate,
+        aaveLiquidityRate: aaveLiquidityRate,
         computingConfig: computingConfig,
         claimAgreement: claimAgreement,
-        commitDelay: pool.commitDelay
+        commitDelay: pool.commitDelay,
+        incompatiblePools: incompatiblePools
       });
   }
 
