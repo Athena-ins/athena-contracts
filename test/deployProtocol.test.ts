@@ -397,8 +397,8 @@ describe("Deploy protocol", () => {
       });
 
       it("Should get all fee level data", async () => {
-        const ATHENA_CONTRACT = ProtocolHelper.getAthenaContract();
-        const feeLevels = await ATHENA_CONTRACT.connect(
+        const STAKING_GP_CONTRACT = ProtocolHelper.getStakedAtenContract();
+        const feeLevels = await STAKING_GP_CONTRACT.connect(
           owner
         ).getAtenStakingFeeLevels();
 

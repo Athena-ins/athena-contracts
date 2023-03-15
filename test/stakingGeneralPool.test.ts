@@ -125,7 +125,7 @@ describe("Staking General Pool", function () {
 
   // it("Should check staking rate of liquidity providers", async function () {
   //   const ATHENA_CONTRACT = ProtocolHelper.getAthenaContract();
-  //   const feeLevels = await ATHENA_CONTRACT.connect(
+  //   const feeLevels = await STAKING_GP_CONTRACT.connect(
   //     owner
   //   ).getAtenStakingFeeLevels();
 

@@ -231,7 +231,7 @@ async function setFeeLevelsWithAten(owner: ethers.Signer) {
 }
 
 async function setStakingRewardRates(owner: ethers.Signer) {
-  return await contract.ATHENA.connect(owner).setStakingRewardRates([
+  return await contract.STAKING_GP.connect(owner).setStakingRewardRates([
     { amountSupplied: 0, aprStaking: 1_000 },
     { amountSupplied: 10_000, aprStaking: 1_200 },
     { amountSupplied: 100_000, aprStaking: 1_600 },
