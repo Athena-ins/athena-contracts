@@ -144,16 +144,6 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     __newLPInfo.beginLiquidityIndex = __liquidityIndex;
   }
 
-  // @bw move to core of factory
-  function isWithdrawLiquidityDelayOk(
-    uint256 tokenId_
-  ) external view returns (bool) {
-    uint256 withdrawReserveTime = withdrawReserves[tokenId_];
-    return
-      withdrawReserveTime != 0 &&
-      block.timestamp - withdrawReserveTime >= commitDelay;
-  }
-
   function ratioWithAvailableCapital(
     uint256 _amount
   ) external view returns (uint256) {

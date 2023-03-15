@@ -45,8 +45,7 @@ interface IPositionsManager is IERC721Enumerable {
     address account,
     uint256 tokenId,
     uint256 amount,
-    uint256 newAaveScaledBalance,
-    uint128 newStakingFeeRate
+    uint256 newAaveScaledBalance
   ) external;
 
   function takeInterest(

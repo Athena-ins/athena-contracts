@@ -251,8 +251,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
     address account,
     uint256 tokenId,
     uint256 amount,
-    uint256 newAaveScaledBalance,
-    uint128 newStakingFeeRate
+    uint256 newAaveScaledBalance
   ) external onlyCore {
     IPositionsManager.Position memory userPosition = _positions[tokenId];
 
@@ -287,11 +286,6 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
 
       // Deposit fund into pool and add amount to its own intersectingAmounts
       currentPool.deposit(tokenId, amount);
-    }
-
-    // Update fee rate of positions if it has changed
-    if (_positions[tokenId].feeRate != newStakingFeeRate) {
-      _positions[tokenId].feeRate = newStakingFeeRate;
     }
 
     _positions[tokenId].amountSupplied += amount;

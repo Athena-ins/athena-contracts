@@ -39,10 +39,6 @@ interface IProtocolPool is IPolicyCover {
     external
     returns (uint256 newUserCapital, uint256 aaveScaledBalanceToRemove);
 
-  function isWithdrawLiquidityDelayOk(
-    uint256 tokenId
-  ) external view returns (bool);
-
   function withdrawLiquidity(
     address account,
     uint256 tokenId,
