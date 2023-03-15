@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: agpl-3.0
-pragma solidity ^0.8;
+pragma solidity 0.8.19;
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {IScaledBalanceToken} from "./IScaledBalanceToken.sol";
+import { IScaledBalanceToken } from "./IScaledBalanceToken.sol";
 
 interface IAToken is IERC20, IScaledBalanceToken {
   /**
@@ -33,7 +33,12 @@ interface IAToken is IERC20, IScaledBalanceToken {
    * @param value The amount being burned
    * @param index The new liquidity index of the reserve
    **/
-  event Burn(address indexed from, address indexed target, uint256 value, uint256 index);
+  event Burn(
+    address indexed from,
+    address indexed target,
+    uint256 value,
+    uint256 index
+  );
 
   /**
    * @dev Emitted during the transfer action
@@ -42,7 +47,12 @@ interface IAToken is IERC20, IScaledBalanceToken {
    * @param value The amount being transferred
    * @param index The new liquidity index of the reserve
    **/
-  event BalanceTransfer(address indexed from, address indexed to, uint256 value, uint256 index);
+  event BalanceTransfer(
+    address indexed from,
+    address indexed to,
+    uint256 value,
+    uint256 index
+  );
 
   /**
    * @dev Burns aTokens from `user` and sends the equivalent amount of underlying to `receiverOfUnderlying`
@@ -84,5 +94,8 @@ interface IAToken is IERC20, IScaledBalanceToken {
    * @param amount The amount getting transferred
    * @return The amount transferred
    **/
-  function transferUnderlyingTo(address user, uint256 amount) external returns (uint256);
+  function transferUnderlyingTo(
+    address user,
+    uint256 amount
+  ) external returns (uint256);
 }

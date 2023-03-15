@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENCED
-pragma solidity ^0.8;
+pragma solidity 0.8.19;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -142,11 +142,9 @@ contract StakingPolicy is IStakedAtenPolicy, Ownable {
     }
   }
 
-  function _getSpentPremium(uint256 coverId_)
-    private
-    view
-    returns (uint256 lastPremiumSpent)
-  {
+  function _getSpentPremium(
+    uint256 coverId_
+  ) private view returns (uint256 lastPremiumSpent) {
     return coverManagerInterface.getCoverPremiumSpent(coverId_);
   }
 
@@ -185,11 +183,10 @@ contract StakingPolicy is IStakedAtenPolicy, Ownable {
     }
   }
 
-  function _applyPenalty(uint256 totalRewards_, uint64 timeElapsed_)
-    private
-    view
-    returns (uint256)
-  {
+  function _applyPenalty(
+    uint256 totalRewards_,
+    uint64 timeElapsed_
+  ) private view returns (uint256) {
     if (shortCoverDuration < timeElapsed_) {
       return totalRewards_;
     } else {
@@ -234,11 +231,9 @@ contract StakingPolicy is IStakedAtenPolicy, Ownable {
    * @param coverId_  is the id of the cover
    * @return earnedRewards the amount of rewards earned
    */
-  function positionRefundRewards(uint256 coverId_)
-    external
-    view
-    returns (uint256 earnedRewards)
-  {
+  function positionRefundRewards(
+    uint256 coverId_
+  ) external view returns (uint256 earnedRewards) {
     RefundPosition memory pos = positions[coverId_];
 
     uint64 timestamp = uint64(block.timestamp);
@@ -246,11 +241,9 @@ contract StakingPolicy is IStakedAtenPolicy, Ownable {
     earnedRewards = _computeRewards(pos, timestamp, lastPremiumSpent);
   }
 
-  function netPositionRefundRewards(uint256 coverId_)
-    external
-    view
-    returns (uint256)
-  {
+  function netPositionRefundRewards(
+    uint256 coverId_
+  ) external view returns (uint256) {
     RefundPosition memory pos = positions[coverId_];
     uint64 timestamp = uint64(block.timestamp);
 
@@ -273,11 +266,9 @@ contract StakingPolicy is IStakedAtenPolicy, Ownable {
    * @param coverId_ is the id of the cover
    * @return pos the corresponding staking position if it exists
    */
-  function getRefundPosition(uint256 coverId_)
-    public
-    view
-    returns (RefundPosition memory pos)
-  {
+  function getRefundPosition(
+    uint256 coverId_
+  ) public view returns (RefundPosition memory pos) {
     pos = positions[coverId_];
 
     uint64 timestamp = uint64(block.timestamp);
@@ -295,11 +286,9 @@ contract StakingPolicy is IStakedAtenPolicy, Ownable {
    * @param account_ address of the account
    * @return accountPositions all staking positions of the user
    */
-  function getRefundPositionsByAccount(address account_)
-    external
-    view
-    returns (RefundPosition[] memory accountPositions)
-  {
+  function getRefundPositionsByAccount(
+    address account_
+  ) external view returns (RefundPosition[] memory accountPositions) {
     uint256[] memory accountCoverIds = coverManagerInterface
       .allPolicyTokensOfOwner(account_);
 
@@ -327,10 +316,10 @@ contract StakingPolicy is IStakedAtenPolicy, Ownable {
   /// ========== DEPOSIT ========== ///
   /// ============================= ///
 
-  function createStakingPosition(uint256 coverId_, uint256 amount_)
-    external
-    onlyCore
-  {
+  function createStakingPosition(
+    uint256 coverId_,
+    uint256 amount_
+  ) external onlyCore {
     if (amount_ == 0) revert CannotStakeZero();
 
     RefundPosition storage pos = positions[coverId_];
@@ -418,11 +407,9 @@ contract StakingPolicy is IStakedAtenPolicy, Ownable {
     emit Unstake(coverId_, amount_);
   }
 
-  function withdrawRewards(uint256 coverId_)
-    external
-    onlyCore
-    returns (uint256 netRewards)
-  {
+  function withdrawRewards(
+    uint256 coverId_
+  ) external onlyCore returns (uint256 netRewards) {
     RefundPosition storage pos = positions[coverId_];
     if (pos.initTimestamp == 0) revert PositionDoesNotExist();
 
@@ -447,11 +434,10 @@ contract StakingPolicy is IStakedAtenPolicy, Ownable {
   /// ========== END STAKE ========== ///
   /// =============================== ///
 
-  function closePosition(uint256 coverId_, address account_)
-    external
-    onlyCore
-    returns (uint256 netRewards)
-  {
+  function closePosition(
+    uint256 coverId_,
+    address account_
+  ) external onlyCore returns (uint256 netRewards) {
     RefundPosition storage pos = positions[coverId_];
 
     uint64 initTimestamp = pos.initTimestamp;
@@ -498,10 +484,9 @@ contract StakingPolicy is IStakedAtenPolicy, Ownable {
   /// ========== ADMIN ========== ///
   /// =========================== ///
 
-  function setShortCoverDuration(uint64 shortCoverDuration_)
-    external
-    onlyOwner
-  {
+  function setShortCoverDuration(
+    uint64 shortCoverDuration_
+  ) external onlyOwner {
     if (shortCoverDuration_ == 0) revert DurationOfZero();
     shortCoverDuration = shortCoverDuration_;
 

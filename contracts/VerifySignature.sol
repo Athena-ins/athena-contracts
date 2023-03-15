@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8;
+pragma solidity 0.8.19;
 
 /*  
 
@@ -12,11 +12,10 @@ How to Sign
 */
 
 contract VerifySignature {
-  function recoverSigner(string calldata message_, bytes memory signature_)
-    public
-    pure
-    returns (address signer)
-  {
+  function recoverSigner(
+    string calldata message_,
+    bytes memory signature_
+  ) public pure returns (address signer) {
     bytes32 messageHash = keccak256(abi.encodePacked(message_));
     bytes32 ethSignedMessageHash = keccak256(
       abi.encodePacked("\x19Ethereum Signed Message:\n32", messageHash)

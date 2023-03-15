@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8;
+pragma solidity 0.8.19;
 
 import "./libraries/RayMath.sol";
 import "./libraries/Tick.sol";
@@ -62,11 +62,9 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
   /// ========= VIEWS ======== ///
   /// ======================== ///
 
-  function actualizingUntilGivenDate(uint256 _dateInSeconds)
-    public
-    view
-    returns (Slot0 memory __slot0, uint256 __liquidityIndex)
-  {
+  function actualizingUntilGivenDate(
+    uint256 _dateInSeconds
+  ) public view returns (Slot0 memory __slot0, uint256 __liquidityIndex) {
     require(_dateInSeconds >= slot0.lastUpdateTimestamp, "date is not valide");
 
     if (slot0.remainingPolicies > 0) {
@@ -77,7 +75,9 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
     }
   }
 
-  function getInfo(uint256 coverId_)
+  function getInfo(
+    uint256 coverId_
+  )
     public
     view
     returns (
@@ -187,11 +187,9 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
     return ((_premium * 3153600000) / _insuredCapital).rayDiv(_premiumRate);
   }
 
-  function getPremiumRate(uint256 _utilisationRate)
-    internal
-    view
-    returns (uint256)
-  {
+  function getPremiumRate(
+    uint256 _utilisationRate
+  ) internal view returns (uint256) {
     // returns actual rate for insurance
     if (_utilisationRate < f.uOptimal) {
       return f.r0 + f.rSlope1.rayMul(_utilisationRate.rayDiv(f.uOptimal));
@@ -244,11 +242,9 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
     _slot0.remainingPolicies -= coverIds.length;
   }
 
-  function _actualizingUntil(uint256 _dateInSeconds)
-    internal
-    view
-    returns (Slot0 memory __slot0, uint256 __liquidityIndex)
-  {
+  function _actualizingUntil(
+    uint256 _dateInSeconds
+  ) internal view returns (Slot0 memory __slot0, uint256 __liquidityIndex) {
     __slot0 = Slot0({
       tick: slot0.tick,
       secondsPerTick: slot0.secondsPerTick,
@@ -331,10 +327,9 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
     }
   }
 
-  function removeTick(uint32 _tick)
-    private
-    returns (uint256[] memory coverIds)
-  {
+  function removeTick(
+    uint32 _tick
+  ) private returns (uint256[] memory coverIds) {
     coverIds = ticks[_tick];
 
     for (uint256 i = 0; i < coverIds.length; i++) {
@@ -525,10 +520,10 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
 
   /// -------- CLOSE -------- ///
 
-  function _withdrawPolicy(uint256 coverId, uint256 _amountCovered)
-    internal
-    returns (uint256 __remainedPremium)
-  {
+  function _withdrawPolicy(
+    uint256 coverId,
+    uint256 _amountCovered
+  ) internal returns (uint256 __remainedPremium) {
     PremiumPosition.Info memory __position = premiumPositions[coverId];
     uint32 __currentTick = slot0.tick;
 

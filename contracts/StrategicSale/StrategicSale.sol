@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8;
+pragma solidity 0.8.19;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
@@ -55,10 +55,7 @@ contract StrategicSale is Ownable {
    * @param distributeToken The ERC20 to be distributed for ICO
    * @param tokens The authorized tokens to receive for the ICO
    */
-  constructor(
-    address distributeToken,
-    address[] memory tokens
-  ) {
+  constructor(address distributeToken, address[] memory tokens) {
     // Warning: must only allow stablecoins, no price conversion will be made
     for (uint256 i = 0; i < tokens.length; i++) {
       authTokens[tokens[i]] = true;
@@ -93,10 +90,10 @@ contract StrategicSale is Ownable {
     IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
     // NEEDS TO BE STABLE USD !
     // We WAD it to match 18 decimals
-    amount = (amount * 10**18) / (10**IERC20Metadata(token).decimals());
+    amount = (amount * 10 ** 18) / (10 ** IERC20Metadata(token).decimals());
     // amount is now in USD, in WAD
     uint256 atenSold = (amount *
-      10**IERC20Metadata(aten).decimals() *
+      10 ** IERC20Metadata(aten).decimals() *
       PRICE_DIVISOR) /
       1 ether /
       ATEN_ICO_PRICE;
@@ -180,7 +177,7 @@ contract StrategicSale is Ownable {
       claimed[month] = true;
     }
   }
- 
+
   /**
    * @dev view how many claims are available now
    */

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8;
+pragma solidity 0.8.19;
 
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 
@@ -17,9 +17,10 @@ contract PolicyManager is IPolicyManager, ERC721Enumerable {
   /// The ID of the next cover to be minted
   uint176 public nextCoverId = 0;
 
-  constructor(address coreAddress, address protocolFactory)
-    ERC721("Athena-Cover", "Athena Insurance User Cover")
-  {
+  constructor(
+    address coreAddress,
+    address protocolFactory
+  ) ERC721("Athena-Cover", "Athena Insurance User Cover") {
     core = coreAddress;
     protocolFactoryInterface = IProtocolFactory(protocolFactory);
   }
@@ -47,11 +48,9 @@ contract PolicyManager is IPolicyManager, ERC721Enumerable {
     return covers[coverId].poolId;
   }
 
-  function coverAmountOfPolicy(uint256 coverId)
-    external
-    view
-    returns (uint256)
-  {
+  function coverAmountOfPolicy(
+    uint256 coverId
+  ) external view returns (uint256) {
     return covers[coverId].amountCovered;
   }
 
@@ -59,42 +58,33 @@ contract PolicyManager is IPolicyManager, ERC721Enumerable {
     return covers[coverId];
   }
 
-  function policy(uint256 _tokenId)
-    public
-    view
-    override
-    returns (Policy memory)
-  {
+  function policy(
+    uint256 _tokenId
+  ) public view override returns (Policy memory) {
     return covers[_tokenId];
   }
 
-  function allPolicyTokensOfOwner(address owner)
-    public
-    view
-    returns (uint256[] memory tokenList)
-  {
+  function allPolicyTokensOfOwner(
+    address owner
+  ) public view returns (uint256[] memory tokenList) {
     uint256 tokenLength = balanceOf(owner);
     tokenList = new uint256[](tokenLength);
     for (uint256 i = 0; i < tokenLength; i++)
       tokenList[i] = tokenOfOwnerByIndex(owner, i);
   }
 
-  function allPoliciesOfOwner(address owner)
-    external
-    view
-    returns (Policy[] memory policyList)
-  {
+  function allPoliciesOfOwner(
+    address owner
+  ) external view returns (Policy[] memory policyList) {
     uint256[] memory tokenList = allPolicyTokensOfOwner(owner);
     policyList = new Policy[](tokenList.length);
     for (uint256 i = 0; i < tokenList.length; i++)
       policyList[i] = covers[tokenList[i]];
   }
 
-  function fullCoverData(uint256 coverId)
-    public
-    view
-    returns (FullCoverData memory)
-  {
+  function fullCoverData(
+    uint256 coverId
+  ) public view returns (FullCoverData memory) {
     Policy memory cover = policy(coverId);
 
     uint256 premiumLeft;
@@ -129,11 +119,9 @@ contract PolicyManager is IPolicyManager, ERC721Enumerable {
       });
   }
 
-  function fullCoverDataByAccount(address account)
-    public
-    view
-    returns (FullCoverData[] memory accountCovers)
-  {
+  function fullCoverDataByAccount(
+    address account
+  ) public view returns (FullCoverData[] memory accountCovers) {
     uint256[] memory coverIds = allPolicyTokensOfOwner(account);
 
     accountCovers = new FullCoverData[](coverIds.length);
@@ -144,11 +132,9 @@ contract PolicyManager is IPolicyManager, ERC721Enumerable {
     }
   }
 
-  function getCoverPremiumSpent(uint256 coverId)
-    external
-    view
-    returns (uint256 premiumSpent)
-  {
+  function getCoverPremiumSpent(
+    uint256 coverId
+  ) external view returns (uint256 premiumSpent) {
     Policy memory _policy = policy(coverId);
 
     if (_policy.beginCoveredTime == 0) return 0;
@@ -241,11 +227,9 @@ contract PolicyManager is IPolicyManager, ERC721Enumerable {
   }
 
   //Thao@TODO: cette fct doit retourner capitalToRemove
-  function processExpiredTokens(uint256[] calldata expiredCoverIds)
-    external
-    override
-    onlyCore
-  {
+  function processExpiredTokens(
+    uint256[] calldata expiredCoverIds
+  ) external override onlyCore {
     for (uint256 i = 0; i < expiredCoverIds.length; i++) {
       uint256 coverId = expiredCoverIds[i];
       expireCover(coverId, false);

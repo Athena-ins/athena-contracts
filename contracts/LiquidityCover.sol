@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8;
+pragma solidity 0.8.19;
 
 import "./libraries/RayMath.sol";
 
@@ -24,11 +24,9 @@ abstract contract LiquidityCover {
     liquidityIndex += (_uRate.rayMul(_pRate) * _deltaT) / 31536000;
   }
 
-  function _intersectingAmount(uint128 _poolId)
-    internal
-    view
-    returns (uint256)
-  {
+  function _intersectingAmount(
+    uint128 _poolId
+  ) internal view returns (uint256) {
     return intersectingAmounts[intersectingAmountIndexes[_poolId]];
   }
 

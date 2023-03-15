@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8;
+pragma solidity 0.8.19;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 
@@ -39,11 +39,9 @@ contract PriceOracleV2 is Ownable {
     uniswapV3PoolInterface.increaseObservationCardinalityNext(nbObservations);
   }
 
-  function getSqrtTwapX96(uint32 twapInterval)
-    public
-    view
-    returns (uint160 sqrtPriceX96)
-  {
+  function getSqrtTwapX96(
+    uint32 twapInterval
+  ) public view returns (uint160 sqrtPriceX96) {
     if (twapInterval == 0) {
       // return the current price if twapInterval == 0
       (sqrtPriceX96, , , , , , ) = uniswapV3PoolInterface.slot0();
@@ -66,11 +64,9 @@ contract PriceOracleV2 is Ownable {
     }
   }
 
-  function getPriceX96FromSqrtPriceX96(uint160 sqrtPriceX96)
-    public
-    pure
-    returns (uint256 priceX96)
-  {
+  function getPriceX96FromSqrtPriceX96(
+    uint160 sqrtPriceX96
+  ) public pure returns (uint256 priceX96) {
     return FullMath.mulDiv(sqrtPriceX96, sqrtPriceX96, FixedPoint96.Q96);
   }
 

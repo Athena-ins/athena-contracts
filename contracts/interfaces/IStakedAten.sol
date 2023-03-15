@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8;
+pragma solidity 0.8.19;
 
 interface IStakedAten {
   function stake(address _account, uint256 _amount) external;

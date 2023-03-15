@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8;
+pragma solidity 0.8.19;
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./interfaces/IVaultERC20.sol";
@@ -63,10 +63,10 @@ contract TokenVault is IVaultERC20 {
    * @param to_ the address of the user
    * @param amount_ the amount of rewards to send
    */
-  function sendCoverRefundReward(address to_, uint256 amount_)
-    external
-    onlyCore
-  {
+  function sendCoverRefundReward(
+    address to_,
+    uint256 amount_
+  ) external onlyCore {
     if (amount_ == 0 || coverRefundRewardsTotal == 0) return;
 
     // Check if the contract has enough tokens

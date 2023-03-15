@@ -4,7 +4,7 @@
 
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.2;
+pragma solidity 0.8.19;
 
 /**
  * @dev Interface of the ERC20 standard as defined in the EIP.
@@ -36,10 +36,10 @@ interface IERC20 {
    *
    * This value changes when {approve} or {transferFrom} are called.
    */
-  function allowance(address owner, address spender)
-    external
-    view
-    returns (uint256);
+  function allowance(
+    address owner,
+    address spender
+  ) external view returns (uint256);
 
   /**
    * @dev Sets `amount` as the allowance of `spender` over the caller's tokens.
@@ -334,10 +334,10 @@ library Address {
    *
    * _Available since v3.1._
    */
-  function functionCall(address target, bytes memory data)
-    internal
-    returns (bytes memory)
-  {
+  function functionCall(
+    address target,
+    bytes memory data
+  ) internal returns (bytes memory) {
     return functionCall(target, data, "Address: low-level call failed");
   }
 
@@ -545,7 +545,7 @@ contract ATEN is Context, IERC20, Ownable {
   uint256 private _MAX = ~uint256(0);
   uint256 private _GRANULARITY = 1000;
 
-  uint256 private _tTotal = 3_000_000_000 * 10**18;
+  uint256 private _tTotal = 3_000_000_000 * 10 ** 18;
   uint256 private _rTotal = (_MAX - (_MAX % _tTotal));
 
   uint256 private _tFeeTotal;
@@ -587,29 +587,25 @@ contract ATEN is Context, IERC20, Ownable {
     return tokenFromReflection(_rOwned[account]);
   }
 
-  function transfer(address recipient, uint256 amount)
-    public
-    override
-    returns (bool)
-  {
+  function transfer(
+    address recipient,
+    uint256 amount
+  ) public override returns (bool) {
     _transfer(_msgSender(), recipient, amount);
     return true;
   }
 
-  function allowance(address owner, address spender)
-    public
-    view
-    override
-    returns (uint256)
-  {
+  function allowance(
+    address owner,
+    address spender
+  ) public view override returns (uint256) {
     return _allowances[owner][spender];
   }
 
-  function approve(address spender, uint256 amount)
-    public
-    override
-    returns (bool)
-  {
+  function approve(
+    address spender,
+    uint256 amount
+  ) public override returns (bool) {
     _approve(_msgSender(), spender, amount);
     return true;
   }
@@ -631,11 +627,10 @@ contract ATEN is Context, IERC20, Ownable {
     return true;
   }
 
-  function increaseAllowance(address spender, uint256 addedValue)
-    public
-    virtual
-    returns (bool)
-  {
+  function increaseAllowance(
+    address spender,
+    uint256 addedValue
+  ) public virtual returns (bool) {
     _approve(
       _msgSender(),
       spender,
@@ -644,11 +639,10 @@ contract ATEN is Context, IERC20, Ownable {
     return true;
   }
 
-  function decreaseAllowance(address spender, uint256 subtractedValue)
-    public
-    virtual
-    returns (bool)
-  {
+  function decreaseAllowance(
+    address spender,
+    uint256 subtractedValue
+  ) public virtual returns (bool) {
     _approve(
       _msgSender(),
       spender,
@@ -688,11 +682,10 @@ contract ATEN is Context, IERC20, Ownable {
     _tFeeTotal = _tFeeTotal.add(tAmount);
   }
 
-  function reflectionFromToken(uint256 tAmount, bool deductTransferFee)
-    public
-    view
-    returns (uint256)
-  {
+  function reflectionFromToken(
+    uint256 tAmount,
+    bool deductTransferFee
+  ) public view returns (uint256) {
     require(tAmount <= _tTotal, "Amount must be less than supply");
     if (!deductTransferFee) {
       (uint256 rAmount, , , , , , ) = _getValues(tAmount);
@@ -761,11 +754,7 @@ contract ATEN is Context, IERC20, Ownable {
     ORIG_CHARITY_FEE = _CHARITY_FEE;
   }
 
-  function _approve(
-    address owner,
-    address spender,
-    uint256 amount
-  ) private {
+  function _approve(address owner, address spender, uint256 amount) private {
     require(owner != address(0), "ERC20: approve from the zero address");
     require(spender != address(0), "ERC20: approve to the zero address");
 
@@ -977,18 +966,12 @@ contract ATEN is Context, IERC20, Ownable {
     emit Transfer(address(this), address(0), tBurn);
   }
 
-  function _getValues(uint256 tAmount)
+  function _getValues(
+    uint256 tAmount
+  )
     private
     view
-    returns (
-      uint256,
-      uint256,
-      uint256,
-      uint256,
-      uint256,
-      uint256,
-      uint256
-    )
+    returns (uint256, uint256, uint256, uint256, uint256, uint256, uint256)
   {
     (uint256 tFee, uint256 tBurn, uint256 tCharity) = _getTBasics(
       tAmount,
@@ -1027,15 +1010,7 @@ contract ATEN is Context, IERC20, Ownable {
     uint256 taxFee,
     uint256 burnFee,
     uint256 charityFee
-  )
-    private
-    view
-    returns (
-      uint256,
-      uint256,
-      uint256
-    )
-  {
+  ) private view returns (uint256, uint256, uint256) {
     uint256 tFee = ((tAmount.mul(taxFee)).div(_GRANULARITY)).div(100);
     uint256 tBurn = ((tAmount.mul(burnFee)).div(_GRANULARITY)).div(100);
     uint256 tCharity = ((tAmount.mul(charityFee)).div(_GRANULARITY)).div(100);

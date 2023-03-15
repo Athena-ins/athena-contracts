@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: agpl-3.0
-pragma solidity >=0.8;
+pragma solidity 0.8.19;
 
 /**
  * @title LendingPoolAddressesProvider contract
@@ -9,21 +9,21 @@ pragma solidity >=0.8;
  * @author Aave
  **/
 interface ILendingPoolAddressesProvider {
-    function getMarketId() external view returns (string memory);
+  function getMarketId() external view returns (string memory);
 
-    function getAddress(bytes32 id) external view returns (address);
+  function getAddress(bytes32 id) external view returns (address);
 
-    function getLendingPool() external view returns (address);
+  function getLendingPool() external view returns (address);
 
-    function getLendingPoolConfigurator() external view returns (address);
+  function getLendingPoolConfigurator() external view returns (address);
 
-    function getLendingPoolCollateralManager() external view returns (address);
+  function getLendingPoolCollateralManager() external view returns (address);
 
-    function getPoolAdmin() external view returns (address);
+  function getPoolAdmin() external view returns (address);
 
-    function getEmergencyAdmin() external view returns (address);
+  function getEmergencyAdmin() external view returns (address);
 
-    function getPriceOracle() external view returns (address);
+  function getPriceOracle() external view returns (address);
 
-    function getLendingRateOracle() external view returns (address);
+  function getLendingRateOracle() external view returns (address);
 }

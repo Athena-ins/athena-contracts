@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8;
+pragma solidity 0.8.19;
 
 import "./BitMath.sol";
 
@@ -11,11 +11,9 @@ library TickBitmap {
   /// @param tick The tick for which to compute the position
   /// @return wordPos The key in the mapping containing the word in which the bit is stored
   /// @return bitPos The bit position in the word where the flag is stored
-  function position(uint32 tick)
-    private
-    pure
-    returns (uint24 wordPos, uint8 bitPos)
-  {
+  function position(
+    uint32 tick
+  ) private pure returns (uint24 wordPos, uint8 bitPos) {
     wordPos = uint24(tick >> 8);
     bitPos = uint8(uint32(tick % 256));
   }
@@ -23,9 +21,10 @@ library TickBitmap {
   /// @notice Flips the initialized state for a given tick from false to true, or vice versa
   /// @param self The mapping in which to flip the tick
   /// @param tick The tick to flip
-  function flipTick(mapping(uint24 => uint256) storage self, uint32 tick)
-    internal
-  {
+  function flipTick(
+    mapping(uint24 => uint256) storage self,
+    uint32 tick
+  ) internal {
     (uint24 wordPos, uint8 bitPos) = position(tick);
     uint256 mask = 1 << bitPos;
     self[wordPos] ^= mask;

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.11;
+pragma solidity 0.8.19;
 
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { SafeERC20, IERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -20,7 +20,6 @@ import { IVaultERC20 } from "./interfaces/IVaultERC20.sol";
 import { IPriceOracle } from "./interfaces/IPriceOracle.sol";
 
 import { RayMath } from "./libraries/RayMath.sol";
-import { console } from "hardhat/console.sol";
 
 contract Athena is IAthena, ReentrancyGuard, Ownable {
   using SafeERC20 for IERC20;

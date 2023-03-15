@@ -8,7 +8,7 @@
  *  @tools: [MythX]
  */
 
-pragma solidity ^0.8;
+pragma solidity 0.8.19;
 
 import "./Arbitrator.sol";
 
@@ -52,12 +52,9 @@ contract CentralizedArbitrator is Arbitrator {
    *  @param _extraData Not used by this contract.
    *  @return fee Amount to be paid.
    */
-  function arbitrationCost(bytes memory _extraData)
-    public
-    view
-    override
-    returns (uint256 fee)
-  {
+  function arbitrationCost(
+    bytes memory _extraData
+  ) public view override returns (uint256 fee) {
     return _arbitrationPrice;
   }
 
@@ -67,7 +64,10 @@ contract CentralizedArbitrator is Arbitrator {
    *  @param _extraData Can be used to give additional info on the dispute to be created.
    *  @return disputeID ID of the dispute created.
    */
-  function createDispute(uint256 _choices, bytes memory _extraData)
+  function createDispute(
+    uint256 _choices,
+    bytes memory _extraData
+  )
     public
     payable
     override
@@ -118,12 +118,9 @@ contract CentralizedArbitrator is Arbitrator {
    *  @param _disputeID ID of the dispute to rule.
    *  @return status The status of the dispute.
    */
-  function disputeStatus(uint256 _disputeID)
-    public
-    view
-    override
-    returns (DisputeStatus status)
-  {
+  function disputeStatus(
+    uint256 _disputeID
+  ) public view override returns (DisputeStatus status) {
     return disputes[_disputeID].status;
   }
 
@@ -131,12 +128,9 @@ contract CentralizedArbitrator is Arbitrator {
    *  @param _disputeID ID of the dispute to rule.
    *  @return ruling The ruling which would or has been given.
    */
-  function currentRuling(uint256 _disputeID)
-    public
-    view
-    override
-    returns (uint256 ruling)
-  {
+  function currentRuling(
+    uint256 _disputeID
+  ) public view override returns (uint256 ruling) {
     return disputes[_disputeID].ruling;
   }
 }

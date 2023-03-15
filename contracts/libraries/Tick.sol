@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8;
+pragma solidity 0.8.19;
 
 import "./PremiumPosition.sol";
 
@@ -45,9 +45,10 @@ library Tick {
     return self[tick].length;
   }
 
-  function clear(mapping(uint32 => uint256[]) storage self, uint32 tick)
-    internal
-  {
+  function clear(
+    mapping(uint32 => uint256[]) storage self,
+    uint32 tick
+  ) internal {
     delete self[tick];
   }
 }

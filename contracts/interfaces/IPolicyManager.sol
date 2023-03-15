@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8;
+pragma solidity 0.8.19;
 import "@openzeppelin/contracts/token/ERC721/extensions/IERC721Enumerable.sol";
 
 interface IPolicyManager is IERC721Enumerable {
@@ -26,10 +26,9 @@ interface IPolicyManager is IERC721Enumerable {
     uint256 remainingDuration;
   }
 
-  function allPolicyTokensOfOwner(address owner)
-    external
-    view
-    returns (uint256[] calldata tokenList);
+  function allPolicyTokensOfOwner(
+    address owner
+  ) external view returns (uint256[] calldata tokenList);
 
   function poolIdOfPolicy(uint256 _tokenId) external view returns (uint128);
 
@@ -60,8 +59,7 @@ interface IPolicyManager is IERC721Enumerable {
 
   function policyActive(uint256 _tokenId) external view returns (bool);
 
-  function getCoverPremiumSpent(uint256 coverId)
-    external
-    view
-    returns (uint256 premiumSpent);
+  function getCoverPremiumSpent(
+    uint256 coverId
+  ) external view returns (uint256 premiumSpent);
 }

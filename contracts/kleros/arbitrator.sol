@@ -7,7 +7,7 @@
  *  @deployments: []
  */
 
-pragma solidity ^0.8;
+pragma solidity 0.8.19;
 
 import "../interfaces/IArbitrable.sol";
 
@@ -67,39 +67,32 @@ abstract contract Arbitrator {
    *  @param _extraData Can be used to give additional info on the dispute to be created.
    *  @return disputeID ID of the dispute created.
    */
-  function createDispute(uint256 _choices, bytes memory _extraData)
-    public
-    payable
-    virtual
-    returns (uint256 disputeID);
+  function createDispute(
+    uint256 _choices,
+    bytes memory _extraData
+  ) public payable virtual returns (uint256 disputeID);
 
   /** @dev Compute the cost of arbitration. It is recommended not to increase it often, as it can be highly time and gas consuming for the arbitrated contracts to cope with fee augmentation.
    *  @param _extraData Can be used to give additional info on the dispute to be created.
    *  @return fee Amount to be paid.
    */
-  function arbitrationCost(bytes memory _extraData)
-    public
-    view
-    virtual
-    returns (uint256 fee);
+  function arbitrationCost(
+    bytes memory _extraData
+  ) public view virtual returns (uint256 fee);
 
   /** @dev Return the status of a dispute.
    *  @param _disputeID ID of the dispute to rule.
    *  @return status The status of the dispute.
    */
-  function disputeStatus(uint256 _disputeID)
-    public
-    view
-    virtual
-    returns (DisputeStatus status);
+  function disputeStatus(
+    uint256 _disputeID
+  ) public view virtual returns (DisputeStatus status);
 
   /** @dev Return the current ruling of a dispute. This is useful for parties to know if they should appeal.
    *  @param _disputeID ID of the dispute.
    *  @return ruling The ruling which has been given or the one which will be given if there is no appeal.
    */
-  function currentRuling(uint256 _disputeID)
-    public
-    view
-    virtual
-    returns (uint256 ruling);
+  function currentRuling(
+    uint256 _disputeID
+  ) public view virtual returns (uint256 ruling);
 }
