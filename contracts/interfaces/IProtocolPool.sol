@@ -12,7 +12,7 @@ interface IProtocolPool is IPolicyCover {
 
   function commitDelay() external view returns (uint128);
 
-  function deposit(uint256 tokenId, uint256 amount) external;
+  function depositToPool(uint256 tokenId, uint256 amount) external;
 
   function rewardsOf(
     uint256 tokenId,
@@ -29,7 +29,7 @@ interface IProtocolPool is IPolicyCover {
       LPInfo memory __newLPInfo
     );
 
-  function takeInterest(
+  function takePoolInterests(
     address account,
     uint256 tokenId,
     uint256 userCapital,

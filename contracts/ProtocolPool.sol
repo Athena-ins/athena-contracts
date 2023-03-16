@@ -209,7 +209,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
 
   /// -------- DEPOSIT -------- ///
 
-  function deposit(
+  function depositToPool(
     uint256 tokenId_,
     uint256 amount_ // @bw onlyCore or onlyPositionManager ?
   ) external {
@@ -223,8 +223,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
 
   /// -------- TAKE INTERESTS -------- ///
 
-  //onlyPositionManager
-  function takeInterest(
+  function takePoolInterests(
     address account_,
     uint256 tokenId_,
     uint256 _userCapital,

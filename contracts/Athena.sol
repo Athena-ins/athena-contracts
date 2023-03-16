@@ -371,7 +371,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     uint128 supplyFeeRate = stakedAtensGPInterface.getUserFeeRate(msg.sender);
 
     // deposit assets in the pool and create position NFT
-    positionManagerInterface.deposit(
+    positionManagerInterface.depositToPosition(
       msg.sender,
       amount,
       newAaveScaledBalance,
@@ -387,7 +387,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     uint256 tokenId,
     uint128 poolId
   ) public onlyPositionTokenOwner(tokenId) {
-    positionManagerInterface.takeInterest(msg.sender, tokenId, poolId);
+    positionManagerInterface.takePositionInterests(msg.sender, tokenId, poolId);
   }
 
   function takeInterestInAllPools(

@@ -326,7 +326,7 @@ contract StakingGeneralPool is IStakedAten, Ownable {
   /// ========= ADMIN ========= ///
   /// ========================= ///
 
-  function setStakingRewards(
+  function setStakingRewardRates(
     RewardRateLevel[] calldata stakingLevels_
   ) external onlyOwner {
     // First clean the storage

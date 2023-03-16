@@ -33,7 +33,7 @@ interface IPositionsManager is IERC721Enumerable {
 
   function hasPositionOf(address to) external returns (bool);
 
-  function deposit(
+  function depositToPosition(
     address account,
     uint256 amount,
     uint256 newAaveScaledBalance,
@@ -48,7 +48,7 @@ interface IPositionsManager is IERC721Enumerable {
     uint256 newAaveScaledBalance
   ) external;
 
-  function takeInterest(
+  function takePositionInterests(
     address account,
     uint256 tokenId,
     uint128 poolId

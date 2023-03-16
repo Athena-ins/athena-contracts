@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.19;
 
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
+import { ERC721Enumerable, ERC721 } from "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 
-import "./interfaces/IAthena.sol";
-import "./interfaces/IProtocolPool.sol";
-import "./interfaces/IProtocolFactory.sol";
-import "./interfaces/IPositionsManager.sol";
+import { IAthena } from "./interfaces/IAthena.sol";
+import { IProtocolPool } from "./interfaces/IProtocolPool.sol";
+import { IProtocolFactory } from "./interfaces/IProtocolFactory.sol";
+import { IPositionsManager } from "./interfaces/IPositionsManager.sol";
 
-import "./libraries/PositionsLibrary.sol";
+import { PositionsLibrary } from "./libraries/PositionsLibrary.sol";
 
 contract PositionsManager is IPositionsManager, ERC721Enumerable {
   address private core;
@@ -147,7 +147,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
   /// ========= CREATE ======== ///
   /// ========================= ///
 
-  function deposit(
+  function depositToPosition(
     address account,
     uint256 amount,
     uint256 newAaveScaledBalance,
@@ -172,7 +172,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
       );
 
       // A position's commit delay is the highest commit delay among its pools
-      /// @dev create context to avoid stack too deep error
+      // @dev create context to avoid stack too deep error
       // @bw test to see if it works
       {
         uint128 poolCommitDelay = currentPool.commitDelay();
@@ -195,7 +195,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
       _core.actualizingProtocolAndRemoveExpiredPolicies(address(currentPool));
 
       // Deposit fund into pool and add amount to its own intersectingAmounts
-      currentPool.deposit(tokenId, amount);
+      currentPool.depositToPool(tokenId, amount);
     }
 
     _positions[tokenId] = Position({
@@ -292,7 +292,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
       _core.actualizingProtocolAndRemoveExpiredPolicies(address(currentPool));
 
       // Deposit fund into pool and add amount to its own intersectingAmounts
-      currentPool.deposit(tokenId, amount);
+      currentPool.depositToPool(tokenId, amount);
     }
 
     _positions[tokenId].amountSupplied += amount;
@@ -304,7 +304,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
   /// ========= TAKE INTERESTS ======== ///
   /// ================================= ///
 
-  function takeInterest(
+  function takePositionInterests(
     address account,
     uint256 tokenId,
     uint128 poolId
@@ -323,7 +323,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
     (
       uint256 _newUserCapital,
       uint256 _aaveScaledBalanceToRemove
-    ) = IProtocolPool(protocolAddress).takeInterest(
+    ) = IProtocolPool(protocolAddress).takePoolInterests(
         account,
         tokenId,
         _position.amountSupplied,
@@ -352,7 +352,7 @@ contract PositionsManager is IPositionsManager, ERC721Enumerable {
       (
         uint256 _newUserCapital,
         uint256 _aaveScaledBalanceToRemove
-      ) = IProtocolPool(protocolAddress).takeInterest(
+      ) = IProtocolPool(protocolAddress).takePoolInterests(
           account,
           tokenId,
           userPosition.amountSupplied,
