@@ -39,12 +39,11 @@ async function deployAthenaContract(
   aave_registry?: string
 ) {
   const useAtenAddress = contract.ATEN?.address || HardhatHelper.ATEN;
-  const useUsdtAddress = usdt || HardhatHelper.USDT;
   const useAaveRegistryAddress = aave_registry || HardhatHelper.AAVE_REGISTRY;
 
   contract.ATHENA = await (await hre_ethers.getContractFactory("Athena"))
     .connect(owner)
-    .deploy(useUsdtAddress, useAtenAddress, useAaveRegistryAddress);
+    .deploy(useAtenAddress, useAaveRegistryAddress);
 
   await contract.ATHENA.deployed();
 }
@@ -110,10 +109,11 @@ async function deployProtocolFactoryContract(owner: ethers.Signer) {
   await contract.FACTORY_PROTOCOL.deployed();
 }
 
-async function setClaimManagerInProtocolFactory(owner: ethers.Signer) {
+async function setFactoryClaimAndPositionManagers(owner: ethers.Signer) {
   return await (
-    await contract.FACTORY_PROTOCOL.connect(owner).setClaimManager(
-      contract.CLAIM_MANAGER.address
+    await contract.FACTORY_PROTOCOL.connect(owner).setClaimAndPositionManagers(
+      contract.CLAIM_MANAGER.address,
+      contract.POSITIONS_MANAGER.address
     )
   ).wait();
 }
@@ -222,7 +222,7 @@ async function initializeProtocol(owner: ethers.Signer) {
 }
 
 async function setFeeLevelsWithAten(owner: ethers.Signer) {
-  return await contract.ATHENA.connect(owner).setFeeLevelsWithAten([
+  return await contract.STAKING_GP.connect(owner).setFeeLevelsWithAten([
     { atenAmount: 0, feeRate: 250 },
     { atenAmount: 1_000, feeRate: 200 },
     { atenAmount: 100_000, feeRate: 150 },
@@ -313,7 +313,7 @@ async function deployAllContractsAndInitializeProtocol(owner: ethers.Signer) {
 
   await initializeProtocol(owner);
 
-  await setClaimManagerInProtocolFactory(owner);
+  await setFactoryClaimAndPositionManagers(owner);
   await setFeeLevelsWithAten(owner);
   await setStakingRewardRates(owner);
   await setCoverRefundConfig(owner);
@@ -637,7 +637,7 @@ export default {
   initializeProtocol,
   setFeeLevelsWithAten,
   setStakingRewardRates,
-  setClaimManagerInProtocolFactory,
+  setFactoryClaimAndPositionManagers,
   addNewProtocolPool,
   getProtocolPoolDataById,
   getProtocolPoolContract,

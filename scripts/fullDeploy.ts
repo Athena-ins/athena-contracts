@@ -80,7 +80,7 @@ async function main() {
 
     console.log("==> INITIALIZE + SET CLAIM MANAGER");
     await ProtocolHelper.initializeProtocol(deployer);
-    await ProtocolHelper.setClaimManagerInProtocolFactory(deployer);
+    await ProtocolHelper.setFactoryClaimAndPositionManagers(deployer);
 
     // =====> set fee levels & reward levels
     console.log("==> FEE + REWARD + REFUND CONFIG");
