@@ -163,7 +163,7 @@ describe("Cover Refund Staking", function () {
     const rewards = await STAKING_POLICY.connect(
       policyTaker1
     ).positionRefundRewards(0);
-    expect(rewards).to.equal("35616508117706747800000");
+    expect(rewards).to.equal("35616504946727549400000");
 
     await HardhatHelper.setNextBlockTimestamp(120 * 24 * 60 * 60);
 

@@ -22,6 +22,10 @@ describe("Deploy protocol", () => {
     await HardhatHelper.reset();
     owner = (await HardhatHelper.allSigners())[0];
 
+    await ProtocolHelper.deployAllContractsAndInitializeProtocol(owner);
+
+    // ================= Get Contracts ================= //
+
     ATHENA_CONTRACT = ProtocolHelper.getAthenaContract();
     STAKING_GP_CONTRACT = ProtocolHelper.getStakedAtenContract();
   });
@@ -328,13 +332,13 @@ describe("Deploy protocol", () => {
 
       it("Should get discount amount with Aten", async () => {
         expect(
-          STAKING_GP_CONTRACT.connect(owner).getFeeRateWithAten(999)
+          await STAKING_GP_CONTRACT.connect(owner).getFeeRateWithAten(999)
         ).to.equal(250);
         expect(
-          STAKING_GP_CONTRACT.connect(owner).getFeeRateWithAten(1000)
+          await STAKING_GP_CONTRACT.connect(owner).getFeeRateWithAten(1000)
         ).to.equal(200);
         expect(
-          STAKING_GP_CONTRACT.connect(owner).getFeeRateWithAten(10000000)
+          await STAKING_GP_CONTRACT.connect(owner).getFeeRateWithAten(10000000)
         ).to.equal(50);
       });
 
@@ -346,39 +350,35 @@ describe("Deploy protocol", () => {
             { amountSupplied: 10_000, aprStaking: 1_200 },
             { amountSupplied: 1_000_000, aprStaking: 2_000 },
           ])
-        ).to.be.rejectedWith("SGP: sort in ascending order");
+        ).to.be.rejectedWith("MustSortInAscendingOrder()");
 
         const tx = await ProtocolHelper.setStakingRewardRates(owner);
 
         expect(tx).to.haveOwnProperty("hash");
 
-        const STAKED_ATENS_CONTRACT = ProtocolHelper.getStakedAtenContract();
-
         expect(
-          await STAKED_ATENS_CONTRACT.connect(owner).getStakingRewardRate(0)
+          await STAKING_GP_CONTRACT.connect(owner).getStakingRewardRate(0)
         ).to.equal(BN(1_000));
 
         expect(
-          await STAKED_ATENS_CONTRACT.connect(owner).getStakingRewardRate(10)
+          await STAKING_GP_CONTRACT.connect(owner).getStakingRewardRate(10)
         ).to.equal(BN(1000));
 
         expect(
-          await STAKED_ATENS_CONTRACT.connect(owner).getStakingRewardRate(10000)
+          await STAKING_GP_CONTRACT.connect(owner).getStakingRewardRate(10000)
         ).to.equal(BN(1200));
 
         expect(
-          await STAKED_ATENS_CONTRACT.connect(owner).getStakingRewardRate(
-            100_001
-          )
+          await STAKING_GP_CONTRACT.connect(owner).getStakingRewardRate(100_001)
         ).to.equal(BN(1600));
 
         expect(
-          await STAKED_ATENS_CONTRACT.connect(owner).getStakingRewardRate(
+          await STAKING_GP_CONTRACT.connect(owner).getStakingRewardRate(
             1_000_000
           )
         ).to.equal(BN(2000));
 
-        const stakingLevels = await STAKED_ATENS_CONTRACT.connect(
+        const stakingLevels = await STAKING_GP_CONTRACT.connect(
           owner
         ).getStakingRewardsLevels();
 
@@ -388,13 +388,12 @@ describe("Deploy protocol", () => {
 
     describe("View all array data", () => {
       it("Should get all pool data", async () => {
-        const poolData = await ATHENA_CONTRACT.connect(owner).getAllProtocols();
+        const poolData = await ATHENA_CONTRACT.getAllProtocols();
 
         expect(poolData.length).to.equal(3);
       });
 
       it("Should get all fee level data", async () => {
-        const STAKING_GP_CONTRACT = ProtocolHelper.getStakedAtenContract();
         const feeLevels = await STAKING_GP_CONTRACT.connect(
           owner
         ).getSupplyFeeLevels();
@@ -403,9 +402,7 @@ describe("Deploy protocol", () => {
       });
 
       it("Should get all staking levels data", async () => {
-        const STAKED_ATENS_CONTRACT = ProtocolHelper.getStakedAtenContract();
-
-        const stakingLevels = await STAKED_ATENS_CONTRACT.connect(
+        const stakingLevels = await STAKING_GP_CONTRACT.connect(
           owner
         ).getStakingRewardsLevels();
 

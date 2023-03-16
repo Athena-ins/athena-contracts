@@ -71,7 +71,7 @@ describe("Protocol Pool", function () {
       const factory = await ethers.getContractFactory("Athena");
       ATHENA_CONTRACT = await factory
         .connect(owner)
-        .deploy(USDT, ATEN_TOKEN, AAVE_REGISTRY);
+        .deploy(ATEN_TOKEN, AAVE_REGISTRY);
 
       await ATHENA_CONTRACT.deployed();
 

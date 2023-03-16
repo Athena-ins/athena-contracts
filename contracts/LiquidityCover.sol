@@ -9,6 +9,7 @@ abstract contract LiquidityCover {
   uint128[] public relatedProtocols;
 
   // @bw This could probably be replace by a poolId -> amount mapping
+  // Maps poolId -> overlapped capital amount
   mapping(uint128 => uint256) public intersectingAmountIndexes;
   uint256[] public intersectingAmounts;
 

@@ -177,6 +177,7 @@ contract PolicyManager is IPolicyManager, ERC721Enumerable {
       cancelledByUser: false
     });
 
+    // @bw should delete OZ mint event to save gas
     _mint(_to, coverId);
 
     return coverId;
