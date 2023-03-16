@@ -10,6 +10,8 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
   using RayMath for uint256;
   using SafeERC20 for IERC20;
 
+  address public positionManager;
+
   address public underlyingAsset;
   uint128 public poolId;
   uint128 public commitDelay;
@@ -18,18 +20,20 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
   mapping(uint256 => LPInfo) public LPsInfo;
 
   constructor(
+    address core_,
+    address positionManager_,
+    address underlyingAsset_,
     uint128 poolId_,
-    address _core,
-    address _underlyingAsset,
-    uint128 _commitDelay,
-    uint256 _uOptimal,
-    uint256 _r0,
-    uint256 _rSlope1,
-    uint256 _rSlope2
-  ) PolicyCover(_core, _uOptimal, _r0, _rSlope1, _rSlope2) {
-    underlyingAsset = _underlyingAsset;
-    commitDelay = _commitDelay;
+    uint128 commitDelay_,
+    uint256 uOptimal_,
+    uint256 r0_,
+    uint256 rSlope1_,
+    uint256 rSlope2_
+  ) PolicyCover(core_, uOptimal_, r0_, rSlope1_, rSlope2_) {
+    positionManager = positionManager_;
+    underlyingAsset = underlyingAsset_;
     poolId = poolId_;
+    commitDelay = commitDelay_;
     relatedProtocols.push(poolId_);
     intersectingAmounts.push();
   }
@@ -59,7 +63,12 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
   /// =========================== ///
 
   modifier onlyCore() {
-    require(msg.sender == core, "Only Core");
+    require(msg.sender == core, "PP: only Core");
+    _;
+  }
+
+  modifier onlyPositionManager() {
+    require(msg.sender == positionManager, "PP: Only Position Manager");
     _;
   }
 
@@ -212,7 +221,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
   function depositToPool(
     uint256 tokenId_,
     uint256 amount_ // @bw onlyCore or onlyPositionManager ?
-  ) external {
+  ) external onlyPositionManager {
     // Add deposit to pool's own intersecting amounts
     intersectingAmounts[0] += amount_;
 
@@ -229,7 +238,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     uint256 _userCapital,
     uint128[] calldata _poolIds,
     uint256 _feeRate
-  ) public returns (uint256, uint256) {
+  ) public onlyPositionManager returns (uint256, uint256) {
     (
       uint256 __newUserCapital,
       uint256 __totalRewards,
@@ -267,10 +276,6 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
   }
 
   /// -------- WITHDRAW -------- ///
-
-  function removeLPInfo(uint256 tokenId_) private {
-    delete LPsInfo[tokenId_];
-  }
 
   function withdrawLiquidity(
     address account_,
@@ -326,7 +331,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
       __totalRewards - __rewardsNet
     );
 
-    removeLPInfo(tokenId_);
+    delete LPsInfo[tokenId_];
 
     return (__newUserCapital, __aaveScaledBalanceToRemove);
   }
@@ -396,12 +401,12 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
   /// ========= CLAIMS ======== ///
   /// ========================= ///
 
-  // @bw DANGER should not be public
   function processClaim(
     uint128 _fromPoolId,
     uint256 _ratio,
     uint256 _aaveReserveNormalizedIncome
-  ) public override {
+  ) public override onlyCore {
+    // @dev Here is where the intersectingAmounts are consumed
     uint256 __amountToRemoveByClaim = _amountToRemoveFromIntersecAndCapital(
       _intersectingAmount(_fromPoolId),
       _ratio
@@ -426,13 +431,12 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     return _actualizing();
   }
 
-  // @bw only protocol pools should be able to call this function
   // @bw why not updated on withdraw ?
   // @bw seems it is updated on withdraw & claim consumption
   function addRelatedProtocol(
     uint128 relatedPoolId,
-    uint256 _amount // onlyCore
-  ) external {
+    uint256 _amount
+  ) external onlyPositionManager {
     if (
       intersectingAmountIndexes[relatedPoolId] == 0 && relatedPoolId != poolId
     ) {

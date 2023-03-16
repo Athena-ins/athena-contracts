@@ -9,6 +9,7 @@ import { IProtocolFactory } from "./interfaces/IProtocolFactory.sol";
 contract ProtocolFactory is IProtocolFactory, Ownable {
   address public core;
   address public claimManager;
+  address public positionManager;
 
   uint128 public nextPoolId;
 
@@ -162,9 +163,10 @@ contract ProtocolFactory is IProtocolFactory, Ownable {
 
     address deployedAt = address(
       new ProtocolPool(
-        poolId,
         core,
+        positionManager,
         token_,
+        poolId,
         commitDelay_,
         uOptimal_,
         r0_,
@@ -216,8 +218,12 @@ contract ProtocolFactory is IProtocolFactory, Ownable {
   /// ========== ADMIN ========== ///
   /// =========================== ///
 
-  function setClaimManager(address claimManager_) external onlyOwner {
+  function setClaimAndPositionManagers(
+    address claimManager_,
+    address positionManager_
+  ) external onlyOwner {
     claimManager = claimManager_;
+    positionManager = positionManager_;
   }
 
   function pauseProtocol(uint128 poolId, bool status) external onlyOwner {
