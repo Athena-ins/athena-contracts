@@ -165,7 +165,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
       IProtocolPool.Formula memory computingConfig
     ) = IProtocolPool(pool.deployed).protocolInfo();
 
-    string memory claimAgreement = claimManagerInterface.getProtocolAgreement(
+    string memory claimAgreement = claimManagerInterface.getPoolCoverTerms(
       poolId_
     );
 
@@ -825,7 +825,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     );
 
     // Add the meta evidence IPFS address to the registry
-    claimManagerInterface.addAgreementForProtocol(poolId, ipfsAgreementCid_);
+    claimManagerInterface.addCoverTermsForPool(poolId, ipfsAgreementCid_);
   }
 
   /// -------- AAVE -------- ///

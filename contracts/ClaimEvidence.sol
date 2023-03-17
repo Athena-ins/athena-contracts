@@ -7,7 +7,7 @@ contract ClaimEvidence is IEvidence {
   IArbitrator public immutable arbitrator;
 
   // Maps a protocol ID to its generic meta-evidence IPFS file CID
-  mapping(uint256 => string) public protocolToAgreement;
+  mapping(uint256 => string) public poolIdToCoverTerms;
 
   // Maps a claim ID to its submited evidence
   mapping(uint256 => string[]) public claimIdToEvidence;
@@ -65,10 +65,17 @@ contract ClaimEvidence is IEvidence {
   /// ========= ADMIN ======== ///
   /// ======================== ///
 
-  function _addAgreementForProtocol(
+  /* @notice
+   * Adds or updates the IPFS CID of the cover terms for a pool.
+   * @param poolId_ The ID of the pool.
+   * @param ipfsAgreementCid_ The IPFS CID of the cover terms.
+   *
+   * @dev If updated the previous agreement is still correctly referenced by claim meta-evidence.
+   */
+  function _addCoverTermsForPool(
     uint256 poolId_,
-    string calldata ipfsAgreementCid_
+    string calldata ipfsCoverTermsCid_
   ) internal {
-    protocolToAgreement[poolId_] = ipfsAgreementCid_;
+    poolIdToCoverTerms[poolId_] = ipfsCoverTermsCid_;
   }
 }

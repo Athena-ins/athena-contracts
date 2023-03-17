@@ -133,10 +133,10 @@ contract ClaimManager is
     return coverIdToClaimIds[coverId];
   }
 
-  function getProtocolAgreement(
+  function getPoolCoverTerms(
     uint128 poolId
   ) external view returns (string memory) {
-    return protocolToAgreement[poolId];
+    return poolIdToCoverTerms[poolId];
   }
 
   /**
@@ -358,16 +358,15 @@ contract ClaimManager is
 
   /**
    * @notice
-   * Adds the document associated to the protocol's insurance terms.
-   * @param poolId_ The new protocol ID
+   * Add or update the document associated to the pool's insurance terms.
+   * @param poolId_ The new pool ID
    * @param ipfsAgreementCid_ The IPFS CID of the meta evidence
    */
-  function addAgreementForProtocol(
+  function addCoverTermsForPool(
     uint128 poolId_,
     string calldata ipfsAgreementCid_
   ) external onlyCore {
-    // @bw should add a fn to update this file without breaking the pool
-    _addAgreementForProtocol(poolId_, ipfsAgreementCid_);
+    _addCoverTermsForPool(poolId_, ipfsAgreementCid_);
   }
 
   /**
