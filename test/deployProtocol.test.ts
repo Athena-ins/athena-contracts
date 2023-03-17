@@ -23,11 +23,6 @@ describe("Deploy protocol", () => {
     owner = (await HardhatHelper.allSigners())[0];
 
     await ProtocolHelper.deployAllContractsAndInitializeProtocol(owner);
-
-    // ================= Get Contracts ================= //
-
-    ATHENA_CONTRACT = ProtocolHelper.getAthenaContract();
-    STAKING_GP_CONTRACT = ProtocolHelper.getStakedAtenContract();
   });
 
   describe("Should prepare Protocol", () => {
@@ -50,6 +45,8 @@ describe("Deploy protocol", () => {
             ProtocolHelper.getAthenaContract().address
           )
         ).to.not.equal("0x");
+
+        ATHENA_CONTRACT = ProtocolHelper.getAthenaContract();
       });
 
       it("Should deploy PositionsManager contract", async () => {
@@ -70,6 +67,8 @@ describe("Deploy protocol", () => {
             ProtocolHelper.getStakedAtenContract().address
           )
         ).to.not.equal("0x");
+
+        STAKING_GP_CONTRACT = ProtocolHelper.getStakedAtenContract();
       });
 
       it("Should deploy PolicyManager contract", async () => {
