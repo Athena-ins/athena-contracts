@@ -16,6 +16,48 @@ contract PositionPoolLiquidity {
   // Maps pool IDs to the overlapped pool IDs
   mapping(uint128 _poolId => uint128[] _poolDependants) public dependantPools;
 
+  /// ======================== ///
+  /// ========= VIEWS ======== ///
+  /// ======================== ///
+
+  function getOverlappingCapital(
+    uint128 poolIdA,
+    uint128 poolIdB
+  ) external view returns (uint256) {
+    (uint128 poolId0, uint128 poolId1) = poolIdA < poolIdB
+      ? (poolIdA, poolIdB)
+      : (poolIdB, poolIdA);
+
+    return overlappingLiquidity[poolId0][poolId1];
+  }
+
+  function getAvailableCapital(uint128 poolId) external view returns (uint256) {
+    return overlappingLiquidity[poolId][poolId];
+  }
+
+  function getAllOverlappingCapital(
+    uint128 poolId
+  ) external view returns (PoolOverlap[] memory) {
+    uint256 nbPoolIds = dependantPools[poolId].length;
+
+    PoolOverlap[] memory overlaps = new PoolOverlap[](nbPoolIds);
+
+    for (uint256 i = 0; i < nbPoolIds; i++) {
+      uint128 currentPool = dependantPools[poolId][i];
+
+      (uint128 poolId0, uint128 poolId1) = currentPool < poolId
+        ? (currentPool, poolId)
+        : (poolId, currentPool);
+
+      overlaps[i] = PoolOverlap({
+        poolId: currentPool,
+        amount: overlappingLiquidity[poolId0][poolId1]
+      });
+    }
+
+    return overlaps;
+  }
+
   /// =========================== ///
   /// ========= OVERLAPS ======== ///
   /// =========================== ///
