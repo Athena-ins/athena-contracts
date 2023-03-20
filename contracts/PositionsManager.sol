@@ -2,6 +2,7 @@
 pragma solidity 0.8.19;
 
 import { ERC721Enumerable, ERC721 } from "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
+import { PositionPoolLiquidity } from "./PositionPoolLiquidity.sol";
 
 import { IAthena } from "./interfaces/IAthena.sol";
 import { IProtocolPool } from "./interfaces/IProtocolPool.sol";
@@ -10,7 +11,11 @@ import { IPositionsManager } from "./interfaces/IPositionsManager.sol";
 
 import { PositionsLibrary } from "./libraries/PositionsLibrary.sol";
 
-contract PositionsManager is IPositionsManager, ERC721Enumerable {
+contract PositionsManager is
+  IPositionsManager,
+  ERC721Enumerable,
+  PositionPoolLiquidity
+{
   address private core;
   IProtocolFactory public protocolFactoryInterface;
 
