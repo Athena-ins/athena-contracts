@@ -220,7 +220,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
 
   function depositToPool(
     uint256 tokenId_,
-    uint256 amount_ // @bw onlyCore or onlyPositionManager ?
+    uint256 amount_
   ) external onlyPositionManager {
     // Add deposit to pool's own intersecting amounts
     intersectingAmounts[0] += amount_;
@@ -295,16 +295,20 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     );
 
     (
+      // The initial capital impacted by the claims
       uint256 __newUserCapital,
+      // The rewards earned through premiums
       uint256 __totalRewards,
       LPInfo memory __newLPInfo,
       uint256 __aaveScaledBalanceToRemove
     ) = _actualizingLPInfoWithClaims(tokenId_, _userCapital, _poolIds);
 
+    // Add investment strategy rewards
     __totalRewards += __newUserCapital.rayMul(
       liquidityIndex - __newLPInfo.beginLiquidityIndex
     );
 
+    // Remove protocol fees from rewards
     uint256 __rewardsNet;
     if (__totalRewards > 0) {
       __rewardsNet = (__totalRewards * (1000 - _feeRate)) / 1000;

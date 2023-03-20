@@ -771,6 +771,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     uint256 reserveNormalizedIncome = lendingPoolInterface
       .getReserveNormalizedIncome(underlyingToken);
 
+    // @bw - overlap here we need the list of related protocols
     uint128[] memory relatedProtocols = poolInterface.getRelatedProtocols();
     for (uint256 i = 0; i < relatedProtocols.length; i++) {
       uint128 relatedPoolId = relatedProtocols[i];
@@ -806,7 +807,6 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     uint256 rSlope1_,
     uint256 rSlope2_
   ) public onlyOwner {
-    // @bw add approve mapping and exec in pool add when not approved
     if (!approvedTokens[token_]) {
       address lendingPool = aaveAddressesRegistryInterface.getLendingPool();
       IERC20(token_).safeApprove(lendingPool, type(uint256).max);

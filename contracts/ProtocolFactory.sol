@@ -161,6 +161,7 @@ contract ProtocolFactory is IProtocolFactory, Ownable {
     poolId = nextPoolId;
     nextPoolId++;
 
+    // @bw use temp param struct for computable address checks (for future token strategies)
     address deployedAt = address(
       new ProtocolPool(
         core,

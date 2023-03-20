@@ -8,6 +8,7 @@ interface IPositionsManager is IERC721Enumerable {
     uint256 createdAt;
     uint256 amountSupplied;
     uint256 aaveScaledBalance;
+    // @bw should save account fee rate instead of each position
     uint128 feeRate;
     uint128 commitDelay;
     uint128[] poolIds;
