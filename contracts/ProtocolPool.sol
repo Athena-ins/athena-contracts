@@ -408,7 +408,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
   ) public override onlyCore {
     // @dev Here is where the intersectingAmounts are consumed
     uint256 __amountToRemoveByClaim = _amountToRemoveFromIntersecAndCapital(
-      _intersectingAmount(_fromPoolId),
+      intersectingAmounts[intersectingAmountIndexes[_fromPoolId]],
       _ratio
     );
     _updateSlot0WhenAvailableCapitalChange(0, __amountToRemoveByClaim);

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.19;
 
-import "./libraries/RayMath.sol";
+import { RayMath } from "./libraries/RayMath.sol";
 
 abstract contract LiquidityCover {
   using RayMath for uint256;
@@ -23,12 +23,6 @@ abstract contract LiquidityCover {
     uint256 _deltaT
   ) internal {
     liquidityIndex += (_uRate.rayMul(_pRate) * _deltaT) / 31536000;
-  }
-
-  function _intersectingAmount(
-    uint128 _poolId
-  ) internal view returns (uint256) {
-    return intersectingAmounts[intersectingAmountIndexes[_poolId]];
   }
 
   // returns actual usage rate on capital insured / capital provided for insurance
