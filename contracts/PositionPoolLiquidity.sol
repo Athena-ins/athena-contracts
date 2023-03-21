@@ -4,9 +4,17 @@ pragma solidity 0.8.19;
 // Libraries
 import { RayMath } from "./libraries/RayMath.sol";
 
+// Libraries
+import { IProtocolPool } from "./interfaces/IProtocolPool.sol";
+
 // @bw we want to move in the ratio calc
 
 contract PositionPoolLiquidity {
+  using RayMath for uint256;
+  struct PoolOverlap {
+    uint128 poolId;
+    uint256 amount;
+  }
 
   // Maps poolId 0 -> poolId 1 -> overlapping capital
   // @dev poolId A -> poolId A points to a pool's self available liquidity
@@ -104,6 +112,33 @@ contract PositionPoolLiquidity {
         // We allow poolId0 to be equal to poolId1 for single pool withdrawals
         overlappingLiquidity[poolId0][poolId1] -= amount_;
       }
+    }
+  }
+
+  /// ========================= ///
+  /// ========= CLAIMS ======== ///
+  /// ========================= ///
+
+  function claimRemoval(uint128 coverPoolId_, uint256 amount_) public {
+    uint256 availableCapital = overlappingLiquidity[coverPoolId_][coverPoolId_];
+    uint256 ratio = amount_.rayDiv(availableCapital);
+
+    uint256 nbPoolIds = dependantPools[coverPoolId_].length;
+
+    for (uint128 i = 0; i < nbPoolIds; i++) {
+      uint128 currentPool = dependantPools[coverPoolId_][i];
+
+      (uint128 poolId0, uint128 poolId1) = currentPool < coverPoolId_
+        ? (currentPool, coverPoolId_)
+        : (coverPoolId_, currentPool);
+
+      uint256 overlapAmount = overlappingLiquidity[poolId0][poolId1];
+      uint256 amountToRemove = overlapAmount.rayMul(ratio);
+
+      overlappingLiquidity[poolId0][poolId1] -= amountToRemove;
+      overlappingLiquidity[currentPool][currentPool] -= amountToRemove;
+
+      // call process claim on protocol pool (address ?)
     }
   }
 }
