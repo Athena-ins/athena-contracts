@@ -602,6 +602,11 @@ const updateCover = async (
   ).wait();
 };
 
+const getPoolOverlap = async (poolA: BigNumberish, poolB: BigNumberish) => {
+  const { POSITIONS_MANAGER } = contract;
+  return await POSITIONS_MANAGER.getOverlappingCapital(poolA, poolB);
+};
+
 const toUsdt = (amount: number) =>
   ethers.utils.parseUnits(amount.toString(), 6);
 const toAten = (amount: number) =>
@@ -654,6 +659,7 @@ export default {
   getOngoingCovers,
   getExpiredCovers,
   getAccountCoverIdByIndex,
+  getPoolOverlap,
   toUsdt,
   toAten,
   updateCover,
