@@ -6,7 +6,6 @@ import { PositionPoolLiquidity } from "./PositionPoolLiquidity.sol";
 
 import { IAthena } from "./interfaces/IAthena.sol";
 import { IProtocolPool } from "./interfaces/IProtocolPool.sol";
-import { IProtocolFactory } from "./interfaces/IProtocolFactory.sol";
 import { IPositionsManager } from "./interfaces/IPositionsManager.sol";
 
 import { PositionsLibrary } from "./libraries/PositionsLibrary.sol";
@@ -17,7 +16,6 @@ contract PositionsManager is
   PositionPoolLiquidity
 {
   address private core;
-  IProtocolFactory public protocolFactoryInterface;
 
   /// The token ID position data
   mapping(uint256 => Position) private _positions;
@@ -29,10 +27,12 @@ contract PositionsManager is
 
   constructor(
     address coreAddress,
-    address protocolFactory
-  ) ERC721("Athena-Position", "Athena Insurance User Position") {
+    address poolFactory
+  )
+    ERC721("Athena-Position", "Athena Insurance User Position")
+    PositionPoolLiquidity(poolFactory)
+  {
     core = coreAddress;
-    protocolFactoryInterface = IProtocolFactory(protocolFactory);
   }
 
   /// ========================= ///
@@ -93,9 +93,7 @@ contract PositionsManager is
 
       // Loop through each poolId (j) in a tokenId
       for (uint256 j = 0; j < __position.poolIds.length; j++) {
-        address poolAddress = protocolFactoryInterface.getPoolAddress(
-          __position.poolIds[j]
-        );
+        address poolAddress = _getPoolAddressById(__position.poolIds[j]);
 
         // Check the user's rewards in the pool
         (uint256 __newUserCapital, uint256 __totalRewards, ) = IProtocolPool(
@@ -173,7 +171,7 @@ contract PositionsManager is
 
       // Create an instance of the current pool
       IProtocolPool currentPool = IProtocolPool(
-        protocolFactoryInterface.getPoolAddress(currentPoolId)
+        _getPoolAddressById(currentPoolId)
       );
 
       // A position's commit delay is the highest commit delay among its pools
@@ -193,8 +191,10 @@ contract PositionsManager is
         currentPool.addRelatedProtocol(latterPoolId, amount);
 
         // Mirror the dependency of the current pool in the latter pool
-        IProtocolPool(protocolFactoryInterface.getPoolAddress(latterPoolId))
-          .addRelatedProtocol(currentPoolId, amount);
+        IProtocolPool(_getPoolAddressById(latterPoolId)).addRelatedProtocol(
+          currentPoolId,
+          amount
+        );
       }
 
       _core.actualizingProtocolAndRemoveExpiredPolicies(address(currentPool));
@@ -279,7 +279,7 @@ contract PositionsManager is
 
       // Create an instance of the current pool
       IProtocolPool currentPool = IProtocolPool(
-        protocolFactoryInterface.getPoolAddress(currentPoolId)
+        _getPoolAddressById(currentPoolId)
       );
 
       // Loop through each latter pool (j)
@@ -290,8 +290,10 @@ contract PositionsManager is
         currentPool.addRelatedProtocol(latterPoolId, amount);
 
         // Mirror the dependency of the current pool in the latter pool
-        IProtocolPool(protocolFactoryInterface.getPoolAddress(latterPoolId))
-          .addRelatedProtocol(currentPoolId, amount);
+        IProtocolPool(_getPoolAddressById(latterPoolId)).addRelatedProtocol(
+          currentPoolId,
+          amount
+        );
       }
 
       _core.actualizingProtocolAndRemoveExpiredPolicies(address(currentPool));
@@ -322,7 +324,7 @@ contract PositionsManager is
     );
 
     IAthena _core = IAthena(core);
-    address protocolAddress = protocolFactoryInterface.getPoolAddress(poolId);
+    address protocolAddress = _getPoolAddressById(poolId);
     _core.actualizingProtocolAndRemoveExpiredPolicies(protocolAddress);
 
     (
@@ -351,7 +353,7 @@ contract PositionsManager is
     for (uint256 i = 0; i < userPosition.poolIds.length; i++) {
       uint128 poolId = userPosition.poolIds[i];
 
-      address protocolAddress = protocolFactoryInterface.getPoolAddress(poolId);
+      address protocolAddress = _getPoolAddressById(poolId);
       _core.actualizingProtocolAndRemoveExpiredPolicies(protocolAddress);
 
       (

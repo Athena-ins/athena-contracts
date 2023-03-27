@@ -4,13 +4,17 @@ pragma solidity 0.8.19;
 // Libraries
 import { RayMath } from "./libraries/RayMath.sol";
 
-// Libraries
+// Interfaces
 import { IProtocolPool } from "./interfaces/IProtocolPool.sol";
+import { IProtocolFactory } from "./interfaces/IProtocolFactory.sol";
 
 // @bw we want to move in the ratio calc
 
 contract PositionPoolLiquidity {
   using RayMath for uint256;
+
+  IProtocolFactory public poolFactoryInterface;
+
   struct PoolOverlap {
     uint128 poolId;
     uint256 amount;
@@ -23,6 +27,10 @@ contract PositionPoolLiquidity {
     public overlappingLiquidity;
   // Maps pool IDs to the overlapped pool IDs
   mapping(uint128 _poolId => uint128[] _poolDependants) public dependantPools;
+
+  constructor(address poolFactory) {
+    poolFactoryInterface = IProtocolFactory(poolFactory);
+  }
 
   /// ======================== ///
   /// ========= VIEWS ======== ///
@@ -66,6 +74,16 @@ contract PositionPoolLiquidity {
     return overlaps;
   }
 
+  /// ========================== ///
+  /// ========= HELPERS ======== ///
+  /// ========================== ///
+
+  function _getPoolAddressById(
+    uint128 poolId_
+  ) internal view returns (address) {
+    return poolFactoryInterface.getPoolAddress(poolId_);
+  }
+
   /// =========================== ///
   /// ========= OVERLAPS ======== ///
   /// =========================== ///
@@ -89,7 +107,7 @@ contract PositionPoolLiquidity {
           dependantPools[poolId1].push(poolId0);
         }
 
-        // We allow poolId0 to be equal to poolId1 for single pool deposits
+        // We allow poolId0 to be equal to poolId1 to increment a pool's own capital
         overlappingLiquidity[poolId0][poolId1] += amount_;
       }
     }
@@ -109,7 +127,7 @@ contract PositionPoolLiquidity {
         // Avoid incrementing twice the same pool combination
         if (poolId1 < poolId0) continue;
 
-        // We allow poolId0 to be equal to poolId1 for single pool withdrawals
+        // We allow poolId0 to be equal to poolId1 to drement a pool's own capital
         overlappingLiquidity[poolId0][poolId1] -= amount_;
       }
     }
@@ -138,7 +156,9 @@ contract PositionPoolLiquidity {
       overlappingLiquidity[poolId0][poolId1] -= amountToRemove;
       overlappingLiquidity[currentPool][currentPool] -= amountToRemove;
 
-      // call process claim on protocol pool (address ?)
+      // call process claim on protocol pool
+      address poolAddress = _getPoolAddressById(currentPool);
+      // IProtocolPool(poolAddress).processClaim(coverPoolId_,amountToRemove);
     }
   }
 }
