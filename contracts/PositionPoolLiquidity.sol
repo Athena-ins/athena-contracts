@@ -90,10 +90,10 @@ contract PositionPoolLiquidity {
   /// ========= OVERLAPS ======== ///
   /// =========================== ///
 
-  function addOverlappingCapital(
+  function _addOverlappingCapital(
     uint128[] memory poolIds_,
     uint256 amount_
-  ) public {
+  ) internal {
     uint256 nbPoolIds = poolIds_.length;
 
     for (uint128 i = 0; i < nbPoolIds; i++) {
@@ -115,10 +115,10 @@ contract PositionPoolLiquidity {
     }
   }
 
-  function removeOverlappingCapital(
+  function _removeOverlappingCapital(
     uint128[] memory poolIds_,
     uint256 amount_
-  ) public {
+  ) internal {
     uint256 nbPoolIds = poolIds_.length;
 
     for (uint128 i = 0; i < nbPoolIds; i++) {
@@ -129,7 +129,7 @@ contract PositionPoolLiquidity {
         // Avoid incrementing twice the same pool combination
         if (poolId1 < poolId0) continue;
 
-        // We allow poolId0 to be equal to poolId1 to drement a pool's own capital
+        // We allow poolId0 to be equal to poolId1 to decrement a pool's own capital
         overlappingLiquidity[poolId0][poolId1] -= amount_;
       }
     }
@@ -139,14 +139,20 @@ contract PositionPoolLiquidity {
   /// ========= CLAIMS ======== ///
   /// ========================= ///
 
-  function claimRemoval(uint128 coverPoolId_, uint256 amount_) public {
+  function _claimLiquidityRemoval(
+    uint128 coverPoolId_,
+    uint256 amount_,
+    uint256 reserveNormalizedIncome_
+  ) internal {
     uint256 availableCapital = overlappingLiquidity[coverPoolId_][coverPoolId_];
     uint256 ratio = amount_.rayDiv(availableCapital);
 
     uint256 nbPoolIds = dependantPools[coverPoolId_].length;
 
-    for (uint128 i = 0; i < nbPoolIds; i++) {
-      uint128 currentPool = dependantPools[coverPoolId_][i];
+    for (uint128 i = 0; i < nbPoolIds + 1; i++) {
+      uint128 currentPool = i == nbPoolIds
+        ? coverPoolId_
+        : dependantPools[coverPoolId_][i];
 
       (uint128 poolId0, uint128 poolId1) = currentPool < coverPoolId_
         ? (currentPool, coverPoolId_)
