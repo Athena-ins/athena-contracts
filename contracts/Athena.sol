@@ -216,11 +216,13 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   function actualizingProtocolAndRemoveExpiredPolicies(
     address protocolAddress
   ) public override {
-    uint256[] memory __expiredTokens = IProtocolPool(protocolAddress)
+    uint256[] memory expiredTokens = IProtocolPool(protocolAddress)
       .actualizing();
 
-    policyManagerInterface.processExpiredTokens(__expiredTokens);
-    stakedAtensPoInterface.endStakingPositions(__expiredTokens);
+    if (0 < expiredTokens.length) {
+      policyManagerInterface.processExpiredTokens(expiredTokens);
+      stakedAtensPoInterface.endStakingPositions(expiredTokens);
+    }
   }
 
   function actualizingProtocolAndRemoveExpiredPoliciesByPoolId(

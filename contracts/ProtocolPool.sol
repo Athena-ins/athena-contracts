@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.19;
 
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { SafeERC20, IERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import "./interfaces/IProtocolPool.sol";
-import "./PolicyCover.sol";
+import { IProtocolPool } from "./interfaces/IProtocolPool.sol";
+import { PolicyCover, RayMath } from "./PolicyCover.sol";
 
 contract ProtocolPool is IProtocolPool, PolicyCover {
   using RayMath for uint256;

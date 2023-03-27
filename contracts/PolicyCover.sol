@@ -1,16 +1,18 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.19;
 
-import "./libraries/RayMath.sol";
-import "./libraries/Tick.sol";
-import "./libraries/TickBitmap.sol";
-import "./libraries/PremiumPosition.sol";
+// Libraries
+import { RayMath } from "./libraries/RayMath.sol";
+import { Tick } from "./libraries/Tick.sol";
+import { TickBitmap } from "./libraries/TickBitmap.sol";
+import { PremiumPosition } from "./libraries/PremiumPosition.sol";
 
-import "./interfaces/IAthena.sol";
-import "./interfaces/IPolicyManager.sol";
-import "./interfaces/IPolicyCover.sol";
+// Interfaces
+import { IAthena } from "./interfaces/IAthena.sol";
+import { IPolicyManager } from "./interfaces/IPolicyManager.sol";
+import { IPolicyCover } from "./interfaces/IPolicyCover.sol";
 
-import "./ClaimCover.sol";
+import { ClaimCover } from "./ClaimCover.sol";
 
 abstract contract PolicyCover is IPolicyCover, ClaimCover {
   using RayMath for uint256;

@@ -227,7 +227,7 @@ contract PolicyManager is IPolicyManager, ERC721Enumerable {
     // }
   }
 
-  //Thao@TODO: cette fct doit retourner capitalToRemove
+  // @bw Thao@TODO: cette fct doit retourner capitalToRemove
   function processExpiredTokens(
     uint256[] calldata expiredCoverIds
   ) external override onlyCore {
