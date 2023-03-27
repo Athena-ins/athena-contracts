@@ -387,9 +387,27 @@ contract PositionsManager is
     _takeInterestsInAllPools(account, tokenId);
   }
 
-  /// ========================= ///
+  /// ============================ ///
+  /// ========= LIQUIDITY ======== ///
+  /// ============================ ///
+
+  function getAvailableCapital(
+    uint128 poolId_
+  ) external view returns (uint256) {
+    return _getAvailableCapital(poolId_);
+  }
+
+  function claimLiquidityRemoval(
+    uint128 coverPoolId_,
+    uint256 amount_,
+    uint256 reserveNormalizedIncome_
+  ) external onlyCore {
+    _claimLiquidityRemoval(coverPoolId_, amount_, reserveNormalizedIncome_);
+  }
+
+  /// ======================== ///
   /// ========= ADMIN ======== ///
-  /// ========================= ///
+  /// ======================== ///
 
   /**
    * @notice

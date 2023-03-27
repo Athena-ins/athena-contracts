@@ -66,4 +66,12 @@ interface IPositionsManager is IERC721Enumerable {
   function getFirstPositionPoolId(
     uint256 tokenId_
   ) external view returns (uint128);
+
+  function claimLiquidityRemoval(
+    uint128 coverPoolId_,
+    uint256 amount_,
+    uint256 reserveNormalizedIncome_
+  ) external;
+
+  function getAvailableCapital(uint128 poolId) external view returns (uint256);
 }

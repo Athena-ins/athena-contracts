@@ -36,6 +36,12 @@ contract PositionPoolLiquidity {
   /// ========= VIEWS ======== ///
   /// ======================== ///
 
+  function _getAvailableCapital(
+    uint128 poolId
+  ) internal view returns (uint256) {
+    return overlappingLiquidity[poolId][poolId];
+  }
+
   function getOverlappingCapital(
     uint128 poolIdA,
     uint128 poolIdB
@@ -45,10 +51,6 @@ contract PositionPoolLiquidity {
       : (poolIdB, poolIdA);
 
     return overlappingLiquidity[poolId0][poolId1];
-  }
-
-  function getAvailableCapital(uint128 poolId) external view returns (uint256) {
-    return overlappingLiquidity[poolId][poolId];
   }
 
   function getAllOverlappingCapital(
