@@ -35,8 +35,15 @@ abstract contract LiquidityCover {
     if (_availableCapital == 0) {
       return 0;
     }
-    return
-      (((_totalInsuredCapital + _insuredCapitalToAdd) -
+    uint256 utilizationRate = (((_totalInsuredCapital + _insuredCapitalToAdd) -
         _insuredCapitalToRemove) * 100).rayDiv(_availableCapital);
+
+    //  @bw problem if usage is above 100% (ex: 100$ insured and 1$ capital)
+    // In this case the usage should be ajusted to reflect available capital
+    // The ratio should be slightly favorable for liquidity provider to incentivise equilibrium
+    // Special rules for +100% -> adapt uRate to be based on capital + bonus to incentivize provider
+    // 100% = 100 000000000000000000000000000 (rays)
+
+    return utilizationRate;
   }
 }
