@@ -35,7 +35,6 @@ function getArbitratorContract() {
 
 async function deployAthenaContract(
   owner: ethers.Signer,
-  usdt?: string,
   aave_registry?: string
 ) {
   const useAtenAddress = contract.ATEN?.address || HardhatHelper.ATEN;
