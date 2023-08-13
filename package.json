@@ -12,9 +12,10 @@
     "testNTT": "npx hardhat test ./test/deployProtocol.test.ts ./test/liquidityProvider.test.ts ./test/policyTaker.test.ts ./test/policiesTaker.test.ts ./test/policyView.test.ts ./test/claims.test.ts ./test/rewardsWithoutClaim.test.ts ./test/rewardsWithClaims.test.ts ./test/takeInterestWithoutClaim.test.ts ./test/takeInterestWithClaim.test.ts ./test/withdrawLiquidity1ProtocolWithoutClaim.test.ts ./test/withdrawAllWithoutClaim.test.ts ./test/withdrawAllWithClaim.test.ts ./test/resolveClaim.test.ts ./test/expiredPoliciesWithCanceling.test.ts ./test/expiredPoliciesWithoutCanceling.test.ts ./test/ongoingCoveragePolicies.test.ts ./test/stakingPolicy.test.ts ./test/stakingGeneralPool.test.ts ./test/updateCover.test.ts",
     "testView": "npx hardhat test ./test/protocolsView.test.ts",
     "testFBW": "npx hardhat test ./test/claims.test.ts ./test/rewardsWithClaims.test.ts ./test/takeInterestWithClaim.test.ts ./test/withdrawAllWithClaim.test.ts ./test/resolveClaim.test.ts",
-    "testBW": "npx hardhat test ./test/deployProtocol.test.ts",
+    "testBW": "npx hardhat test ./test/claims.test.ts",
     "deploy-hardhat": "npx hardhat run --network hardhat scripts/fullDeploy.ts",
     "deploy-goerli": "npx hardhat run --network goerli scripts/fullDeploy.ts",
+    "deploy-pool-goerli": "npx hardhat run --network goerli scripts/deploy_pool.ts",
     "gen-exports": "npx ts-node scripts/gen-exports.ts",
     "gen-fnsigs": "npx ts-node scripts/gen-fnsigs.ts",
     "gen-topics": "npx ts-node scripts/gen-topics.ts"
