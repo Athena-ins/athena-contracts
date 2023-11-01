@@ -129,3 +129,5 @@ uiExport
 ./cache
 
 build
+
+deploy*.tar
