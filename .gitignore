@@ -127,3 +127,5 @@ uiExport
 
 # hardhat cache
 ./cache
+
+build
