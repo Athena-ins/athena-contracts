@@ -2,15 +2,15 @@
 pragma solidity 0.8.19;
 
 // Libraries
-import { RayMath } from "./libraries/RayMath.sol";
-import { Tick } from "./libraries/Tick.sol";
-import { TickBitmap } from "./libraries/TickBitmap.sol";
-import { PremiumPosition } from "./libraries/PremiumPosition.sol";
+import { RayMath } from "./lib/RayMath.sol";
+import { Tick } from "./lib/Tick.sol";
+import { TickBitmap } from "./lib/TickBitmap.sol";
+import { PremiumPosition } from "./lib/PremiumPosition.sol";
 
 // Interfaces
-import { IAthena } from "./interfaces/IAthena.sol";
-import { IPolicyManager } from "./interfaces/IPolicyManager.sol";
-import { IPolicyCover } from "./interfaces/IPolicyCover.sol";
+import { IAthena } from "./interface/IAthena.sol";
+import { IPolicyManager } from "./interface/IPolicyManager.sol";
+import { IPolicyCover } from "./interface/IPolicyCover.sol";
 
 import { ClaimCover } from "./ClaimCover.sol";
 

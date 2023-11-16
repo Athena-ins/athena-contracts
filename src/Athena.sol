@@ -5,21 +5,21 @@ import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { SafeERC20, IERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { ReentrancyGuard } from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-import { ILendingPoolAddressesProvider } from "./AAVE/ILendingPoolAddressesProvider.sol";
-import { ILendingPool } from "./AAVE/ILendingPool.sol";
+import { ILendingPoolAddressesProvider } from "./external/aave/ILendingPoolAddressesProvider.sol";
+import { ILendingPool } from "./external/aave/ILendingPool.sol";
 
-import { IAthena } from "./interfaces/IAthena.sol";
-import { IPositionsManager } from "./interfaces/IPositionsManager.sol";
-import { IProtocolFactory } from "./interfaces/IProtocolFactory.sol";
-import { IProtocolPool } from "./interfaces/IProtocolPool.sol";
-import { IStakedAten } from "./interfaces/IStakedAten.sol";
-import { IStakedAtenPolicy } from "./interfaces/IStakedAtenPolicy.sol";
-import { IPolicyManager } from "./interfaces/IPolicyManager.sol";
-import { IClaimManager } from "./interfaces/IClaimManager.sol";
-import { IVaultERC20 } from "./interfaces/IVaultERC20.sol";
-import { IPriceOracle } from "./interfaces/IPriceOracle.sol";
+import { IAthena } from "./interface/IAthena.sol";
+import { IPositionsManager } from "./interface/IPositionsManager.sol";
+import { IProtocolFactory } from "./interface/IProtocolFactory.sol";
+import { IProtocolPool } from "./interface/IProtocolPool.sol";
+import { IStakedAten } from "./interface/IStakedAten.sol";
+import { IStakedAtenPolicy } from "./interface/IStakedAtenPolicy.sol";
+import { IPolicyManager } from "./interface/IPolicyManager.sol";
+import { IClaimManager } from "./interface/IClaimManager.sol";
+import { IVaultERC20 } from "./interface/IVaultERC20.sol";
+import { IPriceOracle } from "./interface/IPriceOracle.sol";
 
-import { RayMath } from "./libraries/RayMath.sol";
+import { RayMath } from "./lib/RayMath.sol";
 
 contract Athena is IAthena, ReentrancyGuard, Ownable {
   using SafeERC20 for IERC20;

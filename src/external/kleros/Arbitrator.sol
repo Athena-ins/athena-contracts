@@ -9,7 +9,7 @@
 
 pragma solidity 0.8.19;
 
-import "../interfaces/IArbitrable.sol";
+import "../interface/IArbitrable.sol";
 
 /** @title Arbitrator
  *  @author Clément Lesaege - <clement@lesaege.com>

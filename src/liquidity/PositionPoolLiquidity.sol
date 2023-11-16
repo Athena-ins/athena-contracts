@@ -2,11 +2,11 @@
 pragma solidity 0.8.19;
 
 // Libraries
-import { RayMath } from "./libraries/RayMath.sol";
+import { RayMath } from "./lib/RayMath.sol";
 
 // Interfaces
-import { IProtocolPool } from "./interfaces/IProtocolPool.sol";
-import { IProtocolFactory } from "./interfaces/IProtocolFactory.sol";
+import { IProtocolPool } from "./interface/IProtocolPool.sol";
+import { IProtocolFactory } from "./interface/IProtocolFactory.sol";
 
 // @bw we want to move in the ratio calc
 

@@ -3,7 +3,7 @@ pragma solidity 0.8.19;
 
 import { SafeERC20, IERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import { IProtocolPool } from "./interfaces/IProtocolPool.sol";
+import { IProtocolPool } from "./interface/IProtocolPool.sol";
 import { PolicyCover, RayMath } from "./PolicyCover.sol";
 
 contract ProtocolPool is IProtocolPool, PolicyCover {

@@ -6,13 +6,13 @@ import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { ClaimEvidence } from "./ClaimEvidence.sol";
 import { VerifySignature } from "./VerifySignature.sol";
 
-import { IArbitrable } from "./interfaces/IArbitrable.sol";
-import { IArbitrator } from "./interfaces/IArbitrator.sol";
+import { IArbitrable } from "./interface/IArbitrable.sol";
+import { IArbitrator } from "./interface/IArbitrator.sol";
 
-import { IPolicyManager } from "./interfaces/IPolicyManager.sol";
-import { IClaimManager } from "./interfaces/IClaimManager.sol";
-import { IProtocolFactory } from "./interfaces/IProtocolFactory.sol";
-import { IAthena } from "./interfaces/IAthena.sol";
+import { IPolicyManager } from "./interface/IPolicyManager.sol";
+import { IClaimManager } from "./interface/IClaimManager.sol";
+import { IProtocolFactory } from "./interface/IProtocolFactory.sol";
+import { IAthena } from "./interface/IAthena.sol";
 
 contract ClaimManager is
   IClaimManager,

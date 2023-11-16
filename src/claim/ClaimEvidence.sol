@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.19;
 
-import "./interfaces/IEvidence.sol";
+import "./interface/IEvidence.sol";
 
 contract ClaimEvidence is IEvidence {
   IArbitrator public immutable arbitrator;

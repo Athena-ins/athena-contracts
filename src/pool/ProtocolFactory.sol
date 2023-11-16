@@ -4,7 +4,7 @@ pragma solidity 0.8.19;
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 import { ProtocolPool } from "./ProtocolPool.sol";
-import { IProtocolFactory } from "./interfaces/IProtocolFactory.sol";
+import { IProtocolFactory } from "./interface/IProtocolFactory.sol";
 
 contract ProtocolFactory is IProtocolFactory, Ownable {
   address public core;

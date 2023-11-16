@@ -2,7 +2,7 @@
 pragma solidity 0.8.19;
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "./interfaces/IVaultERC20.sol";
+import "./interface/IVaultERC20.sol";
 
 /// @notice Vault holding the locked supply of ATEN rewards
 contract TokenVault is IVaultERC20 {

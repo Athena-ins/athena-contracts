@@ -4,10 +4,10 @@ pragma solidity 0.8.19;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import "./interfaces/IPriceOracle.sol";
-import "./interfaces/IVaultERC20.sol";
-import "./interfaces/IPolicyManager.sol";
-import "./interfaces/IStakedAtenPolicy.sol";
+import "./interface/IPriceOracle.sol";
+import "./interface/IVaultERC20.sol";
+import "./interface/IPolicyManager.sol";
+import "./interface/IStakedAtenPolicy.sol";
 
 /**
  * @notice

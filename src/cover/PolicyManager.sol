@@ -3,10 +3,10 @@ pragma solidity 0.8.19;
 
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 
-import "./interfaces/IPolicyManager.sol";
-import "./interfaces/IProtocolFactory.sol";
-import "./interfaces/IAthena.sol";
-import "./interfaces/IProtocolPool.sol";
+import "./interface/IPolicyManager.sol";
+import "./interface/IProtocolFactory.sol";
+import "./interface/IAthena.sol";
+import "./interface/IProtocolPool.sol";
 
 contract PolicyManager is IPolicyManager, ERC721Enumerable {
   address public core;
