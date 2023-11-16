@@ -1,83 +1,78 @@
-import * as dotenv from "dotenv";
-import { ethers } from "ethers";
-import { HardhatUserConfig, task } from "hardhat/config";
+import "@nomicfoundation/hardhat-toolbox";
+import { parseEther, id } from "ethers";
+// Types
+import { HardhatUserConfig } from "hardhat/config";
 import { HardhatNetworkUserConfig } from "hardhat/types";
-import "@nomiclabs/hardhat-etherscan";
-import "@nomiclabs/hardhat-ethers";
-import "@nomiclabs/hardhat-waffle";
-import "@typechain/hardhat";
-import "hardhat-gas-reporter";
-import "solidity-coverage";
-
+//
+import dotenv from "dotenv";
 dotenv.config();
 
-task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
-  const accounts = await hre.ethers.getSigners();
+const {
+  HARDHAT_FORK_TARGET,
+  FORKING_BLOCK,
+  //
+  MAINNET_WALLET_PK,
+  GOERLI_WALLET_PK,
+  //
+  MAINNET_RPC_URL,
+  GOERLI_RPC_URL,
+  //
+  REPORT_GAS,
+  ETHERSCAN_API_KEY,
+  COINMARKETCAP_API_KEY,
+} = process.env;
 
-  for (const account of accounts) {
-    console.log(account.address);
-  }
-});
+if (!MAINNET_WALLET_PK || !GOERLI_WALLET_PK) throw Error("Missing wallet PK");
+if (!MAINNET_RPC_URL || !GOERLI_RPC_URL) throw Error("Missing RPC URL");
 
-const mainnetForkConfig: HardhatNetworkUserConfig = {
-  forking: {
-    url: process.env.MAINNET_URL || "",
-    blockNumber: !process.env.FORKING_BLOCK
-      ? undefined
-      : Number(process.env.FORKING_BLOCK),
-  },
-  mining: {
-    auto: true,
-  },
-  accounts: {
-    count: 302,
-  },
-};
+function makeForkConfig(): HardhatNetworkUserConfig {
+  if (
+    !HARDHAT_FORK_TARGET ||
+    (HARDHAT_FORK_TARGET.toLowerCase() !== "mainnet" &&
+      HARDHAT_FORK_TARGET.toLowerCase() !== "goerli")
+  )
+    throw Error("Missing or erroneous fork target");
 
-const goerliForkConfig: HardhatNetworkUserConfig = {
-  forking: {
-    url: process.env.GOERLI_URL || "",
-    blockNumber: 8328120, // Fixed to take advantage of the cache
-  },
-  mining: {
-    auto: true,
-    // interval: 2000,
-  },
-  accounts: [
-    // Deployer
-    {
-      privateKey: process.env.DEPLOY_TESTNET_PK as string,
-      balance: ethers.utils.parseEther("1000").toString(),
+  const isMainnetFork = HARDHAT_FORK_TARGET?.toLowerCase() === "mainnet";
+  const forkedBlock =
+    FORKING_BLOCK !== undefined ? Number(FORKING_BLOCK) : undefined;
+
+  const WALLET_PK = isMainnetFork ? MAINNET_WALLET_PK : GOERLI_WALLET_PK;
+  const RPC_URL = isMainnetFork ? MAINNET_RPC_URL : GOERLI_RPC_URL;
+
+  const networkConfig = {
+    allowUnlimitedContractSize: false,
+    forking: {
+      // We can cast safely because we checked for undefined
+      url: RPC_URL as string,
+      // Fixed to take advantage of the cache
+      blockNumber: forkedBlock,
     },
-    // Users 1,2,3,4
-    {
-      privateKey: (process.env.DEPLOY_TESTNET_PK as string).replace("8", "9"),
-      balance: ethers.utils.parseEther("1000").toString(),
+    mining: {
+      auto: true,
     },
-    ...Array(300)
-      .fill("")
-      .map((_, i) => ({
-        privateKey: ethers.utils.id(`Athena ${i}`),
-        balance: ethers.utils.parseEther("1000").toString(),
-      })),
-  ],
-};
+    accounts: [
+      {
+        // Deployer account
+        // We can cast safely because we checked for undefined
+        privateKey: WALLET_PK as string,
+        balance: parseEther("1000").toString(),
+      },
+      ...Array(20)
+        .fill("")
+        .map((_, i) => ({
+          privateKey: id(`Test User ${i}`),
+          balance: parseEther("1000").toString(),
+        })),
+    ],
+  };
 
-const chooseForkConfig = () => {
-  if (process.env.HARDHAT_FORK_TARGET?.toLowerCase() === "mainnet") {
-    return mainnetForkConfig;
-  } else if (process.env.HARDHAT_FORK_TARGET?.toLowerCase() === "goerli") {
-    return goerliForkConfig;
-  }
-  return goerliForkConfig;
-};
-
-// You need to export an object to set up your config
-// Go to https://hardhat.org/config/ to learn more
+  return networkConfig;
+}
 
 const config: HardhatUserConfig = {
   solidity: {
-    version: "0.8.19",
+    version: "0.8.20",
     settings: {
       optimizer: {
         enabled: true,
@@ -89,42 +84,46 @@ const config: HardhatUserConfig = {
   // ====== Networks ====== //
 
   networks: {
-    hardhat: { allowUnlimitedContractSize: false, ...chooseForkConfig() },
+    hardhat: makeForkConfig(),
     mainnet: {
-      url: process.env.MAINNET_URL || "",
-      accounts:
-        process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
+      url: MAINNET_RPC_URL,
+      accounts: [MAINNET_WALLET_PK],
     },
     goerli: {
-      url: process.env.GOERLI_URL || "",
-      accounts:
-        process.env.DEPLOY_TESTNET_PK !== undefined
-          ? [
-              process.env.DEPLOY_TESTNET_PK,
-              process.env.DEPLOY_TESTNET_PK.replace("8", "9"),
-            ]
-          : [],
-    },
-    mumbai: {
-      url: process.env.MUMBAI_URL || "",
-      accounts:
-        process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
+      url: GOERLI_RPC_URL,
+      accounts: [GOERLI_WALLET_PK, id(GOERLI_WALLET_PK)],
     },
   },
 
   // ====== Gas Reporter ====== //
 
   gasReporter: {
-    enabled: process.env.REPORT_GAS === "true",
+    enabled: REPORT_GAS === "true",
     currency: "USD",
-    coinmarketcap: process.env.COINMARKETCAP_API_KEY || "",
+    token: "ETH",
+    gasPriceApi:
+      "https://api.etherscan.io/api?module=proxy&action=eth_gasPrice",
+    coinmarketcap: COINMARKETCAP_API_KEY || "",
   },
 
   // ====== Etherscan ====== //
 
   etherscan: {
-    apiKey: process.env.ETHERSCAN_API_KEY ? process.env.ETHERSCAN_API_KEY : "",
+    apiKey: ETHERSCAN_API_KEY || "",
+    customChains: [],
+  },
+
+  // ====== Typechain ====== //
+
+  typechain: {
+    outDir: "typechain",
+    target: "ethers-v6",
+    alwaysGenerateOverloads: false, // should overloads with full signatures like deposit(uint256) be generated always, even if there are no overloads?
+    externalArtifacts: [], // optional array of glob patterns with external artifacts to process (for example external libs from node_modules)
+    dontOverrideCompile: false, // defaults to false
   },
 };
 
+// You need to export an object to set up your config
+// Go to https://hardhat.org/config/ to learn more
 export default config;
