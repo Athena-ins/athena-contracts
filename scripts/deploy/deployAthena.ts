@@ -1,9 +1,9 @@
 import fs from "fs";
 import hre, { ethers as hre_ethers } from "hardhat";
-import ProtocolHelper from "../test/helpers/ProtocolHelper";
-import { deploymentAddress, contract } from "../test/helpers/TypedContracts";
+import ProtocolHelper from "../../test/helpers/ProtocolHelper";
+import { deploymentAddress, contract } from "../../test/helpers/TypedContracts";
 //
-import abiERC20 from "../abis/weth.json";
+import abiERC20 from "../../abis/weth.json";
 
 const { BigNumber } = hre_ethers;
 
@@ -49,7 +49,7 @@ async function main() {
     console.log("==> CORE");
     await ProtocolHelper.deployAthenaContract(
       deployer,
-      deploymentAddress.USDT,
+      // deploymentAddress.USDT,
       deploymentAddress.aave_registry
     );
 
@@ -138,16 +138,16 @@ async function main() {
 
   // We want to save latest addresses even in case of an error
   const newDeploys = JSON.stringify(
-      Object.entries(contract).reduce(
-        (acc, [key, value]) =>
-          (deploymentAddress as any)[key]
-            ? { ...acc, [key]: value.address }
-            : acc,
-        {}
+    Object.entries(contract).reduce(
+      (acc, [key, value]) =>
+        (deploymentAddress as any)[key]
+          ? { ...acc, [key]: value.address }
+          : acc,
+      {}
     ),
     null,
     2
-    );
+  );
   console.log("\n==> Contracts: ", newDeploys);
   fs.writeFileSync(`./test/registries/deploys-${chainName}.json`, newDeploys);
 }

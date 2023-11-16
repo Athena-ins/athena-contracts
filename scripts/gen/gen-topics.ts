@@ -1,7 +1,7 @@
 import fs from "fs";
 import { ethers } from "ethers";
 
-import * as factories from "../typechain";
+import * as factories from "../../typechain";
 
 const toHash = (func: string) =>
   ethers.utils.keccak256(ethers.utils.toUtf8Bytes(func));
@@ -20,12 +20,12 @@ const genEventTopics = async () => {
   );
 
   fs.writeFileSync(
-    "./test/registries/eventTopics.json",
+    "./tests/registries/eventTopics.json",
     JSON.stringify(sigs, null, 2)
   );
 
   console.log(
-    `\n=> Generated ${fns.length} event topics in test/registries/eventTopics.json\n`
+    `\n=> Generated ${fns.length} event topics in tests/registries/eventTopics.json\n`
   );
 };
 

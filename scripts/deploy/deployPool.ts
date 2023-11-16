@@ -1,5 +1,5 @@
 import hre, { ethers as hre_ethers } from "hardhat";
-import { deploymentAddress } from "../test/helpers/TypedContracts";
+import { deploymentAddress } from "../../test/helpers/TypedContracts";
 const { BigNumber } = hre_ethers;
 
 const previousAthenaAbi = [

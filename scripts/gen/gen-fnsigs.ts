@@ -1,7 +1,7 @@
 import fs from "fs";
 import { ethers } from "ethers";
 
-import * as factories from "../typechain";
+import * as factories from "../../typechain";
 
 const toHash = (func: string) =>
   ethers.utils.keccak256(ethers.utils.toUtf8Bytes(func));
@@ -20,12 +20,12 @@ const genFnSigs = async () => {
   );
 
   fs.writeFileSync(
-    "./test/registries/signatureHashes.json",
+    "./tests/registries/signatureHashes.json",
     JSON.stringify(sigs, null, 2)
   );
 
   console.log(
-    `\n=> Generated ${fns.length} signatures in test/registries/signatureHashes.json\n`
+    `\n=> Generated ${fns.length} signatures in tests/registries/signatureHashes.json\n`
   );
 };
 
