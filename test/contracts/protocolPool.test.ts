@@ -2,12 +2,12 @@ import chai, { expect } from "chai";
 import hre, { ethers } from "hardhat";
 import { BigNumber, ethers as originalEthers } from "ethers";
 import { ethers as ethersOriginal, utils } from "ethers";
-import weth_abi from "../abis/weth.json";
-import atoken_abi from "../abis/AToken.json";
+import weth_abi from "../../abis/weth.json";
+import atoken_abi from "../../abis/AToken.json";
 import chaiAsPromised from "chai-as-promised";
-import HardhatHelper from "./helpers/HardhatHelper";
-import protocolPoolAbi from "../artifacts/contracts/ProtocolPool.sol/ProtocolPool.json";
-import ProtocolHelper from "./helpers/ProtocolHelper";
+import HardhatHelper from "../helpers/HardhatHelper";
+import protocolPoolAbi from "../../artifacts/contracts/ProtocolPool.sol/ProtocolPool.json";
+import ProtocolHelper from "../helpers/ProtocolHelper";
 
 chai.use(chaiAsPromised);
 

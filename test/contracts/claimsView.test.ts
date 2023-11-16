@@ -2,8 +2,8 @@ import chai, { expect } from "chai";
 import { ethers } from "ethers";
 import chaiAsPromised from "chai-as-promised";
 
-import HardhatHelper from "./helpers/HardhatHelper";
-import ProtocolHelper from "./helpers/ProtocolHelper";
+import HardhatHelper from "../helpers/HardhatHelper";
+import ProtocolHelper from "../helpers/ProtocolHelper";
 
 chai.use(chaiAsPromised);
 
@@ -18,7 +18,6 @@ const numberProtocol = 100;
 
 describe("Claims view", () => {
   before(async () => {
-    await HardhatHelper.reset();
     const allSigners = await HardhatHelper.allSigners();
     owner = allSigners[0];
     liquidityProvider1 = allSigners[1];

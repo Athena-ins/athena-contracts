@@ -1,7 +1,7 @@
 import chai, { expect } from "chai";
 import hre from "hardhat";
 import { BigNumber, Contract, ethers, ethers as ethersOriginal } from "ethers";
-import weth_abi from "../abis/weth.json";
+import weth_abi from "../../abis/weth.json";
 import chaiAsPromised from "chai-as-promised";
 
 chai.use(chaiAsPromised);

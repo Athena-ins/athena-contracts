@@ -1,9 +1,9 @@
 import chai, { expect } from "chai";
 import hre, { ethers } from "hardhat";
 import { BigNumber, ethers as ethersOriginal } from "ethers";
-import weth_abi from "../abis/weth.json";
+import weth_abi from "../../abis/weth.json";
 import chaiAsPromised from "chai-as-promised";
-import { distributeTokens } from "../scripts/distribute";
+import { distributeTokens } from "../../scripts/distribute";
 import path from "path";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 
