@@ -25,14 +25,14 @@ const getMetaEvidenceGuardian = () => {
   return new ethers.Wallet(EVIDENCE_GUARDIAN_PK);
 };
 
-async function reset() {
+export async function resetFork() {
   const originalFork = (network.config as HardhatNetworkConfig).forking?.url;
   const forkTarget = originalFork || process.env.GOERLI_URL;
 
   const originalForkBlock = (network.config as HardhatNetworkConfig).forking
     ?.blockNumber;
   const forkTargetBlock =
-    originalForkBlock || Number(process.env.FORKING_BLOCK || 8299451);
+    originalForkBlock || Number(process.env.FORKING_BLOCK || "latest");
 
   await hre.network.provider.request({
     method: "hardhat_reset",
@@ -46,9 +46,9 @@ async function reset() {
     ],
   });
 
-  binanceSigner = await impersonateAccount(deploymentAddress.deployer);
-  const getAllSigners: any = await allSigners();
-  atenOwnerSigner = getAllSigners[0];
+  // binanceSigner = await impersonateAccount(deploymentAddress.deployer);
+  // const getAllSigners: any = await allSigners();
+  // atenOwnerSigner = getAllSigners[0];
 }
 
 async function initSigners() {
@@ -167,7 +167,7 @@ async function getATokenBalance(user: ethers.Signer) {
 
 export default {
   getCurrentTime,
-  reset,
+  resetFork,
   initSigners,
   allSigners,
   deployerSigner,
