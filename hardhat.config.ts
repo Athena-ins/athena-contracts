@@ -122,6 +122,15 @@ const config: HardhatUserConfig = {
     externalArtifacts: [], // optional array of glob patterns with external artifacts to process (for example external libs from node_modules)
     dontOverrideCompile: false, // defaults to false
   },
+
+  // ====== Paths ====== //
+
+  paths: {
+    sources: "./src",
+    tests: "./test",
+    cache: "./cache",
+    artifacts: "./artifacts",
+  },
 };
 
 // You need to export an object to set up your config
