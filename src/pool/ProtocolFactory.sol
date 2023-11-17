@@ -1,10 +1,14 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.19;
+pragma solidity 0.8.20;
 
-import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
-import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
+// Parents
 import { ProtocolPool } from "./ProtocolPool.sol";
-import { IProtocolFactory } from "./interface/IProtocolFactory.sol";
+// Addons
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+// Libs
+import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
+// Interfaces
+import { IProtocolFactory } from "../interface/IProtocolFactory.sol";
 
 contract ProtocolFactory is IProtocolFactory, Ownable {
   address public core;
@@ -16,7 +20,7 @@ contract ProtocolFactory is IProtocolFactory, Ownable {
   mapping(uint128 => mapping(uint128 => bool)) public incompatibilityProtocols;
   mapping(uint128 => Protocol) public protocolsMapping;
 
-  constructor(address core_) {
+  constructor(address core_) Ownable(msg.sender) {
     core = core_;
   }
 

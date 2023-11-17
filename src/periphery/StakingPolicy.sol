@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: UNLICENCED
-pragma solidity 0.8.19;
+pragma solidity 0.8.20;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-
-import "./interface/IPriceOracle.sol";
-import "./interface/IVaultERC20.sol";
-import "./interface/IPolicyManager.sol";
-import "./interface/IStakedAtenPolicy.sol";
+// Addons
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+// Interfaces
+import { SafeERC20, IERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { IVaultERC20 } from "../interface/IVaultERC20.sol";
+import { IPolicyManager } from "../interface/IPolicyManager.sol";
+import { IStakedAtenPolicy } from "../interface/IStakedAtenPolicy.sol";
+import { IPriceOracle } from "../interface/IPriceOracle.sol";
 
 /**
  * @notice
@@ -64,7 +65,7 @@ contract StakingPolicy is IStakedAtenPolicy, Ownable {
     address priceOracle_,
     address atensVault_,
     address coverManager_
-  ) {
+  ) Ownable(msg.sender) {
     coreAddress = core_;
 
     atenTokenInterface = IERC20(atenToken_);

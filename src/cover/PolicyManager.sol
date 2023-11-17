@@ -1,12 +1,15 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.19;
+pragma solidity 0.8.20;
 
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
-
-import "./interface/IPolicyManager.sol";
-import "./interface/IProtocolFactory.sol";
-import "./interface/IAthena.sol";
-import "./interface/IProtocolPool.sol";
+// Token standards
+import { ERC721 } from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+// Addons
+import { ERC721Enumerable } from "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
+// Interfaces
+import { IPolicyManager } from "../interface/IPolicyManager.sol";
+import { IProtocolFactory } from "../interface/IProtocolFactory.sol";
+import { IAthena } from "../interface/IAthena.sol";
+import { IProtocolPool } from "../interface/IProtocolPool.sol";
 
 contract PolicyManager is IPolicyManager, ERC721Enumerable {
   address public core;

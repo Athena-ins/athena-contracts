@@ -8,9 +8,12 @@
  *  @tools: [MythX]
  */
 
-pragma solidity 0.8.19;
+pragma solidity 0.8.20;
 
-import "./Arbitrator.sol";
+// Parents
+import { Arbitrator } from "./Arbitrator.sol";
+// Interfaces
+import { IArbitrable } from "../../interface/IArbitrable.sol";
 
 /** @title Centralized Arbitrator
  *  @dev This is a centralized arbitrator deciding alone on the result of disputes. No appeals are possible.

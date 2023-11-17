@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.19;
+pragma solidity 0.8.20;
 
-import { RayMath } from "./lib/RayMath.sol";
+// Libs
+import { RayMath } from "../libs/RayMath.sol";
 
 abstract contract LiquidityCover {
   using RayMath for uint256;

@@ -1,13 +1,16 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.19;
+pragma solidity 0.8.20;
 
+// Addons
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
-import { SafeERC20, IERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import { ReentrancyGuard } from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-
+import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+// Libs
+import { RayMath } from "./libs/RayMath.sol";
+// Interfaces
 import { ILendingPoolAddressesProvider } from "./external/aave/ILendingPoolAddressesProvider.sol";
 import { ILendingPool } from "./external/aave/ILendingPool.sol";
-
+//
+import { SafeERC20, IERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { IAthena } from "./interface/IAthena.sol";
 import { IPositionsManager } from "./interface/IPositionsManager.sol";
 import { IProtocolFactory } from "./interface/IProtocolFactory.sol";
@@ -18,8 +21,6 @@ import { IPolicyManager } from "./interface/IPolicyManager.sol";
 import { IClaimManager } from "./interface/IClaimManager.sol";
 import { IVaultERC20 } from "./interface/IVaultERC20.sol";
 import { IPriceOracle } from "./interface/IPriceOracle.sol";
-
-import { RayMath } from "./lib/RayMath.sol";
 
 contract Athena is IAthena, ReentrancyGuard, Ownable {
   using SafeERC20 for IERC20;
@@ -43,7 +44,10 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   // Maps tokens used by pool to its AAVE lending pool approval status
   mapping(address token => bool isApproved) public approvedTokens;
 
-  constructor(address atenTokenAddress_, address aaveAddressesRegistry_) {
+  constructor(
+    address atenTokenAddress_,
+    address aaveAddressesRegistry_
+  ) Ownable(msg.sender) {
     aaveAddressesRegistryInterface = ILendingPoolAddressesProvider(
       aaveAddressesRegistry_
     );
@@ -811,7 +815,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
   ) public onlyOwner {
     if (!approvedTokens[token_]) {
       address lendingPool = aaveAddressesRegistryInterface.getLendingPool();
-      IERC20(token_).safeApprove(lendingPool, type(uint256).max);
+      IERC20(token_).safeIncreaseAllowance(lendingPool, type(uint256).max);
       approvedTokens[token_] = true;
     }
 

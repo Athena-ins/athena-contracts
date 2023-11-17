@@ -7,9 +7,10 @@
  *  @deployments: []
  */
 
-pragma solidity 0.8.19;
+pragma solidity 0.8.20;
 
-import "./IArbitrator.sol";
+// Interfaces
+import { IArbitrator } from "./external/IArbitrator.sol";
 
 /** @title IArbitrable
  *  @author Enrique Piqueras - <enrique@kleros.io>

@@ -1,18 +1,19 @@
-// SPDX-License-Identifier: MIT
-pragma solidity 0.8.19;
+// SPDX-License-Identifier: UNLICENCED
+pragma solidity 0.8.20;
 
-import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
-
+// Parents
 import { ClaimEvidence } from "./ClaimEvidence.sol";
-import { VerifySignature } from "./VerifySignature.sol";
-
-import { IArbitrable } from "./interface/IArbitrable.sol";
-import { IArbitrator } from "./interface/IArbitrator.sol";
-
-import { IPolicyManager } from "./interface/IPolicyManager.sol";
-import { IClaimManager } from "./interface/IClaimManager.sol";
-import { IProtocolFactory } from "./interface/IProtocolFactory.sol";
-import { IAthena } from "./interface/IAthena.sol";
+// Addons
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+// Libs
+import { VerifySignature } from "../libs/VerifySignature.sol";
+// Interfaces
+import { IArbitrable } from "../interface/IArbitrable.sol";
+import { IArbitrator } from "../interface/external/IArbitrator.sol";
+import { IPolicyManager } from "../interface/IPolicyManager.sol";
+import { IClaimManager } from "../interface/IClaimManager.sol";
+import { IProtocolFactory } from "../interface/IProtocolFactory.sol";
+import { IAthena } from "../interface/IAthena.sol";
 
 contract ClaimManager is
   IClaimManager,
@@ -77,7 +78,7 @@ contract ClaimManager is
     address poolFactory_,
     IArbitrator arbitrator_,
     address metaEvidenceGuardian_
-  ) ClaimEvidence(arbitrator_) {
+  ) ClaimEvidence(arbitrator_) Ownable(msg.sender) {
     core = IAthena(core_);
     policyManagerInterface = IPolicyManager(policyManager_);
     poolFactoryInterface = IProtocolFactory(poolFactory_);
@@ -349,7 +350,8 @@ contract ClaimManager is
    */
   function _sendValue(address to_, uint256 value_) private {
     // We purposefully ignore return value to avoid malicious contracts to block the execution
-    payable(to_).send(value_);
+    // The 4600 gas limit should be enough to avoid future OPCODE cost changes
+    payable(to_).call{ value: value_, gas: 4600 }("");
   }
 
   /// ============================== ///

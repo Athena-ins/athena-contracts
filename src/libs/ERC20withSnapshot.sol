@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: agpl-3.0
-pragma solidity 0.8.19;
+pragma solidity 0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
@@ -68,7 +68,7 @@ contract ERC20WithSnapshot is ERC20 {
     address from,
     address to,
     uint256 amount
-  ) internal override {
+  ) internal {
     // if (from == to) {
     //   return;
     // }

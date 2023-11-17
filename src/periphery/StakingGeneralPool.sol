@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.19;
+pragma solidity 0.8.20;
 
+// Addons
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+// Interfaces
 import { SafeERC20, IERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-
-import { IStakedAten } from "./interface/IStakedAten.sol";
-import { IPositionsManager } from "./interface/IPositionsManager.sol";
+import { IStakedAten } from "../interface/IStakedAten.sol";
+import { IPositionsManager } from "../interface/IPositionsManager.sol";
 
 // @notice Staking Pool Contract: General Pool (GP)
 contract StakingGeneralPool is IStakedAten, Ownable {
@@ -54,12 +55,12 @@ contract StakingGeneralPool is IStakedAten, Ownable {
     address atenTokenAddress_,
     address core_,
     address positionManager_
-  ) {
+  ) Ownable(msg.sender) {
     atenTokenAddress = atenTokenAddress_;
     core = core_;
     positionManagerInterface = IPositionsManager(positionManager_);
 
-    IERC20(atenTokenAddress).safeApprove(core, type(uint256).max);
+    IERC20(atenTokenAddress).safeIncreaseAllowance(core, type(uint256).max);
   }
 
   /// ============================ ///

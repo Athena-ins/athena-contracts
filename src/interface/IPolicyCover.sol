@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.19;
+pragma solidity 0.8.20;
 
 interface IPolicyCover {
   event BuyPolicy(address owner, uint256 premium, uint256 capitalInsured);

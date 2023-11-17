@@ -1,12 +1,11 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.19;
+pragma solidity 0.8.20;
 
-// Libraries
-import { RayMath } from "./lib/RayMath.sol";
-
+// Libs
+import { RayMath } from "../libs/RayMath.sol";
 // Interfaces
-import { IProtocolPool } from "./interface/IProtocolPool.sol";
-import { IProtocolFactory } from "./interface/IProtocolFactory.sol";
+import { IProtocolPool } from "../interface/IProtocolPool.sol";
+import { IProtocolFactory } from "../interface/IProtocolFactory.sol";
 
 // @bw we want to move in the ratio calc
 

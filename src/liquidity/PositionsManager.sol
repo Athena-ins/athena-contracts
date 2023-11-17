@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.19;
+pragma solidity 0.8.20;
 
-import { ERC721Enumerable, ERC721 } from "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
+// Parents
 import { PositionPoolLiquidity } from "./PositionPoolLiquidity.sol";
-
-import { IAthena } from "./interface/IAthena.sol";
-import { IProtocolPool } from "./interface/IProtocolPool.sol";
-import { IPositionsManager } from "./interface/IPositionsManager.sol";
-
-import { PositionsLibrary } from "./lib/PositionsLibrary.sol";
+// Addons
+import { ERC721Enumerable, ERC721 } from "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
+// Interfaces
+import { IAthena } from "../interface/IAthena.sol";
+import { IProtocolPool } from "../interface/IProtocolPool.sol";
+import { IPositionsManager } from "../interface/IPositionsManager.sol";
 
 contract PositionsManager is
   IPositionsManager,

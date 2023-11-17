@@ -7,9 +7,10 @@
  *  @deployments: []
  */
 
-pragma solidity 0.8.19;
+pragma solidity 0.8.20;
 
-import "../interface/IArbitrable.sol";
+// Interfaces
+import { IArbitrable } from "../../interface/IArbitrable.sol";
 
 /** @title Arbitrator
  *  @author Clément Lesaege - <clement@lesaege.com>

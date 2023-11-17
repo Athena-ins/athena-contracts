@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.19;
+pragma solidity 0.8.20;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 
@@ -14,7 +14,7 @@ contract PriceOracleV1 is Ownable {
   uint256 public referencePrice;
   uint256 public lastUpdate;
 
-  constructor(uint256 initialPrice) {
+  constructor(uint256 initialPrice) Ownable(msg.sender) {
     if (initialPrice == 0) revert PriceOfZero();
 
     referencePrice = initialPrice;
