@@ -8,7 +8,7 @@
   "scripts": {
     "compile": "npx hardhat compile",
     "test": "npx hardhat test ./test/index.ts",
-    "typechain": "typechain --target ethers-v6 --out-dir typechain",
+    "typechain": "typechain --target ethers-v5 --out-dir typechain",
     "deploy-hardhat": "npx hardhat run --network hardhat scripts/deploy/deployAthena.ts",
     "deploy-goerli": "npx hardhat run --network goerli scripts/deploy/deployAthena.ts",
     "make-pool-goerli": "npx hardhat run --network goerli scripts/deploy/deployPool.ts",
@@ -19,7 +19,7 @@
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^3.0.0",
     "@openzeppelin/contracts": "^5.0.0",
-    "@typechain/ethers-v6": "^0.5.1",
+    "@typechain/ethers-v5": "^11.1.2",
     "@types/async": "^3.2.23",
     "@types/chai": "^4.3.8",
     "@types/chai-as-promised": "^7.1.6",
@@ -37,7 +37,7 @@
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-prettier": "^5.0.1",
     "eslint-plugin-promise": "^6.1.1",
-    "ethers": "^6.8.1",
+    "ethers": "^5.7.2",
     "jest": "^29.7.0",
     "mocha": "^10.2.0",
     "prettier": "^3.0.3",
@@ -47,6 +47,6 @@
     "typescript": "^5.2.2"
   },
   "overrides": {
-    "@typechain/ethers-v6": "^0.5.1"
+    "ethers": "^5.7.2"
   }
 }
