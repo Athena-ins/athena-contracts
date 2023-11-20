@@ -37,7 +37,10 @@ interface IProtocolPool is IPolicyCover {
     uint256 feeRate
   )
     external
-    returns (uint256 newUserCapital, uint256 aaveScaledBalanceToRemove);
+    returns (
+      uint256 newUserCapital,
+      uint256 aaveScaledBalanceToRemove
+    );
 
   function withdrawLiquidity(
     address account,
@@ -47,9 +50,14 @@ interface IProtocolPool is IPolicyCover {
     uint128 feeRate
   )
     external
-    returns (uint256 newUserCapital, uint256 aaveScaledBalanceToRemove);
+    returns (
+      uint256 newUserCapital,
+      uint256 aaveScaledBalanceToRemove
+    );
 
-  function ratioWithAvailableCapital(uint256 amount) external returns (uint256);
+  function ratioWithAvailableCapital(
+    uint256 amount
+  ) external returns (uint256);
 
   function buyPolicy(
     address owner,
@@ -82,9 +90,15 @@ interface IProtocolPool is IPolicyCover {
     uint256 aaveReserveNormalizedIncome
   ) external;
 
-  function getRelatedProtocols() external view returns (uint128[] memory);
+  function getRelatedProtocols()
+    external
+    view
+    returns (uint128[] memory);
 
-  function addRelatedProtocol(uint128 poolId, uint256 amount) external;
+  function addRelatedProtocol(
+    uint128 poolId,
+    uint256 amount
+  ) external;
 
   function actualizing() external returns (uint256[] memory);
 

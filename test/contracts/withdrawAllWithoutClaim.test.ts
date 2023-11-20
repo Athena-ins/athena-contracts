@@ -40,7 +40,7 @@ export function testWithdrawAllWithoutClaim() {
           USDT_amount1,
           ATEN_amount1,
           [0, 2],
-          1 * 24 * 60 * 60
+          1 * 24 * 60 * 60,
         );
 
         const provider1tokenIds =
@@ -56,7 +56,7 @@ export function testWithdrawAllWithoutClaim() {
           USDT_amount2,
           ATEN_amount2,
           [0, 2],
-          1 * 24 * 60 * 60
+          1 * 24 * 60 * 60,
         );
 
         const provider2tokenIds =
@@ -67,7 +67,7 @@ export function testWithdrawAllWithoutClaim() {
 
         await HardhatHelper.USDT_maxApprove(
           policyTaker1,
-          ProtocolHelper.getAthenaContract().address
+          ProtocolHelper.getAthenaContract().address,
         );
 
         const capital1 = "109500";
@@ -79,12 +79,12 @@ export function testWithdrawAllWithoutClaim() {
           premium1,
           atensLocked1,
           0,
-          20 * 24 * 60 * 60
+          20 * 24 * 60 * 60,
         );
 
         await HardhatHelper.USDT_maxApprove(
           policyTaker2,
-          ProtocolHelper.getAthenaContract().address
+          ProtocolHelper.getAthenaContract().address,
         );
 
         const capital2 = "219000";
@@ -96,7 +96,7 @@ export function testWithdrawAllWithoutClaim() {
           premium2,
           atensLocked2,
           2,
-          10 * 24 * 60 * 60
+          10 * 24 * 60 * 60,
         );
       });
 
@@ -118,21 +118,21 @@ export function testWithdrawAllWithoutClaim() {
         //protocol0
         const p0_contract = await ProtocolHelper.getProtocolPoolContract(
           liquidityProvider1,
-          0
+          0,
         );
 
         const p0_event = result?.events?.find(
           (el: any) =>
             el.topics[0] ===
               "0x620d50d2ff399522b99eeffadbd9b188529ed4c6ce9a4ecf9e85fc3c00edc79f" &&
-            el.logIndex === 5
+            el.logIndex === 5,
         );
 
         if (!p0_event) throw new Error("Event not found");
 
         const p0_decodedData = p0_contract.interface.decodeEventLog(
           p0_event?.topics?.[0],
-          p0_event?.data
+          p0_event?.data,
         );
 
         expect(p0_decodedData.tokenId).to.be.equal(provider1tokenId);
@@ -151,27 +151,27 @@ export function testWithdrawAllWithoutClaim() {
         expect(p0_slot0.totalInsuredCapital).to.be.equal("109500");
         expect(p0_slot0.remainingPolicies).to.be.equal("1");
         expect(p0_slot0.lastUpdateTimestamp).to.be.equal(
-          await HardhatHelper.getCurrentTime()
+          await HardhatHelper.getCurrentTime(),
         );
 
         //protocol2
         const p2_contract = await ProtocolHelper.getProtocolPoolContract(
           liquidityProvider1,
-          2
+          2,
         );
 
         const p2_event = result?.events?.find(
           (el: any) =>
             el.topics[0] ===
               "0x620d50d2ff399522b99eeffadbd9b188529ed4c6ce9a4ecf9e85fc3c00edc79f" &&
-            el.logIndex === 5
+            el.logIndex === 5,
         );
 
         if (!p2_event) throw new Error("Event not found");
 
         const p2_decodedData = p2_contract.interface.decodeEventLog(
           p2_event.topics[0],
-          p2_event.data
+          p2_event.data,
         );
 
         expect(p2_decodedData.tokenId).to.be.equal(provider1tokenId);
@@ -190,14 +190,14 @@ export function testWithdrawAllWithoutClaim() {
         expect(p2_slot0.totalInsuredCapital).to.be.equal("219000");
         expect(p2_slot0.remainingPolicies).to.be.equal("1");
         expect(p2_slot0.lastUpdateTimestamp).to.be.equal(
-          await HardhatHelper.getCurrentTime()
+          await HardhatHelper.getCurrentTime(),
         );
       });
 
       it("Should call takeInterest for LP2 after 10 day that LP1 withdrawed his capital in protocol 0", async () => {
         const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           liquidityProvider2,
-          0
+          0,
         );
 
         const lpInfoBefore = await protocolContract.LPsInfo(provider2tokenId);
@@ -208,7 +208,7 @@ export function testWithdrawAllWithoutClaim() {
           provider2tokenId,
           0,
           days * 24 * 60 * 60,
-          2
+          2,
         );
 
         expect(decodedData.tokenId).to.be.equal(provider2tokenId);
@@ -220,10 +220,10 @@ export function testWithdrawAllWithoutClaim() {
         const lpInfoAfter = await protocolContract.LPsInfo(provider2tokenId);
 
         expect(
-          lpInfoAfter.beginLiquidityIndex.gt(lpInfoBefore.beginLiquidityIndex)
+          lpInfoAfter.beginLiquidityIndex.gt(lpInfoBefore.beginLiquidityIndex),
         ).to.be.equal(true);
         expect(lpInfoAfter.beginClaimIndex).to.be.equal(
-          lpInfoBefore.beginClaimIndex
+          lpInfoBefore.beginClaimIndex,
         );
       });
     });

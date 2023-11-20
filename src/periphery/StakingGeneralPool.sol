@@ -60,7 +60,10 @@ contract StakingGeneralPool is IStakedAten, Ownable {
     core = core_;
     positionManagerInterface = IPositionsManager(positionManager_);
 
-    IERC20(atenTokenAddress).safeIncreaseAllowance(core, type(uint256).max);
+    IERC20(atenTokenAddress).safeIncreaseAllowance(
+      core,
+      type(uint256).max
+    );
   }
 
   /// ============================ ///
@@ -78,7 +81,11 @@ contract StakingGeneralPool is IStakedAten, Ownable {
   /**
    * @notice Staked event is triggered whenever a user stakes tokens, address is indexed to make it filterable
    */
-  event Staked(address indexed user, uint256 amount, uint256 timestamp);
+  event Staked(
+    address indexed user,
+    uint256 amount,
+    uint256 timestamp
+  );
 
   /// =============================== ///
   /// ========== MODIFIERS ========== ///
@@ -102,7 +109,8 @@ contract StakingGeneralPool is IStakedAten, Ownable {
     Stakeholder memory userStake_
   ) internal view returns (uint256) {
     if (userStake_.amount == 0 || userStake_.rate == 0) return 0;
-    uint256 divRewardPerSecond = ((365 days) * 10_000) / userStake_.rate;
+    uint256 divRewardPerSecond = ((365 days) * 10_000) /
+      userStake_.rate;
 
     return
       ((block.timestamp - userStake_.since) * userStake_.amount) /
@@ -128,7 +136,9 @@ contract StakingGeneralPool is IStakedAten, Ownable {
    * Returns the full amount of an account's staked ATEN including rewards.
    * @param account_ the account whose balance is read
    */
-  function positionOf(address account_) public view returns (uint256) {
+  function positionOf(
+    address account_
+  ) public view returns (uint256) {
     Stakeholder storage userStake = stakes[account_];
     uint256 newRewards = calculateStakeReward(userStake);
 
@@ -175,7 +185,8 @@ contract StakingGeneralPool is IStakedAten, Ownable {
     uint256 suppliedCapital_
   ) public view returns (uint128) {
     // Lazy check to avoid loop if user doesn't supply
-    if (suppliedCapital_ == 0) return stakingRewardRates[0].aprStaking;
+    if (suppliedCapital_ == 0)
+      return stakingRewardRates[0].aprStaking;
 
     // Inversed loop starts with the end to find adequate level
     for (uint256 i = stakingRewardRates.length - 1; 0 <= i; i--) {
@@ -228,7 +239,9 @@ contract StakingGeneralPool is IStakedAten, Ownable {
     return supplyFeeLevels[0].feeRate;
   }
 
-  function getUserFeeRate(address account_) public view returns (uint128) {
+  function getUserFeeRate(
+    address account_
+  ) public view returns (uint128) {
     uint256 stakedAten = positionOf(account_);
     return getFeeRateWithAten(stakedAten);
   }
@@ -237,7 +250,10 @@ contract StakingGeneralPool is IStakedAten, Ownable {
   /// ======= USER FEATURES ======= ///
   /// ============================= ///
 
-  function stake(address account_, uint256 amount_) external override onlyCore {
+  function stake(
+    address account_,
+    uint256 amount_
+  ) external override onlyCore {
     require(amount_ > 0, "SGP: cannot stake 0");
 
     Stakeholder storage userStake = stakes[account_];
@@ -300,7 +316,9 @@ contract StakingGeneralPool is IStakedAten, Ownable {
    * Updates the reward rate for a user when the amount of capital supplied changes.
    * @param account_ the account whose reward rate is updated
    */
-  function updateUserRewardRate(address account_) external override onlyCore {
+  function updateUserRewardRate(
+    address account_
+  ) external override onlyCore {
     uint256 usdCapitalSupplied = positionManagerInterface
       .allCapitalSuppliedByAccount(account_);
 
@@ -308,7 +326,9 @@ contract StakingGeneralPool is IStakedAten, Ownable {
 
     // We only update the rate if the user has staked tokens
     if (0 < userStake.amount) {
-      uint128 newRewardRate = getStakingRewardRate(usdCapitalSupplied);
+      uint128 newRewardRate = getStakingRewardRate(
+        usdCapitalSupplied
+      );
 
       // Check if the change in the amount of capital causes a change in reward rate
       if (newRewardRate != userStake.rate) {

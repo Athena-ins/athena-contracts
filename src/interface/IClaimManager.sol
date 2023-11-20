@@ -6,9 +6,13 @@ interface IClaimManager {
     uint128 poolId
   ) external view returns (string memory);
 
-  function claimInitiator(uint256 disputeId_) external view returns (address);
+  function claimInitiator(
+    uint256 disputeId_
+  ) external view returns (address);
 
-  function claimChallenger(uint256 claimId_) external view returns (address);
+  function claimChallenger(
+    uint256 claimId_
+  ) external view returns (address);
 
   function addCoverTermsForPool(
     uint128 poolId_,

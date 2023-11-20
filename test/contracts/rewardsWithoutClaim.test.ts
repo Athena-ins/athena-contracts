@@ -45,7 +45,7 @@ export function testRewardsWithoutClaim() {
           USDT_amount1,
           ATEN_amount1,
           [0, 2],
-          1 * 24 * 60 * 60
+          1 * 24 * 60 * 60,
         );
 
         const provider1tokenIds =
@@ -61,7 +61,7 @@ export function testRewardsWithoutClaim() {
           USDT_amount2,
           ATEN_amount2,
           [0, 1],
-          1 * 24 * 60 * 60
+          1 * 24 * 60 * 60,
         );
 
         const provider2tokenIds =
@@ -74,7 +74,7 @@ export function testRewardsWithoutClaim() {
 
         await HardhatHelper.USDT_maxApprove(
           policyTaker1,
-          ProtocolHelper.getAthenaContract().address
+          ProtocolHelper.getAthenaContract().address,
         );
 
         const capital1 = "109500";
@@ -86,12 +86,12 @@ export function testRewardsWithoutClaim() {
           premium1,
           atensLocked1,
           0,
-          20 * 24 * 60 * 60
+          20 * 24 * 60 * 60,
         );
 
         await HardhatHelper.USDT_maxApprove(
           policyTaker2,
-          ProtocolHelper.getAthenaContract().address
+          ProtocolHelper.getAthenaContract().address,
         );
 
         const capital2 = "219000";
@@ -103,7 +103,7 @@ export function testRewardsWithoutClaim() {
           premium2,
           atensLocked2,
           0,
-          10 * 24 * 60 * 60
+          10 * 24 * 60 * 60,
         );
       });
 
@@ -117,7 +117,7 @@ export function testRewardsWithoutClaim() {
           365000,
           [0, 2],
           0,
-          (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60
+          (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60,
         );
 
         expect(result.__newUserCapital).to.be.equal(365000);
@@ -132,7 +132,7 @@ export function testRewardsWithoutClaim() {
           365000,
           [0, 1],
           0,
-          (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60
+          (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60,
         );
 
         expect(result.__newUserCapital).to.be.equal(365000);
@@ -149,7 +149,7 @@ export function testRewardsWithoutClaim() {
           365000,
           [0, 2],
           0,
-          (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60
+          (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60,
         );
 
         expect(result.__newUserCapital).to.be.equal(365000);
@@ -164,7 +164,7 @@ export function testRewardsWithoutClaim() {
           365000,
           [0, 1],
           0,
-          (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60
+          (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60,
         );
 
         expect(result.__newUserCapital).to.be.equal(365000);
@@ -181,7 +181,7 @@ export function testRewardsWithoutClaim() {
           365000,
           [0, 2],
           0,
-          (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60
+          (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60,
         );
 
         expect(result.__newUserCapital).to.be.equal(365000);
@@ -196,7 +196,7 @@ export function testRewardsWithoutClaim() {
           365000,
           [0, 1],
           0,
-          (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60
+          (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60,
         );
 
         expect(result.__newUserCapital).to.be.equal(365000);
@@ -226,12 +226,12 @@ export function testRewardsWithoutClaim() {
           USDT_amount1,
           ATEN_amount1,
           [0, 2],
-          1 * 24 * 60 * 60
+          1 * 24 * 60 * 60,
         );
 
         await HardhatHelper.USDT_maxApprove(
           policyTaker1,
-          ProtocolHelper.getAthenaContract().address
+          ProtocolHelper.getAthenaContract().address,
         );
 
         const capital1 = "109500";
@@ -243,12 +243,12 @@ export function testRewardsWithoutClaim() {
           premium1,
           atensLocked1,
           0,
-          20 * 24 * 60 * 60
+          20 * 24 * 60 * 60,
         );
 
         await HardhatHelper.USDT_maxApprove(
           policyTaker2,
-          ProtocolHelper.getAthenaContract().address
+          ProtocolHelper.getAthenaContract().address,
         );
 
         const capital2 = "109500";
@@ -260,7 +260,7 @@ export function testRewardsWithoutClaim() {
           premium2,
           atensLocked2,
           0,
-          10 * 24 * 60 * 60
+          10 * 24 * 60 * 60,
         );
 
         const USDT_amount2 = "365000";
@@ -270,7 +270,7 @@ export function testRewardsWithoutClaim() {
           USDT_amount2,
           ATEN_amount2,
           [0, 1],
-          1 * 24 * 60 * 60
+          1 * 24 * 60 * 60,
         );
 
         //PT1: UR = 30%; PR = 3%; ER = 9, (PT1 -> 9)
@@ -282,11 +282,11 @@ export function testRewardsWithoutClaim() {
 
       it("Should check policy1 initial info", async () => {
         const policyInfo = await protocolPool0.premiumPositions(
-          await ProtocolHelper.getAccountCoverIdByIndex(policyTaker1, 0)
+          await ProtocolHelper.getAccountCoverIdByIndex(policyTaker1, 0),
         );
 
         expect(policyInfo.beginPremiumRate).to.be.equal(
-          "3000000000000000000000000000"
+          "3000000000000000000000000000",
         );
         expect(policyInfo.coverIdIndex).to.be.equal("0");
         expect(policyInfo.lastTick).to.be.equal(730);
@@ -295,7 +295,7 @@ export function testRewardsWithoutClaim() {
       it("Should get policy1 remaning info", async () => {
         const coverId = await ProtocolHelper.getAccountCoverIdByIndex(
           policyTaker1,
-          0
+          0,
         );
         const response = await protocolPool0.getInfo(coverId);
 
@@ -306,11 +306,11 @@ export function testRewardsWithoutClaim() {
 
       it("Should check policy2 initial info", async () => {
         const policyInfo = await protocolPool0.premiumPositions(
-          await ProtocolHelper.getAccountCoverIdByIndex(policyTaker2, 0)
+          await ProtocolHelper.getAccountCoverIdByIndex(policyTaker2, 0),
         );
 
         expect(policyInfo.beginPremiumRate).to.be.equal(
-          "5000000000000000000000000000"
+          "5000000000000000000000000000",
         );
         expect(policyInfo.coverIdIndex).to.be.equal("0");
         expect(policyInfo.lastTick).to.be.equal(1490);
@@ -319,7 +319,7 @@ export function testRewardsWithoutClaim() {
       it("Should get policy2 remaning info", async () => {
         const coverId = await ProtocolHelper.getAccountCoverIdByIndex(
           policyTaker2,
-          0
+          0,
         );
         const response = await protocolPool0.getInfo(coverId);
 
@@ -349,7 +349,7 @@ export function testRewardsWithoutClaim() {
             365000,
             [0, 2],
             0,
-            (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60
+            (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60,
           );
 
           expect(result.__newUserCapital).to.be.equal(365000);
@@ -362,7 +362,7 @@ export function testRewardsWithoutClaim() {
             365000,
             [0, 1],
             0,
-            (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60
+            (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60,
           );
 
           expect(result.__newUserCapital).to.be.equal(365000);
@@ -379,7 +379,7 @@ export function testRewardsWithoutClaim() {
             365000,
             [0, 2],
             0,
-            (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60
+            (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60,
           );
 
           expect(result.__newUserCapital).to.be.equal(365000);
@@ -392,7 +392,7 @@ export function testRewardsWithoutClaim() {
             365000,
             [0, 1],
             0,
-            (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60
+            (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60,
           );
 
           expect(result.__newUserCapital).to.be.equal(365000);
@@ -409,7 +409,7 @@ export function testRewardsWithoutClaim() {
             365000,
             [0, 2],
             0,
-            (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60
+            (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60,
           );
 
           expect(result.__newUserCapital).to.be.equal(365000);
@@ -422,7 +422,7 @@ export function testRewardsWithoutClaim() {
             365000,
             [0, 1],
             0,
-            (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60
+            (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60,
           );
 
           expect(result.__newUserCapital).to.be.equal(365000);
@@ -439,7 +439,7 @@ export function testRewardsWithoutClaim() {
             365000,
             [0, 2],
             0,
-            (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60
+            (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60,
           );
 
           expect(result.__newUserCapital).to.be.equal(365000);
@@ -452,7 +452,7 @@ export function testRewardsWithoutClaim() {
             365000,
             [0, 1],
             0,
-            (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60
+            (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60,
           );
 
           expect(result.__newUserCapital).to.be.equal(365000);
@@ -468,7 +468,7 @@ export function testRewardsWithoutClaim() {
             365000,
             [0, 2],
             0,
-            (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60
+            (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60,
           );
 
           expect(result.__newUserCapital).to.be.equal(365000);
@@ -481,7 +481,7 @@ export function testRewardsWithoutClaim() {
             365000,
             [0, 1],
             0,
-            (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60
+            (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60,
           );
 
           expect(result.__newUserCapital).to.be.equal(365000);
@@ -497,7 +497,7 @@ export function testRewardsWithoutClaim() {
             365000,
             [0, 2],
             0,
-            (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60
+            (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60,
           );
 
           expect(result.__newUserCapital).to.be.equal(365000);
@@ -510,7 +510,7 @@ export function testRewardsWithoutClaim() {
             365000,
             [0, 1],
             0,
-            (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60
+            (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60,
           );
 
           expect(result.__newUserCapital).to.be.equal(365000);
@@ -526,7 +526,7 @@ export function testRewardsWithoutClaim() {
             365000,
             [0, 2],
             0,
-            (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60
+            (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60,
           );
 
           expect(result.__newUserCapital).to.be.equal(365000);
@@ -539,7 +539,7 @@ export function testRewardsWithoutClaim() {
             365000,
             [0, 1],
             0,
-            (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60
+            (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60,
           );
 
           expect(result.__newUserCapital).to.be.equal(365000);
@@ -556,7 +556,7 @@ export function testRewardsWithoutClaim() {
             [0, 2],
             0,
 
-            (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60
+            (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60,
           );
 
           expect(result.__newUserCapital).to.be.equal(365000);
@@ -569,7 +569,7 @@ export function testRewardsWithoutClaim() {
             365000,
             [0, 1],
             0,
-            (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60
+            (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60,
           );
 
           expect(result.__newUserCapital).to.be.equal(365000);

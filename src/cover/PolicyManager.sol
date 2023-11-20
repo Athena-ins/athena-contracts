@@ -41,13 +41,17 @@ contract PolicyManager is IPolicyManager, ERC721Enumerable {
   /// ========= VIEWS ======== ///
   /// ======================== ///
 
-  function policyActive(uint256 coverId) external view returns (bool) {
+  function policyActive(
+    uint256 coverId
+  ) external view returns (bool) {
     Policy memory cover = covers[coverId];
 
     return cover.amountCovered != 0 && cover.endTimestamp == 0;
   }
 
-  function poolIdOfPolicy(uint256 coverId) external view returns (uint128) {
+  function poolIdOfPolicy(
+    uint256 coverId
+  ) external view returns (uint128) {
     return covers[coverId].poolId;
   }
 
@@ -57,7 +61,9 @@ contract PolicyManager is IPolicyManager, ERC721Enumerable {
     return covers[coverId].amountCovered;
   }
 
-  function getCover(uint256 coverId) public view returns (Policy memory) {
+  function getCover(
+    uint256 coverId
+  ) public view returns (Policy memory) {
     return covers[coverId];
   }
 
@@ -96,9 +102,8 @@ contract PolicyManager is IPolicyManager, ERC721Enumerable {
 
     // We only want to read additional cover data if it is ongoing
     if (cover.endTimestamp == 0) {
-      address protocolAddress = protocolFactoryInterface.getPoolAddress(
-        cover.poolId
-      );
+      address protocolAddress = protocolFactoryInterface
+        .getPoolAddress(cover.poolId);
       (premiumLeft, currentEmissionRate, estDuration) = IProtocolPool(
         protocolAddress
       ).getInfo(coverId);
@@ -145,7 +150,8 @@ contract PolicyManager is IPolicyManager, ERC721Enumerable {
     address protocolAddress = protocolFactoryInterface.getPoolAddress(
       _policy.poolId
     );
-    (uint256 premiumLeft, , ) = IProtocolPool(protocolAddress).getInfo(coverId);
+    (uint256 premiumLeft, , ) = IProtocolPool(protocolAddress)
+      .getInfo(coverId);
 
     // @bw Erronous behavior that grow premiums above deposited amount
     if (_policy.premiumDeposit < premiumLeft) {
@@ -190,19 +196,31 @@ contract PolicyManager is IPolicyManager, ERC721Enumerable {
   /// ========= UPDATE ======== ///
   /// ========================= ///
 
-  function increaseCover(uint256 coverId_, uint256 amount_) external onlyCore {
+  function increaseCover(
+    uint256 coverId_,
+    uint256 amount_
+  ) external onlyCore {
     covers[coverId_].amountCovered += amount_;
   }
 
-  function decreaseCover(uint256 coverId_, uint256 amount_) external onlyCore {
+  function decreaseCover(
+    uint256 coverId_,
+    uint256 amount_
+  ) external onlyCore {
     covers[coverId_].amountCovered -= amount_;
   }
 
-  function addPremiums(uint256 coverId_, uint256 amount_) external onlyCore {
+  function addPremiums(
+    uint256 coverId_,
+    uint256 amount_
+  ) external onlyCore {
     covers[coverId_].premiumDeposit += amount_;
   }
 
-  function removePremiums(uint256 coverId_, uint256 amount_) external onlyCore {
+  function removePremiums(
+    uint256 coverId_,
+    uint256 amount_
+  ) external onlyCore {
     covers[coverId_].premiumDeposit -= amount_;
   }
 
@@ -210,7 +228,10 @@ contract PolicyManager is IPolicyManager, ERC721Enumerable {
   /// ========= CLOSE ======== ///
   /// ======================== ///
 
-  function expireCover(uint256 coverId, bool cancelledByUser) public onlyCore {
+  function expireCover(
+    uint256 coverId,
+    bool cancelledByUser
+  ) public onlyCore {
     Policy storage cover = covers[coverId];
 
     cover.endTimestamp = block.timestamp;

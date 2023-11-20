@@ -18,7 +18,10 @@ contract VerifySignature {
   ) public pure returns (address signer) {
     bytes32 messageHash = keccak256(abi.encodePacked(message_));
     bytes32 ethSignedMessageHash = keccak256(
-      abi.encodePacked("\x19Ethereum Signed Message:\n32", messageHash)
+      abi.encodePacked(
+        "\x19Ethereum Signed Message:\n32",
+        messageHash
+      )
     );
 
     require(signature_.length == 65, "VS: invalid signature length");

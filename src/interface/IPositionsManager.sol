@@ -20,7 +20,9 @@ interface IPositionsManager is IERC721Enumerable {
     Position position;
   }
 
-  function position(uint256 tokenId) external view returns (Position memory);
+  function position(
+    uint256 tokenId
+  ) external view returns (Position memory);
 
   function allCapitalSuppliedByAccount(
     address account_
@@ -59,9 +61,15 @@ interface IPositionsManager is IERC721Enumerable {
     address owner
   ) external view returns (uint256[] memory tokenList);
 
-  function takeInterestsInAllPools(address account, uint256 tokenId) external;
+  function takeInterestsInAllPools(
+    address account,
+    uint256 tokenId
+  ) external;
 
-  function updateFeeLevel(uint256 tokenId, uint128 newFeeLevel) external;
+  function updateFeeLevel(
+    uint256 tokenId,
+    uint128 newFeeLevel
+  ) external;
 
   function getFirstPositionPoolId(
     uint256 tokenId_
@@ -73,5 +81,7 @@ interface IPositionsManager is IERC721Enumerable {
     uint256 reserveNormalizedIncome_
   ) external;
 
-  function getAvailableCapital(uint128 poolId) external view returns (uint256);
+  function getAvailableCapital(
+    uint128 poolId
+  ) external view returns (uint256);
 }

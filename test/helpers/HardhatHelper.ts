@@ -1,6 +1,6 @@
-import hre, { ethers , network } from "hardhat";
+import hre, { ethers, network } from "hardhat";
 import { HardhatNetworkConfig } from "hardhat/types";
-import {   BigNumber, BigNumberish, Signer , Contract} from "../../types";
+import { BigNumber, BigNumberish, Signer, Contract } from "../../types";
 import weth_abi from "../abis/weth.json";
 import lendingPoolAbi from "../abis/lendingPool.json";
 import { contract, deploymentAddress } from "./TypedContracts";
@@ -68,8 +68,7 @@ async function impersonateAccount(address: string) {
 
 async function setNextBlockTimestamp(secondsToAdd: number) {
   if (secondsToAdd <= 0) return;
-  const latestTimeStamp = (await ethers.provider.getBlock("latest"))
-    .timestamp;
+  const latestTimeStamp = (await ethers.provider.getBlock("latest")).timestamp;
 
   const newTime = latestTimeStamp + secondsToAdd;
 
@@ -100,18 +99,18 @@ async function USDT_transfer(address: string, amount: BigNumberish) {
 }
 
 async function USDT_approve(
-  owner:  Signer,
+  owner: Signer,
   spender: string,
   amount: BigNumberish,
 ) {
   return (await contract.USDT.connect(owner).approve(spender, amount)).wait();
 }
 
-async function USDT_maxApprove(owner:  Signer, spender: string) {
+async function USDT_maxApprove(owner: Signer, spender: string) {
   return (
     await contract.USDT.connect(owner).approve(
       spender,
-       BigNumber.from(2).pow(256).sub(1),
+      BigNumber.from(2).pow(256).sub(1),
     )
   ).wait();
 }
@@ -138,15 +137,15 @@ async function ATEN_transfer(address: string, amount: BigNumberish) {
 }
 
 async function ATEN_approve(
-  owner:  Signer,
+  owner: Signer,
   spender: string,
   amount: BigNumberish,
 ) {
   return (await contract.ATEN.connect(owner).approve(spender, amount)).wait();
 }
 
-async function getATokenBalance(user:  Signer) {
-  const AAVE_LENDING_POOL_CONTRACT = new  Contract(
+async function getATokenBalance(user: Signer) {
+  const AAVE_LENDING_POOL_CONTRACT = new Contract(
     deploymentAddress.aave_lending_pool,
     lendingPoolAbi,
     user,
@@ -156,11 +155,7 @@ async function getATokenBalance(user:  Signer) {
   // we fetch lending pool data for USDT to get aToken address
   const data = await AAVE_LENDING_POOL_CONTRACT.getReserveData(usdtAddress);
   // and now check our aToken balance in contract
-  const aTokenContract = new  Contract(
-    data.aTokenAddress,
-    weth_abi,
-    user,
-  );
+  const aTokenContract = new Contract(data.aTokenAddress, weth_abi, user);
   const bal = await aTokenContract.balanceOf(athenaAddress);
   return bal;
 }

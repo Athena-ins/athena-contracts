@@ -17,7 +17,10 @@ library RayMath {
    * @param b Ray
    * @return The result of a*b, in ray
    **/
-  function rayMul(uint256 a, uint256 b) internal pure returns (uint256) {
+  function rayMul(
+    uint256 a,
+    uint256 b
+  ) internal pure returns (uint256) {
     return (a * b + halfRAY) / RAY;
   }
 
@@ -27,7 +30,10 @@ library RayMath {
    * @param b Ray
    * @return The result of a/b, in ray
    **/
-  function rayDiv(uint256 a, uint256 b) internal pure returns (uint256) {
+  function rayDiv(
+    uint256 a,
+    uint256 b
+  ) internal pure returns (uint256) {
     return ((a * RAY) + (b / 2)) / b;
   }
 }

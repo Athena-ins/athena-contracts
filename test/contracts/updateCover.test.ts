@@ -47,7 +47,7 @@ export function testUpdateCover() {
         USDT_amount1,
         ATEN_amount1,
         [0, 1],
-        1 * 24 * 60 * 60
+        1 * 24 * 60 * 60,
       );
 
       const USDT_amount2 = toUsdt(75_000);
@@ -57,7 +57,7 @@ export function testUpdateCover() {
         USDT_amount2,
         ATEN_amount2,
         [0, 1, 2, 3],
-        10 * 24 * 60 * 60
+        10 * 24 * 60 * 60,
       );
 
       // ================= Policy Buyers ================= //
@@ -72,7 +72,7 @@ export function testUpdateCover() {
         [premium1, premium1],
         [atensLocked1, atensLocked1],
         [0, 2],
-        10 * 24 * 60 * 60
+        10 * 24 * 60 * 60,
       );
       // 50 000 000000
       // 49 690 000000
@@ -86,7 +86,7 @@ export function testUpdateCover() {
         premium2,
         atensLocked2,
         0,
-        10 * 24 * 60 * 60
+        10 * 24 * 60 * 60,
       );
     });
 
@@ -100,7 +100,7 @@ export function testUpdateCover() {
         policyTaker1,
         "increaseCover",
         userCoverBefore.coverId,
-        amount
+        amount,
       );
 
       const userCoverAfter = (
@@ -108,10 +108,10 @@ export function testUpdateCover() {
       )[0];
 
       expect(userCoverBefore.amountCovered.add(amount)).to.equal(
-        userCoverAfter.amountCovered
+        userCoverAfter.amountCovered,
       );
       expect(
-        userCoverBefore.dailyCost.mul(2).lt(userCoverAfter.dailyCost)
+        userCoverBefore.dailyCost.mul(2).lt(userCoverAfter.dailyCost),
       ).to.equal(true);
     });
 
@@ -126,7 +126,7 @@ export function testUpdateCover() {
         policyTaker1,
         "decreaseCover",
         user1CoverBefore.coverId,
-        amount1
+        amount1,
       );
 
       const user1CoverAfter = (
@@ -134,10 +134,10 @@ export function testUpdateCover() {
       )[0];
 
       expect(user1CoverBefore.amountCovered.sub(amount1)).to.equal(
-        user1CoverAfter.amountCovered
+        user1CoverAfter.amountCovered,
       );
       expect(user1CoverAfter.dailyCost.lt(user1CoverBefore.dailyCost)).to.equal(
-        true
+        true,
       );
 
       // ===== policy taker 2 ===== //
@@ -151,7 +151,7 @@ export function testUpdateCover() {
         policyTaker2,
         "decreaseCover",
         user2CoverBefore.coverId,
-        amount2
+        amount2,
       );
 
       const user2CoverAfter = (
@@ -159,10 +159,10 @@ export function testUpdateCover() {
       )[0];
 
       expect(user2CoverBefore.amountCovered.sub(amount2)).to.equal(
-        user2CoverAfter.amountCovered
+        user2CoverAfter.amountCovered,
       );
       expect(user2CoverAfter.dailyCost.lt(user2CoverBefore.dailyCost)).to.equal(
-        true
+        true,
       );
     });
 
@@ -177,7 +177,7 @@ export function testUpdateCover() {
         policyTaker2,
         "addPremiums",
         user2CoverBefore.coverId,
-        amount2
+        amount2,
       );
 
       const user2CoverAfter = (
@@ -191,12 +191,12 @@ export function testUpdateCover() {
         user2CoverAfter.premiumLeft
           .mul(101)
           .div(100)
-          .gt(user2CoverBefore.premiumLeft.add(amount2))
+          .gt(user2CoverBefore.premiumLeft.add(amount2)),
       ).to.equal(true);
       expect(
         user2CoverBefore.remainingDuration
           .mul(2)
-          .lt(user2CoverAfter.remainingDuration)
+          .lt(user2CoverAfter.remainingDuration),
       ).to.equal(true);
     });
 
@@ -213,7 +213,7 @@ export function testUpdateCover() {
         policyTaker1,
         "removePremiums",
         user1CoverBefore.coverId,
-        amount1
+        amount1,
       );
 
       const user1CoverAfter = (
@@ -224,24 +224,23 @@ export function testUpdateCover() {
       expect(balanceBefore.add(amount1)).to.equal(balanceAfter);
       expect(
         user1CoverAfter.premiumLeft.lt(
-          user1CoverBefore.premiumLeft.sub(amount1)
-        )
+          user1CoverBefore.premiumLeft.sub(amount1),
+        ),
       ).to.equal(true);
       expect(
         user1CoverAfter.remainingDuration
           .div(2)
-          .lt(user1CoverBefore.remainingDuration)
+          .lt(user1CoverBefore.remainingDuration),
       ).to.equal(true);
     });
 
     it("Should add ATEN to the cover refund staking", async function () {
       const user2CoverId0 = await ProtocolHelper.getAccountCoverIdByIndex(
         policyTaker2,
-        0
+        0,
       );
-      const user2RefundBefore = await STAKING_POLICY.getRefundPosition(
-        user2CoverId0
-      );
+      const user2RefundBefore =
+        await STAKING_POLICY.getRefundPosition(user2CoverId0);
       const balanceBefore = await HardhatHelper.ATEN_spenderBalance();
 
       const amount2 = toAten(200);
@@ -249,28 +248,27 @@ export function testUpdateCover() {
         policyTaker2,
         "addToCoverRefundStake",
         user2CoverId0,
-        amount2
+        amount2,
       );
 
-      const user2RefundAfter = await STAKING_POLICY.getRefundPosition(
-        user2CoverId0
-      );
+      const user2RefundAfter =
+        await STAKING_POLICY.getRefundPosition(user2CoverId0);
       const balanceAfter = await HardhatHelper.ATEN_spenderBalance();
 
       // We apply a 1% tolerance for the token fees
       expect(
-        balanceBefore.gt(balanceAfter.add(amount2.mul(99).div(100)))
+        balanceBefore.gt(balanceAfter.add(amount2.mul(99).div(100))),
       ).to.equal(true);
       expect(user2RefundBefore.stakedAmount.add(amount2)).to.equal(
-        user2RefundAfter.stakedAmount
+        user2RefundAfter.stakedAmount,
       );
       expect(
         user2RefundAfter.rewardsSinceTimestamp.gt(
-          user2RefundBefore.rewardsSinceTimestamp
-        )
+          user2RefundBefore.rewardsSinceTimestamp,
+        ),
       ).to.equal(true);
       expect(
-        user2RefundAfter.earnedRewards.gt(user2RefundBefore.earnedRewards)
+        user2RefundAfter.earnedRewards.gt(user2RefundBefore.earnedRewards),
       ).to.equal(true);
     });
 
@@ -278,11 +276,10 @@ export function testUpdateCover() {
       const userAddress = await policyTaker1.getAddress();
       const user1CoverId0 = await ProtocolHelper.getAccountCoverIdByIndex(
         policyTaker1,
-        0
+        0,
       );
-      const user1RefundBefore = await STAKING_POLICY.getRefundPosition(
-        user1CoverId0
-      );
+      const user1RefundBefore =
+        await STAKING_POLICY.getRefundPosition(user1CoverId0);
 
       const balanceBefore = await HardhatHelper.ATEN_balanceOf(userAddress);
 
@@ -291,28 +288,27 @@ export function testUpdateCover() {
         policyTaker1,
         "withdrawCoverRefundStakedAten",
         user1CoverId0,
-        amount1
+        amount1,
       );
 
-      const user1RefundAfter = await STAKING_POLICY.getRefundPosition(
-        user1CoverId0
-      );
+      const user1RefundAfter =
+        await STAKING_POLICY.getRefundPosition(user1CoverId0);
       const balanceAfter = await HardhatHelper.ATEN_balanceOf(userAddress);
 
       expect(user1RefundBefore.stakedAmount.sub(amount1)).to.equal(
-        user1RefundAfter.stakedAmount
+        user1RefundAfter.stakedAmount,
       );
       expect(
         user1RefundAfter.rewardsSinceTimestamp.gt(
-          user1RefundBefore.rewardsSinceTimestamp
-        )
+          user1RefundBefore.rewardsSinceTimestamp,
+        ),
       ).to.equal(true);
       expect(
-        user1RefundAfter.earnedRewards.gt(user1RefundBefore.earnedRewards)
+        user1RefundAfter.earnedRewards.gt(user1RefundBefore.earnedRewards),
       ).to.equal(true);
       // We apply a 1% tolerance for the token fees
       expect(
-        balanceAfter.gt(balanceBefore.add(amount1.mul(99).div(100)))
+        balanceAfter.gt(balanceBefore.add(amount1.mul(99).div(100))),
       ).to.equal(true);
     });
   });

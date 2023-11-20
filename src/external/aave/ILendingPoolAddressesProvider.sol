@@ -15,9 +15,15 @@ interface ILendingPoolAddressesProvider {
 
   function getLendingPool() external view returns (address);
 
-  function getLendingPoolConfigurator() external view returns (address);
+  function getLendingPoolConfigurator()
+    external
+    view
+    returns (address);
 
-  function getLendingPoolCollateralManager() external view returns (address);
+  function getLendingPoolCollateralManager()
+    external
+    view
+    returns (address);
 
   function getPoolAdmin() external view returns (address);
 

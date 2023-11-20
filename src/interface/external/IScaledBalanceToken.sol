@@ -8,7 +8,9 @@ interface IScaledBalanceToken {
    * @param user The user whose balance is calculated
    * @return The scaled balance of the user
    **/
-  function scaledBalanceOf(address user) external view returns (uint256);
+  function scaledBalanceOf(
+    address user
+  ) external view returns (uint256);
 
   /**
    * @dev Returns the scaled balance of the user and the scaled total supply.

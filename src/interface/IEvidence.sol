@@ -13,7 +13,10 @@ interface IEvidence {
    * @param _metaEvidenceID Unique identifier of meta-evidence.
    * @param _evidence IPFS path to metaevidence, example: '/ipfs/Qmarwkf7C9RuzDEJNnarT3WZ7kem5bk8DZAzx78acJjMFH/metaevidence.json'
    */
-  event MetaEvidence(uint256 indexed _metaEvidenceID, string _evidence);
+  event MetaEvidence(
+    uint256 indexed _metaEvidenceID,
+    string _evidence
+  );
 
   /**
    * @dev To be raised when evidence is submitted. Should point to the resource (evidences are not to be stored on chain due to gas considerations).

@@ -54,7 +54,7 @@ export function testStakingPolicy() {
         USDT_amount1,
         ATEN_amount1,
         [0, 1],
-        1 * 24 * 60 * 60
+        1 * 24 * 60 * 60,
       );
 
       const USDT_amount2 = toUsdt(75_000);
@@ -64,7 +64,7 @@ export function testStakingPolicy() {
         USDT_amount2,
         ATEN_amount2,
         [0, 1, 2, 3],
-        10 * 24 * 60 * 60
+        10 * 24 * 60 * 60,
       );
 
       // ================= Policy Buyers ================= //
@@ -79,7 +79,7 @@ export function testStakingPolicy() {
         [premium1, premium1],
         [atensLocked1, atensLocked1],
         [0, 2],
-        10 * 24 * 60 * 60
+        10 * 24 * 60 * 60,
       );
 
       const capital2 = toUsdt(2190);
@@ -91,13 +91,13 @@ export function testStakingPolicy() {
         premium2,
         atensLocked2,
         0,
-        10 * 24 * 60 * 60
+        10 * 24 * 60 * 60,
       );
     });
 
     it("Should fail to buy Policy with Atens cause too many ATENS", async function () {
       const oneMillionAten = BigNumber.from(1_000_000).mul(
-        BigNumber.from(10).pow(18)
+        BigNumber.from(10).pow(18),
       );
 
       expect(
@@ -107,8 +107,8 @@ export function testStakingPolicy() {
           "10",
           oneMillionAten.toString(),
           0,
-          0
-        )
+          0,
+        ),
       ).to.eventually.be.rejectedWith("AmountAtenTooHigh()");
     });
 
@@ -119,7 +119,7 @@ export function testStakingPolicy() {
         "100",
         "10000",
         0,
-        0 * 24 * 60 * 60
+        0 * 24 * 60 * 60,
       );
 
       expect(policy).to.haveOwnProperty("hash");
@@ -135,7 +135,7 @@ export function testStakingPolicy() {
         [premium, premium, premium, premium],
         [atensLocked, 0, atensLocked, 0],
         [0, 1, 2, 3],
-        0
+        0,
       );
 
       expect(policy).to.haveOwnProperty("hash");
@@ -143,7 +143,7 @@ export function testStakingPolicy() {
 
     it("Should check if position has been initialized", async function () {
       const userStakes = await STAKING_POLICY.connect(
-        policyTaker1
+        policyTaker1,
       ).getRefundPositionsByAccount(await policyTaker1.getAddress());
 
       userStakes.map((stake) => {
@@ -155,31 +155,29 @@ export function testStakingPolicy() {
       await expect(
         ATHENA_CONTRACT.connect(policyTaker3).withdrawCoverRefundStakedAten(
           1,
-          10
-        )
+          10,
+        ),
       ).to.eventually.be.rejectedWith("NotPolicyOwner()");
     });
 
     it("Check rewards after 120 & 240 days", async function () {
       await HardhatHelper.setNextBlockTimestamp(120 * 24 * 60 * 60);
 
-      const rewards = await STAKING_POLICY.connect(
-        policyTaker1
-      ).positionRefundRewards(0);
+      const rewards =
+        await STAKING_POLICY.connect(policyTaker1).positionRefundRewards(0);
       expect(rewards).to.equal("35616504946727549400000");
 
       await HardhatHelper.setNextBlockTimestamp(120 * 24 * 60 * 60);
 
-      const rewards2 = await STAKING_POLICY.connect(
-        policyTaker1
-      ).positionRefundRewards(0);
+      const rewards2 =
+        await STAKING_POLICY.connect(policyTaker1).positionRefundRewards(0);
 
       expect(rewards2.toString()).to.equal("68493217275494672700000");
     });
 
     it("Should return 2 staking Policy ", async function () {
       const indexUser = await STAKING_POLICY.connect(
-        policyTaker1
+        policyTaker1,
       ).getRefundPositionsByAccount(await policyTaker1.getAddress());
 
       expect(indexUser.length).to.equal(4);
@@ -189,18 +187,18 @@ export function testStakingPolicy() {
       await HardhatHelper.setNextBlockTimestamp(125 * 24 * 60 * 60);
 
       const balBefore = await ATEN_TOKEN.connect(policyTaker2).balanceOf(
-        await policyTaker2.getAddress()
+        await policyTaker2.getAddress(),
       );
 
       const txWithdrawAten = await (
         await ATHENA_CONTRACT.connect(policyTaker2).withdrawCoverRefundRewards(
-          2
+          2,
         )
       ).wait();
       expect(txWithdrawAten).to.haveOwnProperty("transactionHash");
 
       const balAfter = await ATEN_TOKEN.connect(policyTaker2).balanceOf(
-        await policyTaker2.getAddress()
+        await policyTaker2.getAddress(),
       );
 
       expect(balAfter.sub(balBefore).lt(toAten(12))).to.equal(true);

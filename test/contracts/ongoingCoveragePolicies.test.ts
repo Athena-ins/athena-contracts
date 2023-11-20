@@ -37,7 +37,7 @@ export function testOngoingCoveragePolicies() {
         USDT_amount1,
         ATEN_amount1,
         [0, 2],
-        1 * 24 * 60 * 60
+        1 * 24 * 60 * 60,
       );
 
       const USDT_amount2 = "330000";
@@ -47,12 +47,12 @@ export function testOngoingCoveragePolicies() {
         USDT_amount2,
         ATEN_amount2,
         [0, 1, 2],
-        1 * 24 * 60 * 60
+        1 * 24 * 60 * 60,
       );
 
       await HardhatHelper.USDT_maxApprove(
         policyTaker1,
-        ProtocolHelper.getAthenaContract().address
+        ProtocolHelper.getAthenaContract().address,
       );
 
       const capital1 = "109500";
@@ -64,12 +64,12 @@ export function testOngoingCoveragePolicies() {
         premium1,
         atensLocked1,
         0,
-        20 * 24 * 60 * 60
+        20 * 24 * 60 * 60,
       );
 
       await HardhatHelper.USDT_maxApprove(
         policyTaker3,
-        ProtocolHelper.getAthenaContract().address
+        ProtocolHelper.getAthenaContract().address,
       );
 
       await ProtocolHelper.buyPolicy(
@@ -78,7 +78,7 @@ export function testOngoingCoveragePolicies() {
         premium1,
         atensLocked1,
         0,
-        1 * 24 * 60 * 60
+        1 * 24 * 60 * 60,
       );
 
       const capital2 = "219000";
@@ -90,14 +90,14 @@ export function testOngoingCoveragePolicies() {
         premium2,
         atensLocked2,
         2,
-        10 * 24 * 60 * 60
+        10 * 24 * 60 * 60,
       );
     });
 
     it("Should call PolicyManager.fullCoverDataByAccount for PT1", async () => {
       const result =
         await ProtocolHelper.getPolicyManagerContract().fullCoverDataByAccount(
-          await policyTaker1.getAddress()
+          await policyTaker1.getAddress(),
         );
 
       expect(result.length).to.be.equals(2);
@@ -108,7 +108,7 @@ export function testOngoingCoveragePolicies() {
       expect(result[0].dailyCost).to.be.equals(9);
       // @dev hacky check because value is inconsistent (1 sec variation)
       expect(
-        Math.floor(result[0].beginCoveredTime.toNumber() / 10)
+        Math.floor(result[0].beginCoveredTime.toNumber() / 10),
       ).to.be.equals(167587757);
       expect(result[0].remainingDuration).to.be.equals(20102400);
       expect(result[0].poolId).to.be.equals(0);
@@ -120,7 +120,7 @@ export function testOngoingCoveragePolicies() {
       expect(result[1].dailyCost).to.be.equals(18);
       // @dev hacky check because value is inconsistent (1 sec variation)
       expect(
-        Math.floor(result[1].beginCoveredTime.toNumber() / 10)
+        Math.floor(result[1].beginCoveredTime.toNumber() / 10),
       ).to.be.equals(167682797);
       expect(result[1].remainingDuration).to.be.equals(42048000);
       expect(result[1].poolId).to.be.equals(2);
@@ -129,7 +129,7 @@ export function testOngoingCoveragePolicies() {
     it("Should call PolicyManager.fullCoverDataByAccount for PT1 after expireing of token 0", async () => {
       await HardhatHelper.USDT_maxApprove(
         policyTaker2,
-        ProtocolHelper.getAthenaContract().address
+        ProtocolHelper.getAthenaContract().address,
       );
 
       await HardhatHelper.setNextBlockTimestamp(400 * 24 * 60 * 60);
@@ -144,7 +144,7 @@ export function testOngoingCoveragePolicies() {
         premium2,
         atensLocked2,
         0,
-        10 * 24 * 60 * 60
+        10 * 24 * 60 * 60,
       );
 
       await ProtocolHelper.buyPolicy(
@@ -153,7 +153,7 @@ export function testOngoingCoveragePolicies() {
         premium2,
         atensLocked2,
         2,
-        10 * 24 * 60 * 60
+        10 * 24 * 60 * 60,
       );
 
       const result = await ProtocolHelper.getOngoingCovers(policyTaker1);
@@ -170,7 +170,7 @@ export function testOngoingCoveragePolicies() {
 
       const result2 =
         await ProtocolHelper.getPolicyManagerContract().allPolicyTokensOfOwner(
-          await policyTaker1.getAddress()
+          await policyTaker1.getAddress(),
         );
 
       expect(result2.length).to.be.equals(2);

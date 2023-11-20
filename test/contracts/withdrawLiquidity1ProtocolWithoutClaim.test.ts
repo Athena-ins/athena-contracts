@@ -38,7 +38,7 @@ export function testWithdrawLiquidity1ProtocolWithoutClaim() {
           USDT_amount1,
           ATEN_amount1,
           [0, 2],
-          1 * 24 * 60 * 60
+          1 * 24 * 60 * 60,
         );
 
         const USDT_amount2 = "547500";
@@ -48,12 +48,12 @@ export function testWithdrawLiquidity1ProtocolWithoutClaim() {
           USDT_amount2,
           ATEN_amount2,
           [0, 1],
-          1 * 24 * 60 * 60
+          1 * 24 * 60 * 60,
         );
 
         await HardhatHelper.USDT_maxApprove(
           policyTaker1,
-          ProtocolHelper.getAthenaContract().address
+          ProtocolHelper.getAthenaContract().address,
         );
 
         const capital1 = "109500";
@@ -65,12 +65,12 @@ export function testWithdrawLiquidity1ProtocolWithoutClaim() {
           premium1,
           atensLocked1,
           0,
-          20 * 24 * 60 * 60
+          20 * 24 * 60 * 60,
         );
 
         await HardhatHelper.USDT_maxApprove(
           policyTaker2,
-          ProtocolHelper.getAthenaContract().address
+          ProtocolHelper.getAthenaContract().address,
         );
 
         const capital2 = "219000";
@@ -82,7 +82,7 @@ export function testWithdrawLiquidity1ProtocolWithoutClaim() {
           premium2,
           atensLocked2,
           0,
-          10 * 24 * 60 * 60
+          10 * 24 * 60 * 60,
         );
       });
 
@@ -107,16 +107,16 @@ export function testWithdrawLiquidity1ProtocolWithoutClaim() {
 
         const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           liquidityProvider1,
-          0
+          0,
         );
 
         const decodedData = protocolContract.interface.decodeEventLog(
           event.topics[0],
-          event.data
+          event.data,
         );
 
         expect(decodedData.account).to.be.equal(
-          await liquidityProvider1.getAddress()
+          await liquidityProvider1.getAddress(),
         );
         expect(decodedData.capital).to.be.equal(182500);
         expect(decodedData.rewardsGross).to.be.equal(150);
@@ -129,7 +129,7 @@ export function testWithdrawLiquidity1ProtocolWithoutClaim() {
         expect(slot0.totalInsuredCapital).to.be.equal("328500");
         expect(slot0.remainingPolicies).to.be.equal("2");
         expect(slot0.lastUpdateTimestamp).to.be.equal(
-          await HardhatHelper.getCurrentTime()
+          await HardhatHelper.getCurrentTime(),
         );
 
         const premiumRate = await protocolContract.getCurrentPremiumRate();
@@ -139,11 +139,11 @@ export function testWithdrawLiquidity1ProtocolWithoutClaim() {
       it.skip("Should call takeInterest for LP2 after 10 day that LP1 withdrawed his capital", async () => {
         const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           liquidityProvider2,
-          0
+          0,
         );
 
         const lpInfoBefore = await protocolContract.LPsInfo(
-          await liquidityProvider2.getAddress()
+          await liquidityProvider2.getAddress(),
         );
 
         const days = 10;
@@ -151,11 +151,11 @@ export function testWithdrawLiquidity1ProtocolWithoutClaim() {
           liquidityProvider2,
           0,
           days * 24 * 60 * 60,
-          2
+          2,
         );
 
         expect(decodedData.account).to.be.equal(
-          await liquidityProvider2.getAddress()
+          await liquidityProvider2.getAddress(),
         );
         expect(decodedData.userCapital).to.be.equal(547500);
         expect(decodedData.rewardsGross).to.be.equal(450 + 450);
@@ -163,14 +163,14 @@ export function testWithdrawLiquidity1ProtocolWithoutClaim() {
         expect(decodedData.fee).to.be.equal(45);
 
         const lpInfoAfter = await protocolContract.LPsInfo(
-          await liquidityProvider2.getAddress()
+          await liquidityProvider2.getAddress(),
         );
 
         expect(
-          lpInfoAfter.beginLiquidityIndex.gt(lpInfoBefore.beginLiquidityIndex)
+          lpInfoAfter.beginLiquidityIndex.gt(lpInfoBefore.beginLiquidityIndex),
         ).to.be.equal(true);
         expect(lpInfoAfter.beginClaimIndex).to.be.equal(
-          lpInfoBefore.beginClaimIndex
+          lpInfoBefore.beginClaimIndex,
         );
       });
     });

@@ -10,7 +10,11 @@ interface IStakedAten {
 
   function updateUserRewardRate(address account_) external;
 
-  function positionOf(address _account) external view returns (uint256);
+  function positionOf(
+    address _account
+  ) external view returns (uint256);
 
-  function getUserFeeRate(address account_) external view returns (uint128);
+  function getUserFeeRate(
+    address account_
+  ) external view returns (uint128);
 }

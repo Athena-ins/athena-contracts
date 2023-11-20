@@ -46,7 +46,7 @@ export function testTakeInterestWithClaim() {
         USDT_amount1,
         ATEN_amount1,
         [0, 2],
-        1 * 24 * 60 * 60
+        1 * 24 * 60 * 60,
       );
 
       const provider1tokenIds =
@@ -62,7 +62,7 @@ export function testTakeInterestWithClaim() {
         USDT_amount2,
         ATEN_amount2,
         [0, 1],
-        1 * 24 * 60 * 60
+        1 * 24 * 60 * 60,
       );
 
       const provider2tokenIds =
@@ -75,7 +75,7 @@ export function testTakeInterestWithClaim() {
 
       await HardhatHelper.USDT_maxApprove(
         policyTaker1,
-        ProtocolHelper.getAthenaContract().address
+        ProtocolHelper.getAthenaContract().address,
       );
 
       const capital1 = "109500";
@@ -87,12 +87,12 @@ export function testTakeInterestWithClaim() {
         premium1,
         atensLocked1,
         0,
-        20 * 24 * 60 * 60
+        20 * 24 * 60 * 60,
       );
 
       await HardhatHelper.USDT_maxApprove(
         policyTaker2,
-        ProtocolHelper.getAthenaContract().address
+        ProtocolHelper.getAthenaContract().address,
       );
 
       const capital2 = "219000";
@@ -104,12 +104,12 @@ export function testTakeInterestWithClaim() {
         premium2,
         atensLocked2,
         0,
-        10 * 24 * 60 * 60
+        10 * 24 * 60 * 60,
       );
 
       await HardhatHelper.USDT_maxApprove(
         policyTaker3,
-        ProtocolHelper.getAthenaContract().address
+        ProtocolHelper.getAthenaContract().address,
       );
 
       const capital3 = "219000";
@@ -121,12 +121,12 @@ export function testTakeInterestWithClaim() {
         premium3,
         atensLocked3,
         2,
-        10 * 24 * 60 * 60
+        10 * 24 * 60 * 60,
       );
 
       await HardhatHelper.USDT_maxApprove(
         policyTaker4,
-        ProtocolHelper.getAthenaContract().address
+        ProtocolHelper.getAthenaContract().address,
       );
 
       await ProtocolHelper.buyPolicy(
@@ -135,7 +135,7 @@ export function testTakeInterestWithClaim() {
         premium3,
         atensLocked3,
         1,
-        10 * 24 * 60 * 60
+        10 * 24 * 60 * 60,
       );
     });
 
@@ -145,7 +145,7 @@ export function testTakeInterestWithClaim() {
       await ProtocolHelper.resolveClaimWithoutDispute(
         policyTaker3,
         2,
-        14 * 24 * 60 * 60 + 10 // 14 days + 10 seconds
+        14 * 24 * 60 * 60 + 10, // 14 days + 10 seconds
       );
 
       const claim = await protocolPool0.processedClaims(0);
@@ -154,14 +154,14 @@ export function testTakeInterestWithClaim() {
       expect(claim.ratio).to.be.equal("500000000000000000000000000");
       expect(claim.liquidityIndexBeforeClaim).to.not.be.equal(0);
       expect(claim.liquidityIndexBeforeClaim).to.be.equal(
-        "1758915905631659056316590"
+        "1758915905631659056316590",
       );
     });
 
     it("Should call takeInterest for LP1 after 1 day of added claim", async () => {
       const protocolContract = await ProtocolHelper.getProtocolPoolContract(
         liquidityProvider1,
-        0
+        0,
       );
 
       const lpInfoBefore = await protocolContract.LPsInfo(provider1tokenId);
@@ -171,7 +171,7 @@ export function testTakeInterestWithClaim() {
         provider1tokenId,
         0,
         1 * 24 * 60 * 60,
-        2
+        2,
       );
 
       const lpInfoAfter = await protocolContract.LPsInfo(provider1tokenId);
@@ -183,10 +183,10 @@ export function testTakeInterestWithClaim() {
       expect(decodedData.fee).to.be.equal(99);
 
       expect(
-        lpInfoAfter.beginLiquidityIndex.gt(lpInfoBefore.beginLiquidityIndex)
+        lpInfoAfter.beginLiquidityIndex.gt(lpInfoBefore.beginLiquidityIndex),
       ).to.be.equal(true);
       expect(
-        lpInfoAfter.beginClaimIndex.gt(lpInfoBefore.beginClaimIndex)
+        lpInfoAfter.beginClaimIndex.gt(lpInfoBefore.beginClaimIndex),
       ).to.be.equal(true);
       expect(lpInfoAfter.beginClaimIndex).to.be.equal(1);
     });
@@ -194,7 +194,7 @@ export function testTakeInterestWithClaim() {
     it("Should call takeInterest for LP2 after 2 day of added claim", async () => {
       const protocolContract = await ProtocolHelper.getProtocolPoolContract(
         liquidityProvider2,
-        0
+        0,
       );
 
       const lpInfoBefore = await protocolContract.LPsInfo(provider2tokenId);
@@ -204,7 +204,7 @@ export function testTakeInterestWithClaim() {
         provider2tokenId,
         0,
         1 * 24 * 60 * 60,
-        2
+        2,
       );
 
       const lpInfoAfter = await protocolContract.LPsInfo(provider2tokenId);
@@ -216,10 +216,10 @@ export function testTakeInterestWithClaim() {
       expect(decodedData.fee).to.be.equal(36);
 
       expect(
-        lpInfoAfter.beginLiquidityIndex.gt(lpInfoBefore.beginLiquidityIndex)
+        lpInfoAfter.beginLiquidityIndex.gt(lpInfoBefore.beginLiquidityIndex),
       ).to.be.equal(true);
       expect(
-        lpInfoAfter.beginClaimIndex.gt(lpInfoBefore.beginClaimIndex)
+        lpInfoAfter.beginClaimIndex.gt(lpInfoBefore.beginClaimIndex),
       ).to.be.equal(true);
       expect(lpInfoAfter.beginClaimIndex).to.be.equal(1);
     });
@@ -227,7 +227,7 @@ export function testTakeInterestWithClaim() {
     it("Should call takeInterest for LP1 after 2 day of his last takeInterest", async () => {
       const protocolContract = await ProtocolHelper.getProtocolPoolContract(
         liquidityProvider1,
-        0
+        0,
       );
 
       const lpInfoBefore = await protocolContract.LPsInfo(provider1tokenId);
@@ -237,7 +237,7 @@ export function testTakeInterestWithClaim() {
         provider1tokenId,
         0,
         1 * 24 * 60 * 60,
-        2
+        2,
       );
 
       const lpInfoAfter = await protocolContract.LPsInfo(provider1tokenId);
@@ -249,10 +249,10 @@ export function testTakeInterestWithClaim() {
       expect(decodedData.fee).to.be.equal(5);
 
       expect(
-        lpInfoAfter.beginLiquidityIndex.gt(lpInfoBefore.beginLiquidityIndex)
+        lpInfoAfter.beginLiquidityIndex.gt(lpInfoBefore.beginLiquidityIndex),
       ).to.be.equal(true);
       expect(
-        lpInfoAfter.beginClaimIndex.eq(lpInfoBefore.beginClaimIndex)
+        lpInfoAfter.beginClaimIndex.eq(lpInfoBefore.beginClaimIndex),
       ).to.be.equal(true);
       expect(lpInfoAfter.beginClaimIndex).to.be.equal(1);
     });
@@ -260,7 +260,7 @@ export function testTakeInterestWithClaim() {
     it("Should call takeInterest for LP2 after 2 day of his last takeInterest", async () => {
       const protocolContract = await ProtocolHelper.getProtocolPoolContract(
         liquidityProvider2,
-        0
+        0,
       );
 
       const lpInfoBefore = await protocolContract.LPsInfo(provider2tokenId);
@@ -270,7 +270,7 @@ export function testTakeInterestWithClaim() {
         provider2tokenId,
         0,
         1 * 24 * 60 * 60,
-        2
+        2,
       );
 
       const lpInfoAfter = await protocolContract.LPsInfo(provider2tokenId);
@@ -282,10 +282,10 @@ export function testTakeInterestWithClaim() {
       expect(decodedData.fee).to.be.equal(3);
 
       expect(
-        lpInfoAfter.beginLiquidityIndex.gt(lpInfoBefore.beginLiquidityIndex)
+        lpInfoAfter.beginLiquidityIndex.gt(lpInfoBefore.beginLiquidityIndex),
       ).to.be.equal(true);
       expect(
-        lpInfoAfter.beginClaimIndex.eq(lpInfoBefore.beginClaimIndex)
+        lpInfoAfter.beginClaimIndex.eq(lpInfoBefore.beginClaimIndex),
       ).to.be.equal(true);
       expect(lpInfoAfter.beginClaimIndex).to.be.equal(1);
     });
@@ -295,21 +295,21 @@ export function testTakeInterestWithClaim() {
       await ProtocolHelper.resolveClaimWithoutDispute(
         policyTaker4,
         3,
-        14 * 24 * 60 * 60 + 10 // 14 days + 10 seconds
+        14 * 24 * 60 * 60 + 10, // 14 days + 10 seconds
       );
 
       await ProtocolHelper.createClaim(policyTaker4, 3, "1000");
       await ProtocolHelper.resolveClaimWithoutDispute(
         policyTaker4,
         3,
-        14 * 24 * 60 * 60 + 10 // 14 days + 10 seconds
+        14 * 24 * 60 * 60 + 10, // 14 days + 10 seconds
       );
 
       await ProtocolHelper.createClaim(policyTaker4, 3, "1000");
       await ProtocolHelper.resolveClaimWithoutDispute(
         policyTaker4,
         3,
-        14 * 24 * 60 * 60 + 10 // 14 days + 10 seconds
+        14 * 24 * 60 * 60 + 10, // 14 days + 10 seconds
       );
 
       const claim1 = await protocolPool0.processedClaims(1);
@@ -328,17 +328,17 @@ export function testTakeInterestWithClaim() {
       expect(claim3.liquidityIndexBeforeClaim).to.not.be.equal(0);
 
       expect(
-        claim2.liquidityIndexBeforeClaim.gt(claim1.liquidityIndexBeforeClaim)
+        claim2.liquidityIndexBeforeClaim.gt(claim1.liquidityIndexBeforeClaim),
       ).to.be.equal(true);
       expect(
-        claim3.liquidityIndexBeforeClaim.gt(claim2.liquidityIndexBeforeClaim)
+        claim3.liquidityIndexBeforeClaim.gt(claim2.liquidityIndexBeforeClaim),
       ).to.be.equal(true);
     });
 
     it("Should call takeInterest for LP1 in protocol0 after 1 day of adding 3 claims into protocol1 then check ClaimIndex and userCapital", async () => {
       const protocolContract = await ProtocolHelper.getProtocolPoolContract(
         liquidityProvider1,
-        0
+        0,
       );
 
       const lpInfoBefore = await protocolContract.LPsInfo(provider1tokenId);
@@ -350,7 +350,7 @@ export function testTakeInterestWithClaim() {
         provider1tokenId,
         0,
         1 * 24 * 60 * 60,
-        2
+        2,
       );
 
       const lpInfoAfter = await protocolContract.LPsInfo(provider1tokenId);
@@ -362,10 +362,10 @@ export function testTakeInterestWithClaim() {
       // expect(decodedData.fee).to.be.equal(10);
 
       expect(
-        lpInfoAfter.beginLiquidityIndex.gt(lpInfoBefore.beginLiquidityIndex)
+        lpInfoAfter.beginLiquidityIndex.gt(lpInfoBefore.beginLiquidityIndex),
       ).to.be.equal(true);
       expect(
-        lpInfoAfter.beginClaimIndex.gt(lpInfoBefore.beginClaimIndex)
+        lpInfoAfter.beginClaimIndex.gt(lpInfoBefore.beginClaimIndex),
       ).to.be.equal(true);
       expect(lpInfoAfter.beginClaimIndex).to.be.equal(4);
     });
@@ -373,7 +373,7 @@ export function testTakeInterestWithClaim() {
     it("Should call takeInterest for LP2 in protocol0 after 2 day of adding 3 claims into protocol1 then check ClaimIndex and userCapital", async () => {
       const protocolContract = await ProtocolHelper.getProtocolPoolContract(
         liquidityProvider2,
-        0
+        0,
       );
 
       const lpInfoBefore = await protocolContract.LPsInfo(provider2tokenId);
@@ -385,7 +385,7 @@ export function testTakeInterestWithClaim() {
         provider2tokenId,
         0,
         1 * 24 * 60 * 60,
-        2
+        2,
       );
 
       const lpInfoAfter = await protocolContract.LPsInfo(provider2tokenId);
@@ -393,14 +393,14 @@ export function testTakeInterestWithClaim() {
       expect(decodedData.tokenId).to.be.equal(provider2tokenId);
       expect(decodedData.userCapital.lt("365000000000")).to.be.equal(true);
       expect(
-        decodedData.userCapital.eq(365000 - 500 - 1000 - 1000)
+        decodedData.userCapital.eq(365000 - 500 - 1000 - 1000),
       ).to.be.equal(true);
 
       expect(
-        lpInfoAfter.beginLiquidityIndex.gt(lpInfoBefore.beginLiquidityIndex)
+        lpInfoAfter.beginLiquidityIndex.gt(lpInfoBefore.beginLiquidityIndex),
       ).to.be.equal(true);
       expect(
-        lpInfoAfter.beginClaimIndex.gt(lpInfoBefore.beginClaimIndex)
+        lpInfoAfter.beginClaimIndex.gt(lpInfoBefore.beginClaimIndex),
       ).to.be.equal(true);
       expect(lpInfoAfter.beginClaimIndex).to.be.equal(4);
     });

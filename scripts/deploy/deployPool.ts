@@ -83,7 +83,7 @@ async function main() {
     const athenaContract = new hre_ethers.Contract(
       deploymentAddress.ATHENA,
       previousAthenaAbi,
-      deployer
+      deployer,
     );
 
     for (const [i, poolName] of poolNames.entries()) {
@@ -95,7 +95,7 @@ async function main() {
         BigNumber.from(70 + i * 4).mul(BigNumber.from(10).pow(27)), // uOptimal_
         BigNumber.from(1 + i).mul(BigNumber.from(10).pow(27)), // r0_
         BigNumber.from(4 + i).mul(BigNumber.from(10).pow(27)), // rSlope1_
-        BigNumber.from(8 + i).mul(BigNumber.from(10).pow(26)) // rSlope2_
+        BigNumber.from(8 + i).mul(BigNumber.from(10).pow(26)), // rSlope2_
       );
 
       console.log("Deployed : ", poolName);

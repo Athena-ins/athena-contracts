@@ -16,16 +16,16 @@ const genFnSigs = async () => {
       ...acc,
       [func]: toHash(func).slice(0, 10),
     }),
-    {}
+    {},
   );
 
   fs.writeFileSync(
     "./tests/registries/signatureHashes.json",
-    JSON.stringify(sigs, null, 2)
+    JSON.stringify(sigs, null, 2),
   );
 
   console.log(
-    `\n=> Generated ${fns.length} signatures in tests/registries/signatureHashes.json\n`
+    `\n=> Generated ${fns.length} signatures in tests/registries/signatureHashes.json\n`,
   );
 };
 

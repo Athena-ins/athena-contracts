@@ -58,42 +58,42 @@ export const contract = {
   ATEN: new ethers.Contract(deploymentAddress.ATEN, ATEN__factory.abi) as ATEN,
   ATHENA: new ethers.Contract(
     deploymentAddress.ATHENA,
-    Athena__factory.abi
+    Athena__factory.abi,
   ) as Athena,
   TOKEN_VAULT: new ethers.Contract(
     deploymentAddress.TOKEN_VAULT,
-    TokenVault__factory.abi
+    TokenVault__factory.abi,
   ) as TokenVault,
   STAKING_GP: new ethers.Contract(
     deploymentAddress.STAKING_GP,
-    StakingGeneralPool__factory.abi
+    StakingGeneralPool__factory.abi,
   ) as StakingGeneralPool,
   STAKING_POLICY: new ethers.Contract(
     deploymentAddress.STAKING_POLICY,
-    StakingPolicy__factory.abi
+    StakingPolicy__factory.abi,
   ) as StakingPolicy,
   POSITIONS_MANAGER: new ethers.Contract(
     deploymentAddress.POSITIONS_MANAGER,
-    PositionsManager__factory.abi
+    PositionsManager__factory.abi,
   ) as PositionsManager,
   POLICY_MANAGER: new ethers.Contract(
     deploymentAddress.POLICY_MANAGER,
-    PolicyManager__factory.abi
+    PolicyManager__factory.abi,
   ) as PolicyManager,
   CLAIM_MANAGER: new ethers.Contract(
     deploymentAddress.CLAIM_MANAGER,
-    ClaimManager__factory.abi
+    ClaimManager__factory.abi,
   ) as ClaimManager,
   ARBITRATOR: new ethers.Contract(
     deploymentAddress.ARBITRATOR,
-    Arbitrator__factory.abi
+    Arbitrator__factory.abi,
   ) as Arbitrator,
   FACTORY_PROTOCOL: new ethers.Contract(
     deploymentAddress.FACTORY_PROTOCOL,
-    ProtocolFactory__factory.abi
+    ProtocolFactory__factory.abi,
   ) as ProtocolFactory,
   PRICE_ORACLE_V1: new ethers.Contract(
     deploymentAddress.PRICE_ORACLE_V1,
-    PriceOracleV1__factory.abi
+    PriceOracleV1__factory.abi,
   ) as PriceOracleV1,
 };

@@ -42,14 +42,22 @@ contract TokenVault is IVaultERC20 {
 
   function depositCoverRefundRewards(uint256 amount_) external {
     // Transfer the ATEN to the vault
-    atenTokenInterface.safeTransferFrom(msg.sender, address(this), amount_);
+    atenTokenInterface.safeTransferFrom(
+      msg.sender,
+      address(this),
+      amount_
+    );
 
     coverRefundRewardsTotal += amount_;
   }
 
   function depositStakingRewards(uint256 amount_) external {
     // Transfer the ATEN to the vault
-    atenTokenInterface.safeTransferFrom(msg.sender, address(this), amount_);
+    atenTokenInterface.safeTransferFrom(
+      msg.sender,
+      address(this),
+      amount_
+    );
 
     stakingRewardsTotal += amount_;
   }
@@ -89,7 +97,10 @@ contract TokenVault is IVaultERC20 {
    * @param to_ the address of the user
    * @param amount_ the amount of rewards to send
    */
-  function sendStakingReward(address to_, uint256 amount_) external onlyCore {
+  function sendStakingReward(
+    address to_,
+    uint256 amount_
+  ) external onlyCore {
     if (amount_ == 0 || stakingRewardsTotal == 0) return;
 
     // Check if the contract has enough tokens

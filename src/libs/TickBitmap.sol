@@ -57,7 +57,9 @@ library TickBitmap {
     initialized = masked != 0;
     // overflow/underflow is possible, but prevented externally by limiting both tickSpacing and tick
     next = initialized
-      ? (tick + 1 + uint32(BitMath.leastSignificantBit(masked) - bitPos))
+      ? (tick +
+        1 +
+        uint32(BitMath.leastSignificantBit(masked) - bitPos))
       : (tick + 1 + uint32(type(uint8).max - bitPos));
   }
 }

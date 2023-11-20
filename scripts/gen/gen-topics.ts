@@ -16,16 +16,16 @@ const genEventTopics = async () => {
       ...acc,
       [func]: toHash(func),
     }),
-    {}
+    {},
   );
 
   fs.writeFileSync(
     "./tests/registries/eventTopics.json",
-    JSON.stringify(sigs, null, 2)
+    JSON.stringify(sigs, null, 2),
   );
 
   console.log(
-    `\n=> Generated ${fns.length} event topics in tests/registries/eventTopics.json\n`
+    `\n=> Generated ${fns.length} event topics in tests/registries/eventTopics.json\n`,
   );
 };
 

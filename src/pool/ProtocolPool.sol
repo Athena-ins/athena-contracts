@@ -71,7 +71,10 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
   }
 
   modifier onlyPositionManager() {
-    require(msg.sender == positionManager, "PP: Only Position Manager");
+    require(
+      msg.sender == positionManager,
+      "PP: Only Position Manager"
+    );
     _;
   }
 
@@ -136,7 +139,11 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
       __totalRewards,
       __newLPInfo,
 
-    ) = _actualizingLPInfoWithClaims(tokenId_, _userCapital, _poolIds);
+    ) = _actualizingLPInfoWithClaims(
+      tokenId_,
+      _userCapital,
+      _poolIds
+    );
 
     uint256 __liquidityIndex;
 
@@ -195,12 +202,15 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
       Claim memory __claim = __claims[i];
 
       __totalRewards += __newUserCapital.rayMul(
-        __claim.liquidityIndexBeforeClaim - __newLPInfo.beginLiquidityIndex
+        __claim.liquidityIndexBeforeClaim -
+          __newLPInfo.beginLiquidityIndex
       );
 
       for (uint256 j = 0; j < _poolIds.length; j++) {
         if (_poolIds[j] == __claim.fromPoolId) {
-          uint256 capitalToRemove = __newUserCapital.rayMul(__claim.ratio);
+          uint256 capitalToRemove = __newUserCapital.rayMul(
+            __claim.ratio
+          );
 
           __aaveScaledBalanceToRemove += capitalToRemove.rayDiv(
             __claim.aaveReserveNormalizedIncomeBeforeClaim
@@ -210,7 +220,8 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
           break;
         }
       }
-      __newLPInfo.beginLiquidityIndex = __claim.liquidityIndexBeforeClaim;
+      __newLPInfo.beginLiquidityIndex = __claim
+        .liquidityIndexBeforeClaim;
     }
     __newLPInfo.beginClaimIndex += __claims.length;
   }
@@ -230,7 +241,10 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
 
     _updateSlot0WhenAvailableCapitalChange(amount_, 0);
     availableCapital += amount_;
-    LPsInfo[tokenId_] = LPInfo(liquidityIndex, processedClaims.length);
+    LPsInfo[tokenId_] = LPInfo(
+      liquidityIndex,
+      processedClaims.length
+    );
   }
 
   /// -------- TAKE INTERESTS -------- ///
@@ -247,7 +261,11 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
       uint256 __totalRewards,
       LPInfo memory __newLPInfo,
       uint256 __aaveScaledBalanceToRemove
-    ) = _actualizingLPInfoWithClaims(tokenId_, _userCapital, _poolIds);
+    ) = _actualizingLPInfoWithClaims(
+        tokenId_,
+        _userCapital,
+        _poolIds
+      );
 
     uint256 __liquidityIndex = liquidityIndex;
 
@@ -258,12 +276,16 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     __newLPInfo.beginLiquidityIndex = __liquidityIndex;
 
     // transfer to account:
-    uint256 __interestNet = (__totalRewards * (1000 - _feeRate)) / 1000;
+    uint256 __interestNet = (__totalRewards * (1000 - _feeRate)) /
+      1000;
     IERC20(underlyingAsset).safeTransfer(account_, __interestNet);
 
     // transfer to treasury
     // @bw FEE WARN! core has no way of using funds
-    IERC20(underlyingAsset).safeTransfer(core, __totalRewards - __interestNet);
+    IERC20(underlyingAsset).safeTransfer(
+      core,
+      __totalRewards - __interestNet
+    );
 
     LPsInfo[tokenId_] = __newLPInfo;
 
@@ -304,7 +326,11 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
       uint256 __totalRewards,
       LPInfo memory __newLPInfo,
       uint256 __aaveScaledBalanceToRemove
-    ) = _actualizingLPInfoWithClaims(tokenId_, _userCapital, _poolIds);
+    ) = _actualizingLPInfoWithClaims(
+        tokenId_,
+        _userCapital,
+        _poolIds
+      );
 
     // Add investment strategy rewards
     __totalRewards += __newUserCapital.rayMul(
@@ -317,7 +343,10 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
       __rewardsNet = (__totalRewards * (1000 - _feeRate)) / 1000;
       IERC20(underlyingAsset).safeTransfer(account_, __rewardsNet);
       // @bw FEES are sent to core here
-      IERC20(underlyingAsset).safeTransfer(core, __totalRewards - __rewardsNet);
+      IERC20(underlyingAsset).safeTransfer(
+        core,
+        __totalRewards - __rewardsNet
+      );
     }
 
     _updateSlot0WhenAvailableCapitalChange(0, __newUserCapital);
@@ -363,19 +392,28 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
 
   /// -------- UPDATE -------- ///
 
-  function increaseCover(uint256 coverId_, uint256 amount_) external onlyCore {
+  function increaseCover(
+    uint256 coverId_,
+    uint256 amount_
+  ) external onlyCore {
     // The insured amount is already updated in the Cover Manager
     uint256 newInsuredAmount = _getAmountInsuredByCover(coverId_);
     _increaseCover(coverId_, amount_, newInsuredAmount);
   }
 
-  function decreaseCover(uint256 coverId_, uint256 amount_) external onlyCore {
+  function decreaseCover(
+    uint256 coverId_,
+    uint256 amount_
+  ) external onlyCore {
     // The insured amount is already updated in the Cover Manager
     uint256 newInsuredAmount = _getAmountInsuredByCover(coverId_);
     _decreaseCover(coverId_, amount_, newInsuredAmount);
   }
 
-  function addPremiums(uint256 coverId_, uint256 amount_) external onlyCore {
+  function addPremiums(
+    uint256 coverId_,
+    uint256 amount_
+  ) external onlyCore {
     uint256 amountInsured = _getAmountInsuredByCover(coverId_);
     _addPremiums(coverId_, amount_, amountInsured);
   }
@@ -397,7 +435,10 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     uint256 coverId,
     uint256 amountCovered
   ) external onlyCore {
-    uint256 coverPremiumsLeft = _withdrawPolicy(coverId, amountCovered);
+    uint256 coverPremiumsLeft = _withdrawPolicy(
+      coverId,
+      amountCovered
+    );
 
     IERC20(underlyingAsset).safeTransfer(owner, coverPremiumsLeft);
 
@@ -415,10 +456,13 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
   ) public override onlyCore {
     // @dev Here is where the intersectingAmounts are consumed
     uint256 __amountToRemoveByClaim = _amountToRemoveFromIntersecAndCapital(
-      intersectingAmounts[intersectingAmountIndexes[_fromPoolId]],
-      _ratio
+        intersectingAmounts[intersectingAmountIndexes[_fromPoolId]],
+        _ratio
+      );
+    _updateSlot0WhenAvailableCapitalChange(
+      0,
+      __amountToRemoveByClaim
     );
-    _updateSlot0WhenAvailableCapitalChange(0, __amountToRemoveByClaim);
 
     availableCapital -= __amountToRemoveByClaim;
     intersectingAmounts[
@@ -426,7 +470,12 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     ] -= __amountToRemoveByClaim;
 
     processedClaims.push(
-      Claim(_fromPoolId, _ratio, liquidityIndex, _aaveReserveNormalizedIncome)
+      Claim(
+        _fromPoolId,
+        _ratio,
+        liquidityIndex,
+        _aaveReserveNormalizedIncome
+      )
     );
   }
 
@@ -434,7 +483,11 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
   /// ========= ADMIN ======== ///
   /// ======================== ///
 
-  function actualizing() external onlyCore returns (uint256[] memory) {
+  function actualizing()
+    external
+    onlyCore
+    returns (uint256[] memory)
+  {
     return _actualizing();
   }
 
@@ -445,14 +498,18 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     uint256 _amount
   ) external onlyPositionManager {
     if (
-      intersectingAmountIndexes[relatedPoolId] == 0 && relatedPoolId != poolId
+      intersectingAmountIndexes[relatedPoolId] == 0 &&
+      relatedPoolId != poolId
     ) {
-      intersectingAmountIndexes[relatedPoolId] = intersectingAmounts.length;
+      intersectingAmountIndexes[relatedPoolId] = intersectingAmounts
+        .length;
 
       relatedProtocols.push(relatedPoolId);
       intersectingAmounts.push();
     }
 
-    intersectingAmounts[intersectingAmountIndexes[relatedPoolId]] += _amount;
+    intersectingAmounts[
+      intersectingAmountIndexes[relatedPoolId]
+    ] += _amount;
   }
 }

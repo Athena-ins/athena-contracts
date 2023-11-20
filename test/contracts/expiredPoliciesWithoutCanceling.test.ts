@@ -45,7 +45,7 @@ export function testExpiredPoliciesWithoutCanceling() {
         USDT_amount1,
         ATEN_amount1,
         [0, 2],
-        1 * 24 * 60 * 60
+        1 * 24 * 60 * 60,
       );
 
       const USDT_amount2 = "3300000";
@@ -55,7 +55,7 @@ export function testExpiredPoliciesWithoutCanceling() {
         USDT_amount2,
         ATEN_amount2,
         [0, 1, 2],
-        1 * 24 * 60 * 60
+        1 * 24 * 60 * 60,
       );
 
       const USDT_amount3 = "3650000";
@@ -65,12 +65,12 @@ export function testExpiredPoliciesWithoutCanceling() {
         USDT_amount3,
         ATEN_amount3,
         [1, 3],
-        1 * 24 * 60 * 60
+        1 * 24 * 60 * 60,
       );
 
       await HardhatHelper.USDT_maxApprove(
         policyTaker3,
-        ProtocolHelper.getAthenaContract().address
+        ProtocolHelper.getAthenaContract().address,
       );
 
       const capital3 = "182500";
@@ -82,12 +82,12 @@ export function testExpiredPoliciesWithoutCanceling() {
         premium3,
         atensLocked3,
         2,
-        10 * 24 * 60 * 60
+        10 * 24 * 60 * 60,
       );
 
       await HardhatHelper.USDT_maxApprove(
         policyTaker4,
-        ProtocolHelper.getAthenaContract().address
+        ProtocolHelper.getAthenaContract().address,
       );
 
       await ProtocolHelper.buyPolicy(
@@ -96,12 +96,12 @@ export function testExpiredPoliciesWithoutCanceling() {
         premium3,
         atensLocked3,
         3,
-        10 * 24 * 60 * 60
+        10 * 24 * 60 * 60,
       );
 
       await HardhatHelper.USDT_maxApprove(
         policyTaker1,
-        ProtocolHelper.getAthenaContract().address
+        ProtocolHelper.getAthenaContract().address,
       );
 
       const capital1 = "109500";
@@ -113,7 +113,7 @@ export function testExpiredPoliciesWithoutCanceling() {
         premium1,
         atensLocked1,
         0,
-        20 * 24 * 60 * 60
+        20 * 24 * 60 * 60,
       );
 
       await ProtocolHelper.buyPolicy(
@@ -122,12 +122,12 @@ export function testExpiredPoliciesWithoutCanceling() {
         premium1,
         atensLocked1,
         3,
-        20 * 24 * 60 * 60
+        20 * 24 * 60 * 60,
       );
 
       await HardhatHelper.USDT_maxApprove(
         policyTaker2,
-        ProtocolHelper.getAthenaContract().address
+        ProtocolHelper.getAthenaContract().address,
       );
 
       const capital2 = "219000";
@@ -139,7 +139,7 @@ export function testExpiredPoliciesWithoutCanceling() {
         premium2,
         atensLocked2,
         0,
-        10 * 24 * 60 * 60
+        10 * 24 * 60 * 60,
       );
     });
 
@@ -147,17 +147,17 @@ export function testExpiredPoliciesWithoutCanceling() {
       it("Should actualizing pool 0", async () => {
         const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           owner,
-          0
+          0,
         );
 
         expect((await protocolContract.slot0()).remainingPolicies).to.be.equal(
-          2
+          2,
         );
 
         await HardhatHelper.setNextBlockTimestamp(10000 * 24 * 60 * 60);
 
         await ProtocolHelper.getAthenaContract().actualizingProtocolAndRemoveExpiredPolicies(
-          protocolContract.address
+          protocolContract.address,
         );
 
         const slot0 = await protocolContract.slot0();
@@ -167,17 +167,17 @@ export function testExpiredPoliciesWithoutCanceling() {
       it("Should actualizing pool 1", async () => {
         const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           owner,
-          1
+          1,
         );
 
         expect((await protocolContract.slot0()).remainingPolicies).to.be.equal(
-          0
+          0,
         );
 
         await HardhatHelper.setNextBlockTimestamp(1 * 24 * 60 * 60);
 
         await ProtocolHelper.getAthenaContract().actualizingProtocolAndRemoveExpiredPolicies(
-          protocolContract.address
+          protocolContract.address,
         );
 
         const slot0 = await protocolContract.slot0();
@@ -187,17 +187,17 @@ export function testExpiredPoliciesWithoutCanceling() {
       it("Should actualizing pool 2", async () => {
         const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           owner,
-          2
+          2,
         );
 
         expect((await protocolContract.slot0()).remainingPolicies).to.be.equal(
-          1
+          1,
         );
 
         await HardhatHelper.setNextBlockTimestamp(1 * 24 * 60 * 60);
 
         await ProtocolHelper.getAthenaContract().actualizingProtocolAndRemoveExpiredPolicies(
-          protocolContract.address
+          protocolContract.address,
         );
 
         const slot0 = await protocolContract.slot0();
@@ -207,17 +207,17 @@ export function testExpiredPoliciesWithoutCanceling() {
       it("Should actualizing pool 3", async () => {
         const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           owner,
-          3
+          3,
         );
 
         expect((await protocolContract.slot0()).remainingPolicies).to.be.equal(
-          2
+          2,
         );
 
         await HardhatHelper.setNextBlockTimestamp(1 * 24 * 60 * 60);
 
         await ProtocolHelper.getAthenaContract().actualizingProtocolAndRemoveExpiredPolicies(
-          protocolContract.address
+          protocolContract.address,
         );
 
         const slot0 = await protocolContract.slot0();
@@ -225,9 +225,8 @@ export function testExpiredPoliciesWithoutCanceling() {
       });
 
       it("Should get expired policies for policyTaker1", async () => {
-        const expiredPolicies = await ProtocolHelper.getExpiredCovers(
-          policyTaker1
-        );
+        const expiredPolicies =
+          await ProtocolHelper.getExpiredCovers(policyTaker1);
 
         expect(expiredPolicies.length).to.be.equal(2);
 
@@ -236,9 +235,8 @@ export function testExpiredPoliciesWithoutCanceling() {
       });
 
       it("Should get expired policies for policyTaker2", async () => {
-        const expiredPolicies = await ProtocolHelper.getExpiredCovers(
-          policyTaker2
-        );
+        const expiredPolicies =
+          await ProtocolHelper.getExpiredCovers(policyTaker2);
 
         expect(expiredPolicies.length).to.be.equal(1);
 
@@ -246,9 +244,8 @@ export function testExpiredPoliciesWithoutCanceling() {
       });
 
       it("Should get expired policies for policyTaker3", async () => {
-        const expiredPolicies = await ProtocolHelper.getExpiredCovers(
-          policyTaker3
-        );
+        const expiredPolicies =
+          await ProtocolHelper.getExpiredCovers(policyTaker3);
 
         expect(expiredPolicies.length).to.be.equal(1);
 
@@ -256,9 +253,8 @@ export function testExpiredPoliciesWithoutCanceling() {
       });
 
       it("Should get expired policies for policyTaker4", async () => {
-        const expiredPolicies = await ProtocolHelper.getExpiredCovers(
-          policyTaker4
-        );
+        const expiredPolicies =
+          await ProtocolHelper.getExpiredCovers(policyTaker4);
 
         expect(expiredPolicies.length).to.be.equal(1);
 

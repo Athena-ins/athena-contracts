@@ -42,32 +42,32 @@ export function testLiquidityProvider() {
         it("Should prepare USDT balance", async () => {
           expect(
             await HardhatHelper.USDT_balanceOf(
-              await liquidityProvider1.getAddress()
-            )
+              await liquidityProvider1.getAddress(),
+            ),
           ).to.be.equal(0);
 
           await HardhatHelper.USDT_transfer(
             await liquidityProvider1.getAddress(),
-            hre_ethers.utils.parseUnits(USDT_amount, 6)
+            hre_ethers.utils.parseUnits(USDT_amount, 6),
           );
 
           expect(
             await HardhatHelper.USDT_balanceOf(
-              await liquidityProvider1.getAddress()
-            )
+              await liquidityProvider1.getAddress(),
+            ),
           ).to.be.equal(hre_ethers.utils.parseUnits(USDT_amount, 6));
         });
 
         it("Should prepare ATEN balance", async () => {
           expect(
             await HardhatHelper.ATEN_balanceOf(
-              await liquidityProvider1.getAddress()
-            )
+              await liquidityProvider1.getAddress(),
+            ),
           ).to.be.equal(0);
 
           await HardhatHelper.ATEN_transfer(
             await liquidityProvider1.getAddress(),
-            ATEN_amount
+            ATEN_amount,
           );
 
           const amountExpected =
@@ -75,8 +75,8 @@ export function testLiquidityProvider() {
 
           expect(
             await HardhatHelper.ATEN_balanceOf(
-              await liquidityProvider1.getAddress()
-            )
+              await liquidityProvider1.getAddress(),
+            ),
           ).to.be.equal(amountExpected);
         });
 
@@ -84,7 +84,7 @@ export function testLiquidityProvider() {
           const USDT_Approved = await HardhatHelper.USDT_approve(
             liquidityProvider1,
             ProtocolHelper.getAthenaContract().address,
-            hre_ethers.utils.parseUnits(USDT_AMOUNT, 6)
+            hre_ethers.utils.parseUnits(USDT_AMOUNT, 6),
           );
 
           expect(USDT_Approved).to.haveOwnProperty("transactionHash");
@@ -92,7 +92,7 @@ export function testLiquidityProvider() {
           const ATEN_Approved = await HardhatHelper.ATEN_approve(
             liquidityProvider1,
             ProtocolHelper.getStakedAtenContract().address,
-            hre_ethers.utils.parseUnits(ATEN_AMOUNT, 18)
+            hre_ethers.utils.parseUnits(ATEN_AMOUNT, 18),
           );
 
           expect(ATEN_Approved).to.haveOwnProperty("transactionHash");
@@ -115,7 +115,7 @@ export function testLiquidityProvider() {
         it("Should check slot0 in protocol 0", async () => {
           const protocolContract = await ProtocolHelper.getProtocolPoolContract(
             liquidityProvider1,
-            0
+            0,
           );
           const slot0 = await protocolContract.slot0();
 
@@ -124,7 +124,7 @@ export function testLiquidityProvider() {
           expect(slot0.totalInsuredCapital).to.be.equal("0");
           expect(slot0.remainingPolicies).to.be.equal("0");
           expect(slot0.lastUpdateTimestamp).to.be.equal(
-            await HardhatHelper.getCurrentTime()
+            await HardhatHelper.getCurrentTime(),
           );
 
           const premiumRate = await protocolContract.getCurrentPremiumRate();
@@ -138,9 +138,8 @@ export function testLiquidityProvider() {
           const POSITIONS_MANAGER_CONTRACT =
             ProtocolHelper.getPositionManagerContract();
 
-          const position = await POSITIONS_MANAGER_CONTRACT.position(
-            provider1tokenId
-          );
+          const position =
+            await POSITIONS_MANAGER_CONTRACT.position(provider1tokenId);
           expect(position.amountSupplied).to.equal(BN(USDT_amount));
           expect(position.poolIds).to.deep.equal([BN(0), BN(2)]);
 
@@ -148,15 +147,15 @@ export function testLiquidityProvider() {
           atokenBalance = atokenBalance.add(USDT_amount);
           expect(
             (await HardhatHelper.getATokenBalance(liquidityProvider1)).gte(
-              atokenBalance
-            )
+              atokenBalance,
+            ),
           ).to.be.true;
         });
 
         it("Should check relatedProtocols of Protocol 0", async () => {
           const protocolContract = await ProtocolHelper.getProtocolPoolContract(
             owner,
-            0
+            0,
           );
 
           const protocol0Index =
@@ -165,22 +164,22 @@ export function testLiquidityProvider() {
           expect(protocol0Index).to.be.equal(0);
 
           expect(
-            await protocolContract.relatedProtocols(protocol0Index)
+            await protocolContract.relatedProtocols(protocol0Index),
           ).to.be.equal(0);
 
           expect(
-            await protocolContract.intersectingAmounts(protocol0Index)
+            await protocolContract.intersectingAmounts(protocol0Index),
           ).to.be.equal("400000");
 
           const protocol2Index =
             await protocolContract.intersectingAmountIndexes(2);
 
           expect(
-            await protocolContract.relatedProtocols(protocol2Index)
+            await protocolContract.relatedProtocols(protocol2Index),
           ).to.be.equal(2);
 
           expect(
-            await protocolContract.intersectingAmounts(protocol2Index)
+            await protocolContract.intersectingAmounts(protocol2Index),
           ).to.be.equal("400000");
         });
       });
@@ -191,32 +190,32 @@ export function testLiquidityProvider() {
         it("Should prepare USDT balance", async () => {
           expect(
             await HardhatHelper.USDT_balanceOf(
-              await liquidityProvider2.getAddress()
-            )
+              await liquidityProvider2.getAddress(),
+            ),
           ).to.be.equal(0);
 
           await HardhatHelper.USDT_transfer(
             await liquidityProvider2.getAddress(),
-            hre_ethers.utils.parseUnits(USDT_amount, 6)
+            hre_ethers.utils.parseUnits(USDT_amount, 6),
           );
 
           expect(
             await HardhatHelper.USDT_balanceOf(
-              await liquidityProvider2.getAddress()
-            )
+              await liquidityProvider2.getAddress(),
+            ),
           ).to.be.equal(hre_ethers.utils.parseUnits(USDT_amount, 6));
         });
 
         it("Should prepare ATEN balance", async () => {
           expect(
             await HardhatHelper.ATEN_balanceOf(
-              await liquidityProvider2.getAddress()
-            )
+              await liquidityProvider2.getAddress(),
+            ),
           ).to.be.equal(0);
 
           await HardhatHelper.ATEN_transfer(
             await liquidityProvider2.getAddress(),
-            ATEN_amount
+            ATEN_amount,
           );
 
           const amountExpected =
@@ -224,8 +223,8 @@ export function testLiquidityProvider() {
 
           expect(
             await HardhatHelper.ATEN_balanceOf(
-              await liquidityProvider2.getAddress()
-            )
+              await liquidityProvider2.getAddress(),
+            ),
           ).to.be.equal(amountExpected);
         });
 
@@ -233,7 +232,7 @@ export function testLiquidityProvider() {
           const USDT_Approved = await HardhatHelper.USDT_approve(
             liquidityProvider2,
             ProtocolHelper.getAthenaContract().address,
-            hre_ethers.utils.parseUnits(USDT_AMOUNT, 6)
+            hre_ethers.utils.parseUnits(USDT_AMOUNT, 6),
           );
 
           expect(USDT_Approved).to.haveOwnProperty("transactionHash");
@@ -241,7 +240,7 @@ export function testLiquidityProvider() {
           const ATEN_Approved = await await HardhatHelper.ATEN_approve(
             liquidityProvider2,
             ProtocolHelper.getStakedAtenContract().address,
-            hre_ethers.utils.parseUnits(ATEN_AMOUNT, 18)
+            hre_ethers.utils.parseUnits(ATEN_AMOUNT, 18),
           );
 
           expect(ATEN_Approved).to.haveOwnProperty("transactionHash");
@@ -264,7 +263,7 @@ export function testLiquidityProvider() {
         it("Should check slot0 in protocol 0", async () => {
           const protocolContract = await ProtocolHelper.getProtocolPoolContract(
             liquidityProvider2,
-            0
+            0,
           );
           const slot0 = await protocolContract.slot0();
 
@@ -273,7 +272,7 @@ export function testLiquidityProvider() {
           expect(slot0.totalInsuredCapital).to.be.equal("0");
           expect(slot0.remainingPolicies).to.be.equal("0");
           expect(slot0.lastUpdateTimestamp).to.be.equal(
-            await HardhatHelper.getCurrentTime()
+            await HardhatHelper.getCurrentTime(),
           );
 
           const premiumRate = await protocolContract.getCurrentPremiumRate();
@@ -287,9 +286,8 @@ export function testLiquidityProvider() {
           const POSITIONS_MANAGER_CONTRACT =
             ProtocolHelper.getPositionManagerContract();
 
-          const position = await POSITIONS_MANAGER_CONTRACT.position(
-            provider2tokenId
-          );
+          const position =
+            await POSITIONS_MANAGER_CONTRACT.position(provider2tokenId);
           expect(position.amountSupplied).to.equal(BN(USDT_amount));
           expect(position.poolIds).to.deep.equal([BN(0), BN(1), BN(2)]);
 
@@ -297,15 +295,15 @@ export function testLiquidityProvider() {
           atokenBalance = atokenBalance.add(USDT_amount);
           expect(
             (await HardhatHelper.getATokenBalance(liquidityProvider1)).gte(
-              atokenBalance
-            )
+              atokenBalance,
+            ),
           ).to.be.true;
         });
 
         it("Should check relatedProtocols of Protocol 0", async () => {
           const protocolContract = await ProtocolHelper.getProtocolPoolContract(
             owner,
-            0
+            0,
           );
 
           const protocol0Index =
@@ -314,11 +312,11 @@ export function testLiquidityProvider() {
           expect(protocol0Index).to.be.equal(0);
 
           expect(
-            await protocolContract.relatedProtocols(protocol0Index)
+            await protocolContract.relatedProtocols(protocol0Index),
           ).to.be.equal(0);
 
           expect(
-            await protocolContract.intersectingAmounts(protocol0Index)
+            await protocolContract.intersectingAmounts(protocol0Index),
           ).to.be.equal("730000");
 
           const protocol1Index =
@@ -327,11 +325,11 @@ export function testLiquidityProvider() {
           expect(protocol1Index).to.be.equal(2);
 
           expect(
-            await protocolContract.relatedProtocols(protocol1Index)
+            await protocolContract.relatedProtocols(protocol1Index),
           ).to.be.equal(1);
 
           expect(
-            await protocolContract.intersectingAmounts(protocol1Index)
+            await protocolContract.intersectingAmounts(protocol1Index),
           ).to.be.equal("330000");
 
           const protocol2Index =
@@ -340,11 +338,11 @@ export function testLiquidityProvider() {
           expect(protocol2Index).to.be.equal(1);
 
           expect(
-            await protocolContract.relatedProtocols(protocol2Index)
+            await protocolContract.relatedProtocols(protocol2Index),
           ).to.be.equal(2);
 
           expect(
-            await protocolContract.intersectingAmounts(protocol2Index)
+            await protocolContract.intersectingAmounts(protocol2Index),
           ).to.be.equal("730000");
         });
       });

@@ -17,7 +17,8 @@ contract ProtocolFactory is IProtocolFactory, Ownable {
 
   uint128 public nextPoolId;
 
-  mapping(uint128 => mapping(uint128 => bool)) public incompatibilityProtocols;
+  mapping(uint128 => mapping(uint128 => bool))
+    public incompatibilityProtocols;
   mapping(uint128 => Protocol) public protocolsMapping;
 
   constructor(address core_) Ownable(msg.sender) {
@@ -64,7 +65,9 @@ contract ProtocolFactory is IProtocolFactory, Ownable {
     return nextPoolId;
   }
 
-  function getPoolAddress(uint128 poolId_) external view returns (address) {
+  function getPoolAddress(
+    uint128 poolId_
+  ) external view returns (address) {
     if (nextPoolId <= poolId_) revert OutOfRange();
     return protocolsMapping[poolId_].deployed;
   }
@@ -76,7 +79,9 @@ contract ProtocolFactory is IProtocolFactory, Ownable {
     return protocolsMapping[poolId_].token;
   }
 
-  function getPool(uint128 poolId_) external view returns (Protocol memory) {
+  function getPool(
+    uint128 poolId_
+  ) external view returns (Protocol memory) {
     if (nextPoolId <= poolId_) revert OutOfRange();
     return protocolsMapping[poolId_];
   }
@@ -133,7 +138,8 @@ contract ProtocolFactory is IProtocolFactory, Ownable {
     for (uint256 i = 0; i < poolIds.length; i++) {
       uint128 poolId = poolIds[i];
 
-      if (protocolsMapping[poolId].paused != false) revert PoolIsPaused();
+      if (protocolsMapping[poolId].paused != false)
+        revert PoolIsPaused();
       Protocol memory firstProtocol = protocolsMapping[poolId];
 
       if (firstProtocol.paused == true) revert ProtocolIsInactive();
@@ -141,10 +147,12 @@ contract ProtocolFactory is IProtocolFactory, Ownable {
       for (uint256 j = i + 1; j < poolIds.length; j++) {
         if (poolId == poolIds[j]) revert SamePoolIds();
 
-        bool isIncompatible = incompatibilityProtocols[poolId][poolIds[j]];
-        bool isIncompatibleReverse = incompatibilityProtocols[poolIds[j]][
-          poolId
+        bool isIncompatible = incompatibilityProtocols[poolId][
+          poolIds[j]
         ];
+        bool isIncompatibleReverse = incompatibilityProtocols[
+          poolIds[j]
+        ][poolId];
 
         if (isIncompatible == true || isIncompatibleReverse == true)
           revert IncompatibleProtocol(i, j);
@@ -215,7 +223,9 @@ contract ProtocolFactory is IProtocolFactory, Ownable {
    * Removes a resolved claim to allow withdrawals
    * @param poolId_ The pool id of the protocol
    */
-  function removeClaimFromPool(uint128 poolId_) external onlyClaimManager {
+  function removeClaimFromPool(
+    uint128 poolId_
+  ) external onlyClaimManager {
     protocolsMapping[poolId_].claimsOngoing--;
   }
 
@@ -231,7 +241,10 @@ contract ProtocolFactory is IProtocolFactory, Ownable {
     positionManager = positionManager_;
   }
 
-  function pauseProtocol(uint128 poolId, bool status) external onlyOwner {
+  function pauseProtocol(
+    uint128 poolId,
+    bool status
+  ) external onlyOwner {
     protocolsMapping[poolId].paused = status;
   }
 }

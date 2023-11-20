@@ -47,7 +47,7 @@ export function testWithdrawAllWithClaim() {
           USDT_amount1,
           ATEN_amount1,
           [0, 2],
-          1 * 24 * 60 * 60
+          1 * 24 * 60 * 60,
         );
 
         const provider1tokenIds =
@@ -63,7 +63,7 @@ export function testWithdrawAllWithClaim() {
           USDT_amount2,
           ATEN_amount2,
           [0, 2],
-          1 * 24 * 60 * 60
+          1 * 24 * 60 * 60,
         );
 
         const provider2tokenIds =
@@ -76,7 +76,7 @@ export function testWithdrawAllWithClaim() {
 
         await HardhatHelper.USDT_maxApprove(
           policyTaker1,
-          ProtocolHelper.getAthenaContract().address
+          ProtocolHelper.getAthenaContract().address,
         );
 
         const capital1 = "109500";
@@ -88,12 +88,12 @@ export function testWithdrawAllWithClaim() {
           premium1,
           atensLocked1,
           0,
-          20 * 24 * 60 * 60
+          20 * 24 * 60 * 60,
         );
 
         await HardhatHelper.USDT_maxApprove(
           policyTaker2,
-          ProtocolHelper.getAthenaContract().address
+          ProtocolHelper.getAthenaContract().address,
         );
 
         const capital2 = "219000";
@@ -105,7 +105,7 @@ export function testWithdrawAllWithClaim() {
           premium2,
           atensLocked2,
           2,
-          10 * 24 * 60 * 60
+          10 * 24 * 60 * 60,
         );
       });
 
@@ -115,7 +115,7 @@ export function testWithdrawAllWithClaim() {
         await ProtocolHelper.resolveClaimWithoutDispute(
           policyTaker2,
           1,
-          14 * 24 * 60 * 60 + 10 // 14 days + 10 seconds
+          14 * 24 * 60 * 60 + 10, // 14 days + 10 seconds
         );
 
         const claim = await protocolPool0.processedClaims(0);
@@ -123,7 +123,7 @@ export function testWithdrawAllWithClaim() {
         expect(claim.fromPoolId).to.be.equal(2);
         expect(claim.ratio).to.be.equal("250000000000000000000000000");
         expect(claim.liquidityIndexBeforeClaim).to.be.equal(
-          "197261796042617960426179"
+          "197261796042617960426179",
         );
       });
 
@@ -147,14 +147,14 @@ export function testWithdrawAllWithClaim() {
         const p0_event = result.events.find(
           (el: any) =>
             el.topics[0] ===
-            "0x620d50d2ff399522b99eeffadbd9b188529ed4c6ce9a4ecf9e85fc3c00edc79f"
+            "0x620d50d2ff399522b99eeffadbd9b188529ed4c6ce9a4ecf9e85fc3c00edc79f",
         );
 
         if (!p0_event) throw new Error("No events emitted");
 
         const p0_decodedData = protocolPool0.interface.decodeEventLog(
           p0_event.topics[0],
-          p0_event.data
+          p0_event.data,
         );
 
         expect(p0_decodedData.tokenId).to.be.equal(provider1tokenId);
@@ -173,7 +173,7 @@ export function testWithdrawAllWithClaim() {
         expect(p0_slot0.totalInsuredCapital).to.be.equal("109500");
         expect(p0_slot0.remainingPolicies).to.be.equal("1");
         expect(p0_slot0.lastUpdateTimestamp).to.be.equal(
-          await HardhatHelper.getCurrentTime()
+          await HardhatHelper.getCurrentTime(),
         );
 
         //protocol2
@@ -181,14 +181,14 @@ export function testWithdrawAllWithClaim() {
         const p2_event: any = result.events.find(
           (el: any) =>
             el.topics[0] ===
-            "0x620d50d2ff399522b99eeffadbd9b188529ed4c6ce9a4ecf9e85fc3c00edc79f"
+            "0x620d50d2ff399522b99eeffadbd9b188529ed4c6ce9a4ecf9e85fc3c00edc79f",
         );
 
         if (!p2_event) throw new Error("No events emitted");
 
         const p2_decodedData = protocolPool2.interface.decodeEventLog(
           p2_event.topics[0],
-          p2_event.data
+          p2_event.data,
         );
 
         expect(p2_decodedData.tokenId).to.be.equal(provider1tokenId);
@@ -207,7 +207,7 @@ export function testWithdrawAllWithClaim() {
         expect(p2_slot0.totalInsuredCapital).to.be.equal("219000");
         expect(p2_slot0.remainingPolicies).to.be.equal("1");
         expect(p2_slot0.lastUpdateTimestamp).to.be.equal(
-          await HardhatHelper.getCurrentTime()
+          await HardhatHelper.getCurrentTime(),
         );
       });
 
@@ -220,7 +220,7 @@ export function testWithdrawAllWithClaim() {
           provider2tokenId,
           0,
           days * 24 * 60 * 60,
-          2
+          2,
         );
 
         expect(decodedData.tokenId).to.be.equal(provider2tokenId);
@@ -232,10 +232,10 @@ export function testWithdrawAllWithClaim() {
         const lpInfoAfter = await protocolPool0.LPsInfo(provider2tokenId);
 
         expect(
-          lpInfoAfter.beginLiquidityIndex.gt(lpInfoBefore.beginLiquidityIndex)
+          lpInfoAfter.beginLiquidityIndex.gt(lpInfoBefore.beginLiquidityIndex),
         ).to.be.equal(true);
         expect(
-          lpInfoAfter.beginClaimIndex.gt(lpInfoBefore.beginClaimIndex)
+          lpInfoAfter.beginClaimIndex.gt(lpInfoBefore.beginClaimIndex),
         ).to.be.equal(true);
       });
     });

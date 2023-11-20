@@ -32,8 +32,8 @@ export function testDeployProtocol() {
 
           expect(
             await hre_ethers.provider.getCode(
-              ProtocolHelper.getAtenTokenContract().address
-            )
+              ProtocolHelper.getAtenTokenContract().address,
+            ),
           ).to.not.equal("0x");
         });
 
@@ -42,8 +42,8 @@ export function testDeployProtocol() {
 
           expect(
             await hre_ethers.provider.getCode(
-              ProtocolHelper.getAthenaContract().address
-            )
+              ProtocolHelper.getAthenaContract().address,
+            ),
           ).to.not.equal("0x");
 
           ATHENA_CONTRACT = ProtocolHelper.getAthenaContract();
@@ -54,8 +54,8 @@ export function testDeployProtocol() {
 
           expect(
             await hre_ethers.provider.getCode(
-              ProtocolHelper.getPositionManagerContract().address
-            )
+              ProtocolHelper.getPositionManagerContract().address,
+            ),
           ).to.not.equal("0x");
         });
 
@@ -64,8 +64,8 @@ export function testDeployProtocol() {
 
           expect(
             await hre_ethers.provider.getCode(
-              ProtocolHelper.getStakedAtenContract().address
-            )
+              ProtocolHelper.getStakedAtenContract().address,
+            ),
           ).to.not.equal("0x");
 
           STAKING_GP_CONTRACT = ProtocolHelper.getStakedAtenContract();
@@ -76,8 +76,8 @@ export function testDeployProtocol() {
 
           expect(
             await hre_ethers.provider.getCode(
-              ProtocolHelper.getPolicyManagerContract().address
-            )
+              ProtocolHelper.getPolicyManagerContract().address,
+            ),
           ).to.not.equal("0x");
         });
 
@@ -86,8 +86,8 @@ export function testDeployProtocol() {
 
           expect(
             await hre_ethers.provider.getCode(
-              ProtocolHelper.getProtocolFactoryContract().address
-            )
+              ProtocolHelper.getProtocolFactoryContract().address,
+            ),
           ).to.not.equal("0x");
         });
 
@@ -96,8 +96,8 @@ export function testDeployProtocol() {
 
           expect(
             await hre_ethers.provider.getCode(
-              ProtocolHelper.getVaultAtenContract().address
-            )
+              ProtocolHelper.getVaultAtenContract().address,
+            ),
           ).to.not.equal("0x");
         });
 
@@ -106,8 +106,8 @@ export function testDeployProtocol() {
 
           expect(
             await hre_ethers.provider.getCode(
-              ProtocolHelper.getClaimManagerContract().address
-            )
+              ProtocolHelper.getClaimManagerContract().address,
+            ),
           ).to.not.equal("0x");
         });
 
@@ -116,8 +116,8 @@ export function testDeployProtocol() {
 
           expect(
             await hre_ethers.provider.getCode(
-              ProtocolHelper.getPriceOracleV1Contract().address
-            )
+              ProtocolHelper.getPriceOracleV1Contract().address,
+            ),
           ).to.not.equal("0x");
         });
 
@@ -126,8 +126,8 @@ export function testDeployProtocol() {
 
           expect(
             await hre_ethers.provider.getCode(
-              ProtocolHelper.getStakedAtensPolicyContract().address
-            )
+              ProtocolHelper.getStakedAtensPolicyContract().address,
+            ),
           ).to.not.equal("0x");
         });
 
@@ -152,7 +152,7 @@ export function testDeployProtocol() {
         it("Should check slot0", async () => {
           const protocolContract = await ProtocolHelper.getProtocolPoolContract(
             owner,
-            0
+            0,
           );
           const slot0 = await protocolContract.slot0();
 
@@ -161,7 +161,7 @@ export function testDeployProtocol() {
           expect(slot0.totalInsuredCapital).to.be.equal("0");
           expect(slot0.remainingPolicies).to.be.equal("0");
           expect(slot0.lastUpdateTimestamp).to.be.equal(
-            await HardhatHelper.getCurrentTime()
+            await HardhatHelper.getCurrentTime(),
           );
 
           const premiumRate = await protocolContract.getCurrentPremiumRate();
@@ -175,7 +175,7 @@ export function testDeployProtocol() {
         it("Should check relatedProtocols", async () => {
           const protocolContract = await ProtocolHelper.getProtocolPoolContract(
             owner,
-            0
+            0,
           );
 
           const relatedProtocol = await protocolContract.relatedProtocols(0);
@@ -203,7 +203,7 @@ export function testDeployProtocol() {
         it("Should check slot0", async () => {
           const protocolContract = await ProtocolHelper.getProtocolPoolContract(
             owner,
-            1
+            1,
           );
           const slot0 = await protocolContract.slot0();
 
@@ -212,7 +212,7 @@ export function testDeployProtocol() {
           expect(slot0.totalInsuredCapital).to.be.equal("0");
           expect(slot0.remainingPolicies).to.be.equal("0");
           expect(slot0.lastUpdateTimestamp).to.be.equal(
-            await HardhatHelper.getCurrentTime()
+            await HardhatHelper.getCurrentTime(),
           );
 
           const premiumRate = await protocolContract.getCurrentPremiumRate();
@@ -226,7 +226,7 @@ export function testDeployProtocol() {
         it("Should check relatedProtocols", async () => {
           const protocolContract = await ProtocolHelper.getProtocolPoolContract(
             owner,
-            1
+            1,
           );
 
           const relatedProtocol = await protocolContract.relatedProtocols(0);
@@ -254,7 +254,7 @@ export function testDeployProtocol() {
         it("Should check slot0", async () => {
           const protocolContract = await ProtocolHelper.getProtocolPoolContract(
             owner,
-            2
+            2,
           );
           const slot0 = await protocolContract.slot0();
 
@@ -263,7 +263,7 @@ export function testDeployProtocol() {
           expect(slot0.totalInsuredCapital).to.be.equal("0");
           expect(slot0.remainingPolicies).to.be.equal("0");
           expect(slot0.lastUpdateTimestamp).to.be.equal(
-            await HardhatHelper.getCurrentTime()
+            await HardhatHelper.getCurrentTime(),
           );
 
           const premiumRate = await protocolContract.getCurrentPremiumRate();
@@ -277,7 +277,7 @@ export function testDeployProtocol() {
         it("Should check relatedProtocols", async () => {
           const protocolContract = await ProtocolHelper.getProtocolPoolContract(
             owner,
-            2
+            2,
           );
 
           const relatedProtocol = await protocolContract.relatedProtocols(0);
@@ -297,46 +297,42 @@ export function testDeployProtocol() {
 
           expect(tx).to.haveOwnProperty("hash");
 
-          const discountZero = await STAKING_GP_CONTRACT.connect(
-            owner
-          ).supplyFeeLevels(0);
+          const discountZero =
+            await STAKING_GP_CONTRACT.connect(owner).supplyFeeLevels(0);
           expect(discountZero.atenAmount).to.equal(BN(0));
           expect(discountZero.feeRate).to.equal(BN(250));
 
-          const discountFirst = await STAKING_GP_CONTRACT.connect(
-            owner
-          ).supplyFeeLevels(1);
+          const discountFirst =
+            await STAKING_GP_CONTRACT.connect(owner).supplyFeeLevels(1);
           expect(discountFirst.atenAmount).to.equal(BN(1_000));
           expect(discountFirst.feeRate).to.equal(BN(200));
 
-          const discountSnd = await STAKING_GP_CONTRACT.connect(
-            owner
-          ).supplyFeeLevels(2);
+          const discountSnd =
+            await STAKING_GP_CONTRACT.connect(owner).supplyFeeLevels(2);
           expect(discountSnd.atenAmount).to.equal(BN(100_000));
           expect(discountSnd.feeRate).to.equal(BN(150));
 
-          const discountThird = await STAKING_GP_CONTRACT.connect(
-            owner
-          ).supplyFeeLevels(3);
+          const discountThird =
+            await STAKING_GP_CONTRACT.connect(owner).supplyFeeLevels(3);
           expect(discountThird.atenAmount).to.equal(BN(1_000_000));
           expect(discountThird.feeRate).to.equal(BN(50));
 
           await expect(
-            STAKING_GP_CONTRACT.connect(owner).supplyFeeLevels(4)
+            STAKING_GP_CONTRACT.connect(owner).supplyFeeLevels(4),
           ).to.be.rejectedWith();
         });
 
         it("Should get discount amount with Aten", async () => {
           expect(
-            await STAKING_GP_CONTRACT.connect(owner).getFeeRateWithAten(999)
+            await STAKING_GP_CONTRACT.connect(owner).getFeeRateWithAten(999),
           ).to.equal(250);
           expect(
-            await STAKING_GP_CONTRACT.connect(owner).getFeeRateWithAten(1000)
+            await STAKING_GP_CONTRACT.connect(owner).getFeeRateWithAten(1000),
           ).to.equal(200);
           expect(
             await STAKING_GP_CONTRACT.connect(owner).getFeeRateWithAten(
-              10000000
-            )
+              10000000,
+            ),
           ).to.equal(50);
         });
 
@@ -347,7 +343,7 @@ export function testDeployProtocol() {
               { amountSupplied: 100_000, aprStaking: 1_600 },
               { amountSupplied: 10_000, aprStaking: 1_200 },
               { amountSupplied: 1_000_000, aprStaking: 2_000 },
-            ])
+            ]),
           ).to.be.rejectedWith("MustSortInAscendingOrder()");
 
           const tx = await ProtocolHelper.setStakingRewardRates(owner);
@@ -355,32 +351,33 @@ export function testDeployProtocol() {
           expect(tx).to.haveOwnProperty("hash");
 
           expect(
-            await STAKING_GP_CONTRACT.connect(owner).getStakingRewardRate(0)
+            await STAKING_GP_CONTRACT.connect(owner).getStakingRewardRate(0),
           ).to.equal(BN(1_000));
 
           expect(
-            await STAKING_GP_CONTRACT.connect(owner).getStakingRewardRate(10)
+            await STAKING_GP_CONTRACT.connect(owner).getStakingRewardRate(10),
           ).to.equal(BN(1000));
 
           expect(
-            await STAKING_GP_CONTRACT.connect(owner).getStakingRewardRate(10000)
+            await STAKING_GP_CONTRACT.connect(owner).getStakingRewardRate(
+              10000,
+            ),
           ).to.equal(BN(1200));
 
           expect(
             await STAKING_GP_CONTRACT.connect(owner).getStakingRewardRate(
-              100_001
-            )
+              100_001,
+            ),
           ).to.equal(BN(1600));
 
           expect(
             await STAKING_GP_CONTRACT.connect(owner).getStakingRewardRate(
-              1_000_000
-            )
+              1_000_000,
+            ),
           ).to.equal(BN(2000));
 
-          const stakingLevels = await STAKING_GP_CONTRACT.connect(
-            owner
-          ).getStakingRewardsLevels();
+          const stakingLevels =
+            await STAKING_GP_CONTRACT.connect(owner).getStakingRewardsLevels();
 
           expect(stakingLevels.length).to.equal(4);
         });
@@ -394,17 +391,15 @@ export function testDeployProtocol() {
         });
 
         it("Should get all fee level data", async () => {
-          const feeLevels = await STAKING_GP_CONTRACT.connect(
-            owner
-          ).getSupplyFeeLevels();
+          const feeLevels =
+            await STAKING_GP_CONTRACT.connect(owner).getSupplyFeeLevels();
 
           expect(feeLevels.length).to.equal(4);
         });
 
         it("Should get all staking levels data", async () => {
-          const stakingLevels = await STAKING_GP_CONTRACT.connect(
-            owner
-          ).getStakingRewardsLevels();
+          const stakingLevels =
+            await STAKING_GP_CONTRACT.connect(owner).getStakingRewardsLevels();
 
           expect(stakingLevels.length).to.equal(4);
         });

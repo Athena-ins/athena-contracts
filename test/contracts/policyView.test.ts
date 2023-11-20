@@ -35,7 +35,7 @@ export function testPolicyView() {
         USDT_amount1,
         ATEN_amount1,
         [0, 2],
-        1 * 24 * 60 * 60
+        1 * 24 * 60 * 60,
       );
 
       const USDT_amount2 = "330000";
@@ -45,12 +45,12 @@ export function testPolicyView() {
         USDT_amount2,
         ATEN_amount2,
         [0, 1, 2],
-        1 * 24 * 60 * 60
+        1 * 24 * 60 * 60,
       );
 
       await HardhatHelper.USDT_maxApprove(
         policyTaker1,
-        ProtocolHelper.getAthenaContract().address
+        ProtocolHelper.getAthenaContract().address,
       );
 
       const capital1 = "109500";
@@ -62,12 +62,12 @@ export function testPolicyView() {
         premium1,
         atensLocked1,
         0,
-        20 * 24 * 60 * 60
+        20 * 24 * 60 * 60,
       );
 
       await HardhatHelper.USDT_maxApprove(
         policyTaker2,
-        ProtocolHelper.getAthenaContract().address
+        ProtocolHelper.getAthenaContract().address,
       );
 
       const capital2 = "219000";
@@ -79,7 +79,7 @@ export function testPolicyView() {
         premium2,
         atensLocked2,
         0,
-        10 * 24 * 60 * 60
+        10 * 24 * 60 * 60,
       );
     });
 
@@ -87,12 +87,12 @@ export function testPolicyView() {
       it("Should get vSlot0 after 10 days", async () => {
         const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           owner,
-          0
+          0,
         );
 
         const days = 10;
         const result = await protocolContract.actualizingUntilGivenDate(
-          (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60
+          (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60,
         );
 
         expect(result.__slot0.tick).to.be.equal(60);
@@ -103,19 +103,19 @@ export function testPolicyView() {
         expect(result.__slot0.totalInsuredCapital).to.be.equal(328500);
         expect(result.__slot0.remainingPolicies).to.be.equal(2);
         expect(result.__slot0.lastUpdateTimestamp).to.be.equal(
-          (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60
+          (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60,
         );
       });
 
       it("Should get vSlot0 after 178 days", async () => {
         const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           owner,
-          0
+          0,
         );
 
         const days = 178;
         const result = await protocolContract.actualizingUntilGivenDate(
-          (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60
+          (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60,
         );
 
         // console.log("vSlot0 178:", result);
@@ -128,23 +128,23 @@ export function testPolicyView() {
         expect(result.__slot0.totalInsuredCapital).to.be.equal(219000);
         expect(result.__slot0.remainingPolicies).to.be.equal(1);
         expect(result.__slot0.lastUpdateTimestamp).to.be.equal(
-          (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60
+          (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60,
         );
 
         expect(result.__liquidityIndex).to.be.equal(
-          "8847945585996955859969557"
+          "8847945585996955859969557",
         );
       });
 
       it("Should get vSlot0 after 428 days", async () => {
         const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           owner,
-          0
+          0,
         );
 
         const days = 428;
         const result = await protocolContract.actualizingUntilGivenDate(
-          (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60
+          (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60,
         );
 
         expect(result.__slot0.tick).to.be.equal(1480);
@@ -155,7 +155,7 @@ export function testPolicyView() {
         expect(result.__slot0.totalInsuredCapital).to.be.equal(0);
         expect(result.__slot0.remainingPolicies).to.be.equal(0);
         expect(result.__slot0.lastUpdateTimestamp).to.be.equal(
-          (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60
+          (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60,
         );
       });
     });
@@ -164,12 +164,12 @@ export function testPolicyView() {
       it("Should get info via protocol contract", async () => {
         const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           policyTaker1,
-          0
+          0,
         );
 
         const coverId = await ProtocolHelper.getAccountCoverIdByIndex(
           policyTaker1,
-          0
+          0,
         );
         const response = await protocolContract.getInfo(coverId);
 
@@ -194,12 +194,12 @@ export function testPolicyView() {
 
         const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           policyTaker1,
-          0
+          0,
         );
 
         const decodedData = protocolContract.interface.decodeEventLog(
           event.topics[0],
-          event.data
+          event.data,
         );
 
         expect(decodedData.coverId.toNumber()).to.be.equal(0);
@@ -209,7 +209,7 @@ export function testPolicyView() {
       it("Should check slot0 after PT1 quit", async () => {
         const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           owner,
-          0
+          0,
         );
 
         const slot0 = await protocolContract.slot0();
@@ -219,7 +219,7 @@ export function testPolicyView() {
         expect(slot0.totalInsuredCapital).to.be.equal("219000");
         expect(slot0.remainingPolicies).to.be.equal(1);
         expect(slot0.lastUpdateTimestamp).to.be.equal(
-          await HardhatHelper.getCurrentTime()
+          await HardhatHelper.getCurrentTime(),
         );
 
         const premiumRate = await protocolContract.getCurrentPremiumRate();
@@ -245,12 +245,12 @@ export function testPolicyView() {
 
         const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           policyTaker2,
-          0
+          0,
         );
 
         const decodedData = protocolContract.interface.decodeEventLog(
           event.topics[0],
-          event.data
+          event.data,
         );
 
         expect(decodedData.coverId.toNumber()).to.be.equal(1);
@@ -260,7 +260,7 @@ export function testPolicyView() {
       it("Should check slot0 after PT2 quit", async () => {
         const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           owner,
-          0
+          0,
         );
 
         const slot0 = await protocolContract.slot0();
@@ -270,7 +270,7 @@ export function testPolicyView() {
         expect(slot0.totalInsuredCapital).to.be.equal("0");
         expect(slot0.remainingPolicies).to.be.equal(0);
         expect(slot0.lastUpdateTimestamp).to.be.equal(
-          await HardhatHelper.getCurrentTime()
+          await HardhatHelper.getCurrentTime(),
         );
 
         const premiumRate = await protocolContract.getCurrentPremiumRate();

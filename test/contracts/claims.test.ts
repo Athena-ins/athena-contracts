@@ -53,7 +53,7 @@ export function testClaims() {
         USDT_amount1,
         ATEN_amount1,
         [0, 2],
-        1 * 24 * 60 * 60
+        1 * 24 * 60 * 60,
       );
 
       const USDT_amount2 = "330000";
@@ -63,7 +63,7 @@ export function testClaims() {
         USDT_amount2,
         ATEN_amount2,
         [0, 1, 2],
-        1 * 24 * 60 * 60
+        1 * 24 * 60 * 60,
       );
 
       const USDT_amount3 = "365000";
@@ -73,14 +73,14 @@ export function testClaims() {
         USDT_amount3,
         ATEN_amount3,
         [1, 3],
-        1 * 24 * 60 * 60
+        1 * 24 * 60 * 60,
       );
 
       // ================= Policy Buyers ================= //
 
       await HardhatHelper.USDT_maxApprove(
         policyTaker3,
-        ProtocolHelper.getAthenaContract().address
+        ProtocolHelper.getAthenaContract().address,
       );
 
       const capital3 = "182500";
@@ -92,12 +92,12 @@ export function testClaims() {
         premium3,
         atensLocked3,
         2,
-        10 * 24 * 60 * 60
+        10 * 24 * 60 * 60,
       );
 
       await HardhatHelper.USDT_maxApprove(
         policyTaker4,
-        ProtocolHelper.getAthenaContract().address
+        ProtocolHelper.getAthenaContract().address,
       );
 
       await ProtocolHelper.buyPolicy(
@@ -106,12 +106,12 @@ export function testClaims() {
         premium3,
         atensLocked3,
         3,
-        10 * 24 * 60 * 60
+        10 * 24 * 60 * 60,
       );
 
       await HardhatHelper.USDT_maxApprove(
         policyTaker1,
-        ProtocolHelper.getAthenaContract().address
+        ProtocolHelper.getAthenaContract().address,
       );
 
       const capital1 = "109500";
@@ -123,12 +123,12 @@ export function testClaims() {
         premium1,
         atensLocked1,
         0,
-        20 * 24 * 60 * 60
+        20 * 24 * 60 * 60,
       );
 
       await HardhatHelper.USDT_maxApprove(
         policyTaker2,
-        ProtocolHelper.getAthenaContract().address
+        ProtocolHelper.getAthenaContract().address,
       );
 
       const capital2 = "219000";
@@ -140,7 +140,7 @@ export function testClaims() {
         premium2,
         atensLocked2,
         0,
-        10 * 24 * 60 * 60
+        10 * 24 * 60 * 60,
       );
     });
 
@@ -153,7 +153,7 @@ export function testClaims() {
         expect(slot0.totalInsuredCapital).to.be.equal("328500");
         expect(slot0.remainingPolicies).to.be.equal("2");
         expect(slot0.lastUpdateTimestamp).to.be.equal(
-          await HardhatHelper.getCurrentTime()
+          await HardhatHelper.getCurrentTime(),
         );
 
         const premiumRate = await protocolPool0.getCurrentPremiumRate();
@@ -181,7 +181,7 @@ export function testClaims() {
         await ProtocolHelper.resolveClaimWithoutDispute(
           policyTaker3,
           0,
-          14 * 24 * 60 * 60 + 10 // 14 days + 10 seconds
+          14 * 24 * 60 * 60 + 10, // 14 days + 10 seconds
         );
 
         const claim = await protocolPool0.processedClaims(0);
@@ -189,7 +189,7 @@ export function testClaims() {
         expect(claim.fromPoolId).to.be.equal(2);
         expect(claim.ratio).to.be.equal("250000000000000000000000000");
         expect(claim.liquidityIndexBeforeClaim).to.be.equal(
-          "772609969558599695585996"
+          "772609969558599695585996",
         );
       });
 
@@ -221,7 +221,7 @@ export function testClaims() {
         expect(slot0.totalInsuredCapital).to.be.equal("328500");
         expect(slot0.remainingPolicies).to.be.equal("2");
         expect(slot0.lastUpdateTimestamp).to.be.equal(
-          await HardhatHelper.getCurrentTime()
+          await HardhatHelper.getCurrentTime(),
         );
 
         const premiumRate = await protocolPool0.getCurrentPremiumRate();
@@ -235,7 +235,7 @@ export function testClaims() {
       it("Should get vSlot0 of Protocol 0 after 1 day claimed in Protocol 2", async () => {
         const days = 1;
         const result = await protocolPool0.actualizingUntilGivenDate(
-          (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60
+          (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60,
         );
 
         expect(result.__slot0.tick).to.be.equal(81);
@@ -243,7 +243,7 @@ export function testClaims() {
         expect(result.__slot0.totalInsuredCapital).to.be.equal(328500);
         expect(result.__slot0.remainingPolicies).to.be.equal(2);
         expect(result.__slot0.lastUpdateTimestamp).to.be.equal(
-          (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60
+          (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60,
         );
       });
 
@@ -268,7 +268,7 @@ export function testClaims() {
         expect(slot0.totalInsuredCapital).to.be.equal("328500");
         expect(slot0.remainingPolicies).to.be.equal(2);
         expect(slot0.lastUpdateTimestamp).to.be.equal(
-          await HardhatHelper.getCurrentTime()
+          await HardhatHelper.getCurrentTime(),
         );
 
         const premiumRate = await protocolPool0.getCurrentPremiumRate();
@@ -284,7 +284,7 @@ export function testClaims() {
         expect(claim.fromPoolId).to.be.equal(2);
         expect(claim.ratio).to.be.equal("250000000000000000000000000");
         expect(claim.liquidityIndexBeforeClaim).to.be.equal(
-          "772609969558599695585996"
+          "772609969558599695585996",
         );
       });
 
@@ -294,7 +294,7 @@ export function testClaims() {
         await ProtocolHelper.resolveClaimWithoutDispute(
           policyTaker4,
           1,
-          14 * 24 * 60 * 60 + 10 // 14 days + 10 seconds
+          14 * 24 * 60 * 60 + 10, // 14 days + 10 seconds
         );
 
         const claim = await protocolPool1.processedClaims(1);

@@ -5,7 +5,7 @@ import { SolcVersion } from "./helpers/solcVersionType";
 const emptyInterface = (
   filename: string,
   licence: string,
-  solidityVersion: string
+  solidityVersion: string,
 ) => {
   return `// SPDX-License-Identifier: ${licence}
   pragma solidity ^${solidityVersion};
@@ -28,7 +28,7 @@ function getInOrOut(inputs: any) {
       inputs[i].internalType.includes("struct")
     ) {
       const structName = inputs[i].internalType.slice(
-        inputs[i].internalType.indexOf(".") + 1
+        inputs[i].internalType.indexOf(".") + 1,
       );
 
       structures.push({ ...inputs[i], structName: structName });
@@ -109,7 +109,7 @@ function writeInterfaceContent(
   abi: any[],
   filename: string,
   licence: string,
-  solidityVersion: string
+  solidityVersion: string,
 ) {
   let output = emptyInterface(filename, licence, solidityVersion);
 
@@ -137,7 +137,7 @@ function writeInterfaceContent(
         if (struct.structName.includes("[]")) {
           struct.structName = struct.structName.slice(
             0,
-            struct.structName.length - 2
+            struct.structName.length - 2,
           );
         }
 
@@ -160,14 +160,14 @@ function writeInterfaceContent(
 function manageInterfaceFile(
   data: { name: string; abi: any[] },
   licence: string,
-  solidityVersion: string
+  solidityVersion: string,
 ) {
   try {
     const interfaceFile: string = writeInterfaceContent(
       data.abi,
       data.name,
       licence,
-      solidityVersion
+      solidityVersion,
     );
 
     const outPath = `contracts/interfaces/I${data.name}.sol`;
@@ -183,7 +183,7 @@ function manageInterfaceFile(
 export const genInterfaces = async (
   targetContracts?: string[],
   targetLicence?: License,
-  targetSolcVersion?: SolcVersion
+  targetSolcVersion?: SolcVersion,
 ) => {
   const contracts = targetContracts ?? ["Token"];
   const licence = targetLicence ?? "MIT";
@@ -218,7 +218,7 @@ export const genInterfaces = async (
   }
 
   console.log(
-    `\n==> Found ${abiData.length} ABIs among ${allFiles.length} files\n`
+    `\n==> Found ${abiData.length} ABIs among ${allFiles.length} files\n`,
   );
   for (const data of abiData)
     manageInterfaceFile(data, licence, solidityVersion);

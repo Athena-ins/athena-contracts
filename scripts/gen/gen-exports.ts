@@ -49,12 +49,12 @@ const main = async () => {
 
     const abiJson = fs.readFileSync(
       `${abiPath}${path}.sol/${file}.json`,
-      "utf8"
+      "utf8",
     );
     const abi = JSON.parse(abiJson).abi;
     fs.writeFileSync(
       `${abiPathExport}${name}.json`,
-      JSON.stringify(abi, null, 2)
+      JSON.stringify(abi, null, 2),
     );
 
     abiIndex += `import ${name}ABI from "./${name}.json";\n`;
@@ -63,7 +63,7 @@ const main = async () => {
 
     fs.copyFileSync(
       `./typechain/${file}.d.ts`,
-      `${typechainPathExport}${file}.d.ts`
+      `${typechainPathExport}${file}.d.ts`,
     );
 
     typechainIndex += `export { ${file} } from "./${file}";\n`;

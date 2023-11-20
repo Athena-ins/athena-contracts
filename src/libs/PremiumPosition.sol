@@ -18,7 +18,8 @@ library PremiumPosition {
     uint256 coverIdToReplace
   ) internal {
     if (coverIdToRemove != coverIdToReplace)
-      self[coverIdToReplace].coverIdIndex = self[coverIdToRemove].coverIdIndex;
+      self[coverIdToReplace].coverIdIndex = self[coverIdToRemove]
+        .coverIdIndex;
 
     delete self[coverIdToRemove];
   }

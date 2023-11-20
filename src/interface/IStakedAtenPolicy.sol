@@ -4,7 +4,10 @@ pragma solidity 0.8.20;
 interface IStakedAtenPolicy {
   function hasPosition(uint256 coverId) external view returns (bool);
 
-  function createStakingPosition(uint256 coverId, uint256 amount) external;
+  function createStakingPosition(
+    uint256 coverId,
+    uint256 amount
+  ) external;
 
   function addToStake(uint256 coverId, uint256 amount) external;
 

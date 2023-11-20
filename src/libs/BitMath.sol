@@ -10,7 +10,9 @@ library BitMath {
   ///     (x & 2**leastSignificantBit(x)) != 0 and (x & (2**(leastSignificantBit(x)) - 1)) == 0)
   /// @param x the value for which to compute the least significant bit, must be greater than 0
   /// @return r the index of the least significant bit
-  function leastSignificantBit(uint256 x) internal pure returns (uint8 r) {
+  function leastSignificantBit(
+    uint256 x
+  ) internal pure returns (uint8 r) {
     require(x > 0);
 
     r = 255;

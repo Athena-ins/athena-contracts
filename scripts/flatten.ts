@@ -12,7 +12,7 @@ function cleanLicences(contractName: string) {
     .replace(/License-/m, "SPDX-License-")
     .replace(
       /\/\/ Sources flattened with hardhat v2.19.0 https:\/\/hardhat.org\n\n/m,
-      ""
+      "",
     );
   fs.writeFileSync(path, stringContract);
 }
@@ -27,7 +27,7 @@ async function main() {
   }
 
   await execPromise(
-    "npx hardhat flatten contracts/CONTRACT.sol > scripts/flat/CONTRACT.sol"
+    "npx hardhat flatten contracts/CONTRACT.sol > scripts/flat/CONTRACT.sol",
   );
 
   // Remove all occurences of SPDX license identifiers except for the first one

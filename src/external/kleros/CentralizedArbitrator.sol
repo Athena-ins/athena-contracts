@@ -47,7 +47,9 @@ contract CentralizedArbitrator is Arbitrator {
   /** @dev Set the arbitration price. Only callable by the owner.
    *  @param arbitrationPrice_ Amount to be paid for arbitration.
    */
-  function setArbitrationPrice(uint256 arbitrationPrice_) public onlyOwner {
+  function setArbitrationPrice(
+    uint256 arbitrationPrice_
+  ) public onlyOwner {
     _arbitrationPrice = arbitrationPrice_;
   }
 
@@ -113,7 +115,10 @@ contract CentralizedArbitrator is Arbitrator {
    *  @param _disputeID ID of the dispute to rule.
    *  @param _ruling Ruling given by the arbitrator. Note that 0 means "Not able/wanting to make a decision".
    */
-  function giveRuling(uint256 _disputeID, uint256 _ruling) public onlyOwner {
+  function giveRuling(
+    uint256 _disputeID,
+    uint256 _ruling
+  ) public onlyOwner {
     return _giveRuling(_disputeID, _ruling);
   }
 

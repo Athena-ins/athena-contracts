@@ -45,7 +45,7 @@ export function testStakingGeneralPool() {
         USDT_amount1,
         ATEN_amount1,
         [0, 2],
-        1 * 24 * 60 * 60
+        1 * 24 * 60 * 60,
       );
 
       const USDT_amount2 = "330";
@@ -55,7 +55,7 @@ export function testStakingGeneralPool() {
         USDT_amount2,
         ATEN_amount2,
         [0, 1, 2],
-        1 * 24 * 60 * 60
+        1 * 24 * 60 * 60,
       );
 
       const USDT_amount3 = "36500";
@@ -65,14 +65,14 @@ export function testStakingGeneralPool() {
         USDT_amount3,
         ATEN_amount3,
         [1, 3],
-        1 * 24 * 60 * 60
+        1 * 24 * 60 * 60,
       );
 
       // ================= Policy Buyers ================= //
 
       await HardhatHelper.USDT_maxApprove(
         policyTaker1,
-        ProtocolHelper.getAthenaContract().address
+        ProtocolHelper.getAthenaContract().address,
       );
 
       const capital1 = "109500";
@@ -85,12 +85,12 @@ export function testStakingGeneralPool() {
         [premium1, premium1],
         [atensLocked1, atensLocked1],
         [0, 3],
-        20 * 24 * 60 * 60
+        20 * 24 * 60 * 60,
       );
 
       await HardhatHelper.USDT_maxApprove(
         policyTaker2,
-        ProtocolHelper.getAthenaContract().address
+        ProtocolHelper.getAthenaContract().address,
       );
 
       const capital2 = "219000";
@@ -102,12 +102,12 @@ export function testStakingGeneralPool() {
         premium2,
         atensLocked2,
         0,
-        10 * 24 * 60 * 60
+        10 * 24 * 60 * 60,
       );
 
       await HardhatHelper.USDT_maxApprove(
         policyTaker3,
-        ProtocolHelper.getAthenaContract().address
+        ProtocolHelper.getAthenaContract().address,
       );
 
       const capital3 = "18250";
@@ -119,7 +119,7 @@ export function testStakingGeneralPool() {
         premium3,
         atensLocked3,
         1,
-        10 * 24 * 60 * 60
+        10 * 24 * 60 * 60,
       );
     });
 
@@ -141,7 +141,7 @@ export function testStakingGeneralPool() {
       const liquidityProvider1Address = await liquidityProvider1.getAddress();
 
       const stakingPosBefore = await STAKING_GP_CONTRACT.getUserStakingPosition(
-        liquidityProvider1Address
+        liquidityProvider1Address,
       );
 
       expect(stakingPosBefore.amount).to.equal("0");
@@ -152,16 +152,16 @@ export function testStakingGeneralPool() {
       const stakingAmount = 1000000;
       await ProtocolHelper.stakingGeneralPoolDeposit(
         liquidityProvider1,
-        stakingAmount
+        stakingAmount,
       );
 
       const stakingPosAfter = await STAKING_GP_CONTRACT.getUserStakingPosition(
-        liquidityProvider1Address
+        liquidityProvider1Address,
       );
 
       expect(stakingPosAfter.amount).to.equal(stakingAmount);
       expect(stakingPosAfter.since).to.equal(
-        await HardhatHelper.getCurrentTime()
+        await HardhatHelper.getCurrentTime(),
       );
       expect(stakingPosAfter.accruedRewards).to.equal("0");
       expect(stakingPosAfter.rate).to.equal("2000");
@@ -170,23 +170,23 @@ export function testStakingGeneralPool() {
       await HardhatHelper.setNextBlockTimestamp(30 * 24 * 60 * 60);
 
       const rewards = await STAKING_GP_CONTRACT.rewardsOf(
-        liquidityProvider1Address
+        liquidityProvider1Address,
       );
 
       const expectedRewards = Math.round(
         stakingAmount *
           (stakingPosAfter.rate.toNumber() / 10_000) *
-          (nbRewardDays / 365)
+          (nbRewardDays / 365),
       );
 
       expect(rewards).to.equal(expectedRewards);
       const balanceBefore = await HardhatHelper.ATEN_balanceOf(
-        liquidityProvider1Address
+        liquidityProvider1Address,
       );
       await (await ATHENA_CONTRACT.takeStakingProfits()).wait();
 
       const balanceAfter = await HardhatHelper.ATEN_balanceOf(
-        liquidityProvider1Address
+        liquidityProvider1Address,
       );
 
       // Substract 4 because of the fees
@@ -197,15 +197,15 @@ export function testStakingGeneralPool() {
 
       const stakingPosAfterWithdraw =
         await STAKING_GP_CONTRACT.getUserStakingPosition(
-          liquidityProvider1Address
+          liquidityProvider1Address,
         );
 
       expect(stakingPosAfterWithdraw.amount).to.equal(
-        stakingAmount - amountUnstaked
+        stakingAmount - amountUnstaked,
       );
       // @dev hacky check because value is inconsistent (1 sec variation)
       expect(
-        Math.floor(stakingPosAfterWithdraw.since.toNumber() / 10)
+        Math.floor(stakingPosAfterWithdraw.since.toNumber() / 10),
       ).to.equal(168028398);
       expect(stakingPosAfterWithdraw.accruedRewards).to.equal("0");
       expect(stakingPosAfterWithdraw.rate).to.equal("2000");

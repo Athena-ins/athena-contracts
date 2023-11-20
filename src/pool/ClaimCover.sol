@@ -23,7 +23,9 @@ abstract contract ClaimCover is LiquidityCover {
     return processedClaims.length;
   }
 
-  function _claims(uint256 beginIndex) internal view returns (Claim[] memory) {
+  function _claims(
+    uint256 beginIndex
+  ) internal view returns (Claim[] memory) {
     uint256 __length = processedClaims.length;
     if (__length == beginIndex) return new Claim[](0);
 

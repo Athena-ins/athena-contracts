@@ -21,9 +21,16 @@ contract ERC20WithSnapshot is ERC20 {
   /// !!! IMPORTANT The Aave governance is considered a trustable contract, being its responsibility
   /// to control all potential reentrancies by calling back the this contract
 
-  event SnapshotDone(address owner, uint128 oldValue, uint128 newValue);
+  event SnapshotDone(
+    address owner,
+    uint128 oldValue,
+    uint128 newValue
+  );
 
-  constructor(string memory name, string memory symbol) ERC20(name, symbol) {}
+  constructor(
+    string memory name,
+    string memory symbol
+  ) ERC20(name, symbol) {}
 
   /**
    * @dev Writes a snapshot for an owner of tokens
@@ -39,16 +46,22 @@ contract ERC20WithSnapshot is ERC20 {
     uint128 currentBlock = uint128(block.number);
 
     uint256 ownerCountOfSnapshots = _countsSnapshots[owner];
-    mapping(uint256 => Snapshot) storage snapshotsOwner = _snapshots[owner];
+    mapping(uint256 => Snapshot) storage snapshotsOwner = _snapshots[
+      owner
+    ];
 
     // Doing multiple operations in the same block
     if (
       ownerCountOfSnapshots != 0 &&
-      snapshotsOwner[ownerCountOfSnapshots - 1].blockNumber == currentBlock
+      snapshotsOwner[ownerCountOfSnapshots - 1].blockNumber ==
+      currentBlock
     ) {
       snapshotsOwner[ownerCountOfSnapshots - 1].value = newValue;
     } else {
-      snapshotsOwner[ownerCountOfSnapshots] = Snapshot(currentBlock, newValue);
+      snapshotsOwner[ownerCountOfSnapshots] = Snapshot(
+        currentBlock,
+        newValue
+      );
       _countsSnapshots[owner] = ownerCountOfSnapshots + 1;
     }
 

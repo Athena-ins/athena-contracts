@@ -34,7 +34,7 @@ export function testPoliciesTaker() {
         USDT_amount1,
         ATEN_amount1,
         [0, 1, 2],
-        1 * 24 * 60 * 60
+        1 * 24 * 60 * 60,
       );
     });
 
@@ -44,23 +44,23 @@ export function testPoliciesTaker() {
 
       it("Should prepare USDT balance", async () => {
         expect(
-          await HardhatHelper.USDT_balanceOf(await policyTaker1.getAddress())
+          await HardhatHelper.USDT_balanceOf(await policyTaker1.getAddress()),
         ).to.be.equal(0);
 
         await HardhatHelper.USDT_transfer(
           await policyTaker1.getAddress(),
-          hre_ethers.utils.parseUnits(premium, 6)
+          hre_ethers.utils.parseUnits(premium, 6),
         );
 
         expect(
-          await HardhatHelper.USDT_balanceOf(await policyTaker1.getAddress())
+          await HardhatHelper.USDT_balanceOf(await policyTaker1.getAddress()),
         ).to.be.equal(hre_ethers.utils.parseUnits(premium, 6));
       });
 
       it("Should success buy policies in protocol 0, 1, 2", async () => {
         const USDT_Approved = await HardhatHelper.USDT_maxApprove(
           policyTaker1,
-          ProtocolHelper.getAthenaContract().address
+          ProtocolHelper.getAthenaContract().address,
         );
 
         expect(USDT_Approved).to.haveOwnProperty("transactionHash");
@@ -73,7 +73,7 @@ export function testPoliciesTaker() {
             [109500, 219000, 438000],
             [1000, 2000, 4000],
             [atensLocked, atensLocked, atensLocked],
-            [0, 1, 2]
+            [0, 1, 2],
           );
         expect(tx).to.haveOwnProperty("hash");
       });
@@ -81,14 +81,14 @@ export function testPoliciesTaker() {
       it("Should check policy info in pool 0", async () => {
         const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           policyTaker1,
-          0
+          0,
         );
         const policyInfo = await protocolContract.premiumPositions(
-          await ProtocolHelper.getAccountCoverIdByIndex(policyTaker1, 0)
+          await ProtocolHelper.getAccountCoverIdByIndex(policyTaker1, 0),
         );
 
         expect(policyInfo.beginPremiumRate).to.be.equal(
-          "2000000000000000000000000000"
+          "2000000000000000000000000000",
         );
         expect(policyInfo.coverIdIndex).to.be.equal("0");
         expect(policyInfo.lastTick).to.be.equal(333);
@@ -97,14 +97,14 @@ export function testPoliciesTaker() {
       it("Should check policy info in pool 1", async () => {
         const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           policyTaker1,
-          1
+          1,
         );
         const policyInfo = await protocolContract.premiumPositions(
-          await ProtocolHelper.getAccountCoverIdByIndex(policyTaker1, 1)
+          await ProtocolHelper.getAccountCoverIdByIndex(policyTaker1, 1),
         );
 
         expect(policyInfo.beginPremiumRate).to.be.equal(
-          "3000000000000000000000000000"
+          "3000000000000000000000000000",
         );
         expect(policyInfo.coverIdIndex).to.be.equal("0");
         expect(policyInfo.lastTick).to.be.equal(333);
@@ -113,14 +113,14 @@ export function testPoliciesTaker() {
       it("Should check policy info in pool 2", async () => {
         const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           policyTaker1,
-          2
+          2,
         );
         const policyInfo = await protocolContract.premiumPositions(
-          await ProtocolHelper.getAccountCoverIdByIndex(policyTaker1, 2)
+          await ProtocolHelper.getAccountCoverIdByIndex(policyTaker1, 2),
         );
 
         expect(policyInfo.beginPremiumRate).to.be.equal(
-          "5000000000000000000000000000"
+          "5000000000000000000000000000",
         );
         expect(policyInfo.coverIdIndex).to.be.equal("0");
         expect(policyInfo.lastTick).to.be.equal(333);
@@ -131,14 +131,14 @@ export function testPoliciesTaker() {
           ProtocolHelper.getPolicyManagerContract();
 
         const balance = await POLICY_MANAGER_CONTRACT.balanceOf(
-          await policyTaker1.getAddress()
+          await policyTaker1.getAddress(),
         );
         expect(balance).to.equal(3);
 
         /////
         const tokenId0 = await POLICY_MANAGER_CONTRACT.tokenOfOwnerByIndex(
           await policyTaker1.getAddress(),
-          0
+          0,
         );
         expect(tokenId0).to.equal(0);
 
@@ -148,22 +148,22 @@ export function testPoliciesTaker() {
 
         const poolContract0 = await ProtocolHelper.getProtocolPoolContract(
           policyTaker1,
-          0
+          0,
         );
 
         expect((await poolContract0.poolId()).toString() === "0").to.equal(
-          true
+          true,
         );
 
         const balancePool0 = await HardhatHelper.USDT_balanceOf(
-          poolContract0.address
+          poolContract0.address,
         );
         expect(balancePool0).to.equal(1000);
 
         /////
         const tokenId1 = await POLICY_MANAGER_CONTRACT.tokenOfOwnerByIndex(
           await policyTaker1.getAddress(),
-          1
+          1,
         );
         expect(tokenId1).to.equal(1);
 
@@ -175,22 +175,22 @@ export function testPoliciesTaker() {
 
         const poolContract1 = await ProtocolHelper.getProtocolPoolContract(
           policyTaker1,
-          1
+          1,
         );
 
         expect((await poolContract1.poolId()).toString() === "1").to.equal(
-          true
+          true,
         );
 
         const balancePool1 = await HardhatHelper.USDT_balanceOf(
-          poolContract1.address
+          poolContract1.address,
         );
         expect(balancePool1).to.equal(2000);
 
         /////
         const tokenId2 = await POLICY_MANAGER_CONTRACT.tokenOfOwnerByIndex(
           await policyTaker1.getAddress(),
-          2
+          2,
         );
         expect(tokenId2).to.equal(2);
 
@@ -201,15 +201,15 @@ export function testPoliciesTaker() {
 
         const poolContract2 = await ProtocolHelper.getProtocolPoolContract(
           policyTaker1,
-          2
+          2,
         );
 
         expect((await poolContract2.poolId()).toString() === "2").to.equal(
-          true
+          true,
         );
 
         const balancePool2 = await HardhatHelper.USDT_balanceOf(
-          poolContract2.address
+          poolContract2.address,
         );
         expect(balancePool2).to.equal(4000);
       });
@@ -220,12 +220,12 @@ export function testPoliciesTaker() {
 
         await HardhatHelper.USDT_transfer(
           await policyTaker2.getAddress(),
-          hre_ethers.utils.parseUnits("1000", 6)
+          hre_ethers.utils.parseUnits("1000", 6),
         );
 
         const USDT_Approved = await HardhatHelper.USDT_maxApprove(
           policyTaker2,
-          ProtocolHelper.getAthenaContract().address
+          ProtocolHelper.getAthenaContract().address,
         );
 
         expect(USDT_Approved).to.haveOwnProperty("transactionHash");
@@ -235,7 +235,7 @@ export function testPoliciesTaker() {
         await expect(
           ProtocolHelper.getAthenaContract()
             .connect(policyTaker2)
-            .buyPolicies([109500], [1], [atensLocked], [0])
+            .buyPolicies([109500], [1], [atensLocked], [0]),
         ).to.be.revertedWith("Min duration");
       });
     });

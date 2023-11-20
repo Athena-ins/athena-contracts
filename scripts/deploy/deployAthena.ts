@@ -9,11 +9,11 @@ const { BigNumber } = hre_ethers;
 
 const amountApprove = BigNumber.from(2).pow(256).sub(1);
 const amountTransfers = BigNumber.from(20_000_000).mul(
-  BigNumber.from(10).pow(18)
+  BigNumber.from(10).pow(18),
 );
 // Set at 25 ATEN = 1 USDT
 const initialAtenOraclePrice = BigNumber.from(25).mul(
-  BigNumber.from(10).pow(18)
+  BigNumber.from(10).pow(18),
 );
 
 async function main() {
@@ -50,7 +50,7 @@ async function main() {
     await ProtocolHelper.deployAthenaContract(
       deployer,
       // deploymentAddress.USDT,
-      deploymentAddress.aave_registry
+      deploymentAddress.aave_registry,
     );
 
     console.log("==> POOL FACTORY");
@@ -58,7 +58,7 @@ async function main() {
     console.log("==> PRICE ORACLE");
     await ProtocolHelper.deployPriceOracleV1Contract(
       deployer,
-      initialAtenOraclePrice
+      initialAtenOraclePrice,
     );
     console.log("==> VAULT");
     await ProtocolHelper.deployVaultAtenContract(deployer);
@@ -70,7 +70,7 @@ async function main() {
     console.log("==> MANAGER CLAIMS");
     await ProtocolHelper.deployClaimManagerContract(
       deployer,
-      deploymentAddress.ARBITRATOR
+      deploymentAddress.ARBITRATOR,
     );
 
     console.log("==> STAKING GP");
@@ -99,7 +99,7 @@ async function main() {
 
     const USDT_CONTRACT = new hre_ethers.Contract(
       deploymentAddress.USDT,
-      abiERC20
+      abiERC20,
     );
     const ATEN_CONTRACT = ProtocolHelper.getAtenTokenContract();
     const ATHENA_CONTRACT = ProtocolHelper.getAthenaContract();
@@ -112,11 +112,11 @@ async function main() {
     // =====> approve tokens
     await USDT_CONTRACT.connect(deployer).approve(
       deploymentAddress.ATHENA,
-      amountApprove
+      amountApprove,
     );
     await ATEN_CONTRACT.connect(deployer).approve(
       deploymentAddress.ATHENA,
-      amountApprove
+      amountApprove,
     );
 
     // =====> transfer tokens
@@ -143,10 +143,10 @@ async function main() {
         (deploymentAddress as any)[key]
           ? { ...acc, [key]: value.address }
           : acc,
-      {}
+      {},
     ),
     null,
-    2
+    2,
   );
   console.log("\n==> Contracts: ", newDeploys);
   fs.writeFileSync(`./test/registries/deploys-${chainName}.json`, newDeploys);

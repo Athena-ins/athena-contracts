@@ -97,7 +97,11 @@ contract ClaimManager is
   );
 
   // Emit when a dispute is resolved
-  event DisputeResolved(uint256 claimId, uint256 disputeId, uint256 ruling);
+  event DisputeResolved(
+    uint256 claimId,
+    uint256 disputeId,
+    uint256 ruling
+  );
 
   /// ============================ ///
   /// ========= MODIFIERS ======== ///
@@ -146,7 +150,9 @@ contract ClaimManager is
    * @param claimId_ The claim ID
    * @return _ the claimant's address
    */
-  function claimInitiator(uint256 claimId_) external view returns (address) {
+  function claimInitiator(
+    uint256 claimId_
+  ) external view returns (address) {
     return claims[claimId_].from;
   }
 
@@ -156,7 +162,9 @@ contract ClaimManager is
    * @param claimId_ The claim ID
    * @return _ the challenger's address
    */
-  function claimChallenger(uint256 claimId_) external view returns (address) {
+  function claimChallenger(
+    uint256 claimId_
+  ) external view returns (address) {
     return claims[claimId_].challenger;
   }
 
@@ -182,8 +190,10 @@ contract ClaimManager is
 
     // If the claim is not in the Initiated state it cannot be challenged
     if (userClaim.status != ClaimStatus.Initiated) return 0;
-    else if (userClaim.createdAt + challengeDelay < block.timestamp) return 0;
-    else return (userClaim.createdAt + challengeDelay) - block.timestamp;
+    else if (userClaim.createdAt + challengeDelay < block.timestamp)
+      return 0;
+    else
+      return (userClaim.createdAt + challengeDelay) - block.timestamp;
   }
 
   /**
@@ -229,7 +239,9 @@ contract ClaimManager is
     claimIds = coverIdToClaimIds[coverId_];
   }
 
-  function latestCoverClaimId(uint256 coverId_) public view returns (uint256) {
+  function latestCoverClaimId(
+    uint256 coverId_
+  ) public view returns (uint256) {
     uint256 nbClaims = coverIdToClaimIds[coverId_].length;
     return coverIdToClaimIds[coverId_][nbClaims - 1];
   }
@@ -398,7 +410,12 @@ contract ClaimManager is
       "CM: invalid party"
     );
 
-    _submitKlerosEvidence(claimId_, msg.sender, isClaimant, ipfsEvidenceCids_);
+    _submitKlerosEvidence(
+      claimId_,
+      msg.sender,
+      isClaimant,
+      ipfsEvidenceCids_
+    );
   }
 
   /// ============================ ///
@@ -420,9 +437,8 @@ contract ClaimManager is
     bytes calldata signature_
   ) external payable onlyPolicyTokenOwner(policyId_) {
     // Get the policy
-    IPolicyManager.Policy memory userPolicy = policyManagerInterface.policy(
-      policyId_
-    );
+    IPolicyManager.Policy memory userPolicy = policyManagerInterface
+      .policy(policyId_);
 
     // Verify authenticity of the IPFS meta-evidence CID
     /// @dev Wrap in context to avoid stack too deep error
@@ -447,7 +463,8 @@ contract ClaimManager is
 
     // Check that the user is not trying to claim more than the amount covered
     require(
-      0 < amountClaimed_ && amountClaimed_ <= userPolicy.amountCovered,
+      0 < amountClaimed_ &&
+        amountClaimed_ <= userPolicy.amountCovered,
       "CM: bad amount range"
     );
 
@@ -516,17 +533,22 @@ contract ClaimManager is
     );
 
     // Check the claim is not already disputed
-    require(userClaim.challenger == address(0), "CM: claim already challenged");
+    require(
+      userClaim.challenger == address(0),
+      "CM: claim already challenged"
+    );
 
     // Check that the challenger has deposited enough capital for dispute creation
     uint256 costOfArbitration = userClaim.arbitrationCost;
-    require(costOfArbitration <= msg.value, "CM: must match claimant deposit");
+    require(
+      costOfArbitration <= msg.value,
+      "CM: must match claimant deposit"
+    );
 
     // Create the claim and obtain the Kleros dispute ID
-    uint256 disputeId = arbitrator.createDispute{ value: costOfArbitration }(
-      2,
-      ""
-    );
+    uint256 disputeId = arbitrator.createDispute{
+      value: costOfArbitration
+    }(2, "");
 
     // Update the claim with challenged status and challenger address
     userClaim.status = ClaimStatus.Disputed;
@@ -550,7 +572,10 @@ contract ClaimManager is
    * @param disputeId_ ID of the dispute in the Arbitrator contract.
    * @param ruling_ Ruling given by the arbitrator. Note that 0 is reserved for "Not able/wanting to make a decision".
    */
-  function rule(uint256 disputeId_, uint256 ruling_) external onlyArbitrator {
+  function rule(
+    uint256 disputeId_,
+    uint256 ruling_
+  ) external onlyArbitrator {
     uint256 claimId = disputeIdToClaimId[disputeId_];
     Claim storage userClaim = claims[claimId];
 
@@ -568,13 +593,19 @@ contract ClaimManager is
 
       // Send back the collateral and arbitration cost to the claimant
       address claimant = userClaim.challenger;
-      _sendValue(claimant, userClaim.arbitrationCost + collateralAmount);
+      _sendValue(
+        claimant,
+        userClaim.arbitrationCost + collateralAmount
+      );
     } else if (ruling_ == uint256(RulingOptions.RejectClaim)) {
       userClaim.status = ClaimStatus.RejectedWithDispute;
 
       address challenger = userClaim.challenger;
       // Refund arbitration cost to the challenger and pay them with collateral
-      _sendValue(challenger, userClaim.arbitrationCost + collateralAmount);
+      _sendValue(
+        challenger,
+        userClaim.arbitrationCost + collateralAmount
+      );
 
       // Remove claims from pool to unblock withdrawals
       poolFactoryInterface.removeClaimFromPool(userClaim.poolId);
@@ -583,7 +614,8 @@ contract ClaimManager is
       userClaim.status = ClaimStatus.RejectedWithDispute;
 
       /// @dev we remove 1 wei from the arbitration cost to avoid a rounding errors
-      uint256 halfArbitrationCost = (userClaim.arbitrationCost / 2) - 1;
+      uint256 halfArbitrationCost = (userClaim.arbitrationCost / 2) -
+        1;
 
       address claimant = userClaim.challenger;
       address challenger = userClaim.challenger;
@@ -609,7 +641,9 @@ contract ClaimManager is
    * Allows a policy holder to execute the claim if it has remained unchallenged.
    * @param claimId_ The claim ID
    */
-  function withdrawCompensationWithoutDispute(uint256 claimId_) external {
+  function withdrawCompensationWithoutDispute(
+    uint256 claimId_
+  ) external {
     Claim storage userClaim = claims[claimId_];
 
     // Check the claim is in the appropriate status
@@ -628,7 +662,10 @@ contract ClaimManager is
     userClaim.status = ClaimStatus.CompensatedAfterAcceptation;
 
     // Send back the collateral and arbitration cost to the claimant
-    _sendValue(userClaim.from, userClaim.arbitrationCost + collateralAmount);
+    _sendValue(
+      userClaim.from,
+      userClaim.arbitrationCost + collateralAmount
+    );
 
     // Remove claims from pool to unblock withdrawals
     poolFactoryInterface.removeClaimFromPool(userClaim.poolId);
@@ -647,7 +684,9 @@ contract ClaimManager is
    * Allows the claimant to withdraw the compensation after a dispute has been resolved in their favor.
    * @param claimId_ The claim ID
    */
-  function releaseCompensationAfterDispute(uint256 claimId_) external {
+  function releaseCompensationAfterDispute(
+    uint256 claimId_
+  ) external {
     Claim storage userClaim = claims[claimId_];
 
     // Check the status of the claim
@@ -681,11 +720,15 @@ contract ClaimManager is
    * @dev The collateral is paid to the challenger if the claim is disputed and rejected.
    * @param amount_ The new amount of collateral.
    */
-  function changeRequiredCollateral(uint256 amount_) external onlyOwner {
+  function changeRequiredCollateral(
+    uint256 amount_
+  ) external onlyOwner {
     collateralAmount = amount_;
   }
 
-  function changeChallengeDelay(uint256 duration_) external onlyOwner {
+  function changeChallengeDelay(
+    uint256 duration_
+  ) external onlyOwner {
     challengeDelay = duration_;
   }
 

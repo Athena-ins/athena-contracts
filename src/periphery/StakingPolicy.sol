@@ -129,8 +129,10 @@ contract StakingPolicy is IStakedAtenPolicy, Ownable {
   /// ============================= ///
 
   function _reflectEarnedRewards(uint256 amount_) private {
-    uint256 rewardsLeft = atensVaultInterface.coverRefundRewardsTotal();
-    if (rewardsLeft < unpaidRewards + amount_) revert NotEnoughRewardsLeft();
+    uint256 rewardsLeft = atensVaultInterface
+      .coverRefundRewardsTotal();
+    if (rewardsLeft < unpaidRewards + amount_)
+      revert NotEnoughRewardsLeft();
 
     unpaidRewards += amount_;
   }
@@ -165,7 +167,8 @@ contract StakingPolicy is IStakedAtenPolicy, Ownable {
       uint256 timeElapsed;
       // We want to cap the rewards to the covers expiration
       uint256 upTo = endTimestamp != 0 ? endTimestamp : timestamp;
-      if (upTo < rewardsSinceTimestamp) revert TimestampIsInTheFuture();
+      if (upTo < rewardsSinceTimestamp)
+        revert TimestampIsInTheFuture();
       unchecked {
         // Unckecked because we checked that upTo is bigger
         timeElapsed = upTo - rewardsSinceTimestamp;
@@ -174,10 +177,12 @@ contract StakingPolicy is IStakedAtenPolicy, Ownable {
       // Return proportional rewards
       uint256 maxYearlyReward = (pos_.stakedAmount * rate) / 10_000;
       uint256 maxYearPercentage = (timeElapsed * 1e18) / 365 days;
-      uint256 maxReward = (maxYearPercentage * maxYearlyReward) / 1e18;
+      uint256 maxReward = (maxYearPercentage * maxYearlyReward) /
+        1e18;
 
       // Compute reward based on the premium spent for the cover
-      uint256 newlySpentPremiums = lastPremiumSpent_ - pos_.premiumSpent;
+      uint256 newlySpentPremiums = lastPremiumSpent_ -
+        pos_.premiumSpent;
       uint256 trueReward = newlySpentPremiums * pos_.atenPrice;
 
       rewards = trueReward < maxReward ? trueReward : maxReward;
@@ -200,12 +205,18 @@ contract StakingPolicy is IStakedAtenPolicy, Ownable {
     }
   }
 
-  function _updatePositionAndRewards(RefundPosition storage pos_) private {
+  function _updatePositionAndRewards(
+    RefundPosition storage pos_
+  ) private {
     uint256 atenPrice = priceOracleInterface.getAtenPrice();
     uint64 timestamp = uint64(block.timestamp);
 
     uint256 lastPremiumSpent = _getSpentPremium(pos_.coverId);
-    uint256 earnedRewards = _computeRewards(pos_, timestamp, lastPremiumSpent);
+    uint256 earnedRewards = _computeRewards(
+      pos_,
+      timestamp,
+      lastPremiumSpent
+    );
     _reflectEarnedRewards(earnedRewards);
 
     // Register last reward update & update position with latest config
@@ -275,7 +286,11 @@ contract StakingPolicy is IStakedAtenPolicy, Ownable {
     uint64 timestamp = uint64(block.timestamp);
     uint256 lastPremiumSpent = _getSpentPremium(coverId_);
 
-    pos.earnedRewards += _computeRewards(pos, timestamp, lastPremiumSpent);
+    pos.earnedRewards += _computeRewards(
+      pos,
+      timestamp,
+      lastPremiumSpent
+    );
     pos.premiumSpent = lastPremiumSpent;
 
     return pos;
@@ -307,7 +322,9 @@ contract StakingPolicy is IStakedAtenPolicy, Ownable {
       uint256 coverId = accountCoverIds[i];
 
       if (positions[coverId].initTimestamp != 0) {
-        accountPositions[positionCounter] = getRefundPosition(coverId);
+        accountPositions[positionCounter] = getRefundPosition(
+          coverId
+        );
         positionCounter++;
       }
     }
@@ -352,7 +369,10 @@ contract StakingPolicy is IStakedAtenPolicy, Ownable {
    * @param coverId_ is the id of the cover
    * @param amount_ is the amount of tokens to stake
    */
-  function addToStake(uint256 coverId_, uint256 amount_) external onlyCore {
+  function addToStake(
+    uint256 coverId_,
+    uint256 amount_
+  ) external onlyCore {
     if (amount_ == 0) revert CannotStakeZero();
 
     RefundPosition storage pos = positions[coverId_];
@@ -372,14 +392,20 @@ contract StakingPolicy is IStakedAtenPolicy, Ownable {
   /// ========== PREMIUM CHANGE ========== ///
   /// ==================================== ///
 
-  function updateBeforePremiumChange(uint256 coverId) external onlyCore {
+  function updateBeforePremiumChange(
+    uint256 coverId
+  ) external onlyCore {
     RefundPosition storage pos = positions[coverId];
 
     if (pos.initTimestamp != 0) {
       uint64 timestamp = uint64(block.timestamp);
 
       uint256 lastPremiumSpent = _getSpentPremium(pos.coverId);
-      uint256 earnedRewards = _computeRewards(pos, timestamp, lastPremiumSpent);
+      uint256 earnedRewards = _computeRewards(
+        pos,
+        timestamp,
+        lastPremiumSpent
+      );
       _reflectEarnedRewards(earnedRewards);
 
       pos.premiumSpent = 0;
@@ -467,7 +493,9 @@ contract StakingPolicy is IStakedAtenPolicy, Ownable {
   }
 
   // Should be called for expired cover tokens
-  function endStakingPositions(uint256[] calldata coverIds_) external onlyCore {
+  function endStakingPositions(
+    uint256[] calldata coverIds_
+  ) external onlyCore {
     uint64 timestamp = uint64(block.timestamp);
 
     for (uint256 i = 0; i < coverIds_.length; i++) {
@@ -514,6 +542,10 @@ contract StakingPolicy is IStakedAtenPolicy, Ownable {
     basePenaltyRate = basePenaltyRate_;
     durationPenaltyRate = durationPenaltyRate_;
 
-    emit RatesUpdated(refundRate_, basePenaltyRate_, durationPenaltyRate_);
+    emit RatesUpdated(
+      refundRate_,
+      basePenaltyRate_,
+      durationPenaltyRate_
+    );
   }
 }

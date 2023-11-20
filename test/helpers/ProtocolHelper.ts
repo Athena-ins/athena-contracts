@@ -1,5 +1,5 @@
-import { BigNumberish, BigNumber , Signer } from "ethers";
-import { ethers  } from "hardhat";
+import { BigNumberish, BigNumber, Signer } from "ethers";
+import { ethers } from "hardhat";
 
 import HardhatHelper from "./HardhatHelper";
 import { contract } from "./TypedContracts";
@@ -21,24 +21,28 @@ import {
   deployStakingPolicy,
 } from "./deployers";
 
-const {parseEther} = ethers.utils
+const { parseEther } = ethers.utils;
 
 // ======================= //
 // === Deploy protocol === //
 // ======================= //
 
-
 type ProtocolConfig = {
   arbitrationFee: BigNumberish;
-}
+};
 
 export const defaultProtocolConfig = {
   arbitrationFee: parseEther("0.01"),
-}
+};
 
-export async function deployAllContractsAndInitializeProtocol(owner: Signer, config: ProtocolConfig) {
+export async function deployAllContractsAndInitializeProtocol(
+  owner: Signer,
+  config: ProtocolConfig,
+) {
   const ATEN = await deployATEN(owner, []);
-  const CentralizedArbitrator = await deployCentralizedArbitrator(owner, [config.arbitrationFee]);
+  const CentralizedArbitrator = await deployCentralizedArbitrator(owner, [
+    config.arbitrationFee,
+  ]);
 
   // Deploy core
   const Athena = await deployAthena(owner, []);
@@ -352,7 +356,7 @@ async function resolveClaimWithoutDispute(
 
 async function takeInterest(
   user: Signer,
-  tokenId:  BigNumberish,
+  tokenId: BigNumberish,
   poolId: number,
   timeLapse: number,
   eventIndex: number = 0,

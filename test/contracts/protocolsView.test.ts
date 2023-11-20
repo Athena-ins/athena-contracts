@@ -39,7 +39,7 @@ export function testProtocolsView() {
         USDT_amount1,
         ATEN_amount1,
         [0, 2],
-        1 * 24 * 60 * 60
+        1 * 24 * 60 * 60,
       );
 
       const USDT_amount2 = "547500";
@@ -49,12 +49,12 @@ export function testProtocolsView() {
         USDT_amount2,
         ATEN_amount2,
         [0, 2],
-        1 * 24 * 60 * 60
+        1 * 24 * 60 * 60,
       );
 
       await HardhatHelper.USDT_maxApprove(
         policyTaker1,
-        ProtocolHelper.getAthenaContract().address
+        ProtocolHelper.getAthenaContract().address,
       );
 
       const capital1 = "109500";
@@ -66,12 +66,12 @@ export function testProtocolsView() {
         premium1,
         atensLocked1,
         0,
-        20 * 24 * 60 * 60
+        20 * 24 * 60 * 60,
       );
 
       await HardhatHelper.USDT_maxApprove(
         policyTaker2,
-        ProtocolHelper.getAthenaContract().address
+        ProtocolHelper.getAthenaContract().address,
       );
 
       const capital2 = "219000";
@@ -83,7 +83,7 @@ export function testProtocolsView() {
         premium2,
         atensLocked2,
         2,
-        10 * 24 * 60 * 60
+        10 * 24 * 60 * 60,
       );
     });
 
@@ -101,7 +101,7 @@ export function testProtocolsView() {
       expect(result[0].insuredCapital).to.be.equal(109500);
       expect(result[0].availableCapacity).to.be.equal(620500);
       expect(result[0].utilizationRate).to.be.equal(
-        "15000000000000000000000000000"
+        "15000000000000000000000000000",
       );
       expect(result[0].premiumRate).to.be.equal("2000000000000000000000000000");
 
@@ -117,7 +117,7 @@ export function testProtocolsView() {
       expect(result[2].insuredCapital).to.be.equal(219000);
       expect(result[2].availableCapacity).to.be.equal(511000);
       expect(result[2].utilizationRate).to.be.equal(
-        "30000000000000000000000000000"
+        "30000000000000000000000000000",
       );
       expect(result[2].premiumRate).to.be.equal("3000000000000000000000000000");
     });
@@ -160,7 +160,7 @@ export function testProtocolsView() {
       expect(result[0].insuredCapital).to.be.equal(219000);
       expect(result[0].availableCapacity).to.be.equal(511000);
       expect(result[0].utilizationRate).to.be.equal(
-        "30000000000000000000000000000"
+        "30000000000000000000000000000",
       );
       expect(result[0].premiumRate).to.be.equal("3000000000000000000000000000");
 

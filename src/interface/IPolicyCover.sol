@@ -2,7 +2,11 @@
 pragma solidity 0.8.20;
 
 interface IPolicyCover {
-  event BuyPolicy(address owner, uint256 premium, uint256 capitalInsured);
+  event BuyPolicy(
+    address owner,
+    uint256 premium,
+    uint256 capitalInsured
+  );
   event WithdrawPolicy(uint256 coverId, uint256 remainedAmount);
   event ExpiredPolicy(uint256 coverId, uint32 tick);
 

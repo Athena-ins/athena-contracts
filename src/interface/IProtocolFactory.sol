@@ -14,9 +14,13 @@ interface IProtocolFactory {
 
   function getNextPoolId() external view returns (uint128);
 
-  function getPool(uint128 poolId_) external view returns (Protocol memory);
+  function getPool(
+    uint128 poolId_
+  ) external view returns (Protocol memory);
 
-  function getPoolAddress(uint128 poolId_) external view returns (address);
+  function getPoolAddress(
+    uint128 poolId_
+  ) external view returns (address);
 
   function validePoolIds(uint128[] calldata poolIds) external view;
 

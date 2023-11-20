@@ -87,7 +87,10 @@ interface ILendingPool {
    * @param asset The address of the underlying asset borrowed
    * @param rateMode The rate mode that the user wants to swap to
    **/
-  function swapBorrowRateMode(address asset, uint256 rateMode) external;
+  function swapBorrowRateMode(
+    address asset,
+    uint256 rateMode
+  ) external;
 
   /**
    * @dev Rebalances the stable interest rate of a user to the current stable rate defined on the reserve.
@@ -98,7 +101,10 @@ interface ILendingPool {
    * @param asset The address of the underlying asset borrowed
    * @param user The address of the user to be rebalanced
    **/
-  function rebalanceStableBorrowRate(address asset, address user) external;
+  function rebalanceStableBorrowRate(
+    address asset,
+    address user
+  ) external;
 
   /**
    * @dev Allows depositors to enable/disable a specific deposited asset as collateral
@@ -193,7 +199,10 @@ interface ILendingPool {
     address rateStrategyAddress
   ) external;
 
-  function setConfiguration(address reserve, uint256 configuration) external;
+  function setConfiguration(
+    address reserve,
+    uint256 configuration
+  ) external;
 
   /**
    * @dev Returns the configuration of the reserve

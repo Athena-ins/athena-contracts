@@ -25,7 +25,8 @@ contract PositionPoolLiquidity {
   mapping(uint128 _poolId0 => mapping(uint128 _poolId1 => uint256 _amount))
     public overlappingLiquidity;
   // Maps pool IDs to the overlapped pool IDs
-  mapping(uint128 _poolId => uint128[] _poolDependants) public dependantPools;
+  mapping(uint128 _poolId => uint128[] _poolDependants)
+    public dependantPools;
 
   constructor(address poolFactory) {
     poolFactoryInterface = IProtocolFactory(poolFactory);
@@ -103,7 +104,10 @@ contract PositionPoolLiquidity {
         // Avoid incrementing twice the same pool combination
         if (poolId1 < poolId0) continue;
 
-        if (poolId0 != poolId1 && overlappingLiquidity[poolId0][poolId1] == 0) {
+        if (
+          poolId0 != poolId1 &&
+          overlappingLiquidity[poolId0][poolId1] == 0
+        ) {
           dependantPools[poolId0].push(poolId1);
           dependantPools[poolId1].push(poolId0);
         }
@@ -143,7 +147,9 @@ contract PositionPoolLiquidity {
     uint256 amount_,
     uint256 reserveNormalizedIncome_
   ) internal {
-    uint256 availableCapital = overlappingLiquidity[coverPoolId_][coverPoolId_];
+    uint256 availableCapital = overlappingLiquidity[coverPoolId_][
+      coverPoolId_
+    ];
     uint256 ratio = amount_.rayDiv(availableCapital);
 
     uint256 nbPoolIds = dependantPools[coverPoolId_].length;
@@ -161,7 +167,9 @@ contract PositionPoolLiquidity {
       uint256 amountToRemove = overlapAmount.rayMul(ratio);
 
       overlappingLiquidity[poolId0][poolId1] -= amountToRemove;
-      overlappingLiquidity[currentPool][currentPool] -= amountToRemove;
+      overlappingLiquidity[currentPool][
+        currentPool
+      ] -= amountToRemove;
 
       // call process claim on protocol pool
       address poolAddress = _getPoolAddressById(currentPool);

@@ -54,7 +54,9 @@ contract PositionsManager is
   /// ========= VIEWS ======== ///
   /// ======================== ///
 
-  function position(uint256 tokenId) external view returns (Position memory) {
+  function position(
+    uint256 tokenId
+  ) external view returns (Position memory) {
     return _positions[tokenId];
   }
 
@@ -93,12 +95,16 @@ contract PositionsManager is
 
       // Loop through each poolId (j) in a tokenId
       for (uint256 j = 0; j < __position.poolIds.length; j++) {
-        address poolAddress = _getPoolAddressById(__position.poolIds[j]);
+        address poolAddress = _getPoolAddressById(
+          __position.poolIds[j]
+        );
 
         // Check the user's rewards in the pool
-        (uint256 __newUserCapital, uint256 __totalRewards, ) = IProtocolPool(
-          poolAddress
-        ).rewardsOf(
+        (
+          uint256 __newUserCapital,
+          uint256 __totalRewards,
+
+        ) = IProtocolPool(poolAddress).rewardsOf(
             tokenId,
             __position.amountSupplied,
             __position.poolIds,
@@ -179,7 +185,8 @@ contract PositionsManager is
       // @bw test to see if it works
       {
         uint128 poolCommitDelay = currentPool.commitDelay();
-        if (maxCommitDelay < poolCommitDelay) maxCommitDelay = poolCommitDelay;
+        if (maxCommitDelay < poolCommitDelay)
+          maxCommitDelay = poolCommitDelay;
       }
 
       // Loop through each latter pool (j)
@@ -191,13 +198,13 @@ contract PositionsManager is
         currentPool.addRelatedProtocol(latterPoolId, amount);
 
         // Mirror the dependency of the current pool in the latter pool
-        IProtocolPool(_getPoolAddressById(latterPoolId)).addRelatedProtocol(
-          currentPoolId,
-          amount
-        );
+        IProtocolPool(_getPoolAddressById(latterPoolId))
+          .addRelatedProtocol(currentPoolId, amount);
       }
 
-      _core.actualizingProtocolAndRemoveExpiredPolicies(address(currentPool));
+      _core.actualizingProtocolAndRemoveExpiredPolicies(
+        address(currentPool)
+      );
 
       // Deposit fund into pool and add amount to its own intersectingAmounts
       currentPool.depositToPool(tokenId, amount);
@@ -223,7 +230,9 @@ contract PositionsManager is
     withdrawCommitTimestamps[tokenId_] = block.timestamp;
   }
 
-  function checkDelayAndClosePosition(uint tokenId_) external onlyCore {
+  function checkDelayAndClosePosition(
+    uint tokenId_
+  ) external onlyCore {
     uint128 commitDelay = _positions[tokenId_].commitDelay;
     uint256 commitTimestamp = withdrawCommitTimestamps[tokenId_];
 
@@ -239,7 +248,10 @@ contract PositionsManager is
   /// ========================= ///
 
   // @bw remove fn or check side effects - dangerous
-  function removePoolId(uint256 tokenId, uint128 _poolId) external onlyCore {
+  function removePoolId(
+    uint256 tokenId,
+    uint128 _poolId
+  ) external onlyCore {
     uint128[] memory __poolIds = _positions[tokenId].poolIds;
 
     for (uint256 i = 0; i < __poolIds.length; i++) {
@@ -265,7 +277,9 @@ contract PositionsManager is
     uint256 amount,
     uint256 newAaveScaledBalance
   ) external onlyCore {
-    IPositionsManager.Position memory userPosition = _positions[tokenId];
+    IPositionsManager.Position memory userPosition = _positions[
+      tokenId
+    ];
 
     IAthena _core = IAthena(core);
 
@@ -290,13 +304,13 @@ contract PositionsManager is
         currentPool.addRelatedProtocol(latterPoolId, amount);
 
         // Mirror the dependency of the current pool in the latter pool
-        IProtocolPool(_getPoolAddressById(latterPoolId)).addRelatedProtocol(
-          currentPoolId,
-          amount
-        );
+        IProtocolPool(_getPoolAddressById(latterPoolId))
+          .addRelatedProtocol(currentPoolId, amount);
       }
 
-      _core.actualizingProtocolAndRemoveExpiredPolicies(address(currentPool));
+      _core.actualizingProtocolAndRemoveExpiredPolicies(
+        address(currentPool)
+      );
 
       // Deposit fund into pool and add amount to its own intersectingAmounts
       currentPool.depositToPool(tokenId, amount);
@@ -325,7 +339,9 @@ contract PositionsManager is
 
     IAthena _core = IAthena(core);
     address protocolAddress = _getPoolAddressById(poolId);
-    _core.actualizingProtocolAndRemoveExpiredPolicies(protocolAddress);
+    _core.actualizingProtocolAndRemoveExpiredPolicies(
+      protocolAddress
+    );
 
     (
       uint256 _newUserCapital,
@@ -340,11 +356,15 @@ contract PositionsManager is
 
     if (_position.amountSupplied != _newUserCapital) {
       _positions[tokenId].amountSupplied = _newUserCapital;
-      _positions[tokenId].aaveScaledBalance -= _aaveScaledBalanceToRemove;
+      _positions[tokenId]
+        .aaveScaledBalance -= _aaveScaledBalanceToRemove;
     }
   }
 
-  function _takeInterestsInAllPools(address account, uint256 tokenId) internal {
+  function _takeInterestsInAllPools(
+    address account,
+    uint256 tokenId
+  ) internal {
     Position memory userPosition = _positions[tokenId];
     IAthena _core = IAthena(core);
 
@@ -354,7 +374,9 @@ contract PositionsManager is
       uint128 poolId = userPosition.poolIds[i];
 
       address protocolAddress = _getPoolAddressById(poolId);
-      _core.actualizingProtocolAndRemoveExpiredPolicies(protocolAddress);
+      _core.actualizingProtocolAndRemoveExpiredPolicies(
+        protocolAddress
+      );
 
       (
         uint256 _newUserCapital,
@@ -376,7 +398,8 @@ contract PositionsManager is
 
     if (userPosition.amountSupplied != amountSuppliedUpdated) {
       _positions[tokenId].amountSupplied = amountSuppliedUpdated;
-      _positions[tokenId].aaveScaledBalance -= aaveScaledBalanceUpdated;
+      _positions[tokenId]
+        .aaveScaledBalance -= aaveScaledBalanceUpdated;
     }
   }
 
@@ -402,7 +425,11 @@ contract PositionsManager is
     uint256 amount_,
     uint256 reserveNormalizedIncome_
   ) external onlyCore {
-    _claimLiquidityRemoval(coverPoolId_, amount_, reserveNormalizedIncome_);
+    _claimLiquidityRemoval(
+      coverPoolId_,
+      amount_,
+      reserveNormalizedIncome_
+    );
   }
 
   /// ======================== ///
