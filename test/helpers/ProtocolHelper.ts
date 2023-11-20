@@ -1,5 +1,5 @@
-import { BigNumberish, BigNumber, ethers } from "ethers";
-import { ethers as hre_ethers } from "hardhat";
+import { BigNumberish, BigNumber , Signer } from "ethers";
+import { ethers  } from "hardhat";
 
 import HardhatHelper from "./HardhatHelper";
 import { contract } from "./TypedContracts";
@@ -69,11 +69,11 @@ export async function deployAllContractsAndInitializeProtocol(owner: Signer, con
 // === Protocol config === //
 // ======================= //
 
-async function setFactoryClaimAndPositionManagers(owner: ethers.Signer) {
+async function setFactoryClaimAndPositionManagers(owner: Signer) {
   return await (
     await contract.FACTORY_PROTOCOL.connect(owner).setClaimAndPositionManagers(
       contract.CLAIM_MANAGER.address,
-      contract.POSITIONS_MANAGER.address
+      contract.POSITIONS_MANAGER.address,
     )
   ).wait();
 }
@@ -87,11 +87,11 @@ async function initializeProtocol(owner: Signer) {
     contract.STAKING_POLICY.address, // stakedAtensPo
     contract.FACTORY_PROTOCOL.address, // protocolFactory
     contract.TOKEN_VAULT.address, // atensVault
-    contract.PRICE_ORACLE_V1.address // priceOracle
+    contract.PRICE_ORACLE_V1.address, // priceOracle
   );
 }
 
-async function setFeeLevelsWithAten(owner: ethers.Signer) {
+async function setFeeLevelsWithAten(owner: Signer) {
   return await contract.STAKING_GP.connect(owner).setFeeLevelsWithAten([
     { atenAmount: 0, feeRate: 250 },
     { atenAmount: 1_000, feeRate: 200 },
@@ -100,7 +100,7 @@ async function setFeeLevelsWithAten(owner: ethers.Signer) {
   ]);
 }
 
-async function setStakingRewardRates(owner: ethers.Signer) {
+async function setStakingRewardRates(owner: Signer) {
   return await contract.STAKING_GP.connect(owner).setStakingRewardRates([
     { amountSupplied: 0, aprStaking: 1_000 },
     { amountSupplied: 10_000, aprStaking: 1_200 },
@@ -110,13 +110,13 @@ async function setStakingRewardRates(owner: ethers.Signer) {
 }
 
 async function setCoverRefundConfig(
-  owner: ethers.Signer,
+  owner: Signer,
   options?: {
     shortCoverDuration?: number;
     refundRate?: number;
     basePenaltyRate?: number;
     durationPenaltyRate?: number;
-  }
+  },
 ) {
   const config = {
     shortCoverDuration: 180 * 24 * 60 * 60,
@@ -129,7 +129,7 @@ async function setCoverRefundConfig(
   try {
     await (
       await contract.STAKING_POLICY.connect(owner).setShortCoverDuration(
-        config.shortCoverDuration
+        config.shortCoverDuration,
       )
     ).wait();
 
@@ -137,7 +137,7 @@ async function setCoverRefundConfig(
       await contract.STAKING_POLICY.connect(owner).setRefundAndPenaltyRate(
         config.refundRate,
         config.basePenaltyRate,
-        config.durationPenaltyRate
+        config.durationPenaltyRate,
       )
     ).wait();
   } catch (err: any) {
@@ -150,20 +150,20 @@ async function setCoverRefundConfig(
 // =========================== //
 
 async function depositRewardsToVault(
-  owner: ethers.Signer,
-  amountToTransfer: BigNumberish
+  owner: Signer,
+  amountToTransfer: BigNumberish,
 ) {
   await contract.ATEN.connect(owner).approve(
     contract.TOKEN_VAULT.address,
-    BigNumber.from(amountToTransfer).mul(2)
+    BigNumber.from(amountToTransfer).mul(2),
   );
 
   await contract.TOKEN_VAULT.connect(owner).depositCoverRefundRewards(
-    amountToTransfer
+    amountToTransfer,
   );
 
   await contract.TOKEN_VAULT.connect(owner).depositStakingRewards(
-    amountToTransfer
+    amountToTransfer,
   );
 }
 
@@ -178,7 +178,7 @@ async function addNewProtocolPool(protocolPoolName: string) {
     BigNumber.from(75).mul(BigNumber.from(10).pow(27)), // uOptimal_
     BigNumber.from(1).mul(BigNumber.from(10).pow(27)), // r0_
     BigNumber.from(5).mul(BigNumber.from(10).pow(27)), // rSlope1_
-    BigNumber.from(11).mul(BigNumber.from(10).pow(26)) // rSlope2_
+    BigNumber.from(11).mul(BigNumber.from(10).pow(26)), // rSlope2_
   );
 }
 
@@ -186,22 +186,22 @@ async function getProtocolPoolDataById(protocolPoolId: number) {
   return await contract.ATHENA.getProtocol(protocolPoolId);
 }
 
-async function getProtocolPoolContract(user: ethers.Signer, poolId: number) {
+async function getProtocolPoolContract(user: Signer, poolId: number) {
   const protocol = await contract.ATHENA.connect(user).getProtocol(poolId);
 
   return new ethers.Contract(
     protocol.deployed,
     abiProtocolPool,
-    user
+    user,
   ) as typeProtocolPool;
 }
 
 async function deposit(
-  user: ethers.Signer,
+  user: Signer,
   USDT_amount: BigNumberish,
   ATEN_amount: BigNumberish,
   protocols: number[],
-  timeLapse: number
+  timeLapse: number,
 ) {
   const userAddress = await user.getAddress();
 
@@ -213,7 +213,7 @@ async function deposit(
     await HardhatHelper.ATEN_approve(
       user,
       contract.ATHENA.address,
-      ATEN_amount
+      ATEN_amount,
     );
 
     await (await contract.ATHENA.connect(user).stakeAtens(ATEN_amount)).wait();
@@ -225,12 +225,12 @@ async function deposit(
 }
 
 async function buyPolicy(
-  user: ethers.Signer,
+  user: Signer,
   capital: BigNumberish,
   premium: BigNumberish,
   atensLocked: BigNumberish,
   poolId: number,
-  timeLapse: number
+  timeLapse: number,
 ) {
   const userAddress = await user.getAddress();
 
@@ -242,7 +242,7 @@ async function buyPolicy(
     await HardhatHelper.ATEN_approve(
       user,
       contract.ATHENA.address,
-      atensLocked
+      atensLocked,
     );
   }
 
@@ -254,28 +254,28 @@ async function buyPolicy(
     [capital],
     [premium],
     [atensLocked],
-    [poolId]
+    [poolId],
   );
 }
 
 async function buyPolicies(
-  user: ethers.Signer,
+  user: Signer,
   capital: BigNumberish[],
   premium: BigNumberish[],
   atensLocked: BigNumberish[],
   poolId: number[],
-  timeLapse: number
+  timeLapse: number,
 ) {
   const userAddress = await user.getAddress();
 
   const premiumTotal = premium.reduce(
     (acc: BigNumber, el) => acc.add(BigNumber.from(el)),
-    BigNumber.from(0)
+    BigNumber.from(0),
   );
 
   const atensLockedTotal = atensLocked.reduce(
     (acc: BigNumber, el) => acc.add(BigNumber.from(el)),
-    BigNumber.from(0)
+    BigNumber.from(0),
   );
 
   await HardhatHelper.USDT_transfer(userAddress, premiumTotal);
@@ -286,7 +286,7 @@ async function buyPolicies(
     await HardhatHelper.ATEN_approve(
       user,
       contract.ATHENA.address,
-      atensLockedTotal
+      atensLockedTotal,
     );
   }
 
@@ -296,15 +296,15 @@ async function buyPolicies(
     capital,
     premium,
     atensLocked,
-    poolId
+    poolId,
   );
 }
 
 async function createClaim(
-  policyHolder: ethers.Signer,
+  policyHolder: Signer,
   coverId: number,
   amountClaimed: string | number,
-  valueOverride?: ethers.BigNumberish
+  valueOverride?: ethers.BigNumberish,
 ) {
   // Get the cost of arbitration + challenge collateral
   const [arbitrationCost, collateralAmount] = await Promise.all([
@@ -318,7 +318,7 @@ async function createClaim(
 
   const hash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(ipfsCid));
   const signature = await HardhatHelper.getMetaEvidenceGuardian().signMessage(
-    ethers.utils.arrayify(hash)
+    ethers.utils.arrayify(hash),
   );
 
   // Create the claim
@@ -327,34 +327,35 @@ async function createClaim(
     amountClaimed,
     ipfsCid,
     signature,
-    { value: valueForTx }
+    { value: valueForTx },
   );
 }
 
 async function resolveClaimWithoutDispute(
-  policyHolder: ethers.Signer,
+  policyHolder: Signer,
   coverId: number,
-  timeLapse: number
+  timeLapse: number,
 ) {
-  const claimIds = await contract.CLAIM_MANAGER.connect(
-    policyHolder
-  ).getCoverIdToClaimIds(coverId);
+  const claimIds =
+    await contract.CLAIM_MANAGER.connect(policyHolder).getCoverIdToClaimIds(
+      coverId,
+    );
 
   const latestClaimId = claimIds[claimIds.length - 1];
 
   await HardhatHelper.setNextBlockTimestamp(timeLapse);
 
   await contract.CLAIM_MANAGER.connect(
-    policyHolder
+    policyHolder,
   ).withdrawCompensationWithoutDispute(latestClaimId);
 }
 
 async function takeInterest(
-  user: ethers.Signer,
-  tokenId: ethers.BigNumberish,
+  user: Signer,
+  tokenId:  BigNumberish,
   poolId: number,
   timeLapse: number,
-  eventIndex: number = 0
+  eventIndex: number = 0,
 ) {
   await HardhatHelper.setNextBlockTimestamp(timeLapse);
 
@@ -365,7 +366,7 @@ async function takeInterest(
   if (!event) throw new Error("Event not found");
   return (await getProtocolPoolContract(user, 0)).interface.decodeEventLog(
     event.topics[0],
-    event.data
+    event.data,
   );
 }
 
@@ -378,8 +379,8 @@ const atenAmountPostHelperTransfer = (amount: BigNumberish) => {
 };
 
 const stakingGeneralPoolDeposit = async (
-  user: ethers.Signer,
-  amount: BigNumberish
+  user: Signer,
+  amount: BigNumberish,
 ) => {
   const userAddress = await user.getAddress();
 
@@ -389,38 +390,38 @@ const stakingGeneralPoolDeposit = async (
   await contract.ATHENA.connect(user).stakeAtens(amount);
 };
 
-const getAllUserCovers = async (user: ethers.Signer) => {
+const getAllUserCovers = async (user: Signer) => {
   return await contract.POLICY_MANAGER.connect(user).fullCoverDataByAccount(
-    await user.getAddress()
+    await user.getAddress(),
   );
 };
 
-const getOngoingCovers = async (user: ethers.Signer) => {
+const getOngoingCovers = async (user: Signer) => {
   const allCovers = await contract.POLICY_MANAGER.connect(
-    user
+    user,
   ).fullCoverDataByAccount(await user.getAddress());
 
   return allCovers.filter((cover) => cover.endTimestamp.eq(0));
 };
 
-const getExpiredCovers = async (user: ethers.Signer) => {
+const getExpiredCovers = async (user: Signer) => {
   const allCovers = await contract.POLICY_MANAGER.connect(
-    user
+    user,
   ).fullCoverDataByAccount(await user.getAddress());
 
   return allCovers.filter((cover) => !cover.endTimestamp.eq(0));
 };
 
-const getAccountCoverIdByIndex = async (user: ethers.Signer, index: number) => {
+const getAccountCoverIdByIndex = async (user: Signer, index: number) => {
   const allCoverIds = await contract.POLICY_MANAGER.connect(
-    user
+    user,
   ).allPolicyTokensOfOwner(await user.getAddress());
 
   return allCoverIds[index];
 };
 
 const updateCover = async (
-  user: ethers.Signer,
+  user: Signer,
   action:
     | "increaseCover"
     | "decreaseCover"
@@ -429,7 +430,7 @@ const updateCover = async (
     | "addToCoverRefundStake"
     | "withdrawCoverRefundStakedAten",
   coverId: BigNumberish,
-  amount: BigNumberish
+  amount: BigNumberish,
 ) => {
   const userAddress = await user.getAddress();
 

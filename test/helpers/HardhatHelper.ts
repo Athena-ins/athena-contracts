@@ -1,17 +1,17 @@
-import hre, { ethers as hre_ethers, network } from "hardhat";
+import hre, { ethers , network } from "hardhat";
 import { HardhatNetworkConfig } from "hardhat/types";
-import { ethers, BigNumber, BigNumberish } from "ethers";
-import weth_abi from "../../abis/weth.json";
-import lendingPoolAbi from "../../abis/lendingPool.json";
+import {   BigNumber, BigNumberish, Signer , Contract} from "../../types";
+import weth_abi from "../abis/weth.json";
+import lendingPoolAbi from "../abis/lendingPool.json";
 import { contract, deploymentAddress } from "./TypedContracts";
 
 const NULL_ADDRESS = "0x" + "0".repeat(40);
 
-let binanceSigner: ethers.Signer;
-let atenOwnerSigner: ethers.Signer;
+let binanceSigner: Signer;
+let atenOwnerSigner: Signer;
 
 async function allSigners() {
-  return await hre_ethers.getSigners();
+  return await ethers.getSigners();
 }
 
 async function deployerSigner() {
@@ -63,12 +63,12 @@ async function impersonateAccount(address: string) {
     params: [address],
   });
 
-  return await hre_ethers.getSigner(address);
+  return await ethers.getSigner(address);
 }
 
 async function setNextBlockTimestamp(secondsToAdd: number) {
   if (secondsToAdd <= 0) return;
-  const latestTimeStamp = (await hre.ethers.provider.getBlock("latest"))
+  const latestTimeStamp = (await ethers.provider.getBlock("latest"))
     .timestamp;
 
   const newTime = latestTimeStamp + secondsToAdd;
@@ -81,7 +81,7 @@ async function setNextBlockTimestamp(secondsToAdd: number) {
 }
 
 async function getCurrentTime() {
-  return (await hre.ethers.provider.getBlock("latest")).timestamp;
+  return (await ethers.provider.getBlock("latest")).timestamp;
 }
 
 async function USDT_spenderBalance() {
@@ -100,18 +100,18 @@ async function USDT_transfer(address: string, amount: BigNumberish) {
 }
 
 async function USDT_approve(
-  owner: ethers.Signer,
+  owner:  Signer,
   spender: string,
-  amount: BigNumberish
+  amount: BigNumberish,
 ) {
   return (await contract.USDT.connect(owner).approve(spender, amount)).wait();
 }
 
-async function USDT_maxApprove(owner: ethers.Signer, spender: string) {
+async function USDT_maxApprove(owner:  Signer, spender: string) {
   return (
     await contract.USDT.connect(owner).approve(
       spender,
-      ethers.BigNumber.from(2).pow(256).sub(1)
+       BigNumber.from(2).pow(256).sub(1),
     )
   ).wait();
 }
@@ -132,34 +132,34 @@ async function ATEN_transfer(address: string, amount: BigNumberish) {
   (
     await contract.ATEN.connect(atenOwnerSigner).transfer(
       address,
-      amountForFees
+      amountForFees,
     )
   ).wait();
 }
 
 async function ATEN_approve(
-  owner: ethers.Signer,
+  owner:  Signer,
   spender: string,
-  amount: BigNumberish
+  amount: BigNumberish,
 ) {
   return (await contract.ATEN.connect(owner).approve(spender, amount)).wait();
 }
 
-async function getATokenBalance(user: ethers.Signer) {
-  const AAVE_LENDING_POOL_CONTRACT = new ethers.Contract(
+async function getATokenBalance(user:  Signer) {
+  const AAVE_LENDING_POOL_CONTRACT = new  Contract(
     deploymentAddress.aave_lending_pool,
     lendingPoolAbi,
-    user
+    user,
   );
   const athenaAddress = contract.ATHENA.address;
   const usdtAddress = contract.USDT.address;
   // we fetch lending pool data for USDT to get aToken address
   const data = await AAVE_LENDING_POOL_CONTRACT.getReserveData(usdtAddress);
   // and now check our aToken balance in contract
-  const aTokenContract = new ethers.Contract(
+  const aTokenContract = new  Contract(
     data.aTokenAddress,
     weth_abi,
-    user
+    user,
   );
   const bal = await aTokenContract.balanceOf(athenaAddress);
   return bal;
