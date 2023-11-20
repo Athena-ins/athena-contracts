@@ -37,6 +37,7 @@ let owner: originalEthers.Signer,
 
 const BN = (num: string | number) => ethers.BigNumber.from(num);
 
+export function testProtocolPool() {
 describe("Protocol Pool", function () {
   let DATE_NOW: number;
 
@@ -717,3 +718,4 @@ describe("Protocol Pool", function () {
 
   //await ATHENA_CONTRACT.balanceOf(signerAddress)).to.be.true;
 });
+}

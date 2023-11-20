@@ -23,6 +23,12 @@ import { testStakingPolicy } from "./contracts/stakingPolicy.test";
 import { testStakingGeneralPool } from "./contracts/stakingGeneralPool.test";
 import { testUpdateCover } from "./contracts/updateCover.test";
 import { testProtocolsView } from "./contracts/protocolsView.test";
+// @bw these test we not run by previous testing cmd - keep / del ?
+import { testClaimsView } from "./contracts/claimsView.test";
+import { testPremiumRewards } from "./contracts/premiumRewards.test";
+import { testProtocolPool } from "./contracts/protocolPool.test";
+import { testThaoPremiumLeftError } from "./contracts/thaoPremiumLeftError.test";
+import { testFinance } from "./contracts/finance.test";
 
 baseContext("Functionnal tests", function () {
   beforeEach(async function () {
@@ -51,10 +57,15 @@ baseContext("Functionnal tests", function () {
     testStakingPolicy();
     testStakingGeneralPool();
     testUpdateCover();
-    testProtocolsView();
+    //
+    testPremiumRewards();
+    testProtocolPool();
+    testThaoPremiumLeftError();
+    testFinance();
   });
 
-  describe.skip("Views", function () {
-    testClaims();
+  describe("Views", function () {
+    testProtocolsView();
+    testClaimsView();
   });
 });
