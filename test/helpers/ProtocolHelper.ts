@@ -7,106 +7,67 @@ import { contract } from "./TypedContracts";
 import { abi as abiProtocolPool } from "../../artifacts/contracts/ProtocolPool.sol/ProtocolPool.json";
 import { ProtocolPool as typeProtocolPool } from "../../typechain/ProtocolPool";
 
-async function deployAtenTokenContract(owner: ethers.Signer) {
-  contract.ATEN = await (await hre_ethers.getContractFactory("ATEN"))
-    .connect(owner)
-    .deploy();
+import {
+  deployATEN,
+  deployCentralizedArbitrator,
+  deployAthena,
+  deployProtocolFactory,
+  deployPriceOracleV1,
+  deployTokenVault,
+  deployPositionsManager,
+  deployPolicyManager,
+  deployClaimManager,
+  deployStakingGeneralPool,
+  deployStakingPolicy,
+} from "./deployers";
 
-  await contract.ATEN.deployed();
+const {parseEther} = ethers.utils
+
+// ======================= //
+// === Deploy protocol === //
+// ======================= //
+
+
+type ProtocolConfig = {
+  arbitrationFee: BigNumberish;
 }
 
-function getAtenTokenContract() {
-  return contract.ATEN;
+export const defaultProtocolConfig = {
+  arbitrationFee: parseEther("0.01"),
 }
 
-async function deployArbitratorContract(owner: ethers.Signer) {
-  contract.ARBITRATOR = await (
-    await hre_ethers.getContractFactory("CentralizedArbitrator")
-  )
-    .connect(owner)
-    .deploy(ethers.utils.parseEther("0.01")); // Arbitration fee
+export async function deployAllContractsAndInitializeProtocol(owner: Signer, config: ProtocolConfig) {
+  const ATEN = await deployATEN(owner, []);
+  const CentralizedArbitrator = await deployCentralizedArbitrator(owner, [config.arbitrationFee]);
 
-  await contract.ARBITRATOR.deployed();
+  // Deploy core
+  const Athena = await deployAthena(owner, []);
+  // Deploy peripherals
+  const ProtocolFactory = await deployProtocolFactory(owner, []);
+  const PriceOracleV1 = await deployPriceOracleV1(owner, []);
+  const TokenVault = await deployTokenVault(owner, []);
+  // Deploy managers
+  const PositionsManager = await deployPositionsManager(owner, []);
+  const PolicyManager = await deployPolicyManager(owner, []);
+  const ClaimManager = await deployClaimManager(owner, []);
+  // Deploy staking
+  const StakingGeneralPool = await deployStakingGeneralPool(owner, []);
+  const StakingPolicy = await deployStakingPolicy(owner, []);
+
+  await initializeProtocol(owner);
+
+  await setFactoryClaimAndPositionManagers(owner);
+  await setFeeLevelsWithAten(owner);
+  await setStakingRewardRates(owner);
+  await setCoverRefundConfig(owner);
+
+  const rewardsAmount = ethers.utils.parseEther("20000000"); // 20M ATEN
+  await depositRewardsToVault(owner, rewardsAmount);
 }
 
-function getArbitratorContract() {
-  return contract.ARBITRATOR;
-}
-
-async function deployAthenaContract(
-  owner: ethers.Signer,
-  aave_registry?: string
-) {
-  const useAtenAddress = contract.ATEN?.address || HardhatHelper.ATEN;
-  const useAaveRegistryAddress = aave_registry || HardhatHelper.AAVE_REGISTRY;
-
-  contract.ATHENA = await (await hre_ethers.getContractFactory("Athena"))
-    .connect(owner)
-    .deploy(useAtenAddress, useAaveRegistryAddress);
-
-  await contract.ATHENA.deployed();
-}
-
-function getAthenaContract() {
-  return contract.ATHENA;
-}
-
-async function deployPositionManagerContract(owner: ethers.Signer) {
-  contract.POSITIONS_MANAGER = await (
-    await hre_ethers.getContractFactory("PositionsManager")
-  )
-    .connect(owner)
-    .deploy(contract.ATHENA.address, contract.FACTORY_PROTOCOL.address);
-
-  await contract.POSITIONS_MANAGER.deployed();
-}
-
-function getPositionManagerContract() {
-  return contract.POSITIONS_MANAGER;
-}
-
-async function deployStakedAtenContract(owner: ethers.Signer) {
-  const useAtenAddress = contract.ATEN?.address || HardhatHelper.ATEN;
-  contract.STAKING_GP = await (
-    await hre_ethers.getContractFactory("StakingGeneralPool")
-  )
-    .connect(owner)
-    .deploy(
-      useAtenAddress,
-      contract.ATHENA.address,
-      contract.POSITIONS_MANAGER.address
-    );
-
-  await contract.STAKING_GP.deployed();
-}
-
-function getStakedAtenContract() {
-  return contract.STAKING_GP;
-}
-
-async function deployPolicyManagerContract(owner: ethers.Signer) {
-  contract.POLICY_MANAGER = await (
-    await hre_ethers.getContractFactory("PolicyManager")
-  )
-    .connect(owner)
-    .deploy(contract.ATHENA.address, contract.FACTORY_PROTOCOL.address);
-
-  await contract.POLICY_MANAGER.deployed();
-}
-
-function getPolicyManagerContract() {
-  return contract.POLICY_MANAGER;
-}
-
-async function deployProtocolFactoryContract(owner: ethers.Signer) {
-  contract.FACTORY_PROTOCOL = await (
-    await hre_ethers.getContractFactory("ProtocolFactory")
-  )
-    .connect(owner)
-    .deploy(contract.ATHENA.address);
-
-  await contract.FACTORY_PROTOCOL.deployed();
-}
+// ======================= //
+// === Protocol config === //
+// ======================= //
 
 async function setFactoryClaimAndPositionManagers(owner: ethers.Signer) {
   return await (
@@ -117,97 +78,7 @@ async function setFactoryClaimAndPositionManagers(owner: ethers.Signer) {
   ).wait();
 }
 
-function getProtocolFactoryContract() {
-  return contract.FACTORY_PROTOCOL;
-}
-
-async function deployClaimManagerContract(
-  owner: ethers.Signer,
-  arbitrator?: string
-) {
-  const useArbitratorAddress =
-    arbitrator ||
-    contract.ARBITRATOR?.address ||
-    HardhatHelper.ARBITRATOR_ADDRESS;
-
-  const guardianAddress = HardhatHelper.getMetaEvidenceGuardian().address;
-
-  contract.CLAIM_MANAGER = await (
-    await hre_ethers.getContractFactory("ClaimManager")
-  )
-    .connect(owner)
-    .deploy(
-      contract.ATHENA.address,
-      contract.POLICY_MANAGER.address,
-      contract.FACTORY_PROTOCOL.address,
-      useArbitratorAddress,
-      guardianAddress
-    );
-
-  await contract.CLAIM_MANAGER.deployed();
-}
-
-function getClaimManagerContract() {
-  return contract.CLAIM_MANAGER;
-}
-
-async function deployPriceOracleV1Contract(
-  owner: ethers.Signer,
-  initialPrice?: BigNumberish
-) {
-  // Default price at 25 ATEN = 1 USDT
-  const useInitialPrice =
-    initialPrice || BigNumber.from(25).mul(BigNumber.from(10).pow(18));
-
-  contract.PRICE_ORACLE_V1 = await (
-    await hre_ethers.getContractFactory("PriceOracleV1")
-  )
-    .connect(owner)
-    .deploy(useInitialPrice);
-
-  await contract.PRICE_ORACLE_V1.deployed();
-}
-
-function getPriceOracleV1Contract() {
-  return contract.PRICE_ORACLE_V1;
-}
-
-async function deployStakedAtensPolicyContract(owner: ethers.Signer) {
-  const useAtenAddress = contract.ATEN?.address || HardhatHelper.ATEN;
-  contract.STAKING_POLICY = await (
-    await hre_ethers.getContractFactory("StakingPolicy")
-  )
-    .connect(owner)
-    .deploy(
-      contract.ATHENA.address, // address core_
-      useAtenAddress, // address atenToken_
-      contract.PRICE_ORACLE_V1.address, // address priceOracle_
-      contract.TOKEN_VAULT.address, // address atensVault_
-      contract.POLICY_MANAGER.address // address coverManager_
-    );
-
-  await contract.STAKING_POLICY.deployed();
-}
-
-function getStakedAtensPolicyContract() {
-  return contract.STAKING_POLICY;
-}
-
-async function deployVaultAtenContract(owner: ethers.Signer) {
-  const useAtenAddress = contract.ATEN?.address || HardhatHelper.ATEN;
-  contract.TOKEN_VAULT = await (
-    await hre_ethers.getContractFactory("TokenVault")
-  )
-    .connect(owner)
-    .deploy(useAtenAddress, contract.ATHENA.address);
-  await contract.TOKEN_VAULT.deployed();
-}
-
-function getVaultAtenContract() {
-  return contract.TOKEN_VAULT;
-}
-
-async function initializeProtocol(owner: ethers.Signer) {
+async function initializeProtocol(owner: Signer) {
   return await contract.ATHENA.connect(owner).initialize(
     contract.POSITIONS_MANAGER.address, // positionManager
     contract.POLICY_MANAGER.address, // policyManager
@@ -274,6 +145,10 @@ async function setCoverRefundConfig(
   }
 }
 
+// =========================== //
+// === User action helpers === //
+// =========================== //
+
 async function depositRewardsToVault(
   owner: ethers.Signer,
   amountToTransfer: BigNumberish
@@ -290,35 +165,6 @@ async function depositRewardsToVault(
   await contract.TOKEN_VAULT.connect(owner).depositStakingRewards(
     amountToTransfer
   );
-}
-
-async function deployAllContractsAndInitializeProtocol(owner: ethers.Signer) {
-  await deployAtenTokenContract(owner);
-  await deployArbitratorContract(owner);
-
-  // Deploy core
-  await deployAthenaContract(owner);
-  // Deploy peripherals
-  await deployProtocolFactoryContract(owner);
-  await deployPriceOracleV1Contract(owner);
-  await deployVaultAtenContract(owner);
-  // Deploy managers
-  await deployPositionManagerContract(owner);
-  await deployPolicyManagerContract(owner);
-  await deployClaimManagerContract(owner);
-  // Deploy staking
-  await deployStakedAtenContract(owner);
-  await deployStakedAtensPolicyContract(owner);
-
-  await initializeProtocol(owner);
-
-  await setFactoryClaimAndPositionManagers(owner);
-  await setFeeLevelsWithAten(owner);
-  await setStakingRewardRates(owner);
-  await setCoverRefundConfig(owner);
-
-  const rewardsAmount = ethers.utils.parseEther("20000000"); // 20M ATEN
-  await depositRewardsToVault(owner, rewardsAmount);
 }
 
 async function addNewProtocolPool(protocolPoolName: string) {
@@ -612,31 +458,6 @@ const toAten = (amount: number) =>
   ethers.utils.parseUnits(amount.toString(), 18);
 
 export default {
-  deployAtenTokenContract,
-  deployArbitratorContract,
-  deployAthenaContract,
-  deployPositionManagerContract,
-  deployStakedAtenContract,
-  deployProtocolFactoryContract,
-  deployPolicyManagerContract,
-  deployStakedAtensPolicyContract,
-  deployVaultAtenContract,
-  deployClaimManagerContract,
-  deployAllContractsAndInitializeProtocol,
-  deployPriceOracleV1Contract,
-  //
-  getAtenTokenContract,
-  getArbitratorContract,
-  getAthenaContract,
-  getPositionManagerContract,
-  getStakedAtenContract,
-  getProtocolFactoryContract,
-  getPolicyManagerContract,
-  getStakedAtensPolicyContract,
-  getVaultAtenContract,
-  getClaimManagerContract,
-  getPriceOracleV1Contract,
-  //
   atenAmountPostHelperTransfer,
   initializeProtocol,
   setFeeLevelsWithAten,
