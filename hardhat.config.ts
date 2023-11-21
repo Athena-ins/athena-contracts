@@ -17,7 +17,9 @@ const { parseEther, id } = utils;
 
 const {
   HARDHAT_FORK_TARGET,
-  FORKING_BLOCK,
+  //
+  MAINNET_FORKING_BLOCK,
+  GOERLI_FORKING_BLOCK,
   //
   MAINNET_WALLET_PK,
   GOERLI_WALLET_PK,
@@ -30,25 +32,37 @@ const {
   COINMARKETCAP_API_KEY,
 } = process.env;
 
+if (!MAINNET_FORKING_BLOCK || !GOERLI_FORKING_BLOCK)
+  throw Error("Missing fork block targets");
 if (!MAINNET_WALLET_PK || !GOERLI_WALLET_PK) throw Error("Missing wallet PK");
 if (!MAINNET_RPC_URL || !GOERLI_RPC_URL) throw Error("Missing RPC URL");
 
 function makeForkConfig(): HardhatNetworkUserConfig {
+  const forkTarget = HARDHAT_FORK_TARGET?.toLowerCase();
   if (
     !HARDHAT_FORK_TARGET ||
-    (HARDHAT_FORK_TARGET.toLowerCase() !== "mainnet" &&
-      HARDHAT_FORK_TARGET.toLowerCase() !== "goerli")
+    (forkTarget !== "mainnet" && forkTarget !== "goerli")
   )
     throw Error("Missing or erroneous fork target");
 
-  const isMainnetFork = HARDHAT_FORK_TARGET?.toLowerCase() === "mainnet";
-  const forkedBlock =
-    FORKING_BLOCK !== undefined ? Number(FORKING_BLOCK) : undefined;
+  const isMainnetFork = forkTarget === "mainnet";
 
-  const WALLET_PK = isMainnetFork ? MAINNET_WALLET_PK : GOERLI_WALLET_PK;
-  const RPC_URL = isMainnetFork ? MAINNET_RPC_URL : GOERLI_RPC_URL;
+  const { chainId, forkedBlock, WALLET_PK, RPC_URL } = isMainnetFork
+    ? {
+        chainId: 1,
+        forkedBlock: Number(MAINNET_FORKING_BLOCK),
+        WALLET_PK: MAINNET_WALLET_PK,
+        RPC_URL: MAINNET_RPC_URL,
+      }
+    : {
+        chainId: 5,
+        forkedBlock: Number(GOERLI_FORKING_BLOCK),
+        WALLET_PK: GOERLI_WALLET_PK,
+        RPC_URL: GOERLI_RPC_URL,
+      };
 
   const networkConfig = {
+    chainId,
     allowUnlimitedContractSize: false,
     forking: {
       // We can cast safely because we checked for undefined
