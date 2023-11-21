@@ -58,6 +58,12 @@ export function aaveLendingPoolV2Address(chainId: number): string {
   throw Error("Unsupported chainId");
 }
 
+export function usdtAddress(chainId: number): string {
+  if (chainId === 1) return "0xdac17f958d2ee523a2206206994597c13d831ec7";
+  if (chainId === 5) return "0x65E2fe35C30eC218b46266F89847c63c2eDa7Dc7";
+  throw Error("Unsupported chainId");
+}
+
 export function toUsdt(amount: number) {
   return parseUnits(amount.toString(), 6);
 }
@@ -267,13 +273,16 @@ export async function depositRewardsToVault(
 
 export async function addNewProtocolPool(
   contract: Athena,
-  tokenAddress: string,
   protocolPoolName: string,
+  tokenAddress?: string,
   incompatiblePoolIds: number[] = [],
   withdrawDelay: number = 14 * 24 * 60 * 60,
 ) {
+  const chainId = await entityProviderChainId(contract);
+  const asset = tokenAddress || usdtAddress(chainId);
+
   return contract.addNewProtocol(
-    tokenAddress,
+    asset,
     protocolPoolName,
     incompatiblePoolIds,
     withdrawDelay,
