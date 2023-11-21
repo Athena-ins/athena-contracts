@@ -5,7 +5,7 @@ import { Suite, AsyncFunc } from "mocha";
 import {
   makeForkSnapshot,
   restoreForkSnapshot,
-  signerChainId,
+  entityProviderChainId,
 } from "./helpers/HardhatHelper";
 import {
   deployAllContractsAndInitializeProtocol,
@@ -44,7 +44,7 @@ export function baseContext(description: string, hooks: () => void): void {
       this.protocolConfig = defaultProtocolConfig;
 
       const logData = {
-        chainId: await signerChainId(this.signers.deployer),
+        chainId: await entityProviderChainId(this.signers.deployer),
         deployer: this.signers.deployer.address,
         user: this.signers.user.address,
         user2: this.signers.user2.address,

@@ -8,7 +8,7 @@ import HardhatHelper from "./HardhatHelper";
 // import { ProtocolPool as typeProtocolPool } from "../../typechain/ProtocolPool";
 
 // Functions
-import { signerChainId, setNextBlockTimestamp } from "./HardhatHelper";
+import { entityProviderChainId, setNextBlockTimestamp } from "./HardhatHelper";
 import {
   deployATEN,
   deployCentralizedArbitrator,
@@ -132,7 +132,7 @@ export async function deployAllContractsAndInitializeProtocol(
   deployer: Signer,
   config: ProtocolConfig,
 ): Promise<ProtocolContracts> {
-  const chainId = await signerChainId(deployer);
+  const chainId = await entityProviderChainId(deployer);
   if (!chainId) throw Error("No chainId found for deployment signer");
 
   const ATEN = await deployATEN(deployer, []);

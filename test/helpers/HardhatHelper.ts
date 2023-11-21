@@ -5,8 +5,7 @@ import {
   BigNumberish,
   Signer,
   Contract,
-  ContractReceipt,
-  ContractTransaction,
+  BaseContract,
 } from "ethers";
 import weth_abi from "../abis/weth.json";
 import lendingPoolAbi from "../abis/lendingPool.json";
@@ -23,6 +22,48 @@ let atenOwnerSigner: Signer;
 
 export async function getCurrentTime() {
   return (await ethers.provider.getBlock("latest")).timestamp;
+}
+
+export function entityProviderChainId(
+  entity: Signer | BaseContract,
+): Promise<number> {
+  const chainId = entity.provider
+    ?.getNetwork()
+    .then((network) => network.chainId);
+
+  if (!chainId) {
+    throw Error("Could not get chainId from entity's provider");
+  } else {
+    return chainId;
+  }
+}
+
+// Gets the custom Solidity error on tx revert
+export async function getCustomError(
+  txPromise: Promise<any>,
+  requireError = true,
+): Promise<string> {
+  try {
+    await txPromise;
+    throw Error("Transaction did not throw");
+  } catch (err: any) {
+    if (err.errorName) {
+      return err.errorName;
+    }
+    if (err.reason?.includes("reverted with custom error")) {
+      return err.reason.slice(
+        err.reason.indexOf("reverted with custom error") + 28,
+        err.reason.length - 3,
+      );
+    }
+
+    // For tests we generally want to verify the presence of the custom error
+    if (requireError) {
+      throw Error(`Transaction did not revert with custom error: ${err}`);
+    } else {
+      return "";
+    }
+  }
 }
 
 // ========================== //
@@ -90,10 +131,6 @@ export async function setNextBlockTimestamp(secondsToAdd: number) {
 // === Wallet & signers === //
 // ======================== //
 
-export function signerChainId(signer: Signer): Promise<number> | undefined {
-  return signer.provider?.getNetwork().then((network) => network.chainId);
-}
-
 export async function allSigners() {
   return await ethers.getSigners();
 }
@@ -102,12 +139,6 @@ export async function deployerSigner() {
   const getAllSigners = await allSigners();
   return getAllSigners[0];
 }
-
-const getMetaEvidenceGuardian = () => {
-  const EVIDENCE_GUARDIAN_PK = process.env.EVIDENCE_GUARDIAN_PK;
-  if (!EVIDENCE_GUARDIAN_PK) throw new Error("EVIDENCE_GUARDIAN_PK not set");
-  return new ethers.Wallet(EVIDENCE_GUARDIAN_PK);
-};
 
 export async function initSigners() {
   binanceSigner = await impersonateAccount(deploymentAddress.deployer);
@@ -211,7 +242,6 @@ export default {
   initSigners,
   allSigners,
   deployerSigner,
-  getMetaEvidenceGuardian,
   impersonateAccount,
   setNextBlockTimestamp,
   NULL_ADDRESS,
