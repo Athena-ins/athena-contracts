@@ -1,6 +1,13 @@
 import hre, { ethers, network } from "hardhat";
 import { HardhatNetworkConfig } from "hardhat/types";
-import { BigNumber, BigNumberish, Signer, Contract } from "../../types";
+import {
+  BigNumber,
+  BigNumberish,
+  Signer,
+  Contract,
+  ContractReceipt,
+  ContractTransaction,
+} from "ethers";
 import weth_abi from "../abis/weth.json";
 import lendingPoolAbi from "../abis/lendingPool.json";
 import { contract, deploymentAddress } from "./TypedContracts";
@@ -10,29 +17,39 @@ const NULL_ADDRESS = "0x" + "0".repeat(40);
 let binanceSigner: Signer;
 let atenOwnerSigner: Signer;
 
-async function allSigners() {
-  return await ethers.getSigners();
+// =============== //
+// === Helpers === //
+// =============== //
+
+export async function getCurrentTime() {
+  return (await ethers.provider.getBlock("latest")).timestamp;
 }
 
-async function deployerSigner() {
-  const getAllSigners = await allSigners();
-  return getAllSigners[0];
-}
+// ========================== //
+// === Chain manipulation === //
+// ========================== //
 
-const getMetaEvidenceGuardian = () => {
-  const EVIDENCE_GUARDIAN_PK = process.env.EVIDENCE_GUARDIAN_PK;
-  if (!EVIDENCE_GUARDIAN_PK) throw new Error("EVIDENCE_GUARDIAN_PK not set");
-  return new ethers.Wallet(EVIDENCE_GUARDIAN_PK);
-};
+export async function makeForkSnapshot(): Promise<string> {
+  return hre.network.provider.request({
+    method: "evm_snapshot",
+    params: [],
+  }) as Promise<string>;
+}
+export async function restoreForkSnapshot(snapshotId: string) {
+  return hre.network.provider.request({
+    method: "evm_revert",
+    params: [snapshotId],
+  });
+}
 
 export async function resetFork() {
   const originalFork = (network.config as HardhatNetworkConfig).forking?.url;
-  const forkTarget = originalFork || process.env.GOERLI_URL;
+  // @bw should replace call to env with config file for type safety
+  const forkTarget = originalFork || process.env.GOERLI_RPC_URL;
 
   const originalForkBlock = (network.config as HardhatNetworkConfig).forking
     ?.blockNumber;
-  const forkTargetBlock =
-    originalForkBlock || Number(process.env.FORKING_BLOCK || "latest");
+  const forkTargetBlock = originalForkBlock || "latest";
 
   await hre.network.provider.request({
     method: "hardhat_reset",
@@ -46,30 +63,16 @@ export async function resetFork() {
     ],
   });
 
+  console.log("=> Forked chain reset");
+
   // binanceSigner = await impersonateAccount(deploymentAddress.deployer);
   // const getAllSigners: any = await allSigners();
   // atenOwnerSigner = getAllSigners[0];
 }
 
-async function initSigners() {
-  binanceSigner = await impersonateAccount(deploymentAddress.deployer);
-  const getAllSigners: any = await allSigners();
-  atenOwnerSigner = getAllSigners[0];
-}
-
-async function impersonateAccount(address: string) {
-  await hre.network.provider.request({
-    method: "hardhat_impersonateAccount",
-    params: [address],
-  });
-
-  return await ethers.getSigner(address);
-}
-
-async function setNextBlockTimestamp(secondsToAdd: number) {
+export async function setNextBlockTimestamp(secondsToAdd: number) {
   if (secondsToAdd <= 0) return;
-  const latestTimeStamp = (await ethers.provider.getBlock("latest")).timestamp;
-
+  const latestTimeStamp = await getCurrentTime();
   const newTime = latestTimeStamp + secondsToAdd;
 
   await hre.network.provider.request({
@@ -79,26 +82,64 @@ async function setNextBlockTimestamp(secondsToAdd: number) {
   await hre.network.provider.request({ method: "evm_mine" });
 }
 
-async function getCurrentTime() {
-  return (await ethers.provider.getBlock("latest")).timestamp;
+// ======================== //
+// === Wallet & signers === //
+// ======================== //
+
+export function signerChainId(signer: Signer): Promise<number> | undefined {
+  return signer.provider?.getNetwork().then((network) => network.chainId);
 }
 
-async function USDT_spenderBalance() {
+export async function allSigners() {
+  return await ethers.getSigners();
+}
+
+export async function deployerSigner() {
+  const getAllSigners = await allSigners();
+  return getAllSigners[0];
+}
+
+const getMetaEvidenceGuardian = () => {
+  const EVIDENCE_GUARDIAN_PK = process.env.EVIDENCE_GUARDIAN_PK;
+  if (!EVIDENCE_GUARDIAN_PK) throw new Error("EVIDENCE_GUARDIAN_PK not set");
+  return new ethers.Wallet(EVIDENCE_GUARDIAN_PK);
+};
+
+export async function initSigners() {
+  binanceSigner = await impersonateAccount(deploymentAddress.deployer);
+  const getAllSigners: any = await allSigners();
+  atenOwnerSigner = getAllSigners[0];
+}
+
+export async function impersonateAccount(address: string) {
+  await hre.network.provider.request({
+    method: "hardhat_impersonateAccount",
+    params: [address],
+  });
+
+  return await ethers.getSigner(address);
+}
+
+// ===================== //
+// === Token helpers === //
+// ===================== //
+
+export async function USDT_spenderBalance() {
   const spenderAddress = await binanceSigner.getAddress();
   return await contract.USDT.connect(binanceSigner).balanceOf(spenderAddress);
 }
 
-async function USDT_balanceOf(address: string) {
+export async function USDT_balanceOf(address: string) {
   return await contract.USDT.connect(binanceSigner).balanceOf(address);
 }
 
-async function USDT_transfer(address: string, amount: BigNumberish) {
+export async function USDT_transfer(address: string, amount: BigNumberish) {
   return (
     await contract.USDT.connect(binanceSigner).transfer(address, amount)
   ).wait();
 }
 
-async function USDT_approve(
+export async function USDT_approve(
   owner: Signer,
   spender: string,
   amount: BigNumberish,
@@ -106,7 +147,7 @@ async function USDT_approve(
   return (await contract.USDT.connect(owner).approve(spender, amount)).wait();
 }
 
-async function USDT_maxApprove(owner: Signer, spender: string) {
+export async function USDT_maxApprove(owner: Signer, spender: string) {
   return (
     await contract.USDT.connect(owner).approve(
       spender,
@@ -115,16 +156,16 @@ async function USDT_maxApprove(owner: Signer, spender: string) {
   ).wait();
 }
 
-async function ATEN_spenderBalance() {
+export async function ATEN_spenderBalance() {
   const spenderAddress = await atenOwnerSigner.getAddress();
   return await contract.ATEN.connect(atenOwnerSigner).balanceOf(spenderAddress);
 }
 
-async function ATEN_balanceOf(address: string) {
+export async function ATEN_balanceOf(address: string) {
   return await contract.ATEN.connect(atenOwnerSigner).balanceOf(address);
 }
 
-async function ATEN_transfer(address: string, amount: BigNumberish) {
+export async function ATEN_transfer(address: string, amount: BigNumberish) {
   // Add 20% to cover transfer fees
   const amountForFees = BigNumber.from(amount).mul(120).div(100);
 
@@ -136,7 +177,7 @@ async function ATEN_transfer(address: string, amount: BigNumberish) {
   ).wait();
 }
 
-async function ATEN_approve(
+export async function ATEN_approve(
   owner: Signer,
   spender: string,
   amount: BigNumberish,
@@ -144,7 +185,7 @@ async function ATEN_approve(
   return (await contract.ATEN.connect(owner).approve(spender, amount)).wait();
 }
 
-async function getATokenBalance(user: Signer) {
+export async function getATokenBalance(user: Signer) {
   const AAVE_LENDING_POOL_CONTRACT = new Contract(
     deploymentAddress.aave_lending_pool,
     lendingPoolAbi,
