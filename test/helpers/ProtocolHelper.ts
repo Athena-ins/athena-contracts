@@ -1,12 +1,14 @@
-import { BigNumberish, BigNumber, Signer } from "ethers";
+import { BigNumberish, BigNumber, Signer, ContractTransaction } from "ethers";
 import { ethers } from "hardhat";
 
 import HardhatHelper from "./HardhatHelper";
-import { contract } from "./TypedContracts";
 
-import { abi as abiProtocolPool } from "../../artifacts/contracts/ProtocolPool.sol/ProtocolPool.json";
-import { ProtocolPool as typeProtocolPool } from "../../typechain/ProtocolPool";
+// import { contract } from "./TypedContracts";
+// import { abi as abiProtocolPool } from "../../artifacts/contracts/ProtocolPool.sol/ProtocolPool.json";
+// import { ProtocolPool as typeProtocolPool } from "../../typechain/ProtocolPool";
 
+// Functions
+import { signerChainId } from "./HardhatHelper";
 import {
   deployATEN,
   deployCentralizedArbitrator,
@@ -20,155 +22,240 @@ import {
   deployStakingGeneralPool,
   deployStakingPolicy,
 } from "./deployers";
+// Types
+import {
+  ATEN,
+  CentralizedArbitrator,
+  Athena,
+  ProtocolFactory,
+  PriceOracleV1,
+  TokenVault,
+  PositionsManager,
+  PolicyManager,
+  ClaimManager,
+  StakingGeneralPool,
+  StakingPolicy,
+} from "../../typechain";
 
-const { parseEther } = ethers.utils;
+const { parseEther, parseUnits } = ethers.utils;
+
+// =============== //
+// === Helpers === //
+// =============== //
+
+export function aaveLendingPoolProviderV2Address(chainId: number): string {
+  if (chainId === 1) return "0xb53c1a33016b2dc2ff3653530bff1848a515c8c5";
+  if (chainId === 5) return "0x5E52dEc931FFb32f609681B8438A51c675cc232d";
+  throw Error("Unsupported chainId");
+}
+
+export function aaveLendingPoolV2Address(chainId: number): string {
+  if (chainId === 1) return "0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9";
+  if (chainId === 5) return "0x4bd5643ac6f66a5237e18bfa7d47cf22f1c9f210";
+  throw Error("Unsupported chainId");
+}
+
+export function toUsdt(amount: number) {
+  return parseUnits(amount.toString(), 6);
+}
+
+export function toAten(amount: number) {
+  return parseUnits(amount.toString(), 18);
+}
+
+export function evidenceGuardianWallet() {
+  const EVIDENCE_GUARDIAN_PK = process.env.EVIDENCE_GUARDIAN_PK;
+  if (!EVIDENCE_GUARDIAN_PK) throw new Error("EVIDENCE_GUARDIAN_PK not set");
+  return new ethers.Wallet(EVIDENCE_GUARDIAN_PK);
+}
 
 // ======================= //
 // === Deploy protocol === //
 // ======================= //
 
-type ProtocolConfig = {
-  arbitrationFee: BigNumberish;
+type CoverRefundConfig = {
+  shortCoverDuration: number;
+  refundRate: number;
+  basePenaltyRate: number;
+  durationPenaltyRate: number;
 };
 
-export const defaultProtocolConfig = {
-  arbitrationFee: parseEther("0.01"),
+export type ProtocolConfig = {
+  arbitrationFee: BigNumberish;
+  initialAtenPrice: BigNumberish;
+  feeLevels: { atenAmount: number; feeRate: number }[];
+  rewardRates: { amountSupplied: number; aprStaking: number }[];
+  coverRefundConfig: CoverRefundConfig;
+};
+
+export const defaultProtocolConfig: ProtocolConfig = {
+  arbitrationFee: parseEther("0.01"), // in ETH
+  initialAtenPrice: parseEther("25"), // nb ATEN for $1
+  feeLevels: [
+    { atenAmount: 0, feeRate: 250 },
+    { atenAmount: 1_000, feeRate: 200 },
+    { atenAmount: 100_000, feeRate: 150 },
+    { atenAmount: 1_000_000, feeRate: 50 },
+  ],
+  rewardRates: [
+    { amountSupplied: 0, aprStaking: 1_000 },
+    { amountSupplied: 10_000, aprStaking: 1_200 },
+    { amountSupplied: 100_000, aprStaking: 1_600 },
+    { amountSupplied: 1_000_000, aprStaking: 2_000 },
+  ],
+  coverRefundConfig: {
+    shortCoverDuration: 180 * 24 * 60 * 60,
+    refundRate: 10_000, // 10_000 = 100%
+    basePenaltyRate: 1_000, // 10_000 = 100%
+    durationPenaltyRate: 3_500, // 10_000 = 100%
+  },
+};
+
+type ProtocolContracts = {
+  ATEN: ATEN;
+  CentralizedArbitrator: CentralizedArbitrator;
+  Athena: Athena;
+  ProtocolFactory: ProtocolFactory;
+  PriceOracleV1: PriceOracleV1;
+  TokenVault: TokenVault;
+  PositionsManager: PositionsManager;
+  PolicyManager: PolicyManager;
+  ClaimManager: ClaimManager;
+  StakingGeneralPool: StakingGeneralPool;
+  StakingPolicy: StakingPolicy;
 };
 
 export async function deployAllContractsAndInitializeProtocol(
-  owner: Signer,
+  deployer: Signer,
   config: ProtocolConfig,
-) {
-  const ATEN = await deployATEN(owner, []);
-  const CentralizedArbitrator = await deployCentralizedArbitrator(owner, [
+): Promise<ProtocolContracts> {
+  const chainId = await signerChainId(deployer);
+  if (!chainId) throw Error("No chainId found for deployment signer");
+
+  const ATEN = await deployATEN(deployer, []);
+  const CentralizedArbitrator = await deployCentralizedArbitrator(deployer, [
     config.arbitrationFee,
   ]);
 
   // Deploy core
-  const Athena = await deployAthena(owner, []);
+  const aaveLendingPool = aaveLendingPoolProviderV2Address(chainId);
+  const Athena = await deployAthena(deployer, [ATEN.address, aaveLendingPool]);
+
   // Deploy peripherals
-  const ProtocolFactory = await deployProtocolFactory(owner, []);
-  const PriceOracleV1 = await deployPriceOracleV1(owner, []);
-  const TokenVault = await deployTokenVault(owner, []);
+  const ProtocolFactory = await deployProtocolFactory(deployer, [
+    Athena.address,
+  ]);
+  const PriceOracleV1 = await deployPriceOracleV1(deployer, [
+    config.initialAtenPrice,
+  ]);
+  const TokenVault = await deployTokenVault(deployer, [
+    ATEN.address,
+    Athena.address,
+  ]);
+
   // Deploy managers
-  const PositionsManager = await deployPositionsManager(owner, []);
-  const PolicyManager = await deployPolicyManager(owner, []);
-  const ClaimManager = await deployClaimManager(owner, []);
+  const PositionsManager = await deployPositionsManager(deployer, [
+    Athena.address,
+    ProtocolFactory.address,
+  ]);
+  const PolicyManager = await deployPolicyManager(deployer, [
+    Athena.address,
+    ProtocolFactory.address,
+  ]);
+  const evidenceGuardian = evidenceGuardianWallet();
+  const ClaimManager = await deployClaimManager(deployer, [
+    Athena.address,
+    PolicyManager.address,
+    ProtocolFactory.address,
+    CentralizedArbitrator.address,
+    evidenceGuardian.address,
+  ]);
+
   // Deploy staking
-  const StakingGeneralPool = await deployStakingGeneralPool(owner, []);
-  const StakingPolicy = await deployStakingPolicy(owner, []);
+  const StakingGeneralPool = await deployStakingGeneralPool(deployer, [
+    ATEN.address,
+    Athena.address,
+    PositionsManager.address,
+  ]);
+  const StakingPolicy = await deployStakingPolicy(deployer, [
+    Athena.address,
+    ATEN.address,
+    PriceOracleV1.address,
+    TokenVault.address,
+    PolicyManager.address,
+  ]);
 
-  await initializeProtocol(owner);
+  await Athena.initialize(
+    PositionsManager.address, // positionManager
+    PolicyManager.address, // policyManager
+    ClaimManager.address, // claimManager
+    StakingGeneralPool.address, // stakedAtensGP
+    StakingPolicy.address, // stakedAtensPo
+    ProtocolFactory.address, // protocolFactory
+    TokenVault.address, // atensVault
+    PriceOracleV1.address, // priceOracle
+  ).then((tx) => tx.wait());
 
-  await setFactoryClaimAndPositionManagers(owner);
-  await setFeeLevelsWithAten(owner);
-  await setStakingRewardRates(owner);
-  await setCoverRefundConfig(owner);
+  await ProtocolFactory.setClaimAndPositionManagers(
+    ClaimManager.address,
+    PositionsManager.address,
+  );
+  await StakingGeneralPool.setFeeLevelsWithAten(config.feeLevels);
+  await StakingGeneralPool.setStakingRewardRates(config.rewardRates);
 
-  const rewardsAmount = ethers.utils.parseEther("20000000"); // 20M ATEN
-  await depositRewardsToVault(owner, rewardsAmount);
+  await setCoverRefundConfig(deployer, StakingPolicy, config.coverRefundConfig);
+
+  const rewardsAmount = parseEther("20000000"); // 20M ATEN
+  await depositRewardsToVault(deployer, ATEN, TokenVault, rewardsAmount);
+
+  return {
+    ATEN,
+    CentralizedArbitrator,
+    Athena,
+    ProtocolFactory,
+    PriceOracleV1,
+    TokenVault,
+    PositionsManager,
+    PolicyManager,
+    ClaimManager,
+    StakingGeneralPool,
+    StakingPolicy,
+  };
 }
 
 // ======================= //
 // === Protocol config === //
 // ======================= //
 
-async function setFactoryClaimAndPositionManagers(owner: Signer) {
-  return await (
-    await contract.FACTORY_PROTOCOL.connect(owner).setClaimAndPositionManagers(
-      contract.CLAIM_MANAGER.address,
-      contract.POSITIONS_MANAGER.address,
-    )
-  ).wait();
-}
-
-async function initializeProtocol(owner: Signer) {
-  return await contract.ATHENA.connect(owner).initialize(
-    contract.POSITIONS_MANAGER.address, // positionManager
-    contract.POLICY_MANAGER.address, // policyManager
-    contract.CLAIM_MANAGER.address, // claimManager
-    contract.STAKING_GP.address, // stakedAtensGP
-    contract.STAKING_POLICY.address, // stakedAtensPo
-    contract.FACTORY_PROTOCOL.address, // protocolFactory
-    contract.TOKEN_VAULT.address, // atensVault
-    contract.PRICE_ORACLE_V1.address, // priceOracle
-  );
-}
-
-async function setFeeLevelsWithAten(owner: Signer) {
-  return await contract.STAKING_GP.connect(owner).setFeeLevelsWithAten([
-    { atenAmount: 0, feeRate: 250 },
-    { atenAmount: 1_000, feeRate: 200 },
-    { atenAmount: 100_000, feeRate: 150 },
-    { atenAmount: 1_000_000, feeRate: 50 },
-  ]);
-}
-
-async function setStakingRewardRates(owner: Signer) {
-  return await contract.STAKING_GP.connect(owner).setStakingRewardRates([
-    { amountSupplied: 0, aprStaking: 1_000 },
-    { amountSupplied: 10_000, aprStaking: 1_200 },
-    { amountSupplied: 100_000, aprStaking: 1_600 },
-    { amountSupplied: 1_000_000, aprStaking: 2_000 },
-  ]);
-}
-
-async function setCoverRefundConfig(
+export async function setCoverRefundConfig(
   owner: Signer,
-  options?: {
-    shortCoverDuration?: number;
-    refundRate?: number;
-    basePenaltyRate?: number;
-    durationPenaltyRate?: number;
-  },
-) {
-  const config = {
-    shortCoverDuration: 180 * 24 * 60 * 60,
-    refundRate: 10_000, // 10_000 = 100%
-    basePenaltyRate: 1_000, // 10_000 = 100%
-    durationPenaltyRate: 3_500, // 10_000 = 100%
-    ...options,
-  };
+  contract: StakingPolicy,
+  config: CoverRefundConfig,
+): Promise<ContractTransaction> {
+  await contract
+    .connect(owner)
+    .setShortCoverDuration(config.shortCoverDuration);
 
-  try {
-    await (
-      await contract.STAKING_POLICY.connect(owner).setShortCoverDuration(
-        config.shortCoverDuration,
-      )
-    ).wait();
-
-    return await (
-      await contract.STAKING_POLICY.connect(owner).setRefundAndPenaltyRate(
+  return contract
+    .connect(owner)
+    .setRefundAndPenaltyRate(
         config.refundRate,
         config.basePenaltyRate,
         config.durationPenaltyRate,
-      )
-    ).wait();
-  } catch (err: any) {
-    throw Error(err);
+    );
   }
-}
 
-// =========================== //
-// === User action helpers === //
-// =========================== //
-
-async function depositRewardsToVault(
+export async function depositRewardsToVault(
   owner: Signer,
-  amountToTransfer: BigNumberish,
-) {
-  await contract.ATEN.connect(owner).approve(
-    contract.TOKEN_VAULT.address,
-    BigNumber.from(amountToTransfer).mul(2),
-  );
-
-  await contract.TOKEN_VAULT.connect(owner).depositCoverRefundRewards(
-    amountToTransfer,
-  );
-
-  await contract.TOKEN_VAULT.connect(owner).depositStakingRewards(
-    amountToTransfer,
-  );
+  atenContract: ATEN,
+  vaultContract: TokenVault,
+  amount: BigNumberish,
+): Promise<ContractTransaction> {
+  await atenContract
+    .connect(owner)
+    .approve(vaultContract.address, BigNumber.from(amount).mul(2));
+  await vaultContract.connect(owner).depositCoverRefundRewards(amount);
+  return vaultContract.connect(owner).depositStakingRewards(amount);
 }
 
 async function addNewProtocolPool(protocolPoolName: string) {
