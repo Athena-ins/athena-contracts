@@ -1,6 +1,4 @@
 import { baseContext } from "./context";
-import { beforeEach } from "mocha";
-import { resetFork } from "./helpers/HardhatHelper";
 // Test suites
 import { testDeployProtocol } from "./contracts/deployProtocol.test";
 import { testLiquidityProvider } from "./contracts/liquidityProvider.test";
@@ -31,41 +29,32 @@ import { testThaoPremiumLeftError } from "./contracts/thaoPremiumLeftError.test"
 import { testFinance } from "./contracts/finance.test";
 
 baseContext("Functionnal tests", function () {
-  beforeEach(async function () {
-    this.retries(2);
-    await resetFork();
-  });
-
-  describe("Core contracts", function () {
-    testDeployProtocol();
-    testLiquidityProvider();
-    testPolicyTaker();
-    testPoliciesTaker();
-    testPolicyView();
-    testClaims();
-    testRewardsWithoutClaim();
-    testRewardsWithClaims();
-    testTakeInterestWithoutClaim();
-    testTakeInterestWithClaim();
-    testWithdrawLiquidity1ProtocolWithoutClaim();
-    testWithdrawAllWithoutClaim();
-    testWithdrawAllWithClaim();
-    testResolveClaim();
-    testExpiredPoliciesWithCanceling();
-    testExpiredPoliciesWithoutCanceling();
-    testOngoingCoveragePolicies();
-    testStakingPolicy();
-    testStakingGeneralPool();
-    testUpdateCover();
-    //
-    testPremiumRewards();
-    testProtocolPool();
-    testThaoPremiumLeftError();
-    testFinance();
-  });
-
-  describe("Views", function () {
-    testProtocolsView();
-    testClaimsView();
-  });
+  testDeployProtocol();
+  testLiquidityProvider();
+  testPolicyTaker();
+  testPoliciesTaker();
+  testPolicyView();
+  testClaims();
+  testRewardsWithoutClaim();
+  testRewardsWithClaims();
+  testTakeInterestWithoutClaim();
+  testTakeInterestWithClaim();
+  testWithdrawLiquidity1ProtocolWithoutClaim();
+  testWithdrawAllWithoutClaim();
+  testWithdrawAllWithClaim();
+  testResolveClaim();
+  testExpiredPoliciesWithCanceling();
+  testExpiredPoliciesWithoutCanceling();
+  testOngoingCoveragePolicies();
+  testStakingPolicy();
+  testStakingGeneralPool();
+  testUpdateCover();
+  //
+  testPremiumRewards();
+  testProtocolPool();
+  testThaoPremiumLeftError();
+  testFinance();
+  // Views
+  testProtocolsView();
+  testClaimsView();
 });

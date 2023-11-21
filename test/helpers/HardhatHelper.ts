@@ -36,10 +36,14 @@ export async function makeForkSnapshot(): Promise<string> {
   }) as Promise<string>;
 }
 export async function restoreForkSnapshot(snapshotId: string) {
-  return hre.network.provider.request({
-    method: "evm_revert",
-    params: [snapshotId],
-  });
+  return hre.network.provider
+    .request({
+      method: "evm_revert",
+      params: [snapshotId],
+    })
+    .then(() => {
+      console.log("=> Chain snapshot restored");
+    });
 }
 
 export async function resetFork() {

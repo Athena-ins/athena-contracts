@@ -1,19 +1,29 @@
 import { Signer, Wallet } from "ethers";
 import { ethers } from "hardhat";
-import { series } from "async";
-import { exec } from "child_process";
-// Context setup
+import { Suite, AsyncFunc } from "mocha";
+// Functions
+import {
+  makeForkSnapshot,
+  restoreForkSnapshot,
+  signerChainId,
+} from "./helpers/HardhatHelper";
 import {
   deployAllContractsAndInitializeProtocol,
   defaultProtocolConfig,
 } from "./helpers/ProtocolHelper";
 
+// Custom hook to run a function before each child test suite
+function beforeEachSuite(fn: AsyncFunc) {
+  before(function () {
+    let suites: Suite[] = this.test?.parent?.suites || [];
+    suites.forEach((suite) => suite.beforeAll(fn));
+  });
+}
+
 // This is run at the beginning of each test suite
 export function baseContext(description: string, hooks: () => void): void {
   describe(description, function () {
     before(async function () {
-      await series([() => exec("npx hardhat compile")]);
-
       // Provides signers for testing
       const signers = await ethers.getSigners();
       const deployer = signers[0] as Signer as Wallet;
@@ -31,6 +41,31 @@ export function baseContext(description: string, hooks: () => void): void {
       );
 
       this.protocolConfig = defaultProtocolConfig;
+
+      const logData = {
+        chainId: await signerChainId(this.signers.deployer),
+        deployer: this.signers.deployer.address,
+        user: this.signers.user.address,
+        user2: this.signers.user2.address,
+        user3: this.signers.user3.address,
+        // protocolConfig: this.protocolConfig,
+        // contracts: Object.keys(this.contracts),
+      };
+
+      // Used to restore fork at this point in the test suites
+      this.snapshortId = await makeForkSnapshot();
+
+      console.log(
+        `\n=> Test context setup:\n${JSON.stringify(logData, null, 2)}\n`,
+      );
+    });
+
+    beforeEachSuite(async function () {
+      this.retries(2);
+
+      // Roll over snapshortId since snapshot ID reuse if forbidden
+      await restoreForkSnapshot(this.snapshortId);
+      this.snapshortId = await makeForkSnapshot();
     });
 
     hooks();

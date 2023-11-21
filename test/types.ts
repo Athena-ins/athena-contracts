@@ -40,5 +40,6 @@ declare module "mocha" {
     signers: ContextSigners;
     contracts: ContextContracts;
     protocolConfig: ProtocolConfig;
+    snapshortId: string; // Used to reset fork
   }
 }
