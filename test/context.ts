@@ -10,6 +10,7 @@ import {
 import {
   deployAllContractsAndInitializeProtocol,
   defaultProtocolConfig,
+  makeTestHelpers,
 } from "./helpers/ProtocolHelper";
 
 // Custom hook to run a function before each child test suite
@@ -54,6 +55,10 @@ export function baseContext(description: string, hooks: () => void): void {
 
       // Used to restore fork at this point in the test suites
       this.snapshortId = await makeForkSnapshot();
+
+      // Make instance of helpers connected to contracts,
+      // this is mostly to transition out of previous test framework
+      this.helpers = makeTestHelpers(this.contracts);
 
       console.log(
         `\n=> Test context setup:\n${JSON.stringify(logData, null, 2)}\n`,

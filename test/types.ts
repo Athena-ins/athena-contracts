@@ -12,34 +12,25 @@ import {
   StakingGeneralPool,
   StakingPolicy,
 } from "../typechain";
-import { ProtocolConfig } from "./helpers/ProtocolHelper";
+import {
+  ProtocolConfig,
+  ProtocolContracts,
+  TestHelper,
+} from "./helpers/ProtocolHelper";
 
-interface ContextSigners {
+type ContextSigners = {
   deployer: Wallet;
   user: Wallet;
   user2: Wallet;
   user3: Wallet;
-}
-
-interface ContextContracts {
-  ATEN: ATEN;
-  CentralizedArbitrator: CentralizedArbitrator;
-  Athena: Athena;
-  ProtocolFactory: ProtocolFactory;
-  PriceOracleV1: PriceOracleV1;
-  TokenVault: TokenVault;
-  PositionsManager: PositionsManager;
-  PolicyManager: PolicyManager;
-  ClaimManager: ClaimManager;
-  StakingGeneralPool: StakingGeneralPool;
-  StakingPolicy: StakingPolicy;
-}
+};
 
 declare module "mocha" {
   export interface Context {
     signers: ContextSigners;
-    contracts: ContextContracts;
+    contracts: ProtocolContracts;
     protocolConfig: ProtocolConfig;
     snapshortId: string; // Used to reset fork
+    helpers: TestHelper;
   }
 }
