@@ -360,10 +360,13 @@ contract ClaimManager is
    * @param to_ The address to send value to
    * @param value_ The amount of ETH to send
    */
-  function _sendValue(address to_, uint256 value_) private {
+  function _sendValue(
+    address to_,
+    uint256 value_
+  ) private returns (bool /* success */, bytes memory /* data */) {
     // We purposefully ignore return value to avoid malicious contracts to block the execution
-    // The 4600 gas limit should be enough to avoid future OPCODE cost changes
-    payable(to_).call{ value: value_, gas: 4600 }("");
+    // The 4600 gas limit should be enough to avoid future OPCODE gas cost changes
+    return payable(to_).call{ value: value_, gas: 4600 }("");
   }
 
   /// ============================== ///
