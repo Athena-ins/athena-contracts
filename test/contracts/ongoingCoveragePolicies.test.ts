@@ -15,8 +15,8 @@ let policyTaker2: ethers.Signer;
 let policyTaker3: ethers.Signer;
 
 export function testOngoingCoveragePolicies() {
-  describe("Ongoing coverage policies", () => {
-    before(async () => {
+  describe("Ongoing coverage policies", function () {
+    before(async function () {
       const allSigners = await HardhatHelper.allSigners();
       owner = allSigners[0];
       liquidityProvider1 = allSigners[1];
@@ -94,7 +94,7 @@ export function testOngoingCoveragePolicies() {
       );
     });
 
-    it("Should call PolicyManager.fullCoverDataByAccount for PT1", async () => {
+    it("Should call PolicyManager.fullCoverDataByAccount for PT1", async function () {
       const result =
         await ProtocolHelper.getPolicyManagerContract().fullCoverDataByAccount(
           await policyTaker1.getAddress(),
@@ -126,7 +126,7 @@ export function testOngoingCoveragePolicies() {
       expect(result[1].poolId).to.be.equals(2);
     });
 
-    it("Should call PolicyManager.fullCoverDataByAccount for PT1 after expireing of token 0", async () => {
+    it("Should call PolicyManager.fullCoverDataByAccount for PT1 after expireing of token 0", async function () {
       await HardhatHelper.USDT_maxApprove(
         policyTaker2,
         ProtocolHelper.getAthenaContract().address,

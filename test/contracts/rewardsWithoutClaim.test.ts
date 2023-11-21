@@ -18,9 +18,9 @@ let provider2tokenId: ethers.BigNumberish;
 let protocolPool0: ethers.Contract;
 
 export function testRewardsWithoutClaim() {
-  describe("Liquidity provider rewards without claims", () => {
-    describe("LP1, LP2 then PT1, PT2 in pool 0", async () => {
-      before(async () => {
+  describe("Liquidity provider rewards without claims", function () {
+    describe("LP1, LP2 then PT1, PT2 in pool 0", async function () {
+      before(async function () {
         const allSigners = await HardhatHelper.allSigners();
         owner = allSigners[0];
         liquidityProvider1 = allSigners[1];
@@ -109,7 +109,7 @@ export function testRewardsWithoutClaim() {
 
       let days = 1;
 
-      it(`Should call rewardsOf for LP1 after ${days} days of PT2 bought his policy`, async () => {
+      it(`Should call rewardsOf for LP1 after ${days} days of PT2 bought his policy`, async function () {
         days = 1;
 
         let result = await protocolPool0.rewardsOf(
@@ -124,7 +124,7 @@ export function testRewardsWithoutClaim() {
         expect(result.__totalRewards).to.be.equal(30 + 18 * days);
       });
 
-      it(`Should call rewardsOf for LP2 after ${days} days of PT2 bought his policy`, async () => {
+      it(`Should call rewardsOf for LP2 after ${days} days of PT2 bought his policy`, async function () {
         days = 1;
 
         let result = await protocolPool0.rewardsOf(
@@ -141,7 +141,7 @@ export function testRewardsWithoutClaim() {
 
       days = 2;
 
-      it(`Should call rewardsOf for LP1 after ${days} days of PT2 bought his policy`, async () => {
+      it(`Should call rewardsOf for LP1 after ${days} days of PT2 bought his policy`, async function () {
         days = 2;
 
         let result = await protocolPool0.rewardsOf(
@@ -156,7 +156,7 @@ export function testRewardsWithoutClaim() {
         expect(result.__totalRewards).to.be.equal(30 + 18 * days);
       });
 
-      it(`Should call rewardsOf for LP2 after ${days} days of PT2 bought his policy`, async () => {
+      it(`Should call rewardsOf for LP2 after ${days} days of PT2 bought his policy`, async function () {
         days = 2;
 
         let result = await protocolPool0.rewardsOf(
@@ -173,7 +173,7 @@ export function testRewardsWithoutClaim() {
 
       days = 10;
 
-      it(`Should call rewardsOf for LP1 after ${days} days of PT2 bought his policy`, async () => {
+      it(`Should call rewardsOf for LP1 after ${days} days of PT2 bought his policy`, async function () {
         days = 10;
 
         let result = await protocolPool0.rewardsOf(
@@ -188,7 +188,7 @@ export function testRewardsWithoutClaim() {
         expect(result.__totalRewards).to.be.equal(30 + 18 * days);
       });
 
-      it(`Should call rewardsOf for LP2 after ${days} days of PT2 bought his policy`, async () => {
+      it(`Should call rewardsOf for LP2 after ${days} days of PT2 bought his policy`, async function () {
         days = 10;
 
         let result = await protocolPool0.rewardsOf(
@@ -204,8 +204,8 @@ export function testRewardsWithoutClaim() {
       });
     });
 
-    describe("LP1 then PT1, PT2 then LP2 in pool 0", async () => {
-      before(async () => {
+    describe("LP1 then PT1, PT2 then LP2 in pool 0", async function () {
+      before(async function () {
         const allSigners = await HardhatHelper.allSigners();
         owner = allSigners[0];
         liquidityProvider1 = allSigners[1];
@@ -280,7 +280,7 @@ export function testRewardsWithoutClaim() {
         //LP2: UR = 30%; PR = 3%; ER = 18 (PT1 -> 9; PT2 -> 9)
       });
 
-      it("Should check policy1 initial info", async () => {
+      it("Should check policy1 initial info", async function () {
         const policyInfo = await protocolPool0.premiumPositions(
           await ProtocolHelper.getAccountCoverIdByIndex(policyTaker1, 0),
         );
@@ -292,7 +292,7 @@ export function testRewardsWithoutClaim() {
         expect(policyInfo.lastTick).to.be.equal(730);
       });
 
-      it("Should get policy1 remaning info", async () => {
+      it("Should get policy1 remaning info", async function () {
         const coverId = await ProtocolHelper.getAccountCoverIdByIndex(
           policyTaker1,
           0,
@@ -304,7 +304,7 @@ export function testRewardsWithoutClaim() {
         expect(response.__remainingSeconds).to.be.equal(20016000);
       });
 
-      it("Should check policy2 initial info", async () => {
+      it("Should check policy2 initial info", async function () {
         const policyInfo = await protocolPool0.premiumPositions(
           await ProtocolHelper.getAccountCoverIdByIndex(policyTaker2, 0),
         );
@@ -316,7 +316,7 @@ export function testRewardsWithoutClaim() {
         expect(policyInfo.lastTick).to.be.equal(1490);
       });
 
-      it("Should get policy2 remaning info", async () => {
+      it("Should get policy2 remaning info", async function () {
         const coverId = await ProtocolHelper.getAccountCoverIdByIndex(
           policyTaker2,
           0,
@@ -328,22 +328,22 @@ export function testRewardsWithoutClaim() {
         expect(response.__remainingSeconds).to.be.equal(52848000);
       });
 
-      it("Should check LP1's info", async () => {
+      it("Should check LP1's info", async function () {
         let lpInfo = await protocolPool0.LPsInfo(provider1tokenId);
         expect(lpInfo.beginLiquidityIndex).to.be.equal(0);
         expect(lpInfo.beginClaimIndex).to.be.equal(0);
       });
 
-      it("Should check LP2's info", async () => {
+      it("Should check LP2's info", async function () {
         let lpInfo = await protocolPool0.LPsInfo(provider2tokenId);
         expect(lpInfo.beginLiquidityIndex).to.not.be.equal(0);
         expect(lpInfo.beginClaimIndex).to.be.equal(0);
       });
 
-      describe("rewards after 1 days", async () => {
+      describe("rewards after 1 days", async function () {
         const days = 1;
 
-        it(`Should call rewardsOf for LP1`, async () => {
+        it(`Should call rewardsOf for LP1`, async function () {
           let result = await protocolPool0.rewardsOf(
             provider1tokenId,
             365000,
@@ -356,7 +356,7 @@ export function testRewardsWithoutClaim() {
           expect(result.__totalRewards).to.be.equal(90 + 30 + 9 * days);
         });
 
-        it(`Should call rewardsOf for LP2`, async () => {
+        it(`Should call rewardsOf for LP2`, async function () {
           let result = await protocolPool0.rewardsOf(
             provider2tokenId,
             365000,
@@ -370,10 +370,10 @@ export function testRewardsWithoutClaim() {
         });
       });
 
-      describe("rewards after 2 days", async () => {
+      describe("rewards after 2 days", async function () {
         const days = 2;
 
-        it(`Should call rewardsOf for LP1`, async () => {
+        it(`Should call rewardsOf for LP1`, async function () {
           let result = await protocolPool0.rewardsOf(
             provider1tokenId,
             365000,
@@ -386,7 +386,7 @@ export function testRewardsWithoutClaim() {
           expect(result.__totalRewards).to.be.equal(90 + 30 + 9 * days);
         });
 
-        it(`Should call rewardsOf for LP2`, async () => {
+        it(`Should call rewardsOf for LP2`, async function () {
           let result = await protocolPool0.rewardsOf(
             provider2tokenId,
             365000,
@@ -400,10 +400,10 @@ export function testRewardsWithoutClaim() {
         });
       });
 
-      describe("rewards after 10 days", async () => {
+      describe("rewards after 10 days", async function () {
         const days = 10;
 
-        it(`Should call rewardsOf for LP1`, async () => {
+        it(`Should call rewardsOf for LP1`, async function () {
           let result = await protocolPool0.rewardsOf(
             provider1tokenId,
             365000,
@@ -416,7 +416,7 @@ export function testRewardsWithoutClaim() {
           expect(result.__totalRewards).to.be.equal(90 + 30 + 9 * days);
         });
 
-        it(`Should call rewardsOf for LP2`, async () => {
+        it(`Should call rewardsOf for LP2`, async function () {
           let result = await protocolPool0.rewardsOf(
             provider2tokenId,
             365000,
@@ -430,10 +430,10 @@ export function testRewardsWithoutClaim() {
         });
       });
 
-      describe("rewards after 122 days", async () => {
+      describe("rewards after 122 days", async function () {
         const days = 122;
 
-        it(`Should call rewardsOf for LP1`, async () => {
+        it(`Should call rewardsOf for LP1`, async function () {
           let result = await protocolPool0.rewardsOf(
             provider1tokenId,
             365000,
@@ -446,7 +446,7 @@ export function testRewardsWithoutClaim() {
           expect(result.__totalRewards).to.be.equal(90 + 30 + 9 * days);
         });
 
-        it(`Should call rewardsOf for LP2`, async () => {
+        it(`Should call rewardsOf for LP2`, async function () {
           let result = await protocolPool0.rewardsOf(
             provider2tokenId,
             365000,
@@ -460,9 +460,9 @@ export function testRewardsWithoutClaim() {
         });
       });
 
-      describe("rewards after 611 days (the expired day of the last policy)", async () => {
+      describe("rewards after 611 days (the expired day of the last policy)", async function () {
         const days = 611;
-        it(`Should call rewardsOf for LP1`, async () => {
+        it(`Should call rewardsOf for LP1`, async function () {
           let result = await protocolPool0.rewardsOf(
             provider1tokenId,
             365000,
@@ -475,7 +475,7 @@ export function testRewardsWithoutClaim() {
           expect(result.__totalRewards).to.be.equal(90 + 30 + 3223);
         });
 
-        it(`Should call rewardsOf for LP2`, async () => {
+        it(`Should call rewardsOf for LP2`, async function () {
           let result = await protocolPool0.rewardsOf(
             provider2tokenId,
             365000,
@@ -489,9 +489,9 @@ export function testRewardsWithoutClaim() {
         });
       });
 
-      describe("rewards after 612 days (after 1 day of all policies expired)", async () => {
+      describe("rewards after 612 days (after 1 day of all policies expired)", async function () {
         const days = 612;
-        it(`Should call rewardsOf for LP1`, async () => {
+        it(`Should call rewardsOf for LP1`, async function () {
           let result = await protocolPool0.rewardsOf(
             provider1tokenId,
             365000,
@@ -504,7 +504,7 @@ export function testRewardsWithoutClaim() {
           expect(result.__totalRewards).to.be.equal(90 + 30 + 3225);
         });
 
-        it(`Should call rewardsOf for LP2`, async () => {
+        it(`Should call rewardsOf for LP2`, async function () {
           let result = await protocolPool0.rewardsOf(
             provider2tokenId,
             365000,
@@ -518,9 +518,9 @@ export function testRewardsWithoutClaim() {
         });
       });
 
-      describe("rewards after 613 days (after 2 days of all policies expired)", async () => {
+      describe("rewards after 613 days (after 2 days of all policies expired)", async function () {
         const days = 613;
-        it(`Should call rewardsOf for LP1`, async () => {
+        it(`Should call rewardsOf for LP1`, async function () {
           let result = await protocolPool0.rewardsOf(
             provider1tokenId,
             365000,
@@ -533,7 +533,7 @@ export function testRewardsWithoutClaim() {
           expect(result.__totalRewards).to.be.equal(90 + 30 + 3225);
         });
 
-        it(`Should call rewardsOf for LP2`, async () => {
+        it(`Should call rewardsOf for LP2`, async function () {
           let result = await protocolPool0.rewardsOf(
             provider2tokenId,
             365000,
@@ -547,9 +547,9 @@ export function testRewardsWithoutClaim() {
         });
       });
 
-      describe("rewards after 1000 days (after 389 days of all policies expired)", async () => {
+      describe("rewards after 1000 days (after 389 days of all policies expired)", async function () {
         const days = 1000;
-        it(`Should call rewardsOf for LP1`, async () => {
+        it(`Should call rewardsOf for LP1`, async function () {
           let result = await protocolPool0.rewardsOf(
             provider1tokenId,
             365000,
@@ -563,7 +563,7 @@ export function testRewardsWithoutClaim() {
           expect(result.__totalRewards).to.be.equal(90 + 30 + 3225);
         });
 
-        it(`Should call rewardsOf for LP2`, async () => {
+        it(`Should call rewardsOf for LP2`, async function () {
           let result = await protocolPool0.rewardsOf(
             provider2tokenId,
             365000,

@@ -45,7 +45,7 @@ export function testPremiumRewards() {
   // describe("Premium Rewards Generic Contract", function () {
   //   const ETH_VALUE = "5000";
   //   let DATE_NOW: number;
-  //   before(async () => {
+  //   before(async function () {
   //     allSigners = await ethers.getSigners();
   //     owner = allSigners[0];
   //     user = allSigners[1];
@@ -54,7 +54,7 @@ export function testPremiumRewards() {
   //     ownerAddress = await owner.getAddress();
   //     ATEN_TOKEN_CONTRACT = new ethers.Contract(ATEN_TOKEN, weth_abi);
   //   });
-  //   it("Should prepare balances ", async () => {
+  //   it("Should prepare balances ", async function () {
   //     //BINANCE WALLET 1Md2 USDT 0xF977814e90dA44bFA03b6295A0616a897441aceC
   //     await hre.network.provider.request({
   //       method: "hardhat_impersonateAccount",
@@ -105,7 +105,7 @@ export function testPremiumRewards() {
   //     expect(slot0.denumerator).to.be.equal(BigNumber.from("1"));
   //     expect(slot0.lastUpdateTimestamp);
   //   });
-  //   it("Should have rate ratio calculations", async () => {
+  //   it("Should have rate ratio calculations", async function () {
   //     const precision = await POLICY_COVER_CONTRACT.precision();
   //     expect(
   //       await POLICY_COVER_CONTRACT.getUseRateRatio(20000, 30000)
@@ -121,7 +121,7 @@ export function testPremiumRewards() {
   //     //   BigNumber.from(30000).mul(precision).div(BigNumber.from(20000)).toString()
   //     // );
   //   });
-  //   it("Should have rate calculations", async () => {
+  //   it("Should have rate calculations", async function () {
   //     await expect(
   //       POLICY_COVER_CONTRACT.getStakingRewardRate(0, true)
   //     ).to.eventually.equal(BN("1").mul(BN(10000))); // 10% = 0.1 => 10 / 100 / 10000
@@ -134,7 +134,7 @@ export function testPremiumRewards() {
   //     //   POLICY_COVER_CONTRACT.getStakingRewardRate(90000, true)
   //     // ).to.eventually.equal(BN("40").mul(BN(10000)));
   //   });
-  //   it("Should have Duration by day unit for premium and capital", async () => {
+  //   it("Should have Duration by day unit for premium and capital", async function () {
   //     const duration_01 = await POLICY_COVER_CONTRACT.duration(365, 36500, 10000); // 1% (1/100 * 10.000)
   //     expect(duration_01.div(BigNumber.from(24))).to.be.equal(
   //       BigNumber.from(365)
@@ -146,7 +146,7 @@ export function testPremiumRewards() {
   //     const duration_04 = await POLICY_COVER_CONTRACT.duration(2, 36501, 10000); // 1%
   //     expect(duration_04.div(BigNumber.from(24))).to.be.equal(BigNumber.from(1));
   //   });
-  //   it("Should buy premium and check values", async () => {
+  //   it("Should buy premium and check values", async function () {
   //     await HardhatHelper.setNextBlockTimestamp(3600 * 48);
   //     await USDT_TOKEN_CONTRACT.connect(user).approve(
   //       POLICY_COVER_CONTRACT.address,

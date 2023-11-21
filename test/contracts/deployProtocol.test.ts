@@ -18,16 +18,16 @@ let ATHENA_CONTRACT: Athena;
 let STAKING_GP_CONTRACT: StakingGeneralPool;
 
 export function testDeployProtocol() {
-  describe("Deploy protocol", () => {
-    before(async () => {
+  describe("Deploy protocol", function () {
+    before(async function () {
       owner = (await HardhatHelper.allSigners())[0];
 
       await ProtocolHelper.deployAllContractsAndInitializeProtocol(owner);
     });
 
-    describe("Should prepare Protocol", () => {
-      describe("Should deploy all Contracts and initialize Protocol", () => {
-        it("Should deploy ATEN contract", async () => {
+    describe("Should prepare Protocol", function () {
+      describe("Should deploy all Contracts and initialize Protocol", function () {
+        it("Should deploy ATEN contract", async function () {
           await ProtocolHelper.deployAtenTokenContract(owner);
 
           expect(
@@ -37,7 +37,7 @@ export function testDeployProtocol() {
           ).to.not.equal("0x");
         });
 
-        it("Should deploy Athena contract", async () => {
+        it("Should deploy Athena contract", async function () {
           await ProtocolHelper.deployAthenaContract(owner);
 
           expect(
@@ -49,7 +49,7 @@ export function testDeployProtocol() {
           ATHENA_CONTRACT = ProtocolHelper.getAthenaContract();
         });
 
-        it("Should deploy PositionsManager contract", async () => {
+        it("Should deploy PositionsManager contract", async function () {
           await ProtocolHelper.deployPositionManagerContract(owner);
 
           expect(
@@ -59,7 +59,7 @@ export function testDeployProtocol() {
           ).to.not.equal("0x");
         });
 
-        it("Should deploy StakingGeneralPool contract", async () => {
+        it("Should deploy StakingGeneralPool contract", async function () {
           await ProtocolHelper.deployStakedAtenContract(owner);
 
           expect(
@@ -71,7 +71,7 @@ export function testDeployProtocol() {
           STAKING_GP_CONTRACT = ProtocolHelper.getStakedAtenContract();
         });
 
-        it("Should deploy PolicyManager contract", async () => {
+        it("Should deploy PolicyManager contract", async function () {
           await ProtocolHelper.deployPolicyManagerContract(owner);
 
           expect(
@@ -81,7 +81,7 @@ export function testDeployProtocol() {
           ).to.not.equal("0x");
         });
 
-        it("Should deploy ProtocolFactory contract", async () => {
+        it("Should deploy ProtocolFactory contract", async function () {
           await ProtocolHelper.deployProtocolFactoryContract(owner);
 
           expect(
@@ -91,7 +91,7 @@ export function testDeployProtocol() {
           ).to.not.equal("0x");
         });
 
-        it("Should deploy VaultAtens contract", async () => {
+        it("Should deploy VaultAtens contract", async function () {
           await ProtocolHelper.deployVaultAtenContract(owner);
 
           expect(
@@ -101,7 +101,7 @@ export function testDeployProtocol() {
           ).to.not.equal("0x");
         });
 
-        it("Should deploy ClaimManager contract", async () => {
+        it("Should deploy ClaimManager contract", async function () {
           await ProtocolHelper.deployClaimManagerContract(owner);
 
           expect(
@@ -111,7 +111,7 @@ export function testDeployProtocol() {
           ).to.not.equal("0x");
         });
 
-        it("Should deploy PriceOracleV1 contract", async () => {
+        it("Should deploy PriceOracleV1 contract", async function () {
           await ProtocolHelper.deployPriceOracleV1Contract(owner);
 
           expect(
@@ -121,7 +121,7 @@ export function testDeployProtocol() {
           ).to.not.equal("0x");
         });
 
-        it("Should deploy StakedAtensPolicy contract", async () => {
+        it("Should deploy StakedAtensPolicy contract", async function () {
           await ProtocolHelper.deployStakedAtensPolicyContract(owner);
 
           expect(
@@ -131,15 +131,15 @@ export function testDeployProtocol() {
           ).to.not.equal("0x");
         });
 
-        it("Should initialize protocol with required values", async () => {
+        it("Should initialize protocol with required values", async function () {
           const init = await ProtocolHelper.initializeProtocol(owner);
 
           expect(init).to.haveOwnProperty("hash");
         });
       });
 
-      describe("Set new active protocol 0", () => {
-        it("Should set new active protocol", async () => {
+      describe("Set new active protocol 0", function () {
+        it("Should set new active protocol", async function () {
           await HardhatHelper.setNextBlockTimestamp(0 * 24 * 60 * 60);
           const tx = await ProtocolHelper.addNewProtocolPool("Test protocol 0");
 
@@ -149,7 +149,7 @@ export function testDeployProtocol() {
           expect(protocol.name).to.equal("Test protocol 0");
         });
 
-        it("Should check slot0", async () => {
+        it("Should check slot0", async function () {
           const protocolContract = await ProtocolHelper.getProtocolPoolContract(
             owner,
             0,
@@ -172,7 +172,7 @@ export function testDeployProtocol() {
           expect(availableCapital).to.be.equal("0");
         });
 
-        it("Should check relatedProtocols", async () => {
+        it("Should check relatedProtocols", async function () {
           const protocolContract = await ProtocolHelper.getProtocolPoolContract(
             owner,
             0,
@@ -189,8 +189,8 @@ export function testDeployProtocol() {
         });
       });
 
-      describe("Set new active protocol 1", () => {
-        it("Should set new active protocol", async () => {
+      describe("Set new active protocol 1", function () {
+        it("Should set new active protocol", async function () {
           await HardhatHelper.setNextBlockTimestamp(1 * 24 * 60 * 60);
           const tx = await ProtocolHelper.addNewProtocolPool("Test protocol 1");
 
@@ -200,7 +200,7 @@ export function testDeployProtocol() {
           expect(protocol.name).to.equal("Test protocol 1");
         });
 
-        it("Should check slot0", async () => {
+        it("Should check slot0", async function () {
           const protocolContract = await ProtocolHelper.getProtocolPoolContract(
             owner,
             1,
@@ -223,7 +223,7 @@ export function testDeployProtocol() {
           expect(availableCapital).to.be.equal("0");
         });
 
-        it("Should check relatedProtocols", async () => {
+        it("Should check relatedProtocols", async function () {
           const protocolContract = await ProtocolHelper.getProtocolPoolContract(
             owner,
             1,
@@ -240,8 +240,8 @@ export function testDeployProtocol() {
         });
       });
 
-      describe("Set new active protocol 2", () => {
-        it("Should set new active protocol", async () => {
+      describe("Set new active protocol 2", function () {
+        it("Should set new active protocol", async function () {
           await HardhatHelper.setNextBlockTimestamp(1 * 24 * 60 * 60);
           const tx = await ProtocolHelper.addNewProtocolPool("Test protocol 2");
 
@@ -251,7 +251,7 @@ export function testDeployProtocol() {
           expect(protocol.name).to.equal("Test protocol 2");
         });
 
-        it("Should check slot0", async () => {
+        it("Should check slot0", async function () {
           const protocolContract = await ProtocolHelper.getProtocolPoolContract(
             owner,
             2,
@@ -274,7 +274,7 @@ export function testDeployProtocol() {
           expect(availableCapital).to.be.equal("0");
         });
 
-        it("Should check relatedProtocols", async () => {
+        it("Should check relatedProtocols", async function () {
           const protocolContract = await ProtocolHelper.getProtocolPoolContract(
             owner,
             2,
@@ -291,8 +291,8 @@ export function testDeployProtocol() {
         });
       });
 
-      describe("Set discounts with Aten", () => {
-        it("Should set discounts with Aten", async () => {
+      describe("Set discounts with Aten", function () {
+        it("Should set discounts with Aten", async function () {
           const tx = await ProtocolHelper.setFeeLevelsWithAten(owner);
 
           expect(tx).to.haveOwnProperty("hash");
@@ -322,7 +322,7 @@ export function testDeployProtocol() {
           ).to.be.rejectedWith();
         });
 
-        it("Should get discount amount with Aten", async () => {
+        it("Should get discount amount with Aten", async function () {
           expect(
             await STAKING_GP_CONTRACT.connect(owner).getFeeRateWithAten(999),
           ).to.equal(250);
@@ -336,7 +336,7 @@ export function testDeployProtocol() {
           ).to.equal(50);
         });
 
-        it("Should set reward Rates ATEN with USD", async () => {
+        it("Should set reward Rates ATEN with USD", async function () {
           await expect(
             STAKING_GP_CONTRACT.connect(owner).setStakingRewardRates([
               { amountSupplied: 0, aprStaking: 1_000 },
@@ -383,21 +383,21 @@ export function testDeployProtocol() {
         });
       });
 
-      describe("View all array data", () => {
-        it("Should get all pool data", async () => {
+      describe("View all array data", function () {
+        it("Should get all pool data", async function () {
           const poolData = await ATHENA_CONTRACT.getAllProtocols();
 
           expect(poolData.length).to.equal(3);
         });
 
-        it("Should get all fee level data", async () => {
+        it("Should get all fee level data", async function () {
           const feeLevels =
             await STAKING_GP_CONTRACT.connect(owner).getSupplyFeeLevels();
 
           expect(feeLevels.length).to.equal(4);
         });
 
-        it("Should get all staking levels data", async () => {
+        it("Should get all staking levels data", async function () {
           const stakingLevels =
             await STAKING_GP_CONTRACT.connect(owner).getStakingRewardsLevels();
 

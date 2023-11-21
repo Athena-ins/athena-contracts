@@ -7,16 +7,16 @@ const LIQUIDITY = 10000;
 const POLICY = 10000;
 
 export function testFinance() {
-  describe("Testing financial calculations", () => {
-    it("Should return 10", () => {
+  describe("Testing financial calculations", function () {
+    it("Should return 10", function () {
       expect(10).to.equal(10);
     });
-    it("Should return 30% staking reward", () => {
+    it("Should return 30% staking reward", function () {
       expect(
         (LIQUIDITY_PROVIDER * (LIQUIDITY / POLICY) * STAKING_REWARD) / 100,
       ).to.equal(3000); // ANNUALIZED
     });
-    it("Should return 30% staking reward on 1 day", () => {
+    it("Should return 30% staking reward on 1 day", function () {
       const result =
         (LIQUIDITY_PROVIDER * (LIQUIDITY / POLICY) * STAKING_REWARD) /
         100 /

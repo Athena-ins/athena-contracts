@@ -20,8 +20,8 @@ let policyTaker3: ethers.Signer;
 let policyTaker4: ethers.Signer;
 
 export function testExpiredPoliciesWithCanceling() {
-  describe("expired policies", () => {
-    before(async () => {
+  describe("expired policies", function () {
+    before(async function () {
       const allSigners = await HardhatHelper.allSigners();
       owner = allSigners[0];
       liquidityProvider1 = allSigners[1];
@@ -147,8 +147,8 @@ export function testExpiredPoliciesWithCanceling() {
       );
     });
 
-    describe("Should actualizing all protocol", () => {
-      it("Should withdraw policy for policyTaker1 in pool 0", async () => {
+    describe("Should actualizing all protocol", function () {
+      it("Should withdraw policy for policyTaker1 in pool 0", async function () {
         const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           owner,
           0,
@@ -168,7 +168,7 @@ export function testExpiredPoliciesWithCanceling() {
         expect(slot0.remainingPolicies).to.be.equal(1);
       });
 
-      it("Should actualizing pool 0", async () => {
+      it("Should actualizing pool 0", async function () {
         const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           owner,
           0,
@@ -188,7 +188,7 @@ export function testExpiredPoliciesWithCanceling() {
         expect(slot0.remainingPolicies).to.be.equal(0);
       });
 
-      it("Should actualizing pool 1", async () => {
+      it("Should actualizing pool 1", async function () {
         const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           owner,
           1,
@@ -208,7 +208,7 @@ export function testExpiredPoliciesWithCanceling() {
         expect(slot0.remainingPolicies).to.be.equal(0);
       });
 
-      it("Should actualizing pool 2", async () => {
+      it("Should actualizing pool 2", async function () {
         const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           owner,
           2,
@@ -228,7 +228,7 @@ export function testExpiredPoliciesWithCanceling() {
         expect(slot0.remainingPolicies).to.be.equal(0);
       });
 
-      it("Should actualizing pool 3", async () => {
+      it("Should actualizing pool 3", async function () {
         const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           owner,
           3,
@@ -248,7 +248,7 @@ export function testExpiredPoliciesWithCanceling() {
         expect(slot0.remainingPolicies).to.be.equal(0);
       });
 
-      it("Should get expired policies for policyTaker1", async () => {
+      it("Should get expired policies for policyTaker1", async function () {
         const expiredPolicies =
           await ProtocolHelper.getExpiredCovers(policyTaker1);
 
@@ -263,7 +263,7 @@ export function testExpiredPoliciesWithCanceling() {
         expect(expiredPolicies[1].cancelledByUser).to.be.equal(false);
       });
 
-      it("Should get expired policies for policyTaker2", async () => {
+      it("Should get expired policies for policyTaker2", async function () {
         const expiredPolicies =
           await ProtocolHelper.getExpiredCovers(policyTaker2);
 
@@ -272,7 +272,7 @@ export function testExpiredPoliciesWithCanceling() {
         expect(expiredPolicies[0].poolId).to.be.equal(0);
       });
 
-      it("Should get expired policies for policyTaker3", async () => {
+      it("Should get expired policies for policyTaker3", async function () {
         const expiredPolicies =
           await ProtocolHelper.getExpiredCovers(policyTaker3);
 
@@ -281,7 +281,7 @@ export function testExpiredPoliciesWithCanceling() {
         expect(expiredPolicies[0].poolId).to.be.equal(2);
       });
 
-      it("Should get expired policies for policyTaker4", async () => {
+      it("Should get expired policies for policyTaker4", async function () {
         const expiredPolicies =
           await ProtocolHelper.getExpiredCovers(policyTaker4);
 

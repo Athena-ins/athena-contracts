@@ -18,9 +18,9 @@ let provider2tokenId: ethers.BigNumberish;
 let protocolPool0: ethers.Contract;
 
 export function testTakeInterestWithoutClaim() {
-  describe("Liquidity provider takeInterest without claims", () => {
-    describe("LP1, LP2 then PT1, PT2 in pool 0", async () => {
-      before(async () => {
+  describe("Liquidity provider takeInterest without claims", function () {
+    describe("LP1, LP2 then PT1, PT2 in pool 0", async function () {
+      before(async function () {
         const allSigners = await HardhatHelper.allSigners();
         owner = allSigners[0];
         liquidityProvider1 = allSigners[1];
@@ -107,7 +107,7 @@ export function testTakeInterestWithoutClaim() {
         );
       });
 
-      it(`Should call takeInterest for LP1 after 1 days of PT2 bought his policy`, async () => {
+      it(`Should call takeInterest for LP1 after 1 days of PT2 bought his policy`, async function () {
         const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           liquidityProvider1,
           0,
@@ -139,7 +139,7 @@ export function testTakeInterestWithoutClaim() {
         );
       });
 
-      it(`Should call takeInterest for LP1 after 1 days again`, async () => {
+      it(`Should call takeInterest for LP1 after 1 days again`, async function () {
         const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           liquidityProvider1,
           0,
@@ -171,7 +171,7 @@ export function testTakeInterestWithoutClaim() {
         );
       });
 
-      it(`Should call takeInterest for LP1 after 10 days again`, async () => {
+      it(`Should call takeInterest for LP1 after 10 days again`, async function () {
         const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           liquidityProvider1,
           0,
@@ -203,7 +203,7 @@ export function testTakeInterestWithoutClaim() {
         );
       });
 
-      it(`Should call takeInterest for LP2 after 1 day`, async () => {
+      it(`Should call takeInterest for LP2 after 1 day`, async function () {
         const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           liquidityProvider2,
           0,
@@ -235,7 +235,7 @@ export function testTakeInterestWithoutClaim() {
         );
       });
 
-      it(`Should call takeInterest for LP2 after 1 day again`, async () => {
+      it(`Should call takeInterest for LP2 after 1 day again`, async function () {
         const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           liquidityProvider2,
           0,
@@ -267,7 +267,7 @@ export function testTakeInterestWithoutClaim() {
         );
       });
 
-      it(`Should call takeInterest for LP2 after 611 day again`, async () => {
+      it(`Should call takeInterest for LP2 after 611 day again`, async function () {
         const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           liquidityProvider2,
           0,
@@ -299,7 +299,7 @@ export function testTakeInterestWithoutClaim() {
         );
       });
 
-      it(`Should call takeInterest for LP2 after 1 day again`, async () => {
+      it(`Should call takeInterest for LP2 after 1 day again`, async function () {
         const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           liquidityProvider2,
           0,
@@ -331,7 +331,7 @@ export function testTakeInterestWithoutClaim() {
         );
       });
 
-      it(`Should call takeInterest for LP2 after 1 day again`, async () => {
+      it(`Should call takeInterest for LP2 after 1 day again`, async function () {
         const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           liquidityProvider2,
           0,
@@ -363,7 +363,7 @@ export function testTakeInterestWithoutClaim() {
         );
       });
 
-      it(`Should call takeInterest for LP1 after 1 day`, async () => {
+      it(`Should call takeInterest for LP1 after 1 day`, async function () {
         const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           liquidityProvider1,
           0,
@@ -396,8 +396,8 @@ export function testTakeInterestWithoutClaim() {
       });
     });
 
-    describe("LP1 then PT1, PT2 then LP2 in pool 0", async () => {
-      before(async () => {
+    describe("LP1 then PT1, PT2 then LP2 in pool 0", async function () {
+      before(async function () {
         const allSigners = await HardhatHelper.allSigners();
         owner = allSigners[0];
         liquidityProvider1 = allSigners[1];
@@ -477,7 +477,7 @@ export function testTakeInterestWithoutClaim() {
         //LP2: UR = 30%; PR = 3%; ER = 18 (PT1 -> 9; PT2 -> 9)
       });
 
-      it("Should check policy1 initial info", async () => {
+      it("Should check policy1 initial info", async function () {
         const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           policyTaker1,
           0,
@@ -493,7 +493,7 @@ export function testTakeInterestWithoutClaim() {
         expect(policyInfo.lastTick).to.be.equal(730);
       });
 
-      it("Should get policy1 remaning info", async () => {
+      it("Should get policy1 remaning info", async function () {
         const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           policyTaker1,
           0,
@@ -510,7 +510,7 @@ export function testTakeInterestWithoutClaim() {
         expect(response.__remainingSeconds).to.be.equal(20016000);
       });
 
-      it("Should check policy2 initial info", async () => {
+      it("Should check policy2 initial info", async function () {
         const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           policyTaker2,
           0,
@@ -526,7 +526,7 @@ export function testTakeInterestWithoutClaim() {
         expect(policyInfo.lastTick).to.be.equal(1490);
       });
 
-      it("Should get policy2 remaning info", async () => {
+      it("Should get policy2 remaning info", async function () {
         const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           policyTaker1,
           0,
@@ -543,21 +543,21 @@ export function testTakeInterestWithoutClaim() {
         expect(response.__remainingSeconds).to.be.equal(52848000);
       });
 
-      it("Should check LP1's info", async () => {
+      it("Should check LP1's info", async function () {
         let lpInfo = await protocolPool0.LPsInfo(provider1tokenId);
 
         expect(lpInfo.beginLiquidityIndex).to.be.equal(0);
         expect(lpInfo.beginClaimIndex).to.be.equal(0);
       });
 
-      it("Should check LP2's info", async () => {
+      it("Should check LP2's info", async function () {
         let lpInfo = await protocolPool0.LPsInfo(provider2tokenId);
 
         expect(lpInfo.beginLiquidityIndex).to.not.be.equal(0);
         expect(lpInfo.beginClaimIndex).to.be.equal(0);
       });
 
-      it(`Should call takeInterest for LP1 after 1 day`, async () => {
+      it(`Should call takeInterest for LP1 after 1 day`, async function () {
         const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           liquidityProvider1,
           0,
@@ -589,7 +589,7 @@ export function testTakeInterestWithoutClaim() {
         );
       });
 
-      it(`Should call takeInterest for LP2 after 1 day`, async () => {
+      it(`Should call takeInterest for LP2 after 1 day`, async function () {
         const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           liquidityProvider2,
           0,
@@ -621,7 +621,7 @@ export function testTakeInterestWithoutClaim() {
         );
       });
 
-      it(`Should call takeInterest for LP1 after 1 day`, async () => {
+      it(`Should call takeInterest for LP1 after 1 day`, async function () {
         const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           liquidityProvider1,
           0,

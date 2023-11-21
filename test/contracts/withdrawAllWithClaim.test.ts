@@ -19,9 +19,9 @@ let protocolPool0: ethers.Contract;
 let protocolPool2: ethers.Contract;
 
 export function testWithdrawAllWithClaim() {
-  describe("Liquidity provider withdraw", () => {
-    describe("LP1, LP2 then PT1, PT2 in pool 0", async () => {
-      before(async () => {
+  describe("Liquidity provider withdraw", function () {
+    describe("LP1, LP2 then PT1, PT2 in pool 0", async function () {
+      before(async function () {
         const allSigners = await HardhatHelper.allSigners();
         owner = allSigners[0];
         liquidityProvider1 = allSigners[1];
@@ -109,7 +109,7 @@ export function testWithdrawAllWithClaim() {
         );
       });
 
-      it("Should resolve claim in Protocol 2", async () => {
+      it("Should resolve claim in Protocol 2", async function () {
         await ProtocolHelper.createClaim(policyTaker2, 1, "182500");
 
         await ProtocolHelper.resolveClaimWithoutDispute(
@@ -127,7 +127,7 @@ export function testWithdrawAllWithClaim() {
         );
       });
 
-      it(`Should commit withdraw all for LP1 after 1 days of claim and withdraw all liquidity after 14 days of committing`, async () => {
+      it(`Should commit withdraw all for LP1 after 1 days of claim and withdraw all liquidity after 14 days of committing`, async function () {
         await HardhatHelper.setNextBlockTimestamp(1 * 24 * 60 * 60);
 
         const commit_tx = await ProtocolHelper.getAthenaContract()
@@ -211,7 +211,7 @@ export function testWithdrawAllWithClaim() {
         );
       });
 
-      it("Should call takeInterest for LP2 after 10 day that LP1 withdrawed his capital in protocol 0", async () => {
+      it("Should call takeInterest for LP2 after 10 day that LP1 withdrawed his capital in protocol 0", async function () {
         const lpInfoBefore = await protocolPool0.LPsInfo(provider2tokenId);
 
         const days = 10;

@@ -20,8 +20,8 @@ let protocolPool2: ethers.Contract;
 let protocolPool3: ethers.Contract;
 
 export function testResolveClaim() {
-  describe("Resolve Claims", () => {
-    before(async () => {
+  describe("Resolve Claims", function () {
+    before(async function () {
       const allSigners = await HardhatHelper.allSigners();
       owner = allSigners[0];
       liquidityProvider1 = allSigners[1];
@@ -128,8 +128,8 @@ export function testResolveClaim() {
       );
     });
 
-    describe("Resolve Claim", async () => {
-      it("Should check slot0 in protocol 0 before claim", async () => {
+    describe("Resolve Claim", async function () {
+      it("Should check slot0 in protocol 0 before claim", async function () {
         const slot0 = await protocolPool0.slot0();
 
         expect(slot0.tick).to.be.equal(20);
@@ -148,7 +148,7 @@ export function testResolveClaim() {
         expect(availableCapital).to.be.equal("730000");
       });
 
-      it("Should check intersectingAmounts in protocol 0 before claim", async () => {
+      it("Should check intersectingAmounts in protocol 0 before claim", async function () {
         const intersecAmounts0 = await protocolPool0.intersectingAmounts(0);
         expect(intersecAmounts0).to.be.equal("730000");
 
@@ -159,7 +159,7 @@ export function testResolveClaim() {
         expect(intersecAmounts2).to.be.equal("730000");
       });
 
-      it("Should create and resolve claim in Protocol 3", async () => {
+      it("Should create and resolve claim in Protocol 3", async function () {
         await ProtocolHelper.createClaim(policyTaker3, 0, "182500");
 
         await ProtocolHelper.resolveClaimWithoutDispute(
@@ -177,27 +177,27 @@ export function testResolveClaim() {
         );
       });
 
-      it("Should check number of claim in protocol 0", async () => {
+      it("Should check number of claim in protocol 0", async function () {
         const length = await protocolPool0.claimsCount();
         expect(length).to.be.equal(0);
       });
 
-      it("Should check number of claim in protocol 1", async () => {
+      it("Should check number of claim in protocol 1", async function () {
         const length = await protocolPool1.claimsCount();
         expect(length).to.be.equal(0);
       });
 
-      it("Should check number of claim in protocol 2", async () => {
+      it("Should check number of claim in protocol 2", async function () {
         const length = await protocolPool2.claimsCount();
         expect(length).to.be.equal(0);
       });
 
-      it("Should check number of claim in protocol 3", async () => {
+      it("Should check number of claim in protocol 3", async function () {
         const length = await protocolPool3.claimsCount();
         expect(length).to.be.equal(1);
       });
 
-      it("Should check slot0 in Protocol 3 after claim in Protocol 3", async () => {
+      it("Should check slot0 in Protocol 3 after claim in Protocol 3", async function () {
         const slot0 = await protocolPool3.slot0();
 
         expect(slot0.tick).to.be.equal(264);
@@ -216,7 +216,7 @@ export function testResolveClaim() {
         expect(availableCapital).to.be.equal("182500");
       });
 
-      it("Should get vSlot0 of Protocol 1 after 1 day claimed in Protocol 3", async () => {
+      it("Should get vSlot0 of Protocol 1 after 1 day claimed in Protocol 3", async function () {
         const days = 1;
         const result = await protocolPool1.actualizingUntilGivenDate(
           (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60,
@@ -233,7 +233,7 @@ export function testResolveClaim() {
         );
       });
 
-      it("Should update pool3 1d after claim, checking intersectingAmounts and slot0", async () => {
+      it("Should update pool3 1d after claim, checking intersectingAmounts and slot0", async function () {
         await HardhatHelper.setNextBlockTimestamp(1 * 24 * 60 * 60);
 
         await ProtocolHelper.getAthenaContract()
@@ -259,7 +259,7 @@ export function testResolveClaim() {
         expect(availableCapital).to.be.equal("182500");
       });
 
-      it("Should create and resolve claim pool0 and check info in its related protocols", async () => {
+      it("Should create and resolve claim pool0 and check info in its related protocols", async function () {
         await ProtocolHelper.createClaim(policyTaker2, 2, "182500");
 
         await ProtocolHelper.resolveClaimWithoutDispute(

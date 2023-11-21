@@ -15,9 +15,9 @@ let policyTaker2: ethers.Signer;
 let policyTaker3: ethers.Signer;
 
 export function testWithdrawLiquidity1ProtocolWithoutClaim() {
-  describe("Liquidity provider withdraw", () => {
-    describe("LP1, LP2 then PT1, PT2 in pool 0", async () => {
-      before(async () => {
+  describe("Liquidity provider withdraw", function () {
+    describe("LP1, LP2 then PT1, PT2 in pool 0", async function () {
+      before(async function () {
         const allSigners = await HardhatHelper.allSigners();
         owner = allSigners[0];
         liquidityProvider1 = allSigners[1];
@@ -86,7 +86,7 @@ export function testWithdrawLiquidity1ProtocolWithoutClaim() {
         );
       });
 
-      it.skip(`Should commit withdraw for LP1 after 1 days of PT2 bought his policy in protocol0 and withdraw liquidity after 14 days of committing`, async () => {
+      it.skip(`Should commit withdraw for LP1 after 1 days of PT2 bought his policy in protocol0 and withdraw liquidity after 14 days of committing`, async function () {
         await HardhatHelper.setNextBlockTimestamp(1 * 24 * 60 * 60);
 
         const commit_tx = await ProtocolHelper.getAthenaContract()
@@ -136,7 +136,7 @@ export function testWithdrawLiquidity1ProtocolWithoutClaim() {
         expect(premiumRate).to.be.equal("5000000000000000000000000000");
       });
 
-      it.skip("Should call takeInterest for LP2 after 10 day that LP1 withdrawed his capital", async () => {
+      it.skip("Should call takeInterest for LP2 after 10 day that LP1 withdrawed his capital", async function () {
         const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           liquidityProvider2,
           0,

@@ -17,8 +17,8 @@ let policyTaker3: ethers.Signer;
 const numberProtocol = 100;
 
 export function testClaimsView() {
-  describe("Claims view", () => {
-    before(async () => {
+  describe("Claims view", function () {
+    before(async function () {
       const allSigners = await HardhatHelper.allSigners();
       owner = allSigners[0];
       liquidityProvider1 = allSigners[1];
@@ -87,7 +87,7 @@ export function testClaimsView() {
       );
     });
 
-    it("Should call 2 time Athena.startClaim(...)", async () => {
+    it("Should call 2 time Athena.startClaim(...)", async function () {
       await ProtocolHelper.getAthenaContract()
         .connect(policyTaker1)
         .startClaim(0, 0, 1000, { value: "100000000000000000" });
@@ -97,7 +97,7 @@ export function testClaimsView() {
         .startClaim(1, 0, 2000, { value: "100000000000000000" });
     });
 
-    it("Should call ClaimManager.linearClaimsView(beginDisputeId = 0, numberOfClaims = 5)", async () => {
+    it("Should call ClaimManager.linearClaimsView(beginDisputeId = 0, numberOfClaims = 5)", async function () {
       const result = await ProtocolHelper.getClaimManagerContract()
         .connect(owner)
         .linearClaimsView(0, 5);
@@ -115,7 +115,7 @@ export function testClaimsView() {
       expect(result[1].status).to.be.equal(0);
     });
 
-    it("Should call ClaimManager.linearClaimsView(beginDisputeId = 3, numberOfClaims = 2)", async () => {
+    it("Should call ClaimManager.linearClaimsView(beginDisputeId = 3, numberOfClaims = 2)", async function () {
       await expect(
         ProtocolHelper.getClaimManagerContract()
           .connect(owner)

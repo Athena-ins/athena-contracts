@@ -17,8 +17,8 @@ let policyTaker3: ethers.Signer;
 const numberProtocol = 100;
 
 export function testProtocolsView() {
-  describe("Protocols view", () => {
-    before(async () => {
+  describe("Protocols view", function () {
+    before(async function () {
       const allSigners = await HardhatHelper.allSigners();
       owner = allSigners[0];
       liquidityProvider1 = allSigners[1];
@@ -87,7 +87,7 @@ export function testProtocolsView() {
       );
     });
 
-    it("Should call Athena.linearProtocolsView(beginId = 0, numberOfProtocols = 3)", async () => {
+    it("Should call Athena.linearProtocolsView(beginId = 0, numberOfProtocols = 3)", async function () {
       const result = await Promise.all([
         ProtocolHelper.getAthenaContract().connect(owner).getProtocol(0),
         ProtocolHelper.getAthenaContract().connect(owner).getProtocol(1),
@@ -122,7 +122,7 @@ export function testProtocolsView() {
       expect(result[2].premiumRate).to.be.equal("3000000000000000000000000000");
     });
 
-    it("Should call Athena.linearProtocolsView(beginId = 23, numberOfProtocols = 2)", async () => {
+    it("Should call Athena.linearProtocolsView(beginId = 23, numberOfProtocols = 2)", async function () {
       const result = await Promise.all([
         ProtocolHelper.getAthenaContract().connect(owner).getProtocol(23),
         ProtocolHelper.getAthenaContract().connect(owner).getProtocol(23),
@@ -145,7 +145,7 @@ export function testProtocolsView() {
       expect(result[1].premiumRate).to.be.equal("1000000000000000000000000000");
     });
 
-    it("Should call Athena.protocolsView([2, 37, 90, 85])", async () => {
+    it("Should call Athena.protocolsView([2, 37, 90, 85])", async function () {
       const result = await Promise.all([
         ProtocolHelper.getAthenaContract().connect(owner).getProtocol(2),
         ProtocolHelper.getAthenaContract().connect(owner).getProtocol(37),

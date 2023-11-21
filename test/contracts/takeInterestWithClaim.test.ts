@@ -19,8 +19,8 @@ let provider2tokenId: ethers.BigNumberish;
 let protocolPool0: ethers.Contract;
 
 export function testTakeInterestWithClaim() {
-  describe("Liquidity provider takeInterest with claims", () => {
-    before(async () => {
+  describe("Liquidity provider takeInterest with claims", function () {
+    before(async function () {
       const allSigners = await HardhatHelper.allSigners();
       owner = allSigners[0];
       liquidityProvider1 = allSigners[1];
@@ -139,7 +139,7 @@ export function testTakeInterestWithClaim() {
       );
     });
 
-    it("Should add a claim in protocol2 and check claim info in protocol0", async () => {
+    it("Should add a claim in protocol2 and check claim info in protocol0", async function () {
       await ProtocolHelper.createClaim(policyTaker3, 2, "182500");
 
       await ProtocolHelper.resolveClaimWithoutDispute(
@@ -158,7 +158,7 @@ export function testTakeInterestWithClaim() {
       );
     });
 
-    it("Should call takeInterest for LP1 after 1 day of added claim", async () => {
+    it("Should call takeInterest for LP1 after 1 day of added claim", async function () {
       const protocolContract = await ProtocolHelper.getProtocolPoolContract(
         liquidityProvider1,
         0,
@@ -191,7 +191,7 @@ export function testTakeInterestWithClaim() {
       expect(lpInfoAfter.beginClaimIndex).to.be.equal(1);
     });
 
-    it("Should call takeInterest for LP2 after 2 day of added claim", async () => {
+    it("Should call takeInterest for LP2 after 2 day of added claim", async function () {
       const protocolContract = await ProtocolHelper.getProtocolPoolContract(
         liquidityProvider2,
         0,
@@ -224,7 +224,7 @@ export function testTakeInterestWithClaim() {
       expect(lpInfoAfter.beginClaimIndex).to.be.equal(1);
     });
 
-    it("Should call takeInterest for LP1 after 2 day of his last takeInterest", async () => {
+    it("Should call takeInterest for LP1 after 2 day of his last takeInterest", async function () {
       const protocolContract = await ProtocolHelper.getProtocolPoolContract(
         liquidityProvider1,
         0,
@@ -257,7 +257,7 @@ export function testTakeInterestWithClaim() {
       expect(lpInfoAfter.beginClaimIndex).to.be.equal(1);
     });
 
-    it("Should call takeInterest for LP2 after 2 day of his last takeInterest", async () => {
+    it("Should call takeInterest for LP2 after 2 day of his last takeInterest", async function () {
       const protocolContract = await ProtocolHelper.getProtocolPoolContract(
         liquidityProvider2,
         0,
@@ -290,7 +290,7 @@ export function testTakeInterestWithClaim() {
       expect(lpInfoAfter.beginClaimIndex).to.be.equal(1);
     });
 
-    it("Should add a 3 claims into protocol1 and check claim info in protocol0", async () => {
+    it("Should add a 3 claims into protocol1 and check claim info in protocol0", async function () {
       await ProtocolHelper.createClaim(policyTaker4, 3, "500");
       await ProtocolHelper.resolveClaimWithoutDispute(
         policyTaker4,
@@ -335,7 +335,7 @@ export function testTakeInterestWithClaim() {
       ).to.be.equal(true);
     });
 
-    it("Should call takeInterest for LP1 in protocol0 after 1 day of adding 3 claims into protocol1 then check ClaimIndex and userCapital", async () => {
+    it("Should call takeInterest for LP1 in protocol0 after 1 day of adding 3 claims into protocol1 then check ClaimIndex and userCapital", async function () {
       const protocolContract = await ProtocolHelper.getProtocolPoolContract(
         liquidityProvider1,
         0,
@@ -370,7 +370,7 @@ export function testTakeInterestWithClaim() {
       expect(lpInfoAfter.beginClaimIndex).to.be.equal(4);
     });
 
-    it("Should call takeInterest for LP2 in protocol0 after 2 day of adding 3 claims into protocol1 then check ClaimIndex and userCapital", async () => {
+    it("Should call takeInterest for LP2 in protocol0 after 2 day of adding 3 claims into protocol1 then check ClaimIndex and userCapital", async function () {
       const protocolContract = await ProtocolHelper.getProtocolPoolContract(
         liquidityProvider2,
         0,

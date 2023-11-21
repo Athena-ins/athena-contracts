@@ -17,8 +17,8 @@ let policyTaker1: ethers.Signer;
 let policyTaker2: ethers.Signer;
 
 export function testPolicyTaker() {
-  describe("Buy policy", () => {
-    before(async () => {
+  describe("Buy policy", function () {
+    before(async function () {
       const allSigners = await HardhatHelper.allSigners();
       owner = allSigners[0];
       liquidityProvider1 = allSigners[1];
@@ -54,12 +54,12 @@ export function testPolicyTaker() {
 
     let totalPremium = BN(0);
 
-    describe("Should do actions of policy taker 1", () => {
+    describe("Should do actions of policy taker 1", function () {
       const capital = "109500";
       const premium = "2190";
       const atensLocked = "0";
 
-      it("Should prepare USDT balance", async () => {
+      it("Should prepare USDT balance", async function () {
         expect(
           await HardhatHelper.USDT_balanceOf(await policyTaker1.getAddress()),
         ).to.be.equal(0);
@@ -74,7 +74,7 @@ export function testPolicyTaker() {
         ).to.be.equal(hre_ethers.utils.parseUnits(premium, 6));
       });
 
-      it("Should success buy policy in protocol 0 for 1 year", async () => {
+      it("Should success buy policy in protocol 0 for 1 year", async function () {
         const USDT_Approved = await HardhatHelper.USDT_maxApprove(
           policyTaker1,
           ProtocolHelper.getAthenaContract().address,
@@ -92,7 +92,7 @@ export function testPolicyTaker() {
         totalPremium = totalPremium.add(premium);
       });
 
-      it("Should check policy info", async () => {
+      it("Should check policy info", async function () {
         const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           policyTaker1,
           0,
@@ -111,7 +111,7 @@ export function testPolicyTaker() {
         expect(policyInfo.lastTick).to.be.equal(730);
       });
 
-      it("Should get info", async () => {
+      it("Should get info", async function () {
         const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           policyTaker1,
           0,
@@ -128,7 +128,7 @@ export function testPolicyTaker() {
         expect(response.__remainingSeconds).to.be.equal(365 * 24 * 60 * 60);
       });
 
-      it("Should check slot0 in protocol 0", async () => {
+      it("Should check slot0 in protocol 0", async function () {
         const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           policyTaker1,
           0,
@@ -151,7 +151,7 @@ export function testPolicyTaker() {
         expect(availableCapital).to.be.equal("730000");
       });
 
-      it("Should check NFT", async () => {
+      it("Should check NFT", async function () {
         const POLICY_MANAGER_CONTRACT =
           ProtocolHelper.getPolicyManagerContract();
 
@@ -186,12 +186,12 @@ export function testPolicyTaker() {
       });
     });
 
-    describe("Should do actions of policy taker 2", () => {
+    describe("Should do actions of policy taker 2", function () {
       const capital = "219000";
       const premium = "8760";
       const atensLocked = "0";
 
-      it("Should prepare USDT balance", async () => {
+      it("Should prepare USDT balance", async function () {
         expect(
           await HardhatHelper.USDT_balanceOf(await policyTaker2.getAddress()),
         ).to.be.equal(0);
@@ -206,7 +206,7 @@ export function testPolicyTaker() {
         ).to.be.equal(hre_ethers.utils.parseUnits(premium, 6));
       });
 
-      it("Should success buy policy in protocol 0 for 1 year", async () => {
+      it("Should success buy policy in protocol 0 for 1 year", async function () {
         const USDT_Approved = await HardhatHelper.USDT_maxApprove(
           policyTaker2,
           ProtocolHelper.getAthenaContract().address,
@@ -224,7 +224,7 @@ export function testPolicyTaker() {
         totalPremium = totalPremium.add(premium);
       });
 
-      it("Should check policy info", async () => {
+      it("Should check policy info", async function () {
         const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           policyTaker2,
           0,
@@ -240,7 +240,7 @@ export function testPolicyTaker() {
         expect(policyInfo.lastTick).to.be.equal(1480);
       });
 
-      it("Should get info", async () => {
+      it("Should get info", async function () {
         const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           policyTaker2,
           0,
@@ -258,7 +258,7 @@ export function testPolicyTaker() {
         expect(response.__remainingSeconds).to.be.equal("36936000");
       });
 
-      it("Should check slot0 in protocol 0", async () => {
+      it("Should check slot0 in protocol 0", async function () {
         const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           policyTaker2,
           0,
@@ -281,7 +281,7 @@ export function testPolicyTaker() {
         expect(availableCapital).to.be.equal("730000");
       });
 
-      it("Should check NFT", async () => {
+      it("Should check NFT", async function () {
         const POLICY_MANAGER_CONTRACT =
           ProtocolHelper.getPolicyManagerContract();
 
@@ -316,8 +316,8 @@ export function testPolicyTaker() {
       });
     });
 
-    describe("Should check PolicyTaker1's info", () => {
-      it("Should get info", async () => {
+    describe("Should check PolicyTaker1's info", function () {
+      it("Should get info", async function () {
         const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           policyTaker1,
           0,
@@ -334,7 +334,7 @@ export function testPolicyTaker() {
         expect(response.__remainingSeconds).to.be.equal(15336000);
       });
 
-      it("Should check all position of LP2", async () => {
+      it("Should check all position of LP2", async function () {
         const POSITIONS_MANAGER_CONTRACT =
           ProtocolHelper.getPositionManagerContract();
 
@@ -346,7 +346,7 @@ export function testPolicyTaker() {
         expect(allPositions.length).to.be.equal(1);
       });
 
-      it("Should get info after policy has expired", async () => {
+      it("Should get info after policy has expired", async function () {
         const protocolContract =
           await ProtocolHelper.getPolicyManagerContract().connect(policyTaker1);
 

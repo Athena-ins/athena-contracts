@@ -41,7 +41,7 @@ export function testProtocolPool() {
   describe("Protocol Pool", function () {
     let DATE_NOW: number;
 
-    before(async () => {
+    before(async function () {
       allSigners = await ethers.getSigners();
       owner = allSigners[0];
       user1 = allSigners[1];
@@ -132,8 +132,8 @@ export function testProtocolPool() {
       });
     });
 
-    describe("Initialize Protocol", async () => {
-      it("Should initialize protocol with required values", async () => {
+    describe("Initialize Protocol", async function () {
+      it("Should initialize protocol with required values", async function () {
         const init = await ATHENA_CONTRACT.initialize(
           // @bw bad ordering
           POS_CONTRACT.address,
@@ -287,8 +287,8 @@ export function testProtocolPool() {
       });
     });
 
-    describe("Prepare balances ", async () => {
-      it("Should prepare balances for USDT", async () => {
+    describe("Prepare balances ", async function () {
+      it("Should prepare balances for USDT", async function () {
         //BINANCE WALLET 1Md2 USDT 0xF977814e90dA44bFA03b6295A0616a897441aceC
         await hre.network.provider.request({
           method: "hardhat_impersonateAccount",
@@ -333,7 +333,7 @@ export function testProtocolPool() {
         ).to.equal(ethers.utils.parseUnits("100000", 6));
       });
 
-      it("Should prepare balances for ATEN", async () => {
+      it("Should prepare balances for ATEN", async function () {
         await hre.network.provider.request({
           method: "hardhat_impersonateAccount",
           params: [ATEN_OWNER_ADDRESS],
@@ -378,7 +378,7 @@ export function testProtocolPool() {
       });
     });
 
-    describe("Deposit funds", () => {
+    describe("Deposit funds", function () {
       it("Should approve funds", async function () {
         //Approve before sending !
         const approved = await new ethers.Contract(
@@ -452,7 +452,7 @@ export function testProtocolPool() {
       });
     });
 
-    describe("USD Premium rewards", () => {
+    describe("USD Premium rewards", function () {
       it("Should buy Policy on 1 year protocol 0", async function () {
         //user already approved Contract to provide funds
         const PROTOCOL_ID = 0;

@@ -20,8 +20,8 @@ let provider1tokenId: ethers.BigNumberish;
 let provider2tokenId: ethers.BigNumberish;
 
 export function testLiquidityProvider() {
-  describe("Liquidity provider deposit", () => {
-    before(async () => {
+  describe("Liquidity provider deposit", function () {
+    before(async function () {
       const allSigners = await HardhatHelper.allSigners();
       owner = allSigners[0];
       liquidityProvider1 = allSigners[1];
@@ -33,13 +33,13 @@ export function testLiquidityProvider() {
       await ProtocolHelper.addNewProtocolPool("Test protocol 2");
     });
 
-    describe("Should simulate liquidity provider actions", async () => {
+    describe("Should simulate liquidity provider actions", async function () {
       let atokenBalance = BN(0);
 
-      describe("Should do actions of liquidity provider 1", async () => {
+      describe("Should do actions of liquidity provider 1", async function () {
         const USDT_amount = "400000";
         const ATEN_amount = "100000";
-        it("Should prepare USDT balance", async () => {
+        it("Should prepare USDT balance", async function () {
           expect(
             await HardhatHelper.USDT_balanceOf(
               await liquidityProvider1.getAddress(),
@@ -58,7 +58,7 @@ export function testLiquidityProvider() {
           ).to.be.equal(hre_ethers.utils.parseUnits(USDT_amount, 6));
         });
 
-        it("Should prepare ATEN balance", async () => {
+        it("Should prepare ATEN balance", async function () {
           expect(
             await HardhatHelper.ATEN_balanceOf(
               await liquidityProvider1.getAddress(),
@@ -80,7 +80,7 @@ export function testLiquidityProvider() {
           ).to.be.equal(amountExpected);
         });
 
-        it("Should success deposit funds into the protocols 0 and 2", async () => {
+        it("Should success deposit funds into the protocols 0 and 2", async function () {
           const USDT_Approved = await HardhatHelper.USDT_approve(
             liquidityProvider1,
             ProtocolHelper.getAthenaContract().address,
@@ -112,7 +112,7 @@ export function testLiquidityProvider() {
           expect(tx).to.haveOwnProperty("hash");
         });
 
-        it("Should check slot0 in protocol 0", async () => {
+        it("Should check slot0 in protocol 0", async function () {
           const protocolContract = await ProtocolHelper.getProtocolPoolContract(
             liquidityProvider1,
             0,
@@ -134,7 +134,7 @@ export function testLiquidityProvider() {
           expect(availableCapital).to.be.equal("400000");
         });
 
-        it("Should check funds and NFT", async () => {
+        it("Should check funds and NFT", async function () {
           const POSITIONS_MANAGER_CONTRACT =
             ProtocolHelper.getPositionManagerContract();
 
@@ -152,7 +152,7 @@ export function testLiquidityProvider() {
           ).to.be.true;
         });
 
-        it("Should check relatedProtocols of Protocol 0", async () => {
+        it("Should check relatedProtocols of Protocol 0", async function () {
           const protocolContract = await ProtocolHelper.getProtocolPoolContract(
             owner,
             0,
@@ -184,10 +184,10 @@ export function testLiquidityProvider() {
         });
       });
 
-      describe("Should do actions of liquidity provider 2", () => {
+      describe("Should do actions of liquidity provider 2", function () {
         const USDT_amount = "330000";
         const ATEN_amount = "9000000";
-        it("Should prepare USDT balance", async () => {
+        it("Should prepare USDT balance", async function () {
           expect(
             await HardhatHelper.USDT_balanceOf(
               await liquidityProvider2.getAddress(),
@@ -206,7 +206,7 @@ export function testLiquidityProvider() {
           ).to.be.equal(hre_ethers.utils.parseUnits(USDT_amount, 6));
         });
 
-        it("Should prepare ATEN balance", async () => {
+        it("Should prepare ATEN balance", async function () {
           expect(
             await HardhatHelper.ATEN_balanceOf(
               await liquidityProvider2.getAddress(),
@@ -228,7 +228,7 @@ export function testLiquidityProvider() {
           ).to.be.equal(amountExpected);
         });
 
-        it("Should success deposit funds into protocol 0, 1 and 2", async () => {
+        it("Should success deposit funds into protocol 0, 1 and 2", async function () {
           const USDT_Approved = await HardhatHelper.USDT_approve(
             liquidityProvider2,
             ProtocolHelper.getAthenaContract().address,
@@ -260,7 +260,7 @@ export function testLiquidityProvider() {
           expect(tx).to.haveOwnProperty("hash");
         });
 
-        it("Should check slot0 in protocol 0", async () => {
+        it("Should check slot0 in protocol 0", async function () {
           const protocolContract = await ProtocolHelper.getProtocolPoolContract(
             liquidityProvider2,
             0,
@@ -282,7 +282,7 @@ export function testLiquidityProvider() {
           expect(availableCapital).to.be.equal("730000");
         });
 
-        it("Should check funds and NFT", async () => {
+        it("Should check funds and NFT", async function () {
           const POSITIONS_MANAGER_CONTRACT =
             ProtocolHelper.getPositionManagerContract();
 
@@ -300,7 +300,7 @@ export function testLiquidityProvider() {
           ).to.be.true;
         });
 
-        it("Should check relatedProtocols of Protocol 0", async () => {
+        it("Should check relatedProtocols of Protocol 0", async function () {
           const protocolContract = await ProtocolHelper.getProtocolPoolContract(
             owner,
             0,

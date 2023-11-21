@@ -14,8 +14,8 @@ let policyTaker1: ethers.Signer;
 let policyTaker2: ethers.Signer;
 
 export function testPolicyView() {
-  describe("View policy", () => {
-    before(async () => {
+  describe("View policy", function () {
+    before(async function () {
       const allSigners = await HardhatHelper.allSigners();
       owner = allSigners[0];
       liquidityProvider1 = allSigners[1];
@@ -83,8 +83,8 @@ export function testPolicyView() {
       );
     });
 
-    describe("Should view actualize", () => {
-      it("Should get vSlot0 after 10 days", async () => {
+    describe("Should view actualize", function () {
+      it("Should get vSlot0 after 10 days", async function () {
         const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           owner,
           0,
@@ -107,7 +107,7 @@ export function testPolicyView() {
         );
       });
 
-      it("Should get vSlot0 after 178 days", async () => {
+      it("Should get vSlot0 after 178 days", async function () {
         const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           owner,
           0,
@@ -136,7 +136,7 @@ export function testPolicyView() {
         );
       });
 
-      it("Should get vSlot0 after 428 days", async () => {
+      it("Should get vSlot0 after 428 days", async function () {
         const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           owner,
           0,
@@ -160,8 +160,8 @@ export function testPolicyView() {
       });
     });
 
-    describe("Should view info of PT1 after 10 days and arriving of PT2", () => {
-      it("Should get info via protocol contract", async () => {
+    describe("Should view info of PT1 after 10 days and arriving of PT2", function () {
+      it("Should get info via protocol contract", async function () {
         const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           policyTaker1,
           0,
@@ -179,8 +179,8 @@ export function testPolicyView() {
       });
     });
 
-    describe("Should withdraw policy of PT1 after 1 days arriving of PT2", () => {
-      it("Should withdraw policy", async () => {
+    describe("Should withdraw policy of PT1 after 1 days arriving of PT2", function () {
+      it("Should withdraw policy", async function () {
         await HardhatHelper.setNextBlockTimestamp(1 * 24 * 60 * 60);
         const tx = await ProtocolHelper.getAthenaContract()
           .connect(policyTaker1)
@@ -206,7 +206,7 @@ export function testPolicyView() {
         expect(decodedData.remainedAmount).to.be.equal("2118");
       });
 
-      it("Should check slot0 after PT1 quit", async () => {
+      it("Should check slot0 after PT1 quit", async function () {
         const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           owner,
           0,
@@ -231,8 +231,8 @@ export function testPolicyView() {
       });
     });
 
-    describe("Should withdraw policy of PT2 after 10 days withdrawed of PT1", () => {
-      it("Should withdraw policy", async () => {
+    describe("Should withdraw policy of PT2 after 10 days withdrawed of PT1", function () {
+      it("Should withdraw policy", async function () {
         await HardhatHelper.setNextBlockTimestamp(10 * 24 * 60 * 60);
         const tx = await ProtocolHelper.getAthenaContract()
           .connect(policyTaker2)
@@ -257,7 +257,7 @@ export function testPolicyView() {
         expect(decodedData.remainedAmount).to.be.equal("8556");
       });
 
-      it("Should check slot0 after PT2 quit", async () => {
+      it("Should check slot0 after PT2 quit", async function () {
         const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           owner,
           0,

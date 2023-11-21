@@ -15,8 +15,8 @@ let liquidityProvider1: ethers.Signer;
 let policyTaker1: ethers.Signer;
 
 export function testPoliciesTaker() {
-  describe("Buy policies", () => {
-    before(async () => {
+  describe("Buy policies", function () {
+    before(async function () {
       const allSigners = await HardhatHelper.allSigners();
       owner = allSigners[0];
       liquidityProvider1 = allSigners[1];
@@ -38,11 +38,11 @@ export function testPoliciesTaker() {
       );
     });
 
-    describe("Should buy policies for policy taker 1 in pool 0, 1, 2", () => {
+    describe("Should buy policies for policy taker 1 in pool 0, 1, 2", function () {
       const premium = "6000";
       const atensLocked = "0";
 
-      it("Should prepare USDT balance", async () => {
+      it("Should prepare USDT balance", async function () {
         expect(
           await HardhatHelper.USDT_balanceOf(await policyTaker1.getAddress()),
         ).to.be.equal(0);
@@ -57,7 +57,7 @@ export function testPoliciesTaker() {
         ).to.be.equal(hre_ethers.utils.parseUnits(premium, 6));
       });
 
-      it("Should success buy policies in protocol 0, 1, 2", async () => {
+      it("Should success buy policies in protocol 0, 1, 2", async function () {
         const USDT_Approved = await HardhatHelper.USDT_maxApprove(
           policyTaker1,
           ProtocolHelper.getAthenaContract().address,
@@ -78,7 +78,7 @@ export function testPoliciesTaker() {
         expect(tx).to.haveOwnProperty("hash");
       });
 
-      it("Should check policy info in pool 0", async () => {
+      it("Should check policy info in pool 0", async function () {
         const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           policyTaker1,
           0,
@@ -94,7 +94,7 @@ export function testPoliciesTaker() {
         expect(policyInfo.lastTick).to.be.equal(333);
       });
 
-      it("Should check policy info in pool 1", async () => {
+      it("Should check policy info in pool 1", async function () {
         const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           policyTaker1,
           1,
@@ -110,7 +110,7 @@ export function testPoliciesTaker() {
         expect(policyInfo.lastTick).to.be.equal(333);
       });
 
-      it("Should check policy info in pool 2", async () => {
+      it("Should check policy info in pool 2", async function () {
         const protocolContract = await ProtocolHelper.getProtocolPoolContract(
           policyTaker1,
           2,
@@ -126,7 +126,7 @@ export function testPoliciesTaker() {
         expect(policyInfo.lastTick).to.be.equal(333);
       });
 
-      it("Should check NFT", async () => {
+      it("Should check NFT", async function () {
         const POLICY_MANAGER_CONTRACT =
           ProtocolHelper.getPolicyManagerContract();
 
@@ -214,7 +214,7 @@ export function testPoliciesTaker() {
         expect(balancePool2).to.equal(4000);
       });
 
-      it("Should reverted for buying policies in protocol 0 cause of duration", async () => {
+      it("Should reverted for buying policies in protocol 0 cause of duration", async function () {
         const allSigners = await HardhatHelper.allSigners();
         const policyTaker2 = allSigners[101];
 
