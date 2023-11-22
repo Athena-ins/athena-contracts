@@ -3,7 +3,6 @@ import { ethers } from "ethers";
 import chaiAsPromised from "chai-as-promised";
 
 import { getCurrentTime, setNextBlockTimestamp } from "../helpers/hardhat";
-import ProtocolHelper from "../helpers/protocol";
 
 chai.use(chaiAsPromised);
 
@@ -31,22 +30,21 @@ export function testResolveClaim() {
       policyTaker2 = allSigners[101];
       policyTaker3 = allSigners[102];
 
-      await ProtocolHelper.deployAllContractsAndInitializeProtocol(owner);
-      await ProtocolHelper.addNewProtocolPool("Test protocol 0");
-      await ProtocolHelper.addNewProtocolPool("Test protocol 1");
-      await ProtocolHelper.addNewProtocolPool("Test protocol 2");
-      await ProtocolHelper.addNewProtocolPool("Test protocol 3");
+      await this.helpers.addNewProtocolPool("Test protocol 0");
+      await this.helpers.addNewProtocolPool("Test protocol 1");
+      await this.helpers.addNewProtocolPool("Test protocol 2");
+      await this.helpers.addNewProtocolPool("Test protocol 3");
 
-      protocolPool0 = await ProtocolHelper.getProtocolPoolContract(owner, 0);
-      protocolPool1 = await ProtocolHelper.getProtocolPoolContract(owner, 0);
-      protocolPool2 = await ProtocolHelper.getProtocolPoolContract(owner, 0);
-      protocolPool3 = await ProtocolHelper.getProtocolPoolContract(owner, 3);
+      protocolPool0 = await this.helpers.getProtocolPoolContract(owner, 0);
+      protocolPool1 = await this.helpers.getProtocolPoolContract(owner, 0);
+      protocolPool2 = await this.helpers.getProtocolPoolContract(owner, 0);
+      protocolPool3 = await this.helpers.getProtocolPoolContract(owner, 3);
 
       // ================= Cover Providers ================= //
 
       const USDT_amount1 = "400000";
       const ATEN_amount1 = "100000";
-      await ProtocolHelper.deposit(
+      await this.helpers.deposit(
         liquidityProvider1,
         USDT_amount1,
         ATEN_amount1,
@@ -56,7 +54,7 @@ export function testResolveClaim() {
 
       const USDT_amount2 = "330000";
       const ATEN_amount2 = "9000000";
-      await ProtocolHelper.deposit(
+      await this.helpers.deposit(
         liquidityProvider2,
         USDT_amount2,
         ATEN_amount2,
@@ -66,7 +64,7 @@ export function testResolveClaim() {
 
       const USDT_amount3 = "365000";
       const ATEN_amount3 = "9000000";
-      await ProtocolHelper.deposit(
+      await this.helpers.deposit(
         liquidityProvider3,
         USDT_amount3,
         ATEN_amount3,
@@ -78,13 +76,13 @@ export function testResolveClaim() {
 
       await this.helpers.maxApproveUsdt(
         policyTaker3,
-        ProtocolHelper.getAthenaContract().address,
+        this.contracts.Athena.address,
       );
 
       const capital3 = "328500";
       const premium3 = "8760";
       const atensLocked3 = "0";
-      await ProtocolHelper.buyPolicy(
+      await this.helpers.buyPolicy(
         policyTaker3,
         capital3,
         premium3,
@@ -95,13 +93,13 @@ export function testResolveClaim() {
 
       await this.helpers.maxApproveUsdt(
         policyTaker1,
-        ProtocolHelper.getAthenaContract().address,
+        this.contracts.Athena.address,
       );
 
       const capital1 = "109500";
       const premium1 = "2190";
       const atensLocked1 = "0";
-      await ProtocolHelper.buyPolicy(
+      await this.helpers.buyPolicy(
         policyTaker1,
         capital1,
         premium1,
@@ -112,13 +110,13 @@ export function testResolveClaim() {
 
       await this.helpers.maxApproveUsdt(
         policyTaker2,
-        ProtocolHelper.getAthenaContract().address,
+        this.contracts.Athena.address,
       );
 
       const capital2 = "219000";
       const premium2 = "8760";
       const atensLocked2 = "0";
-      await ProtocolHelper.buyPolicy(
+      await this.helpers.buyPolicy(
         policyTaker2,
         capital2,
         premium2,
@@ -158,9 +156,9 @@ export function testResolveClaim() {
       });
 
       it("Should create and resolve claim in Protocol 3", async function () {
-        await ProtocolHelper.createClaim(policyTaker3, 0, "182500");
+        await this.helpers.createClaim(policyTaker3, 0, "182500");
 
-        await ProtocolHelper.resolveClaimWithoutDispute(
+        await this.helpers.resolveClaimWithoutDispute(
           policyTaker3,
           0,
           14 * 24 * 60 * 60 + 10, // 14 days + 10 seconds
@@ -232,9 +230,9 @@ export function testResolveClaim() {
       it("Should update pool3 1d after claim, checking intersectingAmounts and slot0", async function () {
         await setNextBlockTimestamp(1 * 24 * 60 * 60);
 
-        await ProtocolHelper.getAthenaContract()
-          .connect(owner)
-          .actualizingProtocolAndRemoveExpiredPolicies(protocolPool3.address);
+        await this.contracts.Athena.connect(
+          owner,
+        ).actualizingProtocolAndRemoveExpiredPolicies(protocolPool3.address);
 
         const intersecAmounts0 = await protocolPool3.intersectingAmounts(0);
         expect(intersecAmounts0).to.be.equal("182500");
@@ -254,9 +252,9 @@ export function testResolveClaim() {
       });
 
       it("Should create and resolve claim pool0 and check info in its related protocols", async function () {
-        await ProtocolHelper.createClaim(policyTaker2, 2, "182500");
+        await this.helpers.createClaim(policyTaker2, 2, "182500");
 
-        await ProtocolHelper.resolveClaimWithoutDispute(
+        await this.helpers.resolveClaimWithoutDispute(
           policyTaker2,
           2,
           14 * 24 * 60 * 60 + 10, // 14 days + 10 seconds

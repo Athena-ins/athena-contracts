@@ -4,7 +4,6 @@ import { ethers } from "ethers";
 import chaiAsPromised from "chai-as-promised";
 
 import { getCurrentTime, setNextBlockTimestamp } from "../helpers/hardhat";
-import ProtocolHelper from "../helpers/protocol";
 
 chai.use(chaiAsPromised);
 
@@ -30,17 +29,16 @@ export function testStakingGeneralPool() {
       policyTaker2 = allSigners[101];
       policyTaker3 = allSigners[102];
 
-      await ProtocolHelper.deployAllContractsAndInitializeProtocol(owner);
-      await ProtocolHelper.addNewProtocolPool("Test protocol 0");
-      await ProtocolHelper.addNewProtocolPool("Test protocol 1");
-      await ProtocolHelper.addNewProtocolPool("Test protocol 2");
-      await ProtocolHelper.addNewProtocolPool("Test protocol 3");
+      await this.helpers.addNewProtocolPool("Test protocol 0");
+      await this.helpers.addNewProtocolPool("Test protocol 1");
+      await this.helpers.addNewProtocolPool("Test protocol 2");
+      await this.helpers.addNewProtocolPool("Test protocol 3");
 
       // ================= Cover Providers ================= //
 
       const USDT_amount1 = "4000000";
       const ATEN_amount1 = "0";
-      await ProtocolHelper.deposit(
+      await this.helpers.deposit(
         liquidityProvider1,
         USDT_amount1,
         ATEN_amount1,
@@ -50,7 +48,7 @@ export function testStakingGeneralPool() {
 
       const USDT_amount2 = "330";
       const ATEN_amount2 = "9000000";
-      await ProtocolHelper.deposit(
+      await this.helpers.deposit(
         liquidityProvider2,
         USDT_amount2,
         ATEN_amount2,
@@ -60,7 +58,7 @@ export function testStakingGeneralPool() {
 
       const USDT_amount3 = "36500";
       const ATEN_amount3 = "9000";
-      await ProtocolHelper.deposit(
+      await this.helpers.deposit(
         liquidityProvider3,
         USDT_amount3,
         ATEN_amount3,
@@ -72,14 +70,14 @@ export function testStakingGeneralPool() {
 
       await this.helpers.maxApproveUsdt(
         policyTaker1,
-        ProtocolHelper.getAthenaContract().address,
+        this.contracts.Athena.address,
       );
 
       const capital1 = "109500";
       const capital1_2 = "140";
       const premium1 = "2190";
       const atensLocked1 = "0";
-      await ProtocolHelper.buyPolicies(
+      await this.helpers.buyPolicies(
         policyTaker1,
         [capital1, capital1_2],
         [premium1, premium1],
@@ -90,13 +88,13 @@ export function testStakingGeneralPool() {
 
       await this.helpers.maxApproveUsdt(
         policyTaker2,
-        ProtocolHelper.getAthenaContract().address,
+        this.contracts.Athena.address,
       );
 
       const capital2 = "219000";
       const premium2 = "8760";
       const atensLocked2 = "0";
-      await ProtocolHelper.buyPolicy(
+      await this.helpers.buyPolicy(
         policyTaker2,
         capital2,
         premium2,
@@ -107,13 +105,13 @@ export function testStakingGeneralPool() {
 
       await this.helpers.maxApproveUsdt(
         policyTaker3,
-        ProtocolHelper.getAthenaContract().address,
+        this.contracts.Athena.address,
       );
 
       const capital3 = "18250";
       const premium3 = "8760";
       const atensLocked3 = "0";
-      await ProtocolHelper.buyPolicy(
+      await this.helpers.buyPolicy(
         policyTaker3,
         capital3,
         premium3,
@@ -124,7 +122,7 @@ export function testStakingGeneralPool() {
     });
 
     // it("Should check staking rate of liquidity providers", async function () {
-    //   const ATHENA_CONTRACT = ProtocolHelper.getAthenaContract();
+    //   const ATHENA_CONTRACT = this.contracts.Athena;
     //   const feeLevels = await STAKING_GP_CONTRACT.connect(
     //     owner
     //   ).getAtenStakingFeeLevels();
@@ -134,9 +132,8 @@ export function testStakingGeneralPool() {
 
     it("Should try and stake, wait, extract interests and withdraw from GP", async function () {
       const STAKING_GP_CONTRACT =
-        ProtocolHelper.getStakedAtenContract().connect(liquidityProvider1);
-      const ATHENA_CONTRACT =
-        ProtocolHelper.getAthenaContract().connect(liquidityProvider1);
+        this.contracts.StakingGeneralPool.connect(liquidityProvider1);
+      const ATHENA_CONTRACT = this.contracts.Athena.connect(liquidityProvider1);
 
       const liquidityProvider1Address = await liquidityProvider1.getAddress();
 
@@ -150,7 +147,7 @@ export function testStakingGeneralPool() {
       expect(stakingPosBefore.rate).to.equal("0");
 
       const stakingAmount = 1000000;
-      await ProtocolHelper.stakingGeneralPoolDeposit(
+      await this.helpers.stakingGeneralPoolDeposit(
         liquidityProvider1,
         stakingAmount,
       );

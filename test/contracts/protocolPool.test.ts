@@ -7,7 +7,6 @@ import atoken_abi from "../../abis/AToken.json";
 import chaiAsPromised from "chai-as-promised";
 import { getCurrentTime, setNextBlockTimestamp } from "../helpers/hardhat";
 import protocolPoolAbi from "../../artifacts/contracts/ProtocolPool.sol/ProtocolPool.json";
-import ProtocolHelper from "../helpers/protocol";
 
 chai.use(chaiAsPromised);
 
@@ -518,7 +517,7 @@ export function testProtocolPool() {
         ).balanceOf(protocol.deployed);
         expect(balanceProtocol).to.equal(BN(1000));
 
-        const coverId = await ProtocolHelper.getAccountCoverIdByIndex(user1, 0);
+        const coverId = await this.helpers.getAccountCoverIdByIndex(user1, 0);
         const userInfo = await protocolContract.getInfo(coverId);
 
         console.log(
@@ -573,7 +572,7 @@ export function testProtocolPool() {
           __slot0,
         );
 
-        const coverId = await ProtocolHelper.getAccountCoverIdByIndex(user1, 0);
+        const coverId = await this.helpers.getAccountCoverIdByIndex(user1, 0);
         const userInfo = await protocolContract.getInfo(coverId);
 
         console.log(

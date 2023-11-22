@@ -5,7 +5,6 @@ import chaiAsPromised from "chai-as-promised";
 
 import { getCurrentTime, setNextBlockTimestamp } from "../helpers/hardhat";
 import type { Athena, StakingPolicy, ATEN } from "../../typechain";
-import ProtocolHelper from "../helpers/protocol";
 
 chai.use(chaiAsPromised);
 
@@ -33,23 +32,22 @@ export function testStakingPolicy() {
       policyTaker2 = allSigners[101];
       policyTaker3 = allSigners[102];
 
-      await ProtocolHelper.deployAllContractsAndInitializeProtocol(owner);
       await this.helpers.addNewProtocolPool("Test protocol 0");
-      await ProtocolHelper.addNewProtocolPool("Test protocol 1");
-      await ProtocolHelper.addNewProtocolPool("Test protocol 2");
-      await ProtocolHelper.addNewProtocolPool("Test protocol 3");
+      await this.helpers.addNewProtocolPool("Test protocol 1");
+      await this.helpers.addNewProtocolPool("Test protocol 2");
+      await this.helpers.addNewProtocolPool("Test protocol 3");
 
       // ================= Get Contracts ================= //
 
-      ATEN_TOKEN = ProtocolHelper.getAtenTokenContract();
-      ATHENA_CONTRACT = ProtocolHelper.getAthenaContract();
-      STAKING_POLICY = ProtocolHelper.getStakedAtensPolicyContract();
+      ATEN_TOKEN = this.contracts.ATEN;
+      ATHENA_CONTRACT = this.contracts.Athena;
+      STAKING_POLICY = this.contracts.StakingPolicy;
 
       // ================= Cover Providers ================= //
 
       const USDT_amount1 = toUsdt(400_000);
       const ATEN_amount1 = toAten(100);
-      await ProtocolHelper.deposit(
+      await this.helpers.deposit(
         liquidityProvider1,
         USDT_amount1,
         ATEN_amount1,
@@ -59,7 +57,7 @@ export function testStakingPolicy() {
 
       const USDT_amount2 = toUsdt(75_000);
       const ATEN_amount2 = toAten(950_000000);
-      await ProtocolHelper.deposit(
+      await this.helpers.deposit(
         liquidityProvider2,
         USDT_amount2,
         ATEN_amount2,
@@ -73,7 +71,7 @@ export function testStakingPolicy() {
       const capital1_2 = toUsdt(25_000);
       const premium1 = toUsdt(10_000);
       const atensLocked1 = toAten(100_000);
-      await ProtocolHelper.buyPolicies(
+      await this.helpers.buyPolicies(
         policyTaker1,
         [capital1, capital1_2],
         [premium1, premium1],
@@ -85,7 +83,7 @@ export function testStakingPolicy() {
       const capital2 = toUsdt(2190);
       const premium2 = toUsdt(87);
       const atensLocked2 = toAten(10);
-      await ProtocolHelper.buyPolicy(
+      await this.helpers.buyPolicy(
         policyTaker2,
         capital2,
         premium2,
@@ -101,7 +99,7 @@ export function testStakingPolicy() {
       );
 
       expect(
-        ProtocolHelper.buyPolicy(
+        this.helpers.buyPolicy(
           policyTaker3,
           "1000",
           "10",
@@ -113,7 +111,7 @@ export function testStakingPolicy() {
     });
 
     it("Should buy Policy with Atens", async function () {
-      const policy = await ProtocolHelper.buyPolicy(
+      const policy = await this.helpers.buyPolicy(
         policyTaker3,
         "1000",
         "100",
@@ -129,7 +127,7 @@ export function testStakingPolicy() {
       const capital = toUsdt(1000);
       const premium = toUsdt(100);
       const atensLocked = toAten(1000);
-      const policy = await ProtocolHelper.buyPolicies(
+      const policy = await this.helpers.buyPolicies(
         policyTaker1,
         [capital, capital, capital, capital],
         [premium, premium, premium, premium],

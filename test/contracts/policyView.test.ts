@@ -3,7 +3,6 @@ import { ethers } from "ethers";
 import chaiAsPromised from "chai-as-promised";
 
 import { getCurrentTime, setNextBlockTimestamp } from "../helpers/hardhat";
-import ProtocolHelper from "../helpers/protocol";
 
 chai.use(chaiAsPromised);
 
@@ -23,14 +22,13 @@ export function testPolicyView() {
       policyTaker1 = allSigners[100];
       policyTaker2 = allSigners[101];
 
-      await ProtocolHelper.deployAllContractsAndInitializeProtocol(owner);
-      await ProtocolHelper.addNewProtocolPool("Test protocol 0");
-      await ProtocolHelper.addNewProtocolPool("Test protocol 1");
-      await ProtocolHelper.addNewProtocolPool("Test protocol 2");
+      await this.helpers.addNewProtocolPool("Test protocol 0");
+      await this.helpers.addNewProtocolPool("Test protocol 1");
+      await this.helpers.addNewProtocolPool("Test protocol 2");
 
       const USDT_amount1 = "400000";
       const ATEN_amount1 = "100000";
-      await ProtocolHelper.deposit(
+      await this.helpers.deposit(
         liquidityProvider1,
         USDT_amount1,
         ATEN_amount1,
@@ -40,7 +38,7 @@ export function testPolicyView() {
 
       const USDT_amount2 = "330000";
       const ATEN_amount2 = "9000000";
-      await ProtocolHelper.deposit(
+      await this.helpers.deposit(
         liquidityProvider2,
         USDT_amount2,
         ATEN_amount2,
@@ -50,13 +48,13 @@ export function testPolicyView() {
 
       await this.helpers.maxApproveUsdt(
         policyTaker1,
-        ProtocolHelper.getAthenaContract().address,
+        this.contracts.Athena.address,
       );
 
       const capital1 = "109500";
       const premium1 = "2190";
       const atensLocked1 = "0";
-      await ProtocolHelper.buyPolicy(
+      await this.helpers.buyPolicy(
         policyTaker1,
         capital1,
         premium1,
@@ -67,13 +65,13 @@ export function testPolicyView() {
 
       await this.helpers.maxApproveUsdt(
         policyTaker2,
-        ProtocolHelper.getAthenaContract().address,
+        this.contracts.Athena.address,
       );
 
       const capital2 = "219000";
       const premium2 = "8760";
       const atensLocked2 = "0";
-      await ProtocolHelper.buyPolicy(
+      await this.helpers.buyPolicy(
         policyTaker2,
         capital2,
         premium2,
@@ -85,7 +83,7 @@ export function testPolicyView() {
 
     describe("Should view actualize", function () {
       it("Should get vSlot0 after 10 days", async function () {
-        const protocolContract = await ProtocolHelper.getProtocolPoolContract(
+        const protocolContract = await this.helpers.getProtocolPoolContract(
           owner,
           0,
         );
@@ -108,7 +106,7 @@ export function testPolicyView() {
       });
 
       it("Should get vSlot0 after 178 days", async function () {
-        const protocolContract = await ProtocolHelper.getProtocolPoolContract(
+        const protocolContract = await this.helpers.getProtocolPoolContract(
           owner,
           0,
         );
@@ -137,7 +135,7 @@ export function testPolicyView() {
       });
 
       it("Should get vSlot0 after 428 days", async function () {
-        const protocolContract = await ProtocolHelper.getProtocolPoolContract(
+        const protocolContract = await this.helpers.getProtocolPoolContract(
           owner,
           0,
         );
@@ -162,12 +160,12 @@ export function testPolicyView() {
 
     describe("Should view info of PT1 after 10 days and arriving of PT2", function () {
       it("Should get info via protocol contract", async function () {
-        const protocolContract = await ProtocolHelper.getProtocolPoolContract(
+        const protocolContract = await this.helpers.getProtocolPoolContract(
           policyTaker1,
           0,
         );
 
-        const coverId = await ProtocolHelper.getAccountCoverIdByIndex(
+        const coverId = await this.helpers.getAccountCoverIdByIndex(
           policyTaker1,
           0,
         );
@@ -182,9 +180,8 @@ export function testPolicyView() {
     describe("Should withdraw policy of PT1 after 1 days arriving of PT2", function () {
       it("Should withdraw policy", async function () {
         await setNextBlockTimestamp(1 * 24 * 60 * 60);
-        const tx = await ProtocolHelper.getAthenaContract()
-          .connect(policyTaker1)
-          .withdrawPolicy(0);
+        const tx =
+          await this.contracts.Athena.connect(policyTaker1).withdrawPolicy(0);
 
         const result = await tx.wait();
         // console.log(result);
@@ -192,7 +189,7 @@ export function testPolicyView() {
 
         if (!event) throw new Error("Event not found");
 
-        const protocolContract = await ProtocolHelper.getProtocolPoolContract(
+        const protocolContract = await this.helpers.getProtocolPoolContract(
           policyTaker1,
           0,
         );
@@ -207,7 +204,7 @@ export function testPolicyView() {
       });
 
       it("Should check slot0 after PT1 quit", async function () {
-        const protocolContract = await ProtocolHelper.getProtocolPoolContract(
+        const protocolContract = await this.helpers.getProtocolPoolContract(
           owner,
           0,
         );
@@ -232,16 +229,15 @@ export function testPolicyView() {
     describe("Should withdraw policy of PT2 after 10 days withdrawed of PT1", function () {
       it("Should withdraw policy", async function () {
         await setNextBlockTimestamp(10 * 24 * 60 * 60);
-        const tx = await ProtocolHelper.getAthenaContract()
-          .connect(policyTaker2)
-          .withdrawPolicy(1);
+        const tx =
+          await this.contracts.Athena.connect(policyTaker2).withdrawPolicy(1);
 
         const result = await tx.wait();
         const event = result?.events?.[2];
 
         if (!event) throw new Error("Event not found");
 
-        const protocolContract = await ProtocolHelper.getProtocolPoolContract(
+        const protocolContract = await this.helpers.getProtocolPoolContract(
           policyTaker2,
           0,
         );
@@ -256,7 +252,7 @@ export function testPolicyView() {
       });
 
       it("Should check slot0 after PT2 quit", async function () {
-        const protocolContract = await ProtocolHelper.getProtocolPoolContract(
+        const protocolContract = await this.helpers.getProtocolPoolContract(
           owner,
           0,
         );

@@ -3,7 +3,6 @@ import { ethers } from "ethers";
 import chaiAsPromised from "chai-as-promised";
 
 import { getCurrentTime, setNextBlockTimestamp } from "../helpers/hardhat";
-import ProtocolHelper from "../helpers/protocol";
 
 chai.use(chaiAsPromised);
 
@@ -28,18 +27,17 @@ export function testRewardsWithClaims() {
       policyTaker2 = allSigners[101];
       policyTaker3 = allSigners[102];
 
-      await ProtocolHelper.deployAllContractsAndInitializeProtocol(owner);
-      await ProtocolHelper.addNewProtocolPool("Test protocol 0");
-      await ProtocolHelper.addNewProtocolPool("Test protocol 1");
-      await ProtocolHelper.addNewProtocolPool("Test protocol 2");
+      await this.helpers.addNewProtocolPool("Test protocol 0");
+      await this.helpers.addNewProtocolPool("Test protocol 1");
+      await this.helpers.addNewProtocolPool("Test protocol 2");
 
-      protocolPool0 = await ProtocolHelper.getProtocolPoolContract(owner, 0);
+      protocolPool0 = await this.helpers.getProtocolPoolContract(owner, 0);
 
       // ================= Cover Providers ================= //
 
       const USDT_amount1 = "365000";
       const ATEN_amount1 = "100000";
-      await ProtocolHelper.deposit(
+      await this.helpers.deposit(
         liquidityProvider1,
         USDT_amount1,
         ATEN_amount1,
@@ -47,15 +45,14 @@ export function testRewardsWithClaims() {
         1 * 24 * 60 * 60,
       );
 
-      const provider1tokenIds =
-        await ProtocolHelper.getPositionManagerContract()
-          .connect(liquidityProvider1)
-          .allPositionTokensOfOwner(await liquidityProvider1.getAddress());
+      const provider1tokenIds = await this.contracts.PositionsManager.connect(
+        liquidityProvider1,
+      ).allPositionTokensOfOwner(await liquidityProvider1.getAddress());
       provider1tokenId = provider1tokenIds[0];
 
       const USDT_amount2 = "365000";
       const ATEN_amount2 = "100000";
-      await ProtocolHelper.deposit(
+      await this.helpers.deposit(
         liquidityProvider2,
         USDT_amount2,
         ATEN_amount2,
@@ -63,23 +60,22 @@ export function testRewardsWithClaims() {
         1 * 24 * 60 * 60,
       );
 
-      const provider2tokenIds =
-        await ProtocolHelper.getPositionManagerContract()
-          .connect(liquidityProvider2)
-          .allPositionTokensOfOwner(await liquidityProvider2.getAddress());
+      const provider2tokenIds = await this.contracts.PositionsManager.connect(
+        liquidityProvider2,
+      ).allPositionTokensOfOwner(await liquidityProvider2.getAddress());
       provider2tokenId = provider2tokenIds[0];
 
       // ================= Policy Buyers ================= //
 
       await this.helpers.maxApproveUsdt(
         policyTaker1,
-        ProtocolHelper.getAthenaContract().address,
+        this.contracts.Athena.address,
       );
 
       const capital1 = "109500";
       const premium1 = "2190";
       const atensLocked1 = "0";
-      await ProtocolHelper.buyPolicy(
+      await this.helpers.buyPolicy(
         policyTaker1,
         capital1,
         premium1,
@@ -90,13 +86,13 @@ export function testRewardsWithClaims() {
 
       await this.helpers.maxApproveUsdt(
         policyTaker2,
-        ProtocolHelper.getAthenaContract().address,
+        this.contracts.Athena.address,
       );
 
       const capital2 = "219000";
       const premium2 = "8760";
       const atensLocked2 = "0";
-      await ProtocolHelper.buyPolicy(
+      await this.helpers.buyPolicy(
         policyTaker2,
         capital2,
         premium2,
@@ -107,13 +103,13 @@ export function testRewardsWithClaims() {
 
       await this.helpers.maxApproveUsdt(
         policyTaker3,
-        ProtocolHelper.getAthenaContract().address,
+        this.contracts.Athena.address,
       );
 
       const capital3 = "219000";
       const premium3 = "8760";
       const atensLocked3 = "0";
-      await ProtocolHelper.buyPolicy(
+      await this.helpers.buyPolicy(
         policyTaker3,
         capital3,
         premium3,
@@ -167,9 +163,9 @@ export function testRewardsWithClaims() {
 
     describe("Claim", async function () {
       it("Should add a claim in protocol2 and check claim info in protocol0", async function () {
-        await ProtocolHelper.createClaim(policyTaker3, 2, "182500");
+        await this.helpers.createClaim(policyTaker3, 2, "182500");
 
-        await ProtocolHelper.resolveClaimWithoutDispute(
+        await this.helpers.resolveClaimWithoutDispute(
           policyTaker3,
           2,
           14 * 24 * 60 * 60 + 10, // 14 days + 10 seconds

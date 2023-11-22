@@ -3,7 +3,6 @@ import { ethers } from "ethers";
 import chaiAsPromised from "chai-as-promised";
 
 import { getCurrentTime, setNextBlockTimestamp } from "../helpers/hardhat";
-import ProtocolHelper from "../helpers/protocol";
 
 chai.use(chaiAsPromised);
 
@@ -26,14 +25,13 @@ export function testWithdrawLiquidity1ProtocolWithoutClaim() {
         policyTaker2 = allSigners[101];
         policyTaker3 = allSigners[102];
 
-        await ProtocolHelper.deployAllContractsAndInitializeProtocol(owner);
-        await ProtocolHelper.addNewProtocolPool("Test protocol 0");
-        await ProtocolHelper.addNewProtocolPool("Test protocol 1");
-        await ProtocolHelper.addNewProtocolPool("Test protocol 2");
+        await this.helpers.addNewProtocolPool("Test protocol 0");
+        await this.helpers.addNewProtocolPool("Test protocol 1");
+        await this.helpers.addNewProtocolPool("Test protocol 2");
 
         const USDT_amount1 = "182500";
         const ATEN_amount1 = "100000";
-        await ProtocolHelper.deposit(
+        await this.helpers.deposit(
           liquidityProvider1,
           USDT_amount1,
           ATEN_amount1,
@@ -43,7 +41,7 @@ export function testWithdrawLiquidity1ProtocolWithoutClaim() {
 
         const USDT_amount2 = "547500";
         const ATEN_amount2 = "9000000";
-        await ProtocolHelper.deposit(
+        await this.helpers.deposit(
           liquidityProvider2,
           USDT_amount2,
           ATEN_amount2,
@@ -53,13 +51,13 @@ export function testWithdrawLiquidity1ProtocolWithoutClaim() {
 
         await this.helpers.maxApproveUsdt(
           policyTaker1,
-          ProtocolHelper.getAthenaContract().address,
+          this.contracts.Athena.address,
         );
 
         const capital1 = "109500";
         const premium1 = "2190";
         const atensLocked1 = "0";
-        await ProtocolHelper.buyPolicy(
+        await this.helpers.buyPolicy(
           policyTaker1,
           capital1,
           premium1,
@@ -70,13 +68,13 @@ export function testWithdrawLiquidity1ProtocolWithoutClaim() {
 
         await this.helpers.maxApproveUsdt(
           policyTaker2,
-          ProtocolHelper.getAthenaContract().address,
+          this.contracts.Athena.address,
         );
 
         const capital2 = "219000";
         const premium2 = "8760";
         const atensLocked2 = "0";
-        await ProtocolHelper.buyPolicy(
+        await this.helpers.buyPolicy(
           policyTaker2,
           capital2,
           premium2,
@@ -89,15 +87,17 @@ export function testWithdrawLiquidity1ProtocolWithoutClaim() {
       it.skip(`Should commit withdraw for LP1 after 1 days of PT2 bought his policy in protocol0 and withdraw liquidity after 14 days of committing`, async function () {
         await setNextBlockTimestamp(1 * 24 * 60 * 60);
 
-        const commit_tx = await ProtocolHelper.getAthenaContract()
-          .connect(liquidityProvider1)
-          .committingWithdrawAll(0);
+        const commit_tx =
+          await this.contracts.Athena.connect(
+            liquidityProvider1,
+          ).committingWithdrawAll(0);
 
         await setNextBlockTimestamp(14 * 24 * 60 * 60);
 
-        const withdraw_tx = await ProtocolHelper.getAthenaContract()
-          .connect(liquidityProvider1)
-          .withdrawAll(0);
+        const withdraw_tx =
+          await this.contracts.Athena.connect(liquidityProvider1).withdrawAll(
+            0,
+          );
 
         const result = await withdraw_tx.wait();
         // console.log(result);
@@ -105,7 +105,7 @@ export function testWithdrawLiquidity1ProtocolWithoutClaim() {
         const event = result?.events?.[3];
         if (!event) throw new Error("Event not found");
 
-        const protocolContract = await ProtocolHelper.getProtocolPoolContract(
+        const protocolContract = await this.helpers.getProtocolPoolContract(
           liquidityProvider1,
           0,
         );
@@ -135,7 +135,7 @@ export function testWithdrawLiquidity1ProtocolWithoutClaim() {
       });
 
       it.skip("Should call takeInterest for LP2 after 10 day that LP1 withdrawed his capital", async function () {
-        const protocolContract = await ProtocolHelper.getProtocolPoolContract(
+        const protocolContract = await this.helpers.getProtocolPoolContract(
           liquidityProvider2,
           0,
         );
@@ -145,7 +145,7 @@ export function testWithdrawLiquidity1ProtocolWithoutClaim() {
         );
 
         const days = 10;
-        const decodedData = await ProtocolHelper.takeInterest(
+        const decodedData = await this.helpers.takeInterest(
           liquidityProvider2,
           0,
           days * 24 * 60 * 60,

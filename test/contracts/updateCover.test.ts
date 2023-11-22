@@ -3,7 +3,7 @@ import chaiAsPromised from "chai-as-promised";
 import { ethers } from "ethers";
 
 import { getCurrentTime, setNextBlockTimestamp } from "../helpers/hardhat";
-import ProtocolHelper from "../helpers/protocol";
+
 import type { StakingPolicy } from "../../typechain";
 
 chai.use(chaiAsPromised);
@@ -28,21 +28,20 @@ export function testUpdateCover() {
       policyTaker1 = allSigners[100];
       policyTaker2 = allSigners[101];
 
-      await ProtocolHelper.deployAllContractsAndInitializeProtocol(owner);
-      await ProtocolHelper.addNewProtocolPool("Test protocol 0");
-      await ProtocolHelper.addNewProtocolPool("Test protocol 1");
-      await ProtocolHelper.addNewProtocolPool("Test protocol 2");
-      await ProtocolHelper.addNewProtocolPool("Test protocol 3");
+      await this.helpers.addNewProtocolPool("Test protocol 0");
+      await this.helpers.addNewProtocolPool("Test protocol 1");
+      await this.helpers.addNewProtocolPool("Test protocol 2");
+      await this.helpers.addNewProtocolPool("Test protocol 3");
 
       // ================= Get Contracts ================= //
 
-      STAKING_POLICY = ProtocolHelper.getStakedAtensPolicyContract();
+      STAKING_POLICY = this.contracts.StakingPolicy;
 
       // ================= Cover Providers ================= //
 
       const USDT_amount1 = toUsdt(400_000);
       const ATEN_amount1 = toAten(100);
-      await ProtocolHelper.deposit(
+      await this.helpers.deposit(
         liquidityProvider1,
         USDT_amount1,
         ATEN_amount1,
@@ -52,7 +51,7 @@ export function testUpdateCover() {
 
       const USDT_amount2 = toUsdt(75_000);
       const ATEN_amount2 = toAten(950_000000);
-      await ProtocolHelper.deposit(
+      await this.helpers.deposit(
         liquidityProvider2,
         USDT_amount2,
         ATEN_amount2,
@@ -66,7 +65,7 @@ export function testUpdateCover() {
       const capital1_2 = toUsdt(25_000);
       const premium1 = toUsdt(10_000);
       const atensLocked1 = toAten(100_000);
-      await ProtocolHelper.buyPolicies(
+      await this.helpers.buyPolicies(
         policyTaker1,
         [capital1, capital1_2],
         [premium1, premium1],
@@ -80,7 +79,7 @@ export function testUpdateCover() {
       const capital2 = toUsdt(2_190);
       const premium2 = toUsdt(87);
       const atensLocked2 = toAten(100);
-      await ProtocolHelper.buyPolicy(
+      await this.helpers.buyPolicy(
         policyTaker2,
         capital2,
         premium2,
@@ -92,11 +91,11 @@ export function testUpdateCover() {
 
     it("Should increase the amount of capital covered", async function () {
       const userCoverBefore = (
-        await ProtocolHelper.getAllUserCovers(policyTaker1)
+        await this.helpers.getAllUserCovers(policyTaker1)
       )[0];
 
       const amount = toUsdt(35_000);
-      await ProtocolHelper.updateCover(
+      await this.helpers.updateCover(
         policyTaker1,
         "increaseCover",
         userCoverBefore.coverId,
@@ -104,7 +103,7 @@ export function testUpdateCover() {
       );
 
       const userCoverAfter = (
-        await ProtocolHelper.getAllUserCovers(policyTaker1)
+        await this.helpers.getAllUserCovers(policyTaker1)
       )[0];
 
       expect(userCoverBefore.amountCovered.add(amount)).to.equal(
@@ -118,11 +117,11 @@ export function testUpdateCover() {
     it("Should decrease the amount of capital covered", async function () {
       // ===== policy taker 1 ===== //
       const user1CoverBefore = (
-        await ProtocolHelper.getAllUserCovers(policyTaker1)
+        await this.helpers.getAllUserCovers(policyTaker1)
       )[0];
 
       const amount1 = toUsdt(10_000);
-      await ProtocolHelper.updateCover(
+      await this.helpers.updateCover(
         policyTaker1,
         "decreaseCover",
         user1CoverBefore.coverId,
@@ -130,7 +129,7 @@ export function testUpdateCover() {
       );
 
       const user1CoverAfter = (
-        await ProtocolHelper.getAllUserCovers(policyTaker1)
+        await this.helpers.getAllUserCovers(policyTaker1)
       )[0];
 
       expect(user1CoverBefore.amountCovered.sub(amount1)).to.equal(
@@ -143,11 +142,11 @@ export function testUpdateCover() {
       // ===== policy taker 2 ===== //
 
       const user2CoverBefore = (
-        await ProtocolHelper.getAllUserCovers(policyTaker2)
+        await this.helpers.getAllUserCovers(policyTaker2)
       )[0];
 
       const amount2 = toUsdt(1_000);
-      await ProtocolHelper.updateCover(
+      await this.helpers.updateCover(
         policyTaker2,
         "decreaseCover",
         user2CoverBefore.coverId,
@@ -155,7 +154,7 @@ export function testUpdateCover() {
       );
 
       const user2CoverAfter = (
-        await ProtocolHelper.getAllUserCovers(policyTaker2)
+        await this.helpers.getAllUserCovers(policyTaker2)
       )[0];
 
       expect(user2CoverBefore.amountCovered.sub(amount2)).to.equal(
@@ -168,14 +167,14 @@ export function testUpdateCover() {
 
     it("Should add premiums to the cover", async function () {
       const user2CoverBefore = (
-        await ProtocolHelper.getAllUserCovers(policyTaker2)
+        await this.helpers.getAllUserCovers(policyTaker2)
       )[0];
       const balanceBefore = await this.helpers.getUsdt(
         await policyTaker2.getAddress(),
       );
 
       const amount2 = toUsdt(100);
-      await ProtocolHelper.updateCover(
+      await this.helpers.updateCover(
         policyTaker2,
         "addPremiums",
         user2CoverBefore.coverId,
@@ -183,7 +182,7 @@ export function testUpdateCover() {
       );
 
       const user2CoverAfter = (
-        await ProtocolHelper.getAllUserCovers(policyTaker2)
+        await this.helpers.getAllUserCovers(policyTaker2)
       )[0];
       const balanceAfter = await this.helpers.getUsdt(
         await policyTaker2.getAddress(),
@@ -207,13 +206,13 @@ export function testUpdateCover() {
     it("Should remove premiums from the cover", async function () {
       const userAddress = await policyTaker1.getAddress();
       const user1CoverBefore = (
-        await ProtocolHelper.getAllUserCovers(policyTaker1)
+        await this.helpers.getAllUserCovers(policyTaker1)
       )[1];
 
       const balanceBefore = await this.contracts.USDT.balanceOf(userAddress);
 
       const amount1 = toUsdt(5_000);
-      await ProtocolHelper.updateCover(
+      await this.helpers.updateCover(
         policyTaker1,
         "removePremiums",
         user1CoverBefore.coverId,
@@ -221,7 +220,7 @@ export function testUpdateCover() {
       );
 
       const user1CoverAfter = (
-        await ProtocolHelper.getAllUserCovers(policyTaker1)
+        await this.helpers.getAllUserCovers(policyTaker1)
       )[1];
       const balanceAfter = await this.contracts.USDT.balanceOf(userAddress);
 
@@ -239,7 +238,7 @@ export function testUpdateCover() {
     });
 
     it("Should add ATEN to the cover refund staking", async function () {
-      const user2CoverId0 = await ProtocolHelper.getAccountCoverIdByIndex(
+      const user2CoverId0 = await this.helpers.getAccountCoverIdByIndex(
         policyTaker2,
         0,
       );
@@ -250,7 +249,7 @@ export function testUpdateCover() {
       );
 
       const amount2 = toAten(200);
-      await ProtocolHelper.updateCover(
+      await this.helpers.updateCover(
         policyTaker2,
         "addToCoverRefundStake",
         user2CoverId0,
@@ -282,7 +281,7 @@ export function testUpdateCover() {
 
     it("Should remove ATEN from the cover refund staking", async function () {
       const userAddress = await policyTaker1.getAddress();
-      const user1CoverId0 = await ProtocolHelper.getAccountCoverIdByIndex(
+      const user1CoverId0 = await this.helpers.getAccountCoverIdByIndex(
         policyTaker1,
         0,
       );
@@ -292,7 +291,7 @@ export function testUpdateCover() {
       const balanceBefore = await this.contracts.ATEN.balanceOf(userAddress);
 
       const amount1 = toAten(30_000);
-      await ProtocolHelper.updateCover(
+      await this.helpers.updateCover(
         policyTaker1,
         "withdrawCoverRefundStakedAten",
         user1CoverId0,

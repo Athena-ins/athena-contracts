@@ -4,7 +4,6 @@ import { ethers } from "ethers";
 import chaiAsPromised from "chai-as-promised";
 
 import { getCurrentTime, setNextBlockTimestamp } from "../helpers/hardhat";
-import ProtocolHelper from "../helpers/protocol";
 
 chai.use(chaiAsPromised);
 
@@ -22,14 +21,13 @@ export function testPoliciesTaker() {
       liquidityProvider1 = allSigners[1];
       policyTaker1 = allSigners[100];
 
-      await ProtocolHelper.deployAllContractsAndInitializeProtocol(owner);
-      await ProtocolHelper.addNewProtocolPool("Test protocol 0");
-      await ProtocolHelper.addNewProtocolPool("Test protocol 1");
-      await ProtocolHelper.addNewProtocolPool("Test protocol 2");
+      await this.helpers.addNewProtocolPool("Test protocol 0");
+      await this.helpers.addNewProtocolPool("Test protocol 1");
+      await this.helpers.addNewProtocolPool("Test protocol 2");
 
       const USDT_amount1 = "730000";
       const ATEN_amount1 = "100000";
-      await ProtocolHelper.deposit(
+      await this.helpers.deposit(
         liquidityProvider1,
         USDT_amount1,
         ATEN_amount1,
@@ -60,31 +58,31 @@ export function testPoliciesTaker() {
       it("Should success buy policies in protocol 0, 1, 2", async function () {
         const USDT_Approved = await this.helpers.maxApproveUsdt(
           policyTaker1,
-          ProtocolHelper.getAthenaContract().address,
+          this.contracts.Athena.address,
         );
 
         expect(USDT_Approved).to.haveOwnProperty("transactionHash");
 
         await setNextBlockTimestamp(20 * 24 * 60 * 60);
 
-        const tx = await ProtocolHelper.getAthenaContract()
-          .connect(policyTaker1)
-          .buyPolicies(
-            [109500, 219000, 438000],
-            [1000, 2000, 4000],
-            [atensLocked, atensLocked, atensLocked],
-            [0, 1, 2],
-          );
+        const tx = await this.contracts.Athena.connect(
+          policyTaker1,
+        ).buyPolicies(
+          [109500, 219000, 438000],
+          [1000, 2000, 4000],
+          [atensLocked, atensLocked, atensLocked],
+          [0, 1, 2],
+        );
         expect(tx).to.haveOwnProperty("hash");
       });
 
       it("Should check policy info in pool 0", async function () {
-        const protocolContract = await ProtocolHelper.getProtocolPoolContract(
+        const protocolContract = await this.helpers.getProtocolPoolContract(
           policyTaker1,
           0,
         );
         const policyInfo = await protocolContract.premiumPositions(
-          await ProtocolHelper.getAccountCoverIdByIndex(policyTaker1, 0),
+          await this.helpers.getAccountCoverIdByIndex(policyTaker1, 0),
         );
 
         expect(policyInfo.beginPremiumRate).to.be.equal(
@@ -95,12 +93,12 @@ export function testPoliciesTaker() {
       });
 
       it("Should check policy info in pool 1", async function () {
-        const protocolContract = await ProtocolHelper.getProtocolPoolContract(
+        const protocolContract = await this.helpers.getProtocolPoolContract(
           policyTaker1,
           1,
         );
         const policyInfo = await protocolContract.premiumPositions(
-          await ProtocolHelper.getAccountCoverIdByIndex(policyTaker1, 1),
+          await this.helpers.getAccountCoverIdByIndex(policyTaker1, 1),
         );
 
         expect(policyInfo.beginPremiumRate).to.be.equal(
@@ -111,12 +109,12 @@ export function testPoliciesTaker() {
       });
 
       it("Should check policy info in pool 2", async function () {
-        const protocolContract = await ProtocolHelper.getProtocolPoolContract(
+        const protocolContract = await this.helpers.getProtocolPoolContract(
           policyTaker1,
           2,
         );
         const policyInfo = await protocolContract.premiumPositions(
-          await ProtocolHelper.getAccountCoverIdByIndex(policyTaker1, 2),
+          await this.helpers.getAccountCoverIdByIndex(policyTaker1, 2),
         );
 
         expect(policyInfo.beginPremiumRate).to.be.equal(
@@ -127,8 +125,7 @@ export function testPoliciesTaker() {
       });
 
       it("Should check NFT", async function () {
-        const POLICY_MANAGER_CONTRACT =
-          ProtocolHelper.getPolicyManagerContract();
+        const POLICY_MANAGER_CONTRACT = this.contracts.PolicyManager;
 
         const balance = await POLICY_MANAGER_CONTRACT.balanceOf(
           await policyTaker1.getAddress(),
@@ -146,7 +143,7 @@ export function testPoliciesTaker() {
         expect(policy0.amountCovered).to.equal(109500);
         expect(policy0.poolId).to.equal(BN(0));
 
-        const poolContract0 = await ProtocolHelper.getProtocolPoolContract(
+        const poolContract0 = await this.helpers.getProtocolPoolContract(
           policyTaker1,
           0,
         );
@@ -173,7 +170,7 @@ export function testPoliciesTaker() {
         expect(policy1.poolId).to.equal(BN(1));
         1;
 
-        const poolContract1 = await ProtocolHelper.getProtocolPoolContract(
+        const poolContract1 = await this.helpers.getProtocolPoolContract(
           policyTaker1,
           1,
         );
@@ -199,7 +196,7 @@ export function testPoliciesTaker() {
 
         expect(policy2.poolId).to.equal(BN(2));
 
-        const poolContract2 = await ProtocolHelper.getProtocolPoolContract(
+        const poolContract2 = await this.helpers.getProtocolPoolContract(
           policyTaker1,
           2,
         );
@@ -225,7 +222,7 @@ export function testPoliciesTaker() {
 
         const USDT_Approved = await this.helpers.maxApproveUsdt(
           policyTaker2,
-          ProtocolHelper.getAthenaContract().address,
+          this.contracts.Athena.address,
         );
 
         expect(USDT_Approved).to.haveOwnProperty("transactionHash");
@@ -233,9 +230,12 @@ export function testPoliciesTaker() {
         await setNextBlockTimestamp(20 * 24 * 60 * 60);
 
         await expect(
-          ProtocolHelper.getAthenaContract()
-            .connect(policyTaker2)
-            .buyPolicies([109500], [1], [atensLocked], [0]),
+          this.contracts.Athena.connect(policyTaker2).buyPolicies(
+            [109500],
+            [1],
+            [atensLocked],
+            [0],
+          ),
         ).to.be.revertedWith("Min duration");
       });
     });

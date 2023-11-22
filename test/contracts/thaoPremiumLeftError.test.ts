@@ -3,7 +3,7 @@ import chaiAsPromised from "chai-as-promised";
 import { ethers } from "ethers";
 
 import { getCurrentTime, setNextBlockTimestamp } from "../helpers/hardhat";
-import ProtocolHelper from "../helpers/protocol";
+
 import { StakingPolicy } from "../../typechain";
 
 chai.use(chaiAsPromised);
@@ -22,19 +22,18 @@ export function testThaoPremiumLeftError() {
       liquidityProvider1 = allSigners[1];
       policyTaker1 = allSigners[100];
 
-      await ProtocolHelper.deployAllContractsAndInitializeProtocol(owner);
-      await ProtocolHelper.addNewProtocolPool("Test protocol 0");
-      await ProtocolHelper.addNewProtocolPool("Test protocol 1");
+      await this.helpers.addNewProtocolPool("Test protocol 0");
+      await this.helpers.addNewProtocolPool("Test protocol 1");
 
       // ================= Get Contracts ================= //
 
-      STAKING_POLICY = ProtocolHelper.getStakedAtensPolicyContract();
+      STAKING_POLICY = this.contracts.StakingPolicy;
 
       // ================= Cover Providers ================= //
 
       const USDT_amount1 = "40000000000";
       const ATEN_amount1 = "100";
-      await ProtocolHelper.deposit(
+      await this.helpers.deposit(
         liquidityProvider1,
         USDT_amount1,
         ATEN_amount1,
@@ -47,7 +46,7 @@ export function testThaoPremiumLeftError() {
       const capital1 = "10950000000";
       const premium1 = "21900000000";
       const atensLocked1 = "500";
-      await ProtocolHelper.buyPolicies(
+      await this.helpers.buyPolicies(
         policyTaker1,
         [capital1, capital1],
         [premium1, premium1],

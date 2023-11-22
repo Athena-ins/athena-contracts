@@ -3,7 +3,6 @@ import { ethers } from "ethers";
 import chaiAsPromised from "chai-as-promised";
 
 import { getCurrentTime, setNextBlockTimestamp } from "../helpers/hardhat";
-import ProtocolHelper from "../helpers/protocol";
 
 chai.use(chaiAsPromised);
 
@@ -25,14 +24,13 @@ export function testOngoingCoveragePolicies() {
       policyTaker2 = allSigners[101];
       policyTaker3 = allSigners[102];
 
-      await ProtocolHelper.deployAllContractsAndInitializeProtocol(owner);
-      await ProtocolHelper.addNewProtocolPool("Test protocol 0");
-      await ProtocolHelper.addNewProtocolPool("Test protocol 1");
-      await ProtocolHelper.addNewProtocolPool("Test protocol 2");
+      await this.helpers.addNewProtocolPool("Test protocol 0");
+      await this.helpers.addNewProtocolPool("Test protocol 1");
+      await this.helpers.addNewProtocolPool("Test protocol 2");
 
       const USDT_amount1 = "400000";
       const ATEN_amount1 = "100000";
-      await ProtocolHelper.deposit(
+      await this.helpers.deposit(
         liquidityProvider1,
         USDT_amount1,
         ATEN_amount1,
@@ -42,7 +40,7 @@ export function testOngoingCoveragePolicies() {
 
       const USDT_amount2 = "330000";
       const ATEN_amount2 = "9000000";
-      await ProtocolHelper.deposit(
+      await this.helpers.deposit(
         liquidityProvider2,
         USDT_amount2,
         ATEN_amount2,
@@ -52,13 +50,13 @@ export function testOngoingCoveragePolicies() {
 
       await this.helpers.maxApproveUsdt(
         policyTaker1,
-        ProtocolHelper.getAthenaContract().address,
+        this.contracts.Athena.address,
       );
 
       const capital1 = "109500";
       const premium1 = "2190";
       const atensLocked1 = "0";
-      await ProtocolHelper.buyPolicy(
+      await this.helpers.buyPolicy(
         policyTaker1,
         capital1,
         premium1,
@@ -69,10 +67,10 @@ export function testOngoingCoveragePolicies() {
 
       await this.helpers.maxApproveUsdt(
         policyTaker3,
-        ProtocolHelper.getAthenaContract().address,
+        this.contracts.Athena.address,
       );
 
-      await ProtocolHelper.buyPolicy(
+      await this.helpers.buyPolicy(
         policyTaker3,
         capital1,
         premium1,
@@ -84,7 +82,7 @@ export function testOngoingCoveragePolicies() {
       const capital2 = "219000";
       const premium2 = "8760";
       const atensLocked2 = "0";
-      await ProtocolHelper.buyPolicy(
+      await this.helpers.buyPolicy(
         policyTaker1,
         capital2,
         premium2,
@@ -95,10 +93,9 @@ export function testOngoingCoveragePolicies() {
     });
 
     it("Should call PolicyManager.fullCoverDataByAccount for PT1", async function () {
-      const result =
-        await ProtocolHelper.getPolicyManagerContract().fullCoverDataByAccount(
-          await policyTaker1.getAddress(),
-        );
+      const result = await this.contracts.PolicyManager.fullCoverDataByAccount(
+        await policyTaker1.getAddress(),
+      );
 
       expect(result.length).to.be.equals(2);
       expect(result[0].coverId).to.be.equals(0);
@@ -129,7 +126,7 @@ export function testOngoingCoveragePolicies() {
     it("Should call PolicyManager.fullCoverDataByAccount for PT1 after expireing of token 0", async function () {
       await this.helpers.maxApproveUsdt(
         policyTaker2,
-        ProtocolHelper.getAthenaContract().address,
+        this.contracts.Athena.address,
       );
 
       await setNextBlockTimestamp(400 * 24 * 60 * 60);
@@ -138,7 +135,7 @@ export function testOngoingCoveragePolicies() {
       const premium2 = "8760";
       const atensLocked2 = "0";
 
-      await ProtocolHelper.buyPolicy(
+      await this.helpers.buyPolicy(
         policyTaker2,
         capital2,
         premium2,
@@ -147,7 +144,7 @@ export function testOngoingCoveragePolicies() {
         10 * 24 * 60 * 60,
       );
 
-      await ProtocolHelper.buyPolicy(
+      await this.helpers.buyPolicy(
         policyTaker2,
         capital2,
         premium2,
@@ -156,22 +153,21 @@ export function testOngoingCoveragePolicies() {
         10 * 24 * 60 * 60,
       );
 
-      const result = await ProtocolHelper.getOngoingCovers(policyTaker1);
+      const result = await this.helpers.getOngoingCovers(policyTaker1);
 
       expect(result.length).to.be.equals(1);
       expect(result[0].coverId).to.be.equals(2);
       expect(result[0].poolId).to.be.equals(2);
 
-      const result1 = await ProtocolHelper.getExpiredCovers(policyTaker1);
+      const result1 = await this.helpers.getExpiredCovers(policyTaker1);
 
       expect(result1.length).to.be.equals(1);
       expect(result1[0].coverId).to.be.equals(0);
       expect(result1[0].poolId).to.be.equals(0);
 
-      const result2 =
-        await ProtocolHelper.getPolicyManagerContract().allPolicyTokensOfOwner(
-          await policyTaker1.getAddress(),
-        );
+      const result2 = await this.contracts.PolicyManager.allPolicyTokensOfOwner(
+        await policyTaker1.getAddress(),
+      );
 
       expect(result2.length).to.be.equals(2);
     });

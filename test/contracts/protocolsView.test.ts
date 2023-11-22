@@ -3,7 +3,6 @@ import { ethers } from "ethers";
 import chaiAsPromised from "chai-as-promised";
 
 import { getCurrentTime, setNextBlockTimestamp } from "../helpers/hardhat";
-import ProtocolHelper from "../helpers/protocol";
 
 chai.use(chaiAsPromised);
 
@@ -27,14 +26,12 @@ export function testProtocolsView() {
       policyTaker2 = allSigners[101];
       policyTaker3 = allSigners[102];
 
-      await ProtocolHelper.deployAllContractsAndInitializeProtocol(owner);
-
       for (let i = 0; i < numberProtocol; i++)
-        await ProtocolHelper.addNewProtocolPool(`Test protocol ${i}`);
+        await this.helpers.addNewProtocolPool(`Test protocol ${i}`);
 
       const USDT_amount1 = "182500";
       const ATEN_amount1 = "100000";
-      await ProtocolHelper.deposit(
+      await this.helpers.deposit(
         liquidityProvider1,
         USDT_amount1,
         ATEN_amount1,
@@ -44,7 +41,7 @@ export function testProtocolsView() {
 
       const USDT_amount2 = "547500";
       const ATEN_amount2 = "9000000";
-      await ProtocolHelper.deposit(
+      await this.helpers.deposit(
         liquidityProvider2,
         USDT_amount2,
         ATEN_amount2,
@@ -54,13 +51,13 @@ export function testProtocolsView() {
 
       await this.helpers.maxApproveUsdt(
         policyTaker1,
-        ProtocolHelper.getAthenaContract().address,
+        this.contracts.Athena.address,
       );
 
       const capital1 = "109500";
       const premium1 = "2190";
       const atensLocked1 = "0";
-      await ProtocolHelper.buyPolicy(
+      await this.helpers.buyPolicy(
         policyTaker1,
         capital1,
         premium1,
@@ -71,13 +68,13 @@ export function testProtocolsView() {
 
       await this.helpers.maxApproveUsdt(
         policyTaker2,
-        ProtocolHelper.getAthenaContract().address,
+        this.contracts.Athena.address,
       );
 
       const capital2 = "219000";
       const premium2 = "8760";
       const atensLocked2 = "0";
-      await ProtocolHelper.buyPolicy(
+      await this.helpers.buyPolicy(
         policyTaker2,
         capital2,
         premium2,
@@ -89,9 +86,9 @@ export function testProtocolsView() {
 
     it("Should call Athena.linearProtocolsView(beginId = 0, numberOfProtocols = 3)", async function () {
       const result = await Promise.all([
-        ProtocolHelper.getAthenaContract().connect(owner).getProtocol(0),
-        ProtocolHelper.getAthenaContract().connect(owner).getProtocol(1),
-        ProtocolHelper.getAthenaContract().connect(owner).getProtocol(2),
+        this.contracts.Athena.connect(owner).getProtocol(0),
+        this.contracts.Athena.connect(owner).getProtocol(1),
+        this.contracts.Athena.connect(owner).getProtocol(2),
       ]);
 
       expect(result.length).to.be.equal(3);
@@ -124,8 +121,8 @@ export function testProtocolsView() {
 
     it("Should call Athena.linearProtocolsView(beginId = 23, numberOfProtocols = 2)", async function () {
       const result = await Promise.all([
-        ProtocolHelper.getAthenaContract().connect(owner).getProtocol(23),
-        ProtocolHelper.getAthenaContract().connect(owner).getProtocol(23),
+        this.contracts.Athena.connect(owner).getProtocol(23),
+        this.contracts.Athena.connect(owner).getProtocol(23),
       ]);
 
       expect(result.length).to.be.equal(2);
@@ -147,10 +144,10 @@ export function testProtocolsView() {
 
     it("Should call Athena.protocolsView([2, 37, 90, 85])", async function () {
       const result = await Promise.all([
-        ProtocolHelper.getAthenaContract().connect(owner).getProtocol(2),
-        ProtocolHelper.getAthenaContract().connect(owner).getProtocol(37),
-        ProtocolHelper.getAthenaContract().connect(owner).getProtocol(90),
-        ProtocolHelper.getAthenaContract().connect(owner).getProtocol(85),
+        this.contracts.Athena.connect(owner).getProtocol(2),
+        this.contracts.Athena.connect(owner).getProtocol(37),
+        this.contracts.Athena.connect(owner).getProtocol(90),
+        this.contracts.Athena.connect(owner).getProtocol(85),
       ]);
 
       expect(result.length).to.be.equal(4);

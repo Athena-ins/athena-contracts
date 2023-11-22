@@ -42,16 +42,16 @@ export function testDeployProtocol() {
     describe("Set new active protocol 0", function () {
       it("Should set new active protocol", async function () {
         await setNextBlockTimestamp(0 * 24 * 60 * 60);
-        const tx = await ProtocolHelper.addNewProtocolPool("Test protocol 0");
+        const tx = await this.helpers.addNewProtocolPool("Test protocol 0");
 
         expect(tx).to.haveOwnProperty("hash");
 
-        const protocol = await ProtocolHelper.getProtocolPoolDataById(0);
+        const protocol = await this.helpers.getProtocolPoolDataById(0);
         expect(protocol.name).to.equal("Test protocol 0");
       });
 
       it("Should check slot0", async function () {
-        const protocolContract = await ProtocolHelper.getProtocolPoolContract(
+        const protocolContract = await this.helpers.getProtocolPoolContract(
           owner,
           0,
         );
@@ -72,7 +72,7 @@ export function testDeployProtocol() {
       });
 
       it("Should check relatedProtocols", async function () {
-        const protocolContract = await ProtocolHelper.getProtocolPoolContract(
+        const protocolContract = await this.helpers.getProtocolPoolContract(
           owner,
           0,
         );
@@ -91,16 +91,16 @@ export function testDeployProtocol() {
     describe("Set new active protocol 1", function () {
       it("Should set new active protocol", async function () {
         await setNextBlockTimestamp(1 * 24 * 60 * 60);
-        const tx = await ProtocolHelper.addNewProtocolPool("Test protocol 1");
+        const tx = await this.helpers.addNewProtocolPool("Test protocol 1");
 
         expect(tx).to.haveOwnProperty("hash");
 
-        const protocol = await ProtocolHelper.getProtocolPoolDataById(1);
+        const protocol = await this.helpers.getProtocolPoolDataById(1);
         expect(protocol.name).to.equal("Test protocol 1");
       });
 
       it("Should check slot0", async function () {
-        const protocolContract = await ProtocolHelper.getProtocolPoolContract(
+        const protocolContract = await this.helpers.getProtocolPoolContract(
           owner,
           1,
         );
@@ -121,7 +121,7 @@ export function testDeployProtocol() {
       });
 
       it("Should check relatedProtocols", async function () {
-        const protocolContract = await ProtocolHelper.getProtocolPoolContract(
+        const protocolContract = await this.helpers.getProtocolPoolContract(
           owner,
           1,
         );
@@ -140,16 +140,16 @@ export function testDeployProtocol() {
     describe("Set new active protocol 2", function () {
       it("Should set new active protocol", async function () {
         await setNextBlockTimestamp(1 * 24 * 60 * 60);
-        const tx = await ProtocolHelper.addNewProtocolPool("Test protocol 2");
+        const tx = await this.helpers.addNewProtocolPool("Test protocol 2");
 
         expect(tx).to.haveOwnProperty("hash");
 
-        const protocol = await ProtocolHelper.getProtocolPoolDataById(2);
+        const protocol = await this.helpers.getProtocolPoolDataById(2);
         expect(protocol.name).to.equal("Test protocol 2");
       });
 
       it("Should check slot0", async function () {
-        const protocolContract = await ProtocolHelper.getProtocolPoolContract(
+        const protocolContract = await this.helpers.getProtocolPoolContract(
           owner,
           2,
         );
@@ -170,7 +170,7 @@ export function testDeployProtocol() {
       });
 
       it("Should check relatedProtocols", async function () {
-        const protocolContract = await ProtocolHelper.getProtocolPoolContract(
+        const protocolContract = await this.helpers.getProtocolPoolContract(
           owner,
           2,
         );
@@ -188,7 +188,8 @@ export function testDeployProtocol() {
 
     describe("Set discounts with Aten", function () {
       it("Should set discounts with Aten", async function () {
-        const tx = await ProtocolHelper.setFeeLevelsWithAten(owner);
+        // @bw already set by deploy fn
+        // const tx = await ProtocolHelper.setFeeLevelsWithAten(owner);
 
         expect(tx).to.haveOwnProperty("hash");
 
@@ -238,8 +239,8 @@ export function testDeployProtocol() {
             { amountSupplied: 1_000_000, aprStaking: 2_000 },
           ]),
         ).to.be.rejectedWith("MustSortInAscendingOrder()");
-
-        const tx = await ProtocolHelper.setStakingRewardRates(owner);
+        // @bw already set by deploy fn
+        // const tx = await ProtocolHelper.setStakingRewardRates(owner);
 
         expect(tx).to.haveOwnProperty("hash");
 

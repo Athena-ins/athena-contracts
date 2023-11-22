@@ -4,7 +4,6 @@ import { ethers } from "ethers";
 import chaiAsPromised from "chai-as-promised";
 
 import { getCurrentTime, setNextBlockTimestamp } from "../helpers/hardhat";
-import ProtocolHelper from "../helpers/protocol";
 
 chai.use(chaiAsPromised);
 
@@ -27,10 +26,9 @@ export function testLiquidityProvider() {
       liquidityProvider1 = allSigners[1];
       liquidityProvider2 = allSigners[2];
 
-      await ProtocolHelper.deployAllContractsAndInitializeProtocol(owner);
-      await ProtocolHelper.addNewProtocolPool("Test protocol 0");
-      await ProtocolHelper.addNewProtocolPool("Test protocol 1");
-      await ProtocolHelper.addNewProtocolPool("Test protocol 2");
+      await this.helpers.addNewProtocolPool("Test protocol 0");
+      await this.helpers.addNewProtocolPool("Test protocol 1");
+      await this.helpers.addNewProtocolPool("Test protocol 2");
     });
 
     describe("Should simulate liquidity provider actions", async function () {
@@ -70,8 +68,7 @@ export function testLiquidityProvider() {
             ATEN_amount,
           );
 
-          const amountExpected =
-            ProtocolHelper.atenAmountPostHelperTransfer(ATEN_amount);
+          const amountExpected = ATEN_amount;
 
           expect(
             await this.contracts.ATEN.balanceOf(
@@ -84,7 +81,7 @@ export function testLiquidityProvider() {
           const USDT_Approved = await this.contracts.USDT.connect(
             liquidityProvider1,
           ).approve(
-            ProtocolHelper.getAthenaContract().address,
+            this.contracts.Athena.address,
             hre_ethers.utils.parseUnits(USDT_AMOUNT, 6),
           );
 
@@ -93,7 +90,7 @@ export function testLiquidityProvider() {
           const ATEN_Approved = await this.contracts.ATEN.connect(
             liquidityProvider1,
           ).approve(
-            ProtocolHelper.getStakedAtenContract().address,
+            this.contracts.StakingGeneralPool.address,
             hre_ethers.utils.parseUnits(ATEN_AMOUNT, 18),
           );
 
@@ -101,21 +98,21 @@ export function testLiquidityProvider() {
 
           await setNextBlockTimestamp(5 * 24 * 60 * 60);
 
-          const tx = await ProtocolHelper.getAthenaContract()
-            .connect(liquidityProvider1)
-            .deposit(USDT_amount, [0, 2]);
+          const tx = await this.contracts.Athena.connect(
+            liquidityProvider1,
+          ).deposit(USDT_amount, [0, 2]);
 
           const provider1tokenIds =
-            await ProtocolHelper.getPositionManagerContract()
-              .connect(liquidityProvider1)
-              .allPositionTokensOfOwner(await liquidityProvider1.getAddress());
+            await this.contracts.PositionsManager.connect(
+              liquidityProvider1,
+            ).allPositionTokensOfOwner(await liquidityProvider1.getAddress());
           provider1tokenId = provider1tokenIds[0];
 
           expect(tx).to.haveOwnProperty("hash");
         });
 
         it("Should check slot0 in protocol 0", async function () {
-          const protocolContract = await ProtocolHelper.getProtocolPoolContract(
+          const protocolContract = await this.helpers.getProtocolPoolContract(
             liquidityProvider1,
             0,
           );
@@ -135,8 +132,7 @@ export function testLiquidityProvider() {
         });
 
         it("Should check funds and NFT", async function () {
-          const POSITIONS_MANAGER_CONTRACT =
-            ProtocolHelper.getPositionManagerContract();
+          const POSITIONS_MANAGER_CONTRACT = this.contracts.PositionsManager;
 
           const position =
             await POSITIONS_MANAGER_CONTRACT.position(provider1tokenId);
@@ -153,7 +149,7 @@ export function testLiquidityProvider() {
         });
 
         it("Should check relatedProtocols of Protocol 0", async function () {
-          const protocolContract = await ProtocolHelper.getProtocolPoolContract(
+          const protocolContract = await this.helpers.getProtocolPoolContract(
             owner,
             0,
           );
@@ -218,8 +214,7 @@ export function testLiquidityProvider() {
             ATEN_amount,
           );
 
-          const amountExpected =
-            ProtocolHelper.atenAmountPostHelperTransfer(ATEN_amount);
+          const amountExpected = ATEN_amount;
 
           expect(
             await this.contracts.ATEN.balanceOf(
@@ -232,7 +227,7 @@ export function testLiquidityProvider() {
           const USDT_Approved = await this.contracts.USDT.connect(
             liquidityProvider2,
           ).approve(
-            ProtocolHelper.getAthenaContract().address,
+            this.contracts.Athena.address,
             hre_ethers.utils.parseUnits(USDT_AMOUNT, 6),
           );
 
@@ -241,7 +236,7 @@ export function testLiquidityProvider() {
           const ATEN_Approved = await this.contracts.ATEN.connect(
             liquidityProvider2,
           ).approve(
-            ProtocolHelper.getStakedAtenContract().address,
+            this.contracts.StakingGeneralPool.address,
             hre_ethers.utils.parseUnits(ATEN_AMOUNT, 18),
           );
 
@@ -249,21 +244,21 @@ export function testLiquidityProvider() {
 
           await setNextBlockTimestamp(10 * 24 * 60 * 60);
 
-          const tx = await ProtocolHelper.getAthenaContract()
-            .connect(liquidityProvider2)
-            .deposit(USDT_amount, [0, 1, 2]);
+          const tx = await this.contracts.Athena.connect(
+            liquidityProvider2,
+          ).deposit(USDT_amount, [0, 1, 2]);
 
           const provider2tokenIds =
-            await ProtocolHelper.getPositionManagerContract()
-              .connect(liquidityProvider2)
-              .allPositionTokensOfOwner(await liquidityProvider2.getAddress());
+            await this.contracts.PositionsManager.connect(
+              liquidityProvider2,
+            ).allPositionTokensOfOwner(await liquidityProvider2.getAddress());
           provider2tokenId = provider2tokenIds[0];
 
           expect(tx).to.haveOwnProperty("hash");
         });
 
         it("Should check slot0 in protocol 0", async function () {
-          const protocolContract = await ProtocolHelper.getProtocolPoolContract(
+          const protocolContract = await this.helpers.getProtocolPoolContract(
             liquidityProvider2,
             0,
           );
@@ -283,8 +278,7 @@ export function testLiquidityProvider() {
         });
 
         it("Should check funds and NFT", async function () {
-          const POSITIONS_MANAGER_CONTRACT =
-            ProtocolHelper.getPositionManagerContract();
+          const POSITIONS_MANAGER_CONTRACT = this.contracts.PositionsManager;
 
           const position =
             await POSITIONS_MANAGER_CONTRACT.position(provider2tokenId);
@@ -301,7 +295,7 @@ export function testLiquidityProvider() {
         });
 
         it("Should check relatedProtocols of Protocol 0", async function () {
-          const protocolContract = await ProtocolHelper.getProtocolPoolContract(
+          const protocolContract = await this.helpers.getProtocolPoolContract(
             owner,
             0,
           );
