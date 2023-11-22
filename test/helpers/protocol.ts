@@ -120,7 +120,7 @@ export async function balanceOfAaveUsdt(
 // === Token helpers === //
 // ===================== //
 
-export async function transfer<T extends ERC20>(
+async function transfer<T extends ERC20>(
   contract: T,
   signer: Signer,
   ...args: Parameters<ERC20["transfer"]>
@@ -131,7 +131,7 @@ export async function transfer<T extends ERC20>(
     .then((tx) => tx.wait());
 }
 
-export async function approve<T extends ERC20>(
+async function approve<T extends ERC20>(
   contract: T,
   signer: Signer,
   ...args: Parameters<ERC20["approve"]>
@@ -142,7 +142,7 @@ export async function approve<T extends ERC20>(
     .then((tx) => tx.wait());
 }
 
-export async function maxApprove<T extends ERC20>(
+async function maxApprove<T extends ERC20>(
   contract: T,
   signer: Signer,
   spender: string,
@@ -375,7 +375,7 @@ export async function depositRewardsToVault(
 // === Admin action helpers === //
 // ============================ //
 
-export async function addNewProtocolPool(
+async function addNewProtocolPool(
   contract: Athena,
   protocolPoolName: string,
   tokenAddress?: string,
@@ -402,7 +402,7 @@ export async function addNewProtocolPool(
 // === User action helpers === //
 // =========================== //
 
-export async function deposit(
+async function deposit(
   contract: Athena,
   tokenHelpers: TokenHelpers,
   user: Signer,
@@ -428,7 +428,7 @@ export async function deposit(
   await contract.connect(user).deposit(USDT_amount, protocols);
 }
 
-export async function buyPolicy(
+async function buyPolicy(
   contract: Athena,
   tokenHelpers: TokenHelpers,
   user: Signer,
@@ -457,7 +457,7 @@ export async function buyPolicy(
     .buyPolicies([capital], [premium], [atensLocked], [poolId]);
 }
 
-export async function buyPolicies(
+async function buyPolicies(
   contract: Athena,
   tokenHelpers: TokenHelpers,
   user: Signer,
@@ -494,7 +494,7 @@ export async function buyPolicies(
     .buyPolicies(capital, premium, atensLocked, poolId);
 }
 
-export async function createClaim(
+async function createClaim(
   contract: ClaimManager,
   policyHolder: Signer,
   coverId: number,
@@ -524,7 +524,7 @@ export async function createClaim(
     });
 }
 
-export async function resolveClaimWithoutDispute(
+async function resolveClaimWithoutDispute(
   contract: ClaimManager,
   policyHolder: Signer,
   coverId: number,
@@ -543,7 +543,7 @@ export async function resolveClaimWithoutDispute(
     .withdrawCompensationWithoutDispute(latestClaimId);
 }
 
-export async function takeInterest(
+async function takeInterest(
   contract: Athena,
   user: Signer,
   tokenId: BigNumberish,
@@ -566,7 +566,7 @@ export async function takeInterest(
   ).interface.decodeEventLog(event.topics[0], event.data);
 }
 
-export async function stakingGeneralPoolDeposit(
+async function stakingGeneralPoolDeposit(
   contract: Athena,
   tokenHelpers: TokenHelpers,
   user: Signer,
@@ -580,7 +580,7 @@ export async function stakingGeneralPoolDeposit(
   return contract.connect(user).stakeAtens(amount);
 }
 
-export async function updateCover(
+async function updateCover(
   contract: Athena,
   tokenHelpers: TokenHelpers,
   user: Signer,
@@ -612,14 +612,14 @@ export async function updateCover(
 // === View helpers === //
 // ==================== //
 
-export async function getProtocolPoolDataById(
+async function getProtocolPoolDataById(
   contract: Athena,
   protocolPoolId: number,
 ) {
   return contract.getProtocol(protocolPoolId);
 }
 
-export async function getProtocolPoolContract(
+async function getProtocolPoolContract(
   contract: Athena,
   user: Signer,
   poolId: number,
@@ -628,12 +628,12 @@ export async function getProtocolPoolContract(
   return ProtocolPool__factory.connect(poolInfo.deployed, user);
 }
 
-export async function getAllUserCovers(contract: PolicyManager, user: Signer) {
+async function getAllUserCovers(contract: PolicyManager, user: Signer) {
   const account = await user.getAddress();
   return contract.connect(user).fullCoverDataByAccount(account);
 }
 
-export async function getOngoingCovers(contract: PolicyManager, user: Signer) {
+async function getOngoingCovers(contract: PolicyManager, user: Signer) {
   const account = await user.getAddress();
   const allCovers = await contract
     .connect(user)
@@ -642,7 +642,7 @@ export async function getOngoingCovers(contract: PolicyManager, user: Signer) {
   return allCovers.filter((cover) => cover.endTimestamp.eq(0));
 }
 
-export async function getExpiredCovers(contract: PolicyManager, user: Signer) {
+async function getExpiredCovers(contract: PolicyManager, user: Signer) {
   const account = await user.getAddress();
   const allCovers = await contract
     .connect(user)
@@ -651,7 +651,7 @@ export async function getExpiredCovers(contract: PolicyManager, user: Signer) {
   return allCovers.filter((cover) => !cover.endTimestamp.eq(0));
 }
 
-export async function getAccountCoverIdByIndex(
+async function getAccountCoverIdByIndex(
   contract: PolicyManager,
   user: Signer,
   index: number,
@@ -664,7 +664,7 @@ export async function getAccountCoverIdByIndex(
   return allCoverIds[index];
 }
 
-export async function getPoolOverlap(
+async function getPoolOverlap(
   contract: PositionsManager,
   poolA: BigNumberish,
   poolB: BigNumberish,
@@ -727,20 +727,8 @@ export async function makeTestHelpers(
   deployer: Signer,
   contracts: ProtocolContracts,
 ): Promise<TestHelper> {
-  const {
-    ATEN,
-    USDT,
-    CentralizedArbitrator,
-    Athena,
-    ProtocolFactory,
-    PriceOracleV1,
-    TokenVault,
-    PositionsManager,
-    PolicyManager,
-    ClaimManager,
-    StakingGeneralPool,
-    StakingPolicy,
-  } = contracts;
+  const { ATEN, USDT, Athena, PositionsManager, PolicyManager, ClaimManager } =
+    contracts;
 
   const tokenHelpers: TokenHelpers = {
     transferAten: (...args) => transfer(ATEN, ...args),

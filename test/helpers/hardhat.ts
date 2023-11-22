@@ -1,7 +1,6 @@
-import { BaseContract, BigNumber, Signer } from "ethers";
+import { BaseContract, Signer } from "ethers";
 import hre, { ethers, network } from "hardhat";
 import { HardhatNetworkConfig } from "hardhat/types";
-import { ERC20 } from "../../typechain";
 
 // =============== //
 // === Helpers === //
@@ -113,10 +112,6 @@ export async function setNextBlockTimestamp(secondsToAdd: number) {
 // ======================== //
 // === Wallet & signers === //
 // ======================== //
-
-export async function allSigners() {
-  return await ethers.getSigners();
-}
 
 export async function impersonateAccount(address: string) {
   await hre.network.provider.request({
