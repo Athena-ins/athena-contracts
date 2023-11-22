@@ -44,21 +44,21 @@ export function testPoliciesTaker() {
 
       it("Should prepare USDT balance", async function () {
         expect(
-          await HardhatHelper.USDT_balanceOf(await policyTaker1.getAddress()),
+          await this.contracts.USDT.balanceOf(await policyTaker1.getAddress()),
         ).to.be.equal(0);
 
-        await HardhatHelper.USDT_transfer(
+        await this.helpers.getUsdt(
           await policyTaker1.getAddress(),
           hre_ethers.utils.parseUnits(premium, 6),
         );
 
         expect(
-          await HardhatHelper.USDT_balanceOf(await policyTaker1.getAddress()),
+          await this.contracts.USDT.balanceOf(await policyTaker1.getAddress()),
         ).to.be.equal(hre_ethers.utils.parseUnits(premium, 6));
       });
 
       it("Should success buy policies in protocol 0, 1, 2", async function () {
-        const USDT_Approved = await HardhatHelper.USDT_maxApprove(
+        const USDT_Approved = await this.helpers.maxApproveUsdt(
           policyTaker1,
           ProtocolHelper.getAthenaContract().address,
         );
@@ -155,7 +155,7 @@ export function testPoliciesTaker() {
           true,
         );
 
-        const balancePool0 = await HardhatHelper.USDT_balanceOf(
+        const balancePool0 = await this.contracts.USDT.balanceOf(
           poolContract0.address,
         );
         expect(balancePool0).to.equal(1000);
@@ -182,7 +182,7 @@ export function testPoliciesTaker() {
           true,
         );
 
-        const balancePool1 = await HardhatHelper.USDT_balanceOf(
+        const balancePool1 = await this.contracts.USDT.balanceOf(
           poolContract1.address,
         );
         expect(balancePool1).to.equal(2000);
@@ -208,7 +208,7 @@ export function testPoliciesTaker() {
           true,
         );
 
-        const balancePool2 = await HardhatHelper.USDT_balanceOf(
+        const balancePool2 = await this.contracts.USDT.balanceOf(
           poolContract2.address,
         );
         expect(balancePool2).to.equal(4000);
@@ -218,12 +218,12 @@ export function testPoliciesTaker() {
         const allSigners = await HardhatHelper.allSigners();
         const policyTaker2 = allSigners[101];
 
-        await HardhatHelper.USDT_transfer(
+        await this.helpers.getUsdt(
           await policyTaker2.getAddress(),
           hre_ethers.utils.parseUnits("1000", 6),
         );
 
-        const USDT_Approved = await HardhatHelper.USDT_maxApprove(
+        const USDT_Approved = await this.helpers.maxApproveUsdt(
           policyTaker2,
           ProtocolHelper.getAthenaContract().address,
         );

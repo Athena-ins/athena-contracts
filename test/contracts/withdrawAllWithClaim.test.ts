@@ -74,7 +74,7 @@ export function testWithdrawAllWithClaim() {
 
         // ================= Policy Buyers ================= //
 
-        await HardhatHelper.USDT_maxApprove(
+        await this.helpers.maxApproveUsdt(
           policyTaker1,
           ProtocolHelper.getAthenaContract().address,
         );
@@ -91,7 +91,7 @@ export function testWithdrawAllWithClaim() {
           20 * 24 * 60 * 60,
         );
 
-        await HardhatHelper.USDT_maxApprove(
+        await this.helpers.maxApproveUsdt(
           policyTaker2,
           ProtocolHelper.getAthenaContract().address,
         );

@@ -50,7 +50,7 @@ export function testOngoingCoveragePolicies() {
         1 * 24 * 60 * 60,
       );
 
-      await HardhatHelper.USDT_maxApprove(
+      await this.helpers.maxApproveUsdt(
         policyTaker1,
         ProtocolHelper.getAthenaContract().address,
       );
@@ -67,7 +67,7 @@ export function testOngoingCoveragePolicies() {
         20 * 24 * 60 * 60,
       );
 
-      await HardhatHelper.USDT_maxApprove(
+      await this.helpers.maxApproveUsdt(
         policyTaker3,
         ProtocolHelper.getAthenaContract().address,
       );
@@ -127,7 +127,7 @@ export function testOngoingCoveragePolicies() {
     });
 
     it("Should call PolicyManager.fullCoverDataByAccount for PT1 after expireing of token 0", async function () {
-      await HardhatHelper.USDT_maxApprove(
+      await this.helpers.maxApproveUsdt(
         policyTaker2,
         ProtocolHelper.getAthenaContract().address,
       );

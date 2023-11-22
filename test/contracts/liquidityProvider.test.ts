@@ -41,18 +41,18 @@ export function testLiquidityProvider() {
         const ATEN_amount = "100000";
         it("Should prepare USDT balance", async function () {
           expect(
-            await HardhatHelper.USDT_balanceOf(
+            await this.contracts.USDT.balanceOf(
               await liquidityProvider1.getAddress(),
             ),
           ).to.be.equal(0);
 
-          await HardhatHelper.USDT_transfer(
+          await this.helpers.getUsdt(
             await liquidityProvider1.getAddress(),
             hre_ethers.utils.parseUnits(USDT_amount, 6),
           );
 
           expect(
-            await HardhatHelper.USDT_balanceOf(
+            await this.contracts.USDT.balanceOf(
               await liquidityProvider1.getAddress(),
             ),
           ).to.be.equal(hre_ethers.utils.parseUnits(USDT_amount, 6));
@@ -60,12 +60,12 @@ export function testLiquidityProvider() {
 
         it("Should prepare ATEN balance", async function () {
           expect(
-            await HardhatHelper.ATEN_balanceOf(
+            await this.contracts.ATEN.balanceOf(
               await liquidityProvider1.getAddress(),
             ),
           ).to.be.equal(0);
 
-          await HardhatHelper.ATEN_transfer(
+          await this.helpers.getAten(
             await liquidityProvider1.getAddress(),
             ATEN_amount,
           );
@@ -74,23 +74,25 @@ export function testLiquidityProvider() {
             ProtocolHelper.atenAmountPostHelperTransfer(ATEN_amount);
 
           expect(
-            await HardhatHelper.ATEN_balanceOf(
+            await this.contracts.ATEN.balanceOf(
               await liquidityProvider1.getAddress(),
             ),
           ).to.be.equal(amountExpected);
         });
 
         it("Should success deposit funds into the protocols 0 and 2", async function () {
-          const USDT_Approved = await HardhatHelper.USDT_approve(
+          const USDT_Approved = await this.contracts.USDT.connect(
             liquidityProvider1,
+          ).approve(
             ProtocolHelper.getAthenaContract().address,
             hre_ethers.utils.parseUnits(USDT_AMOUNT, 6),
           );
 
           expect(USDT_Approved).to.haveOwnProperty("transactionHash");
 
-          const ATEN_Approved = await HardhatHelper.ATEN_approve(
+          const ATEN_Approved = await this.contracts.ATEN.connect(
             liquidityProvider1,
+          ).approve(
             ProtocolHelper.getStakedAtenContract().address,
             hre_ethers.utils.parseUnits(ATEN_AMOUNT, 18),
           );
@@ -146,7 +148,7 @@ export function testLiquidityProvider() {
           // we check AAVE aToken balance
           atokenBalance = atokenBalance.add(USDT_amount);
           expect(
-            (await HardhatHelper.getATokenBalance(liquidityProvider1)).gte(
+            (await this.helpers.balanceOfAaveUsdt(liquidityProvider1)).gte(
               atokenBalance,
             ),
           ).to.be.true;
@@ -189,18 +191,18 @@ export function testLiquidityProvider() {
         const ATEN_amount = "9000000";
         it("Should prepare USDT balance", async function () {
           expect(
-            await HardhatHelper.USDT_balanceOf(
+            await this.contracts.USDT.balanceOf(
               await liquidityProvider2.getAddress(),
             ),
           ).to.be.equal(0);
 
-          await HardhatHelper.USDT_transfer(
+          await this.helpers.getUsdt(
             await liquidityProvider2.getAddress(),
             hre_ethers.utils.parseUnits(USDT_amount, 6),
           );
 
           expect(
-            await HardhatHelper.USDT_balanceOf(
+            await this.contracts.USDT.balanceOf(
               await liquidityProvider2.getAddress(),
             ),
           ).to.be.equal(hre_ethers.utils.parseUnits(USDT_amount, 6));
@@ -208,12 +210,12 @@ export function testLiquidityProvider() {
 
         it("Should prepare ATEN balance", async function () {
           expect(
-            await HardhatHelper.ATEN_balanceOf(
+            await this.contracts.ATEN.balanceOf(
               await liquidityProvider2.getAddress(),
             ),
           ).to.be.equal(0);
 
-          await HardhatHelper.ATEN_transfer(
+          await this.helpers.getAten(
             await liquidityProvider2.getAddress(),
             ATEN_amount,
           );
@@ -222,23 +224,25 @@ export function testLiquidityProvider() {
             ProtocolHelper.atenAmountPostHelperTransfer(ATEN_amount);
 
           expect(
-            await HardhatHelper.ATEN_balanceOf(
+            await this.contracts.ATEN.balanceOf(
               await liquidityProvider2.getAddress(),
             ),
           ).to.be.equal(amountExpected);
         });
 
         it("Should success deposit funds into protocol 0, 1 and 2", async function () {
-          const USDT_Approved = await HardhatHelper.USDT_approve(
+          const USDT_Approved = await this.contracts.USDT.connect(
             liquidityProvider2,
+          ).approve(
             ProtocolHelper.getAthenaContract().address,
             hre_ethers.utils.parseUnits(USDT_AMOUNT, 6),
           );
 
           expect(USDT_Approved).to.haveOwnProperty("transactionHash");
 
-          const ATEN_Approved = await await HardhatHelper.ATEN_approve(
+          const ATEN_Approved = await this.contracts.ATEN.connect(
             liquidityProvider2,
+          ).approve(
             ProtocolHelper.getStakedAtenContract().address,
             hre_ethers.utils.parseUnits(ATEN_AMOUNT, 18),
           );
@@ -294,7 +298,7 @@ export function testLiquidityProvider() {
           // we check AAVE aToken balance
           atokenBalance = atokenBalance.add(USDT_amount);
           expect(
-            (await HardhatHelper.getATokenBalance(liquidityProvider1)).gte(
+            (await this.helpers.balanceOfAaveUsdt(liquidityProvider1)).gte(
               atokenBalance,
             ),
           ).to.be.true;

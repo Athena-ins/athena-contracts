@@ -72,7 +72,7 @@ export function testExpiredPoliciesWithCanceling() {
 
       // ================= Policy Buyers ================= //
 
-      await HardhatHelper.USDT_maxApprove(
+      await this.helpers.maxApproveUsdt(
         policyTaker3,
         ProtocolHelper.getAthenaContract().address,
       );
@@ -89,7 +89,7 @@ export function testExpiredPoliciesWithCanceling() {
         10 * 24 * 60 * 60,
       );
 
-      await HardhatHelper.USDT_maxApprove(
+      await this.helpers.maxApproveUsdt(
         policyTaker4,
         ProtocolHelper.getAthenaContract().address,
       );
@@ -103,7 +103,7 @@ export function testExpiredPoliciesWithCanceling() {
         10 * 24 * 60 * 60,
       );
 
-      await HardhatHelper.USDT_maxApprove(
+      await this.helpers.maxApproveUsdt(
         policyTaker1,
         ProtocolHelper.getAthenaContract().address,
       );
@@ -129,7 +129,7 @@ export function testExpiredPoliciesWithCanceling() {
         20 * 24 * 60 * 60,
       );
 
-      await HardhatHelper.USDT_maxApprove(
+      await this.helpers.maxApproveUsdt(
         policyTaker2,
         ProtocolHelper.getAthenaContract().address,
       );

@@ -65,7 +65,7 @@ export function testWithdrawAllWithoutClaim() {
             .allPositionTokensOfOwner(await liquidityProvider2.getAddress());
         provider2tokenId = provider2tokenIds[0];
 
-        await HardhatHelper.USDT_maxApprove(
+        await this.helpers.maxApproveUsdt(
           policyTaker1,
           ProtocolHelper.getAthenaContract().address,
         );
@@ -82,7 +82,7 @@ export function testWithdrawAllWithoutClaim() {
           20 * 24 * 60 * 60,
         );
 
-        await HardhatHelper.USDT_maxApprove(
+        await this.helpers.maxApproveUsdt(
           policyTaker2,
           ProtocolHelper.getAthenaContract().address,
         );

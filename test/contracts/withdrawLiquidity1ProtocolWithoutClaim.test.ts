@@ -51,7 +51,7 @@ export function testWithdrawLiquidity1ProtocolWithoutClaim() {
           1 * 24 * 60 * 60,
         );
 
-        await HardhatHelper.USDT_maxApprove(
+        await this.helpers.maxApproveUsdt(
           policyTaker1,
           ProtocolHelper.getAthenaContract().address,
         );
@@ -68,7 +68,7 @@ export function testWithdrawLiquidity1ProtocolWithoutClaim() {
           20 * 24 * 60 * 60,
         );
 
-        await HardhatHelper.USDT_maxApprove(
+        await this.helpers.maxApproveUsdt(
           policyTaker2,
           ProtocolHelper.getAthenaContract().address,
         );

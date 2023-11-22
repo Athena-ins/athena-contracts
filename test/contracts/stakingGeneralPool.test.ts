@@ -70,7 +70,7 @@ export function testStakingGeneralPool() {
 
       // ================= Policy Buyers ================= //
 
-      await HardhatHelper.USDT_maxApprove(
+      await this.helpers.maxApproveUsdt(
         policyTaker1,
         ProtocolHelper.getAthenaContract().address,
       );
@@ -88,7 +88,7 @@ export function testStakingGeneralPool() {
         20 * 24 * 60 * 60,
       );
 
-      await HardhatHelper.USDT_maxApprove(
+      await this.helpers.maxApproveUsdt(
         policyTaker2,
         ProtocolHelper.getAthenaContract().address,
       );
@@ -105,7 +105,7 @@ export function testStakingGeneralPool() {
         10 * 24 * 60 * 60,
       );
 
-      await HardhatHelper.USDT_maxApprove(
+      await this.helpers.maxApproveUsdt(
         policyTaker3,
         ProtocolHelper.getAthenaContract().address,
       );
@@ -180,12 +180,12 @@ export function testStakingGeneralPool() {
       );
 
       expect(rewards).to.equal(expectedRewards);
-      const balanceBefore = await HardhatHelper.ATEN_balanceOf(
+      const balanceBefore = await this.contracts.ATEN.balanceOf(
         liquidityProvider1Address,
       );
       await (await ATHENA_CONTRACT.takeStakingProfits()).wait();
 
-      const balanceAfter = await HardhatHelper.ATEN_balanceOf(
+      const balanceAfter = await this.contracts.ATEN.balanceOf(
         liquidityProvider1Address,
       );
 

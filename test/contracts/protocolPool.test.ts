@@ -142,7 +142,7 @@ export function testProtocolPool() {
           USDT_AAVE_ATOKEN,
           FACTORY_PROTOCOL_CONTRACT.address,
           ARBITRATOR_ADDRESS,
-          NULL_ADDRESS,
+          ethers.constants.AddressZero,
         );
 
         await init.wait();
@@ -401,7 +401,7 @@ export function testProtocolPool() {
 
         // we check AAVE aToken balance
         expect(
-          (await HardhatHelper.getATokenBalance(user1)).toNumber(),
+          (await this.helpers.balanceOfAaveUsdt(user1)).toNumber(),
         ).to.be.greaterThanOrEqual(9999);
       });
 
@@ -424,7 +424,7 @@ export function testProtocolPool() {
       it("Should check funds and NFT", async function () {
         // Now its not USDT on contract anymore but AAVE LP !
         const balAtoken = (
-          await HardhatHelper.getATokenBalance(user1)
+          await this.helpers.balanceOfAaveUsdt(user1)
         ).toNumber();
 
         expect(balAtoken).to.be.greaterThanOrEqual(11000);

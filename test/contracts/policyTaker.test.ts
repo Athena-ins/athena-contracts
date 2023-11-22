@@ -61,21 +61,21 @@ export function testPolicyTaker() {
 
       it("Should prepare USDT balance", async function () {
         expect(
-          await HardhatHelper.USDT_balanceOf(await policyTaker1.getAddress()),
+          await this.contracts.USDT.balanceOf(await policyTaker1.getAddress()),
         ).to.be.equal(0);
 
-        await HardhatHelper.USDT_transfer(
+        await this.helpers.getUsdt(
           await policyTaker1.getAddress(),
           hre_ethers.utils.parseUnits(premium, 6),
         );
 
         expect(
-          await HardhatHelper.USDT_balanceOf(await policyTaker1.getAddress()),
+          await this.contracts.USDT.balanceOf(await policyTaker1.getAddress()),
         ).to.be.equal(hre_ethers.utils.parseUnits(premium, 6));
       });
 
       it("Should success buy policy in protocol 0 for 1 year", async function () {
-        const USDT_Approved = await HardhatHelper.USDT_maxApprove(
+        const USDT_Approved = await this.helpers.maxApproveUsdt(
           policyTaker1,
           ProtocolHelper.getAthenaContract().address,
         );
@@ -179,7 +179,7 @@ export function testPolicyTaker() {
           true,
         );
 
-        const balanceProtocol = await HardhatHelper.USDT_balanceOf(
+        const balanceProtocol = await this.contracts.USDT.balanceOf(
           protocolContract.address,
         );
         expect(balanceProtocol).to.equal(totalPremium);
@@ -193,21 +193,21 @@ export function testPolicyTaker() {
 
       it("Should prepare USDT balance", async function () {
         expect(
-          await HardhatHelper.USDT_balanceOf(await policyTaker2.getAddress()),
+          await this.contracts.USDT.balanceOf(await policyTaker2.getAddress()),
         ).to.be.equal(0);
 
-        await HardhatHelper.USDT_transfer(
+        await this.helpers.getUsdt(
           await policyTaker2.getAddress(),
           hre_ethers.utils.parseUnits(premium, 6),
         );
 
         expect(
-          await HardhatHelper.USDT_balanceOf(await policyTaker2.getAddress()),
+          await this.contracts.USDT.balanceOf(await policyTaker2.getAddress()),
         ).to.be.equal(hre_ethers.utils.parseUnits(premium, 6));
       });
 
       it("Should success buy policy in protocol 0 for 1 year", async function () {
-        const USDT_Approved = await HardhatHelper.USDT_maxApprove(
+        const USDT_Approved = await this.helpers.maxApproveUsdt(
           policyTaker2,
           ProtocolHelper.getAthenaContract().address,
         );
@@ -309,7 +309,7 @@ export function testPolicyTaker() {
           true,
         );
 
-        const balanceProtocol = await HardhatHelper.USDT_balanceOf(
+        const balanceProtocol = await this.contracts.USDT.balanceOf(
           protocolContract.address,
         );
         expect(balanceProtocol).to.equal(totalPremium);

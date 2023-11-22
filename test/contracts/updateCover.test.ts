@@ -170,7 +170,9 @@ export function testUpdateCover() {
       const user2CoverBefore = (
         await ProtocolHelper.getAllUserCovers(policyTaker2)
       )[0];
-      const balanceBefore = await HardhatHelper.USDT_spenderBalance();
+      const balanceBefore = await this.helpers.getUsdt(
+        await policyTaker2.getAddress(),
+      );
 
       const amount2 = toUsdt(100);
       await ProtocolHelper.updateCover(
@@ -183,7 +185,9 @@ export function testUpdateCover() {
       const user2CoverAfter = (
         await ProtocolHelper.getAllUserCovers(policyTaker2)
       )[0];
-      const balanceAfter = await HardhatHelper.USDT_spenderBalance();
+      const balanceAfter = await this.helpers.getUsdt(
+        await policyTaker2.getAddress(),
+      );
 
       expect(balanceBefore.sub(amount2)).to.equal(balanceAfter);
       // We add a 1% tolerance for the premium spent during the tx
@@ -206,7 +210,7 @@ export function testUpdateCover() {
         await ProtocolHelper.getAllUserCovers(policyTaker1)
       )[1];
 
-      const balanceBefore = await HardhatHelper.USDT_balanceOf(userAddress);
+      const balanceBefore = await this.contracts.USDT.balanceOf(userAddress);
 
       const amount1 = toUsdt(5_000);
       await ProtocolHelper.updateCover(
@@ -219,7 +223,7 @@ export function testUpdateCover() {
       const user1CoverAfter = (
         await ProtocolHelper.getAllUserCovers(policyTaker1)
       )[1];
-      const balanceAfter = await HardhatHelper.USDT_balanceOf(userAddress);
+      const balanceAfter = await this.contracts.USDT.balanceOf(userAddress);
 
       expect(balanceBefore.add(amount1)).to.equal(balanceAfter);
       expect(
@@ -241,7 +245,9 @@ export function testUpdateCover() {
       );
       const user2RefundBefore =
         await STAKING_POLICY.getRefundPosition(user2CoverId0);
-      const balanceBefore = await HardhatHelper.ATEN_spenderBalance();
+      const balanceBefore = await this.contracts.ATEN.balanceOf(
+        await policyTaker2.getAddress(),
+      );
 
       const amount2 = toAten(200);
       await ProtocolHelper.updateCover(
@@ -253,7 +259,9 @@ export function testUpdateCover() {
 
       const user2RefundAfter =
         await STAKING_POLICY.getRefundPosition(user2CoverId0);
-      const balanceAfter = await HardhatHelper.ATEN_spenderBalance();
+      const balanceAfter = await this.contracts.ATEN.balanceOf(
+        await policyTaker2.getAddress(),
+      );
 
       // We apply a 1% tolerance for the token fees
       expect(
@@ -281,7 +289,7 @@ export function testUpdateCover() {
       const user1RefundBefore =
         await STAKING_POLICY.getRefundPosition(user1CoverId0);
 
-      const balanceBefore = await HardhatHelper.ATEN_balanceOf(userAddress);
+      const balanceBefore = await this.contracts.ATEN.balanceOf(userAddress);
 
       const amount1 = toAten(30_000);
       await ProtocolHelper.updateCover(
@@ -293,7 +301,7 @@ export function testUpdateCover() {
 
       const user1RefundAfter =
         await STAKING_POLICY.getRefundPosition(user1CoverId0);
-      const balanceAfter = await HardhatHelper.ATEN_balanceOf(userAddress);
+      const balanceAfter = await this.contracts.ATEN.balanceOf(userAddress);
 
       expect(user1RefundBefore.stakedAmount.sub(amount1)).to.equal(
         user1RefundAfter.stakedAmount,
