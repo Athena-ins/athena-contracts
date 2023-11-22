@@ -3,9 +3,6 @@ import { ethers } from "hardhat";
 import {
   entityProviderChainId,
   setNextBlockTimestamp,
-  transfer,
-  approve,
-  maxApprove,
   impersonateAccount,
 } from "./hardhat";
 import {
@@ -37,6 +34,7 @@ import {
   StakingPolicy,
   ProtocolPool,
   USDT,
+  ERC20,
   //
   ProtocolPool__factory,
   USDT__factory,
@@ -121,6 +119,39 @@ export async function balanceOfAaveUsdt(
 // ===================== //
 // === Token helpers === //
 // ===================== //
+
+export async function transfer<T extends ERC20>(
+  contract: T,
+  signer: Signer,
+  ...args: Parameters<ERC20["transfer"]>
+) {
+  return contract
+    .connect(signer)
+    .transfer(...args)
+    .then((tx) => tx.wait());
+}
+
+export async function approve<T extends ERC20>(
+  contract: T,
+  signer: Signer,
+  ...args: Parameters<ERC20["approve"]>
+) {
+  return contract
+    .connect(signer)
+    .approve(...args)
+    .then((tx) => tx.wait());
+}
+
+export async function maxApprove<T extends ERC20>(
+  contract: T,
+  signer: Signer,
+  spender: string,
+) {
+  return contract
+    .connect(signer)
+    .approve(spender, BigNumber.from(2).pow(256))
+    .then((tx) => tx.wait());
+}
 
 async function getTokens(
   signer: Signer,
@@ -690,19 +721,6 @@ export type TestHelper = TokenHelpers & {
   getExpiredCovers: OmitFirstArg<typeof getExpiredCovers>;
   getAccountCoverIdByIndex: OmitFirstArg<typeof getAccountCoverIdByIndex>;
   getPoolOverlap: OmitFirstArg<typeof getPoolOverlap>;
-  //
-  getATENContract: () => ATEN;
-  getCentralizedArbitratorContract: () => CentralizedArbitrator;
-  getAthenaContract: () => Athena;
-  getProtocolFactoryContract: () => ProtocolFactory;
-  getPriceOracleV1Contract: () => PriceOracleV1;
-  getTokenVaultContract: () => TokenVault;
-  getPositionsManagerContract: () => PositionsManager;
-  getPolicyManagerContract: () => PolicyManager;
-  getClaimManagerContract: () => ClaimManager;
-  getStakingGeneralPoolContract: () => StakingGeneralPool;
-  getStakingPolicyContract: () => StakingPolicy;
-  //
 };
 
 export async function makeTestHelpers(
@@ -763,17 +781,5 @@ export async function makeTestHelpers(
     getPoolOverlap: (...args) => getPoolOverlap(PositionsManager, ...args),
     // Token
     ...tokenHelpers,
-    //
-    getATENContract: () => ATEN,
-    getCentralizedArbitratorContract: () => CentralizedArbitrator,
-    getAthenaContract: () => Athena,
-    getProtocolFactoryContract: () => ProtocolFactory,
-    getPriceOracleV1Contract: () => PriceOracleV1,
-    getTokenVaultContract: () => TokenVault,
-    getPositionsManagerContract: () => PositionsManager,
-    getPolicyManagerContract: () => PolicyManager,
-    getClaimManagerContract: () => ClaimManager,
-    getStakingGeneralPoolContract: () => StakingGeneralPool,
-    getStakingPolicyContract: () => StakingPolicy,
   };
 }
