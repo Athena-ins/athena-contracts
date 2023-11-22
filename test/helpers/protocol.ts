@@ -1,8 +1,4 @@
-import { BigNumberish, BigNumber, Signer, ContractTransaction } from "ethers";
 import { ethers } from "hardhat";
-
-import HardhatHelper from "./hardhat";
-
 // Functions
 import {
   entityProviderChainId,
@@ -10,6 +6,7 @@ import {
   transfer,
   approve,
   maxApprove,
+  impersonateAccount,
 } from "./hardhat";
 import {
   deployATEN,
@@ -25,6 +22,7 @@ import {
   deployStakingPolicy,
 } from "./deployers";
 // Types
+import { BigNumberish, BigNumber, Signer, ContractTransaction } from "ethers";
 import {
   ATEN,
   CentralizedArbitrator,
@@ -44,6 +42,7 @@ import {
   USDT__factory,
   ERC20__factory,
   ILendingPool__factory,
+  IUniswapV2Factory__factory,
 } from "../../typechain";
 
 const { parseEther, parseUnits } = ethers.utils;
@@ -51,6 +50,14 @@ const { parseEther, parseUnits } = ethers.utils;
 // =============== //
 // === Helpers === //
 // =============== //
+
+export function toUsdt(amount: number) {
+  return parseUnits(amount.toString(), 6);
+}
+
+export function toAten(amount: number) {
+  return parseUnits(amount.toString(), 18);
+}
 
 export function aaveLendingPoolProviderV2Address(chainId: number): string {
   if (chainId === 1) return "0xb53c1a33016b2dc2ff3653530bff1848a515c8c5";
@@ -64,18 +71,22 @@ export function aaveLendingPoolV2Address(chainId: number): string {
   throw Error("Unsupported chainId");
 }
 
+export function uniswapV2Factory(chainId: number): string {
+  if (chainId === 1) return "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f";
+  if (chainId === 5) return "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f";
+  throw Error("Unsupported chainId");
+}
+
 export function usdtTokenAddress(chainId: number): string {
   if (chainId === 1) return "0xdac17f958d2ee523a2206206994597c13d831ec7";
   if (chainId === 5) return "0x65E2fe35C30eC218b46266F89847c63c2eDa7Dc7";
   throw Error("Unsupported chainId");
 }
 
-export function toUsdt(amount: number) {
-  return parseUnits(amount.toString(), 6);
-}
-
-export function toAten(amount: number) {
-  return parseUnits(amount.toString(), 18);
+export function wethTokenAddress(chainId: number): string {
+  if (chainId === 1) return "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
+  if (chainId === 5) return "0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6";
+  throw Error("Unsupported chainId");
 }
 
 export function evidenceGuardianWallet() {
@@ -105,6 +116,33 @@ export async function balanceOfAaveUsdt(
   return ERC20__factory.connect(aTokenAddress, signer).balanceOf(
     accountAddress,
   );
+}
+
+// ===================== //
+// === Token helpers === //
+// ===================== //
+
+async function getTokens(
+  signer: Signer,
+  token: string,
+  to: string,
+  amount: BigNumberish,
+) {
+  const chainId = await entityProviderChainId(signer);
+
+  const uniswapFactory = uniswapV2Factory(chainId);
+  const lendingPoolContract = IUniswapV2Factory__factory.connect(
+    uniswapFactory,
+    signer,
+  );
+
+  const wethAddress = wethTokenAddress(chainId);
+  const pool = await lendingPoolContract.getPair(token, wethAddress);
+  const poolSigner = await impersonateAccount(pool);
+
+  return ERC20__factory.connect(token, poolSigner)
+    .transfer(to, amount)
+    .then((tx) => tx.wait());
 }
 
 // ======================= //
