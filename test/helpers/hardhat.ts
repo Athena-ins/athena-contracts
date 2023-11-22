@@ -7,6 +7,7 @@ import {
   Contract,
   BaseContract,
 } from "ethers";
+import { ERC20 } from "../../typechain";
 import weth_abi from "../abis/weth.json";
 import lendingPoolAbi from "../abis/lendingPool.json";
 import { contract, deploymentAddress } from "./TypedContracts";
@@ -159,6 +160,41 @@ export async function impersonateAccount(address: string) {
 // === Token helpers === //
 // ===================== //
 
+export async function transfer<T extends ERC20>(
+  contract: T,
+  signer: Signer,
+  ...args: Parameters<ERC20["transfer"]>
+) {
+  return contract
+    .connect(signer)
+    .transfer(...args)
+    .then((tx) => tx.wait());
+}
+
+export async function approve<T extends ERC20>(
+  contract: T,
+  signer: Signer,
+  ...args: Parameters<ERC20["approve"]>
+) {
+  return contract
+    .connect(signer)
+    .approve(...args)
+    .then((tx) => tx.wait());
+}
+
+export async function maxApprove<T extends ERC20>(
+  contract: T,
+  signer: Signer,
+  spender: string,
+) {
+  return contract
+    .connect(signer)
+    .approve(spender, BigNumber.from(2).pow(256))
+    .then((tx) => tx.wait());
+}
+
+////////////////////////////////////////////
+
 export async function USDT_spenderBalance() {
   const spenderAddress = await binanceSigner.getAddress();
   return await contract.USDT.connect(binanceSigner).balanceOf(spenderAddress);
@@ -220,22 +256,6 @@ export async function ATEN_approve(
   return (await contract.ATEN.connect(owner).approve(spender, amount)).wait();
 }
 
-export async function getATokenBalance(user: Signer) {
-  const AAVE_LENDING_POOL_CONTRACT = new Contract(
-    deploymentAddress.aave_lending_pool,
-    lendingPoolAbi,
-    user,
-  );
-  const athenaAddress = contract.ATHENA.address;
-  const usdtAddress = contract.USDT.address;
-  // we fetch lending pool data for USDT to get aToken address
-  const data = await AAVE_LENDING_POOL_CONTRACT.getReserveData(usdtAddress);
-  // and now check our aToken balance in contract
-  const aTokenContract = new Contract(data.aTokenAddress, weth_abi, user);
-  const bal = await aTokenContract.balanceOf(athenaAddress);
-  return bal;
-}
-
 export default {
   getCurrentTime,
   resetFork,
@@ -249,7 +269,6 @@ export default {
   AAVE_LENDING_POOL: deploymentAddress.aave_lending_pool,
   AAVE_REGISTRY: deploymentAddress.aave_registry,
   ARBITRATOR_ADDRESS: deploymentAddress.ARBITRATOR,
-  getATokenBalance,
   // USDT
   USDT: deploymentAddress.USDT,
   USDT_balanceOf,

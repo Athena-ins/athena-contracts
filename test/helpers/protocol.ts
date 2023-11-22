@@ -3,12 +3,14 @@ import { ethers } from "hardhat";
 
 import HardhatHelper from "./hardhat";
 
-// import { contract } from "./TypedContracts";
-// import { abi as abiProtocolPool } from "../../artifacts/contracts/ProtocolPool.sol/ProtocolPool.json";
-// import { ProtocolPool as typeProtocolPool } from "../../typechain/ProtocolPool";
-
 // Functions
-import { entityProviderChainId, setNextBlockTimestamp } from "./hardhat";
+import {
+  entityProviderChainId,
+  setNextBlockTimestamp,
+  transfer,
+  approve,
+  maxApprove,
+} from "./hardhat";
 import {
   deployATEN,
   deployCentralizedArbitrator,
@@ -36,8 +38,12 @@ import {
   StakingGeneralPool,
   StakingPolicy,
   ProtocolPool,
+  USDT,
   //
   ProtocolPool__factory,
+  USDT__factory,
+  ERC20__factory,
+  ILendingPool__factory,
 } from "../../typechain";
 
 const { parseEther, parseUnits } = ethers.utils;
@@ -58,7 +64,7 @@ export function aaveLendingPoolV2Address(chainId: number): string {
   throw Error("Unsupported chainId");
 }
 
-export function usdtAddress(chainId: number): string {
+export function usdtTokenAddress(chainId: number): string {
   if (chainId === 1) return "0xdac17f958d2ee523a2206206994597c13d831ec7";
   if (chainId === 5) return "0x65E2fe35C30eC218b46266F89847c63c2eDa7Dc7";
   throw Error("Unsupported chainId");
@@ -76,6 +82,29 @@ export function evidenceGuardianWallet() {
   const EVIDENCE_GUARDIAN_PK = process.env.EVIDENCE_GUARDIAN_PK;
   if (!EVIDENCE_GUARDIAN_PK) throw new Error("EVIDENCE_GUARDIAN_PK not set");
   return new ethers.Wallet(EVIDENCE_GUARDIAN_PK);
+}
+
+export async function balanceOfAaveUsdt(
+  signer: Signer,
+  account: string | Signer,
+): Promise<BigNumber> {
+  const chainId = await entityProviderChainId(signer);
+
+  const lendingPoolAddress = aaveLendingPoolV2Address(chainId);
+  const lendingPoolContract = ILendingPool__factory.connect(
+    lendingPoolAddress,
+    signer,
+  );
+
+  const usdtAddress = usdtTokenAddress(chainId);
+  const { aTokenAddress } =
+    await lendingPoolContract.getReserveData(usdtAddress);
+  const accountAddress =
+    typeof account === "string" ? account : await account.getAddress();
+
+  return ERC20__factory.connect(aTokenAddress, signer).balanceOf(
+    accountAddress,
+  );
 }
 
 // ======================= //
@@ -122,6 +151,7 @@ export const defaultProtocolConfig: ProtocolConfig = {
 
 export type ProtocolContracts = {
   ATEN: ATEN;
+  USDT: USDT;
   CentralizedArbitrator: CentralizedArbitrator;
   Athena: Athena;
   ProtocolFactory: ProtocolFactory;
@@ -217,8 +247,13 @@ export async function deployAllContractsAndInitializeProtocol(
   const rewardsAmount = parseEther("20000000"); // 20M ATEN
   await depositRewardsToVault(deployer, ATEN, TokenVault, rewardsAmount);
 
+  // Add USDT interface
+  const usdtAddress = usdtTokenAddress(chainId);
+  const USDT = USDT__factory.connect(usdtAddress, deployer);
+
   return {
     ATEN,
+    USDT,
     CentralizedArbitrator,
     Athena,
     ProtocolFactory,
@@ -279,7 +314,7 @@ export async function addNewProtocolPool(
   withdrawDelay: number = 14 * 24 * 60 * 60,
 ) {
   const chainId = await entityProviderChainId(contract);
-  const asset = tokenAddress || usdtAddress(chainId);
+  const asset = tokenAddress || usdtTokenAddress(chainId);
 
   return contract.addNewProtocol(
     asset,
@@ -593,6 +628,14 @@ export type TestHelper = {
   getExpiredCovers: OmitContract<typeof getExpiredCovers>;
   getAccountCoverIdByIndex: OmitContract<typeof getAccountCoverIdByIndex>;
   getPoolOverlap: OmitContract<typeof getPoolOverlap>;
+  // Token
+  transferAten: OmitContract<typeof transfer>;
+  transferUsdt: OmitContract<typeof transfer>;
+  approveAten: OmitContract<typeof approve>;
+  approveUsdt: OmitContract<typeof approve>;
+  maxApproveAten: OmitContract<typeof maxApprove>;
+  maxApproveUsdt: OmitContract<typeof maxApprove>;
+  balanceOfAaveUsdt: OmitContract<typeof balanceOfAaveUsdt>;
   //
   getATENContract: () => ATEN;
   getCentralizedArbitratorContract: () => CentralizedArbitrator;
@@ -605,11 +648,16 @@ export type TestHelper = {
   getClaimManagerContract: () => ClaimManager;
   getStakingGeneralPoolContract: () => StakingGeneralPool;
   getStakingPolicyContract: () => StakingPolicy;
+  //
 };
 
-export function makeTestHelpers(contracts: ProtocolContracts): TestHelper {
+export async function makeTestHelpers(
+  deployer: Signer,
+  contracts: ProtocolContracts,
+): Promise<TestHelper> {
   const {
     ATEN,
+    USDT,
     CentralizedArbitrator,
     Athena,
     ProtocolFactory,
@@ -647,6 +695,14 @@ export function makeTestHelpers(contracts: ProtocolContracts): TestHelper {
     getAccountCoverIdByIndex: (...args) =>
       getAccountCoverIdByIndex(PolicyManager, ...args),
     getPoolOverlap: (...args) => getPoolOverlap(PositionsManager, ...args),
+    // Token
+    transferAten: (...args) => transfer(ATEN, ...args),
+    transferUsdt: (...args) => transfer(USDT, ...args),
+    approveAten: (...args) => approve(ATEN, ...args),
+    approveUsdt: (...args) => approve(USDT, ...args),
+    maxApproveAten: (...args) => maxApprove(ATEN, ...args),
+    maxApproveUsdt: (...args) => maxApprove(USDT, ...args),
+    balanceOfAaveUsdt: (...args) => balanceOfAaveUsdt(deployer, ...args),
     //
     getATENContract: () => ATEN,
     getCentralizedArbitratorContract: () => CentralizedArbitrator,

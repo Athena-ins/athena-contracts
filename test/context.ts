@@ -58,7 +58,7 @@ export function baseContext(description: string, hooks: () => void): void {
 
       // Make instance of helpers connected to contracts,
       // this is mostly to transition out of previous test framework
-      this.helpers = makeTestHelpers(this.contracts);
+      this.helpers = await makeTestHelpers(deployer, this.contracts);
 
       console.log(
         `\n=> Test context setup:\n${JSON.stringify(logData, null, 2)}\n`,
