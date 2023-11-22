@@ -3,7 +3,7 @@ import { ethers as hre_ethers } from "hardhat";
 import { ethers } from "ethers";
 import chaiAsPromised from "chai-as-promised";
 
-import HardhatHelper from "../helpers/hardhat";
+import { getCurrentTime, setNextBlockTimestamp } from "../helpers/hardhat";
 import ProtocolHelper from "../helpers/protocol";
 
 chai.use(chaiAsPromised);
@@ -21,7 +21,7 @@ let policyTaker3: ethers.Signer;
 export function testStakingGeneralPool() {
   describe("Staking General Pool", function () {
     before(async function () {
-      const allSigners = await HardhatHelper.allSigners();
+      const allSigners = await ethers.getSigners();
       owner = allSigners[0];
       liquidityProvider1 = allSigners[1];
       liquidityProvider2 = allSigners[2];
@@ -160,14 +160,12 @@ export function testStakingGeneralPool() {
       );
 
       expect(stakingPosAfter.amount).to.equal(stakingAmount);
-      expect(stakingPosAfter.since).to.equal(
-        await HardhatHelper.getCurrentTime(),
-      );
+      expect(stakingPosAfter.since).to.equal(await getCurrentTime());
       expect(stakingPosAfter.accruedRewards).to.equal("0");
       expect(stakingPosAfter.rate).to.equal("2000");
 
       const nbRewardDays = 30;
-      await HardhatHelper.setNextBlockTimestamp(30 * 24 * 60 * 60);
+      await setNextBlockTimestamp(30 * 24 * 60 * 60);
 
       const rewards = await STAKING_GP_CONTRACT.rewardsOf(
         liquidityProvider1Address,

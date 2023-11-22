@@ -5,7 +5,7 @@ import { ethers as ethersOriginal, utils } from "ethers";
 import weth_abi from "../../abis/weth.json";
 import atoken_abi from "../../abis/AToken.json";
 import chaiAsPromised from "chai-as-promised";
-import HardhatHelper from "../helpers/hardhat";
+import { getCurrentTime, setNextBlockTimestamp } from "../helpers/hardhat";
 import protocolPoolAbi from "../../artifacts/contracts/ProtocolPool.sol/ProtocolPool.json";
 import ProtocolHelper from "../helpers/protocol";
 
@@ -581,7 +581,7 @@ export function testProtocolPool() {
           userInfo,
         );
         // We already went 1 year into future, so user 3 should get half rewards 1 year from now
-        await HardhatHelper.setNextBlockTimestamp(365 * 24 * 60 * 60);
+        await setNextBlockTimestamp(365 * 24 * 60 * 60);
 
         const userInfoAfter = await protocolContract.getInfo(coverId);
 
@@ -616,7 +616,7 @@ export function testProtocolPool() {
         await ATHENA_CONTRACT.connect(user1).committingWithdrawAll();
         await ATHENA_CONTRACT.connect(user2).committingWithdrawAll();
 
-        await HardhatHelper.setNextBlockTimestamp(20 * 24 * 60 * 60);
+        await setNextBlockTimestamp(20 * 24 * 60 * 60);
 
         const balBefore3 = await USDT_TOKEN_CONTRACT.connect(user1).balanceOf(
           user3.getAddress(),

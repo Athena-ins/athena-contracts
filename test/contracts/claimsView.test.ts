@@ -2,7 +2,7 @@ import chai, { expect } from "chai";
 import { ethers } from "ethers";
 import chaiAsPromised from "chai-as-promised";
 
-import HardhatHelper from "../helpers/hardhat";
+import { getCurrentTime, setNextBlockTimestamp } from "../helpers/hardhat";
 import ProtocolHelper from "../helpers/protocol";
 
 chai.use(chaiAsPromised);
@@ -19,7 +19,7 @@ const numberProtocol = 100;
 export function testClaimsView() {
   describe("Claims view", function () {
     before(async function () {
-      const allSigners = await HardhatHelper.allSigners();
+      const allSigners = await ethers.getSigners();
       owner = allSigners[0];
       liquidityProvider1 = allSigners[1];
       liquidityProvider2 = allSigners[2];

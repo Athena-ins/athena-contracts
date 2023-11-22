@@ -3,7 +3,7 @@ import { ethers as hre_ethers } from "hardhat";
 import { ethers } from "ethers";
 import chaiAsPromised from "chai-as-promised";
 
-import HardhatHelper from "../helpers/hardhat";
+import { getCurrentTime, setNextBlockTimestamp } from "../helpers/hardhat";
 import ProtocolHelper from "../helpers/protocol";
 
 chai.use(chaiAsPromised);
@@ -17,7 +17,7 @@ let policyTaker1: ethers.Signer;
 export function testPoliciesTaker() {
   describe("Buy policies", function () {
     before(async function () {
-      const allSigners = await HardhatHelper.allSigners();
+      const allSigners = await ethers.getSigners();
       owner = allSigners[0];
       liquidityProvider1 = allSigners[1];
       policyTaker1 = allSigners[100];
@@ -65,7 +65,7 @@ export function testPoliciesTaker() {
 
         expect(USDT_Approved).to.haveOwnProperty("transactionHash");
 
-        await HardhatHelper.setNextBlockTimestamp(20 * 24 * 60 * 60);
+        await setNextBlockTimestamp(20 * 24 * 60 * 60);
 
         const tx = await ProtocolHelper.getAthenaContract()
           .connect(policyTaker1)
@@ -215,7 +215,7 @@ export function testPoliciesTaker() {
       });
 
       it("Should reverted for buying policies in protocol 0 cause of duration", async function () {
-        const allSigners = await HardhatHelper.allSigners();
+        const allSigners = await ethers.getSigners();
         const policyTaker2 = allSigners[101];
 
         await this.helpers.getUsdt(
@@ -230,7 +230,7 @@ export function testPoliciesTaker() {
 
         expect(USDT_Approved).to.haveOwnProperty("transactionHash");
 
-        await HardhatHelper.setNextBlockTimestamp(20 * 24 * 60 * 60);
+        await setNextBlockTimestamp(20 * 24 * 60 * 60);
 
         await expect(
           ProtocolHelper.getAthenaContract()

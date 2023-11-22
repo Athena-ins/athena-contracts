@@ -3,7 +3,7 @@ import { ethers as hre_ethers } from "hardhat";
 import { ethers } from "ethers";
 import chaiAsPromised from "chai-as-promised";
 
-import HardhatHelper from "../helpers/hardhat";
+import { getCurrentTime, setNextBlockTimestamp } from "../helpers/hardhat";
 import ProtocolHelper from "../helpers/protocol";
 
 chai.use(chaiAsPromised);
@@ -22,7 +22,7 @@ let policyTaker4: ethers.Signer;
 export function testExpiredPoliciesWithCanceling() {
   describe("expired policies", function () {
     before(async function () {
-      const allSigners = await HardhatHelper.allSigners();
+      const allSigners = await ethers.getSigners();
       owner = allSigners[0];
       liquidityProvider1 = allSigners[1];
       liquidityProvider2 = allSigners[2];
@@ -158,7 +158,7 @@ export function testExpiredPoliciesWithCanceling() {
           2,
         );
 
-        await HardhatHelper.setNextBlockTimestamp(10 * 24 * 60 * 60);
+        await setNextBlockTimestamp(10 * 24 * 60 * 60);
 
         await ProtocolHelper.getAthenaContract()
           .connect(policyTaker1)
@@ -178,7 +178,7 @@ export function testExpiredPoliciesWithCanceling() {
           1,
         );
 
-        await HardhatHelper.setNextBlockTimestamp(10000 * 24 * 60 * 60);
+        await setNextBlockTimestamp(10000 * 24 * 60 * 60);
 
         await ProtocolHelper.getAthenaContract().actualizingProtocolAndRemoveExpiredPolicies(
           protocolContract.address,
@@ -198,7 +198,7 @@ export function testExpiredPoliciesWithCanceling() {
           0,
         );
 
-        await HardhatHelper.setNextBlockTimestamp(1 * 24 * 60 * 60);
+        await setNextBlockTimestamp(1 * 24 * 60 * 60);
 
         await ProtocolHelper.getAthenaContract().actualizingProtocolAndRemoveExpiredPolicies(
           protocolContract.address,
@@ -218,7 +218,7 @@ export function testExpiredPoliciesWithCanceling() {
           1,
         );
 
-        await HardhatHelper.setNextBlockTimestamp(1 * 24 * 60 * 60);
+        await setNextBlockTimestamp(1 * 24 * 60 * 60);
 
         await ProtocolHelper.getAthenaContract().actualizingProtocolAndRemoveExpiredPolicies(
           protocolContract.address,
@@ -238,7 +238,7 @@ export function testExpiredPoliciesWithCanceling() {
           2,
         );
 
-        await HardhatHelper.setNextBlockTimestamp(1 * 24 * 60 * 60);
+        await setNextBlockTimestamp(1 * 24 * 60 * 60);
 
         await ProtocolHelper.getAthenaContract().actualizingProtocolAndRemoveExpiredPolicies(
           protocolContract.address,

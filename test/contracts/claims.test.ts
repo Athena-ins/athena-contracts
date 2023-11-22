@@ -2,7 +2,7 @@ import chai, { expect } from "chai";
 import { ethers } from "ethers";
 import chaiAsPromised from "chai-as-promised";
 
-import HardhatHelper from "../helpers/hardhat";
+import { getCurrentTime, setNextBlockTimestamp } from "../helpers/hardhat";
 import ProtocolHelper from "../helpers/protocol";
 
 chai.use(chaiAsPromised);
@@ -23,7 +23,7 @@ let protocolPool3: ethers.Contract;
 export function testClaims() {
   describe("Claims", function () {
     before(async function () {
-      const allSigners = await HardhatHelper.allSigners();
+      const allSigners = await ethers.getSigners();
       owner = allSigners[0];
       liquidityProvider1 = allSigners[1];
       liquidityProvider2 = allSigners[2];
@@ -152,9 +152,7 @@ export function testClaims() {
         expect(slot0.secondsPerTick).to.be.equal(6 * 60 * 60);
         expect(slot0.totalInsuredCapital).to.be.equal("328500");
         expect(slot0.remainingPolicies).to.be.equal("2");
-        expect(slot0.lastUpdateTimestamp).to.be.equal(
-          await HardhatHelper.getCurrentTime(),
-        );
+        expect(slot0.lastUpdateTimestamp).to.be.equal(await getCurrentTime());
 
         const premiumRate = await protocolPool0.getCurrentPremiumRate();
         expect(premiumRate).to.be.equal("4000000000000000000000000000");
@@ -220,9 +218,7 @@ export function testClaims() {
         expect(slot0.secondsPerTick).to.be.equal(48 * 6 * 60);
         expect(slot0.totalInsuredCapital).to.be.equal("328500");
         expect(slot0.remainingPolicies).to.be.equal("2");
-        expect(slot0.lastUpdateTimestamp).to.be.equal(
-          await HardhatHelper.getCurrentTime(),
-        );
+        expect(slot0.lastUpdateTimestamp).to.be.equal(await getCurrentTime());
 
         const premiumRate = await protocolPool0.getCurrentPremiumRate();
         expect(premiumRate).to.be.equal("5000000000000000000000000000");
@@ -235,7 +231,7 @@ export function testClaims() {
       it("Should get vSlot0 of Protocol 0 after 1 day claimed in Protocol 2", async function () {
         const days = 1;
         const result = await protocolPool0.actualizingUntilGivenDate(
-          (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60,
+          (await getCurrentTime()) + days * 24 * 60 * 60,
         );
 
         expect(result.__slot0.tick).to.be.equal(81);
@@ -243,12 +239,12 @@ export function testClaims() {
         expect(result.__slot0.totalInsuredCapital).to.be.equal(328500);
         expect(result.__slot0.remainingPolicies).to.be.equal(2);
         expect(result.__slot0.lastUpdateTimestamp).to.be.equal(
-          (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60,
+          (await getCurrentTime()) + days * 24 * 60 * 60,
         );
       });
 
       it("Should actualizing after 1 day of adding claim, checking intersectingAmounts and slot0 in protocol 0", async function () {
-        await HardhatHelper.setNextBlockTimestamp(1 * 24 * 60 * 60);
+        await setNextBlockTimestamp(1 * 24 * 60 * 60);
         await ProtocolHelper.getAthenaContract()
           .connect(owner)
           .actualizingProtocolAndRemoveExpiredPolicies(protocolPool0.address);
@@ -267,9 +263,7 @@ export function testClaims() {
         expect(slot0.secondsPerTick).to.be.equal(48 * 6 * 60);
         expect(slot0.totalInsuredCapital).to.be.equal("328500");
         expect(slot0.remainingPolicies).to.be.equal(2);
-        expect(slot0.lastUpdateTimestamp).to.be.equal(
-          await HardhatHelper.getCurrentTime(),
-        );
+        expect(slot0.lastUpdateTimestamp).to.be.equal(await getCurrentTime());
 
         const premiumRate = await protocolPool0.getCurrentPremiumRate();
         expect(premiumRate).to.be.equal("5000000000000000000000000000");

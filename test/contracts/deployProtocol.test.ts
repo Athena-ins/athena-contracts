@@ -41,7 +41,7 @@ export function testDeployProtocol() {
 
     describe("Set new active protocol 0", function () {
       it("Should set new active protocol", async function () {
-        await HardhatHelper.setNextBlockTimestamp(0 * 24 * 60 * 60);
+        await setNextBlockTimestamp(0 * 24 * 60 * 60);
         const tx = await ProtocolHelper.addNewProtocolPool("Test protocol 0");
 
         expect(tx).to.haveOwnProperty("hash");
@@ -61,9 +61,7 @@ export function testDeployProtocol() {
         expect(slot0.secondsPerTick).to.be.equal("86400");
         expect(slot0.totalInsuredCapital).to.be.equal("0");
         expect(slot0.remainingPolicies).to.be.equal("0");
-        expect(slot0.lastUpdateTimestamp).to.be.equal(
-          await HardhatHelper.getCurrentTime(),
-        );
+        expect(slot0.lastUpdateTimestamp).to.be.equal(await getCurrentTime());
 
         const premiumRate = await protocolContract.getCurrentPremiumRate();
         expect(premiumRate).to.be.equal("1000000000000000000000000000");
@@ -92,7 +90,7 @@ export function testDeployProtocol() {
 
     describe("Set new active protocol 1", function () {
       it("Should set new active protocol", async function () {
-        await HardhatHelper.setNextBlockTimestamp(1 * 24 * 60 * 60);
+        await setNextBlockTimestamp(1 * 24 * 60 * 60);
         const tx = await ProtocolHelper.addNewProtocolPool("Test protocol 1");
 
         expect(tx).to.haveOwnProperty("hash");
@@ -112,9 +110,7 @@ export function testDeployProtocol() {
         expect(slot0.secondsPerTick).to.be.equal("86400");
         expect(slot0.totalInsuredCapital).to.be.equal("0");
         expect(slot0.remainingPolicies).to.be.equal("0");
-        expect(slot0.lastUpdateTimestamp).to.be.equal(
-          await HardhatHelper.getCurrentTime(),
-        );
+        expect(slot0.lastUpdateTimestamp).to.be.equal(await getCurrentTime());
 
         const premiumRate = await protocolContract.getCurrentPremiumRate();
         expect(premiumRate).to.be.equal("1000000000000000000000000000");
@@ -143,7 +139,7 @@ export function testDeployProtocol() {
 
     describe("Set new active protocol 2", function () {
       it("Should set new active protocol", async function () {
-        await HardhatHelper.setNextBlockTimestamp(1 * 24 * 60 * 60);
+        await setNextBlockTimestamp(1 * 24 * 60 * 60);
         const tx = await ProtocolHelper.addNewProtocolPool("Test protocol 2");
 
         expect(tx).to.haveOwnProperty("hash");
@@ -163,9 +159,7 @@ export function testDeployProtocol() {
         expect(slot0.secondsPerTick).to.be.equal("86400");
         expect(slot0.totalInsuredCapital).to.be.equal("0");
         expect(slot0.remainingPolicies).to.be.equal("0");
-        expect(slot0.lastUpdateTimestamp).to.be.equal(
-          await HardhatHelper.getCurrentTime(),
-        );
+        expect(slot0.lastUpdateTimestamp).to.be.equal(await getCurrentTime());
 
         const premiumRate = await protocolContract.getCurrentPremiumRate();
         expect(premiumRate).to.be.equal("1000000000000000000000000000");

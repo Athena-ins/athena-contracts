@@ -2,7 +2,7 @@ import chai, { expect } from "chai";
 import { ethers } from "ethers";
 import chaiAsPromised from "chai-as-promised";
 
-import HardhatHelper from "../helpers/hardhat";
+import { getCurrentTime, setNextBlockTimestamp } from "../helpers/hardhat";
 import ProtocolHelper from "../helpers/protocol";
 
 chai.use(chaiAsPromised);
@@ -17,7 +17,7 @@ let policyTaker3: ethers.Signer;
 export function testOngoingCoveragePolicies() {
   describe("Ongoing coverage policies", function () {
     before(async function () {
-      const allSigners = await HardhatHelper.allSigners();
+      const allSigners = await ethers.getSigners();
       owner = allSigners[0];
       liquidityProvider1 = allSigners[1];
       liquidityProvider2 = allSigners[2];
@@ -132,7 +132,7 @@ export function testOngoingCoveragePolicies() {
         ProtocolHelper.getAthenaContract().address,
       );
 
-      await HardhatHelper.setNextBlockTimestamp(400 * 24 * 60 * 60);
+      await setNextBlockTimestamp(400 * 24 * 60 * 60);
 
       const capital2 = "219000";
       const premium2 = "8760";

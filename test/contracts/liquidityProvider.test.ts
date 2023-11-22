@@ -3,7 +3,7 @@ import { ethers as hre_ethers } from "hardhat";
 import { ethers } from "ethers";
 import chaiAsPromised from "chai-as-promised";
 
-import HardhatHelper from "../helpers/hardhat";
+import { getCurrentTime, setNextBlockTimestamp } from "../helpers/hardhat";
 import ProtocolHelper from "../helpers/protocol";
 
 chai.use(chaiAsPromised);
@@ -22,7 +22,7 @@ let provider2tokenId: ethers.BigNumberish;
 export function testLiquidityProvider() {
   describe("Liquidity provider deposit", function () {
     before(async function () {
-      const allSigners = await HardhatHelper.allSigners();
+      const allSigners = await ethers.getSigners();
       owner = allSigners[0];
       liquidityProvider1 = allSigners[1];
       liquidityProvider2 = allSigners[2];
@@ -99,7 +99,7 @@ export function testLiquidityProvider() {
 
           expect(ATEN_Approved).to.haveOwnProperty("transactionHash");
 
-          await HardhatHelper.setNextBlockTimestamp(5 * 24 * 60 * 60);
+          await setNextBlockTimestamp(5 * 24 * 60 * 60);
 
           const tx = await ProtocolHelper.getAthenaContract()
             .connect(liquidityProvider1)
@@ -125,9 +125,7 @@ export function testLiquidityProvider() {
           expect(slot0.secondsPerTick).to.be.equal("86400");
           expect(slot0.totalInsuredCapital).to.be.equal("0");
           expect(slot0.remainingPolicies).to.be.equal("0");
-          expect(slot0.lastUpdateTimestamp).to.be.equal(
-            await HardhatHelper.getCurrentTime(),
-          );
+          expect(slot0.lastUpdateTimestamp).to.be.equal(await getCurrentTime());
 
           const premiumRate = await protocolContract.getCurrentPremiumRate();
           expect(premiumRate).to.be.equal("1000000000000000000000000000");
@@ -249,7 +247,7 @@ export function testLiquidityProvider() {
 
           expect(ATEN_Approved).to.haveOwnProperty("transactionHash");
 
-          await HardhatHelper.setNextBlockTimestamp(10 * 24 * 60 * 60);
+          await setNextBlockTimestamp(10 * 24 * 60 * 60);
 
           const tx = await ProtocolHelper.getAthenaContract()
             .connect(liquidityProvider2)
@@ -275,9 +273,7 @@ export function testLiquidityProvider() {
           expect(slot0.secondsPerTick).to.be.equal("86400");
           expect(slot0.totalInsuredCapital).to.be.equal("0");
           expect(slot0.remainingPolicies).to.be.equal("0");
-          expect(slot0.lastUpdateTimestamp).to.be.equal(
-            await HardhatHelper.getCurrentTime(),
-          );
+          expect(slot0.lastUpdateTimestamp).to.be.equal(await getCurrentTime());
 
           const premiumRate = await protocolContract.getCurrentPremiumRate();
           expect(premiumRate).to.be.equal("1000000000000000000000000000");

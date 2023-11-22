@@ -2,7 +2,7 @@ import chai, { expect } from "chai";
 import { ethers } from "ethers";
 import chaiAsPromised from "chai-as-promised";
 
-import HardhatHelper from "../helpers/hardhat";
+import { getCurrentTime, setNextBlockTimestamp } from "../helpers/hardhat";
 import ProtocolHelper from "../helpers/protocol";
 
 chai.use(chaiAsPromised);
@@ -20,7 +20,7 @@ let protocolPool0: ethers.Contract;
 export function testRewardsWithClaims() {
   describe("Liquidity provider rewards", function () {
     before(async function () {
-      const allSigners = await HardhatHelper.allSigners();
+      const allSigners = await ethers.getSigners();
       owner = allSigners[0];
       liquidityProvider1 = allSigners[1];
       liquidityProvider2 = allSigners[2];
@@ -136,7 +136,7 @@ export function testRewardsWithClaims() {
           365000,
           [0, 1],
           0,
-          (await HardhatHelper.getCurrentTime()) + 1 * 24 * 60 * 60,
+          (await getCurrentTime()) + 1 * 24 * 60 * 60,
         );
 
         expect(result.__newUserCapital).to.be.equal(365000);
@@ -157,7 +157,7 @@ export function testRewardsWithClaims() {
           365000,
           [0, 2],
           0,
-          (await HardhatHelper.getCurrentTime()) + 1 * 24 * 60 * 60,
+          (await getCurrentTime()) + 1 * 24 * 60 * 60,
         );
 
         expect(result.__newUserCapital).to.be.equal(365000);
@@ -191,7 +191,7 @@ export function testRewardsWithClaims() {
           365000,
           [0, 1],
           0,
-          (await HardhatHelper.getCurrentTime()) + 1 * 24 * 60 * 60,
+          (await getCurrentTime()) + 1 * 24 * 60 * 60,
         );
 
         expect(result.__newUserCapital).to.be.equal(365000);
@@ -204,7 +204,7 @@ export function testRewardsWithClaims() {
           365000,
           [0, 2],
           0,
-          (await HardhatHelper.getCurrentTime()) + 1 * 24 * 60 * 60,
+          (await getCurrentTime()) + 1 * 24 * 60 * 60,
         );
 
         expect(result.__newUserCapital).to.be.equal(182500);
@@ -217,7 +217,7 @@ export function testRewardsWithClaims() {
           365000,
           [0, 1],
           0,
-          (await HardhatHelper.getCurrentTime()) + 2 * 24 * 60 * 60,
+          (await getCurrentTime()) + 2 * 24 * 60 * 60,
         );
 
         expect(result.__newUserCapital).to.be.equal(365000);
@@ -230,7 +230,7 @@ export function testRewardsWithClaims() {
           365000,
           [0, 2],
           0,
-          (await HardhatHelper.getCurrentTime()) + 2 * 24 * 60 * 60,
+          (await getCurrentTime()) + 2 * 24 * 60 * 60,
         );
 
         expect(result.__newUserCapital).to.be.equal(182500);
@@ -243,7 +243,7 @@ export function testRewardsWithClaims() {
           365000,
           [0, 1],
           0,
-          (await HardhatHelper.getCurrentTime()) + 10 * 24 * 60 * 60,
+          (await getCurrentTime()) + 10 * 24 * 60 * 60,
         );
 
         expect(result.__newUserCapital).to.be.equal(365000);
@@ -256,7 +256,7 @@ export function testRewardsWithClaims() {
           365000,
           [0, 2],
           0,
-          (await HardhatHelper.getCurrentTime()) + 10 * 24 * 60 * 60,
+          (await getCurrentTime()) + 10 * 24 * 60 * 60,
         );
 
         expect(result.__newUserCapital).to.be.equal(182500);

@@ -2,7 +2,7 @@ import chai, { expect } from "chai";
 import { ethers } from "ethers";
 import chaiAsPromised from "chai-as-promised";
 
-import HardhatHelper from "../helpers/hardhat";
+import { getCurrentTime, setNextBlockTimestamp } from "../helpers/hardhat";
 import ProtocolHelper from "../helpers/protocol";
 
 chai.use(chaiAsPromised);
@@ -20,7 +20,7 @@ export function testWithdrawAllWithoutClaim() {
   describe("Liquidity provider withdraw", function () {
     describe("LP1, LP2 then PT1, PT2 in pool 0", async function () {
       before(async function () {
-        const allSigners = await HardhatHelper.allSigners();
+        const allSigners = await ethers.getSigners();
         owner = allSigners[0];
         liquidityProvider1 = allSigners[1];
         liquidityProvider2 = allSigners[2];
@@ -101,13 +101,13 @@ export function testWithdrawAllWithoutClaim() {
       });
 
       it(`Should commit withdraw all for LP1 after 1 days of PT2 bought his policy in protocol2 and withdraw all liquidity after 14 days of committing`, async function () {
-        await HardhatHelper.setNextBlockTimestamp(1 * 24 * 60 * 60);
+        await setNextBlockTimestamp(1 * 24 * 60 * 60);
 
         const commit_tx = await ProtocolHelper.getAthenaContract()
           .connect(liquidityProvider1)
           .committingWithdrawAll(provider1tokenId);
 
-        await HardhatHelper.setNextBlockTimestamp(14 * 24 * 60 * 60);
+        await setNextBlockTimestamp(14 * 24 * 60 * 60);
 
         const withdraw_tx = await ProtocolHelper.getAthenaContract()
           .connect(liquidityProvider1)
@@ -151,7 +151,7 @@ export function testWithdrawAllWithoutClaim() {
         expect(p0_slot0.totalInsuredCapital).to.be.equal("109500");
         expect(p0_slot0.remainingPolicies).to.be.equal("1");
         expect(p0_slot0.lastUpdateTimestamp).to.be.equal(
-          await HardhatHelper.getCurrentTime(),
+          await getCurrentTime(),
         );
 
         //protocol2
@@ -190,7 +190,7 @@ export function testWithdrawAllWithoutClaim() {
         expect(p2_slot0.totalInsuredCapital).to.be.equal("219000");
         expect(p2_slot0.remainingPolicies).to.be.equal("1");
         expect(p2_slot0.lastUpdateTimestamp).to.be.equal(
-          await HardhatHelper.getCurrentTime(),
+          await getCurrentTime(),
         );
       });
 

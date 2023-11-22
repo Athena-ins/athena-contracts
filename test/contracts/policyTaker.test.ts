@@ -3,7 +3,7 @@ import { ethers as hre_ethers } from "hardhat";
 import { ethers } from "ethers";
 import chaiAsPromised from "chai-as-promised";
 
-import HardhatHelper from "../helpers/hardhat";
+import { getCurrentTime, setNextBlockTimestamp } from "../helpers/hardhat";
 import ProtocolHelper from "../helpers/protocol";
 
 chai.use(chaiAsPromised);
@@ -19,7 +19,7 @@ let policyTaker2: ethers.Signer;
 export function testPolicyTaker() {
   describe("Buy policy", function () {
     before(async function () {
-      const allSigners = await HardhatHelper.allSigners();
+      const allSigners = await ethers.getSigners();
       owner = allSigners[0];
       liquidityProvider1 = allSigners[1];
       liquidityProvider2 = allSigners[2];
@@ -82,7 +82,7 @@ export function testPolicyTaker() {
 
         expect(USDT_Approved).to.haveOwnProperty("transactionHash");
 
-        await HardhatHelper.setNextBlockTimestamp(20 * 24 * 60 * 60);
+        await setNextBlockTimestamp(20 * 24 * 60 * 60);
 
         const tx = await ProtocolHelper.getAthenaContract()
           .connect(policyTaker1)
@@ -139,9 +139,7 @@ export function testPolicyTaker() {
         expect(slot0.secondsPerTick).to.be.equal("43200");
         expect(slot0.totalInsuredCapital).to.be.equal("109500");
         expect(slot0.remainingPolicies).to.be.equal("1");
-        expect(slot0.lastUpdateTimestamp).to.be.equal(
-          await HardhatHelper.getCurrentTime(),
-        );
+        expect(slot0.lastUpdateTimestamp).to.be.equal(await getCurrentTime());
 
         const premiumRate = await protocolContract.getCurrentPremiumRate();
         expect(premiumRate).to.be.equal("2000000000000000000000000000");
@@ -214,7 +212,7 @@ export function testPolicyTaker() {
 
         expect(USDT_Approved).to.haveOwnProperty("transactionHash");
 
-        await HardhatHelper.setNextBlockTimestamp(10 * 24 * 60 * 60);
+        await setNextBlockTimestamp(10 * 24 * 60 * 60);
 
         const tx = await ProtocolHelper.getAthenaContract()
           .connect(policyTaker2)
@@ -269,9 +267,7 @@ export function testPolicyTaker() {
         expect(slot0.secondsPerTick).to.be.equal("21600");
         expect(slot0.totalInsuredCapital).to.be.equal("328500");
         expect(slot0.remainingPolicies).to.be.equal("2");
-        expect(slot0.lastUpdateTimestamp).to.be.equal(
-          await HardhatHelper.getCurrentTime(),
-        );
+        expect(slot0.lastUpdateTimestamp).to.be.equal(await getCurrentTime());
 
         const premiumRate = await protocolContract.getCurrentPremiumRate();
         expect(premiumRate).to.be.equal("4000000000000000000000000000");
@@ -355,14 +351,14 @@ export function testPolicyTaker() {
           0,
         );
 
-        await HardhatHelper.setNextBlockTimestamp(177 * 24 * 60 * 60);
+        await setNextBlockTimestamp(177 * 24 * 60 * 60);
 
         const resBeforeExpire = await protocolContract.fullCoverData(coverId);
         expect(resBeforeExpire.premiumLeft).to.be.equal(6);
         expect(resBeforeExpire.dailyCost).to.be.equal(12);
         expect(resBeforeExpire.remainingDuration).to.be.equal(43200);
 
-        await HardhatHelper.setNextBlockTimestamp(1 * 24 * 60 * 60);
+        await setNextBlockTimestamp(1 * 24 * 60 * 60);
 
         const response = await protocolContract.fullCoverData(coverId);
         expect(response.premiumLeft).to.be.equal(0);

@@ -2,7 +2,7 @@ import chai, { expect } from "chai";
 import { ethers } from "ethers";
 import chaiAsPromised from "chai-as-promised";
 
-import HardhatHelper from "../helpers/hardhat";
+import { getCurrentTime, setNextBlockTimestamp } from "../helpers/hardhat";
 import ProtocolHelper from "../helpers/protocol";
 
 chai.use(chaiAsPromised);
@@ -21,7 +21,7 @@ export function testTakeInterestWithoutClaim() {
   describe("Liquidity provider takeInterest without claims", function () {
     describe("LP1, LP2 then PT1, PT2 in pool 0", async function () {
       before(async function () {
-        const allSigners = await HardhatHelper.allSigners();
+        const allSigners = await ethers.getSigners();
         owner = allSigners[0];
         liquidityProvider1 = allSigners[1];
         liquidityProvider2 = allSigners[2];
@@ -398,7 +398,7 @@ export function testTakeInterestWithoutClaim() {
 
     describe("LP1 then PT1, PT2 then LP2 in pool 0", async function () {
       before(async function () {
-        const allSigners = await HardhatHelper.allSigners();
+        const allSigners = await ethers.getSigners();
         owner = allSigners[0];
         liquidityProvider1 = allSigners[1];
         liquidityProvider2 = allSigners[2];

@@ -3,7 +3,7 @@ import { ethers as hre_ethers } from "hardhat";
 import { BigNumber, ethers } from "ethers";
 import chaiAsPromised from "chai-as-promised";
 
-import HardhatHelper from "../helpers/hardhat";
+import { getCurrentTime, setNextBlockTimestamp } from "../helpers/hardhat";
 import type { Athena, StakingPolicy, ATEN } from "../../typechain";
 import ProtocolHelper from "../helpers/protocol";
 
@@ -25,7 +25,7 @@ let STAKING_POLICY: StakingPolicy;
 export function testStakingPolicy() {
   describe("Cover Refund Staking", function () {
     before(async function () {
-      const allSigners = await HardhatHelper.allSigners();
+      const allSigners = await ethers.getSigners();
       owner = allSigners[0];
       liquidityProvider1 = allSigners[1];
       liquidityProvider2 = allSigners[2];
@@ -34,7 +34,7 @@ export function testStakingPolicy() {
       policyTaker3 = allSigners[102];
 
       await ProtocolHelper.deployAllContractsAndInitializeProtocol(owner);
-      await ProtocolHelper.addNewProtocolPool("Test protocol 0");
+      await this.helpers.addNewProtocolPool("Test protocol 0");
       await ProtocolHelper.addNewProtocolPool("Test protocol 1");
       await ProtocolHelper.addNewProtocolPool("Test protocol 2");
       await ProtocolHelper.addNewProtocolPool("Test protocol 3");
@@ -161,13 +161,13 @@ export function testStakingPolicy() {
     });
 
     it("Check rewards after 120 & 240 days", async function () {
-      await HardhatHelper.setNextBlockTimestamp(120 * 24 * 60 * 60);
+      await setNextBlockTimestamp(120 * 24 * 60 * 60);
 
       const rewards =
         await STAKING_POLICY.connect(policyTaker1).positionRefundRewards(0);
       expect(rewards).to.equal("35616504946727549400000");
 
-      await HardhatHelper.setNextBlockTimestamp(120 * 24 * 60 * 60);
+      await setNextBlockTimestamp(120 * 24 * 60 * 60);
 
       const rewards2 =
         await STAKING_POLICY.connect(policyTaker1).positionRefundRewards(0);
@@ -184,7 +184,7 @@ export function testStakingPolicy() {
     });
 
     it("Should claim rewards and be capped at amount of staked ATEN", async function () {
-      await HardhatHelper.setNextBlockTimestamp(125 * 24 * 60 * 60);
+      await setNextBlockTimestamp(125 * 24 * 60 * 60);
 
       const balBefore = await ATEN_TOKEN.connect(policyTaker2).balanceOf(
         await policyTaker2.getAddress(),

@@ -2,7 +2,7 @@ import chai, { expect } from "chai";
 import { ethers } from "ethers";
 import chaiAsPromised from "chai-as-promised";
 
-import HardhatHelper from "../helpers/hardhat";
+import { getCurrentTime, setNextBlockTimestamp } from "../helpers/hardhat";
 import ProtocolHelper from "../helpers/protocol";
 
 chai.use(chaiAsPromised);
@@ -16,7 +16,7 @@ let policyTaker2: ethers.Signer;
 export function testPolicyView() {
   describe("View policy", function () {
     before(async function () {
-      const allSigners = await HardhatHelper.allSigners();
+      const allSigners = await ethers.getSigners();
       owner = allSigners[0];
       liquidityProvider1 = allSigners[1];
       liquidityProvider2 = allSigners[2];
@@ -92,7 +92,7 @@ export function testPolicyView() {
 
         const days = 10;
         const result = await protocolContract.actualizingUntilGivenDate(
-          (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60,
+          (await getCurrentTime()) + days * 24 * 60 * 60,
         );
 
         expect(result.__slot0.tick).to.be.equal(60);
@@ -103,7 +103,7 @@ export function testPolicyView() {
         expect(result.__slot0.totalInsuredCapital).to.be.equal(328500);
         expect(result.__slot0.remainingPolicies).to.be.equal(2);
         expect(result.__slot0.lastUpdateTimestamp).to.be.equal(
-          (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60,
+          (await getCurrentTime()) + days * 24 * 60 * 60,
         );
       });
 
@@ -115,7 +115,7 @@ export function testPolicyView() {
 
         const days = 178;
         const result = await protocolContract.actualizingUntilGivenDate(
-          (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60,
+          (await getCurrentTime()) + days * 24 * 60 * 60,
         );
 
         // console.log("vSlot0 178:", result);
@@ -128,7 +128,7 @@ export function testPolicyView() {
         expect(result.__slot0.totalInsuredCapital).to.be.equal(219000);
         expect(result.__slot0.remainingPolicies).to.be.equal(1);
         expect(result.__slot0.lastUpdateTimestamp).to.be.equal(
-          (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60,
+          (await getCurrentTime()) + days * 24 * 60 * 60,
         );
 
         expect(result.__liquidityIndex).to.be.equal(
@@ -144,7 +144,7 @@ export function testPolicyView() {
 
         const days = 428;
         const result = await protocolContract.actualizingUntilGivenDate(
-          (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60,
+          (await getCurrentTime()) + days * 24 * 60 * 60,
         );
 
         expect(result.__slot0.tick).to.be.equal(1480);
@@ -155,7 +155,7 @@ export function testPolicyView() {
         expect(result.__slot0.totalInsuredCapital).to.be.equal(0);
         expect(result.__slot0.remainingPolicies).to.be.equal(0);
         expect(result.__slot0.lastUpdateTimestamp).to.be.equal(
-          (await HardhatHelper.getCurrentTime()) + days * 24 * 60 * 60,
+          (await getCurrentTime()) + days * 24 * 60 * 60,
         );
       });
     });
@@ -181,7 +181,7 @@ export function testPolicyView() {
 
     describe("Should withdraw policy of PT1 after 1 days arriving of PT2", function () {
       it("Should withdraw policy", async function () {
-        await HardhatHelper.setNextBlockTimestamp(1 * 24 * 60 * 60);
+        await setNextBlockTimestamp(1 * 24 * 60 * 60);
         const tx = await ProtocolHelper.getAthenaContract()
           .connect(policyTaker1)
           .withdrawPolicy(0);
@@ -218,9 +218,7 @@ export function testPolicyView() {
         expect(slot0.secondsPerTick).to.be.equal(8 * 60 * 60);
         expect(slot0.totalInsuredCapital).to.be.equal("219000");
         expect(slot0.remainingPolicies).to.be.equal(1);
-        expect(slot0.lastUpdateTimestamp).to.be.equal(
-          await HardhatHelper.getCurrentTime(),
-        );
+        expect(slot0.lastUpdateTimestamp).to.be.equal(await getCurrentTime());
 
         const premiumRate = await protocolContract.getCurrentPremiumRate();
         expect(premiumRate).to.be.equal("3000000000000000000000000000");
@@ -233,7 +231,7 @@ export function testPolicyView() {
 
     describe("Should withdraw policy of PT2 after 10 days withdrawed of PT1", function () {
       it("Should withdraw policy", async function () {
-        await HardhatHelper.setNextBlockTimestamp(10 * 24 * 60 * 60);
+        await setNextBlockTimestamp(10 * 24 * 60 * 60);
         const tx = await ProtocolHelper.getAthenaContract()
           .connect(policyTaker2)
           .withdrawPolicy(1);
@@ -269,9 +267,7 @@ export function testPolicyView() {
         expect(slot0.secondsPerTick).to.be.equal(24 * 60 * 60);
         expect(slot0.totalInsuredCapital).to.be.equal("0");
         expect(slot0.remainingPolicies).to.be.equal(0);
-        expect(slot0.lastUpdateTimestamp).to.be.equal(
-          await HardhatHelper.getCurrentTime(),
-        );
+        expect(slot0.lastUpdateTimestamp).to.be.equal(await getCurrentTime());
 
         const premiumRate = await protocolContract.getCurrentPremiumRate();
         expect(premiumRate).to.be.equal("1000000000000000000000000000");

@@ -2,7 +2,7 @@ import chai, { expect } from "chai";
 import chaiAsPromised from "chai-as-promised";
 import { ethers } from "ethers";
 
-import HardhatHelper from "../helpers/hardhat";
+import { getCurrentTime, setNextBlockTimestamp } from "../helpers/hardhat";
 import ProtocolHelper from "../helpers/protocol";
 import { StakingPolicy } from "../../typechain";
 
@@ -17,7 +17,7 @@ let STAKING_POLICY: StakingPolicy;
 export function testThaoPremiumLeftError() {
   describe("Staking Policy Rewards", function () {
     before(async function () {
-      const allSigners = await HardhatHelper.allSigners();
+      const allSigners = await ethers.getSigners();
       owner = allSigners[0];
       liquidityProvider1 = allSigners[1];
       policyTaker1 = allSigners[100];
