@@ -6,12 +6,12 @@ import {
   makeForkSnapshot,
   restoreForkSnapshot,
   entityProviderChainId,
-} from "./helpers/HardhatHelper";
+} from "./helpers/hardhat";
 import {
   deployAllContractsAndInitializeProtocol,
   defaultProtocolConfig,
   makeTestHelpers,
-} from "./helpers/ProtocolHelper";
+} from "./helpers/protocol";
 
 // Custom hook to run a function before each child test suite
 function beforeEachSuite(fn: AsyncFunc) {

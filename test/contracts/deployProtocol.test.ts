@@ -3,19 +3,7 @@ import { ethers as hre_ethers } from "hardhat";
 import { ethers } from "ethers";
 import chaiAsPromised from "chai-as-promised";
 
-import HardhatHelper from "../helpers/HardhatHelper";
-import ProtocolHelper from "../helpers/ProtocolHelper";
-
-import type { StakingGeneralPool, Athena } from "../../typechain";
-
 chai.use(chaiAsPromised);
-
-const BN = (num: string | number) => hre_ethers.BigNumber.from(num);
-
-let owner: ethers.Signer;
-
-let ATHENA_CONTRACT: Athena;
-let STAKING_GP_CONTRACT: StakingGeneralPool;
 
 export function testDeployProtocol() {
   describe("Deploy protocol", function () {

@@ -3,9 +3,9 @@ import { ethers as hre_ethers } from "hardhat";
 import { BigNumber, ethers } from "ethers";
 import chaiAsPromised from "chai-as-promised";
 
-import HardhatHelper from "../helpers/HardhatHelper";
+import HardhatHelper from "../helpers/hardhat";
 import type { Athena, StakingPolicy, ATEN } from "../../typechain";
-import ProtocolHelper from "../helpers/ProtocolHelper";
+import ProtocolHelper from "../helpers/protocol";
 
 chai.use(chaiAsPromised);
 

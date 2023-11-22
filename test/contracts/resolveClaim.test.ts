@@ -2,8 +2,8 @@ import chai, { expect } from "chai";
 import { ethers } from "ethers";
 import chaiAsPromised from "chai-as-promised";
 
-import HardhatHelper from "../helpers/HardhatHelper";
-import ProtocolHelper from "../helpers/ProtocolHelper";
+import HardhatHelper from "../helpers/hardhat";
+import ProtocolHelper from "../helpers/protocol";
 
 chai.use(chaiAsPromised);
 

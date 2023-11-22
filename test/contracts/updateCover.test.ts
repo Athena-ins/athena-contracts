@@ -2,8 +2,8 @@ import chai, { expect } from "chai";
 import chaiAsPromised from "chai-as-promised";
 import { ethers } from "ethers";
 
-import HardhatHelper from "../helpers/HardhatHelper";
-import ProtocolHelper from "../helpers/ProtocolHelper";
+import HardhatHelper from "../helpers/hardhat";
+import ProtocolHelper from "../helpers/protocol";
 import type { StakingPolicy } from "../../typechain";
 
 chai.use(chaiAsPromised);

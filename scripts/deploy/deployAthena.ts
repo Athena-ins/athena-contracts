@@ -1,6 +1,6 @@
 import fs from "fs";
 import hre, { ethers as hre_ethers } from "hardhat";
-import ProtocolHelper from "../../test/helpers/ProtocolHelper";
+import ProtocolHelper from "../../test/helpers/protocol";
 import { deploymentAddress, contract } from "../../test/helpers/TypedContracts";
 //
 import abiERC20 from "../../abis/weth.json";

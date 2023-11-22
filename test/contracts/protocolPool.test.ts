@@ -5,9 +5,9 @@ import { ethers as ethersOriginal, utils } from "ethers";
 import weth_abi from "../../abis/weth.json";
 import atoken_abi from "../../abis/AToken.json";
 import chaiAsPromised from "chai-as-promised";
-import HardhatHelper from "../helpers/HardhatHelper";
+import HardhatHelper from "../helpers/hardhat";
 import protocolPoolAbi from "../../artifacts/contracts/ProtocolPool.sol/ProtocolPool.json";
-import ProtocolHelper from "../helpers/ProtocolHelper";
+import ProtocolHelper from "../helpers/protocol";
 
 chai.use(chaiAsPromised);
 

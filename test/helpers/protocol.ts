@@ -1,14 +1,14 @@
 import { BigNumberish, BigNumber, Signer, ContractTransaction } from "ethers";
 import { ethers } from "hardhat";
 
-import HardhatHelper from "./HardhatHelper";
+import HardhatHelper from "./hardhat";
 
 // import { contract } from "./TypedContracts";
 // import { abi as abiProtocolPool } from "../../artifacts/contracts/ProtocolPool.sol/ProtocolPool.json";
 // import { ProtocolPool as typeProtocolPool } from "../../typechain/ProtocolPool";
 
 // Functions
-import { entityProviderChainId, setNextBlockTimestamp } from "./HardhatHelper";
+import { entityProviderChainId, setNextBlockTimestamp } from "./hardhat";
 import {
   deployATEN,
   deployCentralizedArbitrator,

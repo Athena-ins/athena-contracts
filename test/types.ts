@@ -16,7 +16,7 @@ import {
   ProtocolConfig,
   ProtocolContracts,
   TestHelper,
-} from "./helpers/ProtocolHelper";
+} from "./helpers/protocol";
 
 type ContextSigners = {
   deployer: Wallet;
