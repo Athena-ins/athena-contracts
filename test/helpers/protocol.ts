@@ -373,6 +373,7 @@ export async function addNewProtocolPool(
 
 export async function deposit(
   contract: Athena,
+  tokenHelpers: TokenHelpers,
   user: Signer,
   USDT_amount: BigNumberish,
   ATEN_amount: BigNumberish,
@@ -381,23 +382,24 @@ export async function deposit(
 ) {
   const account = await user.getAddress();
 
-  await HardhatHelper.USDT_transfer(account, USDT_amount);
-  await HardhatHelper.USDT_approve(user, contract.address, USDT_amount);
+  await tokenHelpers.getUsdt(account, USDT_amount);
+  await tokenHelpers.approveUsdt(user, contract.address, USDT_amount);
 
   if (BigNumber.from(ATEN_amount).gt(0)) {
-    await HardhatHelper.ATEN_transfer(account, ATEN_amount);
-    await HardhatHelper.ATEN_approve(user, contract.address, ATEN_amount);
+    await tokenHelpers.getAten(account, ATEN_amount);
+    await tokenHelpers.approveAten(user, contract.address, ATEN_amount);
 
     await (await contract.connect(user).stakeAtens(ATEN_amount)).wait();
   }
 
-  await HardhatHelper.setNextBlockTimestamp(timeLapse);
+  await setNextBlockTimestamp(timeLapse);
 
   await contract.connect(user).deposit(USDT_amount, protocols);
 }
 
 export async function buyPolicy(
   contract: Athena,
+  tokenHelpers: TokenHelpers,
   user: Signer,
   capital: BigNumberish,
   premium: BigNumberish,
@@ -407,12 +409,12 @@ export async function buyPolicy(
 ) {
   const account = await user.getAddress();
 
-  await HardhatHelper.USDT_transfer(account, premium);
-  await HardhatHelper.USDT_approve(user, contract.address, premium);
+  await tokenHelpers.getUsdt(account, premium);
+  await tokenHelpers.approveUsdt(user, contract.address, premium);
 
   if (BigNumber.from(atensLocked).gt(0)) {
-    await HardhatHelper.ATEN_transfer(account, atensLocked);
-    await HardhatHelper.ATEN_approve(user, contract.address, atensLocked);
+    await tokenHelpers.getAten(account, atensLocked);
+    await tokenHelpers.approveAten(user, contract.address, atensLocked);
   }
 
   if (timeLapse) {
@@ -426,6 +428,7 @@ export async function buyPolicy(
 
 export async function buyPolicies(
   contract: Athena,
+  tokenHelpers: TokenHelpers,
   user: Signer,
   capital: BigNumberish[],
   premium: BigNumberish[],
@@ -445,12 +448,12 @@ export async function buyPolicies(
     BigNumber.from(0),
   );
 
-  await HardhatHelper.USDT_transfer(account, premiumTotal);
-  await HardhatHelper.USDT_approve(user, contract.address, premiumTotal);
+  await tokenHelpers.getUsdt(account, premiumTotal);
+  await tokenHelpers.approveUsdt(user, contract.address, premiumTotal);
 
   if (atensLockedTotal.gt(0)) {
-    await HardhatHelper.ATEN_transfer(account, atensLockedTotal);
-    await HardhatHelper.ATEN_approve(user, contract.address, atensLockedTotal);
+    await tokenHelpers.getAten(account, atensLockedTotal);
+    await tokenHelpers.approveAten(user, contract.address, atensLockedTotal);
   }
 
   await setNextBlockTimestamp(timeLapse);
@@ -534,19 +537,21 @@ export async function takeInterest(
 
 export async function stakingGeneralPoolDeposit(
   contract: Athena,
+  tokenHelpers: TokenHelpers,
   user: Signer,
   amount: BigNumberish,
 ) {
   const account = await user.getAddress();
 
-  await HardhatHelper.ATEN_transfer(account, amount);
-  await HardhatHelper.ATEN_approve(user, contract.address, amount);
+  await tokenHelpers.getAten(account, amount);
+  await tokenHelpers.approveAten(user, contract.address, amount);
 
   return contract.connect(user).stakeAtens(amount);
 }
 
 export async function updateCover(
   contract: Athena,
+  tokenHelpers: TokenHelpers,
   user: Signer,
   action:
     | "increaseCover"
@@ -561,12 +566,12 @@ export async function updateCover(
   const account = await user.getAddress();
 
   if (action === "addPremiums") {
-    await HardhatHelper.USDT_transfer(account, amount);
-    await HardhatHelper.USDT_approve(user, contract.address, amount);
+    await tokenHelpers.getUsdt(account, amount);
+    await tokenHelpers.approveUsdt(user, contract.address, amount);
   }
   if (action === "addToCoverRefundStake") {
-    await HardhatHelper.ATEN_transfer(account, amount);
-    await HardhatHelper.ATEN_approve(user, contract.address, amount);
+    await tokenHelpers.getAten(account, amount);
+    await tokenHelpers.approveAten(user, contract.address, amount);
   }
 
   return (await contract.connect(user)[action](coverId, amount)).wait();
@@ -640,40 +645,51 @@ export async function getPoolOverlap(
 // === Test context helpers === //
 // ============================ //
 
-type OmitContract<T extends (...args: any) => any> = T extends (
+type OmitFirstArg<T extends (...args: any) => any> = T extends (
   ...args: [any, ...infer U]
 ) => infer R
   ? (...args: U) => R
   : never;
 
-export type TestHelper = {
+type OmitFirstTwoArgs<T extends (...args: any) => any> = T extends (
+  ...args: [any, any, ...infer U]
+) => infer R
+  ? (...args: U) => R
+  : never;
+
+// Token
+type TokenHelpers = {
+  transferAten: OmitFirstArg<typeof transfer>;
+  transferUsdt: OmitFirstArg<typeof transfer>;
+  approveAten: OmitFirstArg<typeof approve>;
+  approveUsdt: OmitFirstArg<typeof approve>;
+  maxApproveAten: OmitFirstArg<typeof maxApprove>;
+  maxApproveUsdt: OmitFirstArg<typeof maxApprove>;
+  balanceOfAaveUsdt: OmitFirstArg<typeof balanceOfAaveUsdt>;
+  getUsdt: OmitFirstTwoArgs<typeof getTokens>;
+  getAten: OmitFirstTwoArgs<typeof transfer>;
+};
+
+export type TestHelper = TokenHelpers & {
   // config / admin
-  addNewProtocolPool: OmitContract<typeof addNewProtocolPool>;
+  addNewProtocolPool: OmitFirstArg<typeof addNewProtocolPool>;
   // write
-  deposit: OmitContract<typeof deposit>;
-  buyPolicy: OmitContract<typeof buyPolicy>;
-  buyPolicies: OmitContract<typeof buyPolicies>;
-  createClaim: OmitContract<typeof createClaim>;
-  resolveClaimWithoutDispute: OmitContract<typeof resolveClaimWithoutDispute>;
-  takeInterest: OmitContract<typeof takeInterest>;
-  stakingGeneralPoolDeposit: OmitContract<typeof stakingGeneralPoolDeposit>;
-  updateCover: OmitContract<typeof updateCover>;
+  deposit: OmitFirstTwoArgs<typeof deposit>;
+  buyPolicy: OmitFirstTwoArgs<typeof buyPolicy>;
+  buyPolicies: OmitFirstTwoArgs<typeof buyPolicies>;
+  createClaim: OmitFirstArg<typeof createClaim>;
+  resolveClaimWithoutDispute: OmitFirstArg<typeof resolveClaimWithoutDispute>;
+  takeInterest: OmitFirstArg<typeof takeInterest>;
+  stakingGeneralPoolDeposit: OmitFirstTwoArgs<typeof stakingGeneralPoolDeposit>;
+  updateCover: OmitFirstTwoArgs<typeof updateCover>;
   // read
-  getProtocolPoolDataById: OmitContract<typeof getProtocolPoolDataById>;
-  getProtocolPoolContract: OmitContract<typeof getProtocolPoolContract>;
-  getAllUserCovers: OmitContract<typeof getAllUserCovers>;
-  getOngoingCovers: OmitContract<typeof getOngoingCovers>;
-  getExpiredCovers: OmitContract<typeof getExpiredCovers>;
-  getAccountCoverIdByIndex: OmitContract<typeof getAccountCoverIdByIndex>;
-  getPoolOverlap: OmitContract<typeof getPoolOverlap>;
-  // Token
-  transferAten: OmitContract<typeof transfer>;
-  transferUsdt: OmitContract<typeof transfer>;
-  approveAten: OmitContract<typeof approve>;
-  approveUsdt: OmitContract<typeof approve>;
-  maxApproveAten: OmitContract<typeof maxApprove>;
-  maxApproveUsdt: OmitContract<typeof maxApprove>;
-  balanceOfAaveUsdt: OmitContract<typeof balanceOfAaveUsdt>;
+  getProtocolPoolDataById: OmitFirstArg<typeof getProtocolPoolDataById>;
+  getProtocolPoolContract: OmitFirstArg<typeof getProtocolPoolContract>;
+  getAllUserCovers: OmitFirstArg<typeof getAllUserCovers>;
+  getOngoingCovers: OmitFirstArg<typeof getOngoingCovers>;
+  getExpiredCovers: OmitFirstArg<typeof getExpiredCovers>;
+  getAccountCoverIdByIndex: OmitFirstArg<typeof getAccountCoverIdByIndex>;
+  getPoolOverlap: OmitFirstArg<typeof getPoolOverlap>;
   //
   getATENContract: () => ATEN;
   getCentralizedArbitratorContract: () => CentralizedArbitrator;
@@ -708,20 +724,32 @@ export async function makeTestHelpers(
     StakingPolicy,
   } = contracts;
 
+  const tokenHelpers: TokenHelpers = {
+    transferAten: (...args) => transfer(ATEN, ...args),
+    transferUsdt: (...args) => transfer(USDT, ...args),
+    approveAten: (...args) => approve(ATEN, ...args),
+    approveUsdt: (...args) => approve(USDT, ...args),
+    maxApproveAten: (...args) => maxApprove(ATEN, ...args),
+    maxApproveUsdt: (...args) => maxApprove(USDT, ...args),
+    balanceOfAaveUsdt: (...args) => balanceOfAaveUsdt(deployer, ...args),
+    getUsdt: (...args) => getTokens(deployer, USDT.address, ...args),
+    getAten: (...args) => transfer(ATEN, deployer, ...args),
+  };
+
   return {
     // config / admin
     addNewProtocolPool: (...args) => addNewProtocolPool(Athena, ...args),
     // write
-    deposit: (...args) => deposit(Athena, ...args),
-    buyPolicy: (...args) => buyPolicy(Athena, ...args),
-    buyPolicies: (...args) => buyPolicies(Athena, ...args),
+    deposit: (...args) => deposit(Athena, tokenHelpers, ...args),
+    buyPolicy: (...args) => buyPolicy(Athena, tokenHelpers, ...args),
+    buyPolicies: (...args) => buyPolicies(Athena, tokenHelpers, ...args),
     createClaim: (...args) => createClaim(ClaimManager, ...args),
     resolveClaimWithoutDispute: (...args) =>
       resolveClaimWithoutDispute(ClaimManager, ...args),
     takeInterest: (...args) => takeInterest(Athena, ...args),
     stakingGeneralPoolDeposit: (...args) =>
-      stakingGeneralPoolDeposit(Athena, ...args),
-    updateCover: (...args) => updateCover(Athena, ...args),
+      stakingGeneralPoolDeposit(Athena, tokenHelpers, ...args),
+    updateCover: (...args) => updateCover(Athena, tokenHelpers, ...args),
     // read
     getProtocolPoolDataById: (...args) =>
       getProtocolPoolDataById(Athena, ...args),
@@ -734,13 +762,7 @@ export async function makeTestHelpers(
       getAccountCoverIdByIndex(PolicyManager, ...args),
     getPoolOverlap: (...args) => getPoolOverlap(PositionsManager, ...args),
     // Token
-    transferAten: (...args) => transfer(ATEN, ...args),
-    transferUsdt: (...args) => transfer(USDT, ...args),
-    approveAten: (...args) => approve(ATEN, ...args),
-    approveUsdt: (...args) => approve(USDT, ...args),
-    maxApproveAten: (...args) => maxApprove(ATEN, ...args),
-    maxApproveUsdt: (...args) => maxApprove(USDT, ...args),
-    balanceOfAaveUsdt: (...args) => balanceOfAaveUsdt(deployer, ...args),
+    ...tokenHelpers,
     //
     getATENContract: () => ATEN,
     getCentralizedArbitratorContract: () => CentralizedArbitrator,
