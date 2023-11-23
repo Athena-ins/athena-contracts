@@ -320,7 +320,7 @@ export async function deployAllContractsAndInitializeProtocol(
   const usdtAddress = usdtTokenAddress(chainId);
   const USDT = USDT__factory.connect(usdtAddress, deployer);
 
-  return {
+  const contracts = {
     ATEN,
     USDT,
     CentralizedArbitrator,
@@ -334,6 +334,23 @@ export async function deployAllContractsAndInitializeProtocol(
     StakingGeneralPool,
     StakingPolicy,
   };
+
+  console.log(
+    "Deployed & initialized Athena: ",
+    JSON.stringify(
+      (Object.keys(contracts) as Array<keyof typeof contracts>).reduce(
+        (acc: { [key: string]: string }, name: keyof typeof contracts) => {
+          acc[name] = contracts[name].address;
+          return acc;
+        },
+        {},
+      ),
+      null,
+      2,
+    ),
+  );
+
+  return contracts;
 }
 
 // ======================= //

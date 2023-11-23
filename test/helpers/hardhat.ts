@@ -69,7 +69,7 @@ export async function restoreForkSnapshot(snapshotId: string) {
       params: [snapshotId],
     })
     .then(() => {
-      console.log("=> Chain snapshot restored");
+      // console.log("=> Chain snapshot restored");
     });
 }
 
