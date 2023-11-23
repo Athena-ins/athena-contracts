@@ -1,22 +1,24 @@
 import chai, { expect } from "chai";
-import { ethers } from "ethers";
+import { ethers } from "hardhat";
 import chaiAsPromised from "chai-as-promised";
-
+// Helpers
 import { getCurrentTime, setNextBlockTimestamp } from "../helpers/hardhat";
-
+// Types
+import { Signer, Contract, BigNumber, BigNumberish } from "ethers";
+//
 chai.use(chaiAsPromised);
 
-let owner: ethers.Signer;
-let liquidityProvider1: ethers.Signer;
-let liquidityProvider2: ethers.Signer;
-let liquidityProvider3: ethers.Signer;
-let policyTaker1: ethers.Signer;
-let policyTaker2: ethers.Signer;
-let policyTaker3: ethers.Signer;
-let protocolPool0: ethers.Contract;
-let protocolPool1: ethers.Contract;
-let protocolPool2: ethers.Contract;
-let protocolPool3: ethers.Contract;
+let owner: Signer;
+let liquidityProvider1: Signer;
+let liquidityProvider2: Signer;
+let liquidityProvider3: Signer;
+let policyTaker1: Signer;
+let policyTaker2: Signer;
+let policyTaker3: Signer;
+let protocolPool0: Contract;
+let protocolPool1: Contract;
+let protocolPool2: Contract;
+let protocolPool3: Contract;
 
 export function testResolveClaim() {
   describe("Resolve Claims", function () {

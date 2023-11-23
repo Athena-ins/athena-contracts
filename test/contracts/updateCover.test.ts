@@ -1,22 +1,19 @@
 import chai, { expect } from "chai";
+import { ethers } from "hardhat";
 import chaiAsPromised from "chai-as-promised";
-import { ethers } from "ethers";
-
+// Helpers
 import { getCurrentTime, setNextBlockTimestamp } from "../helpers/hardhat";
-
-import type { StakingPolicy } from "../../typechain";
-
+import { toUsdt, toAten } from "../helpers/protocol";
+// Types
+import { Signer, Contract, BigNumber, BigNumberish } from "ethers";
+//
 chai.use(chaiAsPromised);
 
-const { toUsdt, toAten } = ProtocolHelper;
-
-let owner: ethers.Signer;
-let liquidityProvider1: ethers.Signer;
-let liquidityProvider2: ethers.Signer;
-let policyTaker1: ethers.Signer;
-let policyTaker2: ethers.Signer;
-
-let STAKING_POLICY: StakingPolicy;
+let owner: Signer;
+let liquidityProvider1: Signer;
+let liquidityProvider2: Signer;
+let policyTaker1: Signer;
+let policyTaker2: Signer;
 
 export function testUpdateCover() {
   describe("Update User Cover", function () {
@@ -32,10 +29,6 @@ export function testUpdateCover() {
       await this.helpers.addNewProtocolPool("Test protocol 1");
       await this.helpers.addNewProtocolPool("Test protocol 2");
       await this.helpers.addNewProtocolPool("Test protocol 3");
-
-      // ================= Get Contracts ================= //
-
-      STAKING_POLICY = this.contracts.StakingPolicy;
 
       // ================= Cover Providers ================= //
 
@@ -169,7 +162,7 @@ export function testUpdateCover() {
       const user2CoverBefore = (
         await this.helpers.getAllUserCovers(policyTaker2)
       )[0];
-      const balanceBefore = await this.helpers.getUsdt(
+      const balanceBefore = await this.contracts.USDT.balanceOf(
         await policyTaker2.getAddress(),
       );
 
@@ -184,7 +177,7 @@ export function testUpdateCover() {
       const user2CoverAfter = (
         await this.helpers.getAllUserCovers(policyTaker2)
       )[0];
-      const balanceAfter = await this.helpers.getUsdt(
+      const balanceAfter = await this.contracts.USDT.balanceOf(
         await policyTaker2.getAddress(),
       );
 
@@ -243,7 +236,7 @@ export function testUpdateCover() {
         0,
       );
       const user2RefundBefore =
-        await STAKING_POLICY.getRefundPosition(user2CoverId0);
+        await this.contracts.StakingPolicy.getRefundPosition(user2CoverId0);
       const balanceBefore = await this.contracts.ATEN.balanceOf(
         await policyTaker2.getAddress(),
       );
@@ -257,7 +250,7 @@ export function testUpdateCover() {
       );
 
       const user2RefundAfter =
-        await STAKING_POLICY.getRefundPosition(user2CoverId0);
+        await this.contracts.StakingPolicy.getRefundPosition(user2CoverId0);
       const balanceAfter = await this.contracts.ATEN.balanceOf(
         await policyTaker2.getAddress(),
       );
@@ -286,7 +279,7 @@ export function testUpdateCover() {
         0,
       );
       const user1RefundBefore =
-        await STAKING_POLICY.getRefundPosition(user1CoverId0);
+        await this.contracts.StakingPolicy.getRefundPosition(user1CoverId0);
 
       const balanceBefore = await this.contracts.ATEN.balanceOf(userAddress);
 
@@ -299,7 +292,7 @@ export function testUpdateCover() {
       );
 
       const user1RefundAfter =
-        await STAKING_POLICY.getRefundPosition(user1CoverId0);
+        await this.contracts.StakingPolicy.getRefundPosition(user1CoverId0);
       const balanceAfter = await this.contracts.ATEN.balanceOf(userAddress);
 
       expect(user1RefundBefore.stakedAmount.sub(amount1)).to.equal(

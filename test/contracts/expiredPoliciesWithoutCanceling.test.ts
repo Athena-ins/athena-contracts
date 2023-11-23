@@ -1,22 +1,23 @@
 import chai, { expect } from "chai";
-import { ethers as hre_ethers } from "hardhat";
-import { ethers } from "ethers";
+import { ethers } from "hardhat";
 import chaiAsPromised from "chai-as-promised";
-
+// Helpers
 import { getCurrentTime, setNextBlockTimestamp } from "../helpers/hardhat";
-
+// Types
+import { Signer, Contract, BigNumber, BigNumberish } from "ethers";
+//
 chai.use(chaiAsPromised);
 
-const BN = (num: string | number) => hre_ethers.BigNumber.from(num);
+const BN = (num: string | number) => BigNumber.from(num);
 
-let owner: ethers.Signer;
-let liquidityProvider1: ethers.Signer;
-let liquidityProvider2: ethers.Signer;
-let liquidityProvider3: ethers.Signer;
-let policyTaker1: ethers.Signer;
-let policyTaker2: ethers.Signer;
-let policyTaker3: ethers.Signer;
-let policyTaker4: ethers.Signer;
+let owner: Signer;
+let liquidityProvider1: Signer;
+let liquidityProvider2: Signer;
+let liquidityProvider3: Signer;
+let policyTaker1: Signer;
+let policyTaker2: Signer;
+let policyTaker3: Signer;
+let policyTaker4: Signer;
 
 export function testExpiredPoliciesWithoutCanceling() {
   describe("expired policies", function () {

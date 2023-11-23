@@ -1,19 +1,20 @@
 import chai, { expect } from "chai";
-import { ethers as hre_ethers } from "hardhat";
-import { ethers } from "ethers";
+import { ethers } from "hardhat";
 import chaiAsPromised from "chai-as-promised";
-
+// Helpers
 import { getCurrentTime, setNextBlockTimestamp } from "../helpers/hardhat";
-
+// Types
+import { Signer, Contract, BigNumber, BigNumberish } from "ethers";
+//
 chai.use(chaiAsPromised);
 
-const BN = (num: string | number) => hre_ethers.BigNumber.from(num);
+const BN = (num: string | number) => BigNumber.from(num);
 
-let owner: ethers.Signer;
-let liquidityProvider1: ethers.Signer;
-let liquidityProvider2: ethers.Signer;
-let policyTaker1: ethers.Signer;
-let policyTaker2: ethers.Signer;
+let owner: Signer;
+let liquidityProvider1: Signer;
+let liquidityProvider2: Signer;
+let policyTaker1: Signer;
+let policyTaker2: Signer;
 
 export function testPolicyTaker() {
   describe("Buy policy", function () {
@@ -64,12 +65,12 @@ export function testPolicyTaker() {
 
         await this.helpers.getUsdt(
           await policyTaker1.getAddress(),
-          hre_ethers.utils.parseUnits(premium, 6),
+          ethers.utils.parseUnits(premium, 6),
         );
 
         expect(
           await this.contracts.USDT.balanceOf(await policyTaker1.getAddress()),
-        ).to.be.equal(hre_ethers.utils.parseUnits(premium, 6));
+        ).to.be.equal(ethers.utils.parseUnits(premium, 6));
       });
 
       it("Should success buy policy in protocol 0 for 1 year", async function () {
@@ -193,12 +194,12 @@ export function testPolicyTaker() {
 
         await this.helpers.getUsdt(
           await policyTaker2.getAddress(),
-          hre_ethers.utils.parseUnits(premium, 6),
+          ethers.utils.parseUnits(premium, 6),
         );
 
         expect(
           await this.contracts.USDT.balanceOf(await policyTaker2.getAddress()),
-        ).to.be.equal(hre_ethers.utils.parseUnits(premium, 6));
+        ).to.be.equal(ethers.utils.parseUnits(premium, 6));
       });
 
       it("Should success buy policy in protocol 0 for 1 year", async function () {

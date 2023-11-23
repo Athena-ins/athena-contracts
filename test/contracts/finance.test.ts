@@ -1,4 +1,12 @@
-import { expect } from "chai";
+import chai, { expect } from "chai";
+import { ethers } from "hardhat";
+import chaiAsPromised from "chai-as-promised";
+// Helpers
+import { getCurrentTime, setNextBlockTimestamp } from "../helpers/hardhat";
+// Types
+import { Signer, Contract, BigNumber, BigNumberish } from "ethers";
+//
+chai.use(chaiAsPromised);
 
 const TOKENS_STAKING = 300000000;
 const STAKING_REWARD = 30;

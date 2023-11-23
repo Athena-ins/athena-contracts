@@ -1,25 +1,20 @@
 import chai, { expect } from "chai";
-import { ethers as hre_ethers } from "hardhat";
-import { BigNumber, ethers } from "ethers";
+import { ethers } from "hardhat";
 import chaiAsPromised from "chai-as-promised";
-
+// Helpers
 import { getCurrentTime, setNextBlockTimestamp } from "../helpers/hardhat";
-import type { Athena, StakingPolicy, ATEN } from "../../typechain";
-
+import { toUsdt, toAten } from "../helpers/protocol";
+// Types
+import { Signer, Contract, BigNumber, BigNumberish } from "ethers";
+//
 chai.use(chaiAsPromised);
 
-const { toUsdt, toAten } = ProtocolHelper;
-
-let owner: ethers.Signer;
-let liquidityProvider1: ethers.Signer;
-let liquidityProvider2: ethers.Signer;
-let policyTaker1: ethers.Signer;
-let policyTaker2: ethers.Signer;
-let policyTaker3: ethers.Signer;
-
-let ATEN_TOKEN: ATEN;
-let ATHENA_CONTRACT: Athena;
-let STAKING_POLICY: StakingPolicy;
+let owner: Signer;
+let liquidityProvider1: Signer;
+let liquidityProvider2: Signer;
+let policyTaker1: Signer;
+let policyTaker2: Signer;
+let policyTaker3: Signer;
 
 export function testStakingPolicy() {
   describe("Cover Refund Staking", function () {
@@ -36,12 +31,6 @@ export function testStakingPolicy() {
       await this.helpers.addNewProtocolPool("Test protocol 1");
       await this.helpers.addNewProtocolPool("Test protocol 2");
       await this.helpers.addNewProtocolPool("Test protocol 3");
-
-      // ================= Get Contracts ================= //
-
-      ATEN_TOKEN = this.contracts.ATEN;
-      ATHENA_CONTRACT = this.contracts.Athena;
-      STAKING_POLICY = this.contracts.StakingPolicy;
 
       // ================= Cover Providers ================= //
 
@@ -140,7 +129,7 @@ export function testStakingPolicy() {
     });
 
     it("Should check if position has been initialized", async function () {
-      const userStakes = await STAKING_POLICY.connect(
+      const userStakes = await this.contracts.StakingPolicy.connect(
         policyTaker1,
       ).getRefundPositionsByAccount(await policyTaker1.getAddress());
 
@@ -151,10 +140,9 @@ export function testStakingPolicy() {
 
     it("Should reject withdraw of other user's policy rewards", async function () {
       await expect(
-        ATHENA_CONTRACT.connect(policyTaker3).withdrawCoverRefundStakedAten(
-          1,
-          10,
-        ),
+        this.contracts.Athena.connect(
+          policyTaker3,
+        ).withdrawCoverRefundStakedAten(1, 10),
       ).to.eventually.be.rejectedWith("NotPolicyOwner()");
     });
 
@@ -162,19 +150,23 @@ export function testStakingPolicy() {
       await setNextBlockTimestamp(120 * 24 * 60 * 60);
 
       const rewards =
-        await STAKING_POLICY.connect(policyTaker1).positionRefundRewards(0);
+        await this.contracts.StakingPolicy.connect(
+          policyTaker1,
+        ).positionRefundRewards(0);
       expect(rewards).to.equal("35616504946727549400000");
 
       await setNextBlockTimestamp(120 * 24 * 60 * 60);
 
       const rewards2 =
-        await STAKING_POLICY.connect(policyTaker1).positionRefundRewards(0);
+        await this.contracts.StakingPolicy.connect(
+          policyTaker1,
+        ).positionRefundRewards(0);
 
       expect(rewards2.toString()).to.equal("68493217275494672700000");
     });
 
     it("Should return 2 staking Policy ", async function () {
-      const indexUser = await STAKING_POLICY.connect(
+      const indexUser = await this.contracts.StakingPolicy.connect(
         policyTaker1,
       ).getRefundPositionsByAccount(await policyTaker1.getAddress());
 
@@ -184,20 +176,20 @@ export function testStakingPolicy() {
     it("Should claim rewards and be capped at amount of staked ATEN", async function () {
       await setNextBlockTimestamp(125 * 24 * 60 * 60);
 
-      const balBefore = await ATEN_TOKEN.connect(policyTaker2).balanceOf(
-        await policyTaker2.getAddress(),
-      );
+      const balBefore = await this.contracts.ATEN.connect(
+        policyTaker2,
+      ).balanceOf(await policyTaker2.getAddress());
 
       const txWithdrawAten = await (
-        await ATHENA_CONTRACT.connect(policyTaker2).withdrawCoverRefundRewards(
-          2,
-        )
+        await this.contracts.Athena.connect(
+          policyTaker2,
+        ).withdrawCoverRefundRewards(2)
       ).wait();
       expect(txWithdrawAten).to.haveOwnProperty("transactionHash");
 
-      const balAfter = await ATEN_TOKEN.connect(policyTaker2).balanceOf(
-        await policyTaker2.getAddress(),
-      );
+      const balAfter = await this.contracts.ATEN.connect(
+        policyTaker2,
+      ).balanceOf(await policyTaker2.getAddress());
 
       expect(balAfter.sub(balBefore).lt(toAten(12))).to.equal(true);
     });

@@ -1,22 +1,23 @@
 import chai, { expect } from "chai";
-import { ethers as hre_ethers } from "hardhat";
-import { ethers } from "ethers";
+import { ethers } from "hardhat";
 import chaiAsPromised from "chai-as-promised";
-
+// Helpers
 import { getCurrentTime, setNextBlockTimestamp } from "../helpers/hardhat";
-
+// Types
+import { Signer, Contract, BigNumber, BigNumberish } from "ethers";
+//
 chai.use(chaiAsPromised);
 
-const BN = (num: string | number) => hre_ethers.BigNumber.from(num);
+const BN = (num: string | number) => BigNumber.from(num);
 
 const USDT_AMOUNT = "1000000";
 const ATEN_AMOUNT = "10000000";
 
-let owner: ethers.Signer;
-let liquidityProvider1: ethers.Signer;
-let liquidityProvider2: ethers.Signer;
-let provider1tokenId: ethers.BigNumberish;
-let provider2tokenId: ethers.BigNumberish;
+let owner: Signer;
+let liquidityProvider1: Signer;
+let liquidityProvider2: Signer;
+let provider1tokenId: BigNumberish;
+let provider2tokenId: BigNumberish;
 
 export function testLiquidityProvider() {
   describe("Liquidity provider deposit", function () {
@@ -46,14 +47,14 @@ export function testLiquidityProvider() {
 
           await this.helpers.getUsdt(
             await liquidityProvider1.getAddress(),
-            hre_ethers.utils.parseUnits(USDT_amount, 6),
+            ethers.utils.parseUnits(USDT_amount, 6),
           );
 
           expect(
             await this.contracts.USDT.balanceOf(
               await liquidityProvider1.getAddress(),
             ),
-          ).to.be.equal(hre_ethers.utils.parseUnits(USDT_amount, 6));
+          ).to.be.equal(ethers.utils.parseUnits(USDT_amount, 6));
         });
 
         it("Should prepare ATEN balance", async function () {
@@ -82,7 +83,7 @@ export function testLiquidityProvider() {
             liquidityProvider1,
           ).approve(
             this.contracts.Athena.address,
-            hre_ethers.utils.parseUnits(USDT_AMOUNT, 6),
+            ethers.utils.parseUnits(USDT_AMOUNT, 6),
           );
 
           expect(USDT_Approved).to.haveOwnProperty("transactionHash");
@@ -91,7 +92,7 @@ export function testLiquidityProvider() {
             liquidityProvider1,
           ).approve(
             this.contracts.StakingGeneralPool.address,
-            hre_ethers.utils.parseUnits(ATEN_AMOUNT, 18),
+            ethers.utils.parseUnits(ATEN_AMOUNT, 18),
           );
 
           expect(ATEN_Approved).to.haveOwnProperty("transactionHash");
@@ -192,14 +193,14 @@ export function testLiquidityProvider() {
 
           await this.helpers.getUsdt(
             await liquidityProvider2.getAddress(),
-            hre_ethers.utils.parseUnits(USDT_amount, 6),
+            ethers.utils.parseUnits(USDT_amount, 6),
           );
 
           expect(
             await this.contracts.USDT.balanceOf(
               await liquidityProvider2.getAddress(),
             ),
-          ).to.be.equal(hre_ethers.utils.parseUnits(USDT_amount, 6));
+          ).to.be.equal(ethers.utils.parseUnits(USDT_amount, 6));
         });
 
         it("Should prepare ATEN balance", async function () {
@@ -228,7 +229,7 @@ export function testLiquidityProvider() {
             liquidityProvider2,
           ).approve(
             this.contracts.Athena.address,
-            hre_ethers.utils.parseUnits(USDT_AMOUNT, 6),
+            ethers.utils.parseUnits(USDT_AMOUNT, 6),
           );
 
           expect(USDT_Approved).to.haveOwnProperty("transactionHash");
@@ -237,7 +238,7 @@ export function testLiquidityProvider() {
             liquidityProvider2,
           ).approve(
             this.contracts.StakingGeneralPool.address,
-            hre_ethers.utils.parseUnits(ATEN_AMOUNT, 18),
+            ethers.utils.parseUnits(ATEN_AMOUNT, 18),
           );
 
           expect(ATEN_Approved).to.haveOwnProperty("transactionHash");

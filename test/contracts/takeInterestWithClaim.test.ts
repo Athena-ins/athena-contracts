@@ -1,21 +1,23 @@
 import chai, { expect } from "chai";
-import { ethers } from "ethers";
+import { ethers } from "hardhat";
 import chaiAsPromised from "chai-as-promised";
-
+// Helpers
 import { getCurrentTime, setNextBlockTimestamp } from "../helpers/hardhat";
-
+// Types
+import { Signer, Contract, BigNumber, BigNumberish } from "ethers";
+//
 chai.use(chaiAsPromised);
 
-let owner: ethers.Signer;
-let liquidityProvider1: ethers.Signer;
-let liquidityProvider2: ethers.Signer;
-let policyTaker1: ethers.Signer;
-let policyTaker2: ethers.Signer;
-let policyTaker3: ethers.Signer;
-let policyTaker4: ethers.Signer;
-let provider1tokenId: ethers.BigNumberish;
-let provider2tokenId: ethers.BigNumberish;
-let protocolPool0: ethers.Contract;
+let owner: Signer;
+let liquidityProvider1: Signer;
+let liquidityProvider2: Signer;
+let policyTaker1: Signer;
+let policyTaker2: Signer;
+let policyTaker3: Signer;
+let policyTaker4: Signer;
+let provider1tokenId: BigNumberish;
+let provider2tokenId: BigNumberish;
+let protocolPool0: Contract;
 
 export function testTakeInterestWithClaim() {
   describe("Liquidity provider takeInterest with claims", function () {

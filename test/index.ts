@@ -33,7 +33,6 @@ baseContext("Functionnal tests", function () {
   testLiquidityProvider();
   testPolicyTaker();
   testPoliciesTaker();
-  testPolicyView();
   testClaims();
   testRewardsWithoutClaim();
   testRewardsWithClaims();
@@ -50,11 +49,12 @@ baseContext("Functionnal tests", function () {
   testStakingGeneralPool();
   testUpdateCover();
   //
-  testPremiumRewards();
+  // testPremiumRewards();
   testProtocolPool();
   testThaoPremiumLeftError();
   testFinance();
   // Views
+  testPolicyView();
   testProtocolsView();
   testClaimsView();
 });

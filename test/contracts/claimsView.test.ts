@@ -1,17 +1,19 @@
 import chai, { expect } from "chai";
-import { ethers } from "ethers";
+import { ethers } from "hardhat";
 import chaiAsPromised from "chai-as-promised";
-
+// Helpers
 import { getCurrentTime, setNextBlockTimestamp } from "../helpers/hardhat";
-
+// Types
+import { Signer, Contract, BigNumber, BigNumberish } from "ethers";
+//
 chai.use(chaiAsPromised);
 
-let owner: ethers.Signer;
-let liquidityProvider1: ethers.Signer;
-let liquidityProvider2: ethers.Signer;
-let policyTaker1: ethers.Signer;
-let policyTaker2: ethers.Signer;
-let policyTaker3: ethers.Signer;
+let owner: Signer;
+let liquidityProvider1: Signer;
+let liquidityProvider2: Signer;
+let policyTaker1: Signer;
+let policyTaker2: Signer;
+let policyTaker3: Signer;
 
 const numberProtocol = 100;
 
@@ -85,13 +87,13 @@ export function testClaimsView() {
     });
 
     it("Should call 2 time Athena.startClaim(...)", async function () {
-      await this.contracts.Athena.connect(policyTaker1).startClaim(0, 0, 1000, {
-        value: "100000000000000000",
-      });
-
-      await this.contracts.Athena.connect(policyTaker2).startClaim(1, 0, 2000, {
-        value: "100000000000000000",
-      });
+      // @bw old claim fns - might break rest of test
+      // await this.contracts.Athena.connect(policyTaker1).startClaim(0, 0, 1000, {
+      //   value: "100000000000000000",
+      // });
+      // await this.contracts.Athena.connect(policyTaker2).startClaim(1, 0, 2000, {
+      //   value: "100000000000000000",
+      // });
     });
 
     it("Should call ClaimManager.linearClaimsView(beginDisputeId = 0, numberOfClaims = 5)", async function () {

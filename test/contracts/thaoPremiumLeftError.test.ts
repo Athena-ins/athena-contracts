@@ -1,18 +1,16 @@
 import chai, { expect } from "chai";
+import { ethers } from "hardhat";
 import chaiAsPromised from "chai-as-promised";
-import { ethers } from "ethers";
-
+// Helpers
 import { getCurrentTime, setNextBlockTimestamp } from "../helpers/hardhat";
-
-import { StakingPolicy } from "../../typechain";
-
+// Types
+import { Signer, Contract, BigNumber, BigNumberish } from "ethers";
+//
 chai.use(chaiAsPromised);
 
-let owner: ethers.Signer;
-let liquidityProvider1: ethers.Signer;
-let policyTaker1: ethers.Signer;
-
-let STAKING_POLICY: StakingPolicy;
+let owner: Signer;
+let liquidityProvider1: Signer;
+let policyTaker1: Signer;
 
 export function testThaoPremiumLeftError() {
   describe("Staking Policy Rewards", function () {
@@ -24,10 +22,6 @@ export function testThaoPremiumLeftError() {
 
       await this.helpers.addNewProtocolPool("Test protocol 0");
       await this.helpers.addNewProtocolPool("Test protocol 1");
-
-      // ================= Get Contracts ================= //
-
-      STAKING_POLICY = this.contracts.StakingPolicy;
 
       // ================= Cover Providers ================= //
 
@@ -57,7 +51,7 @@ export function testThaoPremiumLeftError() {
     });
 
     it("Should return remaining lock time ", async function () {
-      const userStakes = await STAKING_POLICY.connect(
+      const userStakes = await this.contracts.StakingPolicy.connect(
         policyTaker1,
       ).getRefundPositionsByAccount(await policyTaker1.getAddress());
 
