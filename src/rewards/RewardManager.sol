@@ -2,15 +2,22 @@
 pragma solidity 0.8.20;
 
 // contracts
-import "./FarmingRange.sol";
-import "./Staking.sol";
+import { FarmingRange } from "./FarmingRange.sol";
+import { Staking } from "./Staking.sol";
 
 // libraries
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 // interfaces
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "./interfaces/IRewardManager.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { IRewardManager } from "./interfaces/IRewardManager.sol";
+
+//======== ERRORS ========//
+
+// Start farming is in the past
+error StartFarmingInPast();
+// Wrong campaign ID
+error WrongCampaignId();
 
 /**
  * @title RewardManager
@@ -38,10 +45,10 @@ contract RewardManager is IRewardManager {
     IERC20 _stakedToken,
     uint256 _startFarmingCampaign
   ) {
-    require(
-      _startFarmingCampaign > block.number,
-      "start farming is in the past"
-    );
+    if (_startFarmingCampaign <= block.number) {
+      revert StartFarmingInPast();
+    }
+
     farming = new FarmingRange(address(this));
     staking = new Staking(_stakedToken, farming);
     farming.addCampaignInfo(
@@ -61,10 +68,9 @@ contract RewardManager is IRewardManager {
 
   /// @inheritdoc IRewardManagerL2
   function resetAllowance(uint256 _campaignId) external {
-    require(
-      _campaignId < farming.campaignInfoLen(),
-      "campaignId:wrong campaign ID"
-    );
+    if (_campaignId >= farming.campaignInfoLen()) {
+      revert WrongCampaignId();
+    }
 
     (, IERC20 _rewardToken, , , , , ) = farming.campaignInfo(
       _campaignId

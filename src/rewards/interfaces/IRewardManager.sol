@@ -2,8 +2,8 @@
 pragma solidity 0.8.20;
 
 // interfaces
-import "./IStaking.sol";
-import "./IFarmingRange.sol";
+import { IStaking } from "./IStaking.sol";
+import { IFarmingRange } from "./IFarmingRange.sol";
 
 interface IRewardManager {
   /**

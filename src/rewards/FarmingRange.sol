@@ -2,16 +2,41 @@
 pragma solidity 0.8.20;
 
 // contracts
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { ReentrancyGuard } from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 // libraries
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 // interfaces
-import "@openzeppelin/contracts/interfaces/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/draft-IERC20Permit.sol";
-import "./interfaces/IFarmingRange.sol";
+import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
+import { IERC20Permit } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
+import { IFarmingRange } from "./interfaces/IFarmingRange.sol";
+
+//======== ERRORS ========//
+
+// Reward manager is not defined
+error RewardManagerNotDefined();
+// Start block should be in the future
+error StartBlockInPast();
+// Reward info length exceeds the limit
+error RewardInfoLengthExceedsLimit();
+// Reward period ended
+error RewardPeriodEnded();
+// Bad new endblock
+error BadNewEndblock();
+// Wrong parameters length
+error WrongParametersLength();
+// Reward period end is in next range
+error RewardPeriodEndIsInNextRange();
+// No rewardInfoLen
+error NoRewardInfoLength();
+// Sender not farming
+error SenderNotFarming();
+// Campaign id not valid
+error InvalidCampaignId();
+// Bad withdraw amount
+error BadWithdrawAmount();
 
 /**
  * @title FarmingRange
@@ -32,10 +57,10 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
 
   constructor(address _rewardManager) {
     rewardInfoLimit = 52;
-    require(
-      _rewardManager != address(0),
-      "FarmingRange::constructor::Reward manager is not defined"
-    );
+    if (_rewardManager == address(0)) {
+      revert RewardManagerNotDefined();
+    }
+
     rewardManager = _rewardManager;
   }
 
@@ -53,10 +78,10 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
     IERC20 _rewardToken,
     uint256 _startBlock
   ) external virtual onlyOwner {
-    require(
-      _startBlock > block.number,
-      "FarmingRange::addCampaignInfo::Start block should be in the future"
-    );
+    if (_startBlock < block.number) {
+      revert StartBlockInPast();
+    }
+
     campaignInfo.push(
       CampaignInfo({
         stakingToken: _stakingToken,
@@ -84,20 +109,19 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
   ) public virtual onlyOwner nonReentrant {
     RewardInfo[] storage rewardInfo = campaignRewardInfo[_campaignID];
     CampaignInfo storage campaign = campaignInfo[_campaignID];
-    require(
-      rewardInfo.length < rewardInfoLimit,
-      "FarmingRange::addRewardInfo::reward info length exceeds the limit"
-    );
-    require(
-      rewardInfo.length == 0 ||
-        rewardInfo[rewardInfo.length - 1].endBlock >= block.number,
-      "FarmingRange::addRewardInfo::reward period ended"
-    );
-    require(
-      rewardInfo.length == 0 ||
-        rewardInfo[rewardInfo.length - 1].endBlock < _endBlock,
-      "FarmingRange::addRewardInfo::bad new endblock"
-    );
+
+    if (rewardInfo.length >= rewardInfoLimit) {
+      revert RewardInfoLengthExceedsLimit();
+    }
+    if (rewardInfo.length != 0) {
+      if (rewardInfo[rewardInfo.length - 1].endBlock < block.number) {
+        revert RewardPeriodEnded();
+      }
+      if (rewardInfo[rewardInfo.length - 1].endBlock >= _endBlock) {
+        revert BadNewEndblock();
+      }
+    }
+
     uint256 _startBlock = rewardInfo.length == 0
       ? campaign.startBlock
       : rewardInfo[rewardInfo.length - 1].endBlock;
@@ -129,10 +153,10 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
     uint256[] calldata _endBlock,
     uint256[] calldata _rewardPerBlock
   ) external onlyOwner {
-    require(
-      _endBlock.length == _rewardPerBlock.length,
-      "FarmingRange::addRewardMultiple::wrong parameters length"
-    );
+    if (_endBlock.length != _rewardPerBlock.length) {
+      revert WrongParametersLength();
+    }
+
     for (uint256 _i; _i != _endBlock.length; ) {
       addRewardInfo(_campaignID, _endBlock[_i], _rewardPerBlock[_i]);
       unchecked {
@@ -153,22 +177,22 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
     RewardInfo storage selectedRewardInfo = rewardInfo[_rewardIndex];
     uint256 _previousEndBlock = selectedRewardInfo.endBlock;
     _updateCampaign(_campaignID);
-    require(
-      _previousEndBlock >= block.number,
-      "FarmingRange::updateRewardInfo::reward period ended"
-    );
+
+    if (_previousEndBlock < block.number) {
+      revert RewardPeriodEnded();
+    }
+
     if (_rewardIndex != 0) {
-      require(
-        rewardInfo[_rewardIndex - 1].endBlock < _endBlock,
-        "FarmingRange::updateRewardInfo::bad new endblock"
-      );
+      if (rewardInfo[_rewardIndex - 1].endBlock >= _endBlock) {
+        revert BadNewEndblock();
+      }
     }
     if (rewardInfo.length > _rewardIndex + 1) {
-      require(
-        _endBlock < rewardInfo[_rewardIndex + 1].endBlock,
-        "FarmingRange::updateRewardInfo::reward period end is in next range"
-      );
+      if (_endBlock >= rewardInfo[_rewardIndex + 1].endBlock) {
+        revert RewardPeriodEndIsInNextRange();
+      }
     }
+
     (bool _refund, uint256 _diff) = _updateRewardsDiff(
       _rewardIndex,
       _endBlock,
@@ -234,11 +258,13 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
     uint256[] memory _endBlock,
     uint256[] memory _rewardPerBlock
   ) public onlyOwner {
-    require(
-      _rewardIndex.length == _endBlock.length &&
-        _rewardIndex.length == _rewardPerBlock.length,
-      "FarmingRange::updateRewardMultiple::wrong parameters length"
-    );
+    if (
+      _rewardIndex.length != _endBlock.length ||
+      _rewardIndex.length != _rewardPerBlock.length
+    ) {
+      revert WrongParametersLength();
+    }
+
     for (uint256 _i; _i != _rewardIndex.length; ) {
       updateRewardInfo(
         _campaignID,
@@ -259,12 +285,14 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
     uint256[][] calldata _endBlock,
     uint256[][] calldata _rewardPerBlock
   ) external onlyOwner {
-    require(
-      _campaignID.length == _rewardIndex.length &&
-        _rewardIndex.length == _endBlock.length &&
-        _rewardIndex.length == _rewardPerBlock.length,
-      "FarmingRange::updateCampaignsRewards::wrong rewardInfo length"
-    );
+    if (
+      _campaignID.length != _rewardIndex.length ||
+      _campaignID.length != _endBlock.length ||
+      _campaignID.length != _rewardPerBlock.length
+    ) {
+      revert WrongParametersLength();
+    }
+
     for (uint256 _i; _i != _campaignID.length; ) {
       updateRewardMultiple(
         _campaignID[_i],
@@ -285,18 +313,20 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
     RewardInfo[] storage rewardInfo = campaignRewardInfo[_campaignID];
     CampaignInfo storage campaign = campaignInfo[_campaignID];
     uint256 _rewardInfoLength = rewardInfo.length;
-    require(
-      _rewardInfoLength != 0,
-      "FarmingRange::updateCampaignsRewards::no rewardInfoLen"
-    );
+
+    if (_rewardInfoLength == 0) {
+      revert NoRewardInfoLength();
+    }
+
     RewardInfo storage lastRewardInfo = rewardInfo[
       _rewardInfoLength - 1
     ];
     uint256 _lastRewardInfoEndBlock = lastRewardInfo.endBlock;
-    require(
-      _lastRewardInfoEndBlock > block.number,
-      "FarmingRange::removeLastRewardInfo::reward period ended"
-    );
+
+    if (_lastRewardInfoEndBlock <= block.number) {
+      revert RewardPeriodEnded();
+    }
+
     _updateCampaign(_campaignID);
     if (lastRewardInfo.rewardPerBlock != 0) {
       (bool _refund, uint256 _diff) = _updateRewardsDiff(
@@ -490,10 +520,9 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
     address _to,
     uint256 _amount
   ) external {
-    require(
-      msg.sender == address(this),
-      "FarmingRange::attemptTransfer::Sender not farming"
-    ); // this function should be called only by this contract
+    if (msg.sender != address(this)) {
+      revert SenderNotFarming();
+    } // this function should be called only by this contract
     _token.safeTransferFrom(_from, _to, _amount);
   }
 
@@ -682,10 +711,10 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
    * @param _campaignID campaign id
    */
   function _updateCampaign(uint256 _campaignID) internal virtual {
-    require(
-      campaignInfo.length > _campaignID,
-      "FarmingRange::_updateCampaign::Campaign id not valid"
-    );
+    if (_campaignID >= campaignInfo.length) {
+      revert InvalidCampaignId();
+    }
+
     CampaignInfo storage campaign = campaignInfo[_campaignID];
     RewardInfo[] memory _rewardInfo = campaignRewardInfo[_campaignID];
     if (block.number <= campaign.lastRewardBlock) {
@@ -763,10 +792,11 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
   function _withdraw(uint256 _campaignID, uint256 _amount) internal {
     CampaignInfo storage campaign = campaignInfo[_campaignID];
     UserInfo storage user = userInfo[_campaignID][msg.sender];
-    require(
-      user.amount >= _amount,
-      "FarmingRange::withdraw::bad withdraw amount"
-    );
+
+    if (user.amount < _amount) {
+      revert BadWithdrawAmount();
+    }
+
     _updateCampaign(_campaignID);
     uint256 _pending = (user.amount * campaign.accRewardPerShare) /
       1e20 -

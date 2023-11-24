@@ -2,13 +2,35 @@
 pragma solidity 0.8.20;
 
 // libraries
-import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 // interfaces
-import "./interfaces/IStaking.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import { IERC20Permit } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
+import { IFarmingRange } from "./interfaces/IFarmingRange.sol";
+import { IStaking } from "./interfaces/IStaking.sol";
+
+//======== ERRORS ========//
+
+// Farming campaign not initialized
+error FarmingCampaignNotInitialized();
+// User already called deposit or withdraw this block
+error UserAlreadyCalledDepositOrWithdrawThisBlock();
+// Aten token is not defined
+error AtenTokenIsNotDefined();
+// Farming is not defined
+error FarmingIsNotDefined();
+// Farming campaign already initialized
+error FarmingCampaignAlreadyInitialized();
+// Can't deposit zero token
+error CantDepositZeroToken();
+// No new shares received
+error NoNewSharesReceived();
+// Can't withdraw more than user shares or zero
+error CantWithdrawMoreThanUserSharesOrZero();
+// No shares to withdraw
+error NoSharesToWithdraw();
 
 /**
  * @title FarmingRange
@@ -31,18 +53,16 @@ contract Staking is IStaking, ERC20 {
   bool public farmingInitialized = false;
 
   modifier isFarmingInitialized() {
-    require(
-      farmingInitialized == true,
-      "Farming campaign not initialized"
-    );
+    if (farmingInitialized == false) {
+      revert FarmingCampaignNotInitialized();
+    }
     _;
   }
 
   modifier checkUserBlock() {
-    require(
-      userInfo[msg.sender].lastBlockUpdate < block.number,
-      "User already called deposit or withdraw this block"
-    );
+    if (userInfo[msg.sender].lastBlockUpdate >= block.number) {
+      revert UserAlreadyCalledDepositOrWithdrawThisBlock();
+    }
     userInfo[msg.sender].lastBlockUpdate = block.number;
     _;
   }
@@ -51,24 +71,23 @@ contract Staking is IStaking, ERC20 {
     IERC20 _stakedToken,
     IFarmingRange _farming
   ) ERC20("Staked Aten Token", "stAOE") {
-    require(
-      address(_stakedToken) != address(0),
-      "Aten token is not defined"
-    );
-    require(
-      address(_farming) != address(0),
-      "Farming is not defined"
-    );
+    if (address(_stakedToken) == address(0)) {
+      revert AtenTokenIsNotDefined();
+    }
+    if (address(_farming) == address(0)) {
+      revert FarmingIsNotDefined();
+    }
+
     stakedToken = _stakedToken;
     farming = _farming;
   }
 
   /// @inheritdoc IStaking
   function initializeFarming() external {
-    require(
-      farmingInitialized == false,
-      "Farming campaign already initialized"
-    );
+    if (farmingInitialized == true) {
+      revert FarmingCampaignAlreadyInitialized();
+    }
+
     _approve(address(this), address(farming), 1 wei);
     _mint(address(this), 1 wei);
     farming.deposit(CAMPAIGN_ID, 1 wei);
@@ -80,7 +99,9 @@ contract Staking is IStaking, ERC20 {
   function deposit(
     uint256 _depositAmount
   ) public isFarmingInitialized checkUserBlock {
-    require(_depositAmount != 0, "can't deposit zero token");
+    if (_depositAmount == 0) {
+      revert CantDepositZeroToken();
+    }
 
     harvestFarming();
 
@@ -96,7 +117,8 @@ contract Staking is IStaking, ERC20 {
     } else {
       _userNewShares = _newShares;
     }
-    require(_userNewShares != 0, "no new shares received");
+    if (_userNewShares == 0) revert NoNewSharesReceived();
+
     userInfo[msg.sender].shares += _userNewShares;
     totalShares += _newShares;
 
@@ -136,11 +158,12 @@ contract Staking is IStaking, ERC20 {
     address _to,
     uint256 _sharesAmount
   ) external isFarmingInitialized checkUserBlock {
-    require(
-      _sharesAmount != 0 &&
-        userInfo[msg.sender].shares >= _sharesAmount,
-      "can't withdraw more than user shares or zero"
-    );
+    if (
+      _sharesAmount == 0 ||
+      userInfo[msg.sender].shares < _sharesAmount
+    ) {
+      revert CantWithdrawMoreThanUserSharesOrZero();
+    }
 
     harvestFarming();
 
@@ -161,10 +184,9 @@ contract Staking is IStaking, ERC20 {
   function emergencyWithdraw(
     address _to
   ) external isFarmingInitialized checkUserBlock {
-    require(
-      userInfo[msg.sender].shares != 0,
-      "no shares to withdraw"
-    );
+    if (userInfo[msg.sender].shares == 0) {
+      revert NoSharesToWithdraw();
+    }
 
     uint256 _sharesAmount = userInfo[msg.sender].shares;
     uint256 _currentBalance = stakedToken.balanceOf(address(this));

@@ -2,8 +2,8 @@
 pragma solidity 0.8.20;
 
 // interfaces
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "./IFarmingRange.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { IFarmingRange } from "./IFarmingRange.sol";
 
 interface IStaking is IERC20 {
   /**
