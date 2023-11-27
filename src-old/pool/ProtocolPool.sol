@@ -2,7 +2,7 @@
 pragma solidity 0.8.20;
 
 // Parents
-import { PolicyCover } from "../cover/PolicyCover.sol";
+import { PolicyCover } from "./PolicyCover.sol";
 // Libs
 import { RayMath } from "../libs/RayMath.sol";
 // Interfaces
