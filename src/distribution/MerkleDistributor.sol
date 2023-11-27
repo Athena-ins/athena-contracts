@@ -1,23 +1,47 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity 0.8.20;
 
-import { PendingRoot, IUniversalRewardsDistributorStaticTyping } from "./interfaces/IUniversalRewardsDistributor.sol";
-
-import { ErrorsLib } from "./libraries/ErrorsLib.sol";
-import { EventsLib } from "./libraries/EventsLib.sol";
-import { SafeTransferLib, ERC20 } from "../lib/solmate/src/utils/SafeTransferLib.sol";
-
+// contracts
 import { MerkleProof } from "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
+
+// libraries
+import { PendingRoot } from "./interfaces/IMerkleDistributor.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+
+// interfaces
+import { IMerkleDistributorStaticTyping } from "./interfaces/IMerkleDistributor.sol";
+
+//======== ERRORS ========//
+
+// Caller has not the updater role
+error NotUpdaterRole();
+// Caller is not the owner
+error NotOwner();
+// Unauthorized to change the root
+error UnauthorizedRootChange();
+// No pending root
+error NoPendingRoot();
+// Timelock is not expired
+error TimelockNotExpired();
+// Root is not set
+error RootNotSet();
+// Invalid proof or expired
+error InvalidProofOrExpired();
+// Claimable too low
+error ClaimableTooLow();
+// Already set
+error AlreadySet();
+// Already pending
+error AlreadyPending();
 
 /// @title MerkleDistributor
 /// @author Athena
 /// @notice This contract enables the distribution of various reward tokens to multiple accounts using different
 /// permissionless Merkle trees. It is largely inspired by Morpho's Universal Rewards Distributor:
 /// https://github.com/morpho-org/universal-rewards-distributor/blob/main/src/UniversalRewardsDistributor.sol
-contract MerkleDistributor is
-  IUniversalRewardsDistributorStaticTyping
-{
-  using SafeTransferLib for ERC20;
+contract MerkleDistributor is IMerkleDistributorStaticTyping {
+  using SafeERC20 for ERC20;
 
   /* STORAGE */
 
@@ -49,18 +73,59 @@ contract MerkleDistributor is
 
   /// @notice Reverts if the caller is not the owner.
   modifier onlyOwner() {
-    require(msg.sender == owner, ErrorsLib.NOT_OWNER);
+    if (msg.sender != owner) revert NotOwner();
     _;
   }
 
   /// @notice Reverts if the caller has not the updater role.
   modifier onlyUpdaterRole() {
-    require(
-      isUpdater[msg.sender] || msg.sender == owner,
-      ErrorsLib.NOT_UPDATER_ROLE
-    );
+    if (!isUpdater[msg.sender] && msg.sender != owner)
+      revert NotUpdaterRole();
     _;
   }
+
+  /* EVENTS */
+
+  /// @notice Emitted when the merkle root is set.
+  /// @param newRoot The new merkle root.
+  /// @param newIpfsHash The optional ipfs hash containing metadata about the root (e.g. the merkle tree itself).
+  event RootSet(bytes32 indexed newRoot, bytes32 indexed newIpfsHash);
+
+  /// @notice Emitted when a new merkle root is proposed.
+  /// @param caller The address of the caller.
+  /// @param newRoot The new merkle root.
+  /// @param newIpfsHash The optional ipfs hash containing metadata about the root (e.g. the merkle tree itself).
+  event PendingRootSet(
+    address indexed caller,
+    bytes32 indexed newRoot,
+    bytes32 indexed newIpfsHash
+  );
+
+  /// @notice Emitted when the pending root is revoked by the owner or an updater.
+  event PendingRootRevoked(address indexed caller);
+
+  /// @notice Emitted when a merkle tree distribution timelock is set.
+  /// @param newTimelock The new merkle timelock.
+  event TimelockSet(uint256 newTimelock);
+
+  /// @notice Emitted when a merkle tree updater is added or removed.
+  /// @param rootUpdater The merkle tree updater.
+  /// @param active The merkle tree updater's active state.
+  event RootUpdaterSet(address indexed rootUpdater, bool active);
+
+  /// @notice Emitted when rewards are claimed.
+  /// @param account The address for which rewards are claimed.
+  /// @param reward The address of the reward token.
+  /// @param amount The amount of reward token claimed.
+  event Claimed(
+    address indexed account,
+    address indexed reward,
+    uint256 amount
+  );
+
+  /// @notice Emitted when the ownership of a merkle tree distribution is transferred.
+  /// @param newOwner The new owner of the contract.
+  event OwnerSet(address indexed newOwner);
 
   /* CONSTRUCTOR */
 
@@ -91,11 +156,12 @@ contract MerkleDistributor is
     bytes32 newRoot,
     bytes32 newIpfsHash
   ) external onlyUpdaterRole {
-    require(
-      newRoot != pendingRoot.root ||
-        newIpfsHash != pendingRoot.ipfsHash,
-      ErrorsLib.ALREADY_PENDING
-    );
+    if (
+      newRoot == pendingRoot.root &&
+      newIpfsHash == pendingRoot.ipfsHash
+    ) {
+      revert AlreadyPending();
+    }
 
     pendingRoot = PendingRoot({
       root: newRoot,
@@ -103,18 +169,16 @@ contract MerkleDistributor is
       validAt: block.timestamp + timelock
     });
 
-    emit EventsLib.PendingRootSet(msg.sender, newRoot, newIpfsHash);
+    emit PendingRootSet(msg.sender, newRoot, newIpfsHash);
   }
 
   /// @notice Accepts and sets the current pending merkle root.
   /// @dev This function can only be called after the timelock has expired.
   /// @dev Anyone can call this function.
   function acceptRoot() external {
-    require(pendingRoot.validAt != 0, ErrorsLib.NO_PENDING_ROOT);
-    require(
-      block.timestamp >= pendingRoot.validAt,
-      ErrorsLib.TIMELOCK_NOT_EXPIRED
-    );
+    if (pendingRoot.validAt == 0) revert NoPendingRoot();
+    if (block.timestamp < pendingRoot.validAt)
+      revert TimelockNotExpired();
 
     _setRoot(pendingRoot.root, pendingRoot.ipfsHash);
   }
@@ -122,11 +186,11 @@ contract MerkleDistributor is
   /// @notice Revokes the pending root.
   /// @dev Can be frontrunned with `acceptRoot` in case the timelock has passed.
   function revokePendingRoot() external onlyUpdaterRole {
-    require(pendingRoot.validAt != 0, ErrorsLib.NO_PENDING_ROOT);
+    if (pendingRoot.validAt == 0) revert NoPendingRoot();
 
     delete pendingRoot;
 
-    emit EventsLib.PendingRootRevoked(msg.sender);
+    emit PendingRootRevoked(msg.sender);
   }
 
   /// @notice Claims rewards.
@@ -142,9 +206,9 @@ contract MerkleDistributor is
     uint256 claimable,
     bytes32[] calldata proof
   ) external returns (uint256 amount) {
-    require(root != bytes32(0), ErrorsLib.ROOT_NOT_SET);
-    require(
-      MerkleProof.verifyCalldata(
+    if (root == bytes32(0)) revert RootNotSet();
+    if (
+      !MerkleProof.verifyCalldata(
         proof,
         root,
         keccak256(
@@ -152,14 +216,11 @@ contract MerkleDistributor is
             keccak256(abi.encode(account, reward, claimable))
           )
         )
-      ),
-      ErrorsLib.INVALID_PROOF_OR_EXPIRED
-    );
+      )
+    ) revert InvalidProofOrExpired();
 
-    require(
-      claimable > claimed[account][reward],
-      ErrorsLib.CLAIMABLE_TOO_LOW
-    );
+    if (claimable <= claimed[account][reward])
+      revert ClaimableTooLow();
 
     amount = claimable - claimed[account][reward];
 
@@ -167,7 +228,7 @@ contract MerkleDistributor is
 
     ERC20(reward).safeTransfer(account, amount);
 
-    emit EventsLib.Claimed(account, reward, amount);
+    emit Claimed(account, reward, amount);
   }
 
   /// @notice Forces update the root of a given distribution (bypassing the timelock).
@@ -179,14 +240,10 @@ contract MerkleDistributor is
     bytes32 newRoot,
     bytes32 newIpfsHash
   ) external onlyUpdaterRole {
-    require(
-      newRoot != root || newIpfsHash != ipfsHash,
-      ErrorsLib.ALREADY_SET
-    );
-    require(
-      timelock == 0 || msg.sender == owner,
-      ErrorsLib.UNAUTHORIZED_ROOT_CHANGE
-    );
+    if (newRoot == root && newIpfsHash == ipfsHash)
+      revert AlreadySet();
+    if (timelock != 0 && msg.sender != owner)
+      revert UnauthorizedRootChange();
 
     _setRoot(newRoot, newIpfsHash);
   }
@@ -196,7 +253,7 @@ contract MerkleDistributor is
   /// @dev This function can only be called by the owner of the distribution.
   /// @dev The timelock modification are not applicable to the pending values.
   function setTimelock(uint256 newTimelock) external onlyOwner {
-    require(newTimelock != timelock, ErrorsLib.ALREADY_SET);
+    if (newTimelock == timelock) revert AlreadySet();
 
     _setTimelock(newTimelock);
   }
@@ -208,16 +265,16 @@ contract MerkleDistributor is
     address updater,
     bool active
   ) external onlyOwner {
-    require(isUpdater[updater] != active, ErrorsLib.ALREADY_SET);
+    if (isUpdater[updater] == active) revert AlreadySet();
 
     isUpdater[updater] = active;
 
-    emit EventsLib.RootUpdaterSet(updater, active);
+    emit RootUpdaterSet(updater, active);
   }
 
   /// @notice Sets the `owner` of the distribution to `newOwner`.
   function setOwner(address newOwner) external onlyOwner {
-    require(newOwner != owner, ErrorsLib.ALREADY_SET);
+    if (newOwner == owner) revert AlreadySet();
 
     _setOwner(newOwner);
   }
@@ -233,20 +290,20 @@ contract MerkleDistributor is
 
     delete pendingRoot;
 
-    emit EventsLib.RootSet(newRoot, newIpfsHash);
+    emit RootSet(newRoot, newIpfsHash);
   }
 
   /// @dev Sets the `owner` of the distribution to `newOwner`.
   function _setOwner(address newOwner) internal {
     owner = newOwner;
 
-    emit EventsLib.OwnerSet(newOwner);
+    emit OwnerSet(newOwner);
   }
 
   /// @dev Sets the `timelock` to `newTimelock`.
   function _setTimelock(uint256 newTimelock) internal {
     timelock = newTimelock;
 
-    emit EventsLib.TimelockSet(newTimelock);
+    emit TimelockSet(newTimelock);
   }
 }
