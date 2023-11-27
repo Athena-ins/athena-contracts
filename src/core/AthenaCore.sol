@@ -1,34 +1,33 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.20;
 
-// Addons
+// Contracts
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-// Libs
-import { RayMath } from "./libs/RayMath.sol";
+
+// Libraries
+import { RayMath } from "../libs/RayMath.sol";
+
 // Interfaces
-import { ILendingPoolAddressesProvider } from "./external/aave/ILendingPoolAddressesProvider.sol";
-import { ILendingPool } from "./external/aave/ILendingPool.sol";
-//
+import { ILendingPool } from "./interfaces/ILendingPool.sol";
 import { SafeERC20, IERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import { IAthena } from "./interface/IAthena.sol";
-import { IPositionsManager } from "./interface/IPositionsManager.sol";
-import { IProtocolFactory } from "./interface/IProtocolFactory.sol";
-import { IProtocolPool } from "./interface/IProtocolPool.sol";
-import { IStakedAten } from "./interface/IStakedAten.sol";
-import { IStakedAtenPolicy } from "./interface/IStakedAtenPolicy.sol";
-import { IPolicyManager } from "./interface/IPolicyManager.sol";
-import { IClaimManager } from "./interface/IClaimManager.sol";
-import { IVaultERC20 } from "./interface/IVaultERC20.sol";
-import { IPriceOracle } from "./interface/IPriceOracle.sol";
+import { IAthena } from "../interfaces/IAthena.sol";
+import { IPositionsManager } from "../interfaces/IPositionsManager.sol";
+import { IProtocolFactory } from "../interfaces/IProtocolFactory.sol";
+import { IProtocolPool } from "../interfaces/IProtocolPool.sol";
+import { IStakedAten } from "../interfaces/IStakedAten.sol";
+import { IStakedAtenPolicy } from "../interfaces/IStakedAtenPolicy.sol";
+import { IPolicyManager } from "../interfaces/IPolicyManager.sol";
+import { IClaimManager } from "../interfaces/IClaimManager.sol";
+import { IVaultERC20 } from "../interfaces/IVaultERC20.sol";
 
 contract Athena is IAthena, ReentrancyGuard, Ownable {
   using SafeERC20 for IERC20;
   using RayMath for uint256;
 
-  /// @dev AAVE LendingPoolAddressesProvider Interface
+  ILendingPool public aaveLendingPool;
+
   IERC20 public atenTokenInterface;
-  ILendingPoolAddressesProvider public aaveAddressesRegistryInterface;
 
   IPositionsManager public positionManagerInterface;
   IPolicyManager public policyManagerInterface;
@@ -46,11 +45,9 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
 
   constructor(
     address atenTokenAddress_,
-    address aaveAddressesRegistry_
+    ILendingPool aaveLendingPool_
   ) Ownable(msg.sender) {
-    aaveAddressesRegistryInterface = ILendingPoolAddressesProvider(
-      aaveAddressesRegistry_
-    );
+    aaveLendingPool = aaveLendingPool_;
     atenTokenInterface = IERC20(atenTokenAddress_);
   }
 
@@ -177,9 +174,9 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     string memory claimAgreement = claimManagerInterface
       .getPoolCoverTerms(poolId_);
 
-    uint256 aaveLiquidityRate = ILendingPool(
-      aaveAddressesRegistryInterface.getLendingPool()
-    ).getReserveData(pool.token).currentLiquidityRate;
+    uint256 aaveLiquidityRate = aaveLendingPool
+      .getReserveData(pool.token)
+      .currentLiquidityRate;
 
     uint128[] memory incompatiblePools = protocolFactoryInterface
       .getIncompatiblePools(poolId_);
@@ -254,18 +251,10 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     address token_,
     uint256 amount_
   ) private returns (uint256 normalizedIncome) {
-    address lendingPool = aaveAddressesRegistryInterface
-      .getLendingPool();
-
-    ILendingPool(lendingPool).deposit(
-      token_,
-      amount_,
-      address(this),
-      0
-    );
+    aaveLendingPool.deposit(token_, amount_, address(this), 0);
 
     normalizedIncome = amount_.rayDiv(
-      ILendingPool(lendingPool).getReserveNormalizedIncome(token_)
+      aaveLendingPool.getReserveNormalizedIncome(token_)
     );
   }
 
@@ -517,10 +506,6 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
 
     positionManagerInterface.checkDelayAndClosePosition(tokenId);
 
-    address __lendingPool = aaveAddressesRegistryInterface
-      .getLendingPool();
-    ILendingPool lendingPoolInterface = ILendingPool(__lendingPool);
-
     // This is ok because we only allow positions with the same underlying token
     address underlyingToken = protocolFactoryInterface
       .getPoolUnderlyingToken(__position.poolIds[0]);
@@ -528,12 +513,10 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     uint256 _amountToWithdrawFromAAVE = __position
       .aaveScaledBalance
       .rayMul(
-        lendingPoolInterface.getReserveNormalizedIncome(
-          underlyingToken
-        )
+        aaveLendingPool.getReserveNormalizedIncome(underlyingToken)
       );
 
-    lendingPoolInterface.withdraw(
+    aaveLendingPool.withdraw(
       underlyingToken,
       _amountToWithdrawFromAAVE,
       msg.sender
@@ -842,13 +825,9 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     IProtocolPool poolInterface = IProtocolPool(poolAddress);
     uint256 ratio = poolInterface.ratioWithAvailableCapital(amount_);
 
-    ILendingPool lendingPoolInterface = ILendingPool(
-      aaveAddressesRegistryInterface.getLendingPool()
-    );
-
     address underlyingToken = protocolFactoryInterface
       .getPoolUnderlyingToken(poolId);
-    uint256 reserveNormalizedIncome = lendingPoolInterface
+    uint256 reserveNormalizedIncome = aaveLendingPool
       .getReserveNormalizedIncome(underlyingToken);
 
     // @bw - overlap here we need the list of related protocols
@@ -868,7 +847,7 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
       );
     }
 
-    lendingPoolInterface.withdraw(underlyingToken, amount_, account_);
+    aaveLendingPool.withdraw(underlyingToken, amount_, account_);
   }
 
   /// =========================== ///
@@ -889,10 +868,8 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
     uint256 rSlope2_
   ) public onlyOwner {
     if (!approvedTokens[token_]) {
-      address lendingPool = aaveAddressesRegistryInterface
-        .getLendingPool();
       IERC20(token_).safeIncreaseAllowance(
-        lendingPool,
+        address(aaveLendingPool),
         type(uint256).max
       );
       approvedTokens[token_] = true;
@@ -918,11 +895,9 @@ contract Athena is IAthena, ReentrancyGuard, Ownable {
 
   /// -------- AAVE -------- ///
 
-  function setAAVEAddressesRegistry(
-    address aaveAddressesRegistry_
+  function updateLendingPool(
+    ILendingPool aaveLendingPool_
   ) external onlyOwner {
-    aaveAddressesRegistryInterface = ILendingPoolAddressesProvider(
-      aaveAddressesRegistry_
-    );
+    aaveLendingPool = aaveLendingPool_;
   }
 }
