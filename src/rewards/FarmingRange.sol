@@ -55,7 +55,10 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
   uint256 public rewardInfoLimit;
   address public immutable rewardManager;
 
-  constructor(address _rewardManager) {
+  constructor(
+    address _owner,
+    address _rewardManager
+  ) Ownable(_owner) {
     rewardInfoLimit = 52;
     if (_rewardManager == address(0)) {
       revert RewardManagerNotDefined();

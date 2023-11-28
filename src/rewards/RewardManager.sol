@@ -11,6 +11,8 @@ import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.s
 // interfaces
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { IRewardManager } from "./interfaces/IRewardManager.sol";
+import { IStaking } from "./interfaces/IStaking.sol";
+import { ILiquidityManager } from "../interfaces/ILiquidityManager.sol";
 
 //======== ERRORS ========//
 
@@ -29,41 +31,39 @@ error WrongCampaignId();
 contract RewardManager is IRewardManager {
   using SafeERC20 for IERC20;
 
-  bytes4 private constant TRANSFER_OWNERSHIP_SELECTOR =
-    bytes4(keccak256(bytes("transferOwnership(address)")));
-
   IFarmingRange public immutable farming;
   IStaking public immutable staking;
 
   /**
-   * @param _farmingOwner address who will own the farming
+   * @param _owner address who will own the farming
    * @param _stakedToken address of the staked token
    * @param _startFarmingCampaign block number the staking pool in the farming will start to give rewards
    */
   constructor(
-    address _farmingOwner,
+    address _owner,
+    address _liquidityManager,
     IERC20 _stakedToken,
-    uint256 _startFarmingCampaign
+    uint256 _startFarmingCampaign,
+    FeeLevel[] memory feeLevels
   ) {
     if (_startFarmingCampaign <= block.number) {
       revert StartFarmingInPast();
     }
 
-    farming = new FarmingRange(address(this));
-    staking = new Staking(_stakedToken, farming);
+    farming = new FarmingRange(_owner, address(this));
     farming.addCampaignInfo(
       staking,
       _stakedToken,
       _startFarmingCampaign
     );
-    staking.initializeFarming();
 
-    address(farming).call(
-      abi.encodeWithSelector(
-        TRANSFER_OWNERSHIP_SELECTOR,
-        _farmingOwner
-      )
+    staking = new Staking(
+      _owner,
+      _stakedToken,
+      farming,
+      _liquidityManager
     );
+    staking.initializeFarming(feeLevels);
   }
 
   /// @inheritdoc IRewardManagerL2
