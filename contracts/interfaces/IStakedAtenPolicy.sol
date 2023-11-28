@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.19;
+pragma solidity 0.8.20;
 
 interface IStakedAtenPolicy {
   function hasPosition(uint256 coverId) external view returns (bool);

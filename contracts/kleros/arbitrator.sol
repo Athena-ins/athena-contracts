@@ -7,7 +7,7 @@
  *  @deployments: []
  */
 
-pragma solidity 0.8.19;
+pragma solidity 0.8.20;
 
 import "../interfaces/IArbitrable.sol";
 

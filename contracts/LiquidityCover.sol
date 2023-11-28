@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.19;
+pragma solidity 0.8.20;
 
 import { RayMath } from "./libraries/RayMath.sol";
 
@@ -36,7 +36,7 @@ abstract contract LiquidityCover {
       return 0;
     }
     uint256 utilizationRate = (((_totalInsuredCapital + _insuredCapitalToAdd) -
-        _insuredCapitalToRemove) * 100).rayDiv(_availableCapital);
+      _insuredCapitalToRemove) * 100).rayDiv(_availableCapital);
 
     //  @bw problem if usage is above 100% (ex: 100$ insured and 1$ capital)
     // In this case the usage should be ajusted to reflect available capital
