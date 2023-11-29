@@ -47,10 +47,12 @@ error BadWithdrawAmount();
 contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
   using SafeERC20 for IERC20;
 
-  mapping(uint256 => RewardInfo[]) public campaignRewardInfo;
+  mapping(uint256 _campaignId => RewardInfo[])
+    public campaignRewardInfo;
 
   CampaignInfo[] public campaignInfo;
-  mapping(uint256 => mapping(address => UserInfo)) public userInfo;
+  mapping(uint256 _campaignId => mapping(address _account => UserInfo))
+    public userInfo;
 
   uint256 public rewardInfoLimit;
   address public immutable rewardManager;
@@ -66,6 +68,136 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
 
     rewardManager = _rewardManager;
   }
+
+  // ======= DEPOSITS ======= //
+
+  /// @inheritdoc IFarmingRange
+  function deposit(
+    uint256 _campaignID,
+    uint256 _amount
+  ) public nonReentrant {
+    CampaignInfo storage campaign = campaignInfo[_campaignID];
+    UserInfo storage user = userInfo[_campaignID][msg.sender];
+    _updateCampaign(_campaignID);
+    if (user.amount != 0) {
+      uint256 _pending = (user.amount * campaign.accRewardPerShare) /
+        1e20 -
+        user.rewardDebt;
+      if (_pending != 0) {
+        campaign.rewardToken.safeTransfer(
+          address(msg.sender),
+          _pending
+        );
+      }
+    }
+    if (_amount != 0) {
+      user.amount = user.amount + _amount;
+      campaign.totalStaked = campaign.totalStaked + _amount;
+      campaign.stakingToken.safeTransferFrom(
+        msg.sender,
+        address(this),
+        _amount
+      );
+    }
+    user.rewardDebt =
+      (user.amount * campaign.accRewardPerShare) /
+      (1e20);
+    emit Deposit(msg.sender, _amount, _campaignID);
+  }
+
+  /// @inheritdoc IFarmingRange
+  function depositWithPermit(
+    uint256 _campaignID,
+    uint256 _amount,
+    bool _approveMax,
+    uint256 _deadline,
+    uint8 _v,
+    bytes32 _r,
+    bytes32 _s
+  ) external {
+    SafeERC20.safePermit(
+      IERC20Permit(address(campaignInfo[_campaignID].stakingToken)),
+      msg.sender,
+      address(this),
+      _approveMax ? type(uint256).max : _amount,
+      _deadline,
+      _v,
+      _r,
+      _s
+    );
+
+    deposit(_campaignID, _amount);
+  }
+
+  // ======= WITHDRAW ======= //
+
+  /**
+   * @notice Withdraw staking token in a campaign. Also withdraw the current pending reward
+   * @param _campaignID campaign id
+   * @param _amount amount to withdraw
+   */
+  function _withdraw(uint256 _campaignID, uint256 _amount) internal {
+    CampaignInfo storage campaign = campaignInfo[_campaignID];
+    UserInfo storage user = userInfo[_campaignID][msg.sender];
+
+    if (user.amount < _amount) {
+      revert BadWithdrawAmount();
+    }
+
+    _updateCampaign(_campaignID);
+    uint256 _pending = (user.amount * campaign.accRewardPerShare) /
+      1e20 -
+      user.rewardDebt;
+    if (_pending != 0) {
+      campaign.rewardToken.safeTransfer(msg.sender, _pending);
+    }
+    if (_amount != 0) {
+      user.amount = user.amount - _amount;
+      campaign.totalStaked = campaign.totalStaked - _amount;
+      campaign.stakingToken.safeTransfer(msg.sender, _amount);
+    }
+    user.rewardDebt =
+      (user.amount * campaign.accRewardPerShare) /
+      1e20;
+
+    emit Withdraw(msg.sender, _amount, _campaignID);
+  }
+
+  /// @inheritdoc IFarmingRange
+  function withdraw(
+    uint256 _campaignID,
+    uint256 _amount
+  ) external nonReentrant {
+    _withdraw(_campaignID, _amount);
+  }
+
+  /// @inheritdoc IFarmingRange
+  function harvest(
+    uint256[] calldata _campaignIDs
+  ) external nonReentrant {
+    for (uint256 _i; _i != _campaignIDs.length; ) {
+      _withdraw(_campaignIDs[_i], 0);
+      unchecked {
+        ++_i;
+      }
+    }
+  }
+
+  /// @inheritdoc IFarmingRange
+  function emergencyWithdraw(
+    uint256 _campaignID
+  ) external nonReentrant {
+    CampaignInfo storage campaign = campaignInfo[_campaignID];
+    UserInfo storage user = userInfo[_campaignID][msg.sender];
+    uint256 _amount = user.amount;
+    campaign.totalStaked = campaign.totalStaked - _amount;
+    user.amount = 0;
+    user.rewardDebt = 0;
+    campaign.stakingToken.safeTransfer(msg.sender, _amount);
+    emit EmergencyWithdraw(msg.sender, _amount, _campaignID);
+  }
+
+  // ======= CAMPAIGNS ======= //
 
   /// @inheritdoc IFarmingRange
   function setRewardInfoLimit(
@@ -418,98 +550,6 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
     }
   }
 
-  /// @inheritdoc IFarmingRange
-  function deposit(
-    uint256 _campaignID,
-    uint256 _amount
-  ) public nonReentrant {
-    CampaignInfo storage campaign = campaignInfo[_campaignID];
-    UserInfo storage user = userInfo[_campaignID][msg.sender];
-    _updateCampaign(_campaignID);
-    if (user.amount != 0) {
-      uint256 _pending = (user.amount * campaign.accRewardPerShare) /
-        1e20 -
-        user.rewardDebt;
-      if (_pending != 0) {
-        campaign.rewardToken.safeTransfer(
-          address(msg.sender),
-          _pending
-        );
-      }
-    }
-    if (_amount != 0) {
-      user.amount = user.amount + _amount;
-      campaign.totalStaked = campaign.totalStaked + _amount;
-      campaign.stakingToken.safeTransferFrom(
-        msg.sender,
-        address(this),
-        _amount
-      );
-    }
-    user.rewardDebt =
-      (user.amount * campaign.accRewardPerShare) /
-      (1e20);
-    emit Deposit(msg.sender, _amount, _campaignID);
-  }
-
-  /// @inheritdoc IFarmingRange
-  function depositWithPermit(
-    uint256 _campaignID,
-    uint256 _amount,
-    bool _approveMax,
-    uint256 _deadline,
-    uint8 _v,
-    bytes32 _r,
-    bytes32 _s
-  ) external {
-    SafeERC20.safePermit(
-      IERC20Permit(address(campaignInfo[_campaignID].stakingToken)),
-      msg.sender,
-      address(this),
-      _approveMax ? type(uint256).max : _amount,
-      _deadline,
-      _v,
-      _r,
-      _s
-    );
-
-    deposit(_campaignID, _amount);
-  }
-
-  /// @inheritdoc IFarmingRange
-  function withdraw(
-    uint256 _campaignID,
-    uint256 _amount
-  ) external nonReentrant {
-    _withdraw(_campaignID, _amount);
-  }
-
-  /// @inheritdoc IFarmingRange
-  function harvest(
-    uint256[] calldata _campaignIDs
-  ) external nonReentrant {
-    for (uint256 _i; _i != _campaignIDs.length; ) {
-      _withdraw(_campaignIDs[_i], 0);
-      unchecked {
-        ++_i;
-      }
-    }
-  }
-
-  /// @inheritdoc IFarmingRange
-  function emergencyWithdraw(
-    uint256 _campaignID
-  ) external nonReentrant {
-    CampaignInfo storage campaign = campaignInfo[_campaignID];
-    UserInfo storage user = userInfo[_campaignID][msg.sender];
-    uint256 _amount = user.amount;
-    campaign.totalStaked = campaign.totalStaked - _amount;
-    user.amount = 0;
-    user.rewardDebt = 0;
-    campaign.stakingToken.safeTransfer(msg.sender, _amount);
-    emit EmergencyWithdraw(msg.sender, _amount, _campaignID);
-  }
-
   /**
    * @notice function to trick the compilator to use safeTransferFrom in try catch
    * @param _token token to interact with
@@ -785,37 +825,5 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
         ++_i;
       }
     }
-  }
-
-  /**
-   * @notice Withdraw staking token in a campaign. Also withdraw the current pending reward
-   * @param _campaignID campaign id
-   * @param _amount amount to withdraw
-   */
-  function _withdraw(uint256 _campaignID, uint256 _amount) internal {
-    CampaignInfo storage campaign = campaignInfo[_campaignID];
-    UserInfo storage user = userInfo[_campaignID][msg.sender];
-
-    if (user.amount < _amount) {
-      revert BadWithdrawAmount();
-    }
-
-    _updateCampaign(_campaignID);
-    uint256 _pending = (user.amount * campaign.accRewardPerShare) /
-      1e20 -
-      user.rewardDebt;
-    if (_pending != 0) {
-      campaign.rewardToken.safeTransfer(msg.sender, _pending);
-    }
-    if (_amount != 0) {
-      user.amount = user.amount - _amount;
-      campaign.totalStaked = campaign.totalStaked - _amount;
-      campaign.stakingToken.safeTransfer(msg.sender, _amount);
-    }
-    user.rewardDebt =
-      (user.amount * campaign.accRewardPerShare) /
-      1e20;
-
-    emit Withdraw(msg.sender, _amount, _campaignID);
   }
 }
