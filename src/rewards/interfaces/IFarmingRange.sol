@@ -26,6 +26,12 @@ interface IFarmingRange {
     uint256 rewardDebt;
   }
 
+  enum AssetType {
+    ERC20,
+    LP_ERC721,
+    COVER_ERC721
+  }
+
   /**
    * @notice Info of each reward distribution campaign.
    * @param stakingToken address of Staking token contract.
@@ -39,6 +45,8 @@ interface IFarmingRange {
    * @dev each campaign has the same stake token, so no need to track it separetely
    */
   struct CampaignInfo {
+    AssetType assetType;
+    uint256 poolId;
     IERC20 stakingToken;
     IERC20 rewardToken;
     uint256 startBlock;
@@ -103,7 +111,9 @@ interface IFarmingRange {
    */
   event AddCampaignInfo(
     uint256 indexed campaignID,
-    IERC20 stakingToken,
+    AssetType assetType,
+    uint256 indexed poolId,
+    address indexed stakingToken,
     IERC20 rewardToken,
     uint256 startBlock
   );

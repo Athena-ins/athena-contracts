@@ -12,6 +12,8 @@ import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.s
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import { IERC20Permit } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
 import { IFarmingRange } from "./interfaces/IFarmingRange.sol";
+import { IPositionManager } from "../interfaces/IPositionManager.sol";
+import { IPolicyManager } from "../interfaces/IPolicyManager.sol";
 
 //======== ERRORS ========//
 
@@ -37,6 +39,18 @@ error SenderNotFarming();
 error InvalidCampaignId();
 // Bad withdraw amount
 error BadWithdrawAmount();
+// Only for ERC-20 token campaigns
+error OnlyERC20Campaigns();
+// Only for ERC-721 token campaigns
+error OnlyLiquidityProviderCampaigns();
+// Only for ERC-721 token campaigns
+error OnlyCoverUserCampaigns();
+// Unsupported campaign pool id
+error IncompatiblePoolIds();
+// NFT already deposited in campaign
+error AlreadyDeposited();
+// Limits covers with odd ratios
+error BadCoverAmountToPremiumRatio();
 
 /**
  * @title FarmingRange
@@ -53,29 +67,39 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
   CampaignInfo[] public campaignInfo;
   mapping(uint256 _campaignId => mapping(address _account => UserInfo))
     public userInfo;
+  mapping(uint256 _lpTokenId => uint256 _nbCampaigns)
+    public nbLpTokenCampaigns;
+  mapping(uint256 _campaignId => uint256 _lpTokenId)
+    public campaignIncludesToken;
 
   uint256 public rewardInfoLimit;
   address public immutable rewardManager;
+  IPositionManager public liquidityManager;
+  IPolicyManager public coverManager;
 
   constructor(
     address _owner,
-    address _rewardManager
+    address _rewardManager,
+    address _liquidityManager,
+    address _coverManager
   ) Ownable(_owner) {
     rewardInfoLimit = 52;
     if (_rewardManager == address(0)) {
       revert RewardManagerNotDefined();
     }
 
+    liquidityManager = IPositionManager(_liquidityManager);
+    coverManager = IPolicyManager(_coverManager);
+
     rewardManager = _rewardManager;
   }
 
   // ======= DEPOSITS ======= //
 
-  /// @inheritdoc IFarmingRange
-  function deposit(
+  function _deposit(
     uint256 _campaignID,
     uint256 _amount
-  ) public nonReentrant {
+  ) internal nonReentrant {
     CampaignInfo storage campaign = campaignInfo[_campaignID];
     UserInfo storage user = userInfo[_campaignID][msg.sender];
     _updateCampaign(_campaignID);
@@ -93,16 +117,100 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
     if (_amount != 0) {
       user.amount = user.amount + _amount;
       campaign.totalStaked = campaign.totalStaked + _amount;
-      campaign.stakingToken.safeTransferFrom(
-        msg.sender,
-        address(this),
-        _amount
-      );
     }
     user.rewardDebt =
       (user.amount * campaign.accRewardPerShare) /
       (1e20);
     emit Deposit(msg.sender, _amount, _campaignID);
+  }
+
+  /// @inheritdoc IFarmingRange
+  function deposit(uint256 _campaignID, uint256 _amount) public {
+    if (campaignInfo[_campaignID].assetType != AssetType.ERC20)
+      revert OnlyERC20Campaigns();
+
+    if (_amount != 0) {
+      campaignInfo[_campaignID].stakingToken.safeTransferFrom(
+        msg.sender,
+        address(this),
+        _amount
+      );
+    }
+
+    _deposit(_campaignID, _amount);
+  }
+
+  function depositLpNft(
+    uint256[] calldata _campaignIDs,
+    uint256 _tokenId
+  ) public {
+    liquidityManager.transferFrom(
+      msg.sender,
+      address(this),
+      _tokenId
+    );
+
+    Position lpPosition = liquidityManager.position(_tokenId);
+    uint256[] memory poolIds = lpPosition.poolIds;
+    uint256 nbPositionPools = poolIds.length;
+
+    for (uint256 i; i < _campaignIDs.length; i++) {
+      uint256 campaignID = _campaignIDs[i];
+      uint256 campaignPoolId = campaignInfo[_campaignID].poolId;
+
+      if (campaignInfo[campaignID].assetType != AssetType.LP_ERC721)
+        revert OnlyLiquidityProviderCampaigns();
+
+      bool hasRequiredPools;
+      for (uint256 i; i < nbPositionPools; i++) {
+        if (campaignPoolId == poolIds[i]) {
+          hasRequiredPools = true;
+          break;
+        }
+      }
+
+      if (!hasRequiredPools) revert IncompatiblePoolIds();
+
+      // Avoid user depositing multiple times in same campaign
+      if (campaignIncludesToken[campaignID][_tokenId])
+        revert AlreadyDeposited();
+      campaignIncludesToken[campaignID][_tokenId] = true;
+
+      uint256 amount = liquidityManager.positionLiquidity(_tokenId);
+      _deposit(_campaignID, amount);
+
+      nbLpTokenCampaigns[_tokenId]++;
+    }
+  }
+
+  function depositCoverNft(
+    uint256 _campaignID,
+    uint256 _tokenId
+  ) public {
+    coverManager.transferFrom(msg.sender, address(this), _tokenId);
+
+    if (campaignInfo[_campaignID].assetType != AssetType.COVER_ERC721)
+      revert OnlyCoverUserCampaigns();
+
+    FullCoverData cover = coverManager.fullCoverData(_tokenId);
+
+    // For cover campaigns there is only one poolId
+    if (campaignInfo[_campaignID].poolIds[0] != cover.poolId)
+      revert IncompatiblePoolIds();
+
+    // @bw to review if this is needed
+    // Ratio limits manipulative cover amount to premium ratios
+    // Minimum $0.5 of cover per $1 of premium (200% premiums)
+    // Maximum $250 of cover per $1 of premium (0.4% premiums)
+    uint256 amountCovered = cover.amountCovered;
+    uint256 premiumLeft = cover.premiumLeft;
+    if (
+      amountCovered * 2 < premiumLeft ||
+      premiumLeft * 250 < amountCovered
+    ) revert BadCoverAmountToPremiumRatio();
+
+    uint256 amount = amountCovered * premiumLeft;
+    _deposit(_campaignID, amount);
   }
 
   /// @inheritdoc IFarmingRange
