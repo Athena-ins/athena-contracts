@@ -198,18 +198,36 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
     if (campaignInfo[_campaignID].poolIds[0] != cover.poolId)
       revert IncompatiblePoolIds();
 
-    // @bw to review if this is needed
-    // Ratio limits manipulative cover amount to premium ratios
+    // Ratio penalty limits manipulative cover amount to premium ratios
+    // The first stage applies a penalty, the second stage rejects the deposit
+    //
+    // Stage 1:
     // Minimum $0.5 of cover per $1 of premium (200% premiums)
-    // Maximum $250 of cover per $1 of premium (0.4% premiums)
+    // Maximum $400 of cover per $1 of premium (0.25% premiums)
+    // Outside of these ranges the computed amount is divided by 4
+    //
+    // Stage 2:
+    // Minimum $0.2 of cover per $1 of premium (500% premiums)
+    // Maximum $1000 of cover per $1 of premium (0.1% premiums)
+    // Outside of these ranges farming is rejected
+    //
     uint256 amountCovered = cover.amountCovered;
     uint256 premiumLeft = cover.premiumLeft;
+
+    uint256 ratioPenalty = 1;
     if (
       amountCovered * 2 < premiumLeft ||
-      premiumLeft * 250 < amountCovered
-    ) revert BadCoverAmountToPremiumRatio();
+      premiumLeft * 500 < amountCovered
+    ) {
+      ratioPenalty = 4;
 
-    uint256 amount = amountCovered * premiumLeft;
+      if (
+        amountCovered * 5 < premiumLeft ||
+        premiumLeft * 1000 < amountCovered
+    ) revert BadCoverAmountToPremiumRatio();
+    }
+
+    uint256 amount = (amountCovered * premiumLeft) / ratioPenalty;
     _deposit(_campaignID, amount);
   }
 
