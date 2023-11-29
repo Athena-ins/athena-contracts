@@ -60,6 +60,12 @@ contract PositionsManager is
     return _positions[tokenId];
   }
 
+  function positionLiquidity(
+    uint256 tokenId
+  ) external view returns (uint256) {
+    return _positions[tokenId].amountSupplied;
+  }
+
   function getFirstPositionPoolId(
     uint256 tokenId_
   ) external view returns (uint128) {

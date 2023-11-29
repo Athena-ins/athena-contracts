@@ -36,12 +36,16 @@ contract RewardManager is IRewardManager {
 
   /**
    * @param _owner address who will own the farming
+   * @param _liquidityManager address of the liquidity manager
+   * @param _coverManager address of the cover manager
    * @param _stakedToken address of the staked token
    * @param _startFarmingCampaign block number the staking pool in the farming will start to give rewards
+   * @param feeLevels array of fee discount levels
    */
   constructor(
     address _owner,
     address _liquidityManager,
+    address _coverManager,
     IERC20 _stakedToken,
     uint256 _startFarmingCampaign,
     FeeLevel[] memory feeLevels
@@ -50,18 +54,23 @@ contract RewardManager is IRewardManager {
       revert StartFarmingInPast();
     }
 
-    farming = new FarmingRange(_owner, address(this));
-    farming.addCampaignInfo(
-      staking,
-      _stakedToken,
-      _startFarmingCampaign
+    farming = new FarmingRange(
+      _owner,
+      address(this),
+      _liquidityManager,
+      _coverManager
     );
-
     staking = new Staking(
       _owner,
       _stakedToken,
       farming,
       _liquidityManager
+    );
+
+    farming.addCampaignInfo(
+      staking,
+      _stakedToken,
+      _startFarmingCampaign
     );
     staking.initializeFarming(feeLevels);
   }
