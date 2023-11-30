@@ -41,6 +41,8 @@ error InvalidCampaignId();
 error BadWithdrawAmount();
 // Only for ERC-20 token campaigns
 error OnlyERC20Campaigns();
+// Only for ERC-20 token campaigns
+error OnlyERC721Campaigns();
 // Only for ERC-721 token campaigns
 error OnlyLiquidityProviderCampaigns();
 // Only for ERC-721 token campaigns
@@ -49,6 +51,8 @@ error OnlyCoverUserCampaigns();
 error IncompatiblePoolIds();
 // NFT already deposited in campaign
 error AlreadyDeposited();
+// NFT is not deposited in campaign
+error NotDepositor();
 // Limits covers with odd ratios
 error BadCoverAmountToPremiumRatio();
 
@@ -282,9 +286,19 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
    * @param _campaignID campaign id
    * @param _amount amount to withdraw
    */
-  function _withdraw(uint256 _campaignID, uint256 _amount) internal {
+  function _withdraw(
+    uint256 _campaignID,
+    uint256 _amount,
+    bool _isNft,
+    uint256 _tokenId
+  ) internal {
     CampaignInfo storage campaign = campaignInfo[_campaignID];
-    UserInfo storage user = userInfo[_campaignID][msg.sender];
+    address owner = _isNft
+      ? campaignTokenDeposits[_campaignID][_tokenId]
+      : msg.sender;
+    UserInfo storage user = _isNft
+      ? userInfoNft[_campaignID][_tokenId]
+      : userInfo[_campaignID][owner];
 
     if (user.amount < _amount) {
       revert BadWithdrawAmount();
@@ -295,18 +309,17 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
       1e20 -
       user.rewardDebt;
     if (_pending != 0) {
-      campaign.rewardToken.safeTransfer(msg.sender, _pending);
+      campaign.rewardToken.safeTransfer(owner, _pending);
     }
     if (_amount != 0) {
       user.amount = user.amount - _amount;
       campaign.totalStaked = campaign.totalStaked - _amount;
-      campaign.stakingToken.safeTransfer(msg.sender, _amount);
     }
     user.rewardDebt =
       (user.amount * campaign.accRewardPerShare) /
       1e20;
 
-    emit Withdraw(msg.sender, _amount, _campaignID);
+    emit Withdraw(owner, _amount, _campaignID);
   }
 
   /// @inheritdoc IFarmingRange
@@ -314,17 +327,84 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
     uint256 _campaignID,
     uint256 _amount
   ) external nonReentrant {
-    _withdraw(_campaignID, _amount);
+    if (campaignInfo[_campaignID].assetType != AssetType.ERC20)
+      revert OnlyERC20Campaigns();
+
+    _withdraw(_campaignID, _amount, false, 0);
+
+    campaignInfo[_campaignID].stakingToken.safeTransfer(
+      msg.sender,
+      _amount
+    );
+  }
+
+  function withdrawLpNft(
+    uint256[] calldata _campaignIDs,
+    uint256 _tokenId
+  ) external nonReentrant {
+    uint256 nbCampaigns = _campaignIDs.length;
+
+    for (uint256 i; i < nbCampaigns; i++) {
+      uint256 campaignID = _campaignIDs[i];
+      if (campaignInfo[campaignID].assetType != AssetType.LP_ERC721)
+        revert OnlyLiquidityProviderCampaigns();
+
+      if (campaignTokenDeposits[campaignID][_tokenId] != msg.sender)
+        revert NotDepositor();
+      campaignTokenDeposits[campaignID][_tokenId] = address(0);
+
+      nbLpTokenCampaigns[_tokenId]--;
+
+      uint256 amount = userInfoNft[campaignID][_tokenId].amount;
+      _withdraw(campaignID, amount, true, _tokenId);
+    }
+
+    if (nbLpTokenCampaigns[_tokenId] == 0) {
+      liquidityManager.transferFrom(
+        address(this),
+        msg.sender,
+        _tokenId
+      );
+    }
+  }
+
+  function withdrawCoverNft(
+    uint256 _campaignID,
+    uint256 _tokenId
+  ) external nonReentrant {
+    if (campaignInfo[_campaignID].assetType != AssetType.COVER_ERC721)
+      revert OnlyCoverUserCampaigns();
+
+    if (campaignTokenDeposits[_campaignID][_tokenId] != msg.sender)
+      revert NotDepositor();
+    campaignTokenDeposits[_campaignID][_tokenId] = address(0);
+
+    uint256 amount = userInfoNft[_campaignID][_tokenId].amount;
+    _withdraw(_campaignID, amount, true, _tokenId);
+
+    coverManager.transferFrom(address(this), msg.sender, _tokenId);
   }
 
   /// @inheritdoc IFarmingRange
   function harvest(
-    uint256[] calldata _campaignIDs
+    uint256[] calldata _campaignIDs,
+    uint256[][] calldata _tokenIds
   ) external nonReentrant {
-    for (uint256 _i; _i != _campaignIDs.length; ) {
-      _withdraw(_campaignIDs[_i], 0);
-      unchecked {
-        ++_i;
+    for (uint256 i; i != _campaignIDs.length; i++) {
+      uint256 campaignID = _campaignIDs[i];
+
+      if (campaignInfo[campaignID].assetType == AssetType.ERC20) {
+        _withdraw(campaignID, 0, false, 0);
+      } else {
+        for (uint256 j; j != _tokenIds[i].length; j++) {
+          uint256 tokenId = _tokenIds[i][j];
+
+          if (
+            campaignTokenDeposits[campaignID][tokenId] != msg.sender
+          ) revert NotDepositor();
+
+          _withdraw(campaignID, 0, true, tokenId);
+        }
       }
     }
   }
@@ -334,13 +414,67 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
     uint256 _campaignID
   ) external nonReentrant {
     CampaignInfo storage campaign = campaignInfo[_campaignID];
+
+    if (campaign.assetType != AssetType.ERC20)
+      revert OnlyERC20Campaigns();
+
     UserInfo storage user = userInfo[_campaignID][msg.sender];
     uint256 _amount = user.amount;
     campaign.totalStaked = campaign.totalStaked - _amount;
     user.amount = 0;
     user.rewardDebt = 0;
+
+    // Only transfer staked tokens for ERC-20 campaigns
     campaign.stakingToken.safeTransfer(msg.sender, _amount);
+
     emit EmergencyWithdraw(msg.sender, _amount, _campaignID);
+  }
+
+  function emergencyWithdrawNft(
+    uint256[] calldata _campaignIDs,
+    uint256[][] calldata _tokenIds
+  ) external nonReentrant {
+    for (uint256 i; i != _campaignIDs.length; i++) {
+      uint256 campaignID = _campaignIDs[i];
+      CampaignInfo storage campaign = campaignInfo[campaignID];
+
+      if (campaign.assetType == AssetType.ERC20)
+        revert OnlyERC721Campaigns();
+
+      for (uint256 j; j != _tokenIds[i].length; j++) {
+        uint256 tokenId = _tokenIds[i][j];
+
+        if (campaignTokenDeposits[campaignID][tokenId] != msg.sender)
+          revert NotDepositor();
+        campaignTokenDeposits[campaignID][tokenId] = address(0);
+
+        UserInfo storage user = userInfoNft[campaignID][tokenId];
+        uint256 _amount = user.amount;
+        campaign.totalStaked = campaign.totalStaked - _amount;
+        user.amount = 0;
+        user.rewardDebt = 0;
+
+        if (campaign.assetType == AssetType.COVER_ERC721) {
+          coverManager.transferFrom(
+            address(this),
+            msg.sender,
+            tokenId
+          );
+        } else if (campaign.assetType == AssetType.LP_ERC721) {
+          nbLpTokenCampaigns[tokenId]--;
+
+          if (nbLpTokenCampaigns[tokenId] == 0) {
+            liquidityManager.transferFrom(
+              address(this),
+              msg.sender,
+              tokenId
+            );
+          }
+        }
+
+        emit EmergencyWithdraw(msg.sender, _amount, campaignID);
+      }
+    }
   }
 
   // ======= CAMPAIGNS ======= //

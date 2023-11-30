@@ -366,7 +366,10 @@ interface IFarmingRange {
    * @notice Harvest campaigns, will claim rewards token of every campaign ids in the array
    * @param _campaignIDs array of campaign id
    */
-  function harvest(uint256[] calldata _campaignIDs) external;
+  function harvest(
+    uint256[] calldata _campaignIDs,
+    uint256[][] calldata _tokenIds
+  ) external;
 
   /**
    * @notice Withdraw without caring about rewards. EMERGENCY ONLY.
