@@ -55,6 +55,8 @@ error AlreadyDeposited();
 error NotDepositor();
 // Limits covers with odd ratios
 error BadCoverAmountToPremiumRatio();
+// Cover has not expired yet
+error CoverStillActive();
 
 /**
  * @title FarmingRange
@@ -246,7 +248,7 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
       if (
         amountCovered * 5 < premiumLeft ||
         premiumLeft * 1000 < amountCovered
-    ) revert BadCoverAmountToPremiumRatio();
+      ) revert BadCoverAmountToPremiumRatio();
     }
 
     campaignTokenDeposits[_campaignID][_tokenId] = msg.sender;
@@ -265,16 +267,16 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
     bytes32 _r,
     bytes32 _s
   ) external {
-    SafeERC20.safePermit(
-      IERC20Permit(address(campaignInfo[_campaignID].stakingToken)),
-      msg.sender,
-      address(this),
-      _approveMax ? type(uint256).max : _amount,
-      _deadline,
-      _v,
-      _r,
-      _s
-    );
+    IERC20Permit(address(campaignInfo[_campaignID].stakingToken))
+      .permit(
+        msg.sender,
+        address(this),
+        _approveMax ? type(uint256).max : _amount,
+        _deadline,
+        _v,
+        _r,
+        _s
+      );
 
     deposit(_campaignID, _amount);
   }
@@ -473,6 +475,40 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
         }
 
         emit EmergencyWithdraw(msg.sender, _amount, campaignID);
+      }
+    }
+  }
+
+  function forceExpiredCoverWithdrawal(
+    uint256 _campaignID,
+    uint256 _tokenId
+  ) public nonReentrant {
+    // Avoids terminated covers to unfairly farm rewards
+    if (campaignInfo[_campaignID].assetType != AssetType.COVER_ERC721)
+      revert OnlyCoverUserCampaigns();
+
+    bool isActive = coverManager.policyActive(_tokenId);
+    if (isActive) revert CoverStillActive();
+
+    uint256 amount = userInfoNft[_campaignID][_tokenId].amount;
+    _withdraw(_campaignID, amount, true, _tokenId);
+
+    address owner = campaignTokenDeposits[_campaignID][_tokenId];
+    coverManager.transferFrom(address(this), owner, _tokenId);
+
+    campaignTokenDeposits[_campaignID][_tokenId] = address(0);
+  }
+
+  function forceExpiredCoverWithdrawalMultiple(
+    uint256[] calldata _campaignIDs,
+    uint256[][] calldata _tokenIds
+  ) external nonReentrant {
+    for (uint256 i; i != _campaignIDs.length; i++) {
+      uint256 campaignID = _campaignIDs[i];
+
+      for (uint256 j; j != _tokenIds[i].length; j++) {
+        uint256 tokenId = _tokenIds[i][j];
+        forceExpiredCoverWithdrawal(campaignID, tokenId);
       }
     }
   }
