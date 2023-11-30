@@ -13,9 +13,9 @@ import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.s
 import { ILendingPool } from "./interfaces/ILendingPool.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import { IAthena } from "../interfaces/IAthena.sol";
-import { IPositionsManager } from "../interfaces/IPositionsManager.sol";
 import { IProtocolFactory } from "../interfaces/IProtocolFactory.sol";
 import { IProtocolPool } from "../interfaces/IProtocolPool.sol";
+import { IPositionManager } from "../interfaces/IPositionManager.sol";
 import { IPolicyManager } from "../interfaces/IPolicyManager.sol";
 import { IClaimManager } from "../interfaces/IClaimManager.sol";
 
@@ -27,7 +27,7 @@ contract Athena is ReentrancyGuard, Ownable {
 
   IERC20 public atenTokenInterface;
 
-  IPositionsManager public positionManagerInterface;
+  IPositionManager public positionManagerInterface;
   IPolicyManager public policyManagerInterface;
   IClaimManager public claimManagerInterface;
 
@@ -50,7 +50,7 @@ contract Athena is ReentrancyGuard, Ownable {
     address _claimManagerAddress,
     address _protocolFactory
   ) external onlyOwner {
-    positionManagerInterface = IPositionsManager(
+    positionManagerInterface = IPositionManager(
       _positionManagerAddress
     );
     policyManagerInterface = IPolicyManager(_policyManagerAddress);
@@ -249,7 +249,7 @@ contract Athena is ReentrancyGuard, Ownable {
     // If the user has positions check if unstaking affects fee level
     if (tokenList.length != 0) {
       // Get the user's first position
-      IPositionsManager.Position
+      IPositionManager.Position
         memory userPosition = positionManagerInterface.position(
           tokenList[0]
         );
@@ -401,7 +401,7 @@ contract Athena is ReentrancyGuard, Ownable {
   function withdrawAll(
     uint256 tokenId
   ) external onlyPositionTokenOwner(tokenId) {
-    IPositionsManager.Position
+    IPositionManager.Position
       memory __position = positionManagerInterface.position(tokenId);
 
     uint256 __newUserCapital;

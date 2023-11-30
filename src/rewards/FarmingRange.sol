@@ -3,7 +3,7 @@ pragma solidity 0.8.20;
 
 // contracts
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
-import { ReentrancyGuard } from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 // libraries
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -335,6 +335,8 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
 
   /// @inheritdoc IFarmingRange
   function addCampaignInfo(
+    AssetType _assetType,
+    uint256 _poolId,
     IERC20 _stakingToken,
     IERC20 _rewardToken,
     uint256 _startBlock
@@ -345,6 +347,8 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
 
     campaignInfo.push(
       CampaignInfo({
+        assetType: _assetType,
+        poolId: _poolId,
         stakingToken: _stakingToken,
         rewardToken: _rewardToken,
         startBlock: _startBlock,
@@ -354,9 +358,12 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
         totalRewards: 0
       })
     );
+
     emit AddCampaignInfo(
       campaignInfo.length - 1,
-      _stakingToken,
+      _assetType,
+      _poolId,
+      address(_stakingToken),
       _rewardToken,
       _startBlock
     );

@@ -179,6 +179,8 @@ interface IFarmingRange {
    * @param _startBlock block number when the campaign will start
    */
   function addCampaignInfo(
+    AssetType _assetType,
+    uint256 _poolId,
     IERC20 _stakingToken,
     IERC20 _rewardToken,
     uint256 _startBlock
@@ -399,6 +401,8 @@ interface IFarmingRange {
     external
     view
     returns (
+      AssetType,
+      uint256,
       IERC20,
       IERC20,
       uint256,

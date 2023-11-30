@@ -3,7 +3,7 @@ pragma solidity 0.8.20;
 
 import { IERC721Enumerable } from "@openzeppelin/contracts/token/ERC721/extensions/IERC721Enumerable.sol";
 
-interface IPositionsManager is IERC721Enumerable {
+interface IPositionManager is IERC721Enumerable {
   struct Position {
     uint256 createdAt;
     uint256 amountSupplied;
