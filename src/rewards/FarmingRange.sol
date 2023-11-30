@@ -65,12 +65,16 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
     public campaignRewardInfo;
 
   CampaignInfo[] public campaignInfo;
+
   mapping(uint256 _campaignId => mapping(address _account => UserInfo))
     public userInfo;
+  mapping(uint256 _campaignId => mapping(uint256 _tokenId => UserInfo))
+    public userInfoNft;
+
   mapping(uint256 _lpTokenId => uint256 _nbCampaigns)
     public nbLpTokenCampaigns;
-  mapping(uint256 _campaignId => uint256 _lpTokenId)
-    public campaignIncludesToken;
+  mapping(uint256 _campaignId => mapping(uint256 _tokenId => address _account))
+    public campaignTokenDeposits;
 
   uint256 public rewardInfoLimit;
   address public immutable rewardManager;
@@ -98,10 +102,15 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
 
   function _deposit(
     uint256 _campaignID,
-    uint256 _amount
-  ) internal nonReentrant {
+    uint256 _amount,
+    bool _isNft,
+    uint256 _tokenId
+  ) internal {
     CampaignInfo storage campaign = campaignInfo[_campaignID];
-    UserInfo storage user = userInfo[_campaignID][msg.sender];
+    UserInfo storage user = _isNft
+      ? userInfoNft[_campaignID][_tokenId]
+      : userInfo[_campaignID][msg.sender];
+
     _updateCampaign(_campaignID);
     if (user.amount != 0) {
       uint256 _pending = (user.amount * campaign.accRewardPerShare) /
@@ -125,7 +134,10 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
   }
 
   /// @inheritdoc IFarmingRange
-  function deposit(uint256 _campaignID, uint256 _amount) public {
+  function deposit(
+    uint256 _campaignID,
+    uint256 _amount
+  ) public nonReentrant {
     if (campaignInfo[_campaignID].assetType != AssetType.ERC20)
       revert OnlyERC20Campaigns();
 
@@ -137,65 +149,71 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
       );
     }
 
-    _deposit(_campaignID, _amount);
+    _deposit(_campaignID, _amount, false, 0);
   }
 
   function depositLpNft(
     uint256[] calldata _campaignIDs,
     uint256 _tokenId
-  ) public {
+  ) public nonReentrant {
     liquidityManager.transferFrom(
       msg.sender,
       address(this),
       _tokenId
     );
 
-    Position lpPosition = liquidityManager.position(_tokenId);
-    uint256[] memory poolIds = lpPosition.poolIds;
-    uint256 nbPositionPools = poolIds.length;
+    IPositionManager.Position memory lpPosition = liquidityManager
+      .position(_tokenId);
 
-    for (uint256 i; i < _campaignIDs.length; i++) {
+    uint256 amount = lpPosition.amountSupplied;
+    uint128[] memory poolIds = lpPosition.poolIds;
+
+    uint256 nbPositionPools = poolIds.length;
+    uint256 nbCampaigns = _campaignIDs.length;
+
+    // @bw maybe a way to reduce complexity by looping pools first and
+    // ordering campaign IDs in the same order as pools
+    for (uint256 i; i < nbCampaigns; i++) {
       uint256 campaignID = _campaignIDs[i];
-      uint256 campaignPoolId = campaignInfo[_campaignID].poolId;
+      uint256 campaignPoolId = campaignInfo[campaignID].poolId;
 
       if (campaignInfo[campaignID].assetType != AssetType.LP_ERC721)
         revert OnlyLiquidityProviderCampaigns();
 
       bool hasRequiredPools;
-      for (uint256 i; i < nbPositionPools; i++) {
-        if (campaignPoolId == poolIds[i]) {
+      for (uint256 j; j < nbPositionPools; j++) {
+        if (campaignPoolId == poolIds[j]) {
           hasRequiredPools = true;
           break;
         }
       }
-
       if (!hasRequiredPools) revert IncompatiblePoolIds();
 
       // Avoid user depositing multiple times in same campaign
-      if (campaignIncludesToken[campaignID][_tokenId])
+      if (campaignTokenDeposits[campaignID][_tokenId] != address(0))
         revert AlreadyDeposited();
-      campaignIncludesToken[campaignID][_tokenId] = true;
+      campaignTokenDeposits[campaignID][_tokenId] = msg.sender;
 
-      uint256 amount = liquidityManager.positionLiquidity(_tokenId);
-      _deposit(_campaignID, amount);
-
-      nbLpTokenCampaigns[_tokenId]++;
+      _deposit(campaignID, amount, true, _tokenId);
     }
+
+    nbLpTokenCampaigns[_tokenId] += nbCampaigns;
   }
 
   function depositCoverNft(
     uint256 _campaignID,
     uint256 _tokenId
-  ) public {
-    coverManager.transferFrom(msg.sender, address(this), _tokenId);
-
+  ) public nonReentrant {
     if (campaignInfo[_campaignID].assetType != AssetType.COVER_ERC721)
       revert OnlyCoverUserCampaigns();
 
-    FullCoverData cover = coverManager.fullCoverData(_tokenId);
+    coverManager.transferFrom(msg.sender, address(this), _tokenId);
+
+    IPolicyManager.FullCoverData memory cover = coverManager
+      .fullCoverData(_tokenId);
 
     // For cover campaigns there is only one poolId
-    if (campaignInfo[_campaignID].poolIds[0] != cover.poolId)
+    if (campaignInfo[_campaignID].poolId != cover.poolId)
       revert IncompatiblePoolIds();
 
     // Ratio penalty limits manipulative cover amount to premium ratios
@@ -227,8 +245,10 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
     ) revert BadCoverAmountToPremiumRatio();
     }
 
+    campaignTokenDeposits[_campaignID][_tokenId] = msg.sender;
+
     uint256 amount = (amountCovered * premiumLeft) / ratioPenalty;
-    _deposit(_campaignID, amount);
+    _deposit(_campaignID, amount, true, _tokenId);
   }
 
   /// @inheritdoc IFarmingRange
