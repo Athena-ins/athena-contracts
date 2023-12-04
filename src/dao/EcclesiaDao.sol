@@ -22,12 +22,15 @@ error BadAmount();
 error LockAlreadyExists();
 error LockDoesNotExist();
 error LockExpired();
+error LockPeriodNotOver();
 error CanOnlyExtendLock();
 error CanOnlyLockInFuture();
 error LockLongerThanMax();
+error NotEnoughVotes();
 error FeePerDayTooHigh();
 error InvalidBps();
 error InvalidTreasuryAddr();
+error UnnecessaryEarlyWithdraw();
 
 /**
  * @title AthenaDAO
@@ -37,12 +40,22 @@ error InvalidTreasuryAddr();
  */
 contract EcclesiaDao is ERC20, ReentrancyGuard, Ownable {
   using SafeERC20 for IERC20;
+
+  // ======= EVENTS ======= //
+
+  event SetBreaker(bool _newBreaker);
   event SetEarlyWithdrawConfig(
     uint256 _newEarlyWithdrawBpsPerDay,
     uint256 _newRedistributeBps,
     uint256 _newBurnBps,
     uint256 _newTreasuryBps,
     address _newTreasuryAddr
+  );
+  event Withdraw(address indexed _user, uint256 _amount);
+  event EarlyWithdraw(
+    address indexed _user,
+    uint256 _amount,
+    uint256 _timestamp
   );
 
   // ======= CONSTANTS ======= //
@@ -59,6 +72,9 @@ contract EcclesiaDao is ERC20, ReentrancyGuard, Ownable {
   uint256 public constant RAY = 1e27;
 
   // ======= GLOBAL STATE ======= //
+
+  // Switch to allow early withdrawal in case of migration
+  bool public breaker;
 
   // Staking contract
   IStaking public staking;
@@ -263,6 +279,125 @@ contract EcclesiaDao is ERC20, ReentrancyGuard, Ownable {
       previousVotes;
     _mint(msg.sender, votes);
   }
+
+  // ======= WITHDRAW ======= //
+
+  /// @notice Set breaker
+  /// @param _breaker The new value of breaker false if off, true if on
+  function setBreaker(bool _breaker) external onlyOwner {
+    breaker = _breaker;
+    emit SetBreaker(breaker);
+  }
+
+  function _unlock(
+    LockedBalance memory _lock,
+    uint256 _withdrawAmount
+  ) internal {
+    LockedBalance storage userLock = _lock;
+
+    if (_lock.amount < _withdrawAmount) revert BadAmount();
+
+    //_lock.end should remain the same if we do partially withdraw
+    if (_lock.amount == _withdrawAmount) {
+      _lock.duration = 0;
+      _lock.end = 0;
+    }
+    _lock.amount -= _withdrawAmount;
+
+    // Tokens are either 100% staked or 100% not staked
+    if (userLock.staking != 0) {
+      // We want to track the amount of staking rewards we harvest
+      uint256 balBefore = token.balanceOf(address(this));
+
+      // @bw this will cause a harvest of rewards
+      staking.withdrawToken(address(this), _withdrawAmount);
+
+      // Remove amount received from staking for net rewards
+      uint256 stakingRewards = (token.balanceOf(address(this)) -
+        _withdrawAmount) - balBefore;
+      _accrueStaking(stakingRewards);
+
+      userLock.staking -= _withdrawAmount;
+      supplyStaking -= _withdrawAmount;
+    }
+
+    supply -= _withdrawAmount;
+  }
+
+  /// @notice Withdraw all ALPACA when lock has expired.
+  function withdraw() external nonReentrant {
+    // This copy of the lock will be used for harvesting
+    LockedBalance memory _lock = locks[msg.sender];
+
+    if (breaker == false)
+      if (block.timestamp < _lock.end) revert LockPeriodNotOver();
+
+    // Burn the user's corresponding votes
+    uint256 votes = tokenToVotes(_lock.amount, _lock.duration);
+    uint256 userVotes = balanceOf(msg.sender);
+    if (userVotes < votes) revert NotEnoughVotes();
+    _burn(msg.sender, votes);
+
+    uint256 _amount = _lock.amount;
+    _unlock(_lock, _amount);
+    token.safeTransfer(msg.sender, _amount);
+
+    // Harvest after unlock for staking reward index update
+    harvest(_lock);
+
+    emit Withdraw(msg.sender, _amount);
+  }
+
+  /// @notice Early withdraw ALPACA with penalty.
+  function earlyWithdraw(uint256 _amount) external nonReentrant {
+    LockedBalance memory _lock = locks[msg.sender];
+
+    if (_lock.amount == 0) revert LockDoesNotExist();
+    if (_lock.end <= block.timestamp) revert LockExpired();
+    if (_lock.amount < _amount) revert BadAmount();
+    if (breaker == true) revert UnnecessaryEarlyWithdraw();
+
+    // Burn the user's corresponding votes
+    uint256 votes = tokenToVotes(_lock.amount, _lock.duration);
+    uint256 userVotes = balanceOf(msg.sender);
+    if (userVotes < votes) revert NotEnoughVotes();
+    _burn(msg.sender, votes);
+
+    // prevent mutated memory in _unlock() function as it will be used in fee calculation afterward
+    uint256 _prevLockEnd = _lock.end;
+    _unlock(_lock, _amount);
+
+    // ceil the day by adding 1 day first
+    uint256 remainingDays = (_prevLockEnd +
+      1 days -
+      block.timestamp) / 1 days;
+    // calculate penalty
+    uint256 _penalty = (earlyWithdrawBpsPerDay *
+      remainingDays *
+      _amount) / RAY;
+
+    // Harvest after unlock for staking reward index update
+    harvest(_lock);
+
+    // Redistribute fee
+    uint256 _amountRedistribute = (_penalty * redistributeBps) / RAY;
+    _redistribute(_amountRedistribute);
+
+    // Burn fee
+    uint256 _amountBurn = (_penalty * burnBps) / RAY;
+    _burn(address(this), _amountBurn);
+
+    // Transfer difference to treasury
+    uint256 _amountTreasury = (_penalty - _amountRedistribute) -
+      _amountBurn;
+    token.safeTransfer(treasuryAddr, _amountTreasury);
+
+    // transfer remaining back to owner
+    token.safeTransfer(msg.sender, _amount - _penalty);
+
+    emit EarlyWithdraw(msg.sender, _amount, block.timestamp);
+  }
+
   // ======= REWARDS ======= //
 
   function _accrueStaking(uint256 _amount) private nonReentrant {
