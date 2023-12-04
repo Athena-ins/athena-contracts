@@ -25,7 +25,9 @@ error LockExpired();
 error CanOnlyExtendLock();
 error CanOnlyLockInFuture();
 error LockLongerThanMax();
-error LockTooShortToStake();
+error FeePerDayTooHigh();
+error InvalidBps();
+error InvalidTreasuryAddr();
 
 /**
  * @title AthenaDAO
@@ -35,6 +37,13 @@ error LockTooShortToStake();
  */
 contract EcclesiaDao is ERC20, ReentrancyGuard, Ownable {
   using SafeERC20 for IERC20;
+  event SetEarlyWithdrawConfig(
+    uint256 _newEarlyWithdrawBpsPerDay,
+    uint256 _newRedistributeBps,
+    uint256 _newBurnBps,
+    uint256 _newTreasuryBps,
+    address _newTreasuryAddr
+  );
 
   // ======= CONSTANTS ======= //
 
@@ -58,18 +67,18 @@ contract EcclesiaDao is ERC20, ReentrancyGuard, Ownable {
   // Total supply of AOE that get locked
   uint256 public supply;
 
-  // Treasury address
-  address public treasuryAddr;
-
   // Index for redistributed AOE
-  uint256 public aoeIndex;
+  uint256 public redistributeIndex;
+  // Index for staking rewards
+  uint256 public stakingIndex;
   // Index for accumulated fees
   uint256 public feeIndex;
 
   struct LockedBalance {
     uint256 amount; // amount of AOE locked
     uint256 staking;
-    uint256 userAoeIndex;
+    uint256 userRedisIndex;
+    uint256 userStakingIndex;
     uint256 userFeeIndex;
     uint256 duration;
     uint256 end;
@@ -77,6 +86,19 @@ contract EcclesiaDao is ERC20, ReentrancyGuard, Ownable {
 
   // Mapping (user => LockedBalance) to keep locking information for each user
   mapping(address => LockedBalance) public locks;
+
+  // Amount of early withdrawal fees per day of remaining lock duration
+  uint256 public earlyWithdrawBpsPerDay;
+
+  // Portion of early withdrawal fees to be redistributed to remaining lockers
+  uint256 public redistributeBps;
+  // Portion of early withdrawal fees to be burned
+  uint256 public burnBps;
+  // Portion of early withdrawal fees to be sent to treasury
+  uint256 public treasuryBps;
+
+  // Address of treasury
+  address public treasuryAddr;
 
   // ======= CONSTRUCTOR ======= //
 
@@ -128,7 +150,7 @@ contract EcclesiaDao is ERC20, ReentrancyGuard, Ownable {
     LockedBalance storage userLock = _lock;
 
     if (userLock.amount == 0) {
-      userLock.userAoeIndex = aoeIndex;
+      userLock.userRedisIndex = redistributeIndex;
       userLock.userFeeIndex = feeIndex;
     }
 
@@ -227,5 +249,63 @@ contract EcclesiaDao is ERC20, ReentrancyGuard, Ownable {
     uint256 votes = tokenToVotes(_lock.amount, duration) -
       previousVotes;
     _mint(msg.sender, votes);
+  }
+  // ======= REWARDS ======= //
+
+  function _accrueStaking(uint256 _amount) private nonReentrant {
+    // @bw check precision loss
+    // Rewards are distributed per staked token
+    uint256 amountPerVote = ((_amount * RAY) / supplyStaking) / RAY;
+    stakingIndex += amountPerVote;
+  }
+
+  function _redistribute(uint256 _amount) private nonReentrant {
+    // @bw check precision loss
+    // Rewards are distributed per vote
+    uint256 amountPerVote = ((_amount * RAY) / totalSupply()) / RAY;
+    redistributeIndex += amountPerVote;
+  }
+
+  function accrueRevenue(uint256 _amount) external nonReentrant {
+    // @bw check precision loss
+    // Rewards are distributed per vote
+    uint256 amountPerVote = ((_amount * RAY) / totalSupply()) / RAY;
+    feeIndex += amountPerVote;
+  }
+
+  // ======= ADMIN ======= //
+
+  function setEarlyWithdrawConfig(
+    uint256 _newEarlyWithdrawBpsPerDay,
+    uint256 _newRedistributeBps,
+    uint256 _newBurnBps,
+    uint256 _newTreasuryBps,
+    address _newTreasuryAddr
+  ) external onlyOwner {
+    // Maximum early withdraw fee per day bps is 100% / max lock duration in day
+    uint256 maxFeePerDay = RAY / (MAX_LOCK / 1 days);
+    if (maxFeePerDay < _newEarlyWithdrawBpsPerDay)
+      revert FeePerDayTooHigh();
+
+    // Sum of fee distribution must equal RAY (100%)
+    if (RAY != _newRedistributeBps + _newBurnBps + _newTreasuryBps)
+      revert InvalidBps();
+
+    earlyWithdrawBpsPerDay = _newEarlyWithdrawBpsPerDay;
+    redistributeBps = _newRedistributeBps;
+    burnBps = _newBurnBps;
+    treasuryBps = _newTreasuryBps;
+    treasuryAddr = _newTreasuryAddr;
+
+    if (treasuryBps != 0 && treasuryAddr == address(0))
+      revert InvalidTreasuryAddr();
+
+    emit SetEarlyWithdrawConfig(
+      earlyWithdrawBpsPerDay,
+      redistributeBps,
+      burnBps,
+      treasuryBps,
+      treasuryAddr
+    );
   }
 }
