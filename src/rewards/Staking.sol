@@ -178,7 +178,7 @@ contract Staking is IStaking, ERC20, Ownable {
   function withdraw(
     address _to,
     uint256 _sharesAmount
-  ) external isFarmingInitialized checkUserBlock {
+  ) public isFarmingInitialized checkUserBlock {
     if (
       _sharesAmount == 0 ||
       userInfo[msg.sender].shares < _sharesAmount
@@ -204,6 +204,14 @@ contract Staking is IStaking, ERC20, Ownable {
     );
 
     emit Withdraw(msg.sender, _to, _tokensToWithdraw, _sharesAmount);
+  }
+
+  function withdrawToken(
+    address _to,
+    uint256 _tokensAmount
+  ) external isFarmingInitialized checkUserBlock {
+    uint256 shares = tokensToShares(_tokensAmount);
+    withdraw(_to, shares);
   }
 
   /// @inheritdoc IStaking
@@ -244,7 +252,7 @@ contract Staking is IStaking, ERC20, Ownable {
   /// @inheritdoc IStaking
   function tokensToShares(
     uint256 _tokens
-  ) external view returns (uint256 shares_) {
+  ) public view returns (uint256 shares_) {
     uint256 _currentBalance = stakedToken.balanceOf(address(this));
     _currentBalance += farming.pendingReward(
       CAMPAIGN_ID,

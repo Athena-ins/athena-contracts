@@ -94,6 +94,8 @@ interface IStaking is IERC20 {
    */
   function withdraw(address _to, uint256 _sharesAmount) external;
 
+  function withdrawToken(address _to, uint256 _tokensAmount) external;
+
   /**
    * @notice Withdraw SDEX for all shares of the sender, will not harvest before. Only use this function in emergency
    *         WARNING: This function may result in a lower amount of SDEX being withdrawn because it bypasses potential
