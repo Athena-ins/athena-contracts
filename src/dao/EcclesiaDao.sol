@@ -133,7 +133,14 @@ contract EcclesiaDao is ERC20, ReentrancyGuard, Ownable {
     }
 
     if (_unlockTime != 0) {
-      userLock.duration = _unlockTime - block.timestamp;
+      // When updated we compute the added time to keep track of total duration
+      uint256 durationAdded = userLock.end == 0
+        ? _unlockTime - block.timestamp
+        : _unlockTime - userLock.end;
+
+      userLock.duration = durationAdded;
+      // Cap duration since the addition can be pushed above max lock
+      if (MAX_LOCK < userLock.duration) userLock.duration = MAX_LOCK;
       userLock.end = _unlockTime;
     }
 
@@ -174,6 +181,51 @@ contract EcclesiaDao is ERC20, ReentrancyGuard, Ownable {
 
     uint duration = _unlockTime - block.timestamp;
     uint256 votes = tokenToVotes(_amount, duration);
+    _mint(msg.sender, votes);
+  }
+
+  // ======= UPDATE ======= //
+
+  /// @notice Increase lock amount without increase "end"
+  /// @param _amount The amount of ALPACA to be added to the lock
+  function increaseLockAmount(uint256 _amount) external nonReentrant {
+    LockedBalance memory _lock = locks[msg.sender];
+
+    if (_amount == 0) revert BadAmount();
+    if (_lock.amount == 0) revert LockDoesNotExist();
+    if (_lock.end <= block.timestamp) revert LockExpired();
+
+    _deposit(_lock, _amount, 0);
+
+    uint duration = _lock.duration;
+    uint256 votes = tokenToVotes(_amount, duration);
+    _mint(msg.sender, votes);
+  }
+
+  /// @notice Increase unlock time without changing locked amount
+  /// @param _newUnlockTime The new unlock time to be updated
+  function increaseUnlockTime(
+    uint256 _newUnlockTime
+  ) external nonReentrant {
+    LockedBalance memory _lock = locks[msg.sender];
+
+    if (_lock.amount == 0) revert LockDoesNotExist();
+    if (_lock.end <= block.timestamp) revert LockExpired();
+    if (_newUnlockTime <= _lock.end) revert CanOnlyExtendLock();
+    if (block.timestamp + MAX_LOCK < _newUnlockTime)
+      revert LockLongerThanMax();
+
+    // Save previous balance to compute amount of new votes to mint
+    uint256 previousVotes = tokenToVotes(
+      _lock.amount,
+      _lock.duration
+    );
+
+    _deposit(_lock, 0, _newUnlockTime);
+
+    uint duration = _lock.duration;
+    uint256 votes = tokenToVotes(_lock.amount, duration) -
+      previousVotes;
     _mint(msg.sender, votes);
   }
 }
