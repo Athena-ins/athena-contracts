@@ -56,7 +56,7 @@ contract EcclesiaDao is ERC20, ReentrancyGuard, Ownable {
   // Minimum duration to stake while participating in governance
   uint256 public constant MIN_TO_STAKE = MAX_LOCK / 2;
 
-  uint256 public constant MULTIPLIER = 1e18;
+  uint256 public constant RAY = 1e27;
 
   // ======= GLOBAL STATE ======= //
 
@@ -66,6 +66,8 @@ contract EcclesiaDao is ERC20, ReentrancyGuard, Ownable {
   IERC20 public token;
   // Total supply of AOE that get locked
   uint256 public supply;
+  // Total supply of AOE that get staked
+  uint256 public supplyStaking;
 
   // Index for redistributed AOE
   uint256 public redistributeIndex;
@@ -119,11 +121,11 @@ contract EcclesiaDao is ERC20, ReentrancyGuard, Ownable {
     uint256 bias = EQUILIBRIUM_LOCK <= _lockDuration
       ? 1 +
         ADD_WEIGHT *
-        (((_lockDuration - EQUILIBRIUM_LOCK) * MULTIPLIER) /
+        (((_lockDuration - EQUILIBRIUM_LOCK) * RAY) /
           (MAX_LOCK - EQUILIBRIUM_LOCK))
-      : (_lockDuration * MULTIPLIER) / EQUILIBRIUM_LOCK;
+      : (_lockDuration * RAY) / EQUILIBRIUM_LOCK;
 
-    votes = (_amount * bias) / MULTIPLIER;
+    votes = (_amount * bias) / RAY;
   }
 
   function votesToTokens(
@@ -133,11 +135,11 @@ contract EcclesiaDao is ERC20, ReentrancyGuard, Ownable {
     uint256 bias = EQUILIBRIUM_LOCK <= _lockDuration
       ? 1 +
         ADD_WEIGHT *
-        (((_lockDuration - EQUILIBRIUM_LOCK) * MULTIPLIER) /
+        (((_lockDuration - EQUILIBRIUM_LOCK) * RAY) /
           (MAX_LOCK - EQUILIBRIUM_LOCK))
-      : (_lockDuration * MULTIPLIER) / EQUILIBRIUM_LOCK;
+      : (_lockDuration * RAY) / EQUILIBRIUM_LOCK;
 
-    tokens = (_votes * MULTIPLIER) / bias;
+    tokens = (_votes * RAY) / bias;
   }
 
   // ======= DEPOSIT ======= //
@@ -173,12 +175,24 @@ contract EcclesiaDao is ERC20, ReentrancyGuard, Ownable {
     }
 
     if (MIN_TO_STAKE < userLock.duration) {
-      uint256 toStake = userLock.amount - userLock.staking;
+      // We want to track the amount of staking rewards we harvest
+      uint256 balBefore = token.balanceOf(address(this));
 
+      uint256 toStake = userLock.amount - userLock.staking;
       token.safeIncreaseAllowance(address(staking), toStake);
+      // This will cause a harvest of rewards
       staking.deposit(toStake);
 
+      // Reincorporate amount sent to staking for net rewards
+      uint256 stakingRewards = (token.balanceOf(address(this)) +
+        toStake) - balBefore;
+      _accrueStaking(stakingRewards);
+
+      // Only usefull when position is created
+      userLock.userStakingIndex = stakingIndex;
+
       userLock.staking += toStake;
+      supplyStaking += toStake;
     }
   }
 
@@ -201,8 +215,7 @@ contract EcclesiaDao is ERC20, ReentrancyGuard, Ownable {
 
     _deposit(lock, _amount, _unlockTime);
 
-    uint duration = _unlockTime - block.timestamp;
-    uint256 votes = tokenToVotes(_amount, duration);
+    uint256 votes = tokenToVotes(_amount, lock.duration);
     _mint(msg.sender, votes);
   }
 
@@ -217,10 +230,11 @@ contract EcclesiaDao is ERC20, ReentrancyGuard, Ownable {
     if (_lock.amount == 0) revert LockDoesNotExist();
     if (_lock.end <= block.timestamp) revert LockExpired();
 
+    // Need to harvest to update all reward indexes before adding more tokens
+    harvest(_lock);
     _deposit(_lock, _amount, 0);
 
-    uint duration = _lock.duration;
-    uint256 votes = tokenToVotes(_amount, duration);
+    uint256 votes = tokenToVotes(_amount, _lock.duration);
     _mint(msg.sender, votes);
   }
 
@@ -245,8 +259,7 @@ contract EcclesiaDao is ERC20, ReentrancyGuard, Ownable {
 
     _deposit(_lock, 0, _newUnlockTime);
 
-    uint duration = _lock.duration;
-    uint256 votes = tokenToVotes(_lock.amount, duration) -
+    uint256 votes = tokenToVotes(_lock.amount, _lock.duration) -
       previousVotes;
     _mint(msg.sender, votes);
   }
@@ -271,6 +284,17 @@ contract EcclesiaDao is ERC20, ReentrancyGuard, Ownable {
     // Rewards are distributed per vote
     uint256 amountPerVote = ((_amount * RAY) / totalSupply()) / RAY;
     feeIndex += amountPerVote;
+  }
+
+  function harvest(LockedBalance memory _lock) public nonReentrant {
+    LockedBalance storage userLock = _lock;
+
+    // harvest fees, staking rewards & (optionnaly) protocol revenue
+
+    // After harvest should update indexes to reset available rewards
+    userLock.userRedisIndex = redistributeIndex;
+    userLock.userStakingIndex = stakingIndex;
+    userLock.userFeeIndex = feeIndex;
   }
 
   // ======= ADMIN ======= //
