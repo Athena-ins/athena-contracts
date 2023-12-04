@@ -400,6 +400,10 @@ contract EcclesiaDao is ERC20, ReentrancyGuard, Ownable {
 
   // ======= REWARDS ======= //
 
+  function syncStaking() external nonReentrant {
+    // @bw this should check that staking index is adequately up to date with shares of this contract
+  }
+
   function _accrueStaking(uint256 _amount) private nonReentrant {
     // @bw check precision loss
     // Rewards are distributed per staked token
@@ -433,6 +437,11 @@ contract EcclesiaDao is ERC20, ReentrancyGuard, Ownable {
   }
 
   // ======= ADMIN ======= //
+
+  function unifyRevenue() external onlyOwner {
+    // should convert certains fees to a given rewards token like stable coin or coin
+    // how to check if is a swapable or withdrawable token and good price is harder
+  }
 
   function setEarlyWithdrawConfig(
     uint256 _newEarlyWithdrawBpsPerDay,
