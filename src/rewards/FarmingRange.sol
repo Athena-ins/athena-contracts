@@ -1114,6 +1114,7 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
       }
 
       if (_amount != 0) {
+        // @bw why transfer to rewardManager ?
         campaign.rewardToken.safeTransfer(rewardManager, _amount);
       }
 

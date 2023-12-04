@@ -11,6 +11,7 @@ import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.s
 // interfaces
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { IRewardManager } from "./interfaces/IRewardManager.sol";
+import { IFarmingRange } from "./interfaces/IFarmingRange.sol";
 import { IStaking } from "./interfaces/IStaking.sol";
 import { ILiquidityManager } from "../interfaces/ILiquidityManager.sol";
 

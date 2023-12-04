@@ -67,6 +67,7 @@ contract PolicyManager is IPolicyManager, ERC721Enumerable {
     return covers[coverId];
   }
 
+  // @bw deprecated
   function policy(
     uint256 _tokenId
   ) public view override returns (Policy memory) {

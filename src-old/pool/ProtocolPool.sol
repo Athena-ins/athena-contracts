@@ -278,6 +278,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     // transfer to account:
     uint256 __interestNet = (__totalRewards * (1000 - _feeRate)) /
       1000;
+    // @bw here should safe to position instead of initiating transfer when called for fee update
     IERC20(underlyingAsset).safeTransfer(account_, __interestNet);
 
     // transfer to treasury
@@ -469,6 +470,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
       intersectingAmountIndexes[_fromPoolId]
     ] -= __amountToRemoveByClaim;
 
+    // @bw this should be shared by all pools to avoid multiple storage
     processedClaims.push(
       Claim(
         _fromPoolId,
