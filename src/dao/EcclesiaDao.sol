@@ -91,7 +91,7 @@ contract EcclesiaDao is ERC20, ReentrancyGuard, Ownable {
   uint256 public redistributeIndex;
   // Index for staking rewards
   uint256 public stakingIndex;
-  // Maps token address to index for accumulated revenue
+  // Maps token address to ray index for accumulated revenue
   mapping(address _token => uint256 _index) public revenueIndex;
   // Revenue tokens
   address[] public revenueTokens;
@@ -99,15 +99,15 @@ contract EcclesiaDao is ERC20, ReentrancyGuard, Ownable {
   struct LockedBalance {
     uint256 amount; // amount of AOE locked
     uint256 staking;
-    uint256 userRedisIndex;
-    uint256 userStakingIndex;
+    uint256 userRedisIndex; // stored as ray (1e27)
+    uint256 userStakingIndex; // stored as ray (1e27)
     uint256 duration;
     uint256 end;
   }
 
-  // Mapping (user => LockedBalance) to keep locking information for each user
-  mapping(address => LockedBalance) public locks;
-  // Maps user address to token address to index for claimed revenue
+  // Maps user to DAO account information
+  mapping(address _user => LockedBalance _lock) public locks;
+  // Maps user address to token address to ray index for claimed revenue
   mapping(address _user => mapping(address _token => uint256 _index))
     public userRevenueIndex;
 
@@ -227,6 +227,7 @@ contract EcclesiaDao is ERC20, ReentrancyGuard, Ownable {
       _accrueStaking(stakingRewards);
 
       // Only usefull when position is created
+      // Ok for amount increase since we harvest before
       userLock.userStakingIndex = stakingIndex;
 
       userLock.staking += toStake;
@@ -433,14 +434,14 @@ contract EcclesiaDao is ERC20, ReentrancyGuard, Ownable {
 
   function _accrueStaking(uint256 _amount) private nonReentrant {
     // Rewards are distributed per staked token
-    uint256 amountPerVote = ((_amount * RAY) / supplyStaking) / RAY;
-    stakingIndex += amountPerVote;
+    uint256 amountPerVoteRay = (_amount * RAY) / supplyStaking;
+    stakingIndex += amountPerVoteRay;
   }
 
   function _redistribute(uint256 _amount) private nonReentrant {
     // Rewards are distributed per vote
-    uint256 amountPerVote = ((_amount * RAY) / totalSupply()) / RAY;
-    redistributeIndex += amountPerVote;
+    uint256 amountPerVoteRay = (_amount * RAY) / totalSupply();
+    redistributeIndex += amountPerVoteRay;
   }
 
   // Called after a pool pushes token revenue to the DAO
@@ -449,52 +450,56 @@ contract EcclesiaDao is ERC20, ReentrancyGuard, Ownable {
     uint256 _amount
   ) external nonReentrant onlyPoolManager {
     // Rewards are distributed per vote
-    uint256 amountPerVote = ((_amount * RAY) / totalSupply()) / RAY;
+    uint256 amountPerVoteRay = (_amount * RAY) / totalSupply();
     if (revenueIndex[_token] == 0) revenueTokens.push(_token);
-    revenueIndex[_token] += amountPerVote;
+    revenueIndex[_token] += amountPerVoteRay;
   }
 
   function harvest(address[] memory tokens) public nonReentrant {
     LockedBalance storage userLock = locks[msg.sender];
     uint256 votes = tokenToVotes(userLock.amount, userLock.duration);
 
-    uint256 tokenRewards;
+    uint256 tokenRewardsRay;
 
     if (userLock.userStakingIndex != stakingIndex) {
       // Harvest staking rewards
       uint256 stakingRewards = (stakingIndex -
         userLock.userStakingIndex) * userLock.staking;
 
-      tokenRewards += stakingRewards;
-      // Update indexes to reflect withdrawn rewards
-      userLock.userStakingIndex = stakingIndex;
+      tokenRewardsRay += stakingRewards;
     }
     if (userLock.userRedisIndex != redistributeIndex) {
       // Harvest redistributed rewards
       uint256 redistributeRewards = (redistributeIndex -
         userLock.userRedisIndex) * votes;
 
-      tokenRewards += redistributeRewards;
-      // Update indexes to reflect withdrawn rewards
-    userLock.userRedisIndex = redistributeIndex;
+      tokenRewardsRay += redistributeRewards;
     }
 
-    if (tokenRewards != 0)
+    uint256 tokenRewards = tokenRewardsRay / RAY;
+    if (tokenRewards != 0) {
       IERC20(token).safeTransfer(msg.sender, tokenRewards);
+
+      // Update indexes to reflect withdrawn rewards
+      userLock.userStakingIndex = stakingIndex;
+      // Update indexes to reflect withdrawn rewards
+      userLock.userRedisIndex = redistributeIndex;
+    }
 
     // Withdraw revenue rewards
     uint256 nbTokens = tokens.length;
-    if (nbTokens != 0) {
-      for (uint i; i < nbTokens; i++) {
-        address _token = tokens[i];
-        // Harvest all specified tokens
-        if (
-          userRevenueIndex[msg.sender][_token] != revenueIndex[_token]
-        ) {
-          uint256 revenueRewards = (revenueIndex[_token] -
-            userRevenueIndex[msg.sender][_token]) * votes;
 
-          IERC20(_token).safeTransfer(msg.sender, revenueRewards);
+    for (uint i; i < nbTokens; i++) {
+      address _token = tokens[i];
+      // Harvest all specified tokens
+      if (
+        userRevenueIndex[msg.sender][_token] != revenueIndex[_token]
+      ) {
+        uint256 revenue = ((revenueIndex[_token] -
+          userRevenueIndex[msg.sender][_token]) * votes) / RAY;
+
+        if (revenue != 0) {
+          IERC20(_token).safeTransfer(msg.sender, revenue);
 
           // Update indexes to reflect withdrawn rewards
           userRevenueIndex[msg.sender][_token] = revenueIndex[_token];
