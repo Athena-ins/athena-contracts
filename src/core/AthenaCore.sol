@@ -646,45 +646,6 @@ contract Athena is ReentrancyGuard, Ownable {
   /// ========== ADMIN ========== ///
   /// =========================== ///
 
-  /// -------- PROTOCOL POOLS -------- ///
-
-  function addNewProtocol(
-    address token_,
-    string calldata name_,
-    uint128[] calldata incompatiblePools_,
-    uint128 commitDelay_,
-    string calldata ipfsAgreementCid_,
-    uint256 uOptimal_,
-    uint256 r0_,
-    uint256 rSlope1_,
-    uint256 rSlope2_
-  ) public onlyOwner {
-    if (!approvedTokens[token_]) {
-      IERC20(token_).safeIncreaseAllowance(
-        address(aaveLendingPool),
-        type(uint256).max
-      );
-      approvedTokens[token_] = true;
-    }
-
-    uint128 poolId = protocolFactoryInterface.deployProtocol(
-      token_,
-      name_,
-      incompatiblePools_,
-      commitDelay_,
-      uOptimal_,
-      r0_,
-      rSlope1_,
-      rSlope2_
-    );
-
-    // Add the meta evidence IPFS address to the registry
-    claimManagerInterface.addCoverTermsForPool(
-      poolId,
-      ipfsAgreementCid_
-    );
-  }
-
   /// -------- AAVE -------- ///
 
   function updateLendingPool(
