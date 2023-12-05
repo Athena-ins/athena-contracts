@@ -161,12 +161,8 @@ contract EcclesiaDao is ERC20, ReentrancyGuard, Ownable {
 
   // ======= DEPOSIT ======= //
 
-  function _deposit(
-    LockedBalance memory _lock,
-    uint256 _amount,
-    uint256 _unlockTime
-  ) internal {
-    LockedBalance storage userLock = _lock;
+  function _deposit(uint256 _amount, uint256 _unlockTime) internal {
+    LockedBalance storage userLock = locks[msg.sender];
 
     if (userLock.amount == 0) {
       userLock.userRedisIndex = redistributeIndex;
@@ -230,7 +226,7 @@ contract EcclesiaDao is ERC20, ReentrancyGuard, Ownable {
     if (block.timestamp + MAX_LOCK < _unlockTime)
       revert LockLongerThanMax();
 
-    _deposit(lock, _amount, _unlockTime);
+    _deposit(_amount, _unlockTime);
 
     uint256 votes = tokenToVotes(_amount, lock.duration);
     _mint(msg.sender, votes);
@@ -249,7 +245,7 @@ contract EcclesiaDao is ERC20, ReentrancyGuard, Ownable {
 
     // Need to harvest to update all reward indexes before adding more tokens
     harvest(_lock);
-    _deposit(_lock, _amount, 0);
+    _deposit(_amount, 0);
 
     uint256 votes = tokenToVotes(_amount, _lock.duration);
     _mint(msg.sender, votes);
@@ -274,7 +270,7 @@ contract EcclesiaDao is ERC20, ReentrancyGuard, Ownable {
       _lock.duration
     );
 
-    _deposit(_lock, 0, _newUnlockTime);
+    _deposit(0, _newUnlockTime);
 
     uint256 votes = tokenToVotes(_lock.amount, _lock.duration) -
       previousVotes;
@@ -294,7 +290,7 @@ contract EcclesiaDao is ERC20, ReentrancyGuard, Ownable {
     LockedBalance memory _lock,
     uint256 _withdrawAmount
   ) internal {
-    LockedBalance storage userLock = _lock;
+    LockedBalance storage userLock = locks[msg.sender];
 
     if (_lock.amount < _withdrawAmount) revert BadAmount();
 
