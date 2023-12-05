@@ -17,6 +17,7 @@ import { IERC20Permit } from "@openzeppelin/contracts/token/ERC20/extensions/IER
 
 // ======= ERRORS ======= //
 
+error NotPoolManager();
 error BadAmount();
 error LockAlreadyExists();
 error LockDoesNotExist();
@@ -78,6 +79,9 @@ contract EcclesiaDao is ERC20, ReentrancyGuard, Ownable {
   IStaking public staking;
   // Token to be locked (AOE)
   IERC20 public token;
+  // Address of the revenue unifier
+  address public poolManager;
+
   // Total supply of AOE that get locked
   uint256 public supply;
   // Total supply of AOE that get staked
@@ -125,9 +129,18 @@ contract EcclesiaDao is ERC20, ReentrancyGuard, Ownable {
   constructor(
     IERC20 _token,
     IStaking _staking,
+    address _poolManager
   ) ERC20("Athenian Vote", "vAOE") Ownable(msg.sender) {
     token = _token;
     staking = _staking;
+    poolManager = _poolManager;
+  }
+
+  // ======= MODIFIERS ======= //
+
+  modifier onlyPoolManager() {
+    if (msg.sender != poolManager) revert NotPoolManager();
+    _;
   }
 
   // ======= VIEWS ======= //
@@ -407,7 +420,15 @@ contract EcclesiaDao is ERC20, ReentrancyGuard, Ownable {
   // ======= REWARDS ======= //
 
   function syncStaking() external nonReentrant {
-    // @bw this should check that staking index is adequately up to date with shares of this contract
+    // We want to track the amount of staking rewards we harvest
+    uint256 balBefore = token.balanceOf(address(this));
+
+    // Harvest rewards
+    staking.harvestFarming();
+
+    uint256 stakingRewards = token.balanceOf(address(this)) -
+      balBefore;
+    _accrueStaking(stakingRewards);
   }
 
   function _accrueStaking(uint256 _amount) private nonReentrant {
@@ -426,7 +447,7 @@ contract EcclesiaDao is ERC20, ReentrancyGuard, Ownable {
   function accrueRevenue(
     address _token,
     uint256 _amount
-  ) external nonReentrant {
+  ) external nonReentrant onlyPoolManager {
     // Rewards are distributed per vote
     uint256 amountPerVote = ((_amount * RAY) / totalSupply()) / RAY;
     if (revenueIndex[_token] == 0) revenueTokens.push(_token);
