@@ -87,21 +87,25 @@ contract EcclesiaDao is ERC20, ReentrancyGuard, Ownable {
   uint256 public redistributeIndex;
   // Index for staking rewards
   uint256 public stakingIndex;
-  // Index for accumulated fees
-  uint256 public feeIndex;
+  // Maps token address to index for accumulated revenue
+  mapping(address _token => uint256 _index) public revenueIndex;
+  // Revenue tokens
+  address[] public revenueTokens;
 
   struct LockedBalance {
     uint256 amount; // amount of AOE locked
     uint256 staking;
     uint256 userRedisIndex;
     uint256 userStakingIndex;
-    uint256 userFeeIndex;
     uint256 duration;
     uint256 end;
   }
 
   // Mapping (user => LockedBalance) to keep locking information for each user
   mapping(address => LockedBalance) public locks;
+  // Maps user address to token address to index for claimed revenue
+  mapping(address _user => mapping(address _token => uint256 _index))
+    public userRevenueIndex;
 
   // Amount of early withdrawal fees per day of remaining lock duration
   uint256 public earlyWithdrawBpsPerDay;
@@ -161,12 +165,20 @@ contract EcclesiaDao is ERC20, ReentrancyGuard, Ownable {
 
   // ======= DEPOSIT ======= //
 
+  function _revenueSnapshot() private {
+    uint256 nbTokens = revenueTokens.length;
+    for (uint i; i < nbTokens; i++) {
+      address _token = revenueTokens[i];
+      userRevenueIndex[msg.sender][_token] = revenueIndex[_token];
+    }
+  }
+
   function _deposit(uint256 _amount, uint256 _unlockTime) internal {
     LockedBalance storage userLock = locks[msg.sender];
 
     if (userLock.amount == 0) {
       userLock.userRedisIndex = redistributeIndex;
-      userLock.userFeeIndex = feeIndex;
+      _revenueSnapshot();
     }
 
     if (_unlockTime != 0) {
@@ -243,8 +255,8 @@ contract EcclesiaDao is ERC20, ReentrancyGuard, Ownable {
     if (_lock.amount == 0) revert LockDoesNotExist();
     if (_lock.end <= block.timestamp) revert LockExpired();
 
-    // Need to harvest to update all reward indexes before adding more tokens
-    harvest(_lock);
+    // Harvest to update reward indexes before adding more tokens
+    harvest(new address[](0));
     _deposit(_amount, 0);
 
     uint256 votes = tokenToVotes(_amount, _lock.duration);
@@ -340,7 +352,7 @@ contract EcclesiaDao is ERC20, ReentrancyGuard, Ownable {
     token.safeTransfer(msg.sender, _amount);
 
     // Harvest after unlock for staking reward index update
-    harvest(_lock);
+    harvest(revenueTokens);
 
     emit Withdraw(msg.sender, _amount);
   }
@@ -374,7 +386,7 @@ contract EcclesiaDao is ERC20, ReentrancyGuard, Ownable {
       _amount) / RAY;
 
     // Harvest after unlock for staking reward index update
-    harvest(_lock);
+    harvest(revenueTokens);
 
     // Redistribute fee
     uint256 _amountRedistribute = (_penalty * redistributeBps) / RAY;
@@ -399,35 +411,75 @@ contract EcclesiaDao is ERC20, ReentrancyGuard, Ownable {
   }
 
   function _accrueStaking(uint256 _amount) private nonReentrant {
-    // @bw check precision loss
     // Rewards are distributed per staked token
     uint256 amountPerVote = ((_amount * RAY) / supplyStaking) / RAY;
     stakingIndex += amountPerVote;
   }
 
   function _redistribute(uint256 _amount) private nonReentrant {
-    // @bw check precision loss
     // Rewards are distributed per vote
     uint256 amountPerVote = ((_amount * RAY) / totalSupply()) / RAY;
     redistributeIndex += amountPerVote;
   }
 
-  function accrueRevenue(uint256 _amount) external nonReentrant {
-    // @bw check precision loss
+  // Called after a pool pushes token revenue to the DAO
+  function accrueRevenue(
+    address _token,
+    uint256 _amount
+  ) external nonReentrant {
     // Rewards are distributed per vote
     uint256 amountPerVote = ((_amount * RAY) / totalSupply()) / RAY;
-    feeIndex += amountPerVote;
+    if (revenueIndex[_token] == 0) revenueTokens.push(_token);
+    revenueIndex[_token] += amountPerVote;
   }
 
-  function harvest(LockedBalance memory _lock) public nonReentrant {
-    LockedBalance storage userLock = _lock;
+  function harvest(address[] memory tokens) public nonReentrant {
+    LockedBalance storage userLock = locks[msg.sender];
+    uint256 votes = tokenToVotes(userLock.amount, userLock.duration);
 
-    // harvest fees, staking rewards & (optionnaly) protocol revenue
+    uint256 tokenRewards;
 
-    // After harvest should update indexes to reset available rewards
+    if (userLock.userStakingIndex != stakingIndex) {
+      // Harvest staking rewards
+      uint256 stakingRewards = (stakingIndex -
+        userLock.userStakingIndex) * userLock.staking;
+
+      tokenRewards += stakingRewards;
+      // Update indexes to reflect withdrawn rewards
+      userLock.userStakingIndex = stakingIndex;
+    }
+    if (userLock.userRedisIndex != redistributeIndex) {
+      // Harvest redistributed rewards
+      uint256 redistributeRewards = (redistributeIndex -
+        userLock.userRedisIndex) * votes;
+
+      tokenRewards += redistributeRewards;
+      // Update indexes to reflect withdrawn rewards
     userLock.userRedisIndex = redistributeIndex;
-    userLock.userStakingIndex = stakingIndex;
-    userLock.userFeeIndex = feeIndex;
+    }
+
+    if (tokenRewards != 0)
+      IERC20(token).safeTransfer(msg.sender, tokenRewards);
+
+    // Withdraw revenue rewards
+    uint256 nbTokens = tokens.length;
+    if (nbTokens != 0) {
+      for (uint i; i < nbTokens; i++) {
+        address _token = tokens[i];
+        // Harvest all specified tokens
+        if (
+          userRevenueIndex[msg.sender][_token] != revenueIndex[_token]
+        ) {
+          uint256 revenueRewards = (revenueIndex[_token] -
+            userRevenueIndex[msg.sender][_token]) * votes;
+
+          IERC20(_token).safeTransfer(msg.sender, revenueRewards);
+
+          // Update indexes to reflect withdrawn rewards
+          userRevenueIndex[msg.sender][_token] = revenueIndex[_token];
+        }
+      }
+    }
   }
 
   // ======= ADMIN ======= //
