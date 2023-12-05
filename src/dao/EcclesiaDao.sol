@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: MIT
+// solhint-disable not-rely-on-time
 pragma solidity 0.8.20;
 
 // contracts
@@ -13,8 +14,6 @@ import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.s
 import { IStaking } from "../rewards/interfaces/IStaking.sol";
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import { IERC20Permit } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
-
-// solhint-disable not-rely-on-time
 
 // ======= ERRORS ======= //
 
@@ -33,10 +32,9 @@ error InvalidTreasuryAddr();
 error UnnecessaryEarlyWithdraw();
 
 /**
- * @title AthenaDAO
- * @notice Athena DAO allows participation in the Athena governance, protocol fee rewards and AOE staking
- * @custom:from Contract inspired by the Alpaca Finance xAlpaca contract
- * @custom:url https://github.com/alpaca-finance/xALPACA-contract/blob/main/contracts/8.10/xALPACA.sol
+ * @title EcclesiaDao
+ * @notice Ecclesia is Athena's DAO allows participation in the Athena governance
+ * Participants accrue protocol revenue rewards as well as AOE staking rewards if their lock meets the minimum duration
  */
 contract EcclesiaDao is ERC20, ReentrancyGuard, Ownable {
   using SafeERC20 for IERC20;
@@ -122,15 +120,18 @@ contract EcclesiaDao is ERC20, ReentrancyGuard, Ownable {
 
   constructor(
     IERC20 _token,
-    IStaking _staking
-  ) ERC20("Athenian Vote", "vAOE") Ownable(msg.sender) {}
+    IStaking _staking,
+  ) ERC20("Athenian Vote", "vAOE") Ownable(msg.sender) {
+    token = _token;
+    staking = _staking;
+  }
 
   // ======= VIEWS ======= //
 
   function tokenToVotes(
     uint256 _amount,
     uint256 _lockDuration
-  ) public view returns (uint256 votes) {
+  ) public pure returns (uint256 votes) {
     // For lock duration smaller than EQUILIBRIUM_LOCK, the bias is negative 1 AOE < 1 vote
     // For lock duration equal to EQUILIBRIUM_LOCK, the bias is neutral 1 AOE = 1 vote
     // For lock duration larger than EQUILIBRIUM_LOCK, the bias is positive 1 AOE > 1 vote
@@ -147,7 +148,7 @@ contract EcclesiaDao is ERC20, ReentrancyGuard, Ownable {
   function votesToTokens(
     uint256 _votes,
     uint256 _lockDuration
-  ) public view returns (uint256 tokens) {
+  ) public pure returns (uint256 tokens) {
     uint256 bias = EQUILIBRIUM_LOCK <= _lockDuration
       ? 1 +
         ADD_WEIGHT *
@@ -309,7 +310,7 @@ contract EcclesiaDao is ERC20, ReentrancyGuard, Ownable {
       // We want to track the amount of staking rewards we harvest
       uint256 balBefore = token.balanceOf(address(this));
 
-      // @bw this will cause a harvest of rewards
+      // This will cause a harvest of rewards
       staking.withdrawToken(address(this), _withdrawAmount);
 
       // Remove amount received from staking for net rewards
@@ -382,19 +383,16 @@ contract EcclesiaDao is ERC20, ReentrancyGuard, Ownable {
     // Redistribute fee
     uint256 _amountRedistribute = (_penalty * redistributeBps) / RAY;
     _redistribute(_amountRedistribute);
-
     // Burn fee
     uint256 _amountBurn = (_penalty * burnBps) / RAY;
     _burn(address(this), _amountBurn);
-
-    // Transfer difference to treasury
+    // Treasury fee
     uint256 _amountTreasury = (_penalty - _amountRedistribute) -
       _amountBurn;
     token.safeTransfer(treasuryAddr, _amountTreasury);
 
     // transfer remaining back to owner
     token.safeTransfer(msg.sender, _amount - _penalty);
-
     emit EarlyWithdraw(msg.sender, _amount, block.timestamp);
   }
 
@@ -438,11 +436,6 @@ contract EcclesiaDao is ERC20, ReentrancyGuard, Ownable {
 
   // ======= ADMIN ======= //
 
-  function unifyRevenue() external onlyOwner {
-    // should convert certains fees to a given rewards token like stable coin or coin
-    // how to check if is a swapable or withdrawable token and good price is harder
-  }
-
   function setEarlyWithdrawConfig(
     uint256 _newEarlyWithdrawBpsPerDay,
     uint256 _newRedistributeBps,
@@ -475,5 +468,9 @@ contract EcclesiaDao is ERC20, ReentrancyGuard, Ownable {
       treasuryBps,
       treasuryAddr
     );
+  }
+
+  function withdrawETH() external onlyOwner {
+    payable(msg.sender).transfer(address(this).balance);
   }
 }
