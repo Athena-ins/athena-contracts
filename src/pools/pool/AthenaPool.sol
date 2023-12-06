@@ -23,6 +23,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
   uint128 public poolId;
   uint128 public commitDelay;
 
+  // @bw unused
   mapping(uint256 => uint256) public withdrawReserves;
   mapping(uint256 => LPInfo) public LPsInfo;
 
