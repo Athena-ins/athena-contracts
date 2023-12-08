@@ -292,47 +292,18 @@ contract Athena is ReentrancyGuard, Ownable {
   function deposit(
     uint256 amount,
     uint128[] calldata poolIds
-  ) public {
-    // Check if the poolIds do not include incompatible pools
-    protocolFactoryInterface.validePoolIds(poolIds);
-
-    // @bw This check should be delegated to validatePoolIds and deleted
-    // We only allow positions with the same underlying token
-    address underlyingToken = protocolFactoryInterface
-      .getPoolUnderlyingToken(poolIds[0]);
-    if (poolIds.length != 1) {
-      for (uint256 i = 1; i < poolIds.length; i++) {
-        address nextUnderlyingToken = protocolFactoryInterface
-          .getPoolUnderlyingToken(poolIds[i]);
-        if (underlyingToken != nextUnderlyingToken)
-          revert UnderlyingTokenMismatch();
-      }
-    }
-
-    // retrieve user funds for coverage
+  ) external nonReentrant {
+    // Retrieve LP funds
     IERC20(underlyingToken).safeTransferFrom(
       msg.sender,
-      address(this),
+      address(liquidityManager),
       amount
     );
 
-    // Deposit the funds into AAVE and get the new scaled balance
-    uint256 newAaveScaledBalance = _transferLiquidityToAAVE(
-      underlyingToken,
-      amount
-    );
-
-    // If user has staked ATEN then get feeRate
-    uint128 supplyFeeRate = stakedAtensGPInterface.getUserFeeRate(
-      msg.sender
-    );
-
-    // deposit assets in the pool and create position NFT
+    // Send back liquidity position NFT
     positionManagerInterface.depositToPosition(
       msg.sender,
       amount,
-      newAaveScaledBalance,
-      supplyFeeRate,
       poolIds
     );
   }
