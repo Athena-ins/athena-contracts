@@ -9,6 +9,10 @@ import { PremiumPosition } from "../../libs/PremiumPosition.sol";
 // Interfaces
 import { SafeERC20, IERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
+// ======= ERRORS ======= //
+
+error ZeroAddressAsset();
+
 library VirtualPool {
   using RayMath for uint256;
   using SafeERC20 for IERC20;
@@ -53,5 +57,32 @@ library VirtualPool {
     mapping(uint32 _tick => uint256[] _coverIds) ticks;
     // Maps a cover ID to the premium position of the cover
     mapping(uint256 _coverId => PremiumPosition.Info _premiumsInfo) premiumPositions;
+  }
+
+  // ======= VIRTUAL CONSTRUCTOR ======= //
+
+  function vPoolConstructor(
+    VPool storage self,
+    address underlyingAsset_,
+    uint256 uOptimal_, //Ray
+    uint256 r0_, //Ray
+    uint256 rSlope1_, //Ray
+    uint256 rSlope2_ //Ray
+  ) internal {
+    if (underlyingAsset_ == address(0)) {
+      revert ZeroAddressAsset();
+    }
+
+    self.f = Formula({
+      uOptimal: uOptimal_,
+      r0: r0_,
+      rSlope1: rSlope1_,
+      rSlope2: rSlope2_
+    });
+
+    self.underlyingAsset = underlyingAsset_;
+
+    self.slot0.secondsPerTick = 86400;
+    self.slot0.lastUpdateTimestamp = block.timestamp;
   }
 }
