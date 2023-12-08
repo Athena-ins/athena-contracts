@@ -2,16 +2,16 @@
 pragma solidity 0.8.20;
 
 // Libs
-import { RayMath } from "../libs/RayMath.sol";
-import { Tick } from "../libs/Tick.sol";
-import { TickBitmap } from "../libs/TickBitmap.sol";
-import { PremiumPosition } from "../libs/PremiumPosition.sol";
+import { RayMath } from "../../libs/RayMath.sol";
+import { Tick } from "../../libs/Tick.sol";
+import { TickBitmap } from "../../libs/TickBitmap.sol";
+import { PremiumPosition } from "../../libs/PremiumPosition.sol";
 // Interfaces
 import { SafeERC20, IERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import { IProtocolPool } from "../interface/IProtocolPool.sol";
-import { IAthena } from "../interface/IAthena.sol";
-import { IPolicyManager } from "../interface/IPolicyManager.sol";
-import { IPolicyCover } from "../interface/IPolicyCover.sol";
+import { IProtocolPool } from "../../interfaces/IProtocolPool.sol";
+import { IAthena } from "../../interfaces/IAthena.sol";
+import { IPolicyManager } from "../../interfaces/IPolicyManager.sol";
+import { IPolicyCover } from "../../interfaces/IPolicyCover.sol";
 
 contract ProtocolPool is IProtocolPool, PolicyCover {
   using RayMath for uint256;

@@ -328,7 +328,7 @@ contract Staking is IStaking, ERC20, Ownable {
 
     if (feeDiscount != newFeeDiscount) {
       feeDiscountOf[msg.sender] = newFeeDiscount;
-      liquidityManager.feeDiscountUpdate(msg.sender, newFeeDiscount);
+      liquidityManager.feeDiscountUpdate(msg.sender, feeDiscount);
     }
   }
 

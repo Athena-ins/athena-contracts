@@ -72,10 +72,6 @@ contract PositionsManager is
     return _positions[tokenId_].poolIds[0];
   }
 
-  function hasPositionOf(address to) external view returns (bool) {
-    return balanceOf(to) > 0;
-  }
-
   function allPositionTokensOfOwner(
     address owner
   ) public view returns (uint256[] memory tokenList) {
@@ -133,19 +129,7 @@ contract PositionsManager is
     }
   }
 
-  function allCapitalSuppliedByAccount(
-    address account_
-  ) external view returns (uint256 _capitalSupplied) {
-    // @bw WARN this is ok for now but incomplete since the amount is the base capital
-    // this should probably be adjusted with claims losses and APR gains
-    uint256[] memory tokenList = allPositionTokensOfOwner(account_);
-
-    for (uint256 i = 0; i < tokenList.length; i++) {
-      Position memory _position = _positions[tokenList[i]];
-
-      _capitalSupplied += _position.amountSupplied;
-    }
-  }
+ 
 
   function isProtocolInCoverList(
     uint128 _poolId,
@@ -253,25 +237,7 @@ contract PositionsManager is
   /// ========= MODIFY ======== ///
   /// ========================= ///
 
-  // @bw remove fn or check side effects - dangerous
-  function removePoolId(
-    uint256 tokenId,
-    uint128 _poolId
-  ) external onlyCore {
-    uint128[] memory __poolIds = _positions[tokenId].poolIds;
-
-    for (uint256 i = 0; i < __poolIds.length; i++) {
-      if (__poolIds[i] == _poolId) {
-        // @bw ERROR must fix if not leaves a "0" value in array
-        // This should check if last item and if isn't remplace deleted with last item
-        __poolIds[i] = __poolIds[__poolIds.length - 1];
-        delete __poolIds[__poolIds.length - 1];
-        break;
-      }
-    }
-
-    _positions[tokenId].poolIds = __poolIds;
-  }
+ 
 
   //Thao@TODO:
   //Il faut takeInterest avant de deposit pour update liquidityIndex et claimsIndex
