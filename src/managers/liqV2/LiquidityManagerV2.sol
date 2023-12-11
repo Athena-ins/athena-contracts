@@ -61,15 +61,6 @@ contract LiquidityManagerV2 is
   mapping(uint128 => mapping(uint128 => bool))
     public arePoolCompatible;
 
-  // Maps poolId 0 -> poolId 1 -> overlapping capital
-  // @dev poolId A -> poolId A points to a pool's self available liquidity
-  // @dev liquidity overlap is always registered in the lower poolId
-  // mapping(uint128 _poolId0 => mapping(uint128 _poolId1 => uint256 _amount))
-  //   public overlaps;
-  // // Maps pool IDs to the overlapped pool IDs
-  // mapping(uint128 _poolId => uint128[] _poolIds)
-  //   public overlappedPools;
-
   // ======= CONSTRUCTOR ======= //
 
   constructor(IAthenaCore core) ERC721("Athena LP NFT", "AthenaLP") {
@@ -274,4 +265,37 @@ contract LiquidityManagerV2 is
   }
 
   /// ======= LIQUIDITY FOR CLAIMS ======= ///
+
+  // claimLiquidityRemoval
+  function claimLiquidityReduce(
+    uint128 poolId_,
+    uint256 amount_,
+    address claimant_
+  ) external onlyClaimManager {
+    VPool storage poolA = vPools[poolId_];
+    uint256 ratio = amount_.rayDiv(poolA.availableLiquidity());
+
+    uint256 nbPools = poolA.dependantPools.length;
+    for (uint128 i; i < nbPools + 1; i++) {
+      uint128 poolIdB = poolA.dependantPools[i];
+      VPool storage poolB = vPools[poolIdB];
+
+      (VPool storage pool0, uint128 poolId1) = poolId_ < poolIdB
+        ? (poolA, poolIdB)
+        : (poolB, poolId_);
+
+      // Remove liquidity from dependant pool
+      uint256 overlapAmount = pool0.overlaps[poolId1];
+      uint256 amountToRemove = overlapAmount.rayMul(ratio);
+      overlappingLiquidity[poolId0][poolId1] -= amountToRemove;
+
+      poolB.actualizingProtocolAndRemoveExpiredPolicies(
+        relatedPoolAddress
+      );
+
+      poolB.processClaim(poolId_, amountToRemove);
+    }
+
+    strategy.payoutFromStrategy(amount, claimant_);
+  }
 }
