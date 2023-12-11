@@ -358,66 +358,15 @@ contract Athena is ReentrancyGuard, Ownable {
     );
   }
 
-  function committingWithdrawAll(
-    uint256 tokenId
-  ) external onlyPositionTokenOwner(tokenId) {
-    uint256 userBalance = positionManagerInterface.balanceOf(
-      msg.sender
-    );
-    if (userBalance == 0) revert UserHasNoPositions();
-
-    positionManagerInterface.committingWithdraw(tokenId);
+  function commitWithdraw(uint256 tokenId) external nonReentrant {
+    liquidityManager.commitWithdraw(tokenId, msg.sender);
   }
 
-  function withdrawAll(
-    uint256 tokenId
-  ) external onlyPositionTokenOwner(tokenId) {
-    IPositionManager.Position
-      memory __position = positionManagerInterface.position(tokenId);
-
-    uint256 __newUserCapital;
-    uint256 __aaveScaledBalanceToRemove;
-
-    bool canWithdraw = protocolFactoryInterface.canWithdrawFromPools(
-      __position.poolIds
-    );
-    if (!canWithdraw) revert PoolHasOngoingClaimsOrPaused();
-
-    for (uint256 i = 0; i < __position.poolIds.length; i++) {
-      IProtocolPool __protocol = IProtocolPool(
-        getPoolAddressById(__position.poolIds[i])
-      );
-
-      actualizingProtocolAndRemoveExpiredPolicies(
-        address(__protocol)
-      );
-
-      (__newUserCapital, __aaveScaledBalanceToRemove) = __protocol
-        .withdrawLiquidity(
-          msg.sender,
-          tokenId,
-          __position.amountSupplied,
-          __position.poolIds,
-          __position.feeRate
-        );
-    }
-
-    positionManagerInterface.checkDelayAndClosePosition(tokenId);
-
-    // This is ok because we only allow positions with the same underlying token
-    address underlyingToken = protocolFactoryInterface
-      .getPoolUnderlyingToken(__position.poolIds[0]);
-    // @bw withdrawn amount is bad here
-    uint256 _amountToWithdrawFromAAVE = __position
-      .aaveScaledBalance
-      .rayMul(
-        aaveLendingPool.getReserveNormalizedIncome(underlyingToken)
-      );
-
-    aaveLendingPool.withdraw(
-      underlyingToken,
-      _amountToWithdrawFromAAVE,
-      msg.sender
+  function withdraw(uint256 tokenId) external nonReentrant {
+    liquidityManager.withdrawFromPosition(
+      msg.sender,
+      amount,
+      poolIds
     );
   }
 

@@ -12,9 +12,12 @@ import { IAthenaCore } from "../../interfaces/IAthenaCore.sol";
 
 // ======= ERRORS ======= //
 
+error OnlyTokenOwner();
+error PoolsHaveOngoingClaims();
 error PoolIsPaused();
 error PoolIdsMustBeUniqueAndAscending();
 error IncompatiblePools(uint128 poolIdA, uint128 poolIdB);
+error WithdrawCommitDelayNotReached();
 
 contract LiquidityManagerV2 is ERC721, ERC721Enumerable {
   using RayMath for uint256;
@@ -69,6 +72,12 @@ contract LiquidityManagerV2 is ERC721, ERC721Enumerable {
   }
 
   /// ======= MODIFIERS ======= ///
+
+  modifier onlyTokenOwner(uint256 tokenId, address account) {
+    if (account != ownerOf(tokenId)) revert OnlyTokenOwner();
+    _;
+  }
+
   /// ======= VIEWS ======= ///
   /// ======= POOLS ======= ///
   /// ======= MAKE POSITION ======= ///
@@ -97,6 +106,46 @@ contract LiquidityManagerV2 is ERC721, ERC721Enumerable {
 
   /// ======= UPDATE POSITION ======= ///
   /// ======= CLOSE POSITION ======= ///
+
+  function commitWithdraw(
+    uint256 tokenId_,
+    address account_
+  ) external onlyCore onlyTokenOwner(tokenId_, account_) {
+    positions[tokenId_].commitWithdrawalTimestamp = block.timestamp;
+  }
+
+  function withdrawFromPosition(
+    uint256 tokenId_,
+    address account_
+  ) external onlyCore onlyTokenOwner(tokenId_, account_) {
+    Position storage position = positions[tokenId_];
+    uint256 commitTimestamp = position.commitWithdrawalTimestamp;
+
+    if (block.timestamp < commitTimestamp + withdrawDelay)
+      revert WithdrawCommitDelayNotReached();
+
+    uint128[] memory poolIds = position.poolIds;
+
+    // Check that pools have no ongoing claims
+    bool claimsLock = claimManager.canWithdraw(poolIds);
+    if (claimsLock) revert PoolsHaveOngoingClaims();
+
+    _removeOverlappingCapital(poolIds, position.supplied);
+
+    uint256 feeDiscount = staking.feeDiscountOf(account_);
+    // All pools have same strategy since they are compatible
+    IStrategy strategy = vPools[poolId].strategy;
+    // @bw this should send back funds to user with rewards, minus fees
+    strategy.withdrawFromStrategy(
+      tokenId_,
+      amount,
+      account_,
+      feeDiscount
+    );
+
+    _burn(tokenId_);
+  }
+
   /// ======= FEE DISCOUNT ======= ///
   /// ======= LIQUIDITY OVERLAPS ======= ///
 
@@ -151,6 +200,11 @@ contract LiquidityManagerV2 is ERC721, ERC721Enumerable {
     for (uint128 i; i < nbPoolIds; i++) {
       uint128 poolId0 = poolIds_[i];
       VPool storage pool0 = vPools[poolId0];
+
+      // Remove expired policies
+      pool0.actualizingProtocolAndRemoveExpiredPolicies();
+      // Remove liquidity
+      pool0.withdrawLiquidity();
 
       // Considering the verification that pool IDs are unique & ascending
       // then start index is i to reduce required number of loops
