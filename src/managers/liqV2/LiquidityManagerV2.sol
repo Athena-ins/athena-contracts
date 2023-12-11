@@ -4,6 +4,7 @@ pragma solidity 0.8.20;
 // Contracts
 import { ERC721 } from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import { ERC721Enumerable } from "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
+import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 // Libraries
 import { RayMath } from "../../libs/RayMath.sol";
 import { VirtualPool } from "./VirtualPool.sol";
@@ -19,7 +20,11 @@ error PoolIdsMustBeUniqueAndAscending();
 error IncompatiblePools(uint128 poolIdA, uint128 poolIdB);
 error WithdrawCommitDelayNotReached();
 
-contract LiquidityManagerV2 is ERC721, ERC721Enumerable {
+contract LiquidityManagerV2 is
+  ERC721,
+  ERC721Enumerable,
+  ReentrancyGuard
+{
   using RayMath for uint256;
   using VirtualPool for VirtualPool.VPool;
 
@@ -105,6 +110,57 @@ contract LiquidityManagerV2 is ERC721, ERC721Enumerable {
   }
 
   /// ======= UPDATE POSITION ======= ///
+
+  function updatePosition(
+    uint256 tokenId,
+    uint256 amount
+  ) external onlyCore {
+    Position storage position = _positions[tokenId];
+
+    // Take interests in all pools before update
+    _takeInterestsInAllPools(account, tokenId);
+    // Check pool compatibility & underlying token then register overlapping capital
+    _addOverlappingCapitalAfterCheck(position.poolIds, amount);
+
+    IStrategy strategy = vPools[position.poolIds[0]].strategy;
+    strategy.depositToStrategy(tokenId, amount);
+
+    position.amountSupplied += amount;
+  }
+
+  /// ======= TAKE INTERESTS ======= ///
+
+  // @bw needs to be updated for strat reward withdraw + take fees in pools
+  // compute amount of rewards & transfer from cover manager to user + register new reward index
+  function takeInterests(address account, uint256 tokenId) public {
+    Position storage position = _positions[tokenId];
+    IAthena _core = IAthena(core);
+
+    uint256 amountSuppliedUpdated;
+    uint256 nbPools = position.poolIds.length;
+    for (uint256 i; i < nbPools; i++) {
+      VPool storage pool = vPools[position.poolIds[i]];
+
+      // Remove expired policies
+      pool.actualizingProtocolAndRemoveExpiredPolicies();
+
+      (uint256 _newUserCapital, uint256 _aaveScaledBalanceToRemove) = pool
+        .takeInterestsInPool( // takePoolInterests
+        account,
+        tokenId,
+        position.amountSupplied,
+        position.poolIds,
+        position.feeRate
+      );
+    }
+
+    if (position.amountSupplied != amountSuppliedUpdated) {
+      _positions[tokenId].amountSupplied = amountSuppliedUpdated;
+      _positions[tokenId]
+        .aaveScaledBalance -= aaveScaledBalanceUpdated;
+    }
+  }
+
   /// ======= CLOSE POSITION ======= ///
 
   function commitWithdraw(
