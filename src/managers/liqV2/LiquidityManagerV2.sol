@@ -52,14 +52,15 @@ contract LiquidityManagerV2 is ERC721, ERC721Enumerable {
   // Maps pool0 -> pool1 -> areCompatible for LP leverage
   mapping(uint128 => mapping(uint128 => bool))
     public arePoolCompatible;
+
   // Maps poolId 0 -> poolId 1 -> overlapping capital
   // @dev poolId A -> poolId A points to a pool's self available liquidity
   // @dev liquidity overlap is always registered in the lower poolId
-  mapping(uint128 _poolId0 => mapping(uint128 _poolId1 => uint256 _amount))
-    public overlaps;
-  // Maps pool IDs to the overlapped pool IDs
-  mapping(uint128 _poolId => uint128[] _poolIds)
-    public overlappedPools;
+  // mapping(uint128 _poolId0 => mapping(uint128 _poolId1 => uint256 _amount))
+  //   public overlaps;
+  // // Maps pool IDs to the overlapped pool IDs
+  // mapping(uint128 _poolId => uint128[] _poolIds)
+  //   public overlappedPools;
 
   // ======= CONSTRUCTOR ======= //
 
@@ -99,7 +100,7 @@ contract LiquidityManagerV2 is ERC721, ERC721Enumerable {
   /// ======= FEE DISCOUNT ======= ///
   /// ======= LIQUIDITY OVERLAPS ======= ///
 
-  // @dev These make the assumption that the pool IDs are unique and ascending
+  /// @dev Pool IDs must be checked to ensure they are unique and ascending
   function _addOverlappingCapitalAfterCheck(
     uint128[] memory poolIds_,
     uint256 amount_
@@ -116,6 +117,8 @@ contract LiquidityManagerV2 is ERC721, ERC721Enumerable {
       // Remove expired policies
       pool0.actualizingProtocolAndRemoveExpiredPolicies();
 
+      // Considering the verification that pool IDs are unique & ascending
+      // then start index is i to reduce required number of loops
       for (uint128 j = i; j < nbPoolIds; j++) {
         uint128 poolId1 = poolIds_[j];
         VPool storage pool1 = vPools[poolId1];
@@ -130,16 +133,15 @@ contract LiquidityManagerV2 is ERC721, ERC721Enumerable {
           revert IncompatiblePools(poolId0, poolId1);
 
         if (poolId0 != poolId1 && overlaps[poolId0][poolId1] == 0) {
-          dependantPools[poolId0].push(poolId1);
-          dependantPools[poolId1].push(poolId0);
+          pool0.overlappedPools.push(poolId1);
+          pool1.overlappedPools.push(poolId0);
         }
 
-        overlaps[poolId0][poolId1] += amount_;
+        pool0.overlaps[poolId1] += amount_;
       }
     }
   }
 
-  // @dev These make the assumption that the pool IDs are unique and ascending
   function _removeOverlappingCapital(
     uint128[] memory poolIds_,
     uint256 amount_
@@ -147,8 +149,16 @@ contract LiquidityManagerV2 is ERC721, ERC721Enumerable {
     uint256 nbPoolIds = poolIds_.length;
 
     for (uint128 i; i < nbPoolIds; i++) {
+      uint128 poolId0 = poolIds_[i];
+      VPool storage pool0 = vPools[poolId0];
+
+      // Considering the verification that pool IDs are unique & ascending
+      // then start index is i to reduce required number of loops
       for (uint128 j = i; j < nbPoolIds; j++) {
-        overlaps[poolIds_[i]][poolIds_[j]] -= amount_;
+        uint128 poolId1 = poolIds_[j];
+        VPool storage pool1 = vPools[poolId1];
+
+        pool0.overlaps[poolId1] -= amount_;
       }
     }
   }
