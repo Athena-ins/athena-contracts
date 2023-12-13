@@ -111,12 +111,12 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
       0,
       0,
       slot0.totalInsuredCapital,
-      availableCapital
+      availableLiquidity
     );
 
     return (
       slot0.totalInsuredCapital,
-      availableCapital - slot0.totalInsuredCapital,
+      availableLiquidity - slot0.totalInsuredCapital,
       __uRate,
       getPremiumRate(__uRate),
       f
@@ -167,21 +167,15 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     __newLPInfo.beginLiquidityIndex = __liquidityIndex;
   }
 
-  function ratioWithAvailableCapital(
+  function ratioWithAvailableLiquidity(
     uint256 _amount
   ) external view returns (uint256) {
-    return _amount.rayDiv(availableCapital);
+    return _amount.rayDiv(availableLiquidity);
   }
 
   /// ========================== ///
   /// ========= HELPERS ======== ///
   /// ========================== ///
-
-  function _getAmountInsuredByCover(
-    uint256 coverId_
-  ) internal view returns (uint256) {
-    return policyManagerInterface.coverAmountOfPolicy(coverId_);
-  }
 
   // @bw high gas consumpton - only place saved claims are consummed
   function _actualizingLPInfoWithClaims(
@@ -244,8 +238,8 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     // Add deposit to pool's own intersecting amounts
     intersectingAmounts[0] += amount_;
 
-    _updateSlot0WhenAvailableCapitalChange(amount_, 0);
-    availableCapital += amount_;
+    _updateSlot0WhenAvailableLiquidityChange(amount_, 0);
+    availableLiquidity += amount_;
     LPsInfo[tokenId_] = LPInfo(
       liquidityIndex,
       processedClaims.length
@@ -320,7 +314,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
         0,
         0,
         slot0.totalInsuredCapital,
-        availableCapital - _userCapital
+        availableLiquidity - _userCapital
       ) <= RayMath.RAY * 100,
       "PP: use rate > 100%"
     );
@@ -355,7 +349,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
       );
     }
 
-    _updateSlot0WhenAvailableCapitalChange(0, __newUserCapital);
+    _updateSlot0WhenAvailableLiquidityChange(0, __newUserCapital);
 
     for (uint256 i = 0; i < _poolIds.length; i++) {
       intersectingAmounts[
@@ -363,7 +357,7 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
       ] -= __newUserCapital;
     }
 
-    availableCapital -= __newUserCapital;
+    availableLiquidity -= __newUserCapital;
 
     emit WithdrawLiquidity(
       tokenId_,
@@ -403,8 +397,15 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     uint256 amount_
   ) external onlyCore {
     // The insured amount is already updated in the Cover Manager
-    uint256 newInsuredAmount = _getAmountInsuredByCover(coverId_);
-    _increaseCover(coverId_, amount_, newInsuredAmount);
+    uint256 newInsuredAmount = policyManagerInterface
+      .coverAmountOfPolicy(coverId_);
+    // The insured amount is already updated in the Cover Manager
+    uint256 oldInsuredAmount = newInsuredAmount - amount_;
+    uint256 premiumsLeft = _withdrawPolicy(
+      coverId_,
+      oldInsuredAmount
+    );
+    _buyPolicy(coverId_, premiumsLeft, newInsuredAmount);
   }
 
   function decreaseCover(
@@ -412,16 +413,25 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     uint256 amount_
   ) external onlyCore {
     // The insured amount is already updated in the Cover Manager
-    uint256 newInsuredAmount = _getAmountInsuredByCover(coverId_);
-    _decreaseCover(coverId_, amount_, newInsuredAmount);
+    uint256 newInsuredAmount = policyManagerInterface
+      .coverAmountOfPolicy(coverId_);
+    uint256 oldInsuredAmount = newInsuredAmount + amount_;
+    uint256 premiumsLeft = _withdrawPolicy(
+      coverId_,
+      oldInsuredAmount
+    );
+    _buyPolicy(coverId_, premiumsLeft, newInsuredAmount);
   }
 
   function addPremiums(
     uint256 coverId_,
     uint256 amount_
   ) external onlyCore {
-    uint256 amountInsured = _getAmountInsuredByCover(coverId_);
-    _addPremiums(coverId_, amount_, amountInsured);
+    uint256 amountInsured = policyManagerInterface
+      .coverAmountOfPolicy(coverId_);
+    uint256 premiumsLeft = _withdrawPolicy(coverId_, amountInsured);
+    uint256 newPremiumsAmount = premiumsLeft + amount_;
+    _buyPolicy(coverId_, newPremiumsAmount, amountInsured);
   }
 
   function removePremiums(
@@ -429,8 +439,11 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     uint256 amount_,
     address account_
   ) external onlyCore {
-    uint256 amountInsured = _getAmountInsuredByCover(coverId_);
-    _removePremiums(coverId_, amount_, amountInsured);
+    uint256 amountInsured = policyManagerInterface
+      .coverAmountOfPolicy(coverId_);
+    uint256 premiumsLeft = _withdrawPolicy(coverId_, amountInsured);
+    uint256 newPremiumsAmount = premiumsLeft - amount_;
+    _buyPolicy(coverId_, newPremiumsAmount, amountInsured);
     IERC20(underlyingAsset).safeTransfer(account_, amount_);
   }
 
@@ -461,16 +474,15 @@ contract ProtocolPool is IProtocolPool, PolicyCover {
     uint256 _aaveReserveNormalizedIncome
   ) public override onlyCore {
     // @dev Here is where the intersectingAmounts are consumed
-    uint256 __amountToRemoveByClaim = _amountToRemoveFromIntersecAndCapital(
-        intersectingAmounts[intersectingAmountIndexes[_fromPoolId]],
-        _ratio
-      );
-    _updateSlot0WhenAvailableCapitalChange(
+    // @bw this is where pool overlaps are used to compute the amount of liq to remove from each pool
+    uint256 __amountToRemoveByClaim =intersectingAmounts[intersectingAmountIndexes[_fromPoolId]].rayMul(_ratio)
+
+    _updateSlot0WhenAvailableLiquidityChange(
       0,
       __amountToRemoveByClaim
     );
 
-    availableCapital -= __amountToRemoveByClaim;
+    availableLiquidity -= __amountToRemoveByClaim;
     intersectingAmounts[
       intersectingAmountIndexes[_fromPoolId]
     ] -= __amountToRemoveByClaim;
@@ -603,7 +615,7 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
       uint256 __remainingSeconds
     )
   {
-    uint256 __availableCapital = availableCapital;
+    uint256 __availableLiquidity = availableLiquidity;
     (Slot0 memory __slot0, ) = _actualizingUntil(block.timestamp);
     PremiumPosition.Info memory __position = premiumPositions[
       coverId_
@@ -625,7 +637,7 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
           0,
           0,
           __slot0.totalInsuredCapital,
-          __availableCapital
+          __availableLiquidity
         )
       );
 
@@ -658,7 +670,7 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
         if (__initialized && __tickNext < __position.lastTick) {
           crossingInitializedTick(
             __slot0,
-            __availableCapital,
+            __availableLiquidity,
             __tickNext
           );
 
@@ -667,7 +679,7 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
               0,
               0,
               __slot0.totalInsuredCapital,
-              __availableCapital
+              __availableLiquidity
             )
           );
 
@@ -688,7 +700,7 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
           0,
           0,
           slot0.totalInsuredCapital,
-          availableCapital
+          availableLiquidity
         )
       );
   }
@@ -750,7 +762,7 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
 
   function crossingInitializedTick(
     Slot0 memory _slot0,
-    uint256 _availableCapital,
+    uint256 _availableLiquidity,
     uint32 _tick
   ) internal view {
     uint256[] memory coverIds = ticks[_tick];
@@ -769,7 +781,7 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
         0,
         0,
         _slot0.totalInsuredCapital,
-        _availableCapital
+        _availableLiquidity
       )
     );
 
@@ -778,7 +790,7 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
         0,
         __insuredCapitalToRemove,
         _slot0.totalInsuredCapital,
-        _availableCapital
+        _availableLiquidity
       )
     );
 
@@ -809,7 +821,7 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
 
     __liquidityIndex = liquidityIndex;
 
-    uint256 __availableCapital = availableCapital;
+    uint256 __availableLiquidity = availableLiquidity;
     uint256 __secondsGap = _dateInSeconds -
       __slot0.lastUpdateTimestamp;
 
@@ -817,7 +829,7 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
       0,
       0,
       __slot0.totalInsuredCapital,
-      __availableCapital
+      __availableLiquidity
     ) / 100;
 
     uint256 __pRate = getPremiumRate(__uRate * 100) / 100;
@@ -839,7 +851,7 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
         if (__initialized) {
           crossingInitializedTick(
             __slot0,
-            __availableCapital,
+            __availableLiquidity,
             __tickNext
           );
 
@@ -848,7 +860,7 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
               0,
               0,
               __slot0.totalInsuredCapital,
-              __availableCapital
+              __availableLiquidity
             ) /
             100;
 
@@ -904,11 +916,11 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
     tickBitmap.flipTick(_tick);
   }
 
-  function _updateSlot0WhenAvailableCapitalChange(
+  function _updateSlot0WhenAvailableLiquidityChange(
     uint256 _amountToAdd,
     uint256 _amountToRemove
   ) internal {
-    uint256 __availableCapital = availableCapital;
+    uint256 __availableLiquidity = availableLiquidity;
     uint256 __totalInsuredCapital = slot0.totalInsuredCapital;
 
     uint256 __currentPremiumRate = getPremiumRate(
@@ -916,7 +928,7 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
         0,
         0,
         __totalInsuredCapital,
-        __availableCapital
+        __availableLiquidity
       )
     );
 
@@ -925,7 +937,7 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
         0,
         0,
         __totalInsuredCapital,
-        __availableCapital + _amountToAdd - _amountToRemove
+        __availableLiquidity + _amountToAdd - _amountToRemove
       )
     );
 
@@ -1000,16 +1012,16 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
     uint256 _premium,
     uint256 _insuredCapital
   ) internal {
-    uint256 _availableCapital = availableCapital;
+    uint256 _availableLiquidity = availableLiquidity;
     uint256 totalInsuredCapital = slot0.totalInsuredCapital;
 
     require(
-      totalInsuredCapital + _insuredCapital < _availableCapital,
+      totalInsuredCapital + _insuredCapital < _availableLiquidity,
       "Insufficient capital"
     );
 
     uint256 __currentPremiumRate = getPremiumRate(
-      _utilisationRate(0, 0, totalInsuredCapital, _availableCapital)
+      _utilisationRate(0, 0, totalInsuredCapital, _availableLiquidity)
     );
 
     uint256 __newPremiumRate = getPremiumRate(
@@ -1017,7 +1029,7 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
         _insuredCapital,
         0,
         totalInsuredCapital,
-        _availableCapital
+        _availableLiquidity
       )
     );
 
@@ -1049,56 +1061,6 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
     slot0.remainingPolicies++;
   }
 
-  /// -------- UPDATE -------- ///
-
-  function _increaseCover(
-    uint256 coverId_,
-    uint256 amount_,
-    uint256 newInsuredAmount
-  ) internal {
-    // The insured amount is already updated in the Cover Manager
-    uint256 oldInsuredAmount = newInsuredAmount - amount_;
-    uint256 premiumsLeft = _withdrawPolicy(
-      coverId_,
-      oldInsuredAmount
-    );
-    _buyPolicy(coverId_, premiumsLeft, newInsuredAmount);
-  }
-
-  function _decreaseCover(
-    uint256 coverId_,
-    uint256 amount_,
-    uint256 newInsuredAmount
-  ) internal {
-    // The insured amount is already updated in the Cover Manager
-    uint256 oldInsuredAmount = newInsuredAmount + amount_;
-    uint256 premiumsLeft = _withdrawPolicy(
-      coverId_,
-      oldInsuredAmount
-    );
-    _buyPolicy(coverId_, premiumsLeft, newInsuredAmount);
-  }
-
-  function _addPremiums(
-    uint256 coverId_,
-    uint256 amount_,
-    uint256 amountInsured
-  ) internal {
-    uint256 premiumsLeft = _withdrawPolicy(coverId_, amountInsured);
-    uint256 newPremiumsAmount = premiumsLeft + amount_;
-    _buyPolicy(coverId_, newPremiumsAmount, amountInsured);
-  }
-
-  function _removePremiums(
-    uint256 coverId_,
-    uint256 amount_,
-    uint256 amountInsured
-  ) internal {
-    uint256 premiumsLeft = _withdrawPolicy(coverId_, amountInsured);
-    uint256 newPremiumsAmount = premiumsLeft - amount_;
-    _buyPolicy(coverId_, newPremiumsAmount, amountInsured);
-  }
-
   /// -------- CLOSE -------- ///
 
   function _withdrawPolicy(
@@ -1113,14 +1075,14 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
     require(__currentTick <= __position.lastTick, "Policy Expired");
 
     uint256 __totalInsuredCapital = slot0.totalInsuredCapital;
-    uint256 __availableCapital = availableCapital;
+    uint256 __availableLiquidity = availableLiquidity;
 
     uint256 __currentPremiumRate = getPremiumRate(
       _utilisationRate(
         0,
         0,
         __totalInsuredCapital,
-        __availableCapital
+        __availableLiquidity
       )
     );
 
@@ -1141,7 +1103,7 @@ abstract contract PolicyCover is IPolicyCover, ClaimCover {
         0,
         _amountCovered,
         __totalInsuredCapital,
-        __availableCapital
+        __availableLiquidity
       )
     );
 
@@ -1184,9 +1146,9 @@ abstract contract ClaimCover is LiquidityCover {
   Claim[] public processedClaims;
 
   // @bw Thao@NOTE: for testing
-  function claimsCount() public view returns (uint256) {
-    return processedClaims.length;
-  }
+  // function claimsCount() public view returns (uint256) {
+  //   return processedClaims.length;
+  // }
 
   function _claims(
     uint256 beginIndex
@@ -1202,13 +1164,6 @@ abstract contract ClaimCover is LiquidityCover {
 
     return __claims;
   }
-
-  function _amountToRemoveFromIntersecAndCapital(
-    uint256 _intersecAmount,
-    uint256 _claimRatio
-  ) internal pure returns (uint256) {
-    return _intersecAmount.rayMul(_claimRatio);
-  }
 }
 
 abstract contract LiquidityCover {
@@ -1221,7 +1176,7 @@ abstract contract LiquidityCover {
   mapping(uint128 => uint256) public intersectingAmountIndexes;
   uint256[] public intersectingAmounts;
 
-  uint256 public availableCapital;
+  uint256 public availableLiquidity;
 
   uint256 public liquidityIndex;
 
@@ -1238,21 +1193,21 @@ abstract contract LiquidityCover {
     uint256 _insuredCapitalToAdd,
     uint256 _insuredCapitalToRemove,
     uint256 _totalInsuredCapital,
-    uint256 _availableCapital
+    uint256 _availableLiquidity
   ) internal pure returns (uint256) {
-    if (_availableCapital == 0) {
+    if (_availableLiquidity == 0) {
       return 0;
     }
     uint256 utilizationRate = (((_totalInsuredCapital +
       _insuredCapitalToAdd) - _insuredCapitalToRemove) * 100).rayDiv(
-        _availableCapital
+        _availableLiquidity
       );
 
     //  @bw problem if usage is above 100% (ex: 100$ insured and 1$ capital)
     // In this case the usage should be ajusted to reflect available capital
     // The ratio should be slightly favorable for liquidity provider to incentivise equilibrium
     // Special rules for +100% -> adapt uRate to be based on capital + bonus to incentivize provider
-    // 100% = 100 000000000000000000000000000 (rays)
+    // 100% = 100 1e27 (rays)
 
     return utilizationRate;
   }

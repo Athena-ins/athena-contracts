@@ -14,6 +14,7 @@ import { IProtocolPool } from "../interface/IProtocolPool.sol";
 contract PolicyManager is IPolicyManager, ERC721Enumerable {
   address public core;
   IProtocolFactory public protocolFactoryInterface;
+  ILiquidityManager public liquidityManager;
 
   /// Maps a cover ID to the cover data
   mapping(uint256 => Policy) public covers;
@@ -22,10 +23,12 @@ contract PolicyManager is IPolicyManager, ERC721Enumerable {
 
   constructor(
     address coreAddress,
-    address protocolFactory
+    address protocolFactory,
+    ILiquidityManager liquidityManager_
   ) ERC721("Athena-Cover", "Athena Insurance User Cover") {
     core = coreAddress;
     protocolFactoryInterface = IProtocolFactory(protocolFactory);
+    liquidityManager = liquidityManager_;
   }
 
   /// =========================== ///
