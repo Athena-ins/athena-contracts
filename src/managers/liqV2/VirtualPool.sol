@@ -51,6 +51,7 @@ library VirtualPool {
 
   struct VPool {
     uint128 poolId;
+    uint256 protocolShare; // amount of fees on rewards
     Formula f;
     Slot0 slot0;
     uint256 liquidityIndex;
@@ -76,6 +77,7 @@ library VirtualPool {
     VPool storage self,
     uint128 poolId,
     address underlyingAsset_,
+    uint256 protocolShare_, //Ray
     uint256 uOptimal_, //Ray
     uint256 r0_, //Ray
     uint256 rSlope1_, //Ray
@@ -87,6 +89,7 @@ library VirtualPool {
 
     self.poolId = poolId;
     self.underlyingAsset = underlyingAsset_;
+    self.protocolShare = protocolShare_;
 
     self.f = Formula({
       uOptimal: uOptimal_,
@@ -100,8 +103,6 @@ library VirtualPool {
 
     self.overlappedPools[0] = poolId;
     self.overlaps[poolId] = 1; // 1 wei
-
-    // @dev for comptabile pools, check that pools are registered both ways for safety
   }
 
   // ======= READ METHODS ======= //

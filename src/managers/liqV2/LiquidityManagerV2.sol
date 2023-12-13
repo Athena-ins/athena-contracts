@@ -67,6 +67,12 @@ contract LiquidityManagerV2 is
     core = core;
   }
 
+  function poolInfo(
+    uint256 poolId_
+  ) external view returns (VirtualPool.VPool memory) {
+    return pools[_poolId];
+  }
+
   /// ======= MODIFIERS ======= ///
 
   modifier onlyTokenOwner(uint256 tokenId, address account) {
@@ -76,6 +82,43 @@ contract LiquidityManagerV2 is
 
   /// ======= VIEWS ======= ///
   /// ======= POOLS ======= ///
+
+  function createPool(
+    address underlyingAsset_,
+    uint256 protocolShare_,
+    uint256 uOptimal_,
+    uint256 r0_,
+    uint256 rSlope1_,
+    uint256 rSlope2_,
+    uint128[] calldata compatiblePools_
+  ) external onlyOwner {
+    // Save pool ID to memory and update for next
+    uint128 poolId = nextPoolId;
+    nextPoolId++;
+
+    // Get storage pointer to pool
+    VirtualPool.VPool storage pool = vPools[poolId];
+
+    // Create virtual pool
+    pool.vPoolConstructor(
+      poolId,
+      underlyingAsset_,
+      protocolShare_, //Ray
+      uOptimal_, //Ray
+      r0_, //Ray
+      rSlope1_, //Ray
+      rSlope2_ //Ray
+    );
+
+    // Add compatible pools
+    uint256 nbPools = compatiblePools_.length;
+    for (uint256 i; i < nbPools; i++) {
+      uint128 compatiblePoolId = compatiblePools_[i];
+      arePoolCompatible[poolId][compatiblePoolId] = true;
+      arePoolCompatible[compatiblePoolId][poolId] = true;
+    }
+  }
+
   /// ======= MAKE POSITION ======= ///
 
   function depositToPosition(
