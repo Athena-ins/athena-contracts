@@ -20,7 +20,7 @@ library VirtualPool {
   using TickBitmap for mapping(uint24 => uint256);
   using PremiumPosition for mapping(uint256 => PremiumPosition.Info);
 
-  // ======= VIRTUAL STORAGE ======= //
+  // ======= STRUCTS ======= //
 
   struct Formula {
     uint256 uOptimal;
@@ -48,6 +48,8 @@ library VirtualPool {
     uint256 liquidityIndexBeforeClaim;
     uint256 aaveReserveNormalizedIncomeBeforeClaim;
   }
+
+  // ======= VIRTUAL STORAGE ======= //
 
   struct VPool {
     uint128 poolId;
@@ -143,66 +145,66 @@ library VirtualPool {
     uint256 _feeRate
   ) public returns (uint256, uint256) {
     (
-      uint256 __newUserCapital,
-      uint256 __totalRewards,
-      LPInfo memory __newLPInfo,
-      uint256 __aaveScaledBalanceToRemove
-    ) = _actualizingLPInfoWithClaims(
+      uint256 newUserCapital,
+      uint256 totalRewards,
+      LPInfo memory newLPInfo,
+      uint256 aaveScaledBalanceToRemove
+    ) = self._actualizingLPInfoWithClaims(
         tokenId_,
         _userCapital,
         _poolIds
       );
 
-    uint256 __liquidityIndex = liquidityIndex;
+    uint256 liquidityIndex = self.liquidityIndex;
 
-    __totalRewards += __newUserCapital.rayMul(
-      __liquidityIndex - __newLPInfo.beginLiquidityIndex
+    totalRewards += newUserCapital.rayMul(
+      liquidityIndex - newLPInfo.beginLiquidityIndex
     );
 
-    __newLPInfo.beginLiquidityIndex = __liquidityIndex;
+    newLPInfo.beginLiquidityIndex = liquidityIndex;
 
     // transfer to account:
-    uint256 __interestNet = (__totalRewards * (1000 - _feeRate)) /
-      1000;
+    uint256 interestNet = (totalRewards * (1000 - _feeRate)) / 1000;
     // @bw here should safe to position instead of initiating transfer when called for fee update
-    IERC20(underlyingAsset).safeTransfer(account_, __interestNet);
+    // @bw init transfer call in liq manager to strat holding funds
+    // IERC20(underlyingAsset).safeTransfer(account_,  interestNet);
 
     // transfer to treasury
     // @bw FEE WARN! core has no way of using funds
-    IERC20(underlyingAsset).safeTransfer(
-      core,
-      __totalRewards - __interestNet
-    );
+    // @bw init transfer call in liq manager to strat holding funds
+    // IERC20(underlyingAsset).safeTransfer(
+    //   core,
+    //    totalRewards -  interestNet
+    // );
 
-    LPsInfo[tokenId_] = __newLPInfo;
+    self.lpInfos[tokenId_] = newLPInfo;
 
     emit TakeInterest(
       tokenId_,
-      __newUserCapital,
-      __totalRewards,
-      __interestNet,
-      __totalRewards - __interestNet
+      newUserCapital,
+      totalRewards,
+      interestNet,
+      totalRewards - interestNet
     );
 
-    return (__newUserCapital, __aaveScaledBalanceToRemove);
+    return (newUserCapital, aaveScaledBalanceToRemove);
   }
 
   /// -------- WITHDRAW -------- ///
 
   function _withdrawLiquidity(
     VPool storage self,
-    address account_,
+    uint128[] calldata _poolIds,
     uint256 tokenId_,
     uint256 _userCapital,
-    uint128[] calldata _poolIds,
-    uint128 _feeRate
+    uint128 feeDiscount_
   ) external returns (uint256, uint256) {
     require(
-      _utilisationRate(
+      utilisationRate(
         0,
         0,
-        slot0.totalInsuredCapital,
-        availableLiquidity - _userCapital
+        self.slot0.totalInsuredCapital,
+        self.availableLiquidity - _userCapital
       ) <= RayMath.RAY * 100,
       "PP: use rate > 100%"
     );
@@ -222,30 +224,38 @@ library VirtualPool {
 
     // Add investment strategy rewards
     __totalRewards += __newUserCapital.rayMul(
-      liquidityIndex - __newLPInfo.beginLiquidityIndex
+      self.liquidityIndex - __newLPInfo.beginLiquidityIndex
     );
 
     // Remove protocol fees from rewards
+    // @bw needs to be fixed with pool specific fee - currntly fee rate
     uint256 __rewardsNet;
     if (__totalRewards > 0) {
-      __rewardsNet = (__totalRewards * (1000 - _feeRate)) / 1000;
-      IERC20(underlyingAsset).safeTransfer(account_, __rewardsNet);
+      __rewardsNet =
+        (__totalRewards * (10000 - feeDiscount_)) /
+        10000;
+      // @bw init transfer call in liq manager to strat holding funds
+      // IERC20(underlyingAsset).safeTransfer(account_, __rewardsNet);
       // @bw FEES are sent to core here
-      IERC20(underlyingAsset).safeTransfer(
-        core,
-        __totalRewards - __rewardsNet
-      );
+      // @bw init transfer call in liq manager to strat holding funds
+      // IERC20(underlyingAsset).safeTransfer(
+      //   core,
+      //   __totalRewards - __rewardsNet
+      // );
     }
 
-    _updateSlot0WhenAvailableLiquidityChange(0, __newUserCapital);
+    self._updateSlot0WhenAvailableLiquidityChange(
+      0,
+      __newUserCapital
+    );
 
-    for (uint256 i = 0; i < _poolIds.length; i++) {
-      intersectingAmounts[
-        intersectingAmountIndexes[_poolIds[i]]
-      ] -= __newUserCapital;
+    for (uint256 i; i < _poolIds.length; i++) {
+      uint256 poolIdB = _poolIds[i];
+      // Overlapping liquidity is always registered in poolId 0
+      // We allow equal values to withdraw from the pool's own liquidity
+      if (poolIdB <= self.poolId)
+        self.overlaps[poolIdB] -= __newUserCapital;
     }
-
-    availableLiquidity -= __newUserCapital;
 
     emit WithdrawLiquidity(
       tokenId_,
@@ -255,7 +265,7 @@ library VirtualPool {
       __totalRewards - __rewardsNet
     );
 
-    delete LPsInfo[tokenId_];
+    delete self.lpInfos[tokenId_];
 
     return (__newUserCapital, __aaveScaledBalanceToRemove);
   }
@@ -268,27 +278,28 @@ library VirtualPool {
     uint256 _beginPremiumRate,
     uint32 _tick
   ) private {
-    uint224 nbCoversInTick = ticks.addCoverId(_tokenId, _tick);
+    uint224 nbCoversInTick = self.ticks.addCoverId(_tokenId, _tick);
 
-    premiumPositions[_tokenId] = PremiumPosition.Info(
+    self.premiumPositions[_tokenId] = PremiumPosition.Info(
       _beginPremiumRate,
       _tick,
       nbCoversInTick
     );
 
-    if (!tickBitmap.isInitializedTick(_tick)) {
-      tickBitmap.flipTick(_tick);
+    if (!self.tickBitmap.isInitializedTick(_tick)) {
+      self.tickBitmap.flipTick(_tick);
     }
   }
 
-  function _buyPolicy(
+  // function _buyPolicy(
+  function _buyCover(
     VPool storage self,
     uint256 _tokenId,
     uint256 _premium,
     uint256 _insuredCapital
   ) private {
     uint256 _availableLiquidity = availableLiquidity;
-    uint256 totalInsuredCapital = slot0.totalInsuredCapital;
+    uint256 totalInsuredCapital = self.slot0.totalInsuredCapital;
 
     require(
       totalInsuredCapital + _insuredCapital < _availableLiquidity,
@@ -296,11 +307,16 @@ library VirtualPool {
     );
 
     uint256 __currentPremiumRate = getPremiumRate(
-      _utilisationRate(0, 0, totalInsuredCapital, _availableLiquidity)
+      self._utilisationRate(
+        0,
+        0,
+        totalInsuredCapital,
+        _availableLiquidity
+      )
     );
 
     uint256 __newPremiumRate = getPremiumRate(
-      _utilisationRate(
+      self._utilisationRate(
         _insuredCapital,
         0,
         totalInsuredCapital,
@@ -315,7 +331,7 @@ library VirtualPool {
     );
 
     uint256 __newSecondsPerTick = getSecondsPerTick(
-      slot0.secondsPerTick,
+      self.slot0.secondsPerTick,
       __currentPremiumRate,
       __newPremiumRate
     );
@@ -325,34 +341,35 @@ library VirtualPool {
       "Min duration"
     );
 
-    uint32 __lastTick = slot0.tick +
+    uint32 __lastTick = self.slot0.tick +
       uint32(__durationInSeconds / __newSecondsPerTick);
 
-    addPremiumPosition(_tokenId, __newPremiumRate, __lastTick);
+    self.addPremiumPosition(_tokenId, __newPremiumRate, __lastTick);
 
-    slot0.totalInsuredCapital += _insuredCapital;
-    slot0.secondsPerTick = __newSecondsPerTick;
+    self.slot0.totalInsuredCapital += _insuredCapital;
+    self.slot0.secondsPerTick = __newSecondsPerTick;
 
-    slot0.remainingPolicies++;
+    self.slot0.remainingPolicies++;
   }
 
-  function _withdrawPolicy(
+  // @bw function _withdrawPolicy(
+  function _closeCover(
     VPool storage self,
     uint256 coverId,
     uint256 _amountCovered
   ) private returns (uint256 __remainedPremium) {
-    PremiumPosition.Info memory __position = premiumPositions[
+    PremiumPosition.Info memory __position = self.premiumPositions[
       coverId
     ];
-    uint32 __currentTick = slot0.tick;
+    uint32 __currentTick = self.slot0.tick;
 
-    require(__currentTick <= __position.lastTick, "Policy Expired");
+    require(__currentTick <= __position.lastTick, "Cover Expired");
 
-    uint256 __totalInsuredCapital = slot0.totalInsuredCapital;
+    uint256 __totalInsuredCapital = self.slot0.totalInsuredCapital;
     uint256 __availableLiquidity = availableLiquidity;
 
     uint256 __currentPremiumRate = getPremiumRate(
-      _utilisationRate(
+      self._utilisationRate(
         0,
         0,
         __totalInsuredCapital,
@@ -368,12 +385,12 @@ library VirtualPool {
 
     __remainedPremium =
       ((__position.lastTick - __currentTick) *
-        slot0.secondsPerTick *
+        self.slot0.secondsPerTick *
         __ownerCurrentEmissionRate) /
       86400;
 
     uint256 __newPremiumRate = getPremiumRate(
-      _utilisationRate(
+      self._utilisationRate(
         0,
         _amountCovered,
         __totalInsuredCapital,
@@ -381,29 +398,29 @@ library VirtualPool {
       )
     );
 
-    slot0.totalInsuredCapital -= _amountCovered;
+    self.slot0.totalInsuredCapital -= _amountCovered;
 
-    slot0.secondsPerTick = getSecondsPerTick(
-      slot0.secondsPerTick,
+    self.slot0.secondsPerTick = getSecondsPerTick(
+      self.slot0.secondsPerTick,
       __currentPremiumRate,
       __newPremiumRate
     );
 
-    if (ticks.getCoverIdNumber(__position.lastTick) > 1) {
-      premiumPositions.replaceAndRemoveCoverId(
+    if (self.ticks.getCoverIdNumber(__position.lastTick) > 1) {
+      self.premiumPositions.replaceAndRemoveCoverId(
         coverId,
-        ticks.getLastCoverIdInTick(__position.lastTick)
+        self.ticks.getLastCoverIdInTick(__position.lastTick)
       );
 
-      ticks.removeCoverId(
+      self.ticks.removeCoverId(
         __position.coverIdIndex,
         __position.lastTick
       );
     } else {
-      removeTick(__position.lastTick);
+      self.removeTick(__position.lastTick);
     }
 
-    slot0.remainingPolicies--;
+    self.slot0.remainingPolicies--;
   }
 
   // ======= CLAIMS ======= //
@@ -431,24 +448,24 @@ library VirtualPool {
     VPool storage self,
     uint32 _tick
   ) private returns (uint256[] memory coverIds) {
-    coverIds = ticks[_tick];
+    coverIds = self.ticks[_tick];
 
     for (uint256 i = 0; i < coverIds.length; i++) {
       uint256 coverId = coverIds[i];
-      delete premiumPositions[coverId];
+      delete self.premiumPositions[coverId];
 
-      emit ExpiredPolicy(coverId, _tick);
+      emit CoverExpired(coverId, _tick);
     }
 
-    ticks.clear(_tick);
-    tickBitmap.flipTick(_tick);
+    self.ticks.clear(_tick);
+    self.tickBitmap.flipTick(_tick);
   }
 
   function _updateSlot0WhenAvailableLiquidityChange(
     VPool storage self,
     uint256 _amountToAdd,
     uint256 _amountToRemove
-  ) private {
+  ) internal {
     uint256 available = self.availableLiquidity();
     uint256 totalInsured = self.slot0.totalInsuredCapital;
 
@@ -475,7 +492,7 @@ library VirtualPool {
   function _actualizing(
     VPool storage self
   ) private returns (uint256[] memory) {
-    if (slot0.remainingPolicies > 0) {
+    if (self.slot0.remainingPolicies > 0) {
       (
         Slot0 memory __slot0,
         uint256 __liquidityIndex
@@ -483,21 +500,20 @@ library VirtualPool {
 
       //now, we remove all crossed ticks
       uint256[] memory __expiredPoliciesTokens = new uint256[](
-        slot0.remainingPolicies - __slot0.remainingPolicies
+        self.slot0.remainingPolicies - __slot0.remainingPolicies
       );
       uint256 __expiredPoliciesTokenIdCurrentIndex;
 
-      uint32 __observedTick = slot0.tick;
+      uint32 __observedTick = self.slot0.tick;
       bool __initialized;
       while (__observedTick < __slot0.tick) {
-        (__observedTick, __initialized) = tickBitmap
+        (__observedTick, __initialized) = self
+          .tickBitmap
           .nextInitializedTickInTheRightWithinOneWord(__observedTick);
 
         if (__initialized && __observedTick <= __slot0.tick) {
-          uint256[]
-            memory __currentExpiredPoliciesTokenId = removeTick(
-              __observedTick
-            );
+          uint256[] memory __currentExpiredPoliciesTokenId = self
+            .removeTick(__observedTick);
 
           for (
             uint256 i = 0;
@@ -513,17 +529,17 @@ library VirtualPool {
         }
       }
 
-      slot0.tick = __slot0.tick;
-      slot0.secondsPerTick = __slot0.secondsPerTick;
-      slot0.totalInsuredCapital = __slot0.totalInsuredCapital;
-      slot0.remainingPolicies = __slot0.remainingPolicies;
-      slot0.lastUpdateTimestamp = block.timestamp;
-      liquidityIndex = __liquidityIndex;
+      self.slot0.tick = __slot0.tick;
+      self.slot0.secondsPerTick = __slot0.secondsPerTick;
+      self.slot0.totalInsuredCapital = __slot0.totalInsuredCapital;
+      self.slot0.remainingPolicies = __slot0.remainingPolicies;
+      self.slot0.lastUpdateTimestamp = block.timestamp;
+      self.liquidityIndex = __liquidityIndex;
 
       return __expiredPoliciesTokens;
     }
 
-    slot0.lastUpdateTimestamp = block.timestamp;
+    self.slot0.lastUpdateTimestamp = block.timestamp;
     return new uint256[](0);
   }
 
@@ -538,14 +554,14 @@ library VirtualPool {
     returns (Slot0 memory __slot0, uint256 __liquidityIndex)
   {
     require(
-      _dateInSeconds >= slot0.lastUpdateTimestamp,
+      _dateInSeconds >= self.slot0.lastUpdateTimestamp,
       "date is not valide"
     );
 
-    if (slot0.remainingPolicies > 0) {
+    if (self.slot0.remainingPolicies > 0) {
       (__slot0, __liquidityIndex) = _actualizingUntil(_dateInSeconds);
     } else {
-      __slot0 = slot0;
+      __slot0 = self.slot0;
       __slot0.lastUpdateTimestamp = _dateInSeconds;
     }
   }
@@ -564,23 +580,24 @@ library VirtualPool {
   {
     uint256 __availableLiquidity = availableLiquidity;
     (Slot0 memory __slot0, ) = _actualizingUntil(block.timestamp);
-    PremiumPosition.Info memory __position = premiumPositions[
+    PremiumPosition.Info memory __position = self.premiumPositions[
       coverId_
     ];
 
     if (__position.lastTick < __slot0.tick) {
-      /// @dev If the tick in slot0 is greater than the position's last tick then the policy is expired
+      /// @dev If the tick in slot0 is greater than the position's last tick then the cover is expired
       __premiumLeft = 0;
       __currentEmissionRate = 0;
       __remainingSeconds = 0;
     } else {
-      uint256 __coverBeginEmissionRate = policyManagerInterface
+      uint256 __coverBeginEmissionRate = self
+        .policyManagerInterface
         .policy(coverId_)
         .amountCovered
         .rayMul(__position.beginPremiumRate / 100) / 365;
 
       uint256 __currentPremiumRate = getPremiumRate(
-        _utilisationRate(
+        self._utilisationRate(
           0,
           0,
           __slot0.totalInsuredCapital,
@@ -597,7 +614,8 @@ library VirtualPool {
       uint256 __coverCurrentEmissionRate = __currentEmissionRate;
 
       while (__slot0.tick < __position.lastTick) {
-        (uint32 __tickNext, bool __initialized) = tickBitmap
+        (uint32 __tickNext, bool __initialized) = self
+          .tickBitmap
           .nextInitializedTickInTheRightWithinOneWord(__slot0.tick);
 
         uint32 __tick = __tickNext < __position.lastTick
@@ -615,14 +633,14 @@ library VirtualPool {
         __slot0.tick = __tick;
 
         if (__initialized && __tickNext < __position.lastTick) {
-          crossingInitializedTick(
+          self.crossingInitializedTick(
             __slot0,
             __availableLiquidity,
             __tickNext
           );
 
           __currentPremiumRate = getPremiumRate(
-            _utilisationRate(
+            self._utilisationRate(
               0,
               0,
               __slot0.totalInsuredCapital,
@@ -646,19 +664,20 @@ library VirtualPool {
     uint256 _availableLiquidity,
     uint32 _tick
   ) private view {
-    uint256[] memory coverIds = ticks[_tick];
+    uint256[] memory coverIds = self.ticks[_tick];
     uint256 __insuredCapitalToRemove;
 
     for (uint256 i = 0; i < coverIds.length; i++) {
       uint256 coverId = coverIds[i];
 
-      __insuredCapitalToRemove += policyManagerInterface
+      __insuredCapitalToRemove += self
+        .policyManagerInterface
         .policy(coverId)
         .amountCovered;
     }
 
     uint256 __currentPremiumRate = getPremiumRate(
-      _utilisationRate(
+      self._utilisationRate(
         0,
         0,
         _slot0.totalInsuredCapital,
@@ -667,7 +686,7 @@ library VirtualPool {
     );
 
     uint256 __newPremiumRate = getPremiumRate(
-      _utilisationRate(
+      self._utilisationRate(
         0,
         __insuredCapitalToRemove,
         _slot0.totalInsuredCapital,
@@ -694,20 +713,20 @@ library VirtualPool {
     returns (Slot0 memory __slot0, uint256 __liquidityIndex)
   {
     __slot0 = Slot0({
-      tick: slot0.tick,
-      secondsPerTick: slot0.secondsPerTick,
-      totalInsuredCapital: slot0.totalInsuredCapital,
-      remainingPolicies: slot0.remainingPolicies,
-      lastUpdateTimestamp: slot0.lastUpdateTimestamp
+      tick: self.slot0.tick,
+      secondsPerTick: self.slot0.secondsPerTick,
+      totalInsuredCapital: self.slot0.totalInsuredCapital,
+      remainingPolicies: self.slot0.remainingPolicies,
+      lastUpdateTimestamp: self.slot0.lastUpdateTimestamp
     });
 
-    __liquidityIndex = liquidityIndex;
+    __liquidityIndex = self.liquidityIndex;
 
     uint256 __availableLiquidity = availableLiquidity;
     uint256 __secondsGap = _dateInSeconds -
       __slot0.lastUpdateTimestamp;
 
-    uint256 __uRate = _utilisationRate(
+    uint256 __uRate = self._utilisationRate(
       0,
       0,
       __slot0.totalInsuredCapital,
@@ -717,7 +736,8 @@ library VirtualPool {
     uint256 __pRate = getPremiumRate(__uRate * 100) / 100;
 
     while (__secondsGap > 0) {
-      (uint32 __tickNext, bool __initialized) = tickBitmap
+      (uint32 __tickNext, bool __initialized) = self
+        .tickBitmap
         .nextInitializedTickInTheRightWithinOneWord(__slot0.tick);
 
       uint256 __secondsStep = (__tickNext - __slot0.tick) *
@@ -731,14 +751,14 @@ library VirtualPool {
         __secondsGap -= __secondsStep;
 
         if (__initialized) {
-          crossingInitializedTick(
+          self.crossingInitializedTick(
             __slot0,
             __availableLiquidity,
             __tickNext
           );
 
           __uRate =
-            _utilisationRate(
+            self._utilisationRate(
               0,
               0,
               __slot0.totalInsuredCapital,
@@ -776,13 +796,15 @@ library VirtualPool {
       uint256 __aaveScaledBalanceToRemove
     )
   {
-    __newLPInfo = LPsInfo[tokenId_];
-    Claim[] memory __claims = _claims(__newLPInfo.beginClaimIndex);
+    __newLPInfo = self.lpInfos[tokenId_];
+    PoolClaim[] memory __claims = _claims(
+      __newLPInfo.beginClaimIndex
+    );
 
     __newUserCapital = _userCapital;
 
     for (uint256 i = 0; i < __claims.length; i++) {
-      Claim memory __claim = __claims[i];
+      PoolClaim memory __claim = __claims[i];
 
       __totalRewards += __newUserCapital.rayMul(
         __claim.liquidityIndexBeforeClaim -
@@ -819,7 +841,6 @@ library VirtualPool {
   )
     public
     view
-    override
     returns (
       uint256 __newUserCapital,
       uint256 __totalRewards,
@@ -839,10 +860,10 @@ library VirtualPool {
 
     uint256 __liquidityIndex;
 
-    if (slot0.remainingPolicies > 0) {
+    if (self.slot0.remainingPolicies > 0) {
       (, __liquidityIndex) = _actualizingUntil(_dateInSecond);
     } else {
-      __liquidityIndex = liquidityIndex;
+      __liquidityIndex = self.liquidityIndex;
     }
 
     __totalRewards += __newUserCapital.rayMul(
