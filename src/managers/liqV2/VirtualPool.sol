@@ -107,6 +107,26 @@ library VirtualPool {
     self.overlaps[poolId] = 1; // 1 wei
   }
 
+  // ======= EVENTS ======= //
+
+  event TakeInterest(
+    uint256 tokenId,
+    uint256 userCapital,
+    uint256 rewardsGross,
+    uint256 rewardsNet,
+    uint256 fee
+  );
+
+  event WithdrawLiquidity(
+    uint256 tokenId,
+    uint256 capital,
+    uint256 rewardsGross,
+    uint256 rewardsNet,
+    uint256 fee
+  );
+
+  event CoverExpired(uint256 coverId, uint32 tick);
+
   // ======= READ METHODS ======= //
 
   // @bw ex: availableCapital
