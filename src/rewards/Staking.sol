@@ -1,18 +1,18 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.20;
 
-// contracts
+// Contracts
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
-// libraries
+// Libraries
 import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-// interfaces
+// Interfaces
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import { IERC20Permit } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
-import { IFarmingRange } from "./interfaces/IFarmingRange.sol";
-import { IStaking } from "./interfaces/IStaking.sol";
+import { IFarmingRange } from "../interfaces/IFarmingRange.sol";
+import { IStaking } from "../interfaces/IStaking.sol";
 import { ILiquidityManager } from "../interfaces/ILiquidityManager.sol";
 
 //======== ERRORS ========//

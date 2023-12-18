@@ -6,16 +6,14 @@ pragma solidity 0.8.20;
 // - check for mutations because of lock being both stored in memory & referenced with pointers
 // maybe pass storage pointers to private handlers + storing to be mutated data for cheaper ops
 
-// contracts
+// Contracts
 import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-
-// libraries
+// Libraries
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-
-// interfaces
-import { IStaking } from "../rewards/interfaces/IStaking.sol";
+// Interfaces
+import { IStaking } from "../interfaces/IStaking.sol";
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import { IERC20Permit } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
 

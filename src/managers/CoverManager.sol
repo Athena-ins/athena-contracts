@@ -6,12 +6,12 @@ import { ERC721 } from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 // Addons
 import { ERC721Enumerable } from "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 // Interfaces
-import { IPolicyManager } from "../interface/IPolicyManager.sol";
+import { ICoverManager } from "../interface/ICoverManager.sol";
 import { IProtocolFactory } from "../interface/IProtocolFactory.sol";
 import { IAthena } from "../interface/IAthena.sol";
 import { IProtocolPool } from "../interface/IProtocolPool.sol";
 
-contract PolicyManager is IPolicyManager, ERC721Enumerable {
+contract PolicyManager is ICoverManager, ERC721Enumerable {
   address public core;
   IProtocolFactory public protocolFactoryInterface;
   ILiquidityManager public liquidityManager;

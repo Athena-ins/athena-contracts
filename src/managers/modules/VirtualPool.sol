@@ -14,6 +14,7 @@ import { SafeERC20, IERC20 } from "@openzeppelin/contracts/token/ERC20/utils/Saf
 error ZeroAddressAsset();
 
 library VirtualPool {
+  using VirtualPool for VPool;
   using RayMath for uint256;
   using SafeERC20 for IERC20;
   using Tick for mapping(uint32 => uint256[]);

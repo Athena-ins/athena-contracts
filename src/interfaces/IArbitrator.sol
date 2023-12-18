@@ -10,7 +10,7 @@
 pragma solidity 0.8.20;
 
 // Interfaces
-import { IArbitrable } from "../IArbitrable.sol";
+import { IArbitrable } from "./IArbitrable.sol";
 
 /**
  * @title Arbitrator

@@ -2,7 +2,7 @@
 pragma solidity 0.8.20;
 import "@openzeppelin/contracts/token/ERC721/extensions/IERC721Enumerable.sol";
 
-interface IPolicyManager is IERC721Enumerable {
+interface ICoverManager is IERC721Enumerable {
   struct Policy {
     uint128 poolId;
     bool cancelledByUser;

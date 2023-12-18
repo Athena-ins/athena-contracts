@@ -1,19 +1,19 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.20;
 
-// contracts
+// Contracts
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-// libraries
+// Libraries
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-// interfaces
+// Interfaces
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import { IERC20Permit } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
-import { IFarmingRange } from "./interfaces/IFarmingRange.sol";
-import { IPositionManager } from "../interfaces/IPositionManager.sol";
-import { IPolicyManager } from "../interfaces/IPolicyManager.sol";
+import { IFarmingRange } from "../interfaces/IFarmingRange.sol";
+import { ILiquidityManager } from "../interfaces/ILiquidityManager.sol";
+import { ICoverManager } from "../interfaces/ICoverManager.sol";
 
 //======== ERRORS ========//
 
@@ -84,8 +84,8 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
 
   uint256 public rewardInfoLimit;
   address public immutable rewardManager;
-  IPositionManager public liquidityManager;
-  IPolicyManager public coverManager;
+  ILiquidityManager public liquidityManager;
+  ICoverManager public coverManager;
 
   constructor(
     address _owner,
@@ -98,8 +98,8 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
       revert RewardManagerNotDefined();
     }
 
-    liquidityManager = IPositionManager(_liquidityManager);
-    coverManager = IPolicyManager(_coverManager);
+    liquidityManager = ILiquidityManager(_liquidityManager);
+    coverManager = ICoverManager(_coverManager);
 
     rewardManager = _rewardManager;
   }
@@ -168,7 +168,7 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
       _tokenId
     );
 
-    IPositionManager.Position memory lpPosition = liquidityManager
+    ILiquidityManager.Position memory lpPosition = liquidityManager
       .position(_tokenId);
 
     uint256 amount = lpPosition.amountSupplied;
@@ -215,7 +215,7 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
 
     coverManager.transferFrom(msg.sender, address(this), _tokenId);
 
-    IPolicyManager.FullCoverData memory cover = coverManager
+    ICoverManager.FullCoverData memory cover = coverManager
       .fullCoverData(_tokenId);
 
     // For cover campaigns there is only one poolId

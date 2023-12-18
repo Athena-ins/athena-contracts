@@ -100,7 +100,7 @@ contract LiquidityManagerV2 is
     VirtualPool.VPool storage pool = vPools[poolId];
 
     // Create virtual pool
-    pool.vPoolConstructor(
+    pool._vPoolConstructor(
       poolId,
       underlyingAsset_,
       protocolShare_, //Ray
@@ -111,6 +111,7 @@ contract LiquidityManagerV2 is
     );
 
     // Add compatible pools
+    // @dev Registered both ways for safety
     uint256 nbPools = compatiblePools_.length;
     for (uint256 i; i < nbPools; i++) {
       uint128 compatiblePoolId = compatiblePools_[i];
@@ -220,7 +221,13 @@ contract LiquidityManagerV2 is
     bool claimsLock = claimManager.canWithdraw(poolIds);
     if (claimsLock) revert PoolsHaveOngoingClaims();
 
-    _removeOverlappingCapital(poolIds, position.supplied);
+    uint256 feeDiscount = staking.feeDiscountOf(account_);
+    _removeOverlappingCapital(
+      poolIds,
+      tokenId_,
+      position.supplied,
+      feeDiscount
+    );
 
     uint256 feeDiscount = staking.feeDiscountOf(account_);
     // All pools have same strategy since they are compatible
@@ -237,6 +244,14 @@ contract LiquidityManagerV2 is
   }
 
   /// ======= FEE DISCOUNT ======= ///
+
+  function feeDiscountUpdate(
+    address account_,
+    uint128 prevFeeDiscount_
+  ) external onlyStaking {
+    // @bw Should take interests in all positions using the prev fee discount
+  }
+
   /// ======= LIQUIDITY OVERLAPS ======= ///
 
   /// @dev Pool IDs must be checked to ensure they are unique and ascending
@@ -283,7 +298,9 @@ contract LiquidityManagerV2 is
 
   function _removeOverlappingCapital(
     uint128[] memory poolIds_,
-    uint256 amount_
+    uint256 tokenId_,
+    uint256 amount_,
+    uint128 feeDiscount_
   ) internal {
     uint256 nbPoolIds = poolIds_.length;
 
@@ -294,7 +311,12 @@ contract LiquidityManagerV2 is
       // Remove expired policies
       pool0.actualizingProtocolAndRemoveExpiredPolicies();
       // Remove liquidity
-      pool0.withdrawLiquidity();
+      pool0.withdrawLiquidity(
+        poolIds_,
+        tokenId_,
+        amount_,
+        feeDiscount_
+      );
 
       // Considering the verification that pool IDs are unique & ascending
       // then start index is i to reduce required number of loops
@@ -330,13 +352,25 @@ contract LiquidityManagerV2 is
       // Remove liquidity from dependant pool
       uint256 overlapAmount = pool0.overlaps[poolId1];
       uint256 amountToRemove = overlapAmount.rayMul(ratio);
+      // Pool overlaps are used to compute the amount of liq to remove from each pool
       overlappingLiquidity[poolId0][poolId1] -= amountToRemove;
+      overlappingLiquidity[poolIdB][poolIdB] -= amountToRemove;
 
       poolB.actualizingProtocolAndRemoveExpiredPolicies(
         relatedPoolAddress
       );
 
-      poolB.processClaim(poolId_, amountToRemove);
+      poolB._updateSlot0WhenAvailableLiquidityChange(
+        0,
+        amountToRemove
+      );
+      poolB.processedClaims.push(
+        PoolClaim({
+          fromPoolId: poolId_,
+          ratio: ratio,
+          liquidityIndexBeforeClaim: poolB.liquidityIndex
+        })
+      );
     }
 
     strategy.payoutFromStrategy(amount, claimant_);

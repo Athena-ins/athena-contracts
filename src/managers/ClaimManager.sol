@@ -10,7 +10,7 @@ import { VerifySignature } from "../libs/VerifySignature.sol";
 // Interfaces
 import { IArbitrable } from "../interface/IArbitrable.sol";
 import { IArbitrator } from "../interface/external/IArbitrator.sol";
-import { IPolicyManager } from "../interface/IPolicyManager.sol";
+import { ICoverManager } from "../interface/ICoverManager.sol";
 import { IClaimManager } from "../interface/IClaimManager.sol";
 import { IProtocolFactory } from "../interface/IProtocolFactory.sol";
 import { IAthena } from "../interface/IAthena.sol";
@@ -23,7 +23,7 @@ contract ClaimManager is
   IArbitrable
 {
   IAthena public core;
-  IPolicyManager public policyManagerInterface;
+  ICoverManager public policyManagerInterface;
   IProtocolFactory public poolFactoryInterface;
 
   address public metaEvidenceGuardian;
@@ -80,7 +80,7 @@ contract ClaimManager is
     address metaEvidenceGuardian_
   ) ClaimEvidence(arbitrator_) Ownable(msg.sender) {
     core = IAthena(core_);
-    policyManagerInterface = IPolicyManager(policyManager_);
+    policyManagerInterface = ICoverManager(policyManager_);
     poolFactoryInterface = IProtocolFactory(poolFactory_);
     metaEvidenceGuardian = metaEvidenceGuardian_;
   }
@@ -440,7 +440,7 @@ contract ClaimManager is
     bytes calldata signature_
   ) external payable onlyPolicyTokenOwner(policyId_) {
     // Get the policy
-    IPolicyManager.Policy memory userPolicy = policyManagerInterface
+    ICoverManager.Policy memory userPolicy = policyManagerInterface
       .policy(policyId_);
 
     // Verify authenticity of the IPFS meta-evidence CID
@@ -674,7 +674,7 @@ contract ClaimManager is
     poolFactoryInterface.removeClaimFromPool(userClaim.poolId);
 
     // Call Athena core to pay the compensation
-    // @bw this should close the user's policy to avoid stress on the pool
+    // @bw this should reduce the user's policy to avoid stress on the pool
     core.compensateClaimant(
       userClaim.coverId,
       userClaim.amount,
@@ -705,7 +705,7 @@ contract ClaimManager is
     poolFactoryInterface.removeClaimFromPool(userClaim.poolId);
 
     // Call Athena core to pay the compensation
-    // @bw this should close the user's policy to avoid stress on the pool
+    // @bw this should reduce the user's policy to avoid stress on the pool
     core.compensateClaimant(
       userClaim.coverId,
       userClaim.amount,

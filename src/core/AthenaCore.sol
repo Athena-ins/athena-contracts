@@ -11,12 +11,11 @@ import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.s
 
 // Interfaces
 import { ILendingPool } from "./interfaces/ILendingPool.sol";
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import { IAthena } from "../interfaces/IAthena.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol"; 
 import { IProtocolFactory } from "../interfaces/IProtocolFactory.sol";
 import { IProtocolPool } from "../interfaces/IProtocolPool.sol";
-import { IPositionManager } from "../interfaces/IPositionManager.sol";
-import { IPolicyManager } from "../interfaces/IPolicyManager.sol";
+import { ILiquidityManager } from "../interfaces/ILiquidityManager.sol";
+import { ICoverManager } from "../interfaces/ICoverManager.sol";
 import { IClaimManager } from "../interfaces/IClaimManager.sol";
 
 contract Athena is ReentrancyGuard, Ownable {
@@ -27,8 +26,8 @@ contract Athena is ReentrancyGuard, Ownable {
 
   IERC20 public atenTokenInterface;
 
-  IPositionManager public positionManagerInterface;
-  IPolicyManager public policyManagerInterface;
+  ILiquidityManager public positionManagerInterface;
+  ICoverManager public policyManagerInterface;
   IClaimManager public claimManagerInterface;
 
   IProtocolFactory public protocolFactoryInterface;
@@ -50,10 +49,10 @@ contract Athena is ReentrancyGuard, Ownable {
     address _claimManagerAddress,
     address _protocolFactory
   ) external onlyOwner {
-    positionManagerInterface = IPositionManager(
+    positionManagerInterface = ILiquidityManager(
       _positionManagerAddress
     );
-    policyManagerInterface = IPolicyManager(_policyManagerAddress);
+    policyManagerInterface = ICoverManager(_policyManagerAddress);
     claimManagerInterface = IClaimManager(_claimManagerAddress);
 
     protocolFactoryInterface = IProtocolFactory(_protocolFactory);
@@ -202,6 +201,7 @@ contract Athena is ReentrancyGuard, Ownable {
   /// ========= HELPERS ======== ///
   /// ========================== ///
 
+  // @bw transform to call from liq manager to cover manager
   function actualizingProtocolAndRemoveExpiredPolicies(
     address protocolAddress
   ) public override {
@@ -239,43 +239,7 @@ contract Athena is ReentrancyGuard, Ownable {
     normalizedIncome = amount_.rayDiv(
       aaveLendingPool.getReserveNormalizedIncome(token_)
     );
-  }
-
-  function _updateUserPositionFeeRate(address account_) private {
-    // Check if user has positions that will require an update
-    uint256[] memory tokenList = positionManagerInterface
-      .allPositionTokensOfOwner(account_);
-
-    // If the user has positions check if unstaking affects fee level
-    if (tokenList.length != 0) {
-      // Get the user's first position
-      IPositionManager.Position
-        memory userPosition = positionManagerInterface.position(
-          tokenList[0]
-        );
-      uint128 currentFeeLevel = userPosition.feeRate;
-
-      // Compute the fee level after adding accrued interests and removing withdrawal
-      uint128 newFeeLevel = stakedAtensGPInterface.getUserFeeRate(
-        account_
-      );
-
-      // If the fee level changes, update all positions
-      if (currentFeeLevel != newFeeLevel) {
-        for (uint256 i = 0; i < tokenList.length; i++) {
-          positionManagerInterface.takeInterestsInAllPools(
-            account_,
-            tokenList[i]
-          );
-
-          positionManagerInterface.updateFeeLevel(
-            tokenList[i],
-            newFeeLevel
-          );
-        }
-      }
-    }
-  }
+  
 
   function _prepareCoverUpdate(
     uint256 coverId_
@@ -293,6 +257,7 @@ contract Athena is ReentrancyGuard, Ownable {
     uint256 amount,
     uint128[] calldata poolIds
   ) external nonReentrant {
+    // @bw should get token for transfer or let user specify & check if token or wrapped
     // Retrieve LP funds
     IERC20(underlyingToken).safeTransferFrom(
       msg.sender,
@@ -301,11 +266,7 @@ contract Athena is ReentrancyGuard, Ownable {
     );
 
     // Send back liquidity position NFT
-    positionManagerInterface.depositToPosition(
-      msg.sender,
-      amount,
-      poolIds
-    );
+    liquidityManager.depositToPosition(msg.sender, amount, poolIds);
   }
 
   function takeInterest(
@@ -331,22 +292,12 @@ contract Athena is ReentrancyGuard, Ownable {
   function addLiquidityToPosition(
     uint256 tokenId,
     uint256 amount
-  ) external onlyPositionTokenOwner(tokenId) {
-    // This is ok because we only allow positions with the same underlying token
-    uint128 firstPositionPoolId = positionManagerInterface
-      .getFirstPositionPoolId(tokenId);
-    address underlyingToken = protocolFactoryInterface
-      .getPoolUnderlyingToken(firstPositionPoolId);
+  ) external nonReentrant {
+    // @bw should get token for transfer or let user specify & check if token or wrapped
     // Retrieve user funds for coverage
     IERC20(underlyingToken).safeTransferFrom(
       msg.sender,
-      address(this),
-      amount
-    );
-
-    // Deposit the funds into AAVE and get the new scaled balance
-    uint256 newAaveScaledBalance = _transferLiquidityToAAVE(
-      underlyingToken,
+      address(liquidityManager),
       amount
     );
 
@@ -488,7 +439,7 @@ contract Athena is ReentrancyGuard, Ownable {
     uint256 policyId_
   ) public onlyPolicyTokenOwner(policyId_) nonReentrant {
     // Get the policy
-    IPolicyManager.Policy memory userPolicy = policyManagerInterface
+    ICoverManager.Policy memory userPolicy = policyManagerInterface
       .policy(policyId_);
     address poolAddress = getPoolAddressById(userPolicy.poolId);
 
@@ -528,7 +479,7 @@ contract Athena is ReentrancyGuard, Ownable {
     uint256 amount_,
     address account_
   ) external onlyClaimManager {
-    IPolicyManager.Policy memory userPolicy = policyManagerInterface
+    ICoverManager.Policy memory userPolicy = policyManagerInterface
       .policy(policyId_);
     uint128 poolId = userPolicy.poolId;
 

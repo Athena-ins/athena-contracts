@@ -2,7 +2,7 @@
 pragma solidity 0.8.20;
 
 // Interfaces
-import { IArbitrator } from "./external/IArbitrator.sol";
+import { IArbitrator } from "./IArbitrator.sol";
 
 /** @title IEvidence
  *  ERC-1497: Evidence Standard
