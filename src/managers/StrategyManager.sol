@@ -13,104 +13,77 @@ import { RayMath } from "../libs/RayMath.sol";
 // interfaces
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 
-interface IStrategy {
-  // function isAthenaStrategy() external view returns (bool);
-  // function isPaused() external view returns (bool);
-  // function name() external view returns (string memory);
-  // function initialize() external returns (bool);
-  // function deposit(uint256 _amount) external;
-  // function withdraw(uint256 _amount) external;
-  // function balanceOf() external view returns (uint256);
-  // function harvest() external;
-  // function token() external view returns (address);
-}
-
-contract AthenaAaveV2UsdtStrategy is IStrategy {
-  using RayMath for uint256;
-
-  string public constant name = "Athena: AAVE v2 USDT";
-  bool public isAthenaStrategy = true;
-  bool public isPaused;
-
-  address depositContract =
-    0x3dfd23A6c5E8BbcFc9581d2E864a68feb6a076d3;
-  address underlyingAsset =
-    0xdAC17F958D2ee523a2206206994597C13D831ec7;
-  address liquidityAsset = 0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9;
-
-  function initialize() external returns (bool) {}
-
-  function preDepositHook(uint256 _amount) external {}
-
-  function deposit(uint256 _amountUnderlying) external {
-    // ILendingPool(lendingPool).deposit(
-    //   token_,
-    //   amount_,
-    //   address(this),
-    //   0
-    // );
-    // normalizedIncome = amount_.rayDiv(
-    //   ILendingPool(lendingPool).getReserveNormalizedIncome(token_)
-    // );
-  }
-
-  function preWithdrawHook(uint256 _amount) external {}
-
-  function withdraw(uint256 _amountUnderlying) external {}
-
-  function balanceOfUnderlying() external view returns (uint256) {}
-
-  function harvest() external {}
-}
-
 //======== ERRORS ========//
 
 // Not a valid strategy
 error NotAValidStrategy();
+error NotLiquidityManager();
 
-contract StrategyManager is Ownable {
+contract StrategyManagerV0 is Ownable {
   using SafeERC20 for IERC20;
 
-  uint256 public nextStrategyId;
-  mapping(uint256 strategyId => IStrategy implementation)
-    public strategies;
+  //======== STORAGE ========//
+  address public liquidityManager;
 
-  constructor() Ownable(msg.sender) {}
+  address public depositContract =
+    0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9; // AAVE lending pool v2
+  address public underlyingAsset =
+    0xdAC17F958D2ee523a2206206994597C13D831ec7; // USDT
+  address public liquidityAsset =
+    0x3Ed3B47Dd13EC9a98b44e6204A523E766B225811; // aUSDT v2
 
-  function addStrategy(address _strategy) external onlyOwner {
-    IStrategy strategy = IStrategy(_strategy);
-
-    // strategy.initialize();
-
-    strategies[nextStrategyId] = strategy;
-    nextStrategyId++;
+  struct PositionData {
+    uint256 amountUnderlying;
   }
 
-  function deposit(
-    uint256 _strategyId,
-    uint256 _amountUnderlying
-  ) external {
-    // IStrategy strategy = strategies[_strategyId];
-    // return
-    //   strategy.delegatecall(
-    //     abi.encodeWithSelector(
-    //       IStrategy.deposit.selector,
-    //       _amountUnderlying
-    //     )
-    //   );
+  mapping(uint256 _tokenId => PositionData _data) public positionData;
+
+  //======== CONSTRCUTOR ========//
+
+  constructor(address liquidityManager_) Ownable(msg.sender) {
+    liquidityManager = liquidityManager_;
   }
 
-  function withdraw(
-    uint256 _strategyId,
-    uint256 _amountUnderlying
-  ) external {
-    // IStrategy strategy = strategies[_strategyId];
-    // return
-    //   strategy.delegatecall(
-    //     abi.encodeWithSelector(
-    //       IStrategy.withdraw.selector,
-    //       _amountUnderlying
-    //     )
-    //   );
+  //======== MODIFIERS ========//
+
+  modifier onlyLiquidityManager() {
+    if (msg.sender != liquidityManager) revert NotLiquidityManager();
+    _;
+  }
+
+  //======== FUNCTIONS ========//
+
+  function depositToStrategy(
+    uint256 strategyId_,
+    uint256 tokenId_,
+    uint256 amountUnderlying_
+  ) external onlyLiquidityManager {
+    if (strategyId_ != 0) revert NotAValidStrategy();
+  }
+
+  function withdrawFromStrategy(
+    uint256 strategyId_,
+    uint256 tokenId_,
+    uint256 amountUnderlying_,
+    address account_,
+    uint256 feeDiscount_
+  ) external onlyLiquidityManager {
+    if (strategyId_ != 0) revert NotAValidStrategy();
+  }
+
+  function payoutFromStrategy(
+    uint256 strategyId_,
+    uint256 amountUnderlying_,
+    address account_
+  ) external onlyLiquidityManager {
+    if (strategyId_ != 0) revert NotAValidStrategy();
+  }
+
+  //======== ADMIN ========//
+
+  function updateLiquidityManager(
+    address liquidityManager_
+  ) external onlyOwner {
+    liquidityManager = liquidityManager_;
   }
 }
