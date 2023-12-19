@@ -1,19 +1,19 @@
 // SPDX-License-Identifier: UNLICENCED
 pragma solidity 0.8.20;
 
-// Parents
-import { ClaimEvidence } from "./ClaimEvidence.sol";
-// Addons
+// Contracts
+import { ClaimEvidence } from "./modules/ClaimEvidence.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
-// Libs
+
+// Libraries
 import { VerifySignature } from "../libs/VerifySignature.sol";
+
 // Interfaces
-import { IArbitrable } from "../interface/IArbitrable.sol";
-import { IArbitrator } from "../interface/external/IArbitrator.sol";
-import { ICoverManager } from "../interface/ICoverManager.sol";
-import { IClaimManager } from "../interface/IClaimManager.sol";
-import { IProtocolFactory } from "../interface/IProtocolFactory.sol";
-import { IAthena } from "../interface/IAthena.sol";
+import { IArbitrable } from "../interfaces/IArbitrable.sol";
+import { IArbitrator } from "../interfaces/IArbitrator.sol";
+import { ICoverManager } from "../interfaces/ICoverManager.sol";
+import { IClaimManager } from "../interfaces/IClaimManager.sol";
+import { IAthenaCore } from "../interfaces/IAthenaCore.sol";
 
 contract ClaimManager is
   IClaimManager,
@@ -22,9 +22,9 @@ contract ClaimManager is
   ClaimEvidence,
   IArbitrable
 {
-  IAthena public core;
+  IAthenaCore public core;
   ICoverManager public policyManagerInterface;
-  IProtocolFactory public poolFactoryInterface;
+  address public poolFactoryInterface;
 
   address public metaEvidenceGuardian;
   uint256 public challengeDelay = 14 days;
@@ -79,9 +79,8 @@ contract ClaimManager is
     IArbitrator arbitrator_,
     address metaEvidenceGuardian_
   ) ClaimEvidence(arbitrator_) Ownable(msg.sender) {
-    core = IAthena(core_);
+    core = IAthenaCore(core_);
     policyManagerInterface = ICoverManager(policyManager_);
-    poolFactoryInterface = IProtocolFactory(poolFactory_);
     metaEvidenceGuardian = metaEvidenceGuardian_;
   }
 
@@ -459,7 +458,9 @@ contract ClaimManager is
     uint128 poolId = userPolicy.poolId;
 
     // Register the claim to prevent exit from the pool untill resolution
-    poolFactoryInterface.addClaimToPool(poolId);
+    // @bw commented until fix
+    // poolFactoryInterface.addClaimToPool(poolId);
+
     // Update the protocol's policies
     // @bw is this really required as expired policies can open claims ?
     core.actualizingProtocolAndRemoveExpiredPoliciesByPoolId(poolId);
@@ -611,7 +612,8 @@ contract ClaimManager is
       );
 
       // Remove claims from pool to unblock withdrawals
-      poolFactoryInterface.removeClaimFromPool(userClaim.poolId);
+      // @bw commented until fix
+      // poolFactoryInterface.removeClaimFromPool(userClaim.poolId);
     } else {
       // This is the case where the arbitrator refuses to rule
       userClaim.status = ClaimStatus.RejectedWithDispute;
@@ -629,7 +631,8 @@ contract ClaimManager is
       _sendValue(challenger, halfArbitrationCost);
 
       // Remove claims from pool to unblock withdrawals
-      poolFactoryInterface.removeClaimFromPool(userClaim.poolId);
+      // @bw commented until fix
+      // poolFactoryInterface.removeClaimFromPool(userClaim.poolId);
     }
 
     emit DisputeResolved({
@@ -671,7 +674,8 @@ contract ClaimManager is
     );
 
     // Remove claims from pool to unblock withdrawals
-    poolFactoryInterface.removeClaimFromPool(userClaim.poolId);
+    // @bw commented until fix
+    // poolFactoryInterface.removeClaimFromPool(userClaim.poolId);
 
     // Call Athena core to pay the compensation
     // @bw this should reduce the user's policy to avoid stress on the pool
@@ -702,7 +706,8 @@ contract ClaimManager is
     userClaim.status = ClaimStatus.CompensatedAfterAcceptation;
 
     // Remove claims from pool to unblock withdrawals
-    poolFactoryInterface.removeClaimFromPool(userClaim.poolId);
+    // @bw commented until fix
+    // poolFactoryInterface.removeClaimFromPool(userClaim.poolId);
 
     // Call Athena core to pay the compensation
     // @bw this should reduce the user's policy to avoid stress on the pool

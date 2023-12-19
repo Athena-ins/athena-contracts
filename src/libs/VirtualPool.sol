@@ -1,13 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.20;
 
-// Libs
-import { RayMath } from "../../libs/RayMath.sol";
-import { Tick } from "../../libs/Tick.sol";
-import { TickBitmap } from "../../libs/TickBitmap.sol";
-import { PremiumPosition } from "../../libs/PremiumPosition.sol";
+// Libraries
+import { RayMath } from "../libs/RayMath.sol";
+import { Tick } from "../libs/Tick.sol";
+import { TickBitmap } from "../libs/TickBitmap.sol";
+import { PremiumPosition } from "../libs/PremiumPosition.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+
 // Interfaces
-import { SafeERC20, IERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { ICoverManager } from "../interfaces/ICoverManager.sol";
 
 // ======= ERRORS ======= //
 
@@ -47,7 +50,7 @@ library VirtualPool {
     uint128 fromPoolId;
     uint256 ratio; // Ray //ratio = claimAmount / capital
     uint256 liquidityIndexBeforeClaim;
-    uint256 aaveReserveNormalizedIncomeBeforeClaim;
+    // uint256 aaveReserveNormalizedIncomeBeforeClaim;
   }
 
   // ======= VIRTUAL STORAGE ======= //
@@ -58,6 +61,7 @@ library VirtualPool {
     Formula f;
     Slot0 slot0;
     uint256 liquidityIndex;
+    address strategy; // @bw to be replaced by strat id
     address underlyingAsset; // @bw to be replaced by strat id
     bool isPaused;
     /// @dev poolId 0 -> poolId 0 points to a pool's available liquidity
@@ -133,7 +137,7 @@ library VirtualPool {
   // @bw ex: availableCapital
   function availableLiquidity(
     VPool storage self
-  ) public view returns (uint256) {
+  ) internal view returns (uint256) {
     return self.overlaps[self.poolId];
   }
 
@@ -170,7 +174,8 @@ library VirtualPool {
       uint256 totalRewards,
       LPInfo memory newLPInfo,
       uint256 aaveScaledBalanceToRemove
-    ) = self._actualizingLPInfoWithClaims(
+    ) = _actualizingLPInfoWithClaims(
+        self,
         tokenId_,
         _userCapital,
         _poolIds
@@ -215,17 +220,17 @@ library VirtualPool {
 
   function _withdrawLiquidity(
     VPool storage self,
-    uint128[] calldata _poolIds,
+    uint128[] memory _poolIds,
     uint256 tokenId_,
     uint256 _userCapital,
-    uint128 feeDiscount_
-  ) external returns (uint256, uint256) {
+    uint256 feeDiscount_
+  ) internal returns (uint256, uint256) {
     require(
-      utilisationRate(
+      utilizationRate(
         0,
         0,
         self.slot0.totalInsuredCapital,
-        self.availableLiquidity - _userCapital
+        availableLiquidity(self) - _userCapital
       ) <= RayMath.RAY * 100,
       "PP: use rate > 100%"
     );
@@ -238,6 +243,7 @@ library VirtualPool {
       LPInfo memory __newLPInfo,
       uint256 __aaveScaledBalanceToRemove
     ) = _actualizingLPInfoWithClaims(
+        self,
         tokenId_,
         _userCapital,
         _poolIds
@@ -271,7 +277,7 @@ library VirtualPool {
     );
 
     for (uint256 i; i < _poolIds.length; i++) {
-      uint256 poolIdB = _poolIds[i];
+      uint128 poolIdB = _poolIds[i];
       // Overlapping liquidity is always registered in poolId 0
       // We allow equal values to withdraw from the pool's own liquidity
       if (poolIdB <= self.poolId)
@@ -319,7 +325,7 @@ library VirtualPool {
     uint256 _premium,
     uint256 _insuredCapital
   ) private {
-    uint256 _availableLiquidity = availableLiquidity;
+    uint256 _availableLiquidity = availableLiquidity(self);
     uint256 totalInsuredCapital = self.slot0.totalInsuredCapital;
 
     require(
@@ -328,16 +334,13 @@ library VirtualPool {
     );
 
     uint256 __currentPremiumRate = getPremiumRate(
-      self._utilisationRate(
-        0,
-        0,
-        totalInsuredCapital,
-        _availableLiquidity
-      )
+      self,
+      utilizationRate(0, 0, totalInsuredCapital, _availableLiquidity)
     );
 
     uint256 __newPremiumRate = getPremiumRate(
-      self._utilisationRate(
+      self,
+      utilizationRate(
         _insuredCapital,
         0,
         totalInsuredCapital,
@@ -365,7 +368,7 @@ library VirtualPool {
     uint32 __lastTick = self.slot0.tick +
       uint32(__durationInSeconds / __newSecondsPerTick);
 
-    self.addPremiumPosition(_tokenId, __newPremiumRate, __lastTick);
+    _addPremiumPosition(self, _tokenId, __newPremiumRate, __lastTick);
 
     self.slot0.totalInsuredCapital += _insuredCapital;
     self.slot0.secondsPerTick = __newSecondsPerTick;
@@ -387,10 +390,11 @@ library VirtualPool {
     require(__currentTick <= __position.lastTick, "Cover Expired");
 
     uint256 __totalInsuredCapital = self.slot0.totalInsuredCapital;
-    uint256 __availableLiquidity = availableLiquidity;
+    uint256 __availableLiquidity = availableLiquidity(self);
 
     uint256 __currentPremiumRate = getPremiumRate(
-      self._utilisationRate(
+      self,
+      utilizationRate(
         0,
         0,
         __totalInsuredCapital,
@@ -411,7 +415,8 @@ library VirtualPool {
       86400;
 
     uint256 __newPremiumRate = getPremiumRate(
-      self._utilisationRate(
+      self,
+      utilizationRate(
         0,
         _amountCovered,
         __totalInsuredCapital,
@@ -438,7 +443,7 @@ library VirtualPool {
         __position.lastTick
       );
     } else {
-      self.removeTick(__position.lastTick);
+      _removeTick(self, __position.lastTick);
     }
 
     self.slot0.remainingPolicies--;
@@ -487,15 +492,17 @@ library VirtualPool {
     uint256 _amountToAdd,
     uint256 _amountToRemove
   ) internal {
-    uint256 available = self.availableLiquidity();
+    uint256 available = availableLiquidity(self);
     uint256 totalInsured = self.slot0.totalInsuredCapital;
 
-    uint256 currentPremiumRate = self.getPremiumRate(
-      utilisationRate(0, 0, totalInsured, available)
+    uint256 currentPremiumRate = getPremiumRate(
+      self,
+      utilizationRate(0, 0, totalInsured, available)
     );
 
-    uint256 newPremiumRate = self.getPremiumRate(
-      utilisationRate(
+    uint256 newPremiumRate = getPremiumRate(
+      self,
+      utilizationRate(
         0,
         0,
         totalInsured,
@@ -512,12 +519,12 @@ library VirtualPool {
 
   function _actualizing(
     VPool storage self
-  ) private returns (uint256[] memory) {
+  ) internal returns (uint256[] memory) {
     if (self.slot0.remainingPolicies > 0) {
       (
         Slot0 memory __slot0,
         uint256 __liquidityIndex
-      ) = _actualizingUntil(block.timestamp);
+      ) = _actualizingUntil(self, block.timestamp);
 
       //now, we remove all crossed ticks
       uint256[] memory __expiredPoliciesTokens = new uint256[](
@@ -533,8 +540,11 @@ library VirtualPool {
           .nextInitializedTickInTheRightWithinOneWord(__observedTick);
 
         if (__initialized && __observedTick <= __slot0.tick) {
-          uint256[] memory __currentExpiredPoliciesTokenId = self
-            .removeTick(__observedTick);
+          uint256[]
+            memory __currentExpiredPoliciesTokenId = _removeTick(
+              self,
+              __observedTick
+            );
 
           for (
             uint256 i = 0;
@@ -580,7 +590,10 @@ library VirtualPool {
     );
 
     if (self.slot0.remainingPolicies > 0) {
-      (__slot0, __liquidityIndex) = _actualizingUntil(_dateInSeconds);
+      (__slot0, __liquidityIndex) = _actualizingUntil(
+        self,
+        _dateInSeconds
+      );
     } else {
       __slot0 = self.slot0;
       __slot0.lastUpdateTimestamp = _dateInSeconds;
@@ -589,7 +602,8 @@ library VirtualPool {
 
   function _getInfo(
     VPool storage self,
-    uint256 coverId_
+    uint256 coverId_,
+    address coverManager
   )
     public
     view
@@ -599,8 +613,11 @@ library VirtualPool {
       uint256 __remainingSeconds
     )
   {
-    uint256 __availableLiquidity = availableLiquidity;
-    (Slot0 memory __slot0, ) = _actualizingUntil(block.timestamp);
+    uint256 __availableLiquidity = availableLiquidity(self);
+    (Slot0 memory __slot0, ) = _actualizingUntil(
+      self,
+      block.timestamp
+    );
     PremiumPosition.Info memory __position = self.premiumPositions[
       coverId_
     ];
@@ -611,14 +628,14 @@ library VirtualPool {
       __currentEmissionRate = 0;
       __remainingSeconds = 0;
     } else {
-      uint256 __coverBeginEmissionRate = self
-        .policyManagerInterface
-        .policy(coverId_)
+      uint256 __coverBeginEmissionRate = ICoverManager(coverManager)
+        .getCover(coverId_)
         .amountCovered
         .rayMul(__position.beginPremiumRate / 100) / 365;
 
       uint256 __currentPremiumRate = getPremiumRate(
-        self._utilisationRate(
+        self,
+        utilizationRate(
           0,
           0,
           __slot0.totalInsuredCapital,
@@ -654,14 +671,17 @@ library VirtualPool {
         __slot0.tick = __tick;
 
         if (__initialized && __tickNext < __position.lastTick) {
-          self.crossingInitializedTick(
+          _crossingInitializedTick(
+            self,
             __slot0,
             __availableLiquidity,
-            __tickNext
+            __tickNext,
+            coverManager
           );
 
           __currentPremiumRate = getPremiumRate(
-            self._utilisationRate(
+            self,
+            utilizationRate(
               0,
               0,
               __slot0.totalInsuredCapital,
@@ -683,7 +703,8 @@ library VirtualPool {
     VPool storage self,
     Slot0 memory _slot0,
     uint256 _availableLiquidity,
-    uint32 _tick
+    uint32 _tick,
+    address coverManager
   ) private view {
     uint256[] memory coverIds = self.ticks[_tick];
     uint256 __insuredCapitalToRemove;
@@ -691,14 +712,14 @@ library VirtualPool {
     for (uint256 i = 0; i < coverIds.length; i++) {
       uint256 coverId = coverIds[i];
 
-      __insuredCapitalToRemove += self
-        .policyManagerInterface
-        .policy(coverId)
+      __insuredCapitalToRemove += ICoverManager(coverManager)
+        .getCover(coverId)
         .amountCovered;
     }
 
     uint256 __currentPremiumRate = getPremiumRate(
-      self._utilisationRate(
+      self,
+      utilizationRate(
         0,
         0,
         _slot0.totalInsuredCapital,
@@ -707,7 +728,8 @@ library VirtualPool {
     );
 
     uint256 __newPremiumRate = getPremiumRate(
-      self._utilisationRate(
+      self,
+      utilizationRate(
         0,
         __insuredCapitalToRemove,
         _slot0.totalInsuredCapital,
@@ -743,18 +765,18 @@ library VirtualPool {
 
     __liquidityIndex = self.liquidityIndex;
 
-    uint256 __availableLiquidity = availableLiquidity;
+    uint256 __availableLiquidity = availableLiquidity(self);
     uint256 __secondsGap = _dateInSeconds -
       __slot0.lastUpdateTimestamp;
 
-    uint256 __uRate = self._utilisationRate(
+    uint256 __uRate = utilizationRate(
       0,
       0,
       __slot0.totalInsuredCapital,
       __availableLiquidity
     ) / 100;
 
-    uint256 __pRate = getPremiumRate(__uRate * 100) / 100;
+    uint256 __pRate = getPremiumRate(self, __uRate * 100) / 100;
 
     while (__secondsGap > 0) {
       (uint32 __tickNext, bool __initialized) = self
@@ -772,14 +794,16 @@ library VirtualPool {
         __secondsGap -= __secondsStep;
 
         if (__initialized) {
-          self.crossingInitializedTick(
+          _crossingInitializedTick(
+            self,
             __slot0,
             __availableLiquidity,
-            __tickNext
+            __tickNext,
+            address(0) // @bw coverManager
           );
 
           __uRate =
-            self._utilisationRate(
+            utilizationRate(
               0,
               0,
               __slot0.totalInsuredCapital,
@@ -787,7 +811,7 @@ library VirtualPool {
             ) /
             100;
 
-          __pRate = getPremiumRate(__uRate * 100) / 100;
+          __pRate = getPremiumRate(self, __uRate * 100) / 100;
         }
       } else {
         __slot0.tick += uint32(__secondsGap / __slot0.secondsPerTick);
@@ -806,7 +830,7 @@ library VirtualPool {
     VPool storage self,
     uint256 tokenId_,
     uint256 _userCapital,
-    uint128[] calldata _poolIds
+    uint128[] memory _poolIds
   )
     private
     view
@@ -819,6 +843,7 @@ library VirtualPool {
   {
     __newLPInfo = self.lpInfos[tokenId_];
     PoolClaim[] memory __claims = _claims(
+      self,
       __newLPInfo.beginClaimIndex
     );
 
@@ -839,7 +864,8 @@ library VirtualPool {
           );
 
           __aaveScaledBalanceToRemove += capitalToRemove.rayDiv(
-            __claim.aaveReserveNormalizedIncomeBeforeClaim
+            42
+            // @bw need fixin  __claim.aaveReserveNormalizedIncomeBeforeClaim
           );
 
           __newUserCapital = __newUserCapital - capitalToRemove;
@@ -874,6 +900,7 @@ library VirtualPool {
       __newLPInfo,
 
     ) = _actualizingLPInfoWithClaims(
+      self,
       tokenId_,
       _userCapital,
       _poolIds
@@ -882,7 +909,7 @@ library VirtualPool {
     uint256 __liquidityIndex;
 
     if (self.slot0.remainingPolicies > 0) {
-      (, __liquidityIndex) = _actualizingUntil(_dateInSecond);
+      (, __liquidityIndex) = _actualizingUntil(self, _dateInSecond);
     } else {
       __liquidityIndex = self.liquidityIndex;
     }
@@ -898,19 +925,19 @@ library VirtualPool {
 
   function getPremiumRate(
     VPool storage self,
-    uint256 utilisationRate_
+    uint256 utilizationRate_
   ) private view returns (uint256) {
     Formula storage f = self.f;
     // returns actual rate for insurance
     // @bw case for overusage ?
-    if (utilisationRate_ < f.uOptimal) {
+    if (utilizationRate_ < f.uOptimal) {
       return
-        f.r0 + f.rSlope1.rayMul(utilisationRate_.rayDiv(f.uOptimal));
+        f.r0 + f.rSlope1.rayMul(utilizationRate_.rayDiv(f.uOptimal));
     } else {
       return
         f.r0 +
         f.rSlope1 +
-        (f.rSlope2 * (utilisationRate_ - f.uOptimal)) /
+        (f.rSlope2 * (utilizationRate_ - f.uOptimal)) /
         (100 * RayMath.RAY - f.uOptimal) /
         100;
     }
@@ -953,7 +980,7 @@ library VirtualPool {
   }
 
   // returns actual usage rate on capital insured / capital provided for insurance
-  function utilisationRate(
+  function utilizationRate(
     uint256 _insuredCapitalToAdd,
     uint256 _insuredCapitalToRemove,
     uint256 _totalInsuredCapital,
@@ -962,10 +989,8 @@ library VirtualPool {
     if (_availableLiquidity == 0) {
       return 0;
     }
-    uint256 utilizationRate = (((_totalInsuredCapital +
-      _insuredCapitalToAdd) - _insuredCapitalToRemove) * 100).rayDiv(
-        _availableLiquidity
-      );
+    uint256 rate = (((_totalInsuredCapital + _insuredCapitalToAdd) -
+      _insuredCapitalToRemove) * 100).rayDiv(_availableLiquidity);
 
     //  @bw problem if usage is above 100% (ex: 100$ insured and 1$ capital)
     // In this case the usage should be ajusted to reflect available capital
@@ -973,6 +998,6 @@ library VirtualPool {
     // Special rules for +100% -> adapt uRate to be based on capital + bonus to incentivize provider
     // 100% = 100 1e27 (rays)
 
-    return utilizationRate;
+    return rate;
   }
 }

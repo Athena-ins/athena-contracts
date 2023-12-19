@@ -5,11 +5,16 @@ pragma solidity 0.8.20;
 import { ERC721 } from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import { ERC721Enumerable } from "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+
 // Libraries
-import { RayMath } from "../../libs/RayMath.sol";
-import { VirtualPool } from "./VirtualPool.sol";
+import { RayMath } from "../libs/RayMath.sol";
+import { VirtualPool } from "../libs/VirtualPool.sol";
+
 // Interfaces
-import { IAthenaCore } from "../../interfaces/IAthenaCore.sol";
+import { IAthenaCore } from "../interfaces/IAthenaCore.sol";
+import { IStrategyManager } from "../interfaces/IStrategyManager.sol";
+import { IStaking } from "../interfaces/IStaking.sol";
 
 // ======= ERRORS ======= //
 
@@ -21,9 +26,9 @@ error IncompatiblePools(uint128 poolIdA, uint128 poolIdB);
 error WithdrawCommitDelayNotReached();
 
 contract LiquidityManagerV2 is
-  ERC721,
   ERC721Enumerable,
-  ReentrancyGuard
+  ReentrancyGuard,
+  Ownable
 {
   using RayMath for uint256;
   using VirtualPool for VirtualPool.VPool;
@@ -33,7 +38,7 @@ contract LiquidityManagerV2 is
   struct Position {
     uint256 supplied;
     uint256 rewardIndex; // @bw should be stored by strat manager per token id
-    uint128 commitWithdrawalTimestamp;
+    uint256 commitWithdrawalTimestamp;
     uint128[] poolIds;
   }
 
@@ -44,10 +49,10 @@ contract LiquidityManagerV2 is
 
   // ======= STORAGE ======= //
 
-  IAthenaCore core;
+  IStaking staking;
 
   /// The token ID position data
-  uint256 public nextPoolId;
+  uint128 public nextPoolId;
   mapping(uint256 => Position) private positions;
   uint256 public withdrawDelay = 14 days;
 
@@ -63,15 +68,18 @@ contract LiquidityManagerV2 is
 
   // ======= CONSTRUCTOR ======= //
 
-  constructor(IAthenaCore core) ERC721("Athena LP NFT", "AthenaLP") {
-    core = core;
+  constructor(
+    address staking_
+  ) ERC721("Athena LP NFT", "AthenaLP") Ownable(msg.sender) {
+    staking = IStaking(staking_);
   }
 
-  function poolInfo(
-    uint256 poolId_
-  ) external view returns (VirtualPool.VPool memory) {
-    return pools[_poolId];
-  }
+  // @bw cannort return complex struct
+  // function poolInfo(
+  //   uint256 poolId_
+  // ) external view returns (VirtualPool.VPool memory) {
+  //   return vPools[poolId_];
+  // }
 
   /// ======= MODIFIERS ======= ///
 
@@ -122,11 +130,11 @@ contract LiquidityManagerV2 is
 
   /// ======= MAKE POSITION ======= ///
 
-  function depositToPosition(
+  function createPosition(
     address account,
     uint256 amount,
     uint128[] calldata poolIds
-  ) external onlyCore {
+  ) external onlyOwner {
     // Save new position tokenId and update for next
     uint256 tokenId = nextTokenId;
     nextTokenId++;
@@ -136,11 +144,18 @@ contract LiquidityManagerV2 is
     // Deposit fund into the strategy if any
     // All pools share the same strategy so we can use the last pool ID in memory
     // @bw push or pull funds ?
-    IStrategy strategy = vPools[poolId].strategy;
+    IStrategyManager strategy = IStrategyManager(
+      vPools[poolIds[0]].strategy
+    );
     strategy.depositToStrategy(tokenId, amount);
 
-    Position storage position = positions[tokenId];
-    position = Position({ supplied: amount, poolIds: poolIds });
+    positions[tokenId] = Position({
+      supplied: amount,
+      rewardIndex: 42, // @bw get from strat
+      commitWithdrawalTimestamp: 0,
+      poolIds: poolIds
+    });
+
     _mint(account, tokenId);
   }
 
@@ -149,18 +164,20 @@ contract LiquidityManagerV2 is
   function updatePosition(
     uint256 tokenId,
     uint256 amount
-  ) external onlyCore {
-    Position storage position = _positions[tokenId];
+  ) external onlyOwner {
+    Position storage position = positions[tokenId];
 
     // Take interests in all pools before update
-    _takeInterestsInAllPools(account, tokenId);
+    takeInterests(msg.sender, tokenId);
     // Check pool compatibility & underlying token then register overlapping capital
     _addOverlappingCapitalAfterCheck(position.poolIds, amount);
 
-    IStrategy strategy = vPools[position.poolIds[0]].strategy;
+    IStrategyManager strategy = IStrategyManager(
+      vPools[position.poolIds[0]].strategy
+    );
     strategy.depositToStrategy(tokenId, amount);
 
-    position.amountSupplied += amount;
+    position.supplied += amount;
   }
 
   /// ======= TAKE INTERESTS ======= ///
@@ -168,31 +185,29 @@ contract LiquidityManagerV2 is
   // @bw needs to be updated for strat reward withdraw + take fees in pools
   // compute amount of rewards & transfer from cover manager to user + register new reward index
   function takeInterests(address account, uint256 tokenId) public {
-    Position storage position = _positions[tokenId];
-    IAthena _core = IAthena(core);
+    Position storage position = positions[tokenId];
 
     uint256 amountSuppliedUpdated;
     uint256 nbPools = position.poolIds.length;
     for (uint256 i; i < nbPools; i++) {
-      VPool storage pool = vPools[position.poolIds[i]];
+      VirtualPool.VPool storage pool = vPools[position.poolIds[i]];
 
       // Remove expired policies
-      pool.actualizingProtocolAndRemoveExpiredPolicies();
+      pool._actualizing();
 
       (uint256 _newUserCapital, uint256 _aaveScaledBalanceToRemove) = pool
-        .takeInterestsInPool( // takePoolInterests
+        ._takePoolInterests( // takePoolInterests
         account,
         tokenId,
-        position.amountSupplied,
+        position.supplied,
         position.poolIds,
-        position.feeRate
+        42 // position.feeRate
       );
     }
 
-    if (position.amountSupplied != amountSuppliedUpdated) {
-      _positions[tokenId].amountSupplied = amountSuppliedUpdated;
-      _positions[tokenId]
-        .aaveScaledBalance -= aaveScaledBalanceUpdated;
+    if (position.supplied != amountSuppliedUpdated) {
+      positions[tokenId].supplied = amountSuppliedUpdated;
+      positions[tokenId].rewardIndex -= 0; // @bw aaveScaledBalanceUpdated;
     }
   }
 
@@ -201,14 +216,14 @@ contract LiquidityManagerV2 is
   function commitWithdraw(
     uint256 tokenId_,
     address account_
-  ) external onlyCore onlyTokenOwner(tokenId_, account_) {
+  ) external onlyOwner onlyTokenOwner(tokenId_, account_) {
     positions[tokenId_].commitWithdrawalTimestamp = block.timestamp;
   }
 
   function withdrawFromPosition(
     uint256 tokenId_,
     address account_
-  ) external onlyCore onlyTokenOwner(tokenId_, account_) {
+  ) external onlyOwner onlyTokenOwner(tokenId_, account_) {
     Position storage position = positions[tokenId_];
     uint256 commitTimestamp = position.commitWithdrawalTimestamp;
 
@@ -218,8 +233,9 @@ contract LiquidityManagerV2 is
     uint128[] memory poolIds = position.poolIds;
 
     // Check that pools have no ongoing claims
-    bool claimsLock = claimManager.canWithdraw(poolIds);
-    if (claimsLock) revert PoolsHaveOngoingClaims();
+    // @bw need fix
+    // bool claimsLock = claimManager.canWithdraw(poolIds);
+    // if (claimsLock) revert PoolsHaveOngoingClaims();
 
     uint256 feeDiscount = staking.feeDiscountOf(account_);
     _removeOverlappingCapital(
@@ -229,13 +245,14 @@ contract LiquidityManagerV2 is
       feeDiscount
     );
 
-    uint256 feeDiscount = staking.feeDiscountOf(account_);
     // All pools have same strategy since they are compatible
-    IStrategy strategy = vPools[poolId].strategy;
+    IStrategyManager strategy = IStrategyManager(
+      vPools[poolIds[0]].strategy
+    );
     // @bw this should send back funds to user with rewards, minus fees
     strategy.withdrawFromStrategy(
       tokenId_,
-      amount,
+      422, // @bw to fix
       account_,
       feeDiscount
     );
@@ -248,7 +265,7 @@ contract LiquidityManagerV2 is
   function feeDiscountUpdate(
     address account_,
     uint128 prevFeeDiscount_
-  ) external onlyStaking {
+  ) external {
     // @bw Should take interests in all positions using the prev fee discount
   }
 
@@ -263,19 +280,19 @@ contract LiquidityManagerV2 is
 
     for (uint128 i; i < nbPoolIds; i++) {
       uint128 poolId0 = poolIds_[i];
-      VPool storage pool0 = vPools[poolId0];
+      VirtualPool.VPool storage pool0 = vPools[poolId0];
 
       // Check if pool is currently paused
       if (pool0.isPaused) revert PoolIsPaused();
 
       // Remove expired policies
-      pool0.actualizingProtocolAndRemoveExpiredPolicies();
+      pool0._actualizing();
 
       // Considering the verification that pool IDs are unique & ascending
       // then start index is i to reduce required number of loops
       for (uint128 j = i; j < nbPoolIds; j++) {
         uint128 poolId1 = poolIds_[j];
-        VPool storage pool1 = vPools[poolId1];
+        VirtualPool.VPool storage pool1 = vPools[poolId1];
 
         // Check if pool ID is greater than the previous one
         // This ensures each pool ID is unique & reduces computation cost
@@ -286,7 +303,7 @@ contract LiquidityManagerV2 is
         if (!arePoolCompatible[poolId0][poolId1])
           revert IncompatiblePools(poolId0, poolId1);
 
-        if (poolId0 != poolId1 && overlaps[poolId0][poolId1] == 0) {
+        if (poolId0 != poolId1 && pool0.overlaps[poolId1] == 0) {
           pool0.overlappedPools.push(poolId1);
           pool1.overlappedPools.push(poolId0);
         }
@@ -300,18 +317,18 @@ contract LiquidityManagerV2 is
     uint128[] memory poolIds_,
     uint256 tokenId_,
     uint256 amount_,
-    uint128 feeDiscount_
+    uint256 feeDiscount_
   ) internal {
     uint256 nbPoolIds = poolIds_.length;
 
     for (uint128 i; i < nbPoolIds; i++) {
       uint128 poolId0 = poolIds_[i];
-      VPool storage pool0 = vPools[poolId0];
+      VirtualPool.VPool storage pool0 = vPools[poolId0];
 
       // Remove expired policies
-      pool0.actualizingProtocolAndRemoveExpiredPolicies();
+      pool0._actualizing();
       // Remove liquidity
-      pool0.withdrawLiquidity(
+      pool0._withdrawLiquidity(
         poolIds_,
         tokenId_,
         amount_,
@@ -322,7 +339,7 @@ contract LiquidityManagerV2 is
       // then start index is i to reduce required number of loops
       for (uint128 j = i; j < nbPoolIds; j++) {
         uint128 poolId1 = poolIds_[j];
-        VPool storage pool1 = vPools[poolId1];
+        VirtualPool.VPool storage pool1 = vPools[poolId1];
 
         pool0.overlaps[poolId1] -= amount_;
       }
@@ -336,16 +353,17 @@ contract LiquidityManagerV2 is
     uint128 poolId_,
     uint256 amount_,
     address claimant_
-  ) external onlyClaimManager {
-    VPool storage poolA = vPools[poolId_];
+  ) external onlyOwner {
+    VirtualPool.VPool storage poolA = vPools[poolId_];
     uint256 ratio = amount_.rayDiv(poolA.availableLiquidity());
 
-    uint256 nbPools = poolA.dependantPools.length;
+    uint256 nbPools = poolA.overlappedPools.length;
     for (uint128 i; i < nbPools + 1; i++) {
-      uint128 poolIdB = poolA.dependantPools[i];
-      VPool storage poolB = vPools[poolIdB];
+      uint128 poolIdB = poolA.overlappedPools[i];
+      VirtualPool.VPool storage poolB = vPools[poolIdB];
 
-      (VPool storage pool0, uint128 poolId1) = poolId_ < poolIdB
+      (VirtualPool.VPool storage pool0, uint128 poolId1) = poolId_ <
+        poolIdB
         ? (poolA, poolIdB)
         : (poolB, poolId_);
 
@@ -353,19 +371,17 @@ contract LiquidityManagerV2 is
       uint256 overlapAmount = pool0.overlaps[poolId1];
       uint256 amountToRemove = overlapAmount.rayMul(ratio);
       // Pool overlaps are used to compute the amount of liq to remove from each pool
-      overlappingLiquidity[poolId0][poolId1] -= amountToRemove;
-      overlappingLiquidity[poolIdB][poolIdB] -= amountToRemove;
+      pool0.overlaps[poolId1] -= amountToRemove;
+      poolB.overlaps[poolIdB] -= amountToRemove;
 
-      poolB.actualizingProtocolAndRemoveExpiredPolicies(
-        relatedPoolAddress
-      );
+      poolB._actualizing();
 
       poolB._updateSlot0WhenAvailableLiquidityChange(
         0,
         amountToRemove
       );
       poolB.processedClaims.push(
-        PoolClaim({
+        VirtualPool.PoolClaim({
           fromPoolId: poolId_,
           ratio: ratio,
           liquidityIndexBeforeClaim: poolB.liquidityIndex
@@ -373,6 +389,7 @@ contract LiquidityManagerV2 is
       );
     }
 
-    strategy.payoutFromStrategy(amount, claimant_);
+    IStrategyManager strategy = IStrategyManager(poolA.strategy);
+    strategy.payoutFromStrategy(amount_, claimant_);
   }
 }

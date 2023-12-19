@@ -6,522 +6,437 @@ import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 // Libraries
-import { RayMath } from "../libs/RayMath.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { RayMath } from "../libs/RayMath.sol";
 
 // Interfaces
-import { ILendingPool } from "./interfaces/ILendingPool.sol";
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol"; 
-import { IProtocolFactory } from "../interfaces/IProtocolFactory.sol";
-import { IProtocolPool } from "../interfaces/IProtocolPool.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import { ILendingPool } from "../interfaces/ILendingPool.sol";
 import { ILiquidityManager } from "../interfaces/ILiquidityManager.sol";
 import { ICoverManager } from "../interfaces/ICoverManager.sol";
 import { IClaimManager } from "../interfaces/IClaimManager.sol";
 
 contract Athena is ReentrancyGuard, Ownable {
-  using SafeERC20 for IERC20;
-  using RayMath for uint256;
-
-  ILendingPool public aaveLendingPool;
-
-  IERC20 public atenTokenInterface;
-
-  ILiquidityManager public positionManagerInterface;
-  ICoverManager public policyManagerInterface;
-  IClaimManager public claimManagerInterface;
-
-  IProtocolFactory public protocolFactoryInterface;
-
-  // Maps tokens used by pool to its AAVE lending pool approval status
-  mapping(address token => bool isApproved) public approvedTokens;
-
+  // using SafeERC20 for IERC20;
+  // using RayMath for uint256;
+  // ILendingPool public aaveLendingPool;
+  // IERC20 public atenTokenInterface;
+  // ILiquidityManager public positionManagerInterface;
+  // ICoverManager public policyManagerInterface;
+  // IClaimManager public claimManagerInterface;
+  // // Maps tokens used by pool to its AAVE lending pool approval status
+  // mapping(address token => bool isApproved) public approvedTokens;
   constructor(
     address atenTokenAddress_,
     ILendingPool aaveLendingPool_
   ) Ownable(msg.sender) {
-    aaveLendingPool = aaveLendingPool_;
-    atenTokenInterface = IERC20(atenTokenAddress_);
+    // aaveLendingPool = aaveLendingPool_;
+    // atenTokenInterface = IERC20(atenTokenAddress_);
   }
-
-  function initialize(
-    address _positionManagerAddress,
-    address _policyManagerAddress,
-    address _claimManagerAddress,
-    address _protocolFactory
-  ) external onlyOwner {
-    positionManagerInterface = ILiquidityManager(
-      _positionManagerAddress
-    );
-    policyManagerInterface = ICoverManager(_policyManagerAddress);
-    claimManagerInterface = IClaimManager(_claimManagerAddress);
-
-    protocolFactoryInterface = IProtocolFactory(_protocolFactory);
-  }
-
-  /// ========================= ///
-  /// ========= ERRORS ======== ///
-  /// ========================= ///
-
-  error NotClaimManager();
-  error NotPositionOwner();
-  error NotPolicyOwner();
-  error PolicyExpired();
-  error ProtocolIsInactive();
-  error SamePoolIds();
-  error IncompatibleProtocol(uint256, uint256);
-  error OutOfRange();
-  error WithdrawableAmountIsZero();
-  error UserHasNoPositions();
-  error WithdrawCommitDelayNotReached();
-  error AmountEqualToZero();
-  error AmountAtenTooHigh();
-  error MissingBaseRate();
-  error MustSortInAscendingOrder();
-  error PoolPaused();
-  error PoolHasOngoingClaimsOrPaused();
-  error UnderlyingTokenMismatch();
-
-  /// ========================= ///
-  /// ========= EVENTS ======== ///
-  /// ========================= ///
-
-  event NewProtocol(uint128);
-
-  /// ============================ ///
-  /// ========= MODIFIERS ======== ///
-  /// ============================ ///
-
-  modifier onlyClaimManager() {
-    if (msg.sender != address(claimManagerInterface)) {
-      revert NotClaimManager();
-    }
-    _;
-  }
-
-  /**
-   * @notice
-   * Check caller is owner of the position supply NFT
-   * @param positionId_ position supply NFT ID
-   */
-  modifier onlyPositionTokenOwner(uint256 positionId_) {
-    address ownerOfToken = positionManagerInterface.ownerOf(
-      positionId_
-    );
-    if (msg.sender != ownerOfToken) {
-      revert NotPositionOwner();
-    }
-    _;
-  }
-
-  /**
-   * @notice
-   * Check caller is owner of the policy holder NFT
-   * @param policyId_ policy holder NFT ID
-   */
-  modifier onlyPolicyTokenOwner(uint256 policyId_) {
-    address ownerOfToken = policyManagerInterface.ownerOf(policyId_);
-    if (msg.sender != ownerOfToken) {
-      revert NotPolicyOwner();
-    }
-    _;
-  }
-
-  /// ======================== ///
-  /// ========= VIEWS ======== ///
-  /// ======================== ///
-
-  function coverManager() external view returns (address) {
-    return address(policyManagerInterface);
-  }
-
-  function getPoolAddressById(
-    uint128 poolId
-  ) public view returns (address) {
-    return protocolFactoryInterface.getPoolAddress(poolId);
-  }
-
-  function getProtocol(
-    uint128 poolId_
-  ) public view returns (ProtocolView memory) {
-    IProtocolFactory.Protocol memory pool = protocolFactoryInterface
-      .getPool(poolId_);
-
-    (
-      uint256 insuredCapital,
-      uint256 availableCapacity,
-      uint256 utilizationRate,
-      uint256 premiumRate,
-      IProtocolPool.Formula memory computingConfig
-    ) = IProtocolPool(pool.deployed).protocolInfo();
-
-    string memory claimAgreement = claimManagerInterface
-      .getPoolCoverTerms(poolId_);
-
-    uint256 aaveLiquidityRate = aaveLendingPool
-      .getReserveData(pool.token)
-      .currentLiquidityRate;
-
-    uint128[] memory incompatiblePools = protocolFactoryInterface
-      .getIncompatiblePools(poolId_);
-
-    return
-      ProtocolView({
-        name: pool.name,
-        paused: pool.paused,
-        claimsOngoing: pool.claimsOngoing,
-        poolId: poolId_,
-        deployed: pool.deployed,
-        token: pool.token,
-        insuredCapital: insuredCapital,
-        availableCapacity: availableCapacity,
-        utilizationRate: utilizationRate,
-        premiumRate: premiumRate,
-        aaveLiquidityRate: aaveLiquidityRate,
-        computingConfig: computingConfig,
-        claimAgreement: claimAgreement,
-        commitDelay: pool.commitDelay,
-        incompatiblePools: incompatiblePools
-      });
-  }
-
-  function getAllProtocols()
-    external
-    view
-    returns (ProtocolView[] memory protocols)
-  {
-    uint128 nextPoolId = protocolFactoryInterface.getNextPoolId();
-
-    protocols = new ProtocolView[](nextPoolId);
-    for (uint128 i = 0; i < nextPoolId; i++) {
-      protocols[i] = getProtocol(i);
-    }
-  }
-
-  /// ========================== ///
-  /// ========= HELPERS ======== ///
-  /// ========================== ///
-
-  // @bw transform to call from liq manager to cover manager
-  function actualizingProtocolAndRemoveExpiredPolicies(
-    address protocolAddress
-  ) public override {
-    uint256[] memory expiredTokens = IProtocolPool(protocolAddress)
-      .actualizing();
-
-    if (0 < expiredTokens.length) {
-      policyManagerInterface.processExpiredTokens(expiredTokens);
-    }
-  }
-
-  function actualizingProtocolAndRemoveExpiredPoliciesByPoolId(
-    uint128 poolId_
-  ) public {
-    actualizingProtocolAndRemoveExpiredPolicies(
-      getPoolAddressById(poolId_)
-    );
-  }
-
-  /*
-   * @notice
-   * Transfer liquidity to AAVE lending pool
-   * @param token_ address of the token to be deposited (not aToken)
-   * @param amount_ amount of tokens to be deposited
-   * @return normalizedIncome price in rays of the aToken
-   *
-   * @dev For example a return value of 2∗1e27 means 2 tokens = 1 aToken
-   */
-  function _transferLiquidityToAAVE(
-    address token_,
-    uint256 amount_
-  ) private returns (uint256 normalizedIncome) {
-    aaveLendingPool.deposit(token_, amount_, address(this), 0);
-
-    normalizedIncome = amount_.rayDiv(
-      aaveLendingPool.getReserveNormalizedIncome(token_)
-    );
-  
-
-  function _prepareCoverUpdate(
-    uint256 coverId_
-  ) private returns (address poolAddress, uint128 poolId) {
-    poolId = policyManagerInterface.poolIdOfPolicy(coverId_);
-    poolAddress = getPoolAddressById(poolId);
-    actualizingProtocolAndRemoveExpiredPolicies(poolAddress);
-  }
-
-  /// =============================== ///
-  /// ========== POSITIONS ========== ///
-  /// =============================== ///
-
-  function deposit(
-    uint256 amount,
-    uint128[] calldata poolIds
-  ) external nonReentrant {
-    // @bw should get token for transfer or let user specify & check if token or wrapped
-    // Retrieve LP funds
-    IERC20(underlyingToken).safeTransferFrom(
-      msg.sender,
-      address(liquidityManager),
-      amount
-    );
-
-    // Send back liquidity position NFT
-    liquidityManager.depositToPosition(msg.sender, amount, poolIds);
-  }
-
-  function takeInterest(
-    uint256 tokenId,
-    uint128 poolId
-  ) public onlyPositionTokenOwner(tokenId) {
-    positionManagerInterface.takePositionInterests(
-      msg.sender,
-      tokenId,
-      poolId
-    );
-  }
-
-  function takeInterestInAllPools(
-    uint256 tokenId
-  ) public onlyPositionTokenOwner(tokenId) {
-    positionManagerInterface.takeInterestsInAllPools(
-      msg.sender,
-      tokenId
-    );
-  }
-
-  function addLiquidityToPosition(
-    uint256 tokenId,
-    uint256 amount
-  ) external nonReentrant {
-    // @bw should get token for transfer or let user specify & check if token or wrapped
-    // Retrieve user funds for coverage
-    IERC20(underlyingToken).safeTransferFrom(
-      msg.sender,
-      address(liquidityManager),
-      amount
-    );
-
-    positionManagerInterface.updatePosition(
-      msg.sender,
-      tokenId,
-      amount,
-      newAaveScaledBalance
-    );
-  }
-
-  function commitWithdraw(uint256 tokenId) external nonReentrant {
-    liquidityManager.commitWithdraw(tokenId, msg.sender);
-  }
-
-  function withdraw(uint256 tokenId) external nonReentrant {
-    liquidityManager.withdrawFromPosition(
-      msg.sender,
-      amount,
-      poolIds
-    );
-  }
-
-  /// ============================== ///
-  /// ========== POLICIES ========== ///
-  /// ============================== ///
-
-  //////Thao@NOTE: Policy
-  function buyPolicies(
-    uint256[] calldata amountCoveredArray_,
-    uint256[] calldata premiumDepositArray_,
-    uint128[] calldata poolIdArray_
-  ) public nonReentrant {
-    uint256 nbPolicies = poolIdArray_.length;
-
-    bool poolsPaused = protocolFactoryInterface.arePoolsPaused(
-      poolIdArray_
-    );
-    if (!poolsPaused) revert PoolPaused();
-
-    for (uint256 i = 0; i < nbPolicies; i++) {
-      uint256 _amountCovered = amountCoveredArray_[i];
-      uint256 _premiumDeposit = premiumDepositArray_[i];
-      uint128 _poolId = poolIdArray_[i];
-
-      if (_amountCovered == 0 || _premiumDeposit == 0)
-        revert AmountEqualToZero();
-
-      address poolAddress = getPoolAddressById(_poolId);
-
-      address underlyingToken = protocolFactoryInterface
-        .getPoolUnderlyingToken(_poolId);
-      IERC20(underlyingToken).safeTransferFrom(
-        msg.sender,
-        poolAddress,
-        _premiumDeposit
-      );
-
-      uint256 coverId = policyManagerInterface.mint(
-        msg.sender,
-        _amountCovered,
-        _premiumDeposit,
-        _poolId
-      );
-
-      actualizingProtocolAndRemoveExpiredPolicies(poolAddress);
-
-      IProtocolPool(poolAddress).buyPolicy(
-        msg.sender,
-        coverId,
-        _premiumDeposit,
-        _amountCovered
-      );
-    }
-  }
-
-  /// -------- COVER UPDATE -------- ///
-
-  function increaseCover(
-    uint256 coverId_,
-    uint256 amount_
-  ) external onlyPolicyTokenOwner(coverId_) {
-    (address poolAddress, ) = _prepareCoverUpdate(coverId_);
-    policyManagerInterface.increaseCover(coverId_, amount_);
-    IProtocolPool(poolAddress).increaseCover(coverId_, amount_);
-  }
-
-  function decreaseCover(
-    uint256 coverId_,
-    uint256 amount_
-  ) external onlyPolicyTokenOwner(coverId_) {
-    (address poolAddress, ) = _prepareCoverUpdate(coverId_);
-    policyManagerInterface.decreaseCover(coverId_, amount_);
-    IProtocolPool(poolAddress).decreaseCover(coverId_, amount_);
-  }
-
-  function addPremiums(
-    uint256 coverId_,
-    uint256 amount_
-  ) external onlyPolicyTokenOwner(coverId_) {
-    (address poolAddress, uint128 poolId) = _prepareCoverUpdate(
-      coverId_
-    );
-
-    address underlyingToken = protocolFactoryInterface
-      .getPoolUnderlyingToken(poolId);
-    IERC20(underlyingToken).safeTransferFrom(
-      msg.sender,
-      poolAddress,
-      amount_
-    );
-
-    policyManagerInterface.addPremiums(coverId_, amount_);
-    IProtocolPool(poolAddress).addPremiums(coverId_, amount_);
-  }
-
-  function removePremiums(
-    uint256 coverId_,
-    uint256 amount_
-  ) external onlyPolicyTokenOwner(coverId_) {
-    (address poolAddress, ) = _prepareCoverUpdate(coverId_);
-
-    policyManagerInterface.removePremiums(coverId_, amount_);
-    IProtocolPool(poolAddress).removePremiums(
-      coverId_,
-      amount_,
-      msg.sender
-    );
-  }
-
-  /// -------- CLOSE -------- ///
-
-  /**
-   * @notice
-   * Closes the policy of a user and withdraws remaining funds, staked ATEN and potential staking rewards.
-   * @param policyId_ id of the policy to close
-   */
-  function withdrawPolicy(
-    uint256 policyId_
-  ) public onlyPolicyTokenOwner(policyId_) nonReentrant {
-    // Get the policy
-    ICoverManager.Policy memory userPolicy = policyManagerInterface
-      .policy(policyId_);
-    address poolAddress = getPoolAddressById(userPolicy.poolId);
-
-    // Remove expired policies
-    actualizingProtocolAndRemoveExpiredPolicies(poolAddress);
-
-    // Require that the policy is still active
-    bool isStillActive = policyManagerInterface.policyActive(
-      policyId_
-    );
-    if (isStillActive != true) revert PolicyExpired();
-
-    // Updates pool liquidity and withdraws remaining funds to user
-    IProtocolPool(poolAddress).withdrawPolicy(
-      msg.sender,
-      policyId_,
-      userPolicy.amountCovered
-    );
-
-    // Expire the cover of the user
-    policyManagerInterface.expireCover(policyId_, true);
-  }
-
-  /// ============================ ///
-  /// ========== CLAIMS ========== ///
-  /// ============================ ///
-
-  /**
-   * @notice
-   * Called by the claim manager to compensate the claimant.
-   * @param policyId_ the id of the policy
-   * @param amount_ the amount to compensate
-   * @param account_ the address of the claimant
-   */
-  function compensateClaimant(
-    uint256 policyId_,
-    uint256 amount_,
-    address account_
-  ) external onlyClaimManager {
-    ICoverManager.Policy memory userPolicy = policyManagerInterface
-      .policy(policyId_);
-    uint128 poolId = userPolicy.poolId;
-
-    address poolAddress = getPoolAddressById(poolId);
-
-    IProtocolPool poolInterface = IProtocolPool(poolAddress);
-    uint256 ratio = poolInterface.ratioWithAvailableCapital(amount_);
-
-    address underlyingToken = protocolFactoryInterface
-      .getPoolUnderlyingToken(poolId);
-    uint256 reserveNormalizedIncome = aaveLendingPool
-      .getReserveNormalizedIncome(underlyingToken);
-
-    // @bw - overlap here we need the list of related protocols
-    uint128[] memory relatedProtocols = poolInterface
-      .getRelatedProtocols();
-    for (uint256 i = 0; i < relatedProtocols.length; i++) {
-      uint128 relatedPoolId = relatedProtocols[i];
-
-      address relatedPoolAddress = getPoolAddressById(relatedPoolId);
-
-      actualizingProtocolAndRemoveExpiredPolicies(relatedPoolAddress);
-
-      IProtocolPool(relatedPoolAddress).processClaim(
-        poolId,
-        ratio,
-        reserveNormalizedIncome
-      );
-    }
-
-    aaveLendingPool.withdraw(underlyingToken, amount_, account_);
-  }
-
-  /// =========================== ///
-  /// ========== ADMIN ========== ///
-  /// =========================== ///
-
-  /// -------- AAVE -------- ///
-
-  function updateLendingPool(
-    ILendingPool aaveLendingPool_
-  ) external onlyOwner {
-    aaveLendingPool = aaveLendingPool_;
-  }
+  // function initialize(
+  //   address _positionManagerAddress,
+  //   address _policyManagerAddress,
+  //   address _claimManagerAddress,
+  //   address _protocolFactory
+  // ) external onlyOwner {
+  //   positionManagerInterface = ILiquidityManager(
+  //     _positionManagerAddress
+  //   );
+  //   policyManagerInterface = ICoverManager(_policyManagerAddress);
+  //   claimManagerInterface = IClaimManager(_claimManagerAddress);
+  // }
+  // /// ========================= ///
+  // /// ========= ERRORS ======== ///
+  // /// ========================= ///
+  // error NotClaimManager();
+  // error NotPositionOwner();
+  // error NotPolicyOwner();
+  // error PolicyExpired();
+  // error ProtocolIsInactive();
+  // error SamePoolIds();
+  // error IncompatibleProtocol(uint256, uint256);
+  // error OutOfRange();
+  // error WithdrawableAmountIsZero();
+  // error UserHasNoPositions();
+  // error WithdrawCommitDelayNotReached();
+  // error AmountEqualToZero();
+  // error AmountAtenTooHigh();
+  // error MissingBaseRate();
+  // error MustSortInAscendingOrder();
+  // error PoolPaused();
+  // error PoolHasOngoingClaimsOrPaused();
+  // error UnderlyingTokenMismatch();
+  // /// ========================= ///
+  // /// ========= EVENTS ======== ///
+  // /// ========================= ///
+  // event NewProtocol(uint128);
+  // /// ============================ ///
+  // /// ========= MODIFIERS ======== ///
+  // /// ============================ ///
+  // modifier onlyClaimManager() {
+  //   if (msg.sender != address(claimManagerInterface)) {
+  //     revert NotClaimManager();
+  //   }
+  //   _;
+  // }
+  // /**
+  //  * @notice
+  //  * Check caller is owner of the position supply NFT
+  //  * @param positionId_ position supply NFT ID
+  //  */
+  // modifier onlyPositionTokenOwner(uint256 positionId_) {
+  //   address ownerOfToken = positionManagerInterface.ownerOf(
+  //     positionId_
+  //   );
+  //   if (msg.sender != ownerOfToken) {
+  //     revert NotPositionOwner();
+  //   }
+  //   _;
+  // }
+  // /**
+  //  * @notice
+  //  * Check caller is owner of the policy holder NFT
+  //  * @param policyId_ policy holder NFT ID
+  //  */
+  // modifier onlyPolicyTokenOwner(uint256 policyId_) {
+  //   address ownerOfToken = policyManagerInterface.ownerOf(policyId_);
+  //   if (msg.sender != ownerOfToken) {
+  //     revert NotPolicyOwner();
+  //   }
+  //   _;
+  // }
+  // /// ======================== ///
+  // /// ========= VIEWS ======== ///
+  // /// ======================== ///
+  // function coverManager() external view returns (address) {
+  //   return address(policyManagerInterface);
+  // }
+  // function getPoolAddressById(
+  //   uint128 poolId
+  // ) public view returns (address) {
+  //   return protocolFactoryInterface.getPoolAddress(poolId);
+  // }
+  // function getProtocol(
+  //   uint128 poolId_
+  // ) public view returns (ProtocolView memory) {
+  //   IProtocolFactory.Protocol memory pool = protocolFactoryInterface
+  //     .getPool(poolId_);
+  //   (
+  //     uint256 insuredCapital,
+  //     uint256 availableCapacity,
+  //     uint256 utilizationRate,
+  //     uint256 premiumRate,
+  //     IProtocolPool.Formula memory computingConfig
+  //   ) = IProtocolPool(pool.deployed).protocolInfo();
+  //   string memory claimAgreement = claimManagerInterface
+  //     .getPoolCoverTerms(poolId_);
+  //   uint256 aaveLiquidityRate = aaveLendingPool
+  //     .getReserveData(pool.token)
+  //     .currentLiquidityRate;
+  //   uint128[] memory incompatiblePools = protocolFactoryInterface
+  //     .getIncompatiblePools(poolId_);
+  //   return
+  //     ProtocolView({
+  //       name: pool.name,
+  //       paused: pool.paused,
+  //       claimsOngoing: pool.claimsOngoing,
+  //       poolId: poolId_,
+  //       deployed: pool.deployed,
+  //       token: pool.token,
+  //       insuredCapital: insuredCapital,
+  //       availableCapacity: availableCapacity,
+  //       utilizationRate: utilizationRate,
+  //       premiumRate: premiumRate,
+  //       aaveLiquidityRate: aaveLiquidityRate,
+  //       computingConfig: computingConfig,
+  //       claimAgreement: claimAgreement,
+  //       commitDelay: pool.commitDelay,
+  //       incompatiblePools: incompatiblePools
+  //     });
+  // }
+  // function getAllProtocols()
+  //   external
+  //   view
+  //   returns (ProtocolView[] memory protocols)
+  // {
+  //   uint128 nextPoolId = protocolFactoryInterface.getNextPoolId();
+  //   protocols = new ProtocolView[](nextPoolId);
+  //   for (uint128 i = 0; i < nextPoolId; i++) {
+  //     protocols[i] = getProtocol(i);
+  //   }
+  // }
+  // /// ========================== ///
+  // /// ========= HELPERS ======== ///
+  // /// ========================== ///
+  // // @bw transform to call from liq manager to cover manager
+  // function actualizingProtocolAndRemoveExpiredPolicies(
+  //   address protocolAddress
+  // ) public override {
+  //   uint256[] memory expiredTokens = IProtocolPool(protocolAddress)
+  //     .actualizing();
+  //   if (0 < expiredTokens.length) {
+  //     policyManagerInterface.processExpiredTokens(expiredTokens);
+  //   }
+  // }
+  // function actualizingProtocolAndRemoveExpiredPoliciesByPoolId(
+  //   uint128 poolId_
+  // ) public {
+  //   actualizingProtocolAndRemoveExpiredPolicies(
+  //     getPoolAddressById(poolId_)
+  //   );
+  // }
+  // /*
+  //  * @notice
+  //  * Transfer liquidity to AAVE lending pool
+  //  * @param token_ address of the token to be deposited (not aToken)
+  //  * @param amount_ amount of tokens to be deposited
+  //  * @return normalizedIncome price in rays of the aToken
+  //  *
+  //  * @dev For example a return value of 2∗1e27 means 2 tokens = 1 aToken
+  //  */
+  // function _transferLiquidityToAAVE(
+  //   address token_,
+  //   uint256 amount_
+  // ) private returns (uint256 normalizedIncome) {
+  //   aaveLendingPool.deposit(token_, amount_, address(this), 0);
+  //   normalizedIncome = amount_.rayDiv(
+  //     aaveLendingPool.getReserveNormalizedIncome(token_)
+  //   );
+  // function _prepareCoverUpdate(
+  //   uint256 coverId_
+  // ) private returns (address poolAddress, uint128 poolId) {
+  //   poolId = policyManagerInterface.poolIdOfPolicy(coverId_);
+  //   poolAddress = getPoolAddressById(poolId);
+  //   actualizingProtocolAndRemoveExpiredPolicies(poolAddress);
+  // }
+  // /// =============================== ///
+  // /// ========== POSITIONS ========== ///
+  // /// =============================== ///
+  // function deposit(
+  //   uint256 amount,
+  //   uint128[] calldata poolIds
+  // ) external nonReentrant {
+  //   // @bw should get token for transfer or let user specify & check if token or wrapped
+  //   // Retrieve LP funds
+  //   IERC20(underlyingToken).safeTransferFrom(
+  //     msg.sender,
+  //     address(liquidityManager),
+  //     amount
+  //   );
+  //   // Send back liquidity position NFT
+  //   liquidityManager.depositToPosition(msg.sender, amount, poolIds);
+  // }
+  // function takeInterest(
+  //   uint256 tokenId,
+  //   uint128 poolId
+  // ) public onlyPositionTokenOwner(tokenId) {
+  //   positionManagerInterface.takePositionInterests(
+  //     msg.sender,
+  //     tokenId,
+  //     poolId
+  //   );
+  // }
+  // function takeInterestInAllPools(
+  //   uint256 tokenId
+  // ) public onlyPositionTokenOwner(tokenId) {
+  //   positionManagerInterface.takeInterestsInAllPools(
+  //     msg.sender,
+  //     tokenId
+  //   );
+  // }
+  // function addLiquidityToPosition(
+  //   uint256 tokenId,
+  //   uint256 amount
+  // ) external nonReentrant {
+  //   // @bw should get token for transfer or let user specify & check if token or wrapped
+  //   // Retrieve user funds for coverage
+  //   IERC20(underlyingToken).safeTransferFrom(
+  //     msg.sender,
+  //     address(liquidityManager),
+  //     amount
+  //   );
+  //   positionManagerInterface.updatePosition(
+  //     msg.sender,
+  //     tokenId,
+  //     amount,
+  //     newAaveScaledBalance
+  //   );
+  // }
+  // function commitWithdraw(uint256 tokenId) external nonReentrant {
+  //   liquidityManager.commitWithdraw(tokenId, msg.sender);
+  // }
+  // function withdraw(uint256 tokenId) external nonReentrant {
+  //   liquidityManager.withdrawFromPosition(
+  //     msg.sender,
+  //     amount,
+  //     poolIds
+  //   );
+  // }
+  // /// ============================== ///
+  // /// ========== POLICIES ========== ///
+  // /// ============================== ///
+  // //////Thao@NOTE: Policy
+  // function buyPolicies(
+  //   uint256[] calldata amountCoveredArray_,
+  //   uint256[] calldata premiumDepositArray_,
+  //   uint128[] calldata poolIdArray_
+  // ) public nonReentrant {
+  //   uint256 nbPolicies = poolIdArray_.length;
+  //   bool poolsPaused = protocolFactoryInterface.arePoolsPaused(
+  //     poolIdArray_
+  //   );
+  //   if (!poolsPaused) revert PoolPaused();
+  //   for (uint256 i = 0; i < nbPolicies; i++) {
+  //     uint256 _amountCovered = amountCoveredArray_[i];
+  //     uint256 _premiumDeposit = premiumDepositArray_[i];
+  //     uint128 _poolId = poolIdArray_[i];
+  //     if (_amountCovered == 0 || _premiumDeposit == 0)
+  //       revert AmountEqualToZero();
+  //     address poolAddress = getPoolAddressById(_poolId);
+  //     address underlyingToken = protocolFactoryInterface
+  //       .getPoolUnderlyingToken(_poolId);
+  //     IERC20(underlyingToken).safeTransferFrom(
+  //       msg.sender,
+  //       poolAddress,
+  //       _premiumDeposit
+  //     );
+  //     uint256 coverId = policyManagerInterface.mint(
+  //       msg.sender,
+  //       _amountCovered,
+  //       _premiumDeposit,
+  //       _poolId
+  //     );
+  //     actualizingProtocolAndRemoveExpiredPolicies(poolAddress);
+  //     IProtocolPool(poolAddress).buyPolicy(
+  //       msg.sender,
+  //       coverId,
+  //       _premiumDeposit,
+  //       _amountCovered
+  //     );
+  //   }
+  // }
+  // /// -------- COVER UPDATE -------- ///
+  // function increaseCover(
+  //   uint256 coverId_,
+  //   uint256 amount_
+  // ) external onlyPolicyTokenOwner(coverId_) {
+  //   (address poolAddress, ) = _prepareCoverUpdate(coverId_);
+  //   policyManagerInterface.increaseCover(coverId_, amount_);
+  //   IProtocolPool(poolAddress).increaseCover(coverId_, amount_);
+  // }
+  // function decreaseCover(
+  //   uint256 coverId_,
+  //   uint256 amount_
+  // ) external onlyPolicyTokenOwner(coverId_) {
+  //   (address poolAddress, ) = _prepareCoverUpdate(coverId_);
+  //   policyManagerInterface.decreaseCover(coverId_, amount_);
+  //   IProtocolPool(poolAddress).decreaseCover(coverId_, amount_);
+  // }
+  // function addPremiums(
+  //   uint256 coverId_,
+  //   uint256 amount_
+  // ) external onlyPolicyTokenOwner(coverId_) {
+  //   (address poolAddress, uint128 poolId) = _prepareCoverUpdate(
+  //     coverId_
+  //   );
+  //   address underlyingToken = protocolFactoryInterface
+  //     .getPoolUnderlyingToken(poolId);
+  //   IERC20(underlyingToken).safeTransferFrom(
+  //     msg.sender,
+  //     poolAddress,
+  //     amount_
+  //   );
+  //   policyManagerInterface.addPremiums(coverId_, amount_);
+  //   IProtocolPool(poolAddress).addPremiums(coverId_, amount_);
+  // }
+  // function removePremiums(
+  //   uint256 coverId_,
+  //   uint256 amount_
+  // ) external onlyPolicyTokenOwner(coverId_) {
+  //   (address poolAddress, ) = _prepareCoverUpdate(coverId_);
+  //   policyManagerInterface.removePremiums(coverId_, amount_);
+  //   IProtocolPool(poolAddress).removePremiums(
+  //     coverId_,
+  //     amount_,
+  //     msg.sender
+  //   );
+  // }
+  // /// -------- CLOSE -------- ///
+  // /**
+  //  * @notice
+  //  * Closes the policy of a user and withdraws remaining funds, staked ATEN and potential staking rewards.
+  //  * @param policyId_ id of the policy to close
+  //  */
+  // function withdrawPolicy(
+  //   uint256 policyId_
+  // ) public onlyPolicyTokenOwner(policyId_) nonReentrant {
+  //   // Get the policy
+  //   ICoverManager.Policy memory userPolicy = policyManagerInterface
+  //     .policy(policyId_);
+  //   address poolAddress = getPoolAddressById(userPolicy.poolId);
+  //   // Remove expired policies
+  //   actualizingProtocolAndRemoveExpiredPolicies(poolAddress);
+  //   // Require that the policy is still active
+  //   bool isStillActive = policyManagerInterface.policyActive(
+  //     policyId_
+  //   );
+  //   if (isStillActive != true) revert PolicyExpired();
+  //   // Updates pool liquidity and withdraws remaining funds to user
+  //   IProtocolPool(poolAddress).withdrawPolicy(
+  //     msg.sender,
+  //     policyId_,
+  //     userPolicy.amountCovered
+  //   );
+  //   // Expire the cover of the user
+  //   policyManagerInterface.expireCover(policyId_, true);
+  // }
+  // /// ============================ ///
+  // /// ========== CLAIMS ========== ///
+  // /// ============================ ///
+  // /**
+  //  * @notice
+  //  * Called by the claim manager to compensate the claimant.
+  //  * @param policyId_ the id of the policy
+  //  * @param amount_ the amount to compensate
+  //  * @param account_ the address of the claimant
+  //  */
+  // function compensateClaimant(
+  //   uint256 policyId_,
+  //   uint256 amount_,
+  //   address account_
+  // ) external onlyClaimManager {
+  //   ICoverManager.Policy memory userPolicy = policyManagerInterface
+  //     .policy(policyId_);
+  //   uint128 poolId = userPolicy.poolId;
+  //   address poolAddress = getPoolAddressById(poolId);
+  //   IProtocolPool poolInterface = IProtocolPool(poolAddress);
+  //   uint256 ratio = poolInterface.ratioWithAvailableCapital(amount_);
+  //   address underlyingToken = protocolFactoryInterface
+  //     .getPoolUnderlyingToken(poolId);
+  //   uint256 reserveNormalizedIncome = aaveLendingPool
+  //     .getReserveNormalizedIncome(underlyingToken);
+  //   // @bw - overlap here we need the list of related protocols
+  //   uint128[] memory relatedProtocols = poolInterface
+  //     .getRelatedProtocols();
+  //   for (uint256 i = 0; i < relatedProtocols.length; i++) {
+  //     uint128 relatedPoolId = relatedProtocols[i];
+  //     address relatedPoolAddress = getPoolAddressById(relatedPoolId);
+  //     actualizingProtocolAndRemoveExpiredPolicies(relatedPoolAddress);
+  //     IProtocolPool(relatedPoolAddress).processClaim(
+  //       poolId,
+  //       ratio,
+  //       reserveNormalizedIncome
+  //     );
+  //   }
+  //   aaveLendingPool.withdraw(underlyingToken, amount_, account_);
+  // }
+  // /// =========================== ///
+  // /// ========== ADMIN ========== ///
+  // /// =========================== ///
+  // /// -------- AAVE -------- ///
+  // function updateLendingPool(
+  //   ILendingPool aaveLendingPool_
+  // ) external onlyOwner {
+  //   aaveLendingPool = aaveLendingPool_;
+  // }
 }

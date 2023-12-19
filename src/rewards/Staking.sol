@@ -97,12 +97,14 @@ contract Staking is IStaking, ERC20, Ownable {
   }
 
   /// @inheritdoc IStaking
-  function initializeFarming(FeeLevel[] memory feeLevels) external {
+  function initializeFarming(
+    FeeLevel[] calldata feeLevels_
+  ) external {
     if (farmingInitialized == true) {
       revert FarmingCampaignAlreadyInitialized();
     }
 
-    setFeeLevelsWithAten(feeLevels);
+    setFeeLevelsWithAten(feeLevels_);
 
     _approve(address(this), address(farming), 1 wei);
     _mint(address(this), 1 wei);
@@ -234,7 +236,8 @@ contract Staking is IStaking, ERC20, Ownable {
     stakedToken.safeTransfer(_to, _tokensToWithdraw);
 
     feeDiscountOf[msg.sender] = 0;
-    liquidityManager.feeDiscountUpdate(msg.sender, 0);
+    // @bw to repair
+    // liquidityManager.feeDiscountUpdate(msg.sender, 0);
 
     emit EmergencyWithdraw(
       msg.sender,
@@ -307,10 +310,10 @@ contract Staking is IStaking, ERC20, Ownable {
 
   //======== FEE DISCOUNT ========//
 
-  struct FeeLevel {
-    uint256 atenAmount;
-    uint256 feeDiscount; // (10_000 = 100% discount)
-  }
+  error MissingBaseRate();
+  error MustSortInAscendingOrder();
+  error GreaterThan100Percent();
+
   // Performance fee discount levels
   FeeLevel[] public feeLevels;
 
@@ -328,7 +331,8 @@ contract Staking is IStaking, ERC20, Ownable {
 
     if (feeDiscount != newFeeDiscount) {
       feeDiscountOf[msg.sender] = newFeeDiscount;
-      liquidityManager.feeDiscountUpdate(msg.sender, feeDiscount);
+      // @bw to repair
+      // liquidityManager.feeDiscountUpdate(msg.sender, feeDiscount);
     }
   }
 
@@ -341,11 +345,11 @@ contract Staking is IStaking, ERC20, Ownable {
     view
     returns (FeeLevel[] memory levels)
   {
-    uint256 nbLevels = supplyFeeLevels.length;
+    uint256 nbLevels = feeLevels.length;
     levels = new FeeLevel[](nbLevels);
 
     for (uint256 i = 0; i < nbLevels; i++) {
-      levels[i] = supplyFeeLevels[i];
+      levels[i] = feeLevels[i];
     }
   }
 
@@ -357,18 +361,18 @@ contract Staking is IStaking, ERC20, Ownable {
    **/
   function amountToFeeDiscount(
     uint256 stakedAten_
-  ) public view returns (uint128) {
+  ) public view returns (uint256) {
     // Lazy check to avoid loop if user doesn't stake
-    if (stakedAten_ == 0) return supplyFeeLevels[0].feeDiscount;
+    if (stakedAten_ == 0) return feeLevels[0].feeDiscount;
 
     // Inversed loop starts with the end to find adequate level
-    for (uint256 i = supplyFeeLevels.length - 1; 0 <= i; i--) {
+    for (uint256 i = feeLevels.length - 1; 0 <= i; i--) {
       // Rate level with atenAmount of 0 will always be true
-      if (supplyFeeLevels[i].atenAmount <= stakedAten_)
-        return supplyFeeLevels[i].feeDiscount;
+      if (feeLevels[i].atenAmount <= stakedAten_)
+        return feeLevels[i].feeDiscount;
     }
 
-    return supplyFeeLevels[0].feeDiscount;
+    return feeLevels[0].feeDiscount;
   }
 
   /** @notice
@@ -382,7 +386,7 @@ contract Staking is IStaking, ERC20, Ownable {
   ) public onlyOwner {
     // First clean the storage
     // @bw does not clear storage in classic manner, need to check
-    delete supplyFeeLevels;
+    delete feeLevels;
 
     // Set all cover supply fee levels
     uint256 previousAtenAmount = 0;
@@ -404,7 +408,7 @@ contract Staking is IStaking, ERC20, Ownable {
       if (10_000 < level.feeDiscount) revert GreaterThan100Percent();
 
       // save to storage
-      supplyFeeLevels.push(level);
+      feeLevels.push(level);
     }
   }
 }

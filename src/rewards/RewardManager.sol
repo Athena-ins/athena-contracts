@@ -49,7 +49,7 @@ contract RewardManager is IRewardManager {
     address _coverManager,
     IERC20 _stakedToken,
     uint256 _startFarmingCampaign,
-    FeeLevel[] memory feeLevels
+    Staking.FeeLevel[] memory feeLevels
   ) {
     if (_startFarmingCampaign <= block.number) {
       revert StartFarmingInPast();
@@ -76,7 +76,6 @@ contract RewardManager is IRewardManager {
     staking.initializeFarming(feeLevels);
   }
 
-  /// @inheritdoc IRewardManagerL2
   function resetAllowance(uint256 _campaignId) external {
     if (_campaignId >= farming.campaignInfoLen()) {
       revert WrongCampaignId();

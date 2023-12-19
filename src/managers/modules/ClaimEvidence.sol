@@ -2,8 +2,8 @@
 pragma solidity 0.8.20;
 
 // Interfaces
-import { IEvidence } from "./interface/IEvidence.sol";
-import { IArbitrator } from "./interface/external/IArbitrator.sol";
+import { IEvidence } from "../../interfaces/IEvidence.sol";
+import { IArbitrator } from "../../interfaces/IArbitrator.sol";
 
 contract ClaimEvidence is IEvidence {
   IArbitrator public immutable arbitrator;

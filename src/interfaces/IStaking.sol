@@ -16,6 +16,11 @@ interface IStaking is IERC20 {
     uint256 lastBlockUpdate;
   }
 
+  struct FeeLevel {
+    uint256 atenAmount;
+    uint256 feeDiscount; // (10_000 = 100% discount)
+  }
+
   /**
    * @notice emitted at each deposit
    * @param from address that deposit its funds
@@ -61,7 +66,7 @@ interface IStaking is IERC20 {
    * Mint one token of stSDEX and then deposit in the staking farming pool
    * This contract should be the only participant of the staking farming pool
    */
-  function initializeFarming() external;
+  function initializeFarming(FeeLevel[] calldata feeLevels_) external;
 
   /**
    * @notice Send SDEX to get shares in the staking pool
@@ -167,4 +172,13 @@ interface IStaking is IERC20 {
    * @return total shares amount
    */
   function totalShares() external view returns (uint256);
+
+  /**
+   * @notice get the fee discount amount
+   * @param _user user address
+   * @return fee discount amount
+   */
+  function feeDiscountOf(
+    address _user
+  ) external view returns (uint256);
 }

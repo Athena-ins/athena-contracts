@@ -1,19 +1,18 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.20;
 
-// Token standards
+// Contracts
 import { ERC721 } from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-// Addons
 import { ERC721Enumerable } from "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
-// Interfaces
-import { ICoverManager } from "../interface/ICoverManager.sol";
-import { IProtocolFactory } from "../interface/IProtocolFactory.sol";
-import { IAthena } from "../interface/IAthena.sol";
-import { IProtocolPool } from "../interface/IProtocolPool.sol";
 
-contract PolicyManager is ICoverManager, ERC721Enumerable {
+// Interfaces
+import { ICoverManager } from "../interfaces/ICoverManager.sol";
+import { ILiquidityManager } from "../interfaces/ILiquidityManager.sol";
+import { IVPool } from "../interfaces/IVPool.sol";
+
+contract CoverManager is ICoverManager, ERC721Enumerable {
   address public core;
-  IProtocolFactory public protocolFactoryInterface;
+  address public protocolFactoryInterface;
   ILiquidityManager public liquidityManager;
 
   /// Maps a cover ID to the cover data
@@ -27,7 +26,6 @@ contract PolicyManager is ICoverManager, ERC721Enumerable {
     ILiquidityManager liquidityManager_
   ) ERC721("Athena-Cover", "Athena Insurance User Cover") {
     core = coreAddress;
-    protocolFactoryInterface = IProtocolFactory(protocolFactory);
     liquidityManager = liquidityManager_;
   }
 
@@ -106,10 +104,8 @@ contract PolicyManager is ICoverManager, ERC721Enumerable {
 
     // We only want to read additional cover data if it is ongoing
     if (cover.endTimestamp == 0) {
-      address protocolAddress = protocolFactoryInterface
-        .getPoolAddress(cover.poolId);
-      (premiumLeft, currentEmissionRate, estDuration) = IProtocolPool(
-        protocolAddress
+      (premiumLeft, currentEmissionRate, estDuration) = IVPool(
+        address(0)
       ).getInfo(coverId);
     }
 
@@ -151,11 +147,7 @@ contract PolicyManager is ICoverManager, ERC721Enumerable {
 
     if (_policy.beginCoveredTime == 0) return 0;
 
-    address protocolAddress = protocolFactoryInterface.getPoolAddress(
-      _policy.poolId
-    );
-    (uint256 premiumLeft, , ) = IProtocolPool(protocolAddress)
-      .getInfo(coverId);
+    (uint256 premiumLeft, , ) = IVPool(address(0)).getInfo(coverId);
 
     // @bw Erronous behavior that grow premiums above deposited amount
     if (_policy.premiumDeposit < premiumLeft) {

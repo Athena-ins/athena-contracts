@@ -1,26 +1,24 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.20;
 
-import "./IProtocolPool.sol";
-
-interface IAthena {
-  struct ProtocolView {
-    string name;
-    bool paused;
-    uint128 claimsOngoing;
-    uint128 poolId;
-    address deployed;
-    address token;
-    uint256 insuredCapital;
-    uint256 availableCapacity;
-    uint256 utilizationRate;
-    uint256 premiumRate;
-    uint256 aaveLiquidityRate;
-    IProtocolPool.Formula computingConfig;
-    string claimAgreement;
-    uint256 commitDelay;
-    uint128[] incompatiblePools;
-  }
+interface IAthenaCore {
+  // struct ProtocolView {
+  //   string name;
+  //   bool paused;
+  //   uint128 claimsOngoing;
+  //   uint128 poolId;
+  //   address deployed;
+  //   address token;
+  //   uint256 insuredCapital;
+  //   uint256 availableCapacity;
+  //   uint256 utilizationRate;
+  //   uint256 premiumRate;
+  //   uint256 aaveLiquidityRate;
+  //   IProtocolPool.Formula computingConfig;
+  //   string claimAgreement;
+  //   uint256 commitDelay;
+  //   uint128[] incompatiblePools;
+  // }
 
   function coverManager() external view returns (address);
 

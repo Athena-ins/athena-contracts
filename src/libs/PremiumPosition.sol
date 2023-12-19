@@ -3,6 +3,7 @@ pragma solidity 0.8.20;
 
 import "./RayMath.sol";
 
+// @bw lib is kinda overkill for this
 library PremiumPosition {
   using RayMath for uint256;
 
