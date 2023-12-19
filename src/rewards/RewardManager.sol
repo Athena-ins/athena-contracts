@@ -45,7 +45,7 @@ contract RewardManager is IRewardManager {
    */
   constructor(
     address _owner,
-    address _liquidityManager,
+    ILiquidityManager _liquidityManager,
     address _coverManager,
     IERC20 _stakedToken,
     uint256 _startFarmingCampaign,
@@ -69,6 +69,8 @@ contract RewardManager is IRewardManager {
     );
 
     farming.addCampaignInfo(
+      IFarmingRange.AssetType.ERC20,
+      1e18, // Use impossibly high pool ID
       staking,
       _stakedToken,
       _startFarmingCampaign
@@ -81,26 +83,16 @@ contract RewardManager is IRewardManager {
       revert WrongCampaignId();
     }
 
-    (, IERC20 _rewardToken, , , , , ) = farming.campaignInfo(
+    (, , , IERC20 _rewardToken, , , , , ) = farming.campaignInfo(
       _campaignId
     );
 
     // In case of tokens like USDT, an approval must be set to zero before setting it to another value.
     // Unlike most tokens, USDT does not ignore a non-zero current allowance value, leading to a possible
     // transaction failure when you are trying to change the allowance.
-    if (
-      _rewardToken.allowance(address(this), address(farming)) != 0
-    ) {
-      SafeERC20.safeApprove(
-        address(_rewardToken),
-        address(farming),
-        0
-      );
-    }
-
     // After ensuring that the allowance is zero (or it was zero to begin with), we then set the allowance to max.
-    SafeERC20.safeApprove(
-      address(_rewardToken),
+    SafeERC20.forceApprove(
+      _rewardToken,
       address(farming),
       type(uint256).max
     );

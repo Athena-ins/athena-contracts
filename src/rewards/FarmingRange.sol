@@ -90,7 +90,7 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
   constructor(
     address _owner,
     address _rewardManager,
-    address _liquidityManager,
+    ILiquidityManager _liquidityManager,
     address _coverManager
   ) Ownable(_owner) {
     rewardInfoLimit = 52;
@@ -98,7 +98,7 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
       revert RewardManagerNotDefined();
     }
 
-    liquidityManager = ILiquidityManager(_liquidityManager);
+    liquidityManager = _liquidityManager;
     coverManager = ICoverManager(_coverManager);
 
     rewardManager = _rewardManager;
