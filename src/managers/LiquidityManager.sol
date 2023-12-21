@@ -50,6 +50,7 @@ contract LiquidityManagerV2 is
   // ======= STORAGE ======= //
 
   IStaking staking;
+  IStrategyManager strategies;
 
   /// The token ID position data
   uint128 public nextPoolId;
@@ -69,9 +70,11 @@ contract LiquidityManagerV2 is
   // ======= CONSTRUCTOR ======= //
 
   constructor(
-    address staking_
+    IStaking staking_,
+    IStrategyManager strategies_
   ) ERC721("Athena LP NFT", "AthenaLP") Ownable(msg.sender) {
-    staking = IStaking(staking_);
+    staking = staking_;
+    strategies = strategies_;
   }
 
   // @bw cannort return complex struct
@@ -144,14 +147,14 @@ contract LiquidityManagerV2 is
     // Deposit fund into the strategy if any
     // All pools share the same strategy so we can use the last pool ID in memory
     // @bw push or pull funds ?
-    IStrategyManager strategy = IStrategyManager(
-      vPools[poolIds[0]].strategy
-    );
-    strategy.depositToStrategy(tokenId, amount);
+    uint256 strategyId = vPools[poolIds[0]].strategyId;
+    strategies.depositToStrategy(strategyId, tokenId, amount);
+
+    uint256 rewardIndex = strategies.getRewardIndex(strategyId);
 
     positions[tokenId] = Position({
       supplied: amount,
-      rewardIndex: 42, // @bw get from strat
+      rewardIndex: rewardIndex,
       commitWithdrawalTimestamp: 0,
       poolIds: poolIds
     });
@@ -172,10 +175,8 @@ contract LiquidityManagerV2 is
     // Check pool compatibility & underlying token then register overlapping capital
     _addOverlappingCapitalAfterCheck(position.poolIds, amount);
 
-    IStrategyManager strategy = IStrategyManager(
-      vPools[position.poolIds[0]].strategy
-    );
-    strategy.depositToStrategy(tokenId, amount);
+    uint256 strategyId = vPools[position.poolIds[0]].strategyId;
+    strategies.depositToStrategy(strategyId, tokenId, amount);
 
     position.supplied += amount;
   }
@@ -246,11 +247,10 @@ contract LiquidityManagerV2 is
     );
 
     // All pools have same strategy since they are compatible
-    IStrategyManager strategy = IStrategyManager(
-      vPools[poolIds[0]].strategy
-    );
+    uint256 strategyId = vPools[poolIds[0]].strategyId;
     // @bw this should send back funds to user with rewards, minus fees
-    strategy.withdrawFromStrategy(
+    strategies.withdrawFromStrategy(
+      strategyId,
       tokenId_,
       422, // @bw to fix
       account_,
@@ -357,6 +357,9 @@ contract LiquidityManagerV2 is
     VirtualPool.VPool storage poolA = vPools[poolId_];
     uint256 ratio = amount_.rayDiv(poolA.availableLiquidity());
 
+    // All pools have same strategy since they are compatible
+    uint256 strategyId = vPools[poolA.overlappedPools[0]].strategyId;
+
     uint256 nbPools = poolA.overlappedPools.length;
     for (uint128 i; i < nbPools + 1; i++) {
       uint128 poolIdB = poolA.overlappedPools[i];
@@ -380,16 +383,19 @@ contract LiquidityManagerV2 is
         0,
         amountToRemove
       );
+
+      uint256 rewardIndex = strategies.getRewardIndex(strategyId);
+
       poolB.processedClaims.push(
         VirtualPool.PoolClaim({
           fromPoolId: poolId_,
           ratio: ratio,
-          liquidityIndexBeforeClaim: poolB.liquidityIndex
+          liquidityIndexBeforeClaim: poolB.liquidityIndex,
+          rewardIndexBeforeClaim: rewardIndex
         })
       );
     }
 
-    IStrategyManager strategy = IStrategyManager(poolA.strategy);
-    strategy.payoutFromStrategy(amount_, claimant_);
+    strategies.payoutFromStrategy(strategyId, amount_, claimant_);
   }
 }

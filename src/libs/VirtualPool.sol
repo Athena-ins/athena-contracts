@@ -61,8 +61,8 @@ library VirtualPool {
     Formula f;
     Slot0 slot0;
     uint256 liquidityIndex;
-    address strategy; // @bw to be replaced by strat id
-    address underlyingAsset; // @bw to be replaced by strat id
+    uint256 strategyId;
+    address underlyingAsset; // @bw to be fetched by strat id ?
     bool isPaused;
     /// @dev poolId 0 -> poolId 0 points to a pool's available liquidity
     /// @dev liquidity overlap is always registered in the lower poolId
