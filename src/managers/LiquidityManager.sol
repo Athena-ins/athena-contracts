@@ -10,11 +10,13 @@ import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 // Libraries
 import { RayMath } from "../libs/RayMath.sol";
 import { VirtualPool } from "../libs/VirtualPool.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 // Interfaces
 import { IAthenaCore } from "../interfaces/IAthenaCore.sol";
 import { IStrategyManager } from "../interfaces/IStrategyManager.sol";
 import { IStaking } from "../interfaces/IStaking.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 // ======= ERRORS ======= //
 
@@ -24,16 +26,28 @@ error PoolIsPaused();
 error PoolIdsMustBeUniqueAndAscending();
 error IncompatiblePools(uint128 poolIdA, uint128 poolIdB);
 error WithdrawCommitDelayNotReached();
+error NotEnoughLiquidity();
+error CoverIsExpired();
+error NotEnoughPremiums();
 
 contract LiquidityManagerV2 is
   ERC721Enumerable,
   ReentrancyGuard,
   Ownable
 {
+  using SafeERC20 for IERC20;
   using RayMath for uint256;
   using VirtualPool for VirtualPool.VPool;
 
   // ======= STRUCTS ======= //
+
+  struct Cover {
+    uint128 poolId;
+    uint256 coverAmount;
+    uint256 premiums;
+    uint256 start;
+    uint256 end;
+  }
 
   struct Position {
     uint256 supplied;
@@ -51,6 +65,11 @@ contract LiquidityManagerV2 is
 
   IStaking staking;
   IStrategyManager strategies;
+
+  /// User cover data
+  mapping(uint256 _coverId => Cover _cover) public covers;
+  /// The ID of the next cover to be minted
+  uint256 public nextCoverId;
 
   /// The token ID position data
   uint128 public nextPoolId;
@@ -130,6 +149,140 @@ contract LiquidityManagerV2 is
       uint128 compatiblePoolId = compatiblePools_[i];
       arePoolCompatible[poolId][compatiblePoolId] = true;
       arePoolCompatible[compatiblePoolId][poolId] = true;
+    }
+  }
+
+  /// ======= COVER HELPERS ======= ///
+
+  function _processExpiredTokens(
+    uint256[] memory tokenIds_
+  ) internal {
+    uint256 nbTokens = tokenIds_.length;
+    for (uint256 i; i < nbTokens; i++) {
+      covers[tokenIds_[i]].end = block.timestamp;
+      // @bw check if spent premium is correct after manual expiration
+      // @bw should auto unfarm if it is currently farming rewards
+    }
+  }
+
+  /// ======= BUY COVER ======= ///
+
+  function buyCover(
+    uint128 poolId_,
+    uint256 coverAmount_,
+    uint256 premiums_
+  ) external {
+    // Get storage pointer to pool
+    VirtualPool.VPool storage pool = vPools[poolId_];
+
+    // Clean pool from expired covers
+    _processExpiredTokens(pool._actualizing());
+
+    // Check if pool is currently paused
+    if (pool.isPaused) revert PoolIsPaused();
+    // Check if pool has enough liquidity
+    if (pool.availableLiquidity() < coverAmount_)
+      revert NotEnoughLiquidity();
+
+    // Transfer premiums from user
+    IERC20(pool.paymentAsset).safeTransferFrom(
+      msg.sender,
+      address(this), // @bw Check handling of funds
+      premiums_
+    );
+
+    // Save new cover ID and update for next
+    uint256 coverId = nextCoverId;
+    nextCoverId++;
+
+    // Create cover
+    covers[coverId] = Cover({
+      poolId: poolId_,
+      coverAmount: coverAmount_,
+      premiums: premiums_,
+      start: block.timestamp,
+      end: 0
+    });
+
+    // Mint cover NFT
+    // @bw to fix
+    // _mint(msg.sender, coverId);
+  }
+
+  /// ======= UPDATE COVER ======= ///
+
+  function updateCover(
+    uint256 coverId_,
+    uint256 coverToAdd_,
+    uint256 coverToRemove_,
+    uint256 premiumsToAdd_,
+    uint256 premiumsToRemove_
+  ) external {
+    // Get storage pointer to cover
+    Cover storage cover = covers[coverId_];
+    // Get storage pointer to pool
+    VirtualPool.VPool storage pool = vPools[cover.poolId];
+
+    // Clean pool from expired covers
+    _processExpiredTokens(pool._actualizing());
+
+    // @bw check cover ownership
+    // Check if pool is currently paused
+    if (pool.isPaused) revert PoolIsPaused();
+    // Check if cover is expired
+    if (cover.end != 0) revert CoverIsExpired();
+
+    uint256 premiumsLeft = pool._closeCover(
+      coverId_,
+      cover.coverAmount
+    );
+
+    // Only allow one operation on cover amount change
+    if (0 < coverToAdd_) {
+      /**
+       * Check if pool has enough liquidity,
+       * we closed cover at this point so check for total
+       * */
+      if (pool.availableLiquidity() < cover.coverAmount + coverToAdd_)
+        revert NotEnoughLiquidity();
+
+      cover.coverAmount += coverToAdd_;
+    } else if (0 < coverToRemove_) {
+      // User is allowed to set the cover amount to 0 to pause the cover
+      cover.coverAmount -= coverToRemove_;
+    }
+
+    // Only allow one operation on premiums amount change
+    if (0 < premiumsToRemove_) {
+      // If premiumsToRemove_ is max uint256, then remove all premiums
+      if (premiumsToRemove_ == type(uint256).max) {
+        premiumsToRemove_ = premiumsLeft;
+      } else if (premiumsLeft < premiumsToRemove_) {
+        // Else check if there is enough premiums left
+        revert NotEnoughPremiums();
+      }
+
+      cover.premiums -= premiumsToRemove_;
+      IERC20(pool.paymentAsset).safeTransfer(
+        msg.sender,
+        premiumsLeft
+      );
+    } else if (0 < premiumsToAdd_) {
+      // Transfer premiums from user
+      IERC20(pool.paymentAsset).safeTransferFrom(
+        msg.sender,
+        address(this), // @bw Check handling of funds
+        premiumsToAdd_
+      );
+      cover.premiums += premiumsToAdd_;
+    }
+
+    // If no premiums left, then cover expires & should not be reopened
+    if (cover.premiums == 0) {
+      covers[coverId_].end = block.timestamp;
+    } else {
+      // Update cover
+      pool._buyCover(cover.poolId, cover.coverAmount, cover.premiums);
     }
   }
 
