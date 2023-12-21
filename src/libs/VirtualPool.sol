@@ -306,6 +306,8 @@ library VirtualPool {
 
   // ======= COVERS ======= //
 
+  /// -------- BUY -------- ///
+
   function _addPremiumPosition(
     VPool storage self,
     uint256 _tokenId,
@@ -325,13 +327,12 @@ library VirtualPool {
     }
   }
 
-  // function _buyPolicy(
   function _buyCover(
     VPool storage self,
     uint256 _tokenId,
     uint256 _premium,
     uint256 _insuredCapital
-  ) private {
+  ) internal {
     uint256 _availableLiquidity = availableLiquidity(self);
     uint256 totalInsuredCapital = self.slot0.totalInsuredCapital;
 
@@ -383,12 +384,26 @@ library VirtualPool {
     self.slot0.remainingCovers++;
   }
 
-  // @bw function _withdrawPolicy(
+  /// -------- MODIFY -------- ///
+
+  function _modifyCover(
+    VPool storage self,
+    uint256 coverId_,
+    uint256 coverToAdd_,
+    uint256 coverToRemove_,
+    uint256 premiumsToAdd_,
+    uint256 premiumsToRemove_
+  ) internal {
+    // @bw need fn to change cover without closing & opening new one
+  }
+
+  /// -------- CLOSE -------- ///
+
   function _closeCover(
     VPool storage self,
     uint256 coverId,
     uint256 _amountCovered
-  ) private returns (uint256 __remainedPremium) {
+  ) internal returns (uint256 __remainedPremium) {
     PremiumPosition.Info memory __position = self.premiumPositions[
       coverId
     ];
