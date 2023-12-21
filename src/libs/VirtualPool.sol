@@ -62,6 +62,7 @@ library VirtualPool {
     Slot0 slot0;
     uint256 liquidityIndex;
     uint256 strategyId;
+    address paymentAsset; // asset used to pay LP premiums
     address underlyingAsset; // @bw to be fetched by strat id ?
     bool isPaused;
     /// @dev poolId 0 -> poolId 0 points to a pool's available liquidity
@@ -83,6 +84,7 @@ library VirtualPool {
   function _vPoolConstructor(
     VPool storage self,
     uint128 poolId,
+    address paymentAsset_,
     address underlyingAsset_,
     uint256 protocolShare_, //Ray
     uint256 uOptimal_, //Ray
@@ -90,11 +92,14 @@ library VirtualPool {
     uint256 rSlope1_, //Ray
     uint256 rSlope2_ //Ray
   ) internal {
-    if (underlyingAsset_ == address(0)) {
+    if (
+      underlyingAsset_ == address(0) || paymentAsset_ == address(0)
+    ) {
       revert ZeroAddressAsset();
     }
 
     self.poolId = poolId;
+    self.paymentAsset = paymentAsset_;
     self.underlyingAsset = underlyingAsset_;
     self.protocolShare = protocolShare_;
 
@@ -191,14 +196,15 @@ library VirtualPool {
 
     // transfer to account:
     uint256 interestNet = (totalRewards * (1000 - _feeRate)) / 1000;
+    // @bw check that each pool pays its own fees (can be different tokens)
     // @bw here should safe to position instead of initiating transfer when called for fee update
     // @bw init transfer call in liq manager to strat holding funds
-    // IERC20(underlyingAsset).safeTransfer(account_,  interestNet);
+    // IERC20(paymentAsset).safeTransfer(account_,  interestNet);
 
     // transfer to treasury
     // @bw FEE WARN! core has no way of using funds
     // @bw init transfer call in liq manager to strat holding funds
-    // IERC20(underlyingAsset).safeTransfer(
+    // IERC20(paymentAsset).safeTransfer(
     //   core,
     //    totalRewards -  interestNet
     // );
@@ -261,11 +267,12 @@ library VirtualPool {
       __rewardsNet =
         (__totalRewards * (10000 - feeDiscount_)) /
         10000;
+      // @bw check that each pool pays its own fees (can be different tokens)
       // @bw init transfer call in liq manager to strat holding funds
-      // IERC20(underlyingAsset).safeTransfer(account_, __rewardsNet);
+      // IERC20(paymentAsset).safeTransfer(account_, __rewardsNet);
       // @bw FEES are sent to core here
       // @bw init transfer call in liq manager to strat holding funds
-      // IERC20(underlyingAsset).safeTransfer(
+      // IERC20(paymentAsset).safeTransfer(
       //   core,
       //   __totalRewards - __rewardsNet
       // );

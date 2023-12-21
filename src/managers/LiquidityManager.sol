@@ -95,6 +95,7 @@ contract LiquidityManagerV2 is
   /// ======= POOLS ======= ///
 
   function createPool(
+    address paymentAsset_,
     address underlyingAsset_,
     uint256 protocolShare_,
     uint256 uOptimal_,
@@ -113,6 +114,7 @@ contract LiquidityManagerV2 is
     // Create virtual pool
     pool._vPoolConstructor(
       poolId,
+      paymentAsset_,
       underlyingAsset_,
       protocolShare_, //Ray
       uOptimal_, //Ray
