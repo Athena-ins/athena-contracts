@@ -369,8 +369,7 @@ contract LiquidityManagerV2 is
         : (poolB, poolId_);
 
       // Remove liquidity from dependant pool
-      uint256 overlapAmount = pool0.overlaps[poolId1];
-      uint256 amountToRemove = overlapAmount.rayMul(ratio);
+      uint256 amountToRemove = pool0.overlaps[poolId1].rayMul(ratio);
       // Pool overlaps are used to compute the amount of liq to remove from each pool
       pool0.overlaps[poolId1] -= amountToRemove;
       poolB.overlaps[poolIdB] -= amountToRemove;
@@ -382,14 +381,14 @@ contract LiquidityManagerV2 is
         amountToRemove
       );
 
-      uint256 rewardIndex = strategies.getRewardIndex(strategyId);
-
       poolB.processedClaims.push(
         VirtualPool.PoolClaim({
           fromPoolId: poolId_,
           ratio: ratio,
           liquidityIndexBeforeClaim: poolB.liquidityIndex,
-          rewardIndexBeforeClaim: rewardIndex
+          rewardIndexBeforeClaim: strategies.getRewardIndex(
+            strategyId
+          )
         })
       );
     }
