@@ -37,7 +37,7 @@ library VirtualPool {
     uint32 tick;
     uint256 secondsPerTick;
     uint256 totalInsuredCapital;
-    uint256 remainingPolicies;
+    uint256 remainingCovers;
     uint256 lastUpdateTimestamp;
   }
 
@@ -373,7 +373,7 @@ library VirtualPool {
     self.slot0.totalInsuredCapital += _insuredCapital;
     self.slot0.secondsPerTick = __newSecondsPerTick;
 
-    self.slot0.remainingPolicies++;
+    self.slot0.remainingCovers++;
   }
 
   // @bw function _withdrawPolicy(
@@ -446,7 +446,7 @@ library VirtualPool {
       _removeTick(self, __position.lastTick);
     }
 
-    self.slot0.remainingPolicies--;
+    self.slot0.remainingCovers--;
   }
 
   // ======= CLAIMS ======= //
@@ -520,17 +520,17 @@ library VirtualPool {
   function _actualizing(
     VPool storage self
   ) internal returns (uint256[] memory) {
-    if (self.slot0.remainingPolicies > 0) {
+    if (self.slot0.remainingCovers > 0) {
       (
         Slot0 memory __slot0,
         uint256 __liquidityIndex
       ) = _actualizingUntil(self, block.timestamp);
 
       //now, we remove all crossed ticks
-      uint256[] memory __expiredPoliciesTokens = new uint256[](
-        self.slot0.remainingPolicies - __slot0.remainingPolicies
+      uint256[] memory __expiredCoversTokens = new uint256[](
+        self.slot0.remainingCovers - __slot0.remainingCovers
       );
-      uint256 __expiredPoliciesTokenIdCurrentIndex;
+      uint256 __expiredCoversTokenIdCurrentIndex;
 
       uint32 __observedTick = self.slot0.tick;
       bool __initialized;
@@ -541,21 +541,21 @@ library VirtualPool {
 
         if (__initialized && __observedTick <= __slot0.tick) {
           uint256[]
-            memory __currentExpiredPoliciesTokenId = _removeTick(
+            memory __currentExpiredCoversTokenId = _removeTick(
               self,
               __observedTick
             );
 
           for (
             uint256 i = 0;
-            i < __currentExpiredPoliciesTokenId.length;
+            i < __currentExpiredCoversTokenId.length;
             i++
           ) {
-            __expiredPoliciesTokens[
-              __expiredPoliciesTokenIdCurrentIndex
-            ] = __currentExpiredPoliciesTokenId[i];
+            __expiredCoversTokens[
+              __expiredCoversTokenIdCurrentIndex
+            ] = __currentExpiredCoversTokenId[i];
 
-            __expiredPoliciesTokenIdCurrentIndex++;
+            __expiredCoversTokenIdCurrentIndex++;
           }
         }
       }
@@ -563,11 +563,11 @@ library VirtualPool {
       self.slot0.tick = __slot0.tick;
       self.slot0.secondsPerTick = __slot0.secondsPerTick;
       self.slot0.totalInsuredCapital = __slot0.totalInsuredCapital;
-      self.slot0.remainingPolicies = __slot0.remainingPolicies;
+      self.slot0.remainingCovers = __slot0.remainingCovers;
       self.slot0.lastUpdateTimestamp = block.timestamp;
       self.liquidityIndex = __liquidityIndex;
 
-      return __expiredPoliciesTokens;
+      return __expiredCoversTokens;
     }
 
     self.slot0.lastUpdateTimestamp = block.timestamp;
@@ -589,7 +589,7 @@ library VirtualPool {
       "date is not valide"
     );
 
-    if (self.slot0.remainingPolicies > 0) {
+    if (self.slot0.remainingCovers > 0) {
       (__slot0, __liquidityIndex) = _actualizingUntil(
         self,
         _dateInSeconds
@@ -747,7 +747,7 @@ library VirtualPool {
     );
 
     _slot0.totalInsuredCapital -= __insuredCapitalToRemove;
-    _slot0.remainingPolicies -= coverIds.length;
+    _slot0.remainingCovers -= coverIds.length;
   }
 
   function _actualizingUntil(
@@ -762,7 +762,7 @@ library VirtualPool {
       tick: self.slot0.tick,
       secondsPerTick: self.slot0.secondsPerTick,
       totalInsuredCapital: self.slot0.totalInsuredCapital,
-      remainingPolicies: self.slot0.remainingPolicies,
+      remainingCovers: self.slot0.remainingCovers,
       lastUpdateTimestamp: self.slot0.lastUpdateTimestamp
     });
 
@@ -910,7 +910,7 @@ library VirtualPool {
 
     uint256 __liquidityIndex;
 
-    if (self.slot0.remainingPolicies > 0) {
+    if (self.slot0.remainingCovers > 0) {
       (, __liquidityIndex) = _actualizingUntil(self, _dateInSecond);
     } else {
       __liquidityIndex = self.liquidityIndex;

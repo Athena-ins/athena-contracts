@@ -131,7 +131,7 @@ contract LiquidityManagerV2 is
     }
   }
 
-  /// ======= MAKE POSITION ======= ///
+  /// ======= MAKE LP POSITION ======= ///
 
   function createPosition(
     address account,
@@ -162,7 +162,7 @@ contract LiquidityManagerV2 is
     _mint(account, tokenId);
   }
 
-  /// ======= UPDATE POSITION ======= ///
+  /// ======= UPDATE LP POSITION ======= ///
 
   function updatePosition(
     uint256 tokenId,
@@ -181,7 +181,7 @@ contract LiquidityManagerV2 is
     position.supplied += amount;
   }
 
-  /// ======= TAKE INTERESTS ======= ///
+  /// ======= TAKE LP INTERESTS ======= ///
 
   // @bw needs to be updated for strat reward withdraw + take fees in pools
   // compute amount of rewards & transfer from cover manager to user + register new reward index
@@ -193,7 +193,7 @@ contract LiquidityManagerV2 is
     for (uint256 i; i < nbPools; i++) {
       VirtualPool.VPool storage pool = vPools[position.poolIds[i]];
 
-      // Remove expired policies
+      // Remove expired covers
       pool._actualizing();
 
       (uint256 _newUserCapital, uint256 _scaledAmountToRemove) = pool
@@ -212,7 +212,7 @@ contract LiquidityManagerV2 is
     }
   }
 
-  /// ======= CLOSE POSITION ======= ///
+  /// ======= CLOSE LP POSITION ======= ///
 
   function commitWithdraw(
     uint256 tokenId_,
@@ -260,7 +260,7 @@ contract LiquidityManagerV2 is
     _burn(tokenId_);
   }
 
-  /// ======= FEE DISCOUNT ======= ///
+  /// ======= LP FEE DISCOUNT ======= ///
 
   function feeDiscountUpdate(
     address account_,
@@ -285,7 +285,7 @@ contract LiquidityManagerV2 is
       // Check if pool is currently paused
       if (pool0.isPaused) revert PoolIsPaused();
 
-      // Remove expired policies
+      // Remove expired covers
       pool0._actualizing();
 
       // Considering the verification that pool IDs are unique & ascending
@@ -325,7 +325,7 @@ contract LiquidityManagerV2 is
       uint128 poolId0 = poolIds_[i];
       VirtualPool.VPool storage pool0 = vPools[poolId0];
 
-      // Remove expired policies
+      // Remove expired covers
       pool0._actualizing();
       // Remove liquidity
       pool0._withdrawLiquidity(
