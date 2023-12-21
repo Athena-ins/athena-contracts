@@ -50,7 +50,7 @@ library VirtualPool {
     uint128 fromPoolId;
     uint256 ratio; // Ray //ratio = claimAmount / capital
     uint256 liquidityIndexBeforeClaim;
-    // uint256 aaveReserveNormalizedIncomeBeforeClaim;
+    uint256 rewardIndexBeforeClaim;
   }
 
   // ======= VIRTUAL STORAGE ======= //
@@ -173,7 +173,7 @@ library VirtualPool {
       uint256 newUserCapital,
       uint256 totalRewards,
       LPInfo memory newLPInfo,
-      uint256 aaveScaledBalanceToRemove
+      uint256 scaledAmountToRemove
     ) = _actualizingLPInfoWithClaims(
         self,
         tokenId_,
@@ -213,7 +213,7 @@ library VirtualPool {
       totalRewards - interestNet
     );
 
-    return (newUserCapital, aaveScaledBalanceToRemove);
+    return (newUserCapital, scaledAmountToRemove);
   }
 
   /// -------- WITHDRAW -------- ///
@@ -241,7 +241,7 @@ library VirtualPool {
       // The rewards earned through premiums
       uint256 __totalRewards,
       LPInfo memory __newLPInfo,
-      uint256 __aaveScaledBalanceToRemove
+      uint256 __scaledAmountToRemove
     ) = _actualizingLPInfoWithClaims(
         self,
         tokenId_,
@@ -294,7 +294,7 @@ library VirtualPool {
 
     delete self.lpInfos[tokenId_];
 
-    return (__newUserCapital, __aaveScaledBalanceToRemove);
+    return (__newUserCapital, __scaledAmountToRemove);
   }
 
   // ======= COVERS ======= //
@@ -841,7 +841,7 @@ library VirtualPool {
       uint256 __newUserCapital,
       uint256 __totalRewards,
       LPInfo memory __newLPInfo,
-      uint256 __aaveScaledBalanceToRemove
+      uint256 __scaledAmountToRemove
     )
   {
     __newLPInfo = self.lpInfos[tokenId_];
@@ -866,9 +866,8 @@ library VirtualPool {
             __claim.ratio
           );
 
-          __aaveScaledBalanceToRemove += capitalToRemove.rayDiv(
-            42
-            // @bw need fixin  __claim.aaveReserveNormalizedIncomeBeforeClaim
+          __scaledAmountToRemove += capitalToRemove.rayDiv(
+            __claim.rewardIndexBeforeClaim
           );
 
           __newUserCapital = __newUserCapital - capitalToRemove;

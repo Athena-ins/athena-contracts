@@ -196,7 +196,7 @@ contract LiquidityManagerV2 is
       // Remove expired policies
       pool._actualizing();
 
-      (uint256 _newUserCapital, uint256 _aaveScaledBalanceToRemove) = pool
+      (uint256 _newUserCapital, uint256 _scaledAmountToRemove) = pool
         ._takePoolInterests( // takePoolInterests
         account,
         tokenId,
@@ -208,7 +208,7 @@ contract LiquidityManagerV2 is
 
     if (position.supplied != amountSuppliedUpdated) {
       positions[tokenId].supplied = amountSuppliedUpdated;
-      positions[tokenId].rewardIndex -= 0; // @bw aaveScaledBalanceUpdated;
+      positions[tokenId].rewardIndex -= 0; // @bw check change aaveScaledBalanceUpdated;
     }
   }
 
@@ -339,8 +339,6 @@ contract LiquidityManagerV2 is
       // then start index is i to reduce required number of loops
       for (uint128 j = i; j < nbPoolIds; j++) {
         uint128 poolId1 = poolIds_[j];
-        VirtualPool.VPool storage pool1 = vPools[poolId1];
-
         pool0.overlaps[poolId1] -= amount_;
       }
     }
