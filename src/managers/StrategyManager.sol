@@ -52,17 +52,22 @@ contract StrategyManagerV0 is Ownable {
     _;
   }
 
-  //======== FUNCTIONS ========//
+  //======== VIEWS ========//
 
   /**
-   * @notice Returns the current rate between aToken and underlying token
+   * @notice Returns the current index between aToken and underlying token
    * @return uint256 The current reward index in rays
    *
-   * @dev A reward rate of 1e27 means 1 aToken = 1 underlying token
+   * @dev A reward index of 1e27 means 1 aToken = 1 underlying token
    */
-  function getRewardRate() public view returns (uint256) {
+  function getRewardIndex(
+    uint256 strategyId_
+  ) public view returns (uint256) {
+    if (strategyId_ != 0) revert NotAValidStrategy();
     return aaveLendingPool.getReserveNormalizedIncome(usdt);
   }
+
+  //======== FUNCTIONS ========//
 
   function depositToStrategy(
     uint256 strategyId_,
