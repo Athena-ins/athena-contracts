@@ -22,6 +22,7 @@ error NotLiquidityManager();
 
 contract StrategyManagerV0 is Ownable {
   using SafeERC20 for IERC20;
+  using RayMath for uint256;
 
   //======== STORAGE ========//
   address public liquidityManager;
@@ -33,7 +34,7 @@ contract StrategyManagerV0 is Ownable {
 
   struct PositionData {
     uint256 amountUnderlying;
-    uint256 startRewardRate;
+    uint256 startRewardIndex;
     uint256 accumulatedRewards;
   }
 
@@ -67,6 +68,31 @@ contract StrategyManagerV0 is Ownable {
     return aaveLendingPool.getReserveNormalizedIncome(usdt);
   }
 
+  function rewardsOf(
+    uint256 strategyId_,
+    uint256 tokenId_
+  ) public view returns (uint256) {
+    if (strategyId_ != 0) revert NotAValidStrategy();
+
+    PositionData storage data = positionData[tokenId_];
+
+    uint256 currentIndex = getRewardIndex(strategyId_);
+    uint256 startIndex = data.startRewardIndex;
+    uint256 accumulated = data.accumulatedRewards;
+
+    if (startIndex < currentIndex) {
+      uint256 amountUnderlying = data.amountUnderlying;
+
+      uint256 indexDelta = currentIndex - startIndex;
+      uint256 newRewards = (amountUnderlying * indexDelta) /
+        RayMath.RAY;
+
+      return newRewards + accumulated;
+    } else {
+      return accumulated;
+    }
+  }
+
   //======== FUNCTIONS ========//
 
   function depositToStrategy(
@@ -76,8 +102,20 @@ contract StrategyManagerV0 is Ownable {
   ) external onlyLiquidityManager {
     if (strategyId_ != 0) revert NotAValidStrategy();
 
-    IERC20(usdt).forceApprove(address(this), amountUnderlying_);
+    PositionData storage data = positionData[tokenId_];
 
+    // If there are assets accumulating then save current rewards
+    if (data.amountUnderlying != 0) {
+      data.accumulatedRewards = rewardsOf(strategyId_, tokenId_);
+    }
+
+    // Set the reward index to track future rewards
+    positionData[tokenId_].startRewardIndex = getRewardIndex(
+      strategyId_
+    );
+
+    // Deposit underlying into strategy
+    IERC20(usdt).forceApprove(address(this), amountUnderlying_);
     aaveLendingPool.deposit(
       usdt,
       amountUnderlying_,
@@ -90,13 +128,36 @@ contract StrategyManagerV0 is Ownable {
     uint256 strategyId_,
     uint256 tokenId_,
     uint256 amountUnderlying_,
-    address account_,
-    uint256 feeDiscount_
+    address account_
   ) external onlyLiquidityManager {
     if (strategyId_ != 0) revert NotAValidStrategy();
 
-    // No need to approve aToken since they are burned in pool
+    PositionData storage data = positionData[tokenId_];
+
+    data.accumulatedRewards = rewardsOf(strategyId_, tokenId_);
+    data.amountUnderlying -= amountUnderlying_;
+
+    // @dev No need to approve aToken since they are burned in pool
     aaveLendingPool.withdraw(usdt, amountUnderlying_, account_);
+  }
+
+  function withdrawRewards(
+    uint256 strategyId_,
+    uint256 tokenId_,
+    address account_
+  ) external onlyLiquidityManager {
+    if (strategyId_ != 0) revert NotAValidStrategy();
+
+    PositionData storage data = positionData[tokenId_];
+
+    // Transfer rewards to account
+    // @dev No need to approve aToken since they are burned in pool
+    uint256 rewards = rewardsOf(strategyId_, tokenId_);
+    aaveLendingPool.withdraw(usdt, rewards, account_);
+
+    // Reset accumulated rewards
+    data.startRewardIndex = getRewardIndex(strategyId_);
+    data.accumulatedRewards = 0;
   }
 
   function payoutFromStrategy(
@@ -106,7 +167,7 @@ contract StrategyManagerV0 is Ownable {
   ) external onlyLiquidityManager {
     if (strategyId_ != 0) revert NotAValidStrategy();
 
-    // No need to approve aToken since they are burned in pool
+    // @dev No need to approve aToken since they are burned in pool
     aaveLendingPool.withdraw(usdt, amountUnderlying_, account_);
   }
 
