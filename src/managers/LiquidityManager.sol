@@ -2,8 +2,6 @@
 pragma solidity 0.8.20;
 
 // Contracts
-import { ERC721 } from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import { ERC721Enumerable } from "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
@@ -16,6 +14,8 @@ import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.s
 import { IAthenaCore } from "../interfaces/IAthenaCore.sol";
 import { IStrategyManager } from "../interfaces/IStrategyManager.sol";
 import { IStaking } from "../interfaces/IStaking.sol";
+import { IAthenaPositionToken } from "../interfaces/IAthenaPositionToken.sol";
+import { IAthenaCoverToken } from "../interfaces/IAthenaCoverToken.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 // ======= ERRORS ======= //
@@ -30,11 +30,7 @@ error NotEnoughLiquidity();
 error CoverIsExpired();
 error NotEnoughPremiums();
 
-contract LiquidityManagerV2 is
-  ERC721Enumerable,
-  ReentrancyGuard,
-  Ownable
-{
+contract LiquidityManagerV2 is ReentrancyGuard, Ownable {
   using SafeERC20 for IERC20;
   using RayMath for uint256;
   using VirtualPool for VirtualPool.VPool;
@@ -63,8 +59,10 @@ contract LiquidityManagerV2 is
 
   // ======= STORAGE ======= //
 
-  IStaking staking;
-  IStrategyManager strategies;
+  IAthenaPositionToken public positionToken;
+  IAthenaCoverToken public coverToken;
+  IStaking public staking;
+  IStrategyManager public strategies;
 
   /// User cover data
   mapping(uint256 _coverId => Cover _cover) public covers;
@@ -89,9 +87,14 @@ contract LiquidityManagerV2 is
   // ======= CONSTRUCTOR ======= //
 
   constructor(
+    IAthenaPositionToken positionToken_,
+    IAthenaCoverToken coverToken_,
     IStaking staking_,
     IStrategyManager strategies_
-  ) ERC721("Athena LP NFT", "AthenaLP") Ownable(msg.sender) {
+  ) Ownable(msg.sender) {
+    positionToken = positionToken_;
+    coverToken = coverToken_;
+
     staking = staking_;
     strategies = strategies_;
   }
@@ -105,8 +108,15 @@ contract LiquidityManagerV2 is
 
   /// ======= MODIFIERS ======= ///
 
-  modifier onlyTokenOwner(uint256 tokenId, address account) {
-    if (account != ownerOf(tokenId)) revert OnlyTokenOwner();
+  modifier onlyCoverOwner(uint256 tokenId, address account) {
+    if (account != coverToken.ownerOf(tokenId))
+      revert OnlyTokenOwner();
+    _;
+  }
+
+  modifier onlyPositionOwner(uint256 tokenId, address account) {
+    if (account != positionToken.ownerOf(tokenId))
+      revert OnlyTokenOwner();
     _;
   }
 
@@ -205,8 +215,7 @@ contract LiquidityManagerV2 is
     });
 
     // Mint cover NFT
-    // @bw to fix
-    // _mint(msg.sender, coverId);
+    coverToken.mint(msg.sender, coverId);
   }
 
   /// ======= UPDATE COVER ======= ///
@@ -314,7 +323,8 @@ contract LiquidityManagerV2 is
       poolIds: poolIds
     });
 
-    _mint(account, tokenId);
+    // Mint position NFT
+    positionToken.mint(account, tokenId);
   }
 
   /// ======= UPDATE LP POSITION ======= ///
@@ -372,14 +382,14 @@ contract LiquidityManagerV2 is
   function commitWithdraw(
     uint256 tokenId_,
     address account_
-  ) external onlyOwner onlyTokenOwner(tokenId_, account_) {
+  ) external onlyOwner onlyPositionOwner(tokenId_, account_) {
     positions[tokenId_].commitWithdrawalTimestamp = block.timestamp;
   }
 
   function withdrawFromPosition(
     uint256 tokenId_,
     address account_
-  ) external onlyOwner onlyTokenOwner(tokenId_, account_) {
+  ) external onlyOwner onlyPositionOwner(tokenId_, account_) {
     Position storage position = positions[tokenId_];
     uint256 commitTimestamp = position.commitWithdrawalTimestamp;
 
@@ -411,8 +421,6 @@ contract LiquidityManagerV2 is
       account_,
       feeDiscount
     );
-
-    _burn(tokenId_);
   }
 
   /// ======= LP FEE DISCOUNT ======= ///
