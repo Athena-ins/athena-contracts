@@ -11,7 +11,6 @@ import { VirtualPool } from "../libs/VirtualPool.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 // Interfaces
-import { IAthenaCore } from "../interfaces/IAthenaCore.sol";
 import { IStrategyManager } from "../interfaces/IStrategyManager.sol";
 import { IStaking } from "../interfaces/IStaking.sol";
 import { IAthenaPositionToken } from "../interfaces/IAthenaPositionToken.sol";
@@ -63,21 +62,22 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
   IStaking public staking;
   IStrategyManager public strategies;
 
-  /// User cover data
-  mapping(uint256 _coverId => Cover _cover) public covers;
   /// The ID of the next cover to be minted
   uint256 public nextCoverId;
+  /// User cover data
+  mapping(uint256 _id => Cover _cover) public covers;
+
+  /// The ID of the next token that will be minted.
+  uint256 public nextPositionId = 0;
+  /// User LP data
+  mapping(uint256 _id => Position _position) public positions;
 
   /// The token ID position data
   uint128 public nextPoolId;
-  mapping(uint256 => Position) private positions;
-  uint256 public withdrawDelay = 14 days;
-
   // Maps a pool ID to the virtualized pool's storage
-  mapping(uint128 _poolId => VirtualPool.VPool _virtualPool)
-    public vPools;
-  /// The ID of the next token that will be minted.
-  uint256 private nextTokenId = 0;
+  // @bw need custom view fn
+  mapping(uint128 _id => VirtualPool.VPool _vPool) private pools;
+  uint256 public withdrawDelay = 14 days;
 
   // Maps pool0 -> pool1 -> areCompatible for LP leverage
   mapping(uint128 => mapping(uint128 => bool))
@@ -102,7 +102,7 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
   // function poolInfo(
   //   uint256 poolId_
   // ) external view returns (VirtualPool.VPool memory) {
-  //   return vPools[poolId_];
+  //   return pools[poolId_];
   // }
 
   /// ======= MODIFIERS ======= ///
@@ -144,7 +144,7 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
     nextPoolId++;
 
     // Get storage pointer to pool
-    VirtualPool.VPool storage pool = vPools[poolId];
+    VirtualPool.VPool storage pool = pools[poolId];
 
     // Create virtual pool
     pool._vPoolConstructor(
@@ -155,7 +155,8 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
       uOptimal_, //Ray
       r0_, //Ray
       rSlope1_, //Ray
-      rSlope2_ //Ray
+      rSlope2_, //Ray
+      coverSize
     );
 
     // Add compatible pools
@@ -189,7 +190,7 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
     uint256 premiums_
   ) external {
     // Get storage pointer to pool
-    VirtualPool.VPool storage pool = vPools[poolId_];
+    VirtualPool.VPool storage pool = pools[poolId_];
 
     // Clean pool from expired covers
     _processExpiredTokens(pool._actualizing());
@@ -236,7 +237,7 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
     // Get storage pointer to cover
     Cover storage cover = covers[coverId_];
     // Get storage pointer to pool
-    VirtualPool.VPool storage pool = vPools[cover.poolId];
+    VirtualPool.VPool storage pool = pools[cover.poolId];
 
     // Clean pool from expired covers
     _processExpiredTokens(pool._actualizing());
@@ -309,15 +310,15 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
     uint128[] calldata poolIds
   ) external onlyOwner {
     // Save new position tokenId and update for next
-    uint256 tokenId = nextTokenId;
-    nextTokenId++;
+    uint256 tokenId = nextPositionId;
+    nextPositionId++;
 
     // Check pool compatibility & underlying token then register overlapping capital
     _addOverlappingCapitalAfterCheck(poolIds, amount);
     // Deposit fund into the strategy if any
     // All pools share the same strategy so we can use the last pool ID in memory
     // @bw push or pull funds ?
-    uint256 strategyId = vPools[poolIds[0]].strategyId;
+    uint256 strategyId = pools[poolIds[0]].strategyId;
     strategies.depositToStrategy(strategyId, tokenId, amount);
 
     positions[tokenId] = Position({
@@ -343,7 +344,7 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
     // Check pool compatibility & underlying token then register overlapping capital
     _addOverlappingCapitalAfterCheck(position.poolIds, amount);
 
-    uint256 strategyId = vPools[position.poolIds[0]].strategyId;
+    uint256 strategyId = pools[position.poolIds[0]].strategyId;
     strategies.depositToStrategy(strategyId, tokenId, amount);
 
     position.supplied += amount;
@@ -362,7 +363,7 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
     uint256 amountSuppliedUpdated;
     uint256 nbPools = position.poolIds.length;
     for (uint256 i; i < nbPools; i++) {
-      VirtualPool.VPool storage pool = vPools[position.poolIds[i]];
+      VirtualPool.VPool storage pool = pools[position.poolIds[i]];
 
       // Remove expired covers
       pool._actualizing();
@@ -379,7 +380,7 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
 
     // Withdraw interests from strategy
     // All pools have same strategy since they are compatible
-    uint256 strategyId = vPools[position.poolIds[0]].strategyId;
+    uint256 strategyId = pools[position.poolIds[0]].strategyId;
     strategies.withdrawRewards(
       strategyId,
       tokenId,
@@ -427,7 +428,7 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
     );
 
     // All pools have same strategy since they are compatible
-    uint256 strategyId = vPools[poolIds[0]].strategyId;
+    uint256 strategyId = pools[position.poolIds[0]].strategyId;
     // @bw this should send back funds to user with rewards, minus fees
     strategies.withdrawFromStrategy(
       strategyId,
@@ -461,7 +462,7 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
 
     for (uint128 i; i < nbPoolIds; i++) {
       uint128 poolId0 = poolIds_[i];
-      VirtualPool.VPool storage pool0 = vPools[poolId0];
+      VirtualPool.VPool storage pool0 = pools[poolId0];
 
       // Check if pool is currently paused
       if (pool0.isPaused) revert PoolIsPaused();
@@ -473,7 +474,7 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
       // then start index is i to reduce required number of loops
       for (uint128 j = i; j < nbPoolIds; j++) {
         uint128 poolId1 = poolIds_[j];
-        VirtualPool.VPool storage pool1 = vPools[poolId1];
+        VirtualPool.VPool storage pool1 = pools[poolId1];
 
         // Check if pool ID is greater than the previous one
         // This ensures each pool ID is unique & reduces computation cost
@@ -504,7 +505,7 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
 
     for (uint128 i; i < nbPoolIds; i++) {
       uint128 poolId0 = poolIds_[i];
-      VirtualPool.VPool storage pool0 = vPools[poolId0];
+      VirtualPool.VPool storage pool0 = pools[poolId0];
 
       // Remove expired covers
       pool0._actualizing();
@@ -537,12 +538,12 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
     uint256 ratio = amount_.rayDiv(poolA.availableLiquidity());
 
     // All pools have same strategy since they are compatible
-    uint256 strategyId = vPools[poolA.overlappedPools[0]].strategyId;
+    uint256 strategyId = pools[poolA.overlappedPools[0]].strategyId;
 
     uint256 nbPools = poolA.overlappedPools.length;
     for (uint128 i; i < nbPools + 1; i++) {
       uint128 poolIdB = poolA.overlappedPools[i];
-      VirtualPool.VPool storage poolB = vPools[poolIdB];
+      VirtualPool.VPool storage poolB = pools[poolIdB];
 
       (VirtualPool.VPool storage pool0, uint128 poolId1) = poolId_ <
         poolIdB
