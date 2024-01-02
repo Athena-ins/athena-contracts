@@ -4,6 +4,14 @@ pragma solidity 0.8.20;
 import { IERC721Enumerable } from "@openzeppelin/contracts/token/ERC721/extensions/IERC721Enumerable.sol";
 
 interface ILiquidityManager is IERC721Enumerable {
+  struct Cover {
+    uint128 poolId;
+    uint256 coverAmount;
+    uint256 premiums;
+    uint256 start;
+    uint256 end;
+  }
+
   struct Position {
     uint256 createdAt;
     uint256 amountSupplied;
@@ -24,9 +32,19 @@ interface ILiquidityManager is IERC721Enumerable {
     uint256 tokenId_
   ) external view returns (uint256);
 
-  function position(
+  function covers(
+    uint256 tokenId
+  ) external view returns (Cover memory);
+
+  function positions(
     uint256 tokenId
   ) external view returns (Position memory);
+
+  function isCoverActive(
+    uint256 tokenId
+  ) external view returns (bool);
+
+  function syncPool(uint128 poolId_) external;
 
   function allCapitalSuppliedByAccount(
     address account_
@@ -88,4 +106,10 @@ interface ILiquidityManager is IERC721Enumerable {
   function getAvailableCapital(
     uint128 poolId
   ) external view returns (uint256);
+
+  function payoutClaim(
+    uint128 poolId_,
+    uint256 amount_,
+    address claimant_
+  ) external;
 }

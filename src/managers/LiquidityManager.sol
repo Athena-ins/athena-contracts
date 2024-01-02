@@ -20,6 +20,7 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol"
 // ======= ERRORS ======= //
 
 error OnlyTokenOwner();
+error OnlyClaimManager();
 error PoolsHaveOngoingClaims();
 error PoolIsPaused();
 error PoolIdsMustBeUniqueAndAscending();
@@ -61,6 +62,7 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
   IAthenaCoverToken public coverToken;
   IStaking public staking;
   IStrategyManager public strategies;
+  address claimManager;
 
   /// The ID of the next cover to be minted
   uint256 public nextCoverId;
@@ -89,13 +91,14 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
     IAthenaPositionToken positionToken_,
     IAthenaCoverToken coverToken_,
     IStaking staking_,
-    IStrategyManager strategies_
+    IStrategyManager strategies_,
+    address claimManager_
   ) Ownable(msg.sender) {
     positionToken = positionToken_;
     coverToken = coverToken_;
-
     staking = staking_;
     strategies = strategies_;
+    claimManager = claimManager_;
   }
 
   // @bw cannort return complex struct
@@ -119,12 +122,34 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
     _;
   }
 
+  modifier onlyClaimManager() {
+    if (msg.sender != claimManager) revert OnlyClaimManager();
+    _;
+  }
+
   /// ======= VIEWS ======= ///
 
   function positionSize(
     uint256 tokenId_
   ) external view returns (uint256) {
+    // @bw This needs to be fixed to take into account loss of capital by claims, especially for computing strategy rewards
     return positions[tokenId_].supplied;
+  }
+
+  function coverSize(uint256 tokenId_) public view returns (uint256) {
+    return covers[tokenId_].coverAmount;
+  }
+
+  function isCoverActive(
+    uint256 tokenId
+  ) external view returns (bool) {
+    return covers[tokenId].end == 0;
+  }
+
+  function cover(
+    uint256 tokenId
+  ) external view returns (Cover memory) {
+    return covers[tokenId];
   }
 
   /// ======= POOLS ======= ///
@@ -167,6 +192,13 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
       arePoolCompatible[poolId][compatiblePoolId] = true;
       arePoolCompatible[compatiblePoolId][poolId] = true;
     }
+  }
+
+  function syncPool(uint128 poolId_) external {
+    // Get storage pointer to pool
+    VirtualPool.VPool storage pool = pools[poolId_];
+    // Clean pool from expired covers
+    _processExpiredTokens(pool._actualizing());
   }
 
   /// ======= COVER HELPERS ======= ///
@@ -528,13 +560,12 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
 
   /// ======= LIQUIDITY FOR CLAIMS ======= ///
 
-  // claimLiquidityRemoval
-  function claimLiquidityReduce(
+  function payoutClaim(
     uint128 poolId_,
     uint256 amount_,
     address claimant_
-  ) external onlyOwner {
-    VirtualPool.VPool storage poolA = vPools[poolId_];
+  ) external onlyClaimManager {
+    VirtualPool.VPool storage poolA = pools[poolId_];
     uint256 ratio = amount_.rayDiv(poolA.availableLiquidity());
 
     // All pools have same strategy since they are compatible
