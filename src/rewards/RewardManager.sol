@@ -14,6 +14,8 @@ import { IRewardManager } from "../interfaces/IRewardManager.sol";
 import { IFarmingRange } from "../interfaces/IFarmingRange.sol";
 import { IStaking } from "../interfaces/IStaking.sol";
 import { ILiquidityManager } from "../interfaces/ILiquidityManager.sol";
+import { IAthenaPositionToken } from "../interfaces/IAthenaPositionToken.sol";
+import { IAthenaCoverToken } from "../interfaces/IAthenaCoverToken.sol";
 
 //======== ERRORS ========//
 
@@ -38,7 +40,8 @@ contract RewardManager is IRewardManager {
   /**
    * @param _owner address who will own the farming
    * @param _liquidityManager address of the liquidity manager
-   * @param _coverManager address of the cover manager
+   * @param _positionToken address of the position token
+   * @param _coverToken address of the cover token
    * @param _stakedToken address of the staked token
    * @param _startFarmingCampaign block number the staking pool in the farming will start to give rewards
    * @param feeLevels array of fee discount levels
@@ -46,7 +49,8 @@ contract RewardManager is IRewardManager {
   constructor(
     address _owner,
     ILiquidityManager _liquidityManager,
-    address _coverManager,
+    IAthenaPositionToken _positionToken,
+    IAthenaCoverToken _coverToken,
     IERC20 _stakedToken,
     uint256 _startFarmingCampaign,
     Staking.FeeLevel[] memory feeLevels
@@ -59,7 +63,8 @@ contract RewardManager is IRewardManager {
       _owner,
       address(this),
       _liquidityManager,
-      _coverManager
+      _positionToken,
+      _coverToken
     );
     staking = new Staking(
       _owner,

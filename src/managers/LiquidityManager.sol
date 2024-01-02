@@ -146,12 +146,6 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
     return covers[tokenId].end == 0;
   }
 
-  function cover(
-    uint256 tokenId
-  ) external view returns (Cover memory) {
-    return covers[tokenId];
-  }
-
   /// ======= POOLS ======= ///
 
   function createPool(
@@ -444,8 +438,6 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
     if (block.timestamp < commitTimestamp + withdrawDelay)
       revert WithdrawCommitDelayNotReached();
 
-    uint128[] memory poolIds = position.poolIds;
-
     // Check that pools have no ongoing claims
     // @bw need fix
     // bool claimsLock = claimManager.canWithdraw(poolIds);
@@ -453,7 +445,7 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
 
     uint256 feeDiscount = staking.feeDiscountOf(account_);
     _removeOverlappingCapital(
-      poolIds,
+      position.poolIds,
       tokenId_,
       position.supplied,
       feeDiscount
@@ -528,7 +520,7 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
   }
 
   function _removeOverlappingCapital(
-    uint128[] memory poolIds_,
+    uint128[] storage poolIds_,
     uint256 tokenId_,
     uint256 amount_,
     uint256 feeDiscount_

@@ -176,7 +176,7 @@ library VirtualPool {
     address account_,
     uint256 tokenId_,
     uint256 _userCapital,
-    uint128[] calldata _poolIds,
+    uint128[] storage _poolIds,
     uint256 _feeRate
   ) internal returns (uint256, uint256) {
     (
@@ -231,7 +231,7 @@ library VirtualPool {
 
   function _withdrawLiquidity(
     VPool storage self,
-    uint128[] memory _poolIds,
+    uint128[] storage _poolIds,
     uint256 tokenId_,
     uint256 _userCapital,
     uint256 feeDiscount_
@@ -705,8 +705,7 @@ library VirtualPool {
   //           self,
   //           __slot0,
   //           __availableLiquidity,
-  //           __tickNext,
-  //           coverManager
+  //           __tickNext
   //         );
 
   //         __currentPremiumRate = getPremiumRate(
@@ -733,8 +732,7 @@ library VirtualPool {
     VPool storage self,
     Slot0 memory _slot0,
     uint256 _availableLiquidity,
-    uint32 _tick,
-    address coverManager
+    uint32 _tick
   ) private view {
     uint256[] memory coverIds = self.ticks[_tick];
     uint256 __insuredCapitalToRemove;
@@ -826,8 +824,7 @@ library VirtualPool {
             self,
             __slot0,
             __availableLiquidity,
-            __tickNext,
-            address(0) // @bw coverManager
+            __tickNext
           );
 
           __uRate =
@@ -858,7 +855,7 @@ library VirtualPool {
     VPool storage self,
     uint256 tokenId_,
     uint256 _userCapital,
-    uint128[] memory _poolIds
+    uint128[] storage _poolIds
   )
     private
     view
@@ -910,7 +907,7 @@ library VirtualPool {
     VPool storage self,
     uint256 tokenId_,
     uint256 _userCapital,
-    uint128[] calldata _poolIds,
+    uint128[] storage _poolIds,
     uint256 _feeRate,
     uint256 _dateInSecond
   )
