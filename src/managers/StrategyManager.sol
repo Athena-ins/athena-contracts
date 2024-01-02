@@ -21,7 +21,7 @@ import { ILendingPool } from "../interfaces/ILendingPool.sol";
 error NotAValidStrategy();
 error NotLiquidityManager();
 
-contract StrategyManagerV0 is Ownable {
+contract StrategyManager is Ownable {
   using SafeERC20 for IERC20;
   using RayMath for uint256;
 

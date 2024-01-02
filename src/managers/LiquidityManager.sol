@@ -30,7 +30,7 @@ error NotEnoughLiquidity();
 error CoverIsExpired();
 error NotEnoughPremiums();
 
-contract LiquidityManagerV2 is ReentrancyGuard, Ownable {
+contract LiquidityManager is ReentrancyGuard, Ownable {
   using SafeERC20 for IERC20;
   using RayMath for uint256;
   using VirtualPool for VirtualPool.VPool;
