@@ -17,7 +17,14 @@ interface IStrategyManager {
     uint256 tokenId,
     uint256 amount,
     address account,
-    uint256 feeDiscount
+    uint256 /*feeDiscount_*/
+  ) external;
+
+  function withdrawRewards(
+    uint256 strategyId_,
+    uint256 tokenId_,
+    address account_,
+    uint256 /*feeDiscount_*/
   ) external;
 
   function payoutFromStrategy(

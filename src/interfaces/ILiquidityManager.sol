@@ -20,6 +20,10 @@ interface ILiquidityManager is IERC721Enumerable {
     Position position;
   }
 
+  function positionSize(
+    uint256 tokenId_
+  ) external view returns (uint256);
+
   function position(
     uint256 tokenId
   ) external view returns (Position memory);
