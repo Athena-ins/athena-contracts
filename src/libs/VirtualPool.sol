@@ -10,7 +10,6 @@ import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.s
 
 // Interfaces
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import { ICoverManager } from "../interfaces/ICoverManager.sol";
 
 // ======= ERRORS ======= //
 
@@ -77,6 +76,8 @@ library VirtualPool {
     // Maps a cover ID to the premium position of the cover
     mapping(uint256 _coverId => PremiumPosition.Info _premiumsInfo) premiumPositions;
     PoolClaim[] processedClaims; // @bw should change to ids to fetch in map to use storage pointers
+    // Function pointers to access child contract data
+    function(uint256) view returns (uint256) coverSize;
   }
 
   // ======= VIRTUAL CONSTRUCTOR ======= //
@@ -90,7 +91,9 @@ library VirtualPool {
     uint256 uOptimal_, //Ray
     uint256 r0_, //Ray
     uint256 rSlope1_, //Ray
-    uint256 rSlope2_ //Ray
+    uint256 rSlope2_, //Ray
+    // Function pointer to child contract cover data
+    function(uint256) view returns (uint256) coverSize_
   ) internal {
     if (
       underlyingAsset_ == address(0) || paymentAsset_ == address(0)
@@ -115,6 +118,8 @@ library VirtualPool {
 
     self.overlappedPools[0] = poolId;
     self.overlaps[poolId] = 1; // 1 wei
+
+    self.coverSize = coverSize_;
   }
 
   // ======= EVENTS ======= //
@@ -152,7 +157,7 @@ library VirtualPool {
     VPool storage self,
     uint256 tokenId_,
     uint256 amount_
-  ) external {
+  ) internal {
     // Add deposit to pool's own intersecting amounts
     self.overlaps[self.poolId] += amount_;
 
@@ -173,7 +178,7 @@ library VirtualPool {
     uint256 _userCapital,
     uint128[] calldata _poolIds,
     uint256 _feeRate
-  ) public returns (uint256, uint256) {
+  ) internal returns (uint256, uint256) {
     (
       uint256 newUserCapital,
       uint256 totalRewards,
@@ -602,7 +607,7 @@ library VirtualPool {
     VPool storage self,
     uint256 _dateInSeconds
   )
-    public
+    internal
     view
     returns (Slot0 memory __slot0, uint256 __liquidityIndex)
   {
@@ -628,7 +633,7 @@ library VirtualPool {
   //   uint256 coverId_,
   //   address coverManager
   // )
-  //   public
+  //   internal
   //   view
   //   returns (
   //     uint256 __premiumLeft,
@@ -737,9 +742,7 @@ library VirtualPool {
     for (uint256 i = 0; i < coverIds.length; i++) {
       uint256 coverId = coverIds[i];
 
-      __insuredCapitalToRemove += ICoverManager(coverManager)
-        .getCover(coverId)
-        .amountCovered;
+      __insuredCapitalToRemove += self.coverSize(coverId);
     }
 
     uint256 __currentPremiumRate = getPremiumRate(
@@ -888,6 +891,7 @@ library VirtualPool {
             __claim.ratio
           );
 
+          // @bw Check how this impact claim withdraws, should only work with underlying if possible.
           __scaledAmountToRemove += capitalToRemove.rayDiv(
             __claim.rewardIndexBeforeClaim
           );
@@ -910,7 +914,7 @@ library VirtualPool {
     uint256 _feeRate,
     uint256 _dateInSecond
   )
-    public
+    internal
     view
     returns (
       uint256 __newUserCapital,
