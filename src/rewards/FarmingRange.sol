@@ -13,7 +13,8 @@ import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import { IERC20Permit } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
 import { IFarmingRange } from "../interfaces/IFarmingRange.sol";
 import { ILiquidityManager } from "../interfaces/ILiquidityManager.sol";
-import { ICoverManager } from "../interfaces/ICoverManager.sol";
+import { IAthenaPositionToken } from "../interfaces/IAthenaPositionToken.sol";
+import { IAthenaCoverToken } from "../interfaces/IAthenaCoverToken.sol";
 
 //======== ERRORS ========//
 
@@ -85,13 +86,16 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
   uint256 public rewardInfoLimit;
   address public immutable rewardManager;
   ILiquidityManager public liquidityManager;
-  ICoverManager public coverManager;
+
+  IAthenaPositionToken public positionToken;
+  IAthenaCoverToken public coverToken;
 
   constructor(
     address _owner,
     address _rewardManager,
     ILiquidityManager _liquidityManager,
-    address _coverManager
+    IAthenaPositionToken _positionToken,
+    IAthenaCoverToken _coverToken
   ) Ownable(_owner) {
     rewardInfoLimit = 52;
     if (_rewardManager == address(0)) {
@@ -99,9 +103,9 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
     }
 
     liquidityManager = _liquidityManager;
-    coverManager = ICoverManager(_coverManager);
-
     rewardManager = _rewardManager;
+    positionToken = _positionToken;
+    coverToken = _coverToken;
   }
 
   // ======= DEPOSITS ======= //
@@ -162,14 +166,10 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
     uint256[] calldata _campaignIDs,
     uint256 _tokenId
   ) public nonReentrant {
-    liquidityManager.transferFrom(
-      msg.sender,
-      address(this),
-      _tokenId
-    );
+    positionToken.transferFrom(msg.sender, address(this), _tokenId);
 
     ILiquidityManager.Position memory lpPosition = liquidityManager
-      .position(_tokenId);
+      .positions(_tokenId);
 
     uint256 amount = lpPosition.amountSupplied;
     uint128[] memory poolIds = lpPosition.poolIds;
@@ -213,10 +213,12 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
     if (campaignInfo[_campaignID].assetType != AssetType.COVER_ERC721)
       revert OnlyCoverUserCampaigns();
 
-    coverManager.transferFrom(msg.sender, address(this), _tokenId);
+    coverToken.transferFrom(msg.sender, address(this), _tokenId);
 
-    ICoverManager.FullCoverData memory cover = coverManager
-      .fullCoverData(_tokenId);
+    // @bw need to get updated premiums left
+    ILiquidityManager.Cover memory cover = liquidityManager.covers(
+      _tokenId
+    );
 
     // For cover campaigns there is only one poolId
     if (campaignInfo[_campaignID].poolId != cover.poolId)
@@ -235,25 +237,20 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
     // Maximum $1000 of cover per $1 of premium (0.1% premiums)
     // Outside of these ranges farming is rejected
     //
-    uint256 amountCovered = cover.amountCovered;
-    uint256 premiumLeft = cover.premiumLeft;
+    uint256 coverAmount = cover.coverAmount;
+    uint256 premiums = cover.premiums;
 
     uint256 ratioPenalty = 1;
-    if (
-      amountCovered * 2 < premiumLeft ||
-      premiumLeft * 500 < amountCovered
-    ) {
+    if (coverAmount * 2 < premiums || premiums * 500 < coverAmount) {
       ratioPenalty = 4;
 
-      if (
-        amountCovered * 5 < premiumLeft ||
-        premiumLeft * 1000 < amountCovered
-      ) revert BadCoverAmountToPremiumRatio();
+      if (coverAmount * 5 < premiums || premiums * 1000 < coverAmount)
+        revert BadCoverAmountToPremiumRatio();
     }
 
     campaignTokenDeposits[_campaignID][_tokenId] = msg.sender;
 
-    uint256 amount = (amountCovered * premiumLeft) / ratioPenalty;
+    uint256 amount = (coverAmount * premiums) / ratioPenalty;
     _deposit(_campaignID, amount, true, _tokenId);
   }
 
@@ -362,11 +359,7 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
     }
 
     if (nbLpTokenCampaigns[_tokenId] == 0) {
-      liquidityManager.transferFrom(
-        address(this),
-        msg.sender,
-        _tokenId
-      );
+      positionToken.transferFrom(address(this), msg.sender, _tokenId);
     }
   }
 
@@ -384,7 +377,7 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
     uint256 amount = userInfoNft[_campaignID][_tokenId].amount;
     _withdraw(_campaignID, amount, true, _tokenId);
 
-    coverManager.transferFrom(address(this), msg.sender, _tokenId);
+    coverToken.transferFrom(address(this), msg.sender, _tokenId);
   }
 
   /// @inheritdoc IFarmingRange
@@ -457,16 +450,12 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
         user.rewardDebt = 0;
 
         if (campaign.assetType == AssetType.COVER_ERC721) {
-          coverManager.transferFrom(
-            address(this),
-            msg.sender,
-            tokenId
-          );
+          coverToken.transferFrom(address(this), msg.sender, tokenId);
         } else if (campaign.assetType == AssetType.LP_ERC721) {
           nbLpTokenCampaigns[tokenId]--;
 
           if (nbLpTokenCampaigns[tokenId] == 0) {
-            liquidityManager.transferFrom(
+            positionToken.transferFrom(
               address(this),
               msg.sender,
               tokenId
@@ -487,14 +476,14 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
     if (campaignInfo[_campaignID].assetType != AssetType.COVER_ERC721)
       revert OnlyCoverUserCampaigns();
 
-    bool isActive = coverManager.policyActive(_tokenId);
-    if (isActive) revert CoverStillActive();
+    if (liquidityManager.isCoverActive(_tokenId))
+      revert CoverStillActive();
 
     uint256 amount = userInfoNft[_campaignID][_tokenId].amount;
     _withdraw(_campaignID, amount, true, _tokenId);
 
     address owner = campaignTokenDeposits[_campaignID][_tokenId];
-    coverManager.transferFrom(address(this), owner, _tokenId);
+    coverToken.transferFrom(address(this), owner, _tokenId);
 
     campaignTokenDeposits[_campaignID][_tokenId] = address(0);
   }

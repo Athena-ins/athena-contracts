@@ -11,9 +11,11 @@ import { VerifySignature } from "../libs/VerifySignature.sol";
 // Interfaces
 import { IArbitrable } from "../interfaces/IArbitrable.sol";
 import { IArbitrator } from "../interfaces/IArbitrator.sol";
-import { ICoverManager } from "../interfaces/ICoverManager.sol";
 import { IClaimManager } from "../interfaces/IClaimManager.sol";
-import { IAthenaCore } from "../interfaces/IAthenaCore.sol";
+import { ILiquidityManager } from "../interfaces/ILiquidityManager.sol";
+import { IAthenaCoverToken } from "../interfaces/IAthenaCoverToken.sol";
+
+// ======= ERRORS ======= //
 
 contract ClaimManager is
   IClaimManager,
@@ -22,9 +24,8 @@ contract ClaimManager is
   ClaimEvidence,
   IArbitrable
 {
-  IAthenaCore public core;
-  ICoverManager public policyManagerInterface;
-  address public poolFactoryInterface;
+  IAthenaCoverToken public coverToken;
+  ILiquidityManager public liquidityManager;
 
   address public metaEvidenceGuardian;
   uint256 public challengeDelay = 14 days;
@@ -73,14 +74,13 @@ contract ClaimManager is
   mapping(uint256 => uint256) public disputeIdToClaimId;
 
   constructor(
-    address core_,
-    address policyManager_,
-    address poolFactory_,
+    IAthenaCoverToken coverToken_,
+    ILiquidityManager liquidityManager_,
     IArbitrator arbitrator_,
     address metaEvidenceGuardian_
   ) ClaimEvidence(arbitrator_) Ownable(msg.sender) {
-    core = IAthenaCore(core_);
-    policyManagerInterface = ICoverManager(policyManager_);
+    coverToken = coverToken_;
+    liquidityManager = liquidityManager_;
     metaEvidenceGuardian = metaEvidenceGuardian_;
   }
 
@@ -106,8 +106,8 @@ contract ClaimManager is
   /// ========= MODIFIERS ======== ///
   /// ============================ ///
 
-  modifier onlyCore() {
-    require(msg.sender == address(core), "CM: only core");
+  modifier onlyLiquidityManager() {
+    require(msg.sender == address(liquidityManager), "CM: only core");
     _;
   }
 
@@ -122,7 +122,7 @@ contract ClaimManager is
    * @param policyId_ policy holder NFT ID
    */
   modifier onlyPolicyTokenOwner(uint256 policyId_) {
-    address ownerOfToken = policyManagerInterface.ownerOf(policyId_);
+    address ownerOfToken = coverToken.ownerOf(policyId_);
     require(msg.sender == ownerOfToken, "CM: not policy owner");
     _;
   }
@@ -381,7 +381,7 @@ contract ClaimManager is
   function addCoverTermsForPool(
     uint128 poolId_,
     string calldata ipfsAgreementCid_
-  ) external onlyCore {
+  ) external onlyLiquidityManager {
     _addCoverTermsForPool(poolId_, ipfsAgreementCid_);
   }
 
@@ -439,8 +439,9 @@ contract ClaimManager is
     bytes calldata signature_
   ) external payable onlyPolicyTokenOwner(policyId_) {
     // Get the policy
-    ICoverManager.Policy memory userPolicy = policyManagerInterface
-      .policy(policyId_);
+    ILiquidityManager.Cover memory cover = liquidityManager.covers(
+      policyId_
+    );
 
     // Verify authenticity of the IPFS meta-evidence CID
     /// @dev Wrap in context to avoid stack too deep error
@@ -455,7 +456,7 @@ contract ClaimManager is
       );
     }
 
-    uint128 poolId = userPolicy.poolId;
+    uint128 poolId = cover.poolId;
 
     // Register the claim to prevent exit from the pool untill resolution
     // @bw commented until fix
@@ -463,12 +464,11 @@ contract ClaimManager is
 
     // Update the protocol's policies
     // @bw is this really required as expired policies can open claims ?
-    core.actualizingProtocolAndRemoveExpiredPoliciesByPoolId(poolId);
+    liquidityManager.syncPool(poolId);
 
     // Check that the user is not trying to claim more than the amount covered
     require(
-      0 < amountClaimed_ &&
-        amountClaimed_ <= userPolicy.amountCovered,
+      0 < amountClaimed_ && amountClaimed_ <= cover.coverAmount,
       "CM: bad amount range"
     );
 
@@ -679,8 +679,8 @@ contract ClaimManager is
 
     // Call Athena core to pay the compensation
     // @bw this should reduce the user's policy to avoid stress on the pool
-    core.compensateClaimant(
-      userClaim.coverId,
+    liquidityManager.payoutClaim(
+      userClaim.poolId,
       userClaim.amount,
       userClaim.from
     );
@@ -711,8 +711,8 @@ contract ClaimManager is
 
     // Call Athena core to pay the compensation
     // @bw this should reduce the user's policy to avoid stress on the pool
-    core.compensateClaimant(
-      userClaim.coverId,
+    liquidityManager.payoutClaim(
+      userClaim.poolId,
       userClaim.amount,
       userClaim.from
     );
