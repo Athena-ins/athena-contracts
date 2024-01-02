@@ -47,7 +47,6 @@ contract LiquidityManagerV2 is ReentrancyGuard, Ownable {
 
   struct Position {
     uint256 supplied;
-    uint256 rewardIndex; // @bw should be stored by strat manager per token id
     uint256 commitWithdrawalTimestamp;
     uint128[] poolIds;
   }
@@ -121,6 +120,13 @@ contract LiquidityManagerV2 is ReentrancyGuard, Ownable {
   }
 
   /// ======= VIEWS ======= ///
+
+  function positionSize(
+    uint256 tokenId_
+  ) external view returns (uint256) {
+    return positions[tokenId_].supplied;
+  }
+
   /// ======= POOLS ======= ///
 
   function createPool(
@@ -314,11 +320,8 @@ contract LiquidityManagerV2 is ReentrancyGuard, Ownable {
     uint256 strategyId = vPools[poolIds[0]].strategyId;
     strategies.depositToStrategy(strategyId, tokenId, amount);
 
-    uint256 rewardIndex = strategies.getRewardIndex(strategyId);
-
     positions[tokenId] = Position({
       supplied: amount,
-      rewardIndex: rewardIndex,
       commitWithdrawalTimestamp: 0,
       poolIds: poolIds
     });
@@ -350,8 +353,11 @@ contract LiquidityManagerV2 is ReentrancyGuard, Ownable {
 
   // @bw needs to be updated for strat reward withdraw + take fees in pools
   // compute amount of rewards & transfer from cover manager to user + register new reward index
+  // @bw need to check ownership with ownerOf instead of arg
   function takeInterests(address account, uint256 tokenId) public {
     Position storage position = positions[tokenId];
+
+    uint256 feeDiscount = staking.feeDiscountOf(account);
 
     uint256 amountSuppliedUpdated;
     uint256 nbPools = position.poolIds.length;
@@ -362,18 +368,27 @@ contract LiquidityManagerV2 is ReentrancyGuard, Ownable {
       pool._actualizing();
 
       (uint256 _newUserCapital, uint256 _scaledAmountToRemove) = pool
-        ._takePoolInterests( // takePoolInterests
-        account,
-        tokenId,
-        position.supplied,
-        position.poolIds,
-        42 // position.feeRate
-      );
+        ._takePoolInterests(
+          account,
+          tokenId,
+          position.supplied,
+          position.poolIds,
+          feeDiscount
+        );
     }
+
+    // Withdraw interests from strategy
+    // All pools have same strategy since they are compatible
+    uint256 strategyId = vPools[position.poolIds[0]].strategyId;
+    strategies.withdrawRewards(
+      strategyId,
+      tokenId,
+      account,
+      feeDiscount
+    );
 
     if (position.supplied != amountSuppliedUpdated) {
       positions[tokenId].supplied = amountSuppliedUpdated;
-      positions[tokenId].rewardIndex -= 0; // @bw check change aaveScaledBalanceUpdated;
     }
   }
 
@@ -417,10 +432,13 @@ contract LiquidityManagerV2 is ReentrancyGuard, Ownable {
     strategies.withdrawFromStrategy(
       strategyId,
       tokenId_,
-      422, // @bw to fix
+      position.supplied,
       account_,
       feeDiscount
     );
+
+    // Reduce position to 0 since we cannot partial withdraw
+    position.supplied = 0;
   }
 
   /// ======= LP FEE DISCOUNT ======= ///
