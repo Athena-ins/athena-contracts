@@ -82,7 +82,7 @@ contract EcclesiaDao is ERC20, ReentrancyGuard, Ownable {
   // Token to be locked (AOE)
   IERC20 public token;
   // Address of the revenue unifier
-  address public poolManager;
+  address public liquidityManager;
 
   // Total supply of AOE that get locked
   uint256 public supply;
@@ -131,17 +131,17 @@ contract EcclesiaDao is ERC20, ReentrancyGuard, Ownable {
   constructor(
     IERC20 _token,
     IStaking _staking,
-    address _poolManager
+    address _liquidityManager
   ) ERC20("Athenian Vote", "vAOE") Ownable(msg.sender) {
     token = _token;
     staking = _staking;
-    poolManager = _poolManager;
+    liquidityManager = _liquidityManager;
   }
 
   // ======= MODIFIERS ======= //
 
-  modifier onlyPoolManager() {
-    if (msg.sender != poolManager) revert NotPoolManager();
+  modifier onlyLiquidityManager() {
+    if (msg.sender != liquidityManager) revert NotPoolManager();
     _;
   }
 
@@ -450,7 +450,7 @@ contract EcclesiaDao is ERC20, ReentrancyGuard, Ownable {
   function accrueRevenue(
     address _token,
     uint256 _amount
-  ) external nonReentrant onlyPoolManager {
+  ) external nonReentrant onlyLiquidityManager {
     // Rewards are distributed per vote
     uint256 amountPerVoteRay = (_amount * RAY) / totalSupply();
     if (revenueIndex[_token] == 0) revenueTokens.push(_token);
