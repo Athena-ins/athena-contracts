@@ -79,37 +79,6 @@ interface IArbitrator {
   ) external view returns (uint256 cost);
 
   /**
-   * @dev Appeal a ruling. Note that it has to be called before the arbitrator contract calls rule.
-   * @param _disputeID ID of the dispute to be appealed.
-   * @param _extraData Can be used to give extra info on the appeal.
-   */
-  function appeal(
-    uint256 _disputeID,
-    bytes calldata _extraData
-  ) external payable;
-
-  /**
-   * @dev Compute the cost of appeal. It is recommended not to increase it often, as it can be higly time and gas consuming for the arbitrated contracts to cope with fee augmentation.
-   * @param _disputeID ID of the dispute to be appealed.
-   * @param _extraData Can be used to give additional info on the dispute to be created.
-   * @return cost Amount to be paid.
-   */
-  function appealCost(
-    uint256 _disputeID,
-    bytes calldata _extraData
-  ) external view returns (uint256 cost);
-
-  /**
-   * @dev Compute the start and end of the dispute's current or next appeal period, if possible. If not known or appeal is impossible: should return (0, 0).
-   * @param _disputeID ID of the dispute.
-   * @return start The start of the period.
-   * @return end The end of the period.
-   */
-  function appealPeriod(
-    uint256 _disputeID
-  ) external view returns (uint256 start, uint256 end);
-
-  /**
    * @dev Return the status of a dispute.
    * @param _disputeID ID of the dispute to rule.
    * @return status The status of the dispute.

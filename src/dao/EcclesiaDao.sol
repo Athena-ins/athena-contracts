@@ -19,6 +19,7 @@ import { IERC20Permit } from "@openzeppelin/contracts/token/ERC20/extensions/IER
 
 // ======= ERRORS ======= //
 
+error ZeroAddress();
 error NotPoolManager();
 error BadAmount();
 error LockAlreadyExists();
@@ -133,6 +134,12 @@ contract EcclesiaDao is ERC20, ReentrancyGuard, Ownable {
     IStaking _staking,
     address _liquidityManager
   ) ERC20("Athenian Vote", "vAOE") Ownable(msg.sender) {
+    if (
+      address(_token) == address(0) ||
+      address(_staking) == address(0) ||
+      address(_liquidityManager) == address(0)
+    ) revert ZeroAddress();
+
     token = _token;
     staking = _staking;
     liquidityManager = _liquidityManager;
