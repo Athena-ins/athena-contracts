@@ -1,6 +1,9 @@
-import { BaseContract, Signer } from "ethers";
+import { BaseContract, Signer, utils } from "ethers";
 import hre, { ethers, network } from "hardhat";
 import { HardhatNetworkConfig } from "hardhat/types";
+
+const keccak256 = utils.keccak256;
+type BytesLike = utils.BytesLike;
 
 // =============== //
 // === Helpers === //
@@ -120,4 +123,65 @@ export async function impersonateAccount(address: string) {
   });
 
   return await ethers.getSigner(address);
+}
+
+// ========================== //
+// === Contract addresses === //
+// ========================== //
+
+export function formatNonce(nonce: string, add: number) {
+  if (nonce == "0") nonce = "1";
+  const hexNonce = (parseInt(nonce, 16) + add).toString(16);
+  return hexNonce.length % 2 ? `0${hexNonce}` : hexNonce;
+}
+
+export async function genContractAddress(
+  hre: any,
+  from: string,
+  nonceAdd?: number, // number of tx from wallet between computation and deployment
+) {
+  if (from.length !== 42) throw Error("Helper: incorrect 'from' length");
+  if (!hre.network?.provider) throw Error("Helper: bad hre network provider");
+  nonceAdd ??= 0;
+
+  const fromUnsigned = from.slice(2);
+
+  const nonce: any = await hre.network.provider.request({
+    method: "eth_getTransactionCount",
+    params: [from, "latest"],
+  });
+
+  const formatedNonce = formatNonce(nonce, nonceAdd);
+
+  let nonceLength = "";
+  if (parseInt(nonce, 16) > 127) {
+    nonceLength = (128 + formatedNonce.length / 2).toString(16);
+  }
+
+  let totalLength = (
+    192 + // base value of 0xc0
+    21 + // nb bytes for address length + address
+    nonceLength.length / 2 +
+    formatedNonce.length / 2
+  ).toString(16);
+
+  return `0x${keccak256(
+    `0x${totalLength}94${fromUnsigned}${nonceLength}${formatedNonce}`,
+  ).slice(-40)}`;
+}
+
+export function genCreate2Address(
+  from: string, // from contract address
+  salt: any, // generally number
+  productByteHash: BytesLike, // keccak256(artifactProduct.bytecode).slice(2)
+) {
+  if (from.length !== 42) throw Error("Helper: incorrect 'from' length");
+
+  if (typeof salt !== "string") salt = salt.toString();
+
+  const fromFormated = from.slice(2);
+  const saltFormated = keccak256("0x" + salt.padStart(64, "0")).slice(2);
+  const toHash = `0xff${fromFormated}${saltFormated}${productByteHash}`;
+
+  return `0x${keccak256(toHash).slice(-40)}`;
 }
