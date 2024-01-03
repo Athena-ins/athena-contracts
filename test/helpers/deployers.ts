@@ -1,117 +1,112 @@
 import { ContractTransaction, Signer } from "ethers";
 // typechain
 import {
-  USDT__factory,
-  ATEN__factory,
-  Athena__factory,
-  TokenVault__factory,
-  StakingGeneralPool__factory,
-  StakingPolicy__factory,
-  PositionsManager__factory,
-  PolicyManager__factory,
+  // Dao
+  EcclesiaDao__factory,
+  EcclesiaDao,
+  // Claims
+  MockArbitrator__factory,
+  MockArbitrator,
+  // Managers
   ClaimManager__factory,
-  CentralizedArbitrator__factory,
-  ProtocolFactory__factory,
-  PriceOracleV1__factory,
-  //
-  USDT,
-  ATEN,
-  Athena,
-  TokenVault,
-  StakingGeneralPool,
-  StakingPolicy,
-  PositionsManager,
-  PolicyManager,
   ClaimManager,
-  CentralizedArbitrator,
-  ProtocolFactory,
-  PriceOracleV1,
+  LiquidityManager__factory,
+  LiquidityManager,
+  StrategyManager__factory,
+  StrategyManager,
+  // Rewards
+  FarmingRange__factory,
+  FarmingRange,
+  RewardManager__factory,
+  RewardManager,
+  Staking__factory,
+  Staking,
+  // Tokens
+  AthenaCoverToken__factory,
+  AthenaCoverToken,
+  AthenaPositionToken__factory,
+  AthenaPositionToken,
+  AthenaToken__factory,
+  AthenaToken,
 } from "../../typechain/";
 
 // ================================= //
 // === Deploy contract functions === //
 // ================================= //
 
-export async function deployUSDT(
-  owner: Signer,
-  args: Parameters<USDT__factory["deploy"]>,
-): Promise<USDT> {
-  return new USDT__factory(owner).deploy(...args);
+export async function deployMockArbitrator(
+  signer: Signer,
+  args: Parameters<MockArbitrator__factory["deploy"]>,
+): Promise<MockArbitrator> {
+  return new MockArbitrator__factory(signer).deploy(...args);
 }
 
-export async function deployATEN(
-  owner: Signer,
-  args: Parameters<ATEN__factory["deploy"]>,
-): Promise<ATEN> {
-  return new ATEN__factory(owner).deploy(...args);
-}
-
-export async function deployAthena(
-  owner: Signer,
-  args: Parameters<Athena__factory["deploy"]>,
-): Promise<Athena> {
-  return new Athena__factory(owner).deploy(...args);
-}
-
-export async function deployTokenVault(
-  owner: Signer,
-  args: Parameters<TokenVault__factory["deploy"]>,
-): Promise<TokenVault> {
-  return new TokenVault__factory(owner).deploy(...args);
-}
-
-export async function deployStakingGeneralPool(
-  owner: Signer,
-  args: Parameters<StakingGeneralPool__factory["deploy"]>,
-): Promise<StakingGeneralPool> {
-  return new StakingGeneralPool__factory(owner).deploy(...args);
-}
-
-export async function deployStakingPolicy(
-  owner: Signer,
-  args: Parameters<StakingPolicy__factory["deploy"]>,
-): Promise<StakingPolicy> {
-  return new StakingPolicy__factory(owner).deploy(...args);
-}
-
-export async function deployPositionsManager(
-  owner: Signer,
-  args: Parameters<PositionsManager__factory["deploy"]>,
-): Promise<PositionsManager> {
-  return new PositionsManager__factory(owner).deploy(...args);
-}
-
-export async function deployPolicyManager(
-  owner: Signer,
-  args: Parameters<PolicyManager__factory["deploy"]>,
-): Promise<PolicyManager> {
-  return new PolicyManager__factory(owner).deploy(...args);
+export async function deployEcclesiaDao(
+  signer: Signer,
+  args: Parameters<EcclesiaDao__factory["deploy"]>,
+): Promise<EcclesiaDao> {
+  return new EcclesiaDao__factory(signer).deploy(...args);
 }
 
 export async function deployClaimManager(
-  owner: Signer,
+  signer: Signer,
   args: Parameters<ClaimManager__factory["deploy"]>,
 ): Promise<ClaimManager> {
-  return new ClaimManager__factory(owner).deploy(...args);
+  return new ClaimManager__factory(signer).deploy(...args);
 }
 
-export async function deployCentralizedArbitrator(
-  owner: Signer,
-  args: Parameters<CentralizedArbitrator__factory["deploy"]>,
-): Promise<CentralizedArbitrator> {
-  return new CentralizedArbitrator__factory(owner).deploy(...args);
+export async function deployLiquidityManager(
+  signer: Signer,
+  args: Parameters<LiquidityManager__factory["deploy"]>,
+): Promise<LiquidityManager> {
+  return new LiquidityManager__factory(signer).deploy(...args);
 }
 
-export async function deployProtocolFactory(
-  owner: Signer,
-  args: Parameters<ProtocolFactory__factory["deploy"]>,
-): Promise<ProtocolFactory> {
-  return new ProtocolFactory__factory(owner).deploy(...args);
+export async function deployStrategyManager(
+  signer: Signer,
+  args: Parameters<StrategyManager__factory["deploy"]>,
+): Promise<StrategyManager> {
+  return new StrategyManager__factory(signer).deploy(...args);
 }
 
-export async function deployPriceOracleV1(
-  owner: Signer,
-  args: Parameters<PriceOracleV1__factory["deploy"]>,
-): Promise<PriceOracleV1> {
-  return new PriceOracleV1__factory(owner).deploy(...args);
+export async function deployFarmingRange(
+  signer: Signer,
+  args: Parameters<FarmingRange__factory["deploy"]>,
+): Promise<FarmingRange> {
+  return new FarmingRange__factory(signer).deploy(...args);
+}
+
+export async function deployRewardManager(
+  signer: Signer,
+  args: Parameters<RewardManager__factory["deploy"]>,
+): Promise<RewardManager> {
+  return new RewardManager__factory(signer).deploy(...args);
+}
+
+export async function deployStaking(
+  signer: Signer,
+  args: Parameters<Staking__factory["deploy"]>,
+): Promise<Staking> {
+  return new Staking__factory(signer).deploy(...args);
+}
+
+export async function deployAthenaCoverToken(
+  signer: Signer,
+  args: Parameters<AthenaCoverToken__factory["deploy"]>,
+): Promise<AthenaCoverToken> {
+  return new AthenaCoverToken__factory(signer).deploy(...args);
+}
+
+export async function deployAthenaPositionToken(
+  signer: Signer,
+  args: Parameters<AthenaPositionToken__factory["deploy"]>,
+): Promise<AthenaPositionToken> {
+  return new AthenaPositionToken__factory(signer).deploy(...args);
+}
+
+export async function deployAthenaToken(
+  signer: Signer,
+  args: Parameters<AthenaToken__factory["deploy"]>,
+): Promise<AthenaToken> {
+  return new AthenaToken__factory(signer).deploy(...args);
 }
