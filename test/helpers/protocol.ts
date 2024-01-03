@@ -2,46 +2,29 @@ import { ethers } from "hardhat";
 // Functions
 import {
   entityProviderChainId,
-  setNextBlockTimestamp,
   impersonateAccount,
+  setNextBlockTimestamp,
 } from "./hardhat";
-import {
-  deployATEN,
-  deployCentralizedArbitrator,
-  deployAthena,
-  deployProtocolFactory,
-  deployPriceOracleV1,
-  deployTokenVault,
-  deployPositionsManager,
-  deployPolicyManager,
-  deployClaimManager,
-  deployStakingGeneralPool,
-  deployStakingPolicy,
-} from "./deployers";
+
 // Types
-import { BigNumberish, BigNumber, Signer, ContractTransaction } from "ethers";
+import { BigNumber, BigNumberish, ContractTransaction, Signer } from "ethers";
 import {
-  ATEN,
-  CentralizedArbitrator,
-  Athena,
-  ProtocolFactory,
-  PriceOracleV1,
-  TokenVault,
-  PositionsManager,
-  PolicyManager,
   ClaimManager,
-  StakingGeneralPool,
-  StakingPolicy,
-  ProtocolPool,
-  USDT,
   ERC20,
-  //
-  ProtocolPool__factory,
-  USDT__factory,
   ERC20__factory,
   ILendingPool__factory,
   IUniswapV2Factory__factory,
+  //
+  ATEN,
+  Athena,
+  PolicyManager,
+  PositionsManager,
+  ProtocolPool,
+  ProtocolPool__factory,
+  StakingPolicy,
+  TokenVault,
 } from "../../typechain";
+import { ProtocolContracts } from "./deployers";
 
 const { parseEther, parseUnits } = ethers.utils;
 
@@ -78,6 +61,11 @@ export function uniswapV2Factory(chainId: number): string {
 export function usdtTokenAddress(chainId: number): string {
   if (chainId === 1) return "0xdac17f958d2ee523a2206206994597c13d831ec7";
   if (chainId === 5) return "0x65E2fe35C30eC218b46266F89847c63c2eDa7Dc7";
+  throw Error("Unsupported chainId");
+}
+
+export function klerosCourtAddress(chainId: number): string {
+  if (chainId === 1) return "0x988b3a538b618c7a603e1c11ab82cd16dbe28069";
   throw Error("Unsupported chainId");
 }
 
@@ -162,13 +150,10 @@ async function getTokens(
   const chainId = await entityProviderChainId(signer);
 
   const uniswapFactory = uniswapV2Factory(chainId);
-  const lendingPoolContract = IUniswapV2Factory__factory.connect(
-    uniswapFactory,
-    signer,
-  );
+  const dexFactory = IUniswapV2Factory__factory.connect(uniswapFactory, signer);
 
   const wethAddress = wethTokenAddress(chainId);
-  const pool = await lendingPoolContract.getPair(token, wethAddress);
+  const pool = await dexFactory.getPair(token, wethAddress);
   const poolSigner = await impersonateAccount(pool);
 
   return ERC20__factory.connect(token, poolSigner)
@@ -177,7 +162,7 @@ async function getTokens(
 }
 
 // ======================= //
-// === Deploy protocol === //
+// === Protocol config === //
 // ======================= //
 
 type CoverRefundConfig = {
@@ -186,176 +171,6 @@ type CoverRefundConfig = {
   basePenaltyRate: number;
   durationPenaltyRate: number;
 };
-
-export type ProtocolConfig = {
-  arbitrationFee: BigNumberish;
-  initialAtenPrice: BigNumberish;
-  feeLevels: { atenAmount: number; feeRate: number }[];
-  rewardRates: { amountSupplied: number; aprStaking: number }[];
-  coverRefundConfig: CoverRefundConfig;
-};
-
-export const defaultProtocolConfig: ProtocolConfig = {
-  arbitrationFee: parseEther("0.01"), // in ETH
-  initialAtenPrice: parseEther("25"), // nb ATEN for $1
-  feeLevels: [
-    { atenAmount: 0, feeRate: 250 },
-    { atenAmount: 1_000, feeRate: 200 },
-    { atenAmount: 100_000, feeRate: 150 },
-    { atenAmount: 1_000_000, feeRate: 50 },
-  ],
-  rewardRates: [
-    { amountSupplied: 0, aprStaking: 1_000 },
-    { amountSupplied: 10_000, aprStaking: 1_200 },
-    { amountSupplied: 100_000, aprStaking: 1_600 },
-    { amountSupplied: 1_000_000, aprStaking: 2_000 },
-  ],
-  coverRefundConfig: {
-    shortCoverDuration: 180 * 24 * 60 * 60,
-    refundRate: 10_000, // 10_000 = 100%
-    basePenaltyRate: 1_000, // 10_000 = 100%
-    durationPenaltyRate: 3_500, // 10_000 = 100%
-  },
-};
-
-export type ProtocolContracts = {
-  ATEN: ATEN;
-  USDT: USDT;
-  CentralizedArbitrator: CentralizedArbitrator;
-  Athena: Athena;
-  ProtocolFactory: ProtocolFactory;
-  PriceOracleV1: PriceOracleV1;
-  TokenVault: TokenVault;
-  PositionsManager: PositionsManager;
-  PolicyManager: PolicyManager;
-  ClaimManager: ClaimManager;
-  StakingGeneralPool: StakingGeneralPool;
-  StakingPolicy: StakingPolicy;
-};
-
-export async function deployAllContractsAndInitializeProtocol(
-  deployer: Signer,
-  config: ProtocolConfig,
-): Promise<ProtocolContracts> {
-  const chainId = await entityProviderChainId(deployer);
-  if (!chainId) throw Error("No chainId found for deployment signer");
-
-  const ATEN = await deployATEN(deployer, []);
-  const CentralizedArbitrator = await deployCentralizedArbitrator(deployer, [
-    config.arbitrationFee,
-  ]);
-
-  // Deploy core
-  const aaveLendingPool = aaveLendingPoolProviderV2Address(chainId);
-  const Athena = await deployAthena(deployer, [ATEN.address, aaveLendingPool]);
-
-  // Deploy peripherals
-  const ProtocolFactory = await deployProtocolFactory(deployer, [
-    Athena.address,
-  ]);
-  const PriceOracleV1 = await deployPriceOracleV1(deployer, [
-    config.initialAtenPrice,
-  ]);
-  const TokenVault = await deployTokenVault(deployer, [
-    ATEN.address,
-    Athena.address,
-  ]);
-
-  // Deploy managers
-  const PositionsManager = await deployPositionsManager(deployer, [
-    Athena.address,
-    ProtocolFactory.address,
-  ]);
-  const PolicyManager = await deployPolicyManager(deployer, [
-    Athena.address,
-    ProtocolFactory.address,
-  ]);
-  const evidenceGuardian = evidenceGuardianWallet();
-  const ClaimManager = await deployClaimManager(deployer, [
-    Athena.address,
-    PolicyManager.address,
-    ProtocolFactory.address,
-    CentralizedArbitrator.address,
-    evidenceGuardian.address,
-  ]);
-
-  // Deploy staking
-  const StakingGeneralPool = await deployStakingGeneralPool(deployer, [
-    ATEN.address,
-    Athena.address,
-    PositionsManager.address,
-  ]);
-  const StakingPolicy = await deployStakingPolicy(deployer, [
-    Athena.address,
-    ATEN.address,
-    PriceOracleV1.address,
-    TokenVault.address,
-    PolicyManager.address,
-  ]);
-
-  await Athena.initialize(
-    PositionsManager.address, // positionManager
-    PolicyManager.address, // policyManager
-    ClaimManager.address, // claimManager
-    StakingGeneralPool.address, // stakedAtensGP
-    StakingPolicy.address, // stakedAtensPo
-    ProtocolFactory.address, // protocolFactory
-    TokenVault.address, // atensVault
-    PriceOracleV1.address, // priceOracle
-  ).then((tx) => tx.wait());
-
-  await ProtocolFactory.setClaimAndPositionManagers(
-    ClaimManager.address,
-    PositionsManager.address,
-  );
-  await StakingGeneralPool.setFeeLevelsWithAten(config.feeLevels);
-  await StakingGeneralPool.setStakingRewardRates(config.rewardRates);
-
-  await setCoverRefundConfig(deployer, StakingPolicy, config.coverRefundConfig);
-
-  const rewardsAmount = parseEther("20000000"); // 20M ATEN
-  await depositRewardsToVault(deployer, ATEN, TokenVault, rewardsAmount);
-
-  // Add USDT interface
-  const usdtAddress = usdtTokenAddress(chainId);
-  const USDT = USDT__factory.connect(usdtAddress, deployer);
-
-  const contracts = {
-    ATEN,
-    USDT,
-    CentralizedArbitrator,
-    Athena,
-    ProtocolFactory,
-    PriceOracleV1,
-    TokenVault,
-    PositionsManager,
-    PolicyManager,
-    ClaimManager,
-    StakingGeneralPool,
-    StakingPolicy,
-  };
-
-  console.log(
-    "Deployed & initialized Athena: ",
-    JSON.stringify(
-      (Object.keys(contracts) as Array<keyof typeof contracts>).reduce(
-        (acc: { [key: string]: string }, name: keyof typeof contracts) => {
-          acc[name] = contracts[name].address;
-          return acc;
-        },
-        {},
-      ),
-      null,
-      2,
-    ),
-  );
-
-  return contracts;
-}
-
-// ======================= //
-// === Protocol config === //
-// ======================= //
 
 export async function setCoverRefundConfig(
   owner: Signer,

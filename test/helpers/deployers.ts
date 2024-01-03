@@ -1,4 +1,10 @@
-import { ContractTransaction, Signer } from "ethers";
+import { utils } from "ethers";
+import {
+  genContractAddress,
+  entityProviderChainId,
+  getCurrentBlockNumber,
+} from "./hardhat";
+import { usdtTokenAddress } from "./protocol";
 // typechain
 import {
   // Dao
@@ -28,7 +34,12 @@ import {
   AthenaPositionToken,
   AthenaToken__factory,
   AthenaToken,
+  // Other
+  TetherToken__factory,
+  TetherToken,
 } from "../../typechain/";
+// Types
+import { BigNumber, Wallet, Signer } from "ethers";
 
 // ================================= //
 // === Deploy contract functions === //
@@ -109,4 +120,162 @@ export async function deployAthenaToken(
   args: Parameters<AthenaToken__factory["deploy"]>,
 ): Promise<AthenaToken> {
   return new AthenaToken__factory(signer).deploy(...args);
+}
+
+// ======================= //
+// === Deploy protocol === //
+// ======================= //
+
+export type ProtocolConfig = {
+  arbitrationCollateral: BigNumber;
+  feeDiscounts: { atenAmount: number; feeDiscount: number }[];
+};
+
+export const defaultProtocolConfig: ProtocolConfig = {
+  arbitrationCollateral: utils.parseEther("0.05"), // in ETH
+  feeDiscounts: [
+    { atenAmount: 0, feeDiscount: 250 },
+    { atenAmount: 1_000, feeDiscount: 200 },
+    { atenAmount: 100_000, feeDiscount: 150 },
+    { atenAmount: 1_000_000, feeDiscount: 50 },
+  ],
+};
+
+export type ProtocolContracts = {
+  TetherToken: TetherToken;
+  AthenaCoverToken: AthenaCoverToken;
+  AthenaPositionToken: AthenaPositionToken;
+  AthenaToken: AthenaToken;
+  EcclesiaDao: EcclesiaDao;
+  MockArbitrator: MockArbitrator;
+  ClaimManager: ClaimManager;
+  LiquidityManager: LiquidityManager;
+  StrategyManager: StrategyManager;
+  FarmingRange: FarmingRange;
+  RewardManager: RewardManager;
+  Staking: Staking;
+};
+
+export async function deployAllContractsAndInitializeProtocol(
+  deployer: Wallet,
+  config: ProtocolConfig,
+): Promise<ProtocolContracts> {
+  const chainId = await entityProviderChainId(deployer);
+  if (!chainId) throw Error("No chainId found for deployment signer");
+
+  const deploymentOrder = [
+    "AthenaCoverToken", // 0
+    "AthenaPositionToken", // 1
+    "AthenaToken", // 2
+    "ClaimManager", // 3
+    "LiquidityManager", // 4
+    "StrategyManager", // 5
+    "RewardManager", // 6
+    "EcclesiaDao", // 7
+    "MockArbitrator", // 8
+  ];
+
+  const deployedAt: { [key: string]: string } = {};
+
+  await Promise.all(
+    deploymentOrder.map((name, i) =>
+      genContractAddress(deployer, deployer.address, i).then(
+        (address: string) => {
+          deployedAt[name] = address;
+        },
+      ),
+    ),
+  );
+
+  // Add USDT interface
+  const usdtAddress = usdtTokenAddress(chainId);
+  const UsdtToken = TetherToken__factory.connect(usdtAddress, deployer);
+
+  const AthenaCoverToken = await deployAthenaCoverToken(deployer, [
+    deployedAt.LiquidityManager,
+  ]);
+  const AthenaPositionToken = await deployAthenaPositionToken(deployer, [
+    deployedAt.LiquidityManager,
+  ]);
+  const AthenaToken = await deployAthenaToken(deployer, []);
+
+  // ======= Managers ======= //
+
+  const ClaimManager = await deployClaimManager(deployer, [
+    deployedAt.AthenaCoverToken,
+    deployedAt.LiquidityManager,
+    deployedAt.MockArbitrator,
+    deployer.address,
+  ]);
+  const StrategyManager = await deployStrategyManager(deployer, [
+    deployedAt.LiquidityManager,
+  ]);
+
+  const campaignStartBlock = (await getCurrentBlockNumber()) + 4;
+  const RewardManager = await deployRewardManager(deployer, [
+    deployer.address,
+    deployedAt.LiquidityManager,
+    deployedAt.AthenaPositionToken,
+    deployedAt.AthenaCoverToken,
+    deployedAt.AthenaToken,
+    campaignStartBlock,
+    config.feeDiscounts,
+  ]);
+  // Required for DAO & Liquidity Manager contract
+  deployedAt.Staking = await RewardManager.staking();
+
+  const LiquidityManager = await deployLiquidityManager(deployer, [
+    deployedAt.AthenaPositionToken,
+    deployedAt.AthenaCoverToken,
+    deployedAt.Staking,
+    deployedAt.StrategyManager,
+    deployedAt.ClaimManager,
+  ]);
+
+  // ======= DAO ======= //
+  const EcclesiaDao = await deployEcclesiaDao(deployer, [
+    deployedAt.AthenaToken,
+    deployedAt.Staking,
+    deployedAt.LiquidityManager,
+  ]);
+
+  // ======= Claims ======= //
+  const MockArbitrator = await deployMockArbitrator(deployer, [
+    config.arbitrationCollateral,
+  ]);
+
+  const contracts = {
+    TetherToken: UsdtToken,
+    AthenaCoverToken,
+    AthenaPositionToken,
+    AthenaToken,
+    EcclesiaDao,
+    MockArbitrator,
+    ClaimManager,
+    LiquidityManager,
+    StrategyManager,
+    RewardManager,
+    FarmingRange: FarmingRange__factory.connect(
+      deployedAt.FarmingRange,
+      deployer,
+    ),
+    Staking: Staking__factory.connect(deployedAt.Staking, deployer),
+  };
+
+  console.log(
+    "Deployed & initialized Athena: ",
+    JSON.stringify(
+      (Object.keys(contracts) as Array<keyof typeof contracts>).reduce(
+        (acc: { [key: string]: string }, name: keyof typeof contracts) => {
+          acc[name] = contracts[name].address;
+          return acc;
+        },
+        {},
+      ),
+      null,
+      2,
+    ),
+  );
+
+  return contracts;
 }

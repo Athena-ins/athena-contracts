@@ -10,8 +10,8 @@ import {
 import {
   deployAllContractsAndInitializeProtocol,
   defaultProtocolConfig,
-  makeTestHelpers,
-} from "./helpers/protocol";
+} from "./helpers/deployers";
+import { makeTestHelpers } from "./helpers/protocol";
 
 // Custom hook to run a function before each child test suite
 function beforeEachSuite(fn: AsyncFunc) {

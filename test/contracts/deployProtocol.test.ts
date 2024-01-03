@@ -20,15 +20,15 @@ export function deployProtocolTest() {
   describe("Setup protocol", function () {
     before(async function () {
       const deploymentOrder = [
-        "MockArbitrator", // 0
-        "AthenaCoverToken", // 1
-        "AthenaPositionToken", // 2
-        "AthenaToken", // 3
-        "ClaimManager", // 4
-        "LiquidityManager", // 5
-        "StrategyManager", // 6
-        "RewardManager", // 7
-        "EcclesiaDao", // 8
+        "AthenaCoverToken", // 0
+        "AthenaPositionToken", // 1
+        "AthenaToken", // 2
+        "ClaimManager", // 3
+        "LiquidityManager", // 4
+        "StrategyManager", // 5
+        "RewardManager", // 6
+        "EcclesiaDao", // 7
+        "MockArbitrator", // 8
       ];
 
       this.deployedAt = {};
@@ -54,14 +54,6 @@ export function deployProtocolTest() {
     }
 
     context("Deploy contracts", function () {
-      // ======= Claims ======= //
-
-      it("deploys MockArbitrator", async function () {
-        await deployMockArbitrator(this.signers.deployer, [
-          this.deployedAt.LiquidityManager,
-        ]).then((contract) => postDeployCheck(contract, this.deployedAt));
-      });
-
       // ======= Tokens ======= //
 
       it("deploys AthenaCoverToken", async function () {
@@ -127,6 +119,14 @@ export function deployProtocolTest() {
           this.deployedAt.AthenaToken,
           this.deployedAt.Staking,
           this.deployedAt.LiquidityManager,
+        ]).then((contract) => postDeployCheck(contract, this.deployedAt));
+      });
+
+      // ======= Claims ======= //
+
+      it("deploys MockArbitrator", async function () {
+        await deployMockArbitrator(this.signers.deployer, [
+          ethers.utils.parseEther("0.05"),
         ]).then((contract) => postDeployCheck(contract, this.deployedAt));
       });
     });
