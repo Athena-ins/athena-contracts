@@ -1,6 +1,6 @@
-import { BaseContract, Signer, utils } from "ethers";
+import { BaseContract, BigNumberish, Signer, utils } from "ethers";
 import hre, { ethers, network } from "hardhat";
-import { HardhatNetworkConfig } from "hardhat/types";
+import { HardhatNetworkConfig, HardhatRuntimeEnvironment } from "hardhat/types";
 
 const keccak256 = utils.keccak256;
 type BytesLike = utils.BytesLike;
@@ -11,6 +11,10 @@ type BytesLike = utils.BytesLike;
 
 export async function getCurrentTime() {
   return (await ethers.provider.getBlock("latest")).timestamp;
+}
+
+export async function getCurrentBlockNumber() {
+  return (await ethers.provider.getBlock("latest")).number;
 }
 
 export function entityProviderChainId(
@@ -136,7 +140,7 @@ export function formatNonce(nonce: string, add: number) {
 }
 
 export async function genContractAddress(
-  hre: any,
+  provider: HardhatRuntimeEnvironment | Signer,
   from: string,
   nonceAdd?: number, // number of tx from wallet between computation and deployment
 ) {
@@ -146,10 +150,18 @@ export async function genContractAddress(
 
   const fromUnsigned = from.slice(2);
 
-  const nonce: any = await hre.network.provider.request({
-    method: "eth_getTransactionCount",
-    params: [from, "latest"],
-  });
+  let nonce: string | undefined;
+  if ("network" in provider && provider.network.provider) {
+    nonce = (await (
+      provider as HardhatRuntimeEnvironment
+    ).network.provider.request({
+      method: "eth_getTransactionCount",
+      params: [from, "latest"],
+    })) as string;
+  } else if ("_isSigner" in provider && provider._isSigner) {
+    nonce = (await (provider as Signer).getTransactionCount()).toString();
+  }
+  if (!nonce) throw Error("Missing provider entity to get wallet nonce");
 
   const formatedNonce = formatNonce(nonce, nonceAdd);
 
