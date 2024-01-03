@@ -1,333 +1,133 @@
-import chai, { expect } from "chai";
-import { ethers } from "hardhat";
-import chaiAsPromised from "chai-as-promised";
+import { expect } from "chai";
+import hre, { ethers } from "hardhat";
 // Helpers
-import { getCurrentTime, setNextBlockTimestamp } from "../helpers/hardhat";
+import {
+  deployMockArbitrator,
+  deployAthenaCoverToken,
+  deployAthenaPositionToken,
+  deployAthenaToken,
+  deployClaimManager,
+  deployEcclesiaDao,
+  deployLiquidityManager,
+  deployRewardManager,
+  deployStrategyManager,
+} from "../helpers/deployers";
+import { genContractAddress } from "../helpers/hardhat";
 // Types
-import { Signer, Contract, BigNumber, BigNumberish } from "ethers";
-//
-chai.use(chaiAsPromised);
+import { BaseContract } from "ethers";
 
-const owner = ethers.provider.getSigner(0);
-const BN = (num: string | number) => BigNumber.from(num);
-
-export function testDeployProtocol() {
+export function deployProtocolTest() {
   describe("Setup protocol", function () {
-    before(async function () {});
+    before(async function () {
+      const deploymentOrder = [
+        "MockArbitrator", // 0
+        "AthenaCoverToken", // 1
+        "AthenaPositionToken", // 2
+        "AthenaToken", // 3
+        "ClaimManager", // 4
+        "LiquidityManager", // 5
+        "StrategyManager", // 6
+        "RewardManager", // 7
+        "EcclesiaDao", // 8
+      ];
 
-    describe("Contract deployment", function () {
-      const contractList = [
-        "ATEN",
-        "CentralizedArbitrator",
-        "Athena",
-        "ProtocolFactory",
-        "PriceOracleV1",
-        "TokenVault",
-        "PositionsManager",
-        "PolicyManager",
-        "ClaimManager",
-        "StakingGeneralPool",
-        "StakingPolicy",
-      ] as const;
+      this.deployedAt = {};
 
-      for (const contractName of contractList) {
-        it(`deployed ${contractName}`, async function () {
-          const { address } = this.contracts[contractName];
-          const code = await ethers.provider.getCode(address);
-          expect(code).not.equal("0x");
-          expect(code.length).gt(2);
-        });
-      }
+      await Promise.all(
+        deploymentOrder.map((name, i) =>
+          genContractAddress(hre, this.signers.deployer.address, i).then(
+            (address) => {
+              this.deployedAt[name] = address;
+            },
+          ),
+        ),
+      );
     });
 
-    describe("Contract setup", function () {
-      // @bw should check that all addresses & configs match and are corretly set
-      // either in constructor or in config/init fns
-    });
+    /**
+     * After a deploy checks the address matches the expect one
+     * and that the address holds code
+     */
+    async function postDeployCheck(contract: BaseContract, deployedAt: any) {
+      expect(contract.address).to.equal(deployedAt[contract.constructor.name]);
+      expect((await ethers.provider.getCode(contract.address)).length).gt(2);
+    }
 
-    describe("Set new active protocol 0", function () {
-      it("Should set new active protocol", async function () {
-        await setNextBlockTimestamp(0 * 24 * 60 * 60);
-        const tx = await this.helpers.addNewProtocolPool("Test protocol 0");
+    context("Deploy contracts", function () {
+      // ======= Claims ======= //
 
-        expect(tx).to.haveOwnProperty("hash");
-
-        const protocol = await this.helpers.getProtocolPoolDataById(0);
-        expect(protocol.name).to.equal("Test protocol 0");
+      it("deploys MockArbitrator", async function () {
+        await deployMockArbitrator(this.signers.deployer, [
+          this.deployedAt.LiquidityManager,
+        ]).then((contract) => postDeployCheck(contract, this.deployedAt));
       });
 
-      it("Should check slot0", async function () {
-        const protocolContract = await this.helpers.getProtocolPoolContract(
-          owner,
+      // ======= Tokens ======= //
+
+      it("deploys AthenaCoverToken", async function () {
+        await deployAthenaCoverToken(this.signers.deployer, [
+          this.deployedAt.LiquidityManager,
+        ]).then((contract) => postDeployCheck(contract, this.deployedAt));
+      });
+      it("deploys AthenaPositionToken", async function () {
+        await deployAthenaPositionToken(this.signers.deployer, [
+          this.deployedAt.LiquidityManager,
+        ]).then((contract) => postDeployCheck(contract, this.deployedAt));
+      });
+      it("deploys AthenaToken", async function () {
+        await deployAthenaToken(this.signers.deployer, []).then((contract) =>
+          postDeployCheck(contract, this.deployedAt),
+        );
+      });
+
+      // ======= Managers ======= //
+
+      it("deploys ClaimManager", async function () {
+        await deployClaimManager(this.signers.deployer, [
+          this.deployedAt.AthenaCoverToken,
+          this.deployedAt.LiquidityManager,
+          this.deployedAt.MockArbitrator,
+          this.signers.deployer.address,
+        ]).then((contract) => postDeployCheck(contract, this.deployedAt));
+      });
+      it("deploys StrategyManager", async function () {
+        await deployStrategyManager(this.signers.deployer, [
+          this.deployedAt.LiquidityManager,
+        ]).then((contract) => postDeployCheck(contract, this.deployedAt));
+      });
+      it("deploys RewardManager", async function () {
+        const rewardManager = await deployRewardManager(this.signers.deployer, [
+          this.signers.deployer.address,
+          this.deployedAt.LiquidityManager,
+          this.deployedAt.AthenaPositionToken,
+          this.deployedAt.AthenaCoverToken,
+          this.deployedAt.AthenaToken,
           0,
-        );
-        const slot0 = await protocolContract.slot0();
+          [],
+        ]);
+        await postDeployCheck(rewardManager, this.deployedAt);
 
-        expect(slot0.tick).to.be.equal(0);
-        expect(slot0.secondsPerTick).to.be.equal("86400");
-        expect(slot0.totalInsuredCapital).to.be.equal("0");
-        expect(slot0.remainingPolicies).to.be.equal("0");
-        expect(slot0.lastUpdateTimestamp).to.be.equal(await getCurrentTime());
-
-        const premiumRate = await protocolContract.getCurrentPremiumRate();
-        expect(premiumRate).to.be.equal("1000000000000000000000000000");
-
-        const availableCapital = await protocolContract.availableCapital();
-
-        expect(availableCapital).to.be.equal("0");
+        // Required for DAO & Liquidity Manager contract
+        this.deployedAt.Staking = await rewardManager.staking();
+      });
+      it("deploys LiquidityManager", async function () {
+        await deployLiquidityManager(this.signers.deployer, [
+          this.deployedAt.AthenaPositionToken,
+          this.deployedAt.AthenaCoverToken,
+          this.deployedAt.Staking,
+          this.deployedAt.StrategyManager,
+          this.deployedAt.ClaimManager,
+        ]).then((contract) => postDeployCheck(contract, this.deployedAt));
       });
 
-      it("Should check relatedProtocols", async function () {
-        const protocolContract = await this.helpers.getProtocolPoolContract(
-          owner,
-          0,
-        );
+      // ======= DAO ======= //
 
-        const relatedProtocol = await protocolContract.relatedProtocols(0);
-
-        expect(relatedProtocol).to.be.equal(0);
-
-        const intersectingAmounts =
-          await protocolContract.intersectingAmounts(0);
-
-        expect(intersectingAmounts).to.be.equal(0);
-      });
-    });
-
-    describe("Set new active protocol 1", function () {
-      it("Should set new active protocol", async function () {
-        await setNextBlockTimestamp(1 * 24 * 60 * 60);
-        const tx = await this.helpers.addNewProtocolPool("Test protocol 1");
-
-        expect(tx).to.haveOwnProperty("hash");
-
-        const protocol = await this.helpers.getProtocolPoolDataById(1);
-        expect(protocol.name).to.equal("Test protocol 1");
-      });
-
-      it("Should check slot0", async function () {
-        const protocolContract = await this.helpers.getProtocolPoolContract(
-          owner,
-          1,
-        );
-        const slot0 = await protocolContract.slot0();
-
-        expect(slot0.tick).to.be.equal(0);
-        expect(slot0.secondsPerTick).to.be.equal("86400");
-        expect(slot0.totalInsuredCapital).to.be.equal("0");
-        expect(slot0.remainingPolicies).to.be.equal("0");
-        expect(slot0.lastUpdateTimestamp).to.be.equal(await getCurrentTime());
-
-        const premiumRate = await protocolContract.getCurrentPremiumRate();
-        expect(premiumRate).to.be.equal("1000000000000000000000000000");
-
-        const availableCapital = await protocolContract.availableCapital();
-
-        expect(availableCapital).to.be.equal("0");
-      });
-
-      it("Should check relatedProtocols", async function () {
-        const protocolContract = await this.helpers.getProtocolPoolContract(
-          owner,
-          1,
-        );
-
-        const relatedProtocol = await protocolContract.relatedProtocols(0);
-
-        expect(relatedProtocol).to.be.equal(1);
-
-        const intersectingAmounts =
-          await protocolContract.intersectingAmounts(0);
-
-        expect(intersectingAmounts).to.be.equal(0);
-      });
-    });
-
-    describe("Set new active protocol 2", function () {
-      it("Should set new active protocol", async function () {
-        await setNextBlockTimestamp(1 * 24 * 60 * 60);
-        const tx = await this.helpers.addNewProtocolPool("Test protocol 2");
-
-        expect(tx).to.haveOwnProperty("hash");
-
-        const protocol = await this.helpers.getProtocolPoolDataById(2);
-        expect(protocol.name).to.equal("Test protocol 2");
-      });
-
-      it("Should check slot0", async function () {
-        const protocolContract = await this.helpers.getProtocolPoolContract(
-          owner,
-          2,
-        );
-        const slot0 = await protocolContract.slot0();
-
-        expect(slot0.tick).to.be.equal(0);
-        expect(slot0.secondsPerTick).to.be.equal("86400");
-        expect(slot0.totalInsuredCapital).to.be.equal("0");
-        expect(slot0.remainingPolicies).to.be.equal("0");
-        expect(slot0.lastUpdateTimestamp).to.be.equal(await getCurrentTime());
-
-        const premiumRate = await protocolContract.getCurrentPremiumRate();
-        expect(premiumRate).to.be.equal("1000000000000000000000000000");
-
-        const availableCapital = await protocolContract.availableCapital();
-
-        expect(availableCapital).to.be.equal("0");
-      });
-
-      it("Should check relatedProtocols", async function () {
-        const protocolContract = await this.helpers.getProtocolPoolContract(
-          owner,
-          2,
-        );
-
-        const relatedProtocol = await protocolContract.relatedProtocols(0);
-
-        expect(relatedProtocol).to.be.equal(2);
-
-        const intersectingAmounts =
-          await protocolContract.intersectingAmounts(0);
-
-        expect(intersectingAmounts).to.be.equal(0);
-      });
-    });
-
-    describe("Set discounts with Aten", function () {
-      it("Should set discounts with Aten", async function () {
-        // @bw already set by deploy fn
-        // const tx = await ProtocolHelper.setFeeLevelsWithAten(owner);
-        // expect(tx).to.haveOwnProperty("hash");
-
-        const discountZero =
-          await this.contracts.StakingGeneralPool.connect(
-            owner,
-          ).supplyFeeLevels(0);
-        expect(discountZero.atenAmount).to.equal(BN(0));
-        expect(discountZero.feeRate).to.equal(BN(250));
-
-        const discountFirst =
-          await this.contracts.StakingGeneralPool.connect(
-            owner,
-          ).supplyFeeLevels(1);
-        expect(discountFirst.atenAmount).to.equal(BN(1_000));
-        expect(discountFirst.feeRate).to.equal(BN(200));
-
-        const discountSnd =
-          await this.contracts.StakingGeneralPool.connect(
-            owner,
-          ).supplyFeeLevels(2);
-        expect(discountSnd.atenAmount).to.equal(BN(100_000));
-        expect(discountSnd.feeRate).to.equal(BN(150));
-
-        const discountThird =
-          await this.contracts.StakingGeneralPool.connect(
-            owner,
-          ).supplyFeeLevels(3);
-        expect(discountThird.atenAmount).to.equal(BN(1_000_000));
-        expect(discountThird.feeRate).to.equal(BN(50));
-
-        await expect(
-          this.contracts.StakingGeneralPool.connect(owner).supplyFeeLevels(4),
-        ).to.be.rejectedWith();
-      });
-
-      it("Should get discount amount with Aten", async function () {
-        expect(
-          await this.contracts.StakingGeneralPool.connect(
-            owner,
-          ).getFeeRateWithAten(999),
-        ).to.equal(250);
-        expect(
-          await this.contracts.StakingGeneralPool.connect(
-            owner,
-          ).getFeeRateWithAten(1000),
-        ).to.equal(200);
-        expect(
-          await this.contracts.StakingGeneralPool.connect(
-            owner,
-          ).getFeeRateWithAten(10000000),
-        ).to.equal(50);
-      });
-
-      it("Should set reward Rates ATEN with USD", async function () {
-        await expect(
-          this.contracts.StakingGeneralPool.connect(
-            owner,
-          ).setStakingRewardRates([
-            { amountSupplied: 0, aprStaking: 1_000 },
-            { amountSupplied: 100_000, aprStaking: 1_600 },
-            { amountSupplied: 10_000, aprStaking: 1_200 },
-            { amountSupplied: 1_000_000, aprStaking: 2_000 },
-          ]),
-        ).to.be.rejectedWith("MustSortInAscendingOrder()");
-
-        // @bw already set by deploy fn
-        // const tx = await ProtocolHelper.setStakingRewardRates(owner);
-        // expect(tx).to.haveOwnProperty("hash");
-
-        expect(
-          await this.contracts.StakingGeneralPool.connect(
-            owner,
-          ).getStakingRewardRate(0),
-        ).to.equal(BN(1_000));
-
-        expect(
-          await this.contracts.StakingGeneralPool.connect(
-            owner,
-          ).getStakingRewardRate(10),
-        ).to.equal(BN(1000));
-
-        expect(
-          await this.contracts.StakingGeneralPool.connect(
-            owner,
-          ).getStakingRewardRate(10000),
-        ).to.equal(BN(1200));
-
-        expect(
-          await this.contracts.StakingGeneralPool.connect(
-            owner,
-          ).getStakingRewardRate(100_001),
-        ).to.equal(BN(1600));
-
-        expect(
-          await this.contracts.StakingGeneralPool.connect(
-            owner,
-          ).getStakingRewardRate(1_000_000),
-        ).to.equal(BN(2000));
-
-        const stakingLevels =
-          await this.contracts.StakingGeneralPool.connect(
-            owner,
-          ).getStakingRewardsLevels();
-
-        expect(stakingLevels.length).to.equal(4);
-      });
-    });
-
-    // @bw should move to views tests
-    describe("View all array data", function () {
-      it("Should get all pool data", async function () {
-        const poolData = await this.contracts.Athena.getAllProtocols();
-
-        expect(poolData.length).to.equal(3);
-      });
-
-      it("Should get all fee level data", async function () {
-        const feeLevels =
-          await this.contracts.StakingGeneralPool.connect(
-            owner,
-          ).getSupplyFeeLevels();
-
-        expect(feeLevels.length).to.equal(4);
-      });
-
-      it("Should get all staking levels data", async function () {
-        const stakingLevels =
-          await this.contracts.StakingGeneralPool.connect(
-            owner,
-          ).getStakingRewardsLevels();
-
-        expect(stakingLevels.length).to.equal(4);
+      it("deploys EcclesiaDao", async function () {
+        await deployEcclesiaDao(this.signers.deployer, [
+          this.deployedAt.AthenaToken,
+          this.deployedAt.Staking,
+          this.deployedAt.LiquidityManager,
+        ]).then((contract) => postDeployCheck(contract, this.deployedAt));
       });
     });
   });
