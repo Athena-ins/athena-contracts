@@ -30,7 +30,7 @@ contract ClaimManager is
   address public metaEvidenceGuardian;
   uint256 public challengeDelay = 14 days;
   uint256 public nextClaimId;
-  uint256 public collateralAmount = 0.00042 ether;
+  uint256 public collateralAmount = 0.01 ether;
 
   // @dev the 'Accepted' status is virtual as it is never written to the blockchain
   // It enables view functions to display the adequate state of the claim
@@ -83,6 +83,12 @@ contract ClaimManager is
     liquidityManager = liquidityManager_;
     metaEvidenceGuardian = metaEvidenceGuardian_;
   }
+
+  // @bw need to set args for Kleros arbitrator (pass sub court ID in args, min amount of jurors, etc)
+  // https://docs.kleros.io/integrations/types-of-integrations/1.-dispute-resolution-integration-plan/smart-contract-integration
+  // https://etherscan.io/address/0x988b3a538b618c7a603e1c11ab82cd16dbe28069#code
+
+  // @bw need to add veto power for V0
 
   /// ========================= ///
   /// ========= EVENTS ======== ///

@@ -87,7 +87,7 @@ contract Staking is IStaking, ERC20, Ownable {
     if (address(_farming) == address(0)) {
       revert FarmingIsNotDefined();
     }
-    if (address(liquidityManager) == address(0)) {
+    if (address(liquidityManager_) == address(0)) {
       revert LiquidityManagerIsNotDefined();
     }
 

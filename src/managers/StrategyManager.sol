@@ -34,6 +34,7 @@ contract StrategyManager is Ownable {
   address public ausdt = 0x3Ed3B47Dd13EC9a98b44e6204A523E766B225811; // aUSDT v2
 
   struct PositionData {
+    // uint256 strategyId; // Unused in StrategyManager v0
     uint256 startRewardIndex;
     uint256 accumulatedRewards;
   }
@@ -93,6 +94,13 @@ contract StrategyManager is Ownable {
     } else {
       return accumulated;
     }
+  }
+
+  function underlyingAsset(
+    uint256 strategyId_
+  ) external view returns (address) {
+    if (strategyId_ != 0) revert NotAValidStrategy();
+    return usdt;
   }
 
   //======== FUNCTIONS ========//
