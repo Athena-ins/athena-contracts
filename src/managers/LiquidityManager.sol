@@ -65,7 +65,7 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
   IAthenaPositionToken public positionToken;
   IAthenaCoverToken public coverToken;
   IStaking public staking;
-  IStrategyManager public strategies;
+  IStrategyManager public strategyManager;
   address claimManager;
 
   /// The ID of the next cover to be minted
@@ -95,13 +95,13 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
     IAthenaPositionToken positionToken_,
     IAthenaCoverToken coverToken_,
     IStaking staking_,
-    IStrategyManager strategies_,
+    IStrategyManager strategyManager_,
     address claimManager_
   ) Ownable(msg.sender) {
     positionToken = positionToken_;
     coverToken = coverToken_;
     staking = staking_;
-    strategies = strategies_;
+    strategyManager = strategyManager_;
     claimManager = claimManager_;
   }
 
@@ -383,10 +383,9 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
   /// ======= MAKE LP POSITION ======= ///
 
   function createPosition(
-    address account,
     uint256 amount,
     uint128[] calldata poolIds
-  ) external onlyOwner {
+  ) external {
     // Save new position tokenId and update for next
     uint256 tokenId = nextPositionId;
     nextPositionId++;
@@ -397,7 +396,16 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
     // All pools share the same strategy so we can use the last pool ID in memory
     // @bw push or pull funds ?
     uint256 strategyId = pools[poolIds[0]].strategyId;
-    strategies.depositToStrategy(strategyId, tokenId, amount);
+
+    // Push funds to strategy manager
+    address underlyingAsset = pools[poolIds[0]].underlyingAsset;
+    IERC20(underlyingAsset).safeTransferFrom(
+      msg.sender,
+      address(strategyManager),
+      amount
+    );
+
+    strategyManager.depositToStrategy(strategyId, tokenId, amount);
 
     positions[tokenId] = Position({
       supplied: amount,
@@ -406,12 +414,12 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
     });
 
     // Mint position NFT
-    positionToken.mint(account, tokenId);
+    positionToken.mint(msg.sender, tokenId);
   }
 
   /// ======= UPDATE LP POSITION ======= ///
 
-  function updatePosition(
+  function increasePosition(
     uint256 tokenId,
     uint256 amount
   ) external onlyOwner {
@@ -423,7 +431,15 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
     _addOverlappingCapitalAfterCheck(position.poolIds, amount);
 
     uint256 strategyId = pools[position.poolIds[0]].strategyId;
-    strategies.depositToStrategy(strategyId, tokenId, amount);
+    // Push funds to strategy manager
+    address underlyingAsset = pools[position.poolIds[0]]
+      .underlyingAsset;
+    IERC20(underlyingAsset).safeTransferFrom(
+      msg.sender,
+      address(strategyManager),
+      amount
+    );
+    strategyManager.depositToStrategy(strategyId, tokenId, amount);
 
     position.supplied += amount;
   }
@@ -459,7 +475,7 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
     // Withdraw interests from strategy
     // All pools have same strategy since they are compatible
     uint256 strategyId = pools[position.poolIds[0]].strategyId;
-    strategies.withdrawRewards(
+    strategyManager.withdrawRewards(
       strategyId,
       tokenId,
       account,
@@ -473,14 +489,15 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
 
   /// ======= CLOSE LP POSITION ======= ///
 
-  function commitWithdraw(
+  function commitPositionWithdrawal(
     uint256 tokenId_,
     address account_
   ) external onlyOwner onlyPositionOwner(tokenId_, account_) {
     positions[tokenId_].commitWithdrawalTimestamp = block.timestamp;
+    // @bw should lock rewards in strategy to avoid commiting upon deposit
   }
 
-  function withdrawFromPosition(
+  function closePosition(
     uint256 tokenId_,
     address account_
   ) external onlyOwner onlyPositionOwner(tokenId_, account_) {
@@ -506,7 +523,7 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
     // All pools have same strategy since they are compatible
     uint256 strategyId = pools[position.poolIds[0]].strategyId;
     // @bw this should send back funds to user with rewards, minus fees
-    strategies.withdrawFromStrategy(
+    strategyManager.withdrawFromStrategy(
       strategyId,
       tokenId_,
       position.supplied,
@@ -643,13 +660,17 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
           fromPoolId: poolId_,
           ratio: ratio,
           liquidityIndexBeforeClaim: poolB.liquidityIndex,
-          rewardIndexBeforeClaim: strategies.getRewardIndex(
+          rewardIndexBeforeClaim: strategyManager.getRewardIndex(
             strategyId
           )
         })
       );
     }
 
-    strategies.payoutFromStrategy(strategyId, amount_, claimant_);
+    strategyManager.payoutFromStrategy(
+      strategyId,
+      amount_,
+      claimant_
+    );
   }
 }
