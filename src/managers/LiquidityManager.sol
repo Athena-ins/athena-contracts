@@ -9,6 +9,7 @@ import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { RayMath } from "../libs/RayMath.sol";
 import { VirtualPool } from "../libs/VirtualPool.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { PremiumPosition } from "../libs/PremiumPosition.sol";
 
 // Interfaces
 import { IStrategyManager } from "../interfaces/IStrategyManager.sol";
@@ -16,6 +17,9 @@ import { IStaking } from "../interfaces/IStaking.sol";
 import { IAthenaPositionToken } from "../interfaces/IAthenaPositionToken.sol";
 import { IAthenaCoverToken } from "../interfaces/IAthenaCoverToken.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+
+// Todo
+// @bw need dynamic risk pool fee system
 
 // ======= ERRORS ======= //
 
@@ -79,8 +83,8 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
   // Maps a pool ID to the virtualized pool's storage
   // @bw need custom view fn
   mapping(uint128 _id => VirtualPool.VPool _vPool) private pools;
-  uint256 public withdrawDelay = 14 days;
 
+  uint256 public withdrawDelay = 14 days;
   // Maps pool0 -> pool1 -> areCompatible for LP leverage
   mapping(uint128 => mapping(uint128 => bool))
     public arePoolCompatible;
@@ -144,6 +148,54 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
     uint256 tokenId
   ) external view returns (bool) {
     return covers[tokenId].end == 0;
+  }
+
+  function poolInfo(
+    uint128 poolId_
+  ) external view returns (VirtualPool.VPoolInfo memory) {
+    VirtualPool.VPool storage pool = pools[poolId_];
+    return
+      VirtualPool.VPoolInfo({
+        poolId: pool.poolId,
+        protocolShare: pool.protocolShare,
+        f: pool.f,
+        slot0: pool.slot0,
+        liquidityIndex: pool.liquidityIndex,
+        strategyId: pool.strategyId,
+        paymentAsset: pool.paymentAsset,
+        underlyingAsset: pool.underlyingAsset,
+        isPaused: pool.isPaused,
+        overlappedPools: pool.overlappedPools,
+        processedClaims: pool.processedClaims
+      });
+  }
+
+  function poolOverlaps(
+    uint128 poolId0_,
+    uint128 poolId1_
+  ) external view returns (uint256) {
+    return pools[poolId0_].overlaps[poolId1_];
+  }
+
+  function poolLpInfos(
+    uint128 poolId_,
+    uint256 positionId
+  ) external view returns (VirtualPool.LPInfo memory) {
+    return pools[poolId_].lpInfos[positionId];
+  }
+
+  function poolTicks(
+    uint128 poolId_,
+    uint32 tick
+  ) external view returns (uint256[] memory) {
+    return pools[poolId_].ticks[tick];
+  }
+
+  function poolPremiumPositions(
+    uint128 poolId_,
+    uint256 coverId
+  ) external view returns (PremiumPosition.Info memory) {
+    return pools[poolId_].premiumPositions[coverId];
   }
 
   /// ======= POOLS ======= ///

@@ -54,6 +54,20 @@ library VirtualPool {
 
   // ======= VIRTUAL STORAGE ======= //
 
+  struct VPoolInfo {
+    uint128 poolId;
+    uint256 protocolShare;
+    Formula f;
+    Slot0 slot0;
+    uint256 liquidityIndex;
+    uint256 strategyId;
+    address paymentAsset;
+    address underlyingAsset;
+    bool isPaused;
+    uint128[] overlappedPools;
+    PoolClaim[] processedClaims;
+  }
+
   struct VPool {
     uint128 poolId;
     uint256 protocolShare; // amount of fees on rewards
@@ -62,20 +76,21 @@ library VirtualPool {
     uint256 liquidityIndex;
     uint256 strategyId;
     address paymentAsset; // asset used to pay LP premiums
-    address underlyingAsset; // @bw to be fetched by strat id ?
+    address underlyingAsset;
     bool isPaused;
+    uint128[] overlappedPools;
+    // @bw should change to ids to fetch in map to use storage pointers
+    PoolClaim[] processedClaims;
     /// @dev poolId 0 -> poolId 0 points to a pool's available liquidity
     /// @dev liquidity overlap is always registered in the lower poolId
     // Maps poolId 0 -> poolId 1 -> overlapping capital
     mapping(uint128 _poolId => uint256 _amount) overlaps;
-    uint128[] overlappedPools;
-    mapping(uint256 => LPInfo _lpInfo) lpInfos;
+    mapping(uint256 _positionId => LPInfo _lpInfo) lpInfos;
     mapping(uint24 => uint256) tickBitmap;
     // Maps a tick to the list of cover IDs
     mapping(uint32 _tick => uint256[] _coverIds) ticks;
     // Maps a cover ID to the premium position of the cover
     mapping(uint256 _coverId => PremiumPosition.Info _premiumsInfo) premiumPositions;
-    PoolClaim[] processedClaims; // @bw should change to ids to fetch in map to use storage pointers
     // Function pointers to access child contract data
     function(uint256) view returns (uint256) coverSize;
   }
