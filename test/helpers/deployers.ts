@@ -213,7 +213,6 @@ export async function deployAllContractsAndInitializeProtocol(
 
   const campaignStartBlock = (await getCurrentBlockNumber()) + 4;
   const RewardManager = await deployRewardManager(deployer, [
-    deployer.address,
     deployedAt.LiquidityManager,
     deployedAt.AthenaPositionToken,
     deployedAt.AthenaCoverToken,
@@ -223,6 +222,7 @@ export async function deployAllContractsAndInitializeProtocol(
   ]);
   // Required for DAO & Liquidity Manager contract
   deployedAt.Staking = await RewardManager.staking();
+  deployedAt.FarmingRange = await RewardManager.farming();
 
   const LiquidityManager = await deployLiquidityManager(deployer, [
     deployedAt.AthenaPositionToken,
