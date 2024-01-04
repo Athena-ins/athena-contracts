@@ -91,12 +91,11 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
   IAthenaCoverToken public coverToken;
 
   constructor(
-    address _owner,
     address _rewardManager,
     ILiquidityManager _liquidityManager,
     IAthenaPositionToken _positionToken,
     IAthenaCoverToken _coverToken
-  ) Ownable(_owner) {
+  ) Ownable(msg.sender) {
     rewardInfoLimit = 52;
     if (_rewardManager == address(0)) {
       revert RewardManagerNotDefined();

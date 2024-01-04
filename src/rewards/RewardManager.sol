@@ -16,6 +16,7 @@ import { IStaking } from "../interfaces/IStaking.sol";
 import { ILiquidityManager } from "../interfaces/ILiquidityManager.sol";
 import { IAthenaPositionToken } from "../interfaces/IAthenaPositionToken.sol";
 import { IAthenaCoverToken } from "../interfaces/IAthenaCoverToken.sol";
+import { IOwnable } from "../interfaces/IOwnable.sol";
 
 //======== ERRORS ========//
 
@@ -38,7 +39,6 @@ contract RewardManager is IRewardManager {
   IStaking public immutable staking;
 
   /**
-   * @param _owner address who will own the farming
    * @param _liquidityManager address of the liquidity manager
    * @param _positionToken address of the position token
    * @param _coverToken address of the cover token
@@ -47,7 +47,6 @@ contract RewardManager is IRewardManager {
    * @param feeLevels array of fee discount levels
    */
   constructor(
-    address _owner,
     ILiquidityManager _liquidityManager,
     IAthenaPositionToken _positionToken,
     IAthenaCoverToken _coverToken,
@@ -60,18 +59,12 @@ contract RewardManager is IRewardManager {
     }
 
     farming = new FarmingRange(
-      _owner,
       address(this),
       _liquidityManager,
       _positionToken,
       _coverToken
     );
-    staking = new Staking(
-      _owner,
-      _stakedToken,
-      farming,
-      _liquidityManager
-    );
+    staking = new Staking(_stakedToken, farming, _liquidityManager);
 
     farming.addCampaignInfo(
       IFarmingRange.AssetType.ERC20,
@@ -81,6 +74,9 @@ contract RewardManager is IRewardManager {
       _startFarmingCampaign
     );
     staking.initializeFarming(feeLevels);
+
+    IOwnable(address(farming)).transferOwnership(msg.sender);
+    IOwnable(address(staking)).transferOwnership(msg.sender);
   }
 
   function resetAllowance(uint256 _campaignId) external {

@@ -76,11 +76,10 @@ contract Staking is IStaking, ERC20, Ownable {
   }
 
   constructor(
-    address _owner,
     IERC20 _stakedToken,
     IFarmingRange _farming,
     ILiquidityManager liquidityManager_
-  ) ERC20("Staked Aten Token", "stAOE") Ownable(_owner) {
+  ) ERC20("Staked Aten Token", "stAOE") Ownable(msg.sender) {
     if (address(_stakedToken) == address(0)) {
       revert AtenTokenIsNotDefined();
     }
@@ -99,7 +98,7 @@ contract Staking is IStaking, ERC20, Ownable {
   /// @inheritdoc IStaking
   function initializeFarming(
     FeeLevel[] calldata feeLevels_
-  ) external {
+  ) external onlyOwner {
     if (farmingInitialized == true) {
       revert FarmingCampaignAlreadyInitialized();
     }
