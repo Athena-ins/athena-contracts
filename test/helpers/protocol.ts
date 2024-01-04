@@ -7,22 +7,36 @@ import {
 } from "./hardhat";
 
 // Types
-import { BigNumber, BigNumberish, ContractTransaction, Signer } from "ethers";
 import {
+  BigNumber,
+  BigNumberish,
+  ContractTransaction,
+  ContractReceipt,
+  Wallet,
+} from "ethers";
+import {
+  // Dao
+  EcclesiaDao,
+  // Claims
+  MockArbitrator,
+  // Managers
   ClaimManager,
-  ERC20,
-  ERC20__factory,
+  LiquidityManager,
+  StrategyManager,
+  // Rewards
+  FarmingRange,
+  RewardManager,
+  Staking,
+  // Tokens
+  AthenaCoverToken,
+  AthenaPositionToken,
+  AthenaToken,
+  // Other
+  TetherToken,
+  IERC20,
+  IERC20__factory,
   ILendingPool__factory,
   IUniswapV2Factory__factory,
-  //
-  ATEN,
-  Athena,
-  PolicyManager,
-  PositionsManager,
-  ProtocolPool,
-  ProtocolPool__factory,
-  StakingPolicy,
-  TokenVault,
 } from "../../typechain";
 import { ProtocolContracts } from "./deployers";
 
@@ -82,8 +96,8 @@ export function evidenceGuardianWallet() {
 }
 
 export async function balanceOfAaveUsdt(
-  signer: Signer,
-  account: string | Signer,
+  signer: Wallet,
+  account: string | Wallet,
 ): Promise<BigNumber> {
   const chainId = await entityProviderChainId(signer);
 
@@ -99,7 +113,7 @@ export async function balanceOfAaveUsdt(
   const accountAddress =
     typeof account === "string" ? account : await account.getAddress();
 
-  return ERC20__factory.connect(aTokenAddress, signer).balanceOf(
+  return IERC20__factory.connect(aTokenAddress, signer).balanceOf(
     accountAddress,
   );
 }
@@ -108,33 +122,38 @@ export async function balanceOfAaveUsdt(
 // === Token helpers === //
 // ===================== //
 
-async function transfer<T extends ERC20>(
-  contract: T,
-  signer: Signer,
-  ...args: Parameters<ERC20["transfer"]>
-) {
+async function transfer<T extends IERC20>(
+  contract: T | TetherToken,
+  signer: Wallet,
+  ...args: Parameters<IERC20["transfer"]>
+): Promise<ContractReceipt> {
   return contract
     .connect(signer)
     .transfer(...args)
     .then((tx) => tx.wait());
 }
 
-async function approve<T extends ERC20>(
-  contract: T,
-  signer: Signer,
-  ...args: Parameters<ERC20["approve"]>
-) {
+async function approve<T extends IERC20>(
+  contract: T | TetherToken,
+  signer: Wallet,
+  ...args: Parameters<IERC20["approve"]>
+): Promise<ContractReceipt> {
   return contract
     .connect(signer)
     .approve(...args)
-    .then((tx) => tx.wait());
+    .then((tx) => tx.wait())
+    .catch(async () => {
+      // Similar to force approve for tokes who require reseting allowance to 0
+      await contract.approve(args[0], 0).then((tx) => tx.wait());
+      return await contract.approve(...args).then((tx) => tx.wait());
+    });
 }
 
-async function maxApprove<T extends ERC20>(
-  contract: T,
-  signer: Signer,
+async function maxApprove<T extends IERC20>(
+  contract: T | TetherToken,
+  signer: Wallet,
   spender: string,
-) {
+): Promise<ContractReceipt> {
   return contract
     .connect(signer)
     .approve(spender, BigNumber.from(2).pow(256))
@@ -142,11 +161,11 @@ async function maxApprove<T extends ERC20>(
 }
 
 async function getTokens(
-  signer: Signer,
+  signer: Wallet,
   token: string,
   to: string,
   amount: BigNumberish,
-) {
+): Promise<ContractReceipt> {
   const chainId = await entityProviderChainId(signer);
 
   const uniswapFactory = uniswapV2Factory(chainId);
@@ -154,9 +173,9 @@ async function getTokens(
 
   const wethAddress = wethTokenAddress(chainId);
   const pool = await dexFactory.getPair(token, wethAddress);
-  const poolSigner = await impersonateAccount(pool);
+  const poolWallet = await impersonateAccount(pool);
 
-  return ERC20__factory.connect(token, poolSigner)
+  return IERC20__factory.connect(token, poolWallet)
     .transfer(to, amount)
     .then((tx) => tx.wait());
 }
@@ -165,344 +184,153 @@ async function getTokens(
 // === Protocol config === //
 // ======================= //
 
-type CoverRefundConfig = {
-  shortCoverDuration: number;
-  refundRate: number;
-  basePenaltyRate: number;
-  durationPenaltyRate: number;
-};
-
-export async function setCoverRefundConfig(
-  owner: Signer,
-  contract: StakingPolicy,
-  config: CoverRefundConfig,
-): Promise<ContractTransaction> {
-  await contract
-    .connect(owner)
-    .setShortCoverDuration(config.shortCoverDuration);
-
-  return contract
-    .connect(owner)
-    .setRefundAndPenaltyRate(
-      config.refundRate,
-      config.basePenaltyRate,
-      config.durationPenaltyRate,
-    );
-}
-
-export async function depositRewardsToVault(
-  owner: Signer,
-  atenContract: ATEN,
-  vaultContract: TokenVault,
-  amount: BigNumberish,
-): Promise<ContractTransaction> {
-  await atenContract
-    .connect(owner)
-    .approve(vaultContract.address, BigNumber.from(amount).mul(2));
-  await vaultContract.connect(owner).depositCoverRefundRewards(amount);
-  return vaultContract.connect(owner).depositStakingRewards(amount);
-}
-
 // ============================ //
 // === Admin action helpers === //
 // ============================ //
-
-async function addNewProtocolPool(
-  contract: Athena,
-  protocolPoolName: string,
-  tokenAddress?: string,
-  incompatiblePoolIds: number[] = [],
-  withdrawDelay: number = 14 * 24 * 60 * 60,
-) {
-  const chainId = await entityProviderChainId(contract);
-  const asset = tokenAddress || usdtTokenAddress(chainId);
-
-  return contract.addNewProtocol(
-    asset,
-    protocolPoolName,
-    incompatiblePoolIds,
-    withdrawDelay,
-    `bafybeiafebm3zdtzmn5mcquacgd47enhsjnebvegnzfun${protocolPoolName}`,
-    BigNumber.from(75).mul(BigNumber.from(10).pow(27)), // uOptimal_
-    BigNumber.from(1).mul(BigNumber.from(10).pow(27)), // r0_
-    BigNumber.from(5).mul(BigNumber.from(10).pow(27)), // rSlope1_
-    BigNumber.from(11).mul(BigNumber.from(10).pow(26)), // rSlope2_
-  );
-}
 
 // =========================== //
 // === User action helpers === //
 // =========================== //
 
-async function deposit(
-  contract: Athena,
-  tokenHelpers: TokenHelpers,
-  user: Signer,
-  USDT_amount: BigNumberish,
-  ATEN_amount: BigNumberish,
-  protocols: number[],
-  timeLapse: number,
-) {
-  const account = await user.getAddress();
+// ======== LP Positions ======== //
 
-  await tokenHelpers.getUsdt(account, USDT_amount);
-  await tokenHelpers.approveUsdt(user, contract.address, USDT_amount);
-
-  if (BigNumber.from(ATEN_amount).gt(0)) {
-    await tokenHelpers.getAten(account, ATEN_amount);
-    await tokenHelpers.approveAten(user, contract.address, ATEN_amount);
-
-    await (await contract.connect(user).stakeAtens(ATEN_amount)).wait();
-  }
-
-  await setNextBlockTimestamp(timeLapse);
-
-  await contract.connect(user).deposit(USDT_amount, protocols);
-}
-
-async function buyPolicy(
-  contract: Athena,
-  tokenHelpers: TokenHelpers,
-  user: Signer,
-  capital: BigNumberish,
-  premium: BigNumberish,
-  atensLocked: BigNumberish,
-  poolId: number,
-  timeLapse: number,
-) {
-  const account = await user.getAddress();
-
-  await tokenHelpers.getUsdt(account, premium);
-  await tokenHelpers.approveUsdt(user, contract.address, premium);
-
-  if (BigNumber.from(atensLocked).gt(0)) {
-    await tokenHelpers.getAten(account, atensLocked);
-    await tokenHelpers.approveAten(user, contract.address, atensLocked);
-  }
-
-  if (timeLapse) {
-    await setNextBlockTimestamp(timeLapse);
-  }
-
-  return await contract
-    .connect(user)
-    .buyPolicies([capital], [premium], [atensLocked], [poolId]);
-}
-
-async function buyPolicies(
-  contract: Athena,
-  tokenHelpers: TokenHelpers,
-  user: Signer,
-  capital: BigNumberish[],
-  premium: BigNumberish[],
-  atensLocked: BigNumberish[],
-  poolId: number[],
-  timeLapse: number,
-) {
-  const account = await user.getAddress();
-
-  const premiumTotal = premium.reduce(
-    (acc: BigNumber, el) => acc.add(BigNumber.from(el)),
-    BigNumber.from(0),
-  );
-
-  const atensLockedTotal = atensLocked.reduce(
-    (acc: BigNumber, el) => acc.add(BigNumber.from(el)),
-    BigNumber.from(0),
-  );
-
-  await tokenHelpers.getUsdt(account, premiumTotal);
-  await tokenHelpers.approveUsdt(user, contract.address, premiumTotal);
-
-  if (atensLockedTotal.gt(0)) {
-    await tokenHelpers.getAten(account, atensLockedTotal);
-    await tokenHelpers.approveAten(user, contract.address, atensLockedTotal);
-  }
-
-  await setNextBlockTimestamp(timeLapse);
-
-  return await contract
-    .connect(user)
-    .buyPolicies(capital, premium, atensLocked, poolId);
-}
-
-async function createClaim(
-  contract: ClaimManager,
-  policyHolder: Signer,
-  coverId: number,
-  amountClaimed: string | number,
-  valueOverride?: BigNumberish,
-) {
-  // Get the cost of arbitration + challenge collateral
-  const [arbitrationCost, collateralAmount] = await Promise.all([
-    contract.connect(policyHolder).arbitrationCost(),
-    contract.connect(policyHolder).collateralAmount(),
+async function createPosition(
+  contract: LiquidityManager,
+  user: Wallet,
+  amount: BigNumberish,
+  poolIds: number[],
+): Promise<ContractReceipt> {
+  const [userAccount, token] = await Promise.all([
+    user.getAddress(),
+    contract
+      .poolInfo(poolIds[0])
+      .then((poolInfo) =>
+        IERC20__factory.connect(poolInfo.underlyingAsset, user),
+      ),
   ]);
 
-  const valueForTx = valueOverride || arbitrationCost.add(collateralAmount);
+  await Promise.all([
+    getTokens(user, token.address, userAccount, amount),
+    token.connect(user).approve(contract.address, amount),
+  ]);
 
-  const ipfsCid = "QmaRxRRcQXFRzjrr4hgBydu6QetaFr687kfd9EjtoLaSyq";
-
-  const hash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(ipfsCid));
-  const signature = await evidenceGuardianWallet().signMessage(
-    ethers.utils.arrayify(hash),
-  );
-
-  // Create the claim
-  await contract
-    .connect(policyHolder)
-    .initiateClaim(coverId, amountClaimed, ipfsCid, signature, {
-      value: valueForTx,
-    });
-}
-
-async function resolveClaimWithoutDispute(
-  contract: ClaimManager,
-  policyHolder: Signer,
-  coverId: number,
-  timeLapse: number,
-) {
-  const claimIds = await contract
-    .connect(policyHolder)
-    .getCoverIdToClaimIds(coverId);
-
-  const latestClaimId = claimIds[claimIds.length - 1];
-
-  await setNextBlockTimestamp(timeLapse);
-
-  await contract
-    .connect(policyHolder)
-    .withdrawCompensationWithoutDispute(latestClaimId);
-}
-
-async function takeInterest(
-  contract: Athena,
-  user: Signer,
-  tokenId: BigNumberish,
-  poolId: number,
-  timeLapse: number,
-  eventIndex: number = 0,
-) {
-  await setNextBlockTimestamp(timeLapse);
-
-  const txReceipt = await contract
+  return contract
     .connect(user)
-    .takeInterest(tokenId, poolId)
+    .createPosition(amount, poolIds)
     .then((tx) => tx.wait());
-
-  const event = txReceipt.events?.[eventIndex];
-  if (!event) throw new Error("Event not found");
-
-  return (
-    await getProtocolPoolContract(contract, user, 0)
-  ).interface.decodeEventLog(event.topics[0], event.data);
 }
 
-async function stakingGeneralPoolDeposit(
-  contract: Athena,
-  tokenHelpers: TokenHelpers,
-  user: Signer,
-  amount: BigNumberish,
-) {
-  const account = await user.getAddress();
+// ======== Covers ======== //
 
-  await tokenHelpers.getAten(account, amount);
-  await tokenHelpers.approveAten(user, contract.address, amount);
+async function buyCover(
+  contract: LiquidityManager,
+  user: Wallet,
+  poolId: number,
+  coverAmount: BigNumberish,
+  premiums: BigNumberish,
+): Promise<ContractReceipt> {
+  const [userAccount, token] = await Promise.all([
+    user.getAddress(),
+    contract
+      .poolInfo(poolId)
+      .then((poolInfo) =>
+        IERC20__factory.connect(poolInfo.underlyingAsset, user),
+      ),
+  ]);
 
-  return contract.connect(user).stakeAtens(amount);
+  await Promise.all([
+    getTokens(user, token.address, userAccount, premiums),
+    token.connect(user).approve(contract.address, premiums),
+  ]);
+
+  return contract
+    .connect(user)
+    .buyCover(poolId, coverAmount, premiums)
+    .then((tx) => tx.wait());
 }
 
-async function updateCover(
-  contract: Athena,
-  tokenHelpers: TokenHelpers,
-  user: Signer,
-  action:
-    | "increaseCover"
-    | "decreaseCover"
-    | "addPremiums"
-    | "removePremiums"
-    | "addToCoverRefundStake"
-    | "withdrawCoverRefundStakedAten",
-  coverId: BigNumberish,
-  amount: BigNumberish,
-) {
-  const account = await user.getAddress();
+// async function updateCover(
+//   contract: LiquidityManager,
+//   tokenHelpers: TokenHelpers,
+//   user: Wallet,
+//   action:
+//     | "increaseCover"
+//     | "decreaseCover"
+//     | "addPremiums"
+//     | "removePremiums"
+//     | "addToCoverRefundStake"
+//     | "withdrawCoverRefundStakedAten",
+//   coverId: BigNumberish,
+//   amount: BigNumberish,
+// ): Promise<ContractReceipt> {
+//   const account = await user.getAddress();
 
-  if (action === "addPremiums") {
-    await tokenHelpers.getUsdt(account, amount);
-    await tokenHelpers.approveUsdt(user, contract.address, amount);
-  }
-  if (action === "addToCoverRefundStake") {
-    await tokenHelpers.getAten(account, amount);
-    await tokenHelpers.approveAten(user, contract.address, amount);
-  }
+//   if (action === "addPremiums") {
+//     await tokenHelpers.getUsdt(account, amount);
+//     await tokenHelpers.approveUsdt(user, contract.address, amount);
+//   }
+//   if (action === "addToCoverRefundStake") {
+//     await tokenHelpers.getAten(account, amount);
+//     await tokenHelpers.approveAten(user, contract.address, amount);
+//   }
 
-  return (await contract.connect(user)[action](coverId, amount)).wait();
-}
+//   return (await contract.connect(user)[action](coverId, amount)).wait();
+// }
+
+// ======== Claims ======== //
+
+// async function createClaim(
+//   contract: ClaimManager,
+//   policyHolder: Wallet,
+//   coverId: number,
+//   amountClaimed: string | number,
+//   valueOverride?: BigNumberish,
+// ): Promise<ContractReceipt> {
+//   // Get the cost of arbitration + challenge collateral
+//   const [arbitrationCost, collateralAmount] = await Promise.all([
+//     contract.connect(policyHolder).arbitrationCost(),
+//     contract.connect(policyHolder).collateralAmount(),
+//   ]);
+
+//   const valueForTx = valueOverride || arbitrationCost.add(collateralAmount);
+
+//   const ipfsCid = "QmaRxRRcQXFRzjrr4hgBydu6QetaFr687kfd9EjtoLaSyq";
+
+//   const hash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(ipfsCid));
+//   const signature = await evidenceGuardianWallet().signMessage(
+//     ethers.utils.arrayify(hash),
+//   );
+
+//   // Create the claim
+//   await contract
+//     .connect(policyHolder)
+//     .initiateClaim(coverId, amountClaimed, ipfsCid, signature, {
+//       value: valueForTx,
+//     });
+// }
+
+// async function resolveClaimWithoutDispute(
+//   contract: ClaimManager,
+//   policyHolder: Wallet,
+//   coverId: number,
+//   timeLapse: number,
+// ): Promise<ContractReceipt> {
+//   const claimIds = await contract
+//     .connect(policyHolder)
+//     .getCoverIdToClaimIds(coverId);
+
+//   const latestClaimId = claimIds[claimIds.length - 1];
+
+//   await setNextBlockTimestamp(timeLapse);
+
+//   await contract
+//     .connect(policyHolder)
+//     .withdrawCompensationWithoutDispute(latestClaimId);
+// }
 
 // ==================== //
 // === View helpers === //
 // ==================== //
-
-async function getProtocolPoolDataById(
-  contract: Athena,
-  protocolPoolId: number,
-) {
-  return contract.getProtocol(protocolPoolId);
-}
-
-async function getProtocolPoolContract(
-  contract: Athena,
-  user: Signer,
-  poolId: number,
-): Promise<ProtocolPool> {
-  const poolInfo = await contract.connect(user).getProtocol(poolId);
-  return ProtocolPool__factory.connect(poolInfo.deployed, user);
-}
-
-async function getAllUserCovers(contract: PolicyManager, user: Signer) {
-  const account = await user.getAddress();
-  return contract.connect(user).fullCoverDataByAccount(account);
-}
-
-async function getOngoingCovers(contract: PolicyManager, user: Signer) {
-  const account = await user.getAddress();
-  const allCovers = await contract
-    .connect(user)
-    .fullCoverDataByAccount(account);
-
-  return allCovers.filter((cover) => cover.endTimestamp.eq(0));
-}
-
-async function getExpiredCovers(contract: PolicyManager, user: Signer) {
-  const account = await user.getAddress();
-  const allCovers = await contract
-    .connect(user)
-    .fullCoverDataByAccount(account);
-
-  return allCovers.filter((cover) => !cover.endTimestamp.eq(0));
-}
-
-async function getAccountCoverIdByIndex(
-  contract: PolicyManager,
-  user: Signer,
-  index: number,
-) {
-  const account = await user.getAddress();
-  const allCoverIds = await contract
-    .connect(user)
-    .allPolicyTokensOfOwner(account);
-
-  return allCoverIds[index];
-}
-
-async function getPoolOverlap(
-  contract: PositionsManager,
-  poolA: BigNumberish,
-  poolB: BigNumberish,
-) {
-  return contract.getOverlappingCapital(poolA, poolB);
-}
 
 // ============================ //
 // === Test context helpers === //
@@ -535,70 +363,46 @@ type TokenHelpers = {
 
 export type TestHelper = TokenHelpers & {
   // config / admin
-  addNewProtocolPool: OmitFirstArg<typeof addNewProtocolPool>;
   // write
-  deposit: OmitFirstTwoArgs<typeof deposit>;
-  buyPolicy: OmitFirstTwoArgs<typeof buyPolicy>;
-  buyPolicies: OmitFirstTwoArgs<typeof buyPolicies>;
-  createClaim: OmitFirstArg<typeof createClaim>;
-  resolveClaimWithoutDispute: OmitFirstArg<typeof resolveClaimWithoutDispute>;
-  takeInterest: OmitFirstArg<typeof takeInterest>;
-  stakingGeneralPoolDeposit: OmitFirstTwoArgs<typeof stakingGeneralPoolDeposit>;
-  updateCover: OmitFirstTwoArgs<typeof updateCover>;
+  createPosition: OmitFirstArg<typeof createPosition>;
+  buyCover: OmitFirstArg<typeof buyCover>;
+  // stakingGeneralPoolDeposit: OmitFirstTwoArgs<typeof stakingGeneralPoolDeposit>;
+  // updateCover: OmitFirstTwoArgs<typeof updateCover>;
   // read
-  getProtocolPoolDataById: OmitFirstArg<typeof getProtocolPoolDataById>;
-  getProtocolPoolContract: OmitFirstArg<typeof getProtocolPoolContract>;
-  getAllUserCovers: OmitFirstArg<typeof getAllUserCovers>;
-  getOngoingCovers: OmitFirstArg<typeof getOngoingCovers>;
-  getExpiredCovers: OmitFirstArg<typeof getExpiredCovers>;
-  getAccountCoverIdByIndex: OmitFirstArg<typeof getAccountCoverIdByIndex>;
-  getPoolOverlap: OmitFirstArg<typeof getPoolOverlap>;
+  // getAccountCoverIdByIndex: OmitFirstArg<typeof getAccountCoverIdByIndex>;
 };
 
 export async function makeTestHelpers(
-  deployer: Signer,
+  deployer: Wallet,
   contracts: ProtocolContracts,
 ): Promise<TestHelper> {
-  const { ATEN, USDT, Athena, PositionsManager, PolicyManager, ClaimManager } =
+  const { AthenaToken, TetherToken, LiquidityManager, ClaimManager } =
     contracts;
 
   const tokenHelpers: TokenHelpers = {
-    transferAten: (...args) => transfer(ATEN, ...args),
-    transferUsdt: (...args) => transfer(USDT, ...args),
-    approveAten: (...args) => approve(ATEN, ...args),
-    approveUsdt: (...args) => approve(USDT, ...args),
-    maxApproveAten: (...args) => maxApprove(ATEN, ...args),
-    maxApproveUsdt: (...args) => maxApprove(USDT, ...args),
+    transferAten: (...args) => transfer(AthenaToken, ...args),
+    transferUsdt: (...args) => transfer(TetherToken, ...args),
+    approveAten: (...args) => approve(AthenaToken, ...args),
+    approveUsdt: (...args) => approve(TetherToken, ...args),
+    maxApproveAten: (...args) => maxApprove(AthenaToken, ...args),
+    maxApproveUsdt: (...args) => maxApprove(TetherToken, ...args),
     balanceOfAaveUsdt: (...args) => balanceOfAaveUsdt(deployer, ...args),
-    getUsdt: (...args) => getTokens(deployer, USDT.address, ...args),
-    getAten: (...args) => transfer(ATEN, deployer, ...args),
+    getUsdt: (...args) => getTokens(deployer, TetherToken.address, ...args),
+    getAten: (...args) => transfer(AthenaToken, deployer, ...args),
   };
 
   return {
     // config / admin
-    addNewProtocolPool: (...args) => addNewProtocolPool(Athena, ...args),
     // write
-    deposit: (...args) => deposit(Athena, tokenHelpers, ...args),
-    buyPolicy: (...args) => buyPolicy(Athena, tokenHelpers, ...args),
-    buyPolicies: (...args) => buyPolicies(Athena, tokenHelpers, ...args),
-    createClaim: (...args) => createClaim(ClaimManager, ...args),
-    resolveClaimWithoutDispute: (...args) =>
-      resolveClaimWithoutDispute(ClaimManager, ...args),
-    takeInterest: (...args) => takeInterest(Athena, ...args),
-    stakingGeneralPoolDeposit: (...args) =>
-      stakingGeneralPoolDeposit(Athena, tokenHelpers, ...args),
-    updateCover: (...args) => updateCover(Athena, tokenHelpers, ...args),
+    createPosition: (...args) => createPosition(LiquidityManager, ...args),
+    buyCover: (...args) => buyCover(LiquidityManager, ...args),
+    // stakingGeneralPoolDeposit: (...args) =>
+    //   stakingGeneralPoolDeposit(LiquidityManager, tokenHelpers, ...args),
+    // updateCover: (...args) =>
+    //   updateCover(LiquidityManager, tokenHelpers, ...args),
     // read
-    getProtocolPoolDataById: (...args) =>
-      getProtocolPoolDataById(Athena, ...args),
-    getProtocolPoolContract: (...args) =>
-      getProtocolPoolContract(Athena, ...args),
-    getAllUserCovers: (...args) => getAllUserCovers(PolicyManager, ...args),
-    getOngoingCovers: (...args) => getOngoingCovers(PolicyManager, ...args),
-    getExpiredCovers: (...args) => getExpiredCovers(PolicyManager, ...args),
-    getAccountCoverIdByIndex: (...args) =>
-      getAccountCoverIdByIndex(PolicyManager, ...args),
-    getPoolOverlap: (...args) => getPoolOverlap(PositionsManager, ...args),
+    // getAccountCoverIdByIndex: (...args) =>
+    //   getAccountCoverIdByIndex(LiquidityManager, ...args),
     // Token
     ...tokenHelpers,
   };
