@@ -1,44 +1,31 @@
 import { expect } from "chai";
-import hre, { ethers } from "hardhat";
+import { ethers } from "hardhat";
 // Helpers
-import {
-  deployMockArbitrator,
-  deployAthenaCoverToken,
-  deployAthenaPositionToken,
-  deployAthenaToken,
-  deployClaimManager,
-  deployEcclesiaDao,
-  deployLiquidityManager,
-  deployRewardManager,
-  deployStrategyManager,
-  deployAllContractsAndInitializeProtocol,
-} from "../helpers/deployers";
-import { genContractAddress, getCurrentBlockNumber } from "../helpers/hardhat";
-// Types
-import { BaseContract } from "ethers";
+import {} from "../helpers/hardhat";
 
-export function liquidityManagerTest() {
+export function liquidityManager() {
   context("Liquidity Manager", function () {
     before(async function () {});
 
-    it("can create pools", function () {});
+    it("can create pools", async function () {
+    });
 
-    it("accepts LPs", function () {});
-    it("accepts covers", function () {});
+    it("accepts LPs", async function () {});
+    it("accepts covers", async function () {});
 
-    it("has coherent state", function () {});
-    it("has lasting coherent state ", function () {});
+    it("has coherent state", async function () {});
+    it("has lasting coherent state ", async function () {});
 
-    it("can update LPs", function () {});
-    it("can update cover", function () {});
+    it("can update LPs", async function () {});
+    it("can update cover", async function () {});
 
-    it("has coherent state", function () {});
-    it("has lasting coherent state", function () {});
+    it("has coherent state", async function () {});
+    it("has lasting coherent state", async function () {});
 
-    it("can close cover", function () {});
-    it("can close LPs", function () {});
+    it("can close cover", async function () {});
+    it("can close LPs", async function () {});
 
-    it("has coherent state", function () {});
-    it("has lasting coherent state", function () {});
+    it("has coherent state", async function () {});
+    it("has lasting coherent state", async function () {});
   });
 }

@@ -17,7 +17,7 @@ import { genContractAddress, getCurrentBlockNumber } from "../helpers/hardhat";
 // Types
 import { BaseContract } from "ethers";
 
-export function deployProtocolTest() {
+export function deployProtocol() {
   context("Setup protocol", function () {
     before(async function () {
       const deploymentOrder = [
