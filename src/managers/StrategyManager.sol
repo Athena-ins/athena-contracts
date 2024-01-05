@@ -103,6 +103,37 @@ contract StrategyManager is Ownable {
     return usdt;
   }
 
+  function wrappedAsset(
+    uint256 strategyId_
+  ) external view checkId(strategyId_) returns (address) {
+    return ausdt;
+  }
+
+  function assets(
+    uint256 strategyId_
+  ) external view checkId(strategyId_) returns (address, address) {
+    return (usdt, ausdt);
+  }
+
+  // To be called by liq manager to compute how many underlying the user has supplied
+  function wrappedToUnderlying(
+    uint256 strategyId_,
+    uint256 amountWrapped_
+  ) public view checkId(strategyId_) returns (uint256) {
+    uint256 index = getRewardIndex(strategyId_);
+    // @bw to be checked
+    return (amountWrapped_ * index) / RayMath.RAY;
+  }
+
+  function underlyingToWrapped(
+    uint256 strategyId_,
+    uint256 amountUnderlying_
+  ) public view checkId(strategyId_) returns (uint256) {
+    uint256 index = getRewardIndex(strategyId_);
+    // @bw to be checked
+    return (amountUnderlying_ * RayMath.RAY) / index;
+  }
+
   //======== UNDERLYING I/O ========//
 
   function depositToStrategy(
@@ -149,6 +180,48 @@ contract StrategyManager is Ownable {
     data.startRewardIndex = getRewardIndex(strategyId_);
     data.accumulatedRewards = 0;
   }
+
+  //======== WRAPPED I/O ========//
+
+  function depositWrappedToStrategy(
+    uint256 strategyId_,
+    uint256 tokenId_
+  ) external checkId(strategyId_) onlyLiquidityManager {
+    PositionData storage data = positionData[tokenId_];
+
+    // If there is already a position then save current rewards
+    if (data.startRewardIndex != 0) {
+      data.accumulatedRewards = rewardsOf(strategyId_, tokenId_);
+    }
+
+    // Set the reward index to track future rewards
+    data.startRewardIndex = getRewardIndex(strategyId_);
+
+    // No need to deposit wrapped asset into strategy
+  }
+
+  function withdrawWrappedFromStrategy(
+    uint256 strategyId_,
+    uint256 tokenId_,
+    uint256 amountUnderlying_,
+    address account_,
+    uint256 /*feeDiscount_*/
+  ) external checkId(strategyId_) onlyLiquidityManager {
+    PositionData storage data = positionData[tokenId_];
+
+    // Compute latest rewards
+    uint256 rewards = rewardsOf(strategyId_, tokenId_);
+    uint256 total = amountUnderlying_ + rewards;
+
+    // Compute amount of wrapped to send to account
+    uint256 amountWrapped = underlyingToWrapped(strategyId_, total);
+    IERC20(ausdt).safeTransfer(account_, amountWrapped);
+
+    // Reset accumulated rewards
+    data.startRewardIndex = getRewardIndex(strategyId_);
+    data.accumulatedRewards = 0;
+  }
+
   //======== TAKE INTERESTS ========//
 
   function withdrawRewards(
