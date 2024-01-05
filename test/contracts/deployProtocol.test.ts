@@ -12,7 +12,7 @@ import {
   deployRewardManager,
   deployStrategyManager,
 } from "../helpers/deployers";
-import { genContractAddress } from "../helpers/hardhat";
+import { genContractAddress, getCurrentBlockNumber } from "../helpers/hardhat";
 // Types
 import { BaseContract } from "ethers";
 
@@ -101,13 +101,13 @@ export function deployProtocolTest() {
         );
       });
       it("deploys RewardManager", async function () {
+        const campaignStartBlock = (await getCurrentBlockNumber()) + 4;
         const rewardManager = await deployRewardManager(this.signers.deployer, [
-          this.signers.deployer.address,
           this.deployedAt.LiquidityManager,
           this.deployedAt.AthenaPositionToken,
           this.deployedAt.AthenaCoverToken,
           this.deployedAt.AthenaToken,
-          0,
+          campaignStartBlock,
           [],
         ]);
         await postDeployCheck(rewardManager, this.deployedAt.RewardManager);
