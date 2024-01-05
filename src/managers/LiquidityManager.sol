@@ -214,26 +214,29 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
     uint128 poolId = nextPoolId;
     nextPoolId++;
 
-    // Get storage pointer to pool
-    VirtualPool.VPool storage pool = pools[poolId];
-
     (address underlyingAsset, address wrappedAsset) = strategyManager
       .assets(strategyId_);
 
+    // Create virtual pool argument struct
+    VirtualPool.VPoolConstructorParams memory args = VirtualPool
+      .VPoolConstructorParams({
+        poolId: poolId,
+        strategyId: strategyId_,
+        paymentAsset: paymentAsset_,
+        underlyingAsset: underlyingAsset,
+        wrappedAsset: wrappedAsset,
+        protocolShare: protocolShare_, //Ray
+        uOptimal: uOptimal_, //Ray
+        r0: r0_, //Ray
+        rSlope1: rSlope1_, //Ray
+        rSlope2: rSlope2_, //Ray
+        coverSize: coverSize
+      });
+
+    // Get storage pointer to pool
+    VirtualPool.VPool storage pool = pools[poolId];
     // Create virtual pool
-    pool._vPoolConstructor(
-      poolId,
-      strategyId_,
-      paymentAsset_,
-      underlyingAsset,
-      wrappedAsset,
-      protocolShare_, //Ray
-      uOptimal_, //Ray
-      r0_, //Ray
-      rSlope1_, //Ray
-      rSlope2_, //Ray
-      coverSize
-    );
+    pool._vPoolConstructor(args);
 
     // Add compatible pools
     // @dev Registered both ways for safety

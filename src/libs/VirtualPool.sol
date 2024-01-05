@@ -98,48 +98,53 @@ library VirtualPool {
 
   // ======= VIRTUAL CONSTRUCTOR ======= //
 
+  struct VPoolConstructorParams {
+    uint128 poolId;
+    uint256 strategyId;
+    address paymentAsset;
+    address underlyingAsset;
+    address wrappedAsset;
+    uint256 protocolShare; //Ray
+    uint256 uOptimal; //Ray
+    uint256 r0; //Ray
+    uint256 rSlope1; //Ray
+    uint256 rSlope2; //Ray
+    // Function pointer to child contract cover data
+    function(uint256) view returns (uint256) coverSize;
+  }
+
   function _vPoolConstructor(
     VPool storage self,
-    uint128 poolId,
-    uint256 strategyId_,
-    address paymentAsset_,
-    address underlyingAsset_,
-    address wrappedAsset_,
-    uint256 protocolShare_, //Ray
-    uint256 uOptimal_, //Ray
-    uint256 r0_, //Ray
-    uint256 rSlope1_, //Ray
-    uint256 rSlope2_, //Ray
-    // Function pointer to child contract cover data
-    function(uint256) view returns (uint256) coverSize_
+    VPoolConstructorParams memory params
   ) internal {
     if (
-      underlyingAsset_ == address(0) || paymentAsset_ == address(0)
+      params.underlyingAsset == address(0) ||
+      params.paymentAsset == address(0)
     ) {
       revert ZeroAddressAsset();
     }
 
-    self.poolId = poolId;
-    self.paymentAsset = paymentAsset_;
-    self.strategyId = strategyId_;
-    self.underlyingAsset = underlyingAsset_;
-    self.wrappedAsset = wrappedAsset_;
-    self.protocolShare = protocolShare_;
+    self.poolId = params.poolId;
+    self.paymentAsset = params.paymentAsset;
+    self.strategyId = params.strategyId;
+    self.underlyingAsset = params.underlyingAsset;
+    self.wrappedAsset = params.wrappedAsset;
+    self.protocolShare = params.protocolShare;
 
     self.f = Formula({
-      uOptimal: uOptimal_,
-      r0: r0_,
-      rSlope1: rSlope1_,
-      rSlope2: rSlope2_
+      uOptimal: params.uOptimal,
+      r0: params.r0,
+      rSlope1: params.rSlope1,
+      rSlope2: params.rSlope2
     });
 
     self.slot0.secondsPerTick = 86400;
     self.slot0.lastUpdateTimestamp = block.timestamp;
 
-    self.overlappedPools[0] = poolId;
-    self.overlaps[poolId] = 1; // 1 wei
+    self.overlappedPools[0] = params.poolId;
+    self.overlaps[params.poolId] = 1; // 1 wei
 
-    self.coverSize = coverSize_;
+    self.coverSize = params.coverSize;
   }
 
   // ======= EVENTS ======= //
