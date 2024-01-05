@@ -1,22 +1,7 @@
+import { ProtocolConfig, ProtocolContracts } from "./helpers/deployers";
+import { TestHelper } from "./helpers/protocol";
+// Types
 import { Wallet } from "ethers";
-import {
-  ATEN,
-  CentralizedArbitrator,
-  Athena,
-  ProtocolFactory,
-  PriceOracleV1,
-  TokenVault,
-  PositionsManager,
-  PolicyManager,
-  ClaimManager,
-  StakingGeneralPool,
-  StakingPolicy,
-} from "../typechain";
-import {
-  ProtocolConfig,
-  ProtocolContracts,
-  TestHelper,
-} from "./helpers/protocol";
 
 type ContextSigners = {
   deployer: Wallet;

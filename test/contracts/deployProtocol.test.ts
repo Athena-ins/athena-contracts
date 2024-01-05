@@ -11,13 +11,14 @@ import {
   deployLiquidityManager,
   deployRewardManager,
   deployStrategyManager,
+  deployAllContractsAndInitializeProtocol,
 } from "../helpers/deployers";
 import { genContractAddress, getCurrentBlockNumber } from "../helpers/hardhat";
 // Types
 import { BaseContract } from "ethers";
 
 export function deployProtocolTest() {
-  describe("Setup protocol", function () {
+  context("Setup protocol", function () {
     before(async function () {
       const deploymentOrder = [
         "AthenaCoverToken",
@@ -31,16 +32,15 @@ export function deployProtocolTest() {
         "MockArbitrator",
       ];
 
-      this.deployedAt = {};
-
-      await Promise.all(
-        deploymentOrder.map((name, i) =>
+      this.deployedAt = await deploymentOrder.reduce(
+        (acc, name, i) =>
           genContractAddress(hre, this.signers.deployer.address, i).then(
-            (address) => {
-              this.deployedAt[name] = address;
-            },
+            async (address) => ({
+              ...(await acc),
+              [name]: address,
+            }),
           ),
-        ),
+        {} as Promise<{ [name: string]: string }>,
       );
     });
 
@@ -58,7 +58,7 @@ export function deployProtocolTest() {
       expect((await ethers.provider.getCode(contract.address)).length).gt(2);
     }
 
-    context("Deploy contracts", function () {
+    describe("Single contracts", function () {
       // ======= Tokens ======= //
 
       it("deploys AthenaCoverToken", async function () {
@@ -147,6 +147,25 @@ export function deployProtocolTest() {
         ]).then((contract) =>
           postDeployCheck(contract, this.deployedAt.MockArbitrator),
         );
+      });
+
+      // ======= Whole protocol ======= //
+    });
+
+    describe("Protocol", function () {
+      it("deploys the protocol", async function () {
+        const contracts = await deployAllContractsAndInitializeProtocol(
+          this.signers.deployer,
+          this.protocolConfig,
+        );
+
+        expect(Object.keys(contracts).length).to.equal(12);
+
+        for (const contract of Object.values(contracts)) {
+          expect((await ethers.provider.getCode(contract.address)).length).gt(
+            2,
+          );
+        }
       });
     });
   });
