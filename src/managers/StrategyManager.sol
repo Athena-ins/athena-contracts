@@ -30,8 +30,8 @@ contract StrategyManager is Ownable {
 
   ILendingPool public aaveLendingPool =
     ILendingPool(0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9); // AAVE lending pool v2
-  address public usdt = 0xdAC17F958D2ee523a2206206994597C13D831ec7; // USDT
-  address public ausdt = 0x3Ed3B47Dd13EC9a98b44e6204A523E766B225811; // aUSDT v2
+  address public usdt = 0xdAC17F958D2ee523a2206206994597C13D831ec7; // underlyingAsset (USDT)
+  address public ausdt = 0x3Ed3B47Dd13EC9a98b44e6204A523E766B225811; // wrappedAsset (aUSDT v2)
 
   struct PositionData {
     // uint256 strategyId; // Unused in StrategyManager v0
@@ -57,6 +57,11 @@ contract StrategyManager is Ownable {
     _;
   }
 
+  modifier checkId(uint256 strategyId_) {
+    if (strategyId_ != 0) revert NotAValidStrategy();
+    _;
+  }
+
   //======== VIEWS ========//
 
   /**
@@ -67,21 +72,17 @@ contract StrategyManager is Ownable {
    */
   function getRewardIndex(
     uint256 strategyId_
-  ) public view returns (uint256) {
-    if (strategyId_ != 0) revert NotAValidStrategy();
+  ) public view checkId(strategyId_) returns (uint256) {
     return aaveLendingPool.getReserveNormalizedIncome(usdt);
   }
 
   function rewardsOf(
     uint256 strategyId_,
     uint256 tokenId_
-  ) public view returns (uint256) {
-    if (strategyId_ != 0) revert NotAValidStrategy();
-
+  ) public view checkId(strategyId_) returns (uint256) {
     PositionData storage data = positionData[tokenId_];
-    uint256 startIndex = data.startRewardIndex;
-    uint256 accumulated = data.accumulatedRewards;
 
+    uint256 startIndex = data.startRewardIndex;
     uint256 currentIndex = getRewardIndex(strategyId_);
 
     if (startIndex < currentIndex) {
@@ -90,28 +91,25 @@ contract StrategyManager is Ownable {
       uint256 indexDelta = currentIndex - startIndex;
       uint256 newRewards = (supplied * indexDelta) / RayMath.RAY;
 
-      return newRewards + accumulated;
+      return newRewards + data.accumulatedRewards;
     } else {
-      return accumulated;
+      return data.accumulatedRewards;
     }
   }
 
   function underlyingAsset(
     uint256 strategyId_
-  ) external view returns (address) {
-    if (strategyId_ != 0) revert NotAValidStrategy();
+  ) external view checkId(strategyId_) returns (address) {
     return usdt;
   }
 
-  //======== FUNCTIONS ========//
+  //======== UNDERLYING I/O ========//
 
   function depositToStrategy(
     uint256 strategyId_,
     uint256 tokenId_,
     uint256 amountUnderlying_
-  ) external onlyLiquidityManager {
-    if (strategyId_ != 0) revert NotAValidStrategy();
-
+  ) external checkId(strategyId_) onlyLiquidityManager {
     PositionData storage data = positionData[tokenId_];
 
     // If there is already a position then save current rewards
@@ -138,9 +136,7 @@ contract StrategyManager is Ownable {
     uint256 amountUnderlying_,
     address account_,
     uint256 /*feeDiscount_*/
-  ) external onlyLiquidityManager {
-    if (strategyId_ != 0) revert NotAValidStrategy();
-
+  ) external checkId(strategyId_) onlyLiquidityManager {
     PositionData storage data = positionData[tokenId_];
 
     // Compute latest rewards
@@ -153,15 +149,14 @@ contract StrategyManager is Ownable {
     data.startRewardIndex = getRewardIndex(strategyId_);
     data.accumulatedRewards = 0;
   }
+  //======== TAKE INTERESTS ========//
 
   function withdrawRewards(
     uint256 strategyId_,
     uint256 tokenId_,
     address account_,
     uint256 /*feeDiscount_*/
-  ) external onlyLiquidityManager {
-    if (strategyId_ != 0) revert NotAValidStrategy();
-
+  ) external checkId(strategyId_) onlyLiquidityManager {
     PositionData storage data = positionData[tokenId_];
 
     // Compute latest rewards
@@ -175,13 +170,13 @@ contract StrategyManager is Ownable {
     data.accumulatedRewards = 0;
   }
 
+  //======== CLAIMS ========//
+
   function payoutFromStrategy(
     uint256 strategyId_,
     uint256 amountUnderlying_,
     address account_
-  ) external onlyLiquidityManager {
-    if (strategyId_ != 0) revert NotAValidStrategy();
-
+  ) external checkId(strategyId_) onlyLiquidityManager {
     // @dev No need to approve aToken since they are burned in pool
     aaveLendingPool.withdraw(usdt, amountUnderlying_, account_);
   }
