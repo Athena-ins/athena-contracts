@@ -416,14 +416,14 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
 
       strategyManager.depositWrappedToStrategy(strategyId, tokenId);
     } else {
-    address underlyingAsset = pools[poolIds[0]].underlyingAsset;
-    IERC20(underlyingAsset).safeTransferFrom(
-      msg.sender,
-      address(strategyManager),
-      amount
-    );
+      address underlyingAsset = pools[poolIds[0]].underlyingAsset;
+      IERC20(underlyingAsset).safeTransferFrom(
+        msg.sender,
+        address(strategyManager),
+        amount
+      );
 
-    strategyManager.depositToStrategy(strategyId, tokenId, amount);
+      strategyManager.depositToStrategy(strategyId, tokenId, amount);
     }
 
     positions[tokenId] = Position({
@@ -466,15 +466,15 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
 
       strategyManager.depositWrappedToStrategy(strategyId, tokenId);
     } else {
-    address underlyingAsset = pools[position.poolIds[0]]
-      .underlyingAsset;
-    IERC20(underlyingAsset).safeTransferFrom(
-      msg.sender,
-      address(strategyManager),
-      amount
-    );
+      address underlyingAsset = pools[position.poolIds[0]]
+        .underlyingAsset;
+      IERC20(underlyingAsset).safeTransferFrom(
+        msg.sender,
+        address(strategyManager),
+        amount
+      );
 
-    strategyManager.depositToStrategy(strategyId, tokenId, amount);
+      strategyManager.depositToStrategy(strategyId, tokenId, amount);
     }
 
     position.supplied += amountUnderlying;
@@ -529,8 +529,16 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
     uint256 tokenId_,
     address account_
   ) external onlyOwner onlyPositionOwner(tokenId_, account_) {
-    positions[tokenId_].commitWithdrawalTimestamp = block.timestamp;
+    Position storage position = positions[tokenId_];
+
+    position.commitWithdrawalTimestamp = block.timestamp;
+
     // @bw should lock rewards in strategy to avoid commiting upon deposit
+    uint256 strategyId = pools[position.poolIds[0]].strategyId;
+    strategyManager.lockRewardsPostWithdrawalCommit(
+      strategyId,
+      tokenId_
+    );
   }
 
   function closePosition(
@@ -569,13 +577,13 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
         feeDiscount
       );
     } else {
-    strategyManager.withdrawFromStrategy(
-      strategyId,
-      tokenId_,
-      position.supplied,
-      account_,
-      feeDiscount
-    );
+      strategyManager.withdrawFromStrategy(
+        strategyId,
+        tokenId_,
+        position.supplied,
+        account_,
+        feeDiscount
+      );
     }
 
     // Reduce position to 0 since we cannot partial withdraw

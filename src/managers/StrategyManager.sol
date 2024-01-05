@@ -224,6 +224,13 @@ contract StrategyManager is Ownable {
 
   //======== TAKE INTERESTS ========//
 
+  function lockRewardsPostWithdrawalCommit(
+    uint256 strategyId_,
+    uint256 tokenId_
+  ) external checkId(strategyId_) onlyLiquidityManager {
+    // @bw should lock rewards in strategy to avoid commiting upon deposit
+  }
+
   function withdrawRewards(
     uint256 strategyId_,
     uint256 tokenId_,
