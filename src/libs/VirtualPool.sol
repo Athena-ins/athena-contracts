@@ -57,7 +57,7 @@ library VirtualPool {
   struct VPoolInfo {
     uint128 poolId;
     uint256 protocolShare;
-    Formula f;
+    Formula formula;
     Slot0 slot0;
     uint256 liquidityIndex;
     uint256 strategyId;
@@ -71,7 +71,7 @@ library VirtualPool {
   struct VPool {
     uint128 poolId;
     uint256 protocolShare; // amount of fees on premiums
-    Formula f;
+    Formula formula;
     Slot0 slot0;
     uint256 liquidityIndex;
     uint256 strategyId;
@@ -131,7 +131,7 @@ library VirtualPool {
     self.wrappedAsset = params.wrappedAsset;
     self.protocolShare = params.protocolShare;
 
-    self.f = Formula({
+    self.formula = Formula({
       uOptimal: params.uOptimal,
       r0: params.r0,
       rSlope1: params.rSlope1,
@@ -977,18 +977,18 @@ library VirtualPool {
     VPool storage self,
     uint256 utilizationRate_
   ) private view returns (uint256) {
-    Formula storage f = self.f;
+    Formula storage formula = self.formula;
     // returns actual rate for insurance
     // @bw case for overusage ?
-    if (utilizationRate_ < f.uOptimal) {
+    if (utilizationRate_ < formula.uOptimal) {
       return
-        f.r0 + f.rSlope1.rayMul(utilizationRate_.rayDiv(f.uOptimal));
+        formula.r0 + formula.rSlope1.rayMul(utilizationRate_.rayDiv(formula.uOptimal));
     } else {
       return
-        f.r0 +
-        f.rSlope1 +
-        (f.rSlope2 * (utilizationRate_ - f.uOptimal)) /
-        (100 * RayMath.RAY - f.uOptimal) /
+        formula.r0 +
+        formula.rSlope1 +
+        (formula.rSlope2 * (utilizationRate_ - formula.uOptimal)) /
+        (100 * RayMath.RAY - formula.uOptimal) /
         100;
     }
   }

@@ -158,7 +158,7 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
       VirtualPool.VPoolInfo({
         poolId: pool.poolId,
         protocolShare: pool.protocolShare,
-        f: pool.f,
+        formula: pool.formula,
         slot0: pool.slot0,
         liquidityIndex: pool.liquidityIndex,
         strategyId: pool.strategyId,
