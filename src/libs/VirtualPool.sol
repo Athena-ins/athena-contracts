@@ -70,13 +70,14 @@ library VirtualPool {
 
   struct VPool {
     uint128 poolId;
-    uint256 protocolShare; // amount of fees on rewards
+    uint256 protocolShare; // amount of fees on premiums
     Formula f;
     Slot0 slot0;
     uint256 liquidityIndex;
     uint256 strategyId;
     address paymentAsset; // asset used to pay LP premiums
-    address underlyingAsset;
+    address underlyingAsset; // asset required by the strategy
+    address wrappedAsset; // tokenised strategy shares (ex: aTokens)
     bool isPaused;
     uint128[] overlappedPools;
     // @bw should change to ids to fetch in map to use storage pointers
@@ -100,8 +101,10 @@ library VirtualPool {
   function _vPoolConstructor(
     VPool storage self,
     uint128 poolId,
+    uint256 strategyId_,
     address paymentAsset_,
     address underlyingAsset_,
+    address wrappedAsset_,
     uint256 protocolShare_, //Ray
     uint256 uOptimal_, //Ray
     uint256 r0_, //Ray
@@ -118,7 +121,9 @@ library VirtualPool {
 
     self.poolId = poolId;
     self.paymentAsset = paymentAsset_;
+    self.strategyId = strategyId_;
     self.underlyingAsset = underlyingAsset_;
+    self.wrappedAsset = wrappedAsset_;
     self.protocolShare = protocolShare_;
 
     self.f = Formula({

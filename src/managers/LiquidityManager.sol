@@ -202,7 +202,7 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
 
   function createPool(
     address paymentAsset_,
-    address underlyingAsset_,
+    uint256 strategyId_,
     uint256 protocolShare_,
     uint256 uOptimal_,
     uint256 r0_,
@@ -217,11 +217,16 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
     // Get storage pointer to pool
     VirtualPool.VPool storage pool = pools[poolId];
 
+    (address underlyingAsset, address wrappedAsset) = strategyManager
+      .assets(strategyId_);
+
     // Create virtual pool
     pool._vPoolConstructor(
       poolId,
+      strategyId_,
       paymentAsset_,
-      underlyingAsset_,
+      underlyingAsset,
+      wrappedAsset,
       protocolShare_, //Ray
       uOptimal_, //Ray
       r0_, //Ray
@@ -384,20 +389,33 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
 
   function createPosition(
     uint256 amount,
+    bool isWrapped,
     uint128[] calldata poolIds
   ) external {
     // Save new position tokenId and update for next
     uint256 tokenId = nextPositionId;
     nextPositionId++;
 
-    // Check pool compatibility & underlying token then register overlapping capital
-    _addOverlappingCapitalAfterCheck(poolIds, amount);
-    // Deposit fund into the strategy if any
-    // All pools share the same strategy so we can use the last pool ID in memory
-    // @bw push or pull funds ?
+    // All pools share the same strategy so we can use the first pool ID
     uint256 strategyId = pools[poolIds[0]].strategyId;
+    uint256 amountUnderlying = isWrapped
+      ? strategyManager.wrappedToUnderlying(strategyId, amount)
+      : amount;
+
+    // Check pool compatibility & underlying token then register overlapping capital
+    _addOverlappingCapitalAfterCheck(poolIds, amountUnderlying);
 
     // Push funds to strategy manager
+    if (isWrapped) {
+      address wrappedAsset = pools[poolIds[0]].wrappedAsset;
+      IERC20(wrappedAsset).safeTransferFrom(
+        msg.sender,
+        address(strategyManager),
+        amount
+      );
+
+      strategyManager.depositWrappedToStrategy(strategyId, tokenId);
+    } else {
     address underlyingAsset = pools[poolIds[0]].underlyingAsset;
     IERC20(underlyingAsset).safeTransferFrom(
       msg.sender,
@@ -406,9 +424,10 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
     );
 
     strategyManager.depositToStrategy(strategyId, tokenId, amount);
+    }
 
     positions[tokenId] = Position({
-      supplied: amount,
+      supplied: amountUnderlying,
       commitWithdrawalTimestamp: 0,
       poolIds: poolIds
     });
@@ -421,7 +440,8 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
 
   function increasePosition(
     uint256 tokenId,
-    uint256 amount
+    uint256 amount,
+    bool isWrapped
   ) external onlyOwner {
     Position storage position = positions[tokenId];
 
@@ -431,7 +451,21 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
     _addOverlappingCapitalAfterCheck(position.poolIds, amount);
 
     uint256 strategyId = pools[position.poolIds[0]].strategyId;
+    uint256 amountUnderlying = isWrapped
+      ? strategyManager.wrappedToUnderlying(strategyId, amount)
+      : amount;
+
     // Push funds to strategy manager
+    if (isWrapped) {
+      address wrappedAsset = pools[position.poolIds[0]].wrappedAsset;
+      IERC20(wrappedAsset).safeTransferFrom(
+        msg.sender,
+        address(strategyManager),
+        amount
+      );
+
+      strategyManager.depositWrappedToStrategy(strategyId, tokenId);
+    } else {
     address underlyingAsset = pools[position.poolIds[0]]
       .underlyingAsset;
     IERC20(underlyingAsset).safeTransferFrom(
@@ -439,9 +473,11 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
       address(strategyManager),
       amount
     );
-    strategyManager.depositToStrategy(strategyId, tokenId, amount);
 
-    position.supplied += amount;
+    strategyManager.depositToStrategy(strategyId, tokenId, amount);
+    }
+
+    position.supplied += amountUnderlying;
   }
 
   /// ======= TAKE LP INTERESTS ======= ///
@@ -499,7 +535,8 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
 
   function closePosition(
     uint256 tokenId_,
-    address account_
+    address account_,
+    bool keepWrapped_
   ) external onlyOwner onlyPositionOwner(tokenId_, account_) {
     Position storage position = positions[tokenId_];
     uint256 commitTimestamp = position.commitWithdrawalTimestamp;
@@ -523,6 +560,15 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
     // All pools have same strategy since they are compatible
     uint256 strategyId = pools[position.poolIds[0]].strategyId;
     // @bw this should send back funds to user with rewards, minus fees
+    if (keepWrapped_) {
+      strategyManager.withdrawWrappedFromStrategy(
+        strategyId,
+        tokenId_,
+        position.supplied,
+        account_,
+        feeDiscount
+      );
+    } else {
     strategyManager.withdrawFromStrategy(
       strategyId,
       tokenId_,
@@ -530,6 +576,7 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
       account_,
       feeDiscount
     );
+    }
 
     // Reduce position to 0 since we cannot partial withdraw
     position.supplied = 0;
