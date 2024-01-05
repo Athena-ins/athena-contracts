@@ -39,6 +39,7 @@ export function baseContext(description: string, hooks: () => void): void {
       this.contracts = await deployAllContractsAndInitializeProtocol(
         deployer,
         defaultProtocolConfig,
+        true,
       );
 
       this.protocolConfig = defaultProtocolConfig;

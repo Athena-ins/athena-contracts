@@ -128,11 +128,18 @@ export async function deployAthenaToken(
 
 export type ProtocolConfig = {
   arbitrationCollateral: BigNumber;
+  poolMarket: [BigNumber, BigNumber, BigNumber, BigNumber];
   feeDiscounts: { atenAmount: number; feeDiscount: number }[];
 };
 
 export const defaultProtocolConfig: ProtocolConfig = {
   arbitrationCollateral: utils.parseEther("0.05"), // in ETH
+  poolMarket: [
+    BigNumber.from(75).mul(BigNumber.from(10).pow(27)), // uOptimal_
+    BigNumber.from(1).mul(BigNumber.from(10).pow(27)), // r0_
+    BigNumber.from(5).mul(BigNumber.from(10).pow(27)), // rSlope1_
+    BigNumber.from(11).mul(BigNumber.from(10).pow(26)), // rSlope2_
+  ],
   feeDiscounts: [
     { atenAmount: 0, feeDiscount: 250 },
     { atenAmount: 1_000, feeDiscount: 200 },
@@ -159,6 +166,7 @@ export type ProtocolContracts = {
 export async function deployAllContractsAndInitializeProtocol(
   deployer: Wallet,
   config: ProtocolConfig,
+  logAddresses = false,
 ): Promise<ProtocolContracts> {
   const chainId = await entityProviderChainId(deployer);
   if (!chainId) throw Error("No chainId found for deployment signer");
@@ -262,20 +270,22 @@ export async function deployAllContractsAndInitializeProtocol(
     Staking: Staking__factory.connect(deployedAt.Staking, deployer),
   };
 
-  console.log(
-    "Deployed & initialized Athena: ",
-    JSON.stringify(
-      (Object.keys(contracts) as Array<keyof typeof contracts>).reduce(
-        (acc: { [key: string]: string }, name: keyof typeof contracts) => {
-          acc[name] = contracts[name].address;
-          return acc;
-        },
-        {},
+  if (logAddresses) {
+    console.log(
+      "Deployed & initialized Athena: ",
+      JSON.stringify(
+        (Object.keys(contracts) as Array<keyof typeof contracts>).reduce(
+          (acc: { [key: string]: string }, name: keyof typeof contracts) => {
+            acc[name] = contracts[name].address;
+            return acc;
+          },
+          {},
+        ),
+        null,
+        2,
       ),
-      null,
-      2,
-    ),
-  );
+    );
+  }
 
   return contracts;
 }
