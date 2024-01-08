@@ -27,9 +27,8 @@ export function baseContext(description: string, hooks: () => void): void {
     before(async function () {
       // Provides signers for testing
       const signers = await ethers.getSigners();
-      const deployer = signers[0] as Signer as Wallet;
       this.signers = {
-        deployer,
+        deployer: signers[0] as Signer as Wallet,
         user: signers[1] as Signer as Wallet,
         user2: signers[2] as Signer as Wallet,
         user3: signers[3] as Signer as Wallet,
@@ -37,9 +36,20 @@ export function baseContext(description: string, hooks: () => void): void {
 
       // Setup protocol for testing & provide interfaces to tests
       this.contracts = await deployAllContractsAndInitializeProtocol(
-        deployer,
+        this.signers.deployer,
         defaultProtocolConfig,
         true,
+      );
+
+      // Get WETH for all accounts
+      await Promise.all(
+        Object.values(this.signers).map((signer) =>
+          this.contracts.WethToken.connect(signer)
+            .deposit({
+              value: ethers.utils.parseEther("1000"),
+            })
+            .then((tx) => tx.wait()),
+        ),
       );
 
       this.protocolConfig = defaultProtocolConfig;
@@ -59,7 +69,10 @@ export function baseContext(description: string, hooks: () => void): void {
 
       // Make instance of helpers connected to contracts,
       // this is mostly to transition out of previous test framework
-      this.helpers = await makeTestHelpers(deployer, this.contracts);
+      this.helpers = await makeTestHelpers(
+        this.signers.deployer,
+        this.contracts,
+      );
 
       console.log(
         `\n=> Test context setup:\n${JSON.stringify(logData, null, 2)}\n`,
