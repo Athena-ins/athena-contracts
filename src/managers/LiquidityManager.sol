@@ -447,16 +447,20 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
     bool isWrapped
   ) external onlyOwner {
     Position storage position = positions[tokenId];
+    uint256 strategyId = pools[position.poolIds[0]].strategyId;
 
     // Take interests in all pools before update
     takeInterests(msg.sender, tokenId);
-    // Check pool compatibility & underlying token then register overlapping capital
-    _addOverlappingCapitalAfterCheck(position.poolIds, amount);
 
-    uint256 strategyId = pools[position.poolIds[0]].strategyId;
     uint256 amountUnderlying = isWrapped
       ? strategyManager.wrappedToUnderlying(strategyId, amount)
       : amount;
+
+    // Check pool compatibility & underlying token then register overlapping capital
+    _addOverlappingCapitalAfterCheck(
+      position.poolIds,
+      amountUnderlying
+    );
 
     // Push funds to strategy manager
     if (isWrapped) {
@@ -621,9 +625,17 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
       // Remove expired covers
       pool0._actualizing();
 
-      // Considering the verification that pool IDs are unique & ascending
-      // then start index is i to reduce required number of loops
-      for (uint128 j = i; j < nbPoolIds; j++) {
+      // Add liquidity to the pools available liquidity
+      pool0.overlaps[poolId0] += amount_;
+
+      /**
+       * Loops all pool combinations to check if they are compatible,
+       * that they are in ascending order & that they are unique.
+       * It then registers the overlapping capital.
+       *
+       * The loop starts at i + 1 to avoid redundant combinations.
+       */
+      for (uint128 j = i + 1; j < nbPoolIds; j++) {
         uint128 poolId1 = poolIds_[j];
         VirtualPool.VPool storage pool1 = pools[poolId1];
 
@@ -646,6 +658,7 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
     }
   }
 
+  // @dev poolIds have been checked at creation to ensure they are unique and ascending
   function _removeOverlappingCapital(
     uint128[] storage poolIds_,
     uint256 tokenId_,
