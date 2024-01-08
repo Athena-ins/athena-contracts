@@ -216,6 +216,7 @@ async function createPosition(
   contract: LiquidityManager,
   user: Wallet,
   amount: BigNumberish,
+  isWrapped: boolean,
   poolIds: number[],
 ): Promise<ContractReceipt> {
   const [userAccount, token] = await Promise.all([
@@ -223,18 +224,24 @@ async function createPosition(
     contract
       .poolInfo(poolIds[0])
       .then((poolInfo) =>
-        IERC20__factory.connect(poolInfo.underlyingAsset, user),
+        IERC20__factory.connect(
+          isWrapped ? poolInfo.wrappedAsset : poolInfo.underlyingAsset,
+          user,
+        ),
       ),
   ]);
 
   await Promise.all([
     getTokens(user, token.address, userAccount, amount),
-    token.connect(user).approve(contract.address, amount),
+    token
+      .connect(user)
+      .approve(contract.address, amount)
+      .then((tx) => tx.wait()),
   ]);
 
   return contract
     .connect(user)
-    .createPosition(amount, poolIds)
+    .createPosition(amount, isWrapped, poolIds)
     .then((tx) => tx.wait());
 }
 

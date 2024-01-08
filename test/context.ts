@@ -38,7 +38,7 @@ export function baseContext(description: string, hooks: () => void): void {
       this.contracts = await deployAllContractsAndInitializeProtocol(
         this.signers.deployer,
         defaultProtocolConfig,
-        true,
+        // true,
       );
 
       // Get WETH for all accounts
@@ -74,9 +74,9 @@ export function baseContext(description: string, hooks: () => void): void {
         this.contracts,
       );
 
-      console.log(
-        `\n=> Test context setup:\n${JSON.stringify(logData, null, 2)}\n`,
-      );
+      // console.log(
+      //   `\n=> Test context setup:\n${JSON.stringify(logData, null, 2)}\n`,
+      // );
     });
 
     beforeEachSuite(async function () {
