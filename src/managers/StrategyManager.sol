@@ -159,7 +159,10 @@ contract StrategyManager is IStrategyManager, Ownable {
     data.startRewardIndex = getRewardIndex(strategyId_);
 
     // Deposit underlying into strategy
-    IERC20(usdt).forceApprove(address(this), amountUnderlying_);
+    IERC20(usdt).forceApprove(
+      address(aaveLendingPool),
+      amountUnderlying_
+    );
     aaveLendingPool.deposit(
       usdt,
       amountUnderlying_,
