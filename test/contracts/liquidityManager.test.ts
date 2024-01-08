@@ -3,6 +3,8 @@ import { ethers } from "hardhat";
 // Helpers
 import {} from "../helpers/hardhat";
 
+const { parseUnits } = ethers.utils;
+
 export function liquidityManager() {
   context("Liquidity Manager", function () {
     before(async function () {});
@@ -42,8 +44,53 @@ export function liquidityManager() {
       expect(poolInfo.poolId).to.equal(0);
     });
 
-    it("accepts LPs", async function () {});
-    it("accepts covers", async function () {});
+    it("accepts LPs", async function () {
+      expect(
+        await this.helpers.createPosition(
+          this.signers.deployer,
+          parseUnits("1000", 6),
+          false,
+          [0],
+        ),
+      ).to.not.throw;
+
+      expect(
+        await this.contracts.AthenaPositionToken.balanceOf(
+          this.signers.deployer.address,
+        ),
+      ).to.equal(1);
+
+      const position = await this.contracts.LiquidityManager.positions(0);
+
+      expect(position.poolIds.length).to.equal(1);
+      expect(position.poolIds[0]).to.equal(0);
+      expect(position.supplied).to.equal(parseUnits("1000", 6));
+    });
+    it("accepts covers", async function () {
+      expect(
+        await this.helpers.buyCover(
+          this.signers.deployer,
+          0,
+          parseUnits("500", 6),
+          parseUnits("20", 6),
+        ),
+      ).to.not.throw;
+
+      expect(
+        await this.contracts.AthenaCoverToken.balanceOf(
+          this.signers.deployer.address,
+        ),
+      ).to.equal(1);
+
+      const cover = await this.contracts.LiquidityManager.covers(0);
+      console.log("cover: ", cover);
+
+      expect(cover.poolId).to.equal(0);
+      expect(cover.coverAmount).to.equal(parseUnits("500", 6));
+      expect(cover.premiums).to.equal(parseUnits("20", 6));
+      expect(cover.start.div(10)).to.equal(170473365);
+      expect(cover.end).to.equal(0);
+    });
 
     it("has coherent state", async function () {});
     it("has lasting coherent state ", async function () {});
