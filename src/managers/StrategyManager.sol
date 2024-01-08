@@ -11,6 +11,7 @@ import { Address } from "@openzeppelin/contracts/utils/Address.sol";
 import { RayMath } from "../libs/RayMath.sol";
 
 // interfaces
+import { IStrategyManager } from "../interfaces/IStrategyManager.sol";
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import { ILiquidityManager } from "../interfaces/ILiquidityManager.sol";
 import { ILendingPool } from "../interfaces/ILendingPool.sol";
@@ -21,7 +22,7 @@ import { ILendingPool } from "../interfaces/ILendingPool.sol";
 error NotAValidStrategy();
 error NotLiquidityManager();
 
-contract StrategyManager is Ownable {
+contract StrategyManager is IStrategyManager, Ownable {
   using SafeERC20 for IERC20;
   using RayMath for uint256;
 
@@ -111,8 +112,14 @@ contract StrategyManager is Ownable {
 
   function assets(
     uint256 strategyId_
-  ) external view checkId(strategyId_) returns (address, address) {
-    return (usdt, ausdt);
+  )
+    external
+    view
+    checkId(strategyId_)
+    returns (address underlying, address wrapped)
+  {
+    underlying = usdt;
+    wrapped = ausdt;
   }
 
   // To be called by liq manager to compute how many underlying the user has supplied

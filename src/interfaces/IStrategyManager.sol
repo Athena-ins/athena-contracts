@@ -13,14 +13,11 @@ interface IStrategyManager {
 
   function underlyingAsset(
     uint256 strategyId_
-  ) external view returns (uint256);
+  ) external view returns (address);
 
   function assets(
     uint256 strategyId_
-  )
-    external
-    view
-    returns (address underlyingAsset, address wrappedAsset);
+  ) external view returns (address underlying, address wrapped);
 
   function wrappedToUnderlying(
     uint256 strategyId_,

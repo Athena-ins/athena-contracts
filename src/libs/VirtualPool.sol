@@ -141,7 +141,7 @@ library VirtualPool {
     self.slot0.secondsPerTick = 86400;
     self.slot0.lastUpdateTimestamp = block.timestamp;
 
-    self.overlappedPools[0] = params.poolId;
+    self.overlappedPools.push(params.poolId);
     self.overlaps[params.poolId] = 1; // 1 wei
 
     self.coverSize = params.coverSize;
@@ -982,7 +982,10 @@ library VirtualPool {
     // @bw case for overusage ?
     if (utilizationRate_ < formula.uOptimal) {
       return
-        formula.r0 + formula.rSlope1.rayMul(utilizationRate_.rayDiv(formula.uOptimal));
+        formula.r0 +
+        formula.rSlope1.rayMul(
+          utilizationRate_.rayDiv(formula.uOptimal)
+        );
     } else {
       return
         formula.r0 +
