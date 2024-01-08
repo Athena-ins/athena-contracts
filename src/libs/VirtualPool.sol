@@ -63,6 +63,7 @@ library VirtualPool {
     uint256 strategyId;
     address paymentAsset;
     address underlyingAsset;
+    address wrappedAsset;
     bool isPaused;
     uint128[] overlappedPools;
     PoolClaim[] processedClaims;

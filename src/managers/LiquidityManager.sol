@@ -170,6 +170,7 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
         strategyId: pool.strategyId,
         paymentAsset: pool.paymentAsset,
         underlyingAsset: pool.underlyingAsset,
+        wrappedAsset: pool.wrappedAsset,
         isPaused: pool.isPaused,
         overlappedPools: pool.overlappedPools,
         processedClaims: pool.processedClaims
