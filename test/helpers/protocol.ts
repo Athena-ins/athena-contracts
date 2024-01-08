@@ -37,6 +37,8 @@ import {
   IERC20__factory,
   ILendingPool__factory,
   IUniswapV2Factory__factory,
+  IWETH__factory,
+  IUniswapV2Router__factory,
 } from "../../typechain";
 import { ProtocolContracts } from "./deployers";
 
@@ -68,7 +70,13 @@ export function aaveLendingPoolV2Address(chainId: number): string {
 
 export function uniswapV2Factory(chainId: number): string {
   if (chainId === 1) return "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f";
-  if (chainId === 5) return "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f";
+  // if (chainId === 5) return "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f";
+  throw Error("Unsupported chainId");
+}
+
+export function uniswapV2Router(chainId: number): string {
+  if (chainId === 1) return "0x7a250d5630b4cf539739df2c5dacb4c659f2488d";
+  // if (chainId === 5) return "0x7a250d5630b4cf539739df2c5dacb4c659f2488d";
   throw Error("Unsupported chainId");
 }
 
@@ -168,15 +176,25 @@ async function getTokens(
 ): Promise<ContractReceipt> {
   const chainId = await entityProviderChainId(signer);
 
-  const uniswapFactory = uniswapV2Factory(chainId);
-  const dexFactory = IUniswapV2Factory__factory.connect(uniswapFactory, signer);
+  const routerAddress = uniswapV2Router(chainId);
+  const uniswapRouter = IUniswapV2Router__factory.connect(
+    routerAddress,
+    signer,
+  );
 
   const wethAddress = wethTokenAddress(chainId);
-  const pool = await dexFactory.getPair(token, wethAddress);
-  const poolWallet = await impersonateAccount(pool);
+  const weth = IWETH__factory.connect(wethAddress, signer);
 
-  return IERC20__factory.connect(token, poolWallet)
-    .transfer(to, amount)
+  await weth.approve(routerAddress, parseEther("500")).then((tx) => tx.wait());
+
+  return uniswapRouter
+    .swapTokensForExactTokens(
+      amount, // uint amountOut,
+      parseEther("500"), // uint amountInMax,
+      [wethAddress, token], // address[] calldata path,
+      to, // address to,
+      2000000000, // uint deadline
+    )
     .then((tx) => tx.wait());
 }
 

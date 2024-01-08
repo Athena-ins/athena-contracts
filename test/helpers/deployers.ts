@@ -4,7 +4,7 @@ import {
   entityProviderChainId,
   getCurrentBlockNumber,
 } from "./hardhat";
-import { usdtTokenAddress } from "./protocol";
+import { usdtTokenAddress, wethTokenAddress } from "./protocol";
 // typechain
 import {
   // Dao
@@ -37,6 +37,8 @@ import {
   // Other
   TetherToken__factory,
   TetherToken,
+  IWETH,
+  IWETH__factory,
 } from "../../typechain/";
 // Types
 import { BigNumber, Wallet, Signer } from "ethers";
@@ -150,6 +152,7 @@ export const defaultProtocolConfig: ProtocolConfig = {
 
 export type ProtocolContracts = {
   TetherToken: TetherToken;
+  WethToken: IWETH;
   AthenaCoverToken: AthenaCoverToken;
   AthenaPositionToken: AthenaPositionToken;
   AthenaToken: AthenaToken;
@@ -193,9 +196,11 @@ export async function deployAllContractsAndInitializeProtocol(
     ),
   );
 
-  // Add USDT interface
+  // Add USDT & WETH interface
   const usdtAddress = usdtTokenAddress(chainId);
   const UsdtToken = TetherToken__factory.connect(usdtAddress, deployer);
+  const wethAddress = wethTokenAddress(chainId);
+  const WethToken = IWETH__factory.connect(wethAddress, deployer);
 
   const AthenaCoverToken = await deployAthenaCoverToken(deployer, [
     deployedAt.LiquidityManager,
@@ -252,6 +257,7 @@ export async function deployAllContractsAndInitializeProtocol(
 
   const contracts = {
     TetherToken: UsdtToken,
+    WethToken,
     AthenaCoverToken,
     AthenaPositionToken,
     AthenaToken,
