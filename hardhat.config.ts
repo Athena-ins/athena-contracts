@@ -78,13 +78,13 @@ function makeForkConfig(): HardhatNetworkUserConfig {
         // Deployer account
         // We can cast safely because we checked for undefined
         privateKey: WALLET_PK as string,
-        balance: parseEther("1000").toString(),
+        balance: parseEther("10000").toString(),
       },
       ...Array(20)
         .fill("")
         .map((_, i) => ({
           privateKey: id(`Test User ${i}`),
-          balance: parseEther("1000").toString(),
+          balance: parseEther("10000").toString(),
         })),
     ],
   };
