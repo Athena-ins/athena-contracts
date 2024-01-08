@@ -172,26 +172,24 @@ export async function deployAllContractsAndInitializeProtocol(
   if (!chainId) throw Error("No chainId found for deployment signer");
 
   const deploymentOrder = [
-    "AthenaCoverToken", // 0
-    "AthenaPositionToken", // 1
-    "AthenaToken", // 2
-    "ClaimManager", // 3
-    "LiquidityManager", // 4
-    "StrategyManager", // 5
-    "RewardManager", // 6
-    "EcclesiaDao", // 7
-    "MockArbitrator", // 8
+    "AthenaCoverToken",
+    "AthenaPositionToken",
+    "AthenaToken",
+    "ClaimManager",
+    "StrategyManager",
+    "RewardManager",
+    "LiquidityManager",
+    "EcclesiaDao",
+    "MockArbitrator",
   ];
 
   const deployedAt: { [key: string]: string } = {};
 
   await Promise.all(
     deploymentOrder.map((name, i) =>
-      genContractAddress(deployer, deployer.address, i).then(
-        (address: string) => {
-          deployedAt[name] = address;
-        },
-      ),
+      genContractAddress(deployer, i).then((address: string) => {
+        deployedAt[name] = address;
+      }),
     ),
   );
 

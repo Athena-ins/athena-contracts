@@ -34,7 +34,7 @@ export function deployProtocol() {
 
       this.deployedAt = await deploymentOrder.reduce(
         (acc, name, i) =>
-          genContractAddress(hre, this.signers.deployer.address, i).then(
+          genContractAddress(this.signers.deployer, i).then(
             async (address) => ({
               ...(await acc),
               [name]: address,

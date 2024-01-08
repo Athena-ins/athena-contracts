@@ -1,4 +1,4 @@
-import { BaseContract, BigNumberish, Signer, utils } from "ethers";
+import { BaseContract, BigNumberish, Signer, Wallet, utils } from "ethers";
 import hre, { ethers, network } from "hardhat";
 import { HardhatNetworkConfig, HardhatRuntimeEnvironment } from "hardhat/types";
 
@@ -133,40 +133,22 @@ export async function impersonateAccount(address: string) {
 // === Contract addresses === //
 // ========================== //
 
-export function formatNonce(nonce: string, add: number) {
-  if (nonce == "0") nonce = "1";
-  const hexNonce = (parseInt(nonce, 16) + add).toString(16);
+export function formatNonce(nonce: number) {
+  if (nonce == 0) nonce = 1;
+  const hexNonce = nonce.toString(16);
   return hexNonce.length % 2 ? `0${hexNonce}` : hexNonce;
 }
 
 export async function genContractAddress(
-  provider: HardhatRuntimeEnvironment | Signer,
-  from: string,
-  nonceAdd?: number, // number of tx from wallet between computation and deployment
+  signer: Wallet,
+  nonceAdd = 0, // to compute futur addresses
 ) {
-  if (from.length !== 42) throw Error("Helper: incorrect 'from' length");
-  if (!hre.network?.provider) throw Error("Helper: bad hre network provider");
-  nonceAdd ??= 0;
-
-  const fromUnsigned = from.slice(2);
-
-  let nonce: string | undefined;
-  if ("network" in provider && provider.network.provider) {
-    nonce = (await (
-      provider as HardhatRuntimeEnvironment
-    ).network.provider.request({
-      method: "eth_getTransactionCount",
-      params: [from, "latest"],
-    })) as string;
-  } else if ("_isSigner" in provider && provider._isSigner) {
-    nonce = (await (provider as Signer).getTransactionCount()).toString();
-  }
-  if (!nonce) throw Error("Missing provider entity to get wallet nonce");
-
-  const formatedNonce = formatNonce(nonce, nonceAdd);
+  const fromUnsigned = signer.address.slice(2);
+  const nonce = await signer.getTransactionCount();
+  const formatedNonce = formatNonce(nonce + nonceAdd);
 
   let nonceLength = "";
-  if (parseInt(nonce, 16) > 127) {
+  if (parseInt(nonce.toString(), 16) > 127) {
     nonceLength = (128 + formatedNonce.length / 2).toString(16);
   }
 
