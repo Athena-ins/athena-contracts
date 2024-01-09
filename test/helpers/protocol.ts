@@ -245,6 +245,43 @@ async function createPosition(
     .then((tx) => tx.wait());
 }
 
+async function increasePosition(
+  contract: LiquidityManager,
+  user: Wallet,
+  tokenId: BigNumberish,
+  amount: BigNumberish,
+  isWrapped: boolean,
+): Promise<ContractReceipt> {
+  const poolIds = await contract
+    .positions(tokenId)
+    .then((position) => position.poolIds);
+
+  const [userAccount, token] = await Promise.all([
+    user.getAddress(),
+    contract
+      .poolInfo(poolIds[0])
+      .then((poolInfo) =>
+        IERC20__factory.connect(
+          isWrapped ? poolInfo.wrappedAsset : poolInfo.underlyingAsset,
+          user,
+        ),
+      ),
+  ]);
+
+  await Promise.all([
+    getTokens(user, token.address, userAccount, amount),
+    token
+      .connect(user)
+      .approve(contract.address, amount)
+      .then((tx) => tx.wait()),
+  ]);
+
+  return contract
+    .connect(user)
+    .increasePosition(tokenId, amount, isWrapped)
+    .then((tx) => tx.wait());
+}
+
 // ======== Covers ======== //
 
 async function buyCover(
@@ -271,6 +308,44 @@ async function buyCover(
   return contract
     .connect(user)
     .buyCover(poolId, coverAmount, premiums)
+    .then((tx) => tx.wait());
+}
+
+async function updateCover(
+  contract: LiquidityManager,
+  user: Wallet,
+  coverId: BigNumberish,
+  coverToAdd: BigNumberish,
+  coverToRemove: BigNumberish,
+  premiumsToAdd: BigNumberish,
+  premiumsToRemove: BigNumberish,
+): Promise<ContractReceipt> {
+  const [userAccount, poolId] = await Promise.all([
+    user.getAddress(),
+    contract.covers(coverId).then((cover) => cover.poolId),
+  ]);
+
+  if (BigNumber.from(premiumsToAdd).gt(0)) {
+    const token = await contract
+      .poolInfo(poolId)
+      .then((poolInfo) =>
+        IERC20__factory.connect(poolInfo.underlyingAsset, user),
+      );
+    await Promise.all([
+      getTokens(user, token.address, userAccount, premiumsToAdd),
+      token.connect(user).approve(contract.address, premiumsToAdd),
+    ]);
+  }
+
+  return contract
+    .connect(user)
+    .updateCover(
+      coverId,
+      coverToAdd,
+      coverToRemove,
+      premiumsToAdd,
+      premiumsToRemove,
+    )
     .then((tx) => tx.wait());
 }
 
@@ -387,14 +462,11 @@ type TokenHelpers = {
 };
 
 export type TestHelper = TokenHelpers & {
-  // config / admin
   // write
   createPosition: OmitFirstArg<typeof createPosition>;
   buyCover: OmitFirstArg<typeof buyCover>;
-  // stakingGeneralPoolDeposit: OmitFirstTwoArgs<typeof stakingGeneralPoolDeposit>;
-  // updateCover: OmitFirstTwoArgs<typeof updateCover>;
-  // read
-  // getAccountCoverIdByIndex: OmitFirstArg<typeof getAccountCoverIdByIndex>;
+  increasePosition: OmitFirstArg<typeof increasePosition>;
+  updateCover: OmitFirstArg<typeof updateCover>;
 };
 
 export async function makeTestHelpers(
@@ -417,18 +489,12 @@ export async function makeTestHelpers(
   };
 
   return {
-    // config / admin
     // write
     createPosition: (...args) => createPosition(LiquidityManager, ...args),
     buyCover: (...args) => buyCover(LiquidityManager, ...args),
-    // stakingGeneralPoolDeposit: (...args) =>
-    //   stakingGeneralPoolDeposit(LiquidityManager, tokenHelpers, ...args),
-    // updateCover: (...args) =>
-    //   updateCover(LiquidityManager, tokenHelpers, ...args),
-    // read
-    // getAccountCoverIdByIndex: (...args) =>
-    //   getAccountCoverIdByIndex(LiquidityManager, ...args),
-    // Token
+    increasePosition: (...args) => increasePosition(LiquidityManager, ...args),
+    updateCover: (...args) => updateCover(LiquidityManager, ...args),
+    // tokens
     ...tokenHelpers,
   };
 }
