@@ -1,7 +1,8 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
 // Helpers
-import {} from "../helpers/hardhat";
+import { setNextBlockTimestamp } from "../helpers/hardhat";
+import { BigNumber } from "ethers";
 
 const { parseUnits } = ethers.utils;
 
@@ -152,10 +153,61 @@ export function liquidityManager() {
     // it("has coherent state", async function () {});
     // it("has lasting coherent state", async function () {});
 
-    it("can close cover", async function () {});
-    it("can close LPs", async function () {});
+    it("can close cover", async function () {
+      const uint256Max = BigNumber.from(2).pow(256).sub(1);
+      expect(
+        await this.contracts.LiquidityManager.updateCover(
+          0,
+          0,
+          0,
+          0,
+          uint256Max,
+        ).then((tx) => tx.wait()),
+      ).to.not.throw;
 
-    it("has coherent state", async function () {});
-    it("has lasting coherent state", async function () {});
+      expect(
+        await this.contracts.AthenaCoverToken.balanceOf(
+          this.signers.deployer.address,
+        ),
+      ).to.equal(1);
+
+      const cover = await this.contracts.LiquidityManager.covers(0);
+
+      expect(cover.poolId).to.equal(0);
+      expect(cover.coverAmount).to.equal(parseUnits("1500", 6));
+      expect(cover.premiums).to.equal(parseUnits("70", 6));
+      expect(cover.start.div(10)).to.equal(170473365);
+      expect(cover.end).to.equal(0);
+    });
+    it("can commit LPs withdrawal", async function () {
+      expect(
+        await this.contracts.LiquidityManager.commitPositionWithdrawal(0).then(
+          (tx) => tx.wait(),
+        ),
+      ).to.not.throw;
+
+      const position = await this.contracts.LiquidityManager.positions(0);
+      expect(position.commitWithdrawalTimestamp).to.equal(0);
+    });
+    it("can withdraw LPs", async function () {
+      // Wait for unlock delay to pass
+      await setNextBlockTimestamp({ days: 15 });
+
+      expect(
+        await this.contracts.LiquidityManager.closePosition(0, false).then(
+          (tx) => tx.wait(),
+        ),
+      ).to.not.throw;
+
+      const position = await this.contracts.LiquidityManager.positions(0);
+
+      expect(position.poolIds.length).to.equal(1);
+      expect(position.poolIds[0]).to.equal(0);
+      expect(position.supplied).to.equal(0);
+      expect(position.commitWithdrawalTimestamp).to.equal(0);
+    });
+
+    // it("has coherent state", async function () {});
+    // it("has lasting coherent state", async function () {});
   });
 }

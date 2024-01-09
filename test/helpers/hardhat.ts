@@ -104,8 +104,22 @@ export async function resetFork() {
   console.log("=> Forked chain reset");
 }
 
-export async function setNextBlockTimestamp(secondsToAdd: number) {
+export async function setNextBlockTimestamp(timeToAdd: {
+  seconds?: number;
+  minutes?: number;
+  hours?: number;
+  days?: number;
+  months?: number;
+}) {
+  const secondsToAdd =
+    (timeToAdd.seconds || 0) +
+    (timeToAdd.minutes || 0) * 60 +
+    (timeToAdd.hours || 0) * 60 * 60 +
+    (timeToAdd.days || 0) * 60 * 60 * 24 +
+    (timeToAdd.months || 0) * 60 * 60 * 24 * 30;
+
   if (secondsToAdd <= 0) return;
+
   const latestTimeStamp = await getCurrentTime();
   const newTime = latestTimeStamp + secondsToAdd;
 
