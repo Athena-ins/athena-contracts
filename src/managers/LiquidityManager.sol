@@ -114,14 +114,14 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
 
   /// ======= MODIFIERS ======= ///
 
-  modifier onlyCoverOwner(uint256 tokenId, address account) {
-    if (account != coverToken.ownerOf(tokenId))
+  modifier onlyCoverOwner(uint256 tokenId) {
+    if (msg.sender != coverToken.ownerOf(tokenId))
       revert OnlyTokenOwner();
     _;
   }
 
-  modifier onlyPositionOwner(uint256 tokenId, address account) {
-    if (account != positionToken.ownerOf(tokenId))
+  modifier onlyPositionOwner(uint256 tokenId) {
+    if (msg.sender != positionToken.ownerOf(tokenId))
       revert OnlyTokenOwner();
     _;
   }
@@ -326,7 +326,7 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
     uint256 coverToRemove_,
     uint256 premiumsToAdd_,
     uint256 premiumsToRemove_
-  ) external {
+  ) external onlyCoverOwner(coverId_) {
     // Get storage pointer to cover
     Cover storage cover = covers[coverId_];
     // Get storage pointer to pool
@@ -449,15 +449,15 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
   /// ======= UPDATE LP POSITION ======= ///
 
   function increasePosition(
-    uint256 tokenId,
+    uint256 tokenId_,
     uint256 amount,
     bool isWrapped
-  ) external onlyOwner {
-    Position storage position = _positions[tokenId];
+  ) external onlyPositionOwner(tokenId_) {
+    Position storage position = _positions[tokenId_];
     uint256 strategyId = _pools[position.poolIds[0]].strategyId;
 
     // Take interests in all pools before update
-    takeInterests(msg.sender, tokenId);
+    takeInterests(tokenId_);
 
     uint256 amountUnderlying = isWrapped
       ? strategyManager.wrappedToUnderlying(strategyId, amount)
@@ -478,7 +478,7 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
         amount
       );
 
-      strategyManager.depositWrappedToStrategy(strategyId, tokenId);
+      strategyManager.depositWrappedToStrategy(strategyId, tokenId_);
     } else {
       address underlyingAsset = _pools[position.poolIds[0]]
         .underlyingAsset;
@@ -488,7 +488,7 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
         amount
       );
 
-      strategyManager.depositToStrategy(strategyId, tokenId, amount);
+      strategyManager.depositToStrategy(strategyId, tokenId_, amount);
     }
 
     position.supplied += amountUnderlying;
@@ -499,9 +499,11 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
   // @bw needs to be updated for strat reward withdraw + take fees in pools
   // compute amount of rewards & transfer from cover manager to user + register new reward index
   // @bw need to check ownership with ownerOf instead of arg
-  function takeInterests(address account, uint256 tokenId) public {
-    Position storage position = _positions[tokenId];
-
+  function takeInterests(
+    uint256 tokenId_
+  ) public onlyPositionOwner(tokenId_) {
+    Position storage position = _positions[tokenId_];
+    address account = positionToken.ownerOf(tokenId_);
     uint256 feeDiscount = staking.feeDiscountOf(account);
 
     uint256 amountSuppliedUpdated;
@@ -515,7 +517,7 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
       (uint256 _newUserCapital, uint256 _scaledAmountToRemove) = pool
         ._takePoolInterests(
           account,
-          tokenId,
+          tokenId_,
           position.supplied,
           position.poolIds,
           feeDiscount
@@ -527,22 +529,21 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
     uint256 strategyId = _pools[position.poolIds[0]].strategyId;
     strategyManager.withdrawRewards(
       strategyId,
-      tokenId,
+      tokenId_,
       account,
       feeDiscount
     );
 
     if (position.supplied != amountSuppliedUpdated) {
-      _positions[tokenId].supplied = amountSuppliedUpdated;
+      _positions[tokenId_].supplied = amountSuppliedUpdated;
     }
   }
 
   /// ======= CLOSE LP POSITION ======= ///
 
   function commitPositionWithdrawal(
-    uint256 tokenId_,
-    address account_
-  ) external onlyOwner onlyPositionOwner(tokenId_, account_) {
+    uint256 tokenId_
+  ) external onlyPositionOwner(tokenId_) {
     Position storage position = _positions[tokenId_];
 
     position.commitWithdrawalTimestamp = block.timestamp;
@@ -557,9 +558,8 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
 
   function closePosition(
     uint256 tokenId_,
-    address account_,
     bool keepWrapped_
-  ) external onlyOwner onlyPositionOwner(tokenId_, account_) {
+  ) external onlyPositionOwner(tokenId_) {
     Position storage position = _positions[tokenId_];
     uint256 commitTimestamp = position.commitWithdrawalTimestamp;
 
@@ -571,7 +571,9 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
     // bool claimsLock = claimManager.canWithdraw(poolIds);
     // if (claimsLock) revert PoolsHaveOngoingClaims();
 
-    uint256 feeDiscount = staking.feeDiscountOf(account_);
+    address account = positionToken.ownerOf(tokenId_);
+
+    uint256 feeDiscount = staking.feeDiscountOf(account);
     _removeOverlappingCapital(
       position.poolIds,
       tokenId_,
@@ -587,7 +589,7 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
         strategyId,
         tokenId_,
         position.supplied,
-        account_,
+        account,
         feeDiscount
       );
     } else {
@@ -595,7 +597,7 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
         strategyId,
         tokenId_,
         position.supplied,
-        account_,
+        account,
         feeDiscount
       );
     }

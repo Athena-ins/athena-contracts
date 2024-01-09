@@ -40,7 +40,7 @@ contract StrategyManager is IStrategyManager, Ownable {
     uint256 accumulatedRewards;
   }
 
-  mapping(uint256 _tokenId => PositionData _data) public positionData;
+  mapping(uint256 _tokenId => PositionData) public positionData;
 
   //======== CONSTRCUTOR ========//
 
