@@ -83,7 +83,6 @@ export function liquidityManager() {
       ).to.equal(1);
 
       const cover = await this.contracts.LiquidityManager.covers(0);
-      console.log("cover: ", cover);
 
       expect(cover.poolId).to.equal(0);
       expect(cover.coverAmount).to.equal(parseUnits("500", 6));
@@ -92,14 +91,66 @@ export function liquidityManager() {
       expect(cover.end).to.equal(0);
     });
 
-    it("has coherent state", async function () {});
-    it("has lasting coherent state ", async function () {});
+    // it("has coherent state", async function () {});
+    // it("has lasting coherent state ", async function () {});
 
-    it("can update LPs", async function () {});
-    it("can update cover", async function () {});
+    it("can increase LPs", async function () {
+      expect(
+        await this.helpers.increasePosition(
+          this.signers.deployer,
+          0,
+          parseUnits("1000", 6),
+          false,
+        ),
+      ).to.not.throw;
 
-    it("has coherent state", async function () {});
-    it("has lasting coherent state", async function () {});
+      expect(
+        await this.contracts.AthenaPositionToken.balanceOf(
+          this.signers.deployer.address,
+        ),
+      ).to.equal(1);
+
+      const position = await this.contracts.LiquidityManager.positions(0);
+
+      expect(position.poolIds.length).to.equal(1);
+      expect(position.poolIds[0]).to.equal(0);
+      expect(position.supplied).to.equal(parseUnits("2000", 6));
+    });
+    it("can increase cover & premiums", async function () {
+      expect(
+        await this.helpers.updateCover(
+          this.signers.deployer,
+          0,
+          parseUnits("1000", 6),
+          0,
+          parseUnits("50", 6),
+          0,
+        ),
+      ).to.not.throw;
+
+      expect(
+        await this.contracts.AthenaCoverToken.balanceOf(
+          this.signers.deployer.address,
+        ),
+      ).to.equal(1);
+
+      const cover = await this.contracts.LiquidityManager.covers(0);
+
+      expect(cover.poolId).to.equal(0);
+      expect(cover.coverAmount).to.equal(parseUnits("1500", 6));
+      expect(cover.premiums).to.equal(parseUnits("70", 6));
+      expect(cover.start.div(10)).to.equal(170473365);
+      expect(cover.end).to.equal(0);
+    });
+
+    // it("has coherent state", async function () {});
+    // it("has lasting coherent state", async function () {});
+
+    // it("can decrease cover amount", async function () {});
+    // it("can decrease cover premiums", async function () {});
+
+    // it("has coherent state", async function () {});
+    // it("has lasting coherent state", async function () {});
 
     it("can close cover", async function () {});
     it("can close LPs", async function () {});
