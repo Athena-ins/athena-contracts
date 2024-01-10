@@ -5,7 +5,6 @@ pragma solidity 0.8.20;
 import { RayMath } from "../libs/RayMath.sol";
 import { Tick } from "../libs/Tick.sol";
 import { TickBitmap } from "../libs/TickBitmap.sol";
-import { PremiumPosition } from "../libs/PremiumPosition.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 // Interfaces
@@ -57,6 +56,12 @@ library VirtualPool {
     uint256 rewardIndexBeforeClaim;
   }
 
+  struct CoverPremiums {
+    uint256 beginPremiumRate;
+    uint32 lastTick;
+    uint224 coverIdIndex;
+  }
+
   // ======= VIRTUAL STORAGE ======= //
 
   struct VPoolInfo {
@@ -92,12 +97,12 @@ library VirtualPool {
     /// @dev liquidity overlap is always registered in the lower poolId
     // Maps poolId 0 -> poolId 1 -> overlapping capital
     mapping(uint128 _poolId => uint256 _amount) overlaps;
-    mapping(uint256 _positionId => LPInfo _lpInfo) lpInfos;
+    mapping(uint256 _positionId => LPInfo) lpInfos;
     mapping(uint24 => uint256) tickBitmap;
     // Maps a tick to the list of cover IDs
     mapping(uint32 _tick => uint256[] _coverIds) ticks;
     // Maps a cover ID to the premium position of the cover
-    mapping(uint256 _coverId => PremiumPosition.Info _premiumsInfo) premiumPositions;
+    mapping(uint256 _coverId => CoverPremiums) coverPremiums;
     // Function pointers to access child contract data
     function(uint256) view returns (uint256) coverSize;
   }
@@ -339,20 +344,23 @@ library VirtualPool {
 
   function _addPremiumPosition(
     VPool storage self,
-    uint256 _tokenId,
-    uint256 _beginPremiumRate,
-    uint32 _tick
+    uint256 tokenId_,
+    uint256 beginPremiumRate_,
+    uint32 lastTick_
   ) private {
-    uint224 nbCoversInTick = self.ticks.addCoverId(_tokenId, _tick);
-
-    self.premiumPositions[_tokenId] = PremiumPosition.Info(
-      _beginPremiumRate,
-      _tick,
-      nbCoversInTick
+    uint224 nbCoversInTick = self.ticks.addCoverId(
+      tokenId_,
+      lastTick_
     );
 
-    if (!self.tickBitmap.isInitializedTick(_tick)) {
-      self.tickBitmap.flipTick(_tick);
+    self.coverPremiums[tokenId_] = CoverPremiums({
+      beginPremiumRate: beginPremiumRate_,
+      lastTick: lastTick_,
+      coverIdIndex: nbCoversInTick
+    });
+
+    if (!self.tickBitmap.isInitializedTick(lastTick_)) {
+      self.tickBitmap.flipTick(lastTick_);
     }
   }
 
@@ -519,6 +527,20 @@ library VirtualPool {
 
   // ======= INTERNAL POOL HELPERS ======= //
 
+  function replaceAndRemoveCoverId(
+    VPool storage self,
+    uint256 coverIdToRemove,
+    uint256 coverIdToReplace
+  ) internal {
+    if (coverIdToRemove != coverIdToReplace) {
+      self.coverPremiums[coverIdToReplace].coverIdIndex = self
+        .coverPremiums[coverIdToRemove]
+        .coverIdIndex;
+    }
+
+    delete self.coverPremiums[coverIdToRemove];
+  }
+
   function _removeTick(
     VPool storage self,
     uint32 _tick
@@ -527,7 +549,7 @@ library VirtualPool {
 
     for (uint256 i = 0; i < coverIds.length; i++) {
       uint256 coverId = coverIds[i];
-      delete self.premiumPositions[coverId];
+      delete self.coverPremiums[coverId];
 
       emit CoverExpired(coverId, _tick);
     }
@@ -666,11 +688,11 @@ library VirtualPool {
   //     self,
   //     block.timestamp
   //   );
-  //   PremiumPosition.Info storage __position = self.premiumPositions[
+  //   CoverPremiums  storage coverPremium = self.coverPremiums[
   //     coverId_
   //   ];
 
-  //   if (__position.lastTick < __slot0.tick) {
+  //   if (coverPremium.lastTick < __slot0.tick) {
   //     /// @dev If the tick in slot0 is greater than the position's last tick then the cover is expired
   //     __premiumLeft = 0;
   //     __currentEmissionRate = 0;
@@ -679,7 +701,7 @@ library VirtualPool {
   //     uint256 __coverBeginEmissionRate = ICoverManager(coverManager)
   //       .getCover(coverId_)
   //       .amountCovered
-  //       .rayMul(__position.beginPremiumRate / 100) / 365;
+  //       .rayMul(coverPremium.beginPremiumRate / 100) / 365;
 
   //     uint256 __currentPremiumRate = getPremiumRate(
   //       self,
@@ -693,34 +715,34 @@ library VirtualPool {
 
   //     __currentEmissionRate = getEmissionRate(
   //       __coverBeginEmissionRate,
-  //       __position.beginPremiumRate,
+  //       coverPremium.beginPremiumRate,
   //       __currentPremiumRate
   //     );
 
   //     uint256 __coverCurrentEmissionRate = __currentEmissionRate;
 
-  //     while (__slot0.tick < __position.lastTick) {
+  //     while (__slot0.tick < coverPremium.lastTick) {
   //       (uint32 __tickNext, bool __initialized) = self
   //         .tickBitmap
   //         .nextInitializedTickInTheRightWithinOneWord(__slot0.tick);
 
   //       {
-  //         uint32 __tick = __tickNext < __position.lastTick
+  //         uint32 __tick = __tickNext < coverPremium.lastTick
   //           ? __tickNext
-  //           : __position.lastTick;
+  //           : coverPremium.lastTick;
   //         uint256 __secondsPassed = (__tick - __slot0.tick) *
   //           __slot0.secondsPerTick;
 
   //         __premiumLeft +=
   //           (__secondsPassed * __coverCurrentEmissionRate) /
-  //           86400;
+  //           SECONDS_PER_TICK;
 
   //         __remainingSeconds += __secondsPassed;
 
   //         __slot0.tick = __tick;
   //       }
 
-  //       if (__initialized && __tickNext < __position.lastTick) {
+  //       if (__initialized && __tickNext < coverPremium.lastTick) {
   //         _crossingInitializedTick(
   //           self,
   //           __slot0,
@@ -740,7 +762,7 @@ library VirtualPool {
 
   //         __coverCurrentEmissionRate = getEmissionRate(
   //           __coverBeginEmissionRate,
-  //           __position.beginPremiumRate,
+  //           coverPremium.beginPremiumRate,
   //           __currentPremiumRate
   //         );
   //       }

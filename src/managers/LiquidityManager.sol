@@ -9,7 +9,6 @@ import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { RayMath } from "../libs/RayMath.sol";
 import { VirtualPool } from "../libs/VirtualPool.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import { PremiumPosition } from "../libs/PremiumPosition.sol";
 
 // Interfaces
 import { IStrategyManager } from "../interfaces/IStrategyManager.sol";
@@ -198,11 +197,11 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
     return _pools[poolId_].ticks[tick];
   }
 
-  function poolPremiumPositions(
+  function poolCoverPremiums(
     uint128 poolId_,
     uint256 coverId
-  ) external view returns (PremiumPosition.Info memory) {
-    return _pools[poolId_].premiumPositions[coverId];
+  ) external view returns (VirtualPool.CoverPremiums memory) {
+    return _pools[poolId_].coverPremiums[coverId];
   }
 
   /// ======= POOLS ======= ///

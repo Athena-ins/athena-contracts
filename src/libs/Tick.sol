@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.20;
 
-import "./PremiumPosition.sol";
+// Libraries
+import { RayMath } from "./RayMath.sol";
 
 library Tick {
   using RayMath for uint256;
-  using PremiumPosition for mapping(address => PremiumPosition.Info);
 
   function addCoverId(
     mapping(uint32 => uint256[]) storage self,
