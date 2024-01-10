@@ -223,15 +223,13 @@ library VirtualPool {
       liquidityIndex - newLPInfo.beginLiquidityIndex
     );
 
-    newLPInfo.beginLiquidityIndex = liquidityIndex;
-
-    // transfer to account:
+    // Compute net rewards earned from cover premiums
     uint256 interestNet = (totalRewards * (1000 - _feeRate)) / 1000;
+
     // @bw check that each pool pays its own fees (can be different tokens)
     // @bw here should safe to position instead of initiating transfer when called for fee update
     // @bw init transfer call in liq manager to strat holding funds
     // IERC20(paymentAsset).safeTransfer(account_,  interestNet);
-
     // transfer to treasury
     // @bw FEE WARN! core has no way of using funds
     // @bw init transfer call in liq manager to strat holding funds
@@ -240,15 +238,8 @@ library VirtualPool {
     //    totalRewards -  interestNet
     // );
 
+    newLPInfo.beginLiquidityIndex = liquidityIndex;
     self.lpInfos[tokenId_] = newLPInfo;
-
-    emit TakeInterest(
-      tokenId_,
-      newUserCapital,
-      totalRewards,
-      interestNet,
-      totalRewards - interestNet
-    );
 
     return (newUserCapital, scaledAmountToRemove);
   }
@@ -360,15 +351,15 @@ library VirtualPool {
 
   function _buyCover(
     VPool storage self,
-    uint256 _tokenId,
-    uint256 _premium,
-    uint256 _insuredCapital
+    uint256 coverId_,
+    uint256 coverAmount_,
+    uint256 premiums_
   ) internal {
     uint256 _availableLiquidity = availableLiquidity(self);
     uint256 totalInsuredCapital = self.slot0.totalInsuredCapital;
 
     require(
-      totalInsuredCapital + _insuredCapital < _availableLiquidity,
+      totalInsuredCapital + coverAmount_ < _availableLiquidity,
       "Insufficient capital"
     );
 
@@ -380,7 +371,7 @@ library VirtualPool {
     uint256 __newPremiumRate = getPremiumRate(
       self,
       utilizationRate(
-        _insuredCapital,
+        coverAmount_,
         0,
         totalInsuredCapital,
         _availableLiquidity
@@ -388,8 +379,8 @@ library VirtualPool {
     );
 
     uint256 __durationInSeconds = durationSecondsUnit(
-      _premium,
-      _insuredCapital,
+      premiums_,
+      coverAmount_,
       __newPremiumRate
     );
 
@@ -407,9 +398,9 @@ library VirtualPool {
     uint32 __lastTick = self.slot0.tick +
       uint32(__durationInSeconds / __newSecondsPerTick);
 
-    _addPremiumPosition(self, _tokenId, __newPremiumRate, __lastTick);
+    _addPremiumPosition(self, coverId_, __newPremiumRate, __lastTick);
 
-    self.slot0.totalInsuredCapital += _insuredCapital;
+    self.slot0.totalInsuredCapital += coverAmount_;
     self.slot0.secondsPerTick = __newSecondsPerTick;
 
     self.slot0.remainingCovers++;
@@ -432,11 +423,11 @@ library VirtualPool {
 
   function _closeCover(
     VPool storage self,
-    uint256 coverId,
-    uint256 _amountCovered
+    uint256 coverId_,
+    uint256 coverAmount_
   ) internal returns (uint256 __remainedPremium) {
     PremiumPosition.Info memory __position = self.premiumPositions[
-      coverId
+      coverId_
     ];
     uint32 __currentTick = self.slot0.tick;
 
@@ -456,7 +447,7 @@ library VirtualPool {
     );
 
     uint256 __ownerCurrentEmissionRate = getEmissionRate(
-      _amountCovered.rayMul(__position.beginPremiumRate / 100) / 365,
+      coverAmount_.rayMul(__position.beginPremiumRate / 100) / 365,
       __position.beginPremiumRate,
       __currentPremiumRate
     );
@@ -471,13 +462,13 @@ library VirtualPool {
       self,
       utilizationRate(
         0,
-        _amountCovered,
+        coverAmount_,
         __totalInsuredCapital,
         __availableLiquidity
       )
     );
 
-    self.slot0.totalInsuredCapital -= _amountCovered;
+    self.slot0.totalInsuredCapital -= coverAmount_;
 
     self.slot0.secondsPerTick = getSecondsPerTick(
       self.slot0.secondsPerTick,
@@ -487,7 +478,7 @@ library VirtualPool {
 
     if (self.ticks.getCoverIdNumber(__position.lastTick) > 1) {
       self.premiumPositions.replaceAndRemoveCoverId(
-        coverId,
+        coverId_,
         self.ticks.getLastCoverIdInTick(__position.lastTick)
       );
 
