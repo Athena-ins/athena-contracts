@@ -14,6 +14,11 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol"
 // ======= ERRORS ======= //
 
 error ZeroAddressAsset();
+error UpdateMustBeGreaterThanLast();
+error CoverAlreadyExpired();
+error DurationTooLow();
+error InsufficientCapacity();
+error LiquidityNotAvailable();
 
 library VirtualPool {
   using VirtualPool for VPool;
@@ -253,15 +258,17 @@ library VirtualPool {
     uint256 _userCapital,
     uint256 feeDiscount_
   ) internal returns (uint256, uint256) {
-    require(
+    if (
+      RayMath.RAY * 100 <
       utilizationRate(
         0,
         0,
         self.slot0.totalInsuredCapital,
         availableLiquidity(self) - _userCapital
-      ) <= RayMath.RAY * 100,
-      "PP: use rate > 100%"
-    );
+      )
+    ) {
+      revert LiquidityNotAvailable();
+    }
 
     (
       // The initial capital impacted by the claims
@@ -358,10 +365,9 @@ library VirtualPool {
     uint256 _availableLiquidity = availableLiquidity(self);
     uint256 totalInsuredCapital = self.slot0.totalInsuredCapital;
 
-    require(
-      totalInsuredCapital + coverAmount_ < _availableLiquidity,
-      "Insufficient capital"
-    );
+    if (_availableLiquidity < totalInsuredCapital + coverAmount_) {
+      revert InsufficientCapacity();
+    }
 
     uint256 __currentPremiumRate = getPremiumRate(
       self,
@@ -390,10 +396,8 @@ library VirtualPool {
       __newPremiumRate
     );
 
-    require(
-      __durationInSeconds >= __newSecondsPerTick,
-      "Min duration"
-    );
+    if (__durationInSeconds < __newSecondsPerTick)
+      revert DurationTooLow();
 
     uint32 __lastTick = self.slot0.tick +
       uint32(__durationInSeconds / __newSecondsPerTick);
@@ -431,7 +435,8 @@ library VirtualPool {
     ];
     uint32 __currentTick = self.slot0.tick;
 
-    require(__currentTick <= __position.lastTick, "Cover Expired");
+    if (__position.lastTick < __currentTick)
+      revert CoverAlreadyExpired();
 
     uint256 __totalInsuredCapital = self.slot0.totalInsuredCapital;
     uint256 __availableLiquidity = availableLiquidity(self);
@@ -628,10 +633,8 @@ library VirtualPool {
     view
     returns (Slot0 memory __slot0, uint256 __liquidityIndex)
   {
-    require(
-      _dateInSeconds >= self.slot0.lastUpdateTimestamp,
-      "date is not valide"
-    );
+    if (_dateInSeconds < self.slot0.lastUpdateTimestamp)
+      revert UpdateMustBeGreaterThanLast();
 
     if (self.slot0.remainingCovers > 0) {
       (__slot0, __liquidityIndex) = _actualizingUntil(
