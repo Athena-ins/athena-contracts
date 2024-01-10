@@ -18,8 +18,6 @@ import { IAthenaPositionToken } from "../interfaces/IAthenaPositionToken.sol";
 import { IAthenaCoverToken } from "../interfaces/IAthenaCoverToken.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import { console } from "hardhat/console.sol";
-
 // Todo
 // @bw need dynamic risk pool fee system
 
@@ -316,6 +314,9 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
       end: 0
     });
 
+    // Create cover in pool
+    pool._buyCover(poolId_, coverAmount_, premiums_);
+
     // Mint cover NFT
     coverToken.mint(msg.sender, coverId);
   }
@@ -337,7 +338,6 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
     // Clean pool from expired covers
     _processExpiredTokens(pool._actualizing());
 
-    // @bw check cover ownership
     // Check if pool is currently paused
     if (pool.isPaused) revert PoolIsPaused();
     // Check if cover is expired
@@ -500,7 +500,6 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
 
   // @bw needs to be updated for strat reward withdraw + take fees in pools
   // compute amount of rewards & transfer from cover manager to user + register new reward index
-  // @bw need to check ownership with ownerOf instead of arg
   function takeInterests(
     uint256 tokenId_
   ) public onlyPositionOwner(tokenId_) {
