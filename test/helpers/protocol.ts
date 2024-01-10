@@ -4,6 +4,7 @@ import {
   entityProviderChainId,
   impersonateAccount,
   setNextBlockTimestamp,
+  postTxHandler,
 } from "./hardhat";
 
 // Types
@@ -135,10 +136,7 @@ async function transfer<T extends IERC20>(
   signer: Wallet,
   ...args: Parameters<IERC20["transfer"]>
 ): Promise<ContractReceipt> {
-  return contract
-    .connect(signer)
-    .transfer(...args)
-    .then((tx) => tx.wait());
+  return postTxHandler(contract.connect(signer).transfer(...args));
 }
 
 async function approve<T extends IERC20>(
@@ -146,15 +144,13 @@ async function approve<T extends IERC20>(
   signer: Wallet,
   ...args: Parameters<IERC20["approve"]>
 ): Promise<ContractReceipt> {
-  return contract
-    .connect(signer)
-    .approve(...args)
-    .then((tx) => tx.wait())
-    .catch(async () => {
+  return postTxHandler(contract.connect(signer).approve(...args)).catch(
+    async () => {
       // Similar to force approve for tokes who require reseting allowance to 0
-      await contract.approve(args[0], 0).then((tx) => tx.wait());
-      return await contract.approve(...args).then((tx) => tx.wait());
-    });
+      await postTxHandler(contract.approve(args[0], 0));
+      return await postTxHandler(contract.approve(...args));
+    },
+  );
 }
 
 async function maxApprove<T extends IERC20>(
@@ -162,10 +158,9 @@ async function maxApprove<T extends IERC20>(
   signer: Wallet,
   spender: string,
 ): Promise<ContractReceipt> {
-  return contract
-    .connect(signer)
-    .approve(spender, BigNumber.from(2).pow(256))
-    .then((tx) => tx.wait());
+  return postTxHandler(
+    contract.connect(signer).approve(spender, BigNumber.from(2).pow(256)),
+  );
 }
 
 async function getTokens(
@@ -185,17 +180,17 @@ async function getTokens(
   const wethAddress = wethTokenAddress(chainId);
   const weth = IWETH__factory.connect(wethAddress, signer);
 
-  await weth.approve(routerAddress, parseEther("500")).then((tx) => tx.wait());
+  await postTxHandler(weth.approve(routerAddress, parseEther("500")));
 
-  return uniswapRouter
-    .swapTokensForExactTokens(
+  return postTxHandler(
+    uniswapRouter.swapTokensForExactTokens(
       amount, // uint amountOut,
       parseEther("500"), // uint amountInMax,
       [wethAddress, token], // address[] calldata path,
       to, // address to,
       2000000000, // uint deadline
-    )
-    .then((tx) => tx.wait());
+    ),
+  );
 }
 
 // ======================= //
@@ -233,16 +228,12 @@ async function createPosition(
 
   await Promise.all([
     getTokens(user, token.address, userAccount, amount),
-    token
-      .connect(user)
-      .approve(contract.address, amount)
-      .then((tx) => tx.wait()),
+    postTxHandler(token.connect(user).approve(contract.address, amount)),
   ]);
 
-  return contract
-    .connect(user)
-    .createPosition(amount, isWrapped, poolIds)
-    .then((tx) => tx.wait());
+  return postTxHandler(
+    contract.connect(user).createPosition(amount, isWrapped, poolIds),
+  );
 }
 
 async function increasePosition(
@@ -270,16 +261,12 @@ async function increasePosition(
 
   await Promise.all([
     getTokens(user, token.address, userAccount, amount),
-    token
-      .connect(user)
-      .approve(contract.address, amount)
-      .then((tx) => tx.wait()),
+    postTxHandler(token.connect(user).approve(contract.address, amount)),
   ]);
 
-  return contract
-    .connect(user)
-    .increasePosition(tokenId, amount, isWrapped)
-    .then((tx) => tx.wait());
+  return postTxHandler(
+    contract.connect(user).increasePosition(tokenId, amount, isWrapped),
+  );
 }
 
 // ======== Covers ======== //
@@ -305,10 +292,9 @@ async function buyCover(
     token.connect(user).approve(contract.address, premiums),
   ]);
 
-  return contract
-    .connect(user)
-    .buyCover(poolId, coverAmount, premiums)
-    .then((tx) => tx.wait());
+  return postTxHandler(
+    contract.connect(user).buyCover(poolId, coverAmount, premiums),
+  );
 }
 
 async function updateCover(
@@ -337,16 +323,17 @@ async function updateCover(
     ]);
   }
 
-  return contract
-    .connect(user)
-    .updateCover(
-      coverId,
-      coverToAdd,
-      coverToRemove,
-      premiumsToAdd,
-      premiumsToRemove,
-    )
-    .then((tx) => tx.wait());
+  return postTxHandler(
+    contract
+      .connect(user)
+      .updateCover(
+        coverId,
+        coverToAdd,
+        coverToRemove,
+        premiumsToAdd,
+        premiumsToRemove,
+      ),
+  );
 }
 
 // async function updateCover(

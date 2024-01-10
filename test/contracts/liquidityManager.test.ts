@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
 // Helpers
-import { setNextBlockTimestamp } from "../helpers/hardhat";
+import { setNextBlockTimestamp, postTxHandler } from "../helpers/hardhat";
 import { BigNumber } from "ethers";
 
 const { parseUnits } = ethers.utils;
@@ -13,13 +13,15 @@ export function liquidityManager() {
     it("can create pools", async function () {
       // Create a pool
       expect(
-        await this.contracts.LiquidityManager.createPool(
+        await postTxHandler(
+          this.contracts.LiquidityManager.createPool(
           this.contracts.TetherToken.address, // paymentAsset
           0, // strategyId
           0, // protocolShare
           ...this.protocolConfig.poolMarket,
           [], // compatiblePools
-        ).then((tx) => tx.wait()),
+          ),
+        ),
       ).to.not.throw;
 
       // Check pool info
@@ -156,13 +158,9 @@ export function liquidityManager() {
     it("can close cover", async function () {
       const uint256Max = BigNumber.from(2).pow(256).sub(1);
       expect(
-        await this.contracts.LiquidityManager.updateCover(
-          0,
-          0,
-          0,
-          0,
-          uint256Max,
-        ).then((tx) => tx.wait()),
+        await postTxHandler(
+          this.contracts.LiquidityManager.updateCover(0, 0, 0, 0, uint256Max),
+        ),
       ).to.not.throw;
 
       expect(
@@ -181,8 +179,8 @@ export function liquidityManager() {
     });
     it("can commit LPs withdrawal", async function () {
       expect(
-        await this.contracts.LiquidityManager.commitPositionWithdrawal(0).then(
-          (tx) => tx.wait(),
+        await postTxHandler(
+          this.contracts.LiquidityManager.commitPositionWithdrawal(0),
         ),
       ).to.not.throw;
 
@@ -194,8 +192,8 @@ export function liquidityManager() {
       await setNextBlockTimestamp({ days: 15 });
 
       expect(
-        await this.contracts.LiquidityManager.closePosition(0, false).then(
-          (tx) => tx.wait(),
+        await postTxHandler(
+          this.contracts.LiquidityManager.closePosition(0, false),
         ),
       ).to.not.throw;
 

@@ -1,4 +1,10 @@
-import { BaseContract, BigNumberish, Signer, Wallet, utils } from "ethers";
+import {
+  BaseContract,
+  ContractTransaction,
+  Signer,
+  Wallet,
+  utils,
+} from "ethers";
 import hre, { ethers, network } from "hardhat";
 import { HardhatNetworkConfig, HardhatRuntimeEnvironment } from "hardhat/types";
 
@@ -8,6 +14,14 @@ type BytesLike = utils.BytesLike;
 // =============== //
 // === Helpers === //
 // =============== //
+
+export async function postTxHandler(txPromise: Promise<ContractTransaction>) {
+  return txPromise
+    .then((tx) => tx.wait())
+    .catch((err) => {
+      throw Error(err.reason);
+    });
+}
 
 export async function getCurrentTime() {
   return (await ethers.provider.getBlock("latest")).timestamp;
