@@ -18,6 +18,8 @@ import { IAthenaPositionToken } from "../interfaces/IAthenaPositionToken.sol";
 import { IAthenaCoverToken } from "../interfaces/IAthenaCoverToken.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
+import { console } from "hardhat/console.sol";
+
 // Todo
 // @bw need dynamic risk pool fee system
 
@@ -522,6 +524,11 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
           position.poolIds,
           feeDiscount
         );
+
+      // Update capital based on claims on last loop
+      if (i == nbPools - 1) {
+        amountSuppliedUpdated = _newUserCapital;
+      }
     }
 
     // Withdraw interests from strategy
