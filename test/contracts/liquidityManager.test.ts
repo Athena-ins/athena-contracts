@@ -8,7 +8,16 @@ const { parseUnits } = ethers.utils;
 
 export function liquidityManager() {
   context("Liquidity Manager", function () {
-    before(async function () {});
+    before(async function () {
+      this.args = {
+        lpAmount: parseUnits("1000", 6),
+        coverAmount: parseUnits("500", 6),
+        coverPremiums: parseUnits("20", 6),
+        lpIncreaseAmount: parseUnits("1500", 6),
+        coverIncreaseAmount: parseUnits("400", 6),
+        coverIncreasePremiums: parseUnits("50", 6),
+      };
+    });
 
     it("can create pools", async function () {
       // Create a pool
@@ -51,7 +60,7 @@ export function liquidityManager() {
       expect(
         await this.helpers.createPosition(
           this.signers.deployer,
-          parseUnits("1000", 6),
+          this.args.lpAmount,
           false,
           [0],
         ),
@@ -67,17 +76,19 @@ export function liquidityManager() {
 
       expect(position.poolIds.length).to.equal(1);
       expect(position.poolIds[0]).to.equal(0);
-      expect(position.supplied).to.equal(parseUnits("1000", 6));
+      expect(position.supplied).to.equal(this.args.lpAmount);
     });
     it("accepts covers", async function () {
       expect(
         await this.helpers.buyCover(
           this.signers.deployer,
           0,
-          parseUnits("500", 6),
-          parseUnits("20", 6),
+          this.args.coverAmount,
+          this.args.coverPremiums,
         ),
       ).to.not.throw;
+
+      await setNextBlockTimestamp({ days: 5 });
 
       expect(
         await this.contracts.AthenaCoverToken.balanceOf(
@@ -86,11 +97,12 @@ export function liquidityManager() {
       ).to.equal(1);
 
       const cover = await this.contracts.LiquidityManager.covers(0);
+      // console.log("cover: ", cover);
 
       expect(cover.poolId).to.equal(0);
-      expect(cover.coverAmount).to.equal(parseUnits("500", 6));
-      expect(cover.premiums).to.equal(parseUnits("20", 6));
-      expect(cover.start.div(10)).to.equal(170473365);
+      expect(cover.coverAmount).to.equal(this.args.coverAmount);
+      expect(cover.premiums).to.equal(this.args.coverPremiums);
+      expect(cover.start.div(100)).to.equal(17047336);
       expect(cover.end).to.equal(0);
     });
 
@@ -102,10 +114,12 @@ export function liquidityManager() {
         await this.helpers.increasePosition(
           this.signers.deployer,
           0,
-          parseUnits("1000", 6),
+          this.args.lpIncreaseAmount,
           false,
         ),
       ).to.not.throw;
+
+      await setNextBlockTimestamp({ days: 5 });
 
       expect(
         await this.contracts.AthenaPositionToken.balanceOf(
@@ -117,19 +131,23 @@ export function liquidityManager() {
 
       expect(position.poolIds.length).to.equal(1);
       expect(position.poolIds[0]).to.equal(0);
-      expect(position.supplied).to.equal(parseUnits("2000", 6));
+      expect(position.supplied).to.equal(
+        this.args.lpIncreaseAmount.add(this.args.lpAmount),
+      );
     });
     it("can increase cover & premiums", async function () {
       expect(
         await this.helpers.updateCover(
           this.signers.deployer,
           0,
-          parseUnits("1000", 6),
+          this.args.coverIncreaseAmount,
           0,
-          parseUnits("50", 6),
+          this.args.coverIncreasePremiums,
           0,
         ),
       ).to.not.throw;
+
+      await setNextBlockTimestamp({ days: 5 });
 
       expect(
         await this.contracts.AthenaCoverToken.balanceOf(
@@ -138,22 +156,28 @@ export function liquidityManager() {
       ).to.equal(1);
 
       const cover = await this.contracts.LiquidityManager.covers(0);
+      // console.log('cover: ', cover);
 
       expect(cover.poolId).to.equal(0);
-      expect(cover.coverAmount).to.equal(parseUnits("1500", 6));
-      expect(cover.premiums).to.equal(parseUnits("70", 6));
-      expect(cover.start.div(10)).to.equal(170473365);
+      expect(cover.coverAmount).to.equal(
+        this.args.coverIncreaseAmount.add(this.args.coverAmount),
+      );
+      expect(cover.premiumsLeft).to.equal(60037622);
+      expect(cover.start.div(100)).to.equal(17047336);
       expect(cover.end).to.equal(0);
     });
 
     // it("has coherent state", async function () {});
-    // it("has lasting coherent state", async function () {});
 
     // it("can decrease cover amount", async function () {});
     // it("can decrease cover premiums", async function () {});
 
     // it("has coherent state", async function () {});
-    // it("has lasting coherent state", async function () {});
+
+    // it("can create claim", async function () {});
+    // it("can can resolve claim", async function () {});
+
+    // it("has coherent state", async function () {});
 
     it("can close cover", async function () {
       const uint256Max = BigNumber.from(2).pow(256).sub(1);
@@ -172,10 +196,12 @@ export function liquidityManager() {
       const cover = await this.contracts.LiquidityManager.covers(0);
 
       expect(cover.poolId).to.equal(0);
-      expect(cover.coverAmount).to.equal(parseUnits("1500", 6));
-      expect(cover.premiums).to.equal(parseUnits("70", 6));
-      expect(cover.start.div(10)).to.equal(170473365);
-      expect(cover.end).to.equal(0);
+      expect(cover.coverAmount).to.equal(
+        this.args.coverIncreaseAmount.add(this.args.coverAmount),
+      );
+      expect(cover.premiumsLeft).to.equal(0);
+      expect(cover.start.div(100)).to.equal(17047336);
+      expect(cover.end.div(100)).to.equal(17060296);
     });
     it("can commit LPs withdrawal", async function () {
       expect(
@@ -185,7 +211,7 @@ export function liquidityManager() {
       ).to.not.throw;
 
       const position = await this.contracts.LiquidityManager.positions(0);
-      expect(position.commitWithdrawalTimestamp).to.equal(0);
+      expect(position.commitWithdrawalTimestamp.div(100)).to.equal(17060296);
     });
     it("can withdraw LPs", async function () {
       // Wait for unlock delay to pass
@@ -202,10 +228,9 @@ export function liquidityManager() {
       expect(position.poolIds.length).to.equal(1);
       expect(position.poolIds[0]).to.equal(0);
       expect(position.supplied).to.equal(0);
-      expect(position.commitWithdrawalTimestamp).to.equal(0);
+      expect(position.commitWithdrawalTimestamp.div(100)).to.equal(17060296);
     });
 
     // it("has coherent state", async function () {});
-    // it("has lasting coherent state", async function () {});
   });
 }
