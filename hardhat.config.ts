@@ -72,6 +72,9 @@ function makeForkConfig(): HardhatNetworkUserConfig {
     },
     mining: {
       auto: true,
+      mempool: {
+        order: "fifo",
+      },
     },
     accounts: [
       {
