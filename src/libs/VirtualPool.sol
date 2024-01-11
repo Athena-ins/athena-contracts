@@ -386,51 +386,45 @@ library VirtualPool {
     uint256 coverAmount_,
     uint256 premiums_
   ) internal {
-    uint256 _availableLiquidity = availableLiquidity(self);
+    uint256 available = availableLiquidity(self);
     uint256 totalInsuredCapital = self.slot0.totalInsuredCapital;
 
-    if (_availableLiquidity < totalInsuredCapital + coverAmount_) {
+    if (available < totalInsuredCapital + coverAmount_) {
       revert InsufficientCapacity();
     }
 
-    uint256 __currentPremiumRate = getPremiumRate(
+    uint256 currentPremiumRate = getPremiumRate(
       self,
-      utilizationRate(0, 0, totalInsuredCapital, _availableLiquidity)
+      utilizationRate(0, 0, totalInsuredCapital, available)
     );
 
-    uint256 __newPremiumRate = getPremiumRate(
+    uint256 beginPremiumRate = getPremiumRate(
       self,
-      utilizationRate(
-        coverAmount_,
-        0,
-        totalInsuredCapital,
-        _availableLiquidity
-      )
+      utilizationRate(coverAmount_, 0, totalInsuredCapital, available)
     );
 
-    uint256 __durationInSeconds = durationSecondsUnit(
+    uint256 durationInSeconds = durationSecondsUnit(
       premiums_,
       coverAmount_,
-      __newPremiumRate
+      beginPremiumRate
     );
 
-    uint256 __newSecondsPerTick = getSecondsPerTick(
+    uint256 newSecondsPerTick = getSecondsPerTick(
       self.slot0.secondsPerTick,
-      __currentPremiumRate,
-      __newPremiumRate
+      currentPremiumRate,
+      beginPremiumRate
     );
 
-    if (__durationInSeconds < __newSecondsPerTick)
+    if (durationInSeconds < newSecondsPerTick)
       revert DurationTooLow();
 
-    uint32 __lastTick = self.slot0.tick +
-      uint32(__durationInSeconds / __newSecondsPerTick);
+    uint32 lastTick = self.slot0.tick +
+      uint32(durationInSeconds / newSecondsPerTick);
 
-    _addPremiumPosition(self, coverId_, __newPremiumRate, __lastTick);
+    _addPremiumPosition(self, coverId_, beginPremiumRate, lastTick);
 
     self.slot0.totalInsuredCapital += coverAmount_;
-    self.slot0.secondsPerTick = __newSecondsPerTick;
-
+    self.slot0.secondsPerTick = newSecondsPerTick;
     self.slot0.remainingCovers++;
   }
 
@@ -453,73 +447,48 @@ library VirtualPool {
     VPool storage self,
     uint256 coverId_,
     uint256 coverAmount_
-  ) internal returns (uint256 __remainedPremium) {
-    PremiumPosition.Info memory __position = self.premiumPositions[
-      coverId_
-    ];
-    uint32 __currentTick = self.slot0.tick;
+  ) internal {
+    CoverPremiums memory coverPremium = self.coverPremiums[coverId_];
+    uint32 currentTick = self.slot0.tick;
+    uint256 totalInsuredCapital = self.slot0.totalInsuredCapital;
 
-    if (__position.lastTick < __currentTick)
+    if (coverPremium.lastTick < currentTick)
       revert CoverAlreadyExpired();
 
-    uint256 __totalInsuredCapital = self.slot0.totalInsuredCapital;
-    uint256 __availableLiquidity = availableLiquidity(self);
+    uint256 available = availableLiquidity(self);
 
-    uint256 __currentPremiumRate = getPremiumRate(
+    uint256 currentPremiumRate = getPremiumRate(
       self,
-      utilizationRate(
-        0,
-        0,
-        __totalInsuredCapital,
-        __availableLiquidity
-      )
+      utilizationRate(0, 0, totalInsuredCapital, available)
+    );
+    uint256 newPremiumRate = getPremiumRate(
+      self,
+      utilizationRate(0, coverAmount_, totalInsuredCapital, available)
     );
 
-    uint256 __ownerCurrentEmissionRate = getEmissionRate(
-      coverAmount_.rayMul(__position.beginPremiumRate / 100) / 365,
-      __position.beginPremiumRate,
-      __currentPremiumRate
-    );
-
-    __remainedPremium =
-      ((__position.lastTick - __currentTick) *
-        self.slot0.secondsPerTick *
-        __ownerCurrentEmissionRate) /
-      86400;
-
-    uint256 __newPremiumRate = getPremiumRate(
-      self,
-      utilizationRate(
-        0,
-        coverAmount_,
-        __totalInsuredCapital,
-        __availableLiquidity
-      )
+    uint256 newSecondsPerTick = getSecondsPerTick(
+      self.slot0.secondsPerTick,
+      currentPremiumRate,
+      newPremiumRate
     );
 
     self.slot0.totalInsuredCapital -= coverAmount_;
+    self.slot0.secondsPerTick = newSecondsPerTick;
+    self.slot0.remainingCovers--;
 
-    self.slot0.secondsPerTick = getSecondsPerTick(
-      self.slot0.secondsPerTick,
-      __currentPremiumRate,
-      __newPremiumRate
-    );
-
-    if (self.ticks.getCoverIdNumber(__position.lastTick) > 1) {
-      self.premiumPositions.replaceAndRemoveCoverId(
+    if (1 < self.ticks.getCoverIdNumber(coverPremium.lastTick)) {
+      self.replaceAndRemoveCoverId(
         coverId_,
-        self.ticks.getLastCoverIdInTick(__position.lastTick)
+        self.ticks.getLastCoverIdInTick(coverPremium.lastTick)
       );
 
       self.ticks.removeCoverId(
-        __position.coverIdIndex,
-        __position.lastTick
+        coverPremium.coverIdIndex,
+        coverPremium.lastTick
       );
     } else {
-      _removeTick(self, __position.lastTick);
+      _removeTick(self, coverPremium.lastTick);
     }
-
-    self.slot0.remainingCovers--;
   }
 
   // ======= CLAIMS ======= //
