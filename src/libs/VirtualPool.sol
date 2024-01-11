@@ -19,13 +19,23 @@ error DurationTooLow();
 error InsufficientCapacity();
 error LiquidityNotAvailable();
 
+/**
+ * @title Athena Virtual Pool
+ * @author vblackwhale
+ *
+ * Definitions:
+ * - ticks: a tick is a variable time unit expressed in seconds. The first tick is initialized with the tick max value of 86400 seconds (1 day). It can be explained as a variable amount of cover time bought with the premiums. This is why when the pool's usage rises, the current tick's value decreases and conversely when the pool's usage decreases, the tick increases.
+ */
 library VirtualPool {
   using VirtualPool for VPool;
   using RayMath for uint256;
   using SafeERC20 for IERC20;
   using Tick for mapping(uint32 => uint256[]);
   using TickBitmap for mapping(uint24 => uint256);
-  using PremiumPosition for mapping(uint256 => PremiumPosition.Info);
+
+  // ======= CONSTANTS ======= //
+
+  uint256 internal constant MAX_SECONDS_PER_TICK = 86400;
 
   // ======= STRUCTS ======= //
 
@@ -37,7 +47,7 @@ library VirtualPool {
   }
 
   struct Slot0 {
-    uint32 tick;
+    uint32 tick; // The last tick at which the pool's liquidity was updated
     uint256 secondsPerTick;
     uint256 totalInsuredCapital;
     uint256 remainingCovers;
@@ -58,8 +68,14 @@ library VirtualPool {
 
   struct CoverPremiums {
     uint256 beginPremiumRate;
-    uint32 lastTick;
-    uint224 coverIdIndex;
+    uint32 lastTick; // The tick at which the cover will expire
+    uint224 coverIdIndex; // CoverId index in its initalization tick's cover array
+  }
+
+  struct CoverInfo {
+    uint256 premiumsLeft;
+    uint256 currentEmissionRate;
+    uint256 remainingSeconds;
   }
 
   // ======= VIRTUAL STORAGE ======= //
@@ -149,7 +165,7 @@ library VirtualPool {
       rSlope2: params.rSlope2
     });
 
-    self.slot0.secondsPerTick = 86400;
+    self.slot0.secondsPerTick = MAX_SECONDS_PER_TICK;
     self.slot0.lastUpdateTimestamp = block.timestamp;
 
     self.overlappedPools.push(params.poolId);
@@ -590,7 +606,7 @@ library VirtualPool {
 
   function _actualizing(
     VPool storage self
-  ) internal returns (uint256[] memory) {
+  ) internal returns (uint256[] memory expiredCoverIds) {
     if (self.slot0.remainingCovers > 0) {
       (
         Slot0 memory __slot0,
@@ -598,10 +614,10 @@ library VirtualPool {
       ) = _actualizingUntil(self, block.timestamp);
 
       //now, we remove all crossed ticks
-      uint256[] memory __expiredCoversTokens = new uint256[](
+      expiredCoverIds = new uint256[](
         self.slot0.remainingCovers - __slot0.remainingCovers
       );
-      uint256 __expiredCoversTokenIdCurrentIndex;
+      uint256 index;
 
       uint32 __observedTick = self.slot0.tick;
       bool __initialized;
@@ -622,11 +638,9 @@ library VirtualPool {
             i < __currentExpiredCoversTokenId.length;
             i++
           ) {
-            __expiredCoversTokens[
-              __expiredCoversTokenIdCurrentIndex
-            ] = __currentExpiredCoversTokenId[i];
+            expiredCoverIds[index] = __currentExpiredCoversTokenId[i];
 
-            __expiredCoversTokenIdCurrentIndex++;
+            index++;
           }
         }
       }
@@ -637,12 +651,10 @@ library VirtualPool {
       self.slot0.remainingCovers = __slot0.remainingCovers;
       self.slot0.lastUpdateTimestamp = block.timestamp;
       self.liquidityIndex = __liquidityIndex;
-
-      return __expiredCoversTokens;
     }
 
     self.slot0.lastUpdateTimestamp = block.timestamp;
-    return new uint256[](0);
+    return expiredCoverIds;
   }
 
   // ======= VIEW HELPERS ======= //
@@ -990,13 +1002,23 @@ library VirtualPool {
     __newLPInfo.beginLiquidityIndex = __liquidityIndex;
   }
 
+  /**
+   * @notice Computes the premium rate of a cover,
+   * the premium rate represents the premium fees APR paid by a cover buyer
+   * in relation to the cover amount.
+   *
+   * @param self The pool
+   * @param utilizationRate_ The utilization rate of the pool
+   *
+   * @return The premium rate of the cover expressed in rays
+   */
   function getPremiumRate(
     VPool storage self,
     uint256 utilizationRate_
   ) private view returns (uint256) {
     Formula storage formula = self.formula;
     // returns actual rate for insurance
-    // @bw case for overusage ?
+    // @bw case for overusage ? see utilizationRate
     if (utilizationRate_ < formula.uOptimal) {
       return
         formula.r0 +
@@ -1015,14 +1037,24 @@ library VirtualPool {
 
   // ======= PURE HELPERS ======= //
 
+  /**
+   * @notice Computes the new emission rate of a cover,
+   * the emmission rate is the daily cost of a cover in the pool.
+   *
+   * @param oldEmissionRate_ The emission rate of the cover before the change
+   * @param oldPremiumRate_ The premium rate of the cover before the change
+   * @param newPremiumRate_ The premium rate of the cover after the change
+   *
+   * @return The new emission rate of the cover expressed in tokens/day
+   */
   function getEmissionRate(
-    uint256 _oldEmissionRate,
-    uint256 _oldPremiumRate,
-    uint256 _newPremiumRate
+    uint256 oldEmissionRate_,
+    uint256 oldPremiumRate_,
+    uint256 newPremiumRate_
   ) private pure returns (uint256) {
     return
-      _oldEmissionRate.rayMul(_newPremiumRate).rayDiv(
-        _oldPremiumRate
+      oldEmissionRate_.rayMul(newPremiumRate_).rayDiv(
+        oldPremiumRate_
       );
   }
 
