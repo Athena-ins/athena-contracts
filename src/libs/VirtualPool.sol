@@ -681,106 +681,88 @@ library VirtualPool {
     }
   }
 
-  // @bw is used ? Stack too deep err
-  // function _getInfo(
-  //   VPool storage self,
-  //   uint256 coverId_,
-  //   address coverManager
-  // )
-  //   internal
-  //   view
-  //   returns (
-  //     uint256 __premiumLeft,
-  //     uint256 __currentEmissionRate,
-  //     uint256 __remainingSeconds
-  //   )
-  // {
-  //   uint256 __availableLiquidity = availableLiquidity(self);
-  //   (Slot0 memory __slot0, ) = _actualizingUntil(
-  //     self,
-  //     block.timestamp
-  //   );
-  //   CoverPremiums  storage coverPremium = self.coverPremiums[
-  //     coverId_
-  //   ];
+  function _coverInfo(
+    VPool storage self,
+    uint256 coverId_,
+    bool syncSlot0_
+  ) internal view returns (CoverInfo memory info) {
+    // For reads we sync the slot0 to the current timestamp to have latests data
+    (Slot0 memory slot0, ) = syncSlot0_
+      ? _actualizingUntil(self, block.timestamp)
+      : (self.slot0, 0);
+    CoverPremiums storage coverPremium = self.coverPremiums[coverId_];
 
-  //   if (coverPremium.lastTick < __slot0.tick) {
-  //     /// @dev If the tick in slot0 is greater than the position's last tick then the cover is expired
-  //     __premiumLeft = 0;
-  //     __currentEmissionRate = 0;
-  //     __remainingSeconds = 0;
-  //   } else {
-  //     uint256 __coverBeginEmissionRate = ICoverManager(coverManager)
-  //       .getCover(coverId_)
-  //       .amountCovered
-  //       .rayMul(coverPremium.beginPremiumRate / 100) / 365;
+    if (coverPremium.lastTick < slot0.tick) {
+      // If the cover's last tick is overtaken then it's expired and all values are 0
+      return
+        CoverInfo({
+          premiumsLeft: 0,
+          currentEmissionRate: 0,
+          remainingSeconds: 0
+        });
+    } else {
+      uint256 available = availableLiquidity(self);
+      uint256 coverBeginEmissionRate = self
+        .coverSize(coverId_)
+        .rayMul(coverPremium.beginPremiumRate / 100) / 365;
+      uint256 currentPremiumRate = getPremiumRate(
+        self,
+        utilizationRate(0, 0, slot0.totalInsuredCapital, available)
+      );
 
-  //     uint256 __currentPremiumRate = getPremiumRate(
-  //       self,
-  //       utilizationRate(
-  //         0,
-  //         0,
-  //         __slot0.totalInsuredCapital,
-  //         __availableLiquidity
-  //       )
-  //     );
+      info.currentEmissionRate = getEmissionRate(
+        coverBeginEmissionRate,
+        coverPremium.beginPremiumRate,
+        currentPremiumRate
+      );
 
-  //     __currentEmissionRate = getEmissionRate(
-  //       __coverBeginEmissionRate,
-  //       coverPremium.beginPremiumRate,
-  //       __currentPremiumRate
-  //     );
+      uint256 coverCurrentEmissionRate = info.currentEmissionRate;
+      uint32 currentTick = slot0.tick;
 
-  //     uint256 __coverCurrentEmissionRate = __currentEmissionRate;
+      while (currentTick < coverPremium.lastTick) {
+        (uint32 tickNext, bool initialized) = self
+          .tickBitmap
+          .nextInitializedTickInTheRightWithinOneWord(currentTick);
 
-  //     while (__slot0.tick < coverPremium.lastTick) {
-  //       (uint32 __tickNext, bool __initialized) = self
-  //         .tickBitmap
-  //         .nextInitializedTickInTheRightWithinOneWord(__slot0.tick);
+        {
+          uint32 tick = tickNext < coverPremium.lastTick
+            ? tickNext
+            : coverPremium.lastTick;
+          uint256 secondsPassed = (tick - currentTick) *
+            slot0.secondsPerTick;
 
-  //       {
-  //         uint32 __tick = __tickNext < coverPremium.lastTick
-  //           ? __tickNext
-  //           : coverPremium.lastTick;
-  //         uint256 __secondsPassed = (__tick - __slot0.tick) *
-  //           __slot0.secondsPerTick;
+          info.premiumsLeft +=
+            (secondsPassed * coverCurrentEmissionRate) /
+            MAX_SECONDS_PER_TICK;
 
-  //         __premiumLeft +=
-  //           (__secondsPassed * __coverCurrentEmissionRate) /
-  //           SECONDS_PER_TICK;
+          // @bw redundant data
+          info.remainingSeconds += secondsPassed;
 
-  //         __remainingSeconds += __secondsPassed;
+          currentTick = tick;
+        }
 
-  //         __slot0.tick = __tick;
-  //       }
+        if (initialized && tickNext < coverPremium.lastTick) {
+          _crossingInitializedTick(self, slot0, available, tickNext);
 
-  //       if (__initialized && __tickNext < coverPremium.lastTick) {
-  //         _crossingInitializedTick(
-  //           self,
-  //           __slot0,
-  //           __availableLiquidity,
-  //           __tickNext
-  //         );
+          currentPremiumRate = getPremiumRate(
+            self,
+            utilizationRate(
+              0,
+              0,
+              slot0.totalInsuredCapital,
+              available
+            )
+          );
 
-  //         __currentPremiumRate = getPremiumRate(
-  //           self,
-  //           utilizationRate(
-  //             0,
-  //             0,
-  //             __slot0.totalInsuredCapital,
-  //             __availableLiquidity
-  //           )
-  //         );
-
-  //         __coverCurrentEmissionRate = getEmissionRate(
-  //           __coverBeginEmissionRate,
-  //           coverPremium.beginPremiumRate,
-  //           __currentPremiumRate
-  //         );
-  //       }
-  //     }
-  //   }
-  // }
+          coverCurrentEmissionRate = getEmissionRate(
+            coverBeginEmissionRate,
+            coverPremium.beginPremiumRate,
+            currentPremiumRate
+          );
+        }
+      }
+    }
+  }
 
   function _crossingInitializedTick(
     VPool storage self,
