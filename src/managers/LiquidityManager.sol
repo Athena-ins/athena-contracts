@@ -369,10 +369,9 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
     // Check if cover is expired
     if (cover.end != 0) revert CoverIsExpired();
 
-    uint256 premiumsLeft = pool._closeCover(
-      coverId_,
-      cover.coverAmount
-    );
+    // Get the amount of premiums left
+    uint256 premiums = pool._coverInfo(coverId_, false).premiumsLeft;
+    pool._closeCover(coverId_, cover.coverAmount);
 
     // Only allow one operation on cover amount change
     if (0 < coverToAdd_) {
@@ -391,19 +390,17 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
 
     // Only allow one operation on premiums amount change
     if (0 < premiumsToRemove_) {
-      // If premiumsToRemove_ is max uint256, then remove all premiums
       if (premiumsToRemove_ == type(uint256).max) {
-        premiumsToRemove_ = premiumsLeft;
-      } else if (premiumsLeft < premiumsToRemove_) {
+        // If premiumsToRemove_ is max uint256, then remove all premiums
+        premiumsToRemove_ = premiums;
+      } else if (premiums < premiumsToRemove_) {
         // Else check if there is enough premiums left
         revert NotEnoughPremiums();
       }
 
-      cover.premiums -= premiumsToRemove_;
-      IERC20(pool.paymentAsset).safeTransfer(
-        msg.sender,
-        premiumsLeft
-      );
+      premiums -= premiumsToRemove_;
+
+      IERC20(pool.paymentAsset).safeTransfer(msg.sender, premiums);
     } else if (0 < premiumsToAdd_) {
       // Transfer premiums from user
       IERC20(pool.paymentAsset).safeTransferFrom(
@@ -411,15 +408,15 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
         address(this), // @bw Check handling of funds
         premiumsToAdd_
       );
-      cover.premiums += premiumsToAdd_;
+      premiums += premiumsToAdd_;
     }
 
     // If no premiums left, then cover expires & should not be reopened
-    if (cover.premiums == 0) {
-      covers[coverId_].end = block.timestamp;
+    if (premiums == 0) {
+      cover.end = block.timestamp;
     } else {
       // Update cover
-      pool._buyCover(cover.poolId, cover.coverAmount, cover.premiums);
+      pool._buyCover(cover.poolId, cover.coverAmount, premiums);
     }
   }
 
