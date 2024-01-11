@@ -40,6 +40,17 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
 
   // ======= STRUCTS ======= //
 
+  struct CoverRead {
+    uint128 poolId;
+    uint256 coverAmount;
+    uint256 premiums;
+    uint256 start;
+    uint256 end;
+    uint256 premiumsLeft;
+    uint256 currentEmissionRate;
+    uint256 remainingSeconds;
+  }
+
   struct Cover {
     uint128 poolId;
     uint256 coverAmount;
@@ -75,7 +86,8 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
   /// The ID of the next cover to be minted
   uint256 public nextCoverId;
   /// User cover data
-  mapping(uint256 _id => Cover) public covers;
+  /// @dev left public to read cover initital cover data
+  mapping(uint256 _id => Cover) public _covers;
 
   /// The ID of the next token that will be minted.
   uint256 public nextPositionId;
@@ -103,13 +115,6 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
     strategyManager = strategyManager_;
     claimManager = claimManager_;
   }
-
-  // @bw cannort return complex struct
-  // function poolInfo(
-  //   uint256 poolId_
-  // ) external view returns (VirtualPool.VPool memory) {
-  //   return _pools[poolId_];
-  // }
 
   /// ======= MODIFIERS ======= ///
 
@@ -145,22 +150,44 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
     return _positions[tokenId_].supplied;
   }
 
+  function covers(
+    uint256 tokenId_
+  ) external view returns (CoverRead memory) {
+    Cover storage cover = _covers[tokenId_];
+
+    VirtualPool.CoverInfo memory info = _pools[cover.poolId]
+      ._coverInfo(tokenId_, true);
+
+    return
+      CoverRead({
+        poolId: cover.poolId,
+        coverAmount: cover.coverAmount,
+        premiums: cover.premiums,
+        start: cover.start,
+        end: cover.end,
+        premiumsLeft: info.premiumsLeft,
+        currentEmissionRate: info.currentEmissionRate,
+        remainingSeconds: info.remainingSeconds
+      });
+  }
+
   function coverSize(uint256 tokenId_) public view returns (uint256) {
-    return covers[tokenId_].coverAmount;
+    return _covers[tokenId_].coverAmount;
   }
 
   function isCoverActive(
     uint256 tokenId
   ) external view returns (bool) {
-    return covers[tokenId].end == 0;
+    return _covers[tokenId].end == 0;
   }
 
   function poolInfo(
     uint128 poolId_
-  ) external view returns (VirtualPool.VPoolInfo memory) {
+  ) external view returns (VirtualPool.VPoolRead memory) {
     VirtualPool.VPool storage pool = _pools[poolId_];
+
     return
-      VirtualPool.VPoolInfo({
+      VirtualPool.VPoolRead({
         poolId: pool.poolId,
         protocolShare: pool.protocolShare,
         formula: pool.formula,
@@ -268,7 +295,7 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
   ) internal {
     uint256 nbTokens = tokenIds_.length;
     for (uint256 i; i < nbTokens; i++) {
-      covers[tokenIds_[i]].end = block.timestamp;
+      _covers[tokenIds_[i]].end = block.timestamp;
       // @bw check if spent premium is correct after manual expiration
       // @bw should auto unfarm if it is currently farming rewards
     }
@@ -305,7 +332,7 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
     nextCoverId++;
 
     // Create cover
-    covers[coverId] = Cover({
+    _covers[coverId] = Cover({
       poolId: poolId_,
       coverAmount: coverAmount_,
       premiums: premiums_,
@@ -330,7 +357,7 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
     uint256 premiumsToRemove_
   ) external onlyCoverOwner(coverId_) {
     // Get storage pointer to cover
-    Cover storage cover = covers[coverId_];
+    Cover storage cover = _covers[coverId_];
     // Get storage pointer to pool
     VirtualPool.VPool storage pool = _pools[cover.poolId];
 

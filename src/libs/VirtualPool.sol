@@ -80,7 +80,7 @@ library VirtualPool {
 
   // ======= VIRTUAL STORAGE ======= //
 
-  struct VPoolInfo {
+  struct VPoolRead {
     uint128 poolId;
     uint256 protocolShare;
     Formula formula;
