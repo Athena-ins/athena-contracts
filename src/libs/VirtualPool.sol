@@ -248,11 +248,11 @@ library VirtualPool {
 
   function _takePoolInterests(
     VPool storage self,
-    address account_,
     uint256 tokenId_,
-    uint256 _userCapital,
-    uint128[] storage _poolIds,
-    uint256 _feeRate
+    address account_,
+    uint256 amount_,
+    uint256 feeDiscount_,
+    uint128[] storage poolIds_
   ) internal returns (uint256, uint256) {
     (
       uint256 newUserCapital,
@@ -297,10 +297,11 @@ library VirtualPool {
 
   function _withdrawLiquidity(
     VPool storage self,
-    uint128[] storage _poolIds,
     uint256 tokenId_,
-    uint256 _userCapital,
-    uint256 feeDiscount_
+    address account_,
+    uint256 amount_,
+    uint256 feeDiscount_,
+    uint128[] storage poolIds_
   ) internal returns (uint256, uint256) {
     if (
       RayMath.RAY * 100 <

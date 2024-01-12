@@ -540,16 +540,17 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
     for (uint256 i; i < nbPools; i++) {
       VirtualPool.VPool storage pool = _pools[position.poolIds[i]];
 
-      // Remove expired covers
-      pool._actualizing();
+      // Clean pool from expired covers
+      // @bw check if need to expire tokens before taking interests
+      _processExpiredTokens(pool._actualizing());
 
       (uint256 _newUserCapital, uint256 _scaledAmountToRemove) = pool
         ._takePoolInterests(
-          account,
           tokenId_,
+          account,
           position.supplied,
-          position.poolIds,
-          feeDiscount
+          feeDiscount,
+          position.poolIds
         );
 
       // Update capital based on claims on last loop
@@ -609,15 +610,17 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
 
     uint256 feeDiscount = staking.feeDiscountOf(account);
     _removeOverlappingCapital(
-      position.poolIds,
       tokenId_,
+      account,
       position.supplied,
-      feeDiscount
+      feeDiscount,
+      position.poolIds
     );
 
     // All pools have same strategy since they are compatible
     uint256 strategyId = _pools[position.poolIds[0]].strategyId;
     // @bw this should send back funds to user with rewards, minus fees
+    // @bw this should be impacted by capital loses incurred by claims
     if (keepWrapped_) {
       strategyManager.withdrawWrappedFromStrategy(
         strategyId,
@@ -703,10 +706,11 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
 
   // @dev poolIds have been checked at creation to ensure they are unique and ascending
   function _removeOverlappingCapital(
-    uint128[] storage poolIds_,
     uint256 tokenId_,
+    address account_,
     uint256 amount_,
-    uint256 feeDiscount_
+    uint256 feeDiscount_,
+    uint128[] storage poolIds_
   ) internal {
     uint256 nbPoolIds = poolIds_.length;
 
@@ -714,14 +718,16 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
       uint128 poolId0 = poolIds_[i];
       VirtualPool.VPool storage pool0 = _pools[poolId0];
 
-      // Remove expired covers
+      // Need to clean covers to avoid them causing a utilization overflow
       pool0._actualizing();
+
       // Remove liquidity
       pool0._withdrawLiquidity(
-        poolIds_,
         tokenId_,
+        account_,
         amount_,
-        feeDiscount_
+        feeDiscount_,
+        poolIds_
       );
 
       // Considering the verification that pool IDs are unique & ascending
