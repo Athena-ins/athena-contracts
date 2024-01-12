@@ -15,6 +15,7 @@ import { IStrategyManager } from "../interfaces/IStrategyManager.sol";
 import { IStaking } from "../interfaces/IStaking.sol";
 import { IAthenaPositionToken } from "../interfaces/IAthenaPositionToken.sol";
 import { IAthenaCoverToken } from "../interfaces/IAthenaCoverToken.sol";
+import { IEcclesiaDao } from "../interfaces/IEcclesiaDao.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 // Todo
@@ -75,6 +76,7 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
   IAthenaPositionToken public positionToken;
   IAthenaCoverToken public coverToken;
   IStaking public staking;
+  IEcclesiaDao public ecclesiaDao;
   IStrategyManager public strategyManager;
   address claimManager;
 
@@ -106,12 +108,14 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
     IAthenaPositionToken positionToken_,
     IAthenaCoverToken coverToken_,
     IStaking staking_,
+    IEcclesiaDao ecclesiaDao_,
     IStrategyManager strategyManager_,
     address claimManager_
   ) Ownable(msg.sender) {
     positionToken = positionToken_;
     coverToken = coverToken_;
     staking = staking_;
+    ecclesiaDao = ecclesiaDao_;
     strategyManager = strategyManager_;
     claimManager = claimManager_;
   }
@@ -254,6 +258,7 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
     VirtualPool.VPoolConstructorParams memory args = VirtualPool
       .VPoolConstructorParams({
         poolId: poolId,
+        dao: ecclesiaDao,
         strategyId: strategyId_,
         paymentAsset: paymentAsset_,
         underlyingAsset: underlyingAsset,

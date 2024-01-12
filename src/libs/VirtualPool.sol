@@ -9,6 +9,7 @@ import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.s
 
 // Interfaces
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { IEcclesiaDao } from "../interfaces/IEcclesiaDao.sol";
 
 // ======= ERRORS ======= //
 
@@ -36,6 +37,7 @@ library VirtualPool {
   // ======= CONSTANTS ======= //
 
   uint256 internal constant MAX_SECONDS_PER_TICK = 86400;
+  uint256 internal constant FEE_BASE = 10000;
 
   // ======= STRUCTS ======= //
 
@@ -98,6 +100,7 @@ library VirtualPool {
   struct VPool {
     uint128 poolId;
     uint256 protocolShare; // amount of fees on premiums
+    IEcclesiaDao dao;
     Formula formula;
     Slot0 slot0;
     uint256 liquidityIndex;
@@ -127,6 +130,7 @@ library VirtualPool {
 
   struct VPoolConstructorParams {
     uint128 poolId;
+    IEcclesiaDao dao;
     uint256 strategyId;
     address paymentAsset;
     address underlyingAsset;
@@ -152,6 +156,7 @@ library VirtualPool {
     }
 
     self.poolId = params.poolId;
+    self.dao = params.dao;
     self.paymentAsset = params.paymentAsset;
     self.strategyId = params.strategyId;
     self.underlyingAsset = params.underlyingAsset;
@@ -219,6 +224,24 @@ library VirtualPool {
       beginLiquidityIndex: self.liquidityIndex,
       beginClaimIndex: self.processedClaims.length
     });
+  }
+
+  function _payRewardsAndFees(
+    VPool storage self,
+    uint256 rewards_,
+    address account_,
+    uint256 feeDiscount_
+  ) private {
+    if (0 < rewards_) {
+      uint256 net = (rewards_ * (FEE_BASE - feeDiscount_)) / FEE_BASE;
+      uint256 fees = rewards_ - net;
+
+      // Pay position owner
+      IERC20(self.paymentAsset).safeTransfer(account_, net);
+      // Pay treasury
+      IERC20(self.paymentAsset).safeTransfer(address(self.dao), fees);
+      self.dao.accrueRevenue(self.paymentAsset, fees);
+    }
   }
 
   /// -------- TAKE INTERESTS -------- ///
