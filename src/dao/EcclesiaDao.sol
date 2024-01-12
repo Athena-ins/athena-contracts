@@ -2,8 +2,8 @@
 // solhint-disable not-rely-on-time
 pragma solidity 0.8.20;
 
-// @bw TODO
-// - check for mutations because of lock being both stored in memory & referenced with pointers
+// @bw TODO move fee discount here or enable having fee discount as dao staker (optionnal)
+// @bw TODO check for mutations because of lock being both stored in memory & referenced with pointers
 // maybe pass storage pointers to private handlers + storing to be mutated data for cheaper ops
 
 // Contracts
