@@ -15,6 +15,7 @@ import { IStrategyManager } from "../interfaces/IStrategyManager.sol";
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import { ILiquidityManager } from "../interfaces/ILiquidityManager.sol";
 import { ILendingPool } from "../interfaces/ILendingPool.sol";
+// @bw seems underlying === wrapped as the aToken balance is increased as interests sum up
 
 //======== ERRORS ========//
 
@@ -88,9 +89,9 @@ contract StrategyManager is IStrategyManager, Ownable {
 
     if (startIndex < currentIndex) {
       uint256 supplied = liquidityManager.positionSize(tokenId_);
-
-      uint256 indexDelta = currentIndex - startIndex;
-      uint256 newRewards = (supplied * indexDelta) / RayMath.RAY;
+      uint256 newRewards = supplied.rayMul(currentIndex).rayDiv(
+        startIndex
+      ) - supplied;
 
       return newRewards + data.accumulatedRewards;
     } else {
@@ -126,19 +127,15 @@ contract StrategyManager is IStrategyManager, Ownable {
   function wrappedToUnderlying(
     uint256 strategyId_,
     uint256 amountWrapped_
-  ) public view checkId(strategyId_) returns (uint256) {
-    uint256 index = getRewardIndex(strategyId_);
-    // @bw to be checked
-    return (amountWrapped_ * index) / RayMath.RAY;
+  ) public pure checkId(strategyId_) returns (uint256) {
+    return amountWrapped_;
   }
 
   function underlyingToWrapped(
     uint256 strategyId_,
     uint256 amountUnderlying_
-  ) public view checkId(strategyId_) returns (uint256) {
-    uint256 index = getRewardIndex(strategyId_);
-    // @bw to be checked
-    return (amountUnderlying_ * RayMath.RAY) / index;
+  ) public pure checkId(strategyId_) returns (uint256) {
+    return amountUnderlying_;
   }
 
   //======== UNDERLYING I/O ========//
