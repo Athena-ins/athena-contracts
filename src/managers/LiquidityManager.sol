@@ -751,6 +751,7 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
 
     // All pools have same strategy since they are compatible
     uint256 strategyId = _pools[poolA.overlappedPools[0]].strategyId;
+    uint256 rewardIndex = strategyManager.getRewardIndex(strategyId);
 
     uint256 nbPools = poolA.overlappedPools.length;
     for (uint128 i; i < nbPools + 1; i++) {
@@ -762,27 +763,29 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
         ? (poolA, poolIdB)
         : (poolB, poolId_);
 
+      // New context to avoid stack too deep error
+      {
       // Remove liquidity from dependant pool
-      uint256 amountToRemove = pool0.overlaps[poolId1].rayMul(ratio);
+        uint256 amountToRemove = pool0.overlaps[poolId1].rayMul(
+          ratio
+        );
       // Pool overlaps are used to compute the amount of liq to remove from each pool
       pool0.overlaps[poolId1] -= amountToRemove;
       poolB.overlaps[poolIdB] -= amountToRemove;
 
       poolB._actualizing();
-
       poolB._updateSlot0WhenAvailableLiquidityChange(
         0,
         amountToRemove
       );
+      }
 
       poolB.processedClaims.push(
         VirtualPool.PoolClaim({
           fromPoolId: poolId_,
           ratio: ratio,
           liquidityIndexBeforeClaim: poolB.liquidityIndex,
-          rewardIndexBeforeClaim: strategyManager.getRewardIndex(
-            strategyId
-          )
+          rewardIndexBeforeClaim: rewardIndex
         })
       );
     }

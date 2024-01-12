@@ -215,9 +215,6 @@ library VirtualPool {
     uint256 tokenId_,
     uint256 amount_
   ) internal {
-    // Add deposit to pool's own intersecting amounts
-    self.overlaps[self.poolId] += amount_;
-
     self._updateSlot0WhenAvailableLiquidityChange(amount_, 0);
 
     self.lpInfos[tokenId_] = LPInfo({
