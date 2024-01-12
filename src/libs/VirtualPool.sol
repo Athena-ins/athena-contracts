@@ -650,6 +650,17 @@ library VirtualPool {
     }
   }
 
+  /**
+   * @notice Computes the premium rate & daily cost of a cover,
+   * this parses the pool's ticks to compute how much premiums are left and
+   * what is the daily cost of keeping the cover openened.
+   *
+   * @param self The pool
+   * @param coverId_ The cover ID
+   * @param syncSlot0_ Whether to sync the slot0 to the current timestamp in memory
+   *
+   * @return info A struct containing the cover's premium rate & the cover's daily cost
+   */
   function _coverInfo(
     VPool storage self,
     uint256 coverId_,
@@ -855,57 +866,70 @@ library VirtualPool {
     __slot0.lastUpdateTimestamp = _dateInSeconds;
   }
 
-  // @bw high gas consumpton - only place saved claims are consummed
+  /**
+   * @notice Computes the state changes of an LP position,
+   * it aggregates the fees earned by the position in the pool and
+   * computes the losses incurred by the claims in this pool.
+   *
+   * @param self The pool
+   * @param tokenId_ The LP position token ID
+   * @param userCapital_ The amount of liquidity in the position
+   * @param poolIds_ The pool IDs of the position
+   *
+   * @return newUserCapital The user's capital after claims
+   * @return totalRewards The total rewards earned by the user
+   * @return newLPInfo The new LPInfo of the user
+   * @return scaledAmountToRemove The amount of capital to remove from the pool
+   */
   function _actualizingLPInfoWithClaims(
     VPool storage self,
     uint256 tokenId_,
-    uint256 _userCapital,
-    uint128[] storage _poolIds
+    uint256 userCapital_,
+    uint128[] storage poolIds_
   )
     private
     view
     returns (
-      uint256 __newUserCapital,
-      uint256 __totalRewards,
-      LPInfo memory __newLPInfo,
-      uint256 __scaledAmountToRemove
+      uint256 newUserCapital,
+      uint256 totalRewards,
+      LPInfo memory newLPInfo,
+      uint256 scaledAmountToRemove
     )
   {
-    __newLPInfo = self.lpInfos[tokenId_];
-    PoolClaim[] memory __claims = _claims(
+    newLPInfo = self.lpInfos[tokenId_];
+    PoolClaim[] memory claims = _claims(
       self,
-      __newLPInfo.beginClaimIndex
+      newLPInfo.beginClaimIndex
     );
 
-    __newUserCapital = _userCapital;
+    newUserCapital = userCapital_;
 
-    for (uint256 i = 0; i < __claims.length; i++) {
-      PoolClaim memory __claim = __claims[i];
+    for (uint256 i = 0; i < claims.length; i++) {
+      PoolClaim memory claim = claims[i];
 
-      __totalRewards += __newUserCapital.rayMul(
-        __claim.liquidityIndexBeforeClaim -
-          __newLPInfo.beginLiquidityIndex
+      totalRewards += newUserCapital.rayMul(
+        claim.liquidityIndexBeforeClaim -
+          newLPInfo.beginLiquidityIndex
       );
 
-      for (uint256 j = 0; j < _poolIds.length; j++) {
-        if (_poolIds[j] == __claim.fromPoolId) {
-          uint256 capitalToRemove = __newUserCapital.rayMul(
-            __claim.ratio
+      for (uint256 j = 0; j < poolIds_.length; j++) {
+        if (poolIds_[j] == claim.fromPoolId) {
+          uint256 capitalToRemove = newUserCapital.rayMul(
+            claim.ratio
           );
 
           // @bw Check how this impact claim withdraws, should only work with underlying if possible.
-          __scaledAmountToRemove += capitalToRemove.rayDiv(
-            __claim.rewardIndexBeforeClaim
+          scaledAmountToRemove += capitalToRemove.rayDiv(
+            claim.rewardIndexBeforeClaim
           );
 
-          __newUserCapital = __newUserCapital - capitalToRemove;
+          newUserCapital = newUserCapital - capitalToRemove;
           break;
         }
       }
-      __newLPInfo.beginLiquidityIndex = __claim
-        .liquidityIndexBeforeClaim;
+      newLPInfo.beginLiquidityIndex = claim.liquidityIndexBeforeClaim;
     }
-    __newLPInfo.beginClaimIndex += __claims.length;
+    newLPInfo.beginClaimIndex += claims.length;
   }
 
   function _rewardsOf(
