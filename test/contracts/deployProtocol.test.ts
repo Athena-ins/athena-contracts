@@ -88,7 +88,7 @@ export function deployProtocol() {
           this.deployedAt.AthenaCoverToken,
           this.deployedAt.LiquidityManager,
           this.deployedAt.MockArbitrator,
-          this.signers.deployer.address,
+          this.signers.evidenceGuardian.address,
         ]).then((contract) =>
           postDeployCheck(contract, this.deployedAt.ClaimManager),
         );
@@ -120,6 +120,7 @@ export function deployProtocol() {
           this.deployedAt.AthenaPositionToken,
           this.deployedAt.AthenaCoverToken,
           this.deployedAt.Staking,
+          this.deployedAt.EcclesiaDao,
           this.deployedAt.StrategyManager,
           this.deployedAt.ClaimManager,
         ]).then((contract) =>

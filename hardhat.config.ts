@@ -27,6 +27,7 @@ const {
   MAINNET_RPC_URL,
   GOERLI_RPC_URL,
   //
+  EVIDENCE_GUARDIAN_PK,
   REPORT_GAS,
   ETHERSCAN_API_KEY,
   COINMARKETCAP_API_KEY,
@@ -36,6 +37,7 @@ if (!MAINNET_FORKING_BLOCK || !GOERLI_FORKING_BLOCK)
   throw Error("Missing fork block targets");
 if (!MAINNET_WALLET_PK || !GOERLI_WALLET_PK) throw Error("Missing wallet PK");
 if (!MAINNET_RPC_URL || !GOERLI_RPC_URL) throw Error("Missing RPC URL");
+if (!EVIDENCE_GUARDIAN_PK) throw Error("Missing evidence guardian PK");
 
 function makeForkConfig(): HardhatNetworkUserConfig {
   const forkTarget = HARDHAT_FORK_TARGET?.toLowerCase();
@@ -83,6 +85,12 @@ function makeForkConfig(): HardhatNetworkUserConfig {
         privateKey: WALLET_PK as string,
         balance: parseEther("10000").toString(),
       },
+      {
+        // Deployer account
+        // We can cast safely because we checked for undefined
+        privateKey: EVIDENCE_GUARDIAN_PK as string,
+        balance: parseEther("10000").toString(),
+      },
       ...Array(20)
         .fill("")
         .map((_, i) => ({
@@ -119,11 +127,11 @@ const config: HardhatUserConfig = {
     hardhat: makeForkConfig(),
     mainnet: {
       url: MAINNET_RPC_URL,
-      accounts: [MAINNET_WALLET_PK],
+      accounts: [MAINNET_WALLET_PK, EVIDENCE_GUARDIAN_PK],
     },
     goerli: {
       url: GOERLI_RPC_URL,
-      accounts: [GOERLI_WALLET_PK, id(GOERLI_WALLET_PK)],
+      accounts: [GOERLI_WALLET_PK, EVIDENCE_GUARDIAN_PK, id(GOERLI_WALLET_PK)],
     },
   },
 

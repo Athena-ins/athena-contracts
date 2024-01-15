@@ -4,7 +4,11 @@ import {
   entityProviderChainId,
   getCurrentBlockNumber,
 } from "./hardhat";
-import { usdtTokenAddress, wethTokenAddress } from "./protocol";
+import {
+  usdtTokenAddress,
+  wethTokenAddress,
+  evidenceGuardianWallet,
+} from "./protocol";
 // typechain
 import {
   // Dao
@@ -130,12 +134,14 @@ export async function deployAthenaToken(
 
 export type ProtocolConfig = {
   arbitrationCollateral: BigNumber;
+  evidenceGuardian: Wallet;
   poolMarket: [BigNumber, BigNumber, BigNumber, BigNumber];
   feeDiscounts: { atenAmount: number; feeDiscount: number }[];
 };
 
 export const defaultProtocolConfig: ProtocolConfig = {
   arbitrationCollateral: utils.parseEther("0.05"), // in ETH
+  evidenceGuardian: evidenceGuardianWallet(),
   poolMarket: [
     BigNumber.from(75).mul(BigNumber.from(10).pow(27)), // uOptimal_
     BigNumber.from(1).mul(BigNumber.from(10).pow(27)), // r0_
@@ -216,7 +222,7 @@ export async function deployAllContractsAndInitializeProtocol(
     deployedAt.AthenaCoverToken,
     deployedAt.LiquidityManager,
     deployedAt.MockArbitrator,
-    deployer.address,
+    config.evidenceGuardian.address,
   ]);
   const StrategyManager = await deployStrategyManager(deployer, [
     deployedAt.LiquidityManager,

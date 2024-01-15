@@ -11,7 +11,7 @@ import {
   deployAllContractsAndInitializeProtocol,
   defaultProtocolConfig,
 } from "./helpers/deployers";
-import { makeTestHelpers } from "./helpers/protocol";
+import { makeTestHelpers, evidenceGuardianWallet } from "./helpers/protocol";
 
 // Custom hook to run a function before each child test suite
 function beforeEachSuite(fn: AsyncFunc) {
@@ -29,9 +29,10 @@ export function baseContext(description: string, hooks: () => void): void {
       const signers = await ethers.getSigners();
       this.signers = {
         deployer: signers[0] as Signer as Wallet,
-        user: signers[1] as Signer as Wallet,
-        user2: signers[2] as Signer as Wallet,
-        user3: signers[3] as Signer as Wallet,
+        evidenceGuardian: signers[1] as Signer as Wallet,
+        user: signers[2] as Signer as Wallet,
+        user2: signers[3] as Signer as Wallet,
+        user3: signers[4] as Signer as Wallet,
       };
 
       // Setup protocol for testing & provide interfaces to tests
@@ -40,6 +41,12 @@ export function baseContext(description: string, hooks: () => void): void {
         defaultProtocolConfig,
         // true,
       );
+
+      if (
+        this.signers.evidenceGuardian.address !=
+        evidenceGuardianWallet().address
+      )
+        throw Error("Evidence guardian address mismatch");
 
       // Get WETH for all accounts
       await Promise.all(
@@ -57,6 +64,7 @@ export function baseContext(description: string, hooks: () => void): void {
       const logData = {
         chainId: await entityProviderChainId(this.signers.deployer),
         deployer: this.signers.deployer.address,
+        evidenceGuardian: this.signers.evidenceGuardian.address,
         user: this.signers.user.address,
         user2: this.signers.user2.address,
         user3: this.signers.user3.address,
