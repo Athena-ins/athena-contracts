@@ -192,11 +192,11 @@ contract ClaimManager is
 
   /**
    * @notice
-   * Check caller is owner of the policy holder NFT
-   * @param policyId_ policy holder NFT ID
+   * Check caller is owner of the cover holder NFT
+   * @param coverId_ cover holder NFT ID
    */
-  modifier onlyPolicyTokenOwner(uint256 policyId_) {
-    if (msg.sender != coverToken.ownerOf(policyId_))
+  modifier onlyCoverTokenOwner(uint256 coverId_) {
+    if (msg.sender != coverToken.ownerOf(coverId_))
       revert OnlyCoverOwner();
     _;
   }
@@ -513,20 +513,20 @@ contract ClaimManager is
   // @bw @dev TODO : should lock the capital in protocol pool
   /**
    * @notice
-   * Initiates a payment claim to Kleros by a policy holder.
-   * @param policyId_ The policy ID
-   * @param amountClaimed_ The amount claimed by the policy holder
+   * Initiates a payment claim to Kleros by a cover holder.
+   * @param coverId_ The cover ID
+   * @param amountClaimed_ The amount claimed by the cover holder
    * @param ipfsMetaEvidenceCid_ The IPFS CID of the meta evidence file
    */
   function initiateClaim(
-    uint256 policyId_,
+    uint256 coverId_,
     uint256 amountClaimed_,
     string calldata ipfsMetaEvidenceCid_,
     bytes calldata signature_
-  ) external payable onlyPolicyTokenOwner(policyId_) {
-    // Get the policy
+  ) external payable onlyCoverTokenOwner(coverId_) {
+    // Get the cover
     ILiquidityManager.Cover memory cover = liquidityManager.covers(
-      policyId_
+      coverId_
     );
 
     // Verify authenticity of the IPFS meta-evidence CID
@@ -559,24 +559,25 @@ contract ClaimManager is
     if (msg.value < costOfArbitration + collateralAmount)
       revert NotEnoughEthForClaim();
 
-    // Check if there already an ongoing claim related to this policy
-    if (0 < coverIdToClaimIds[policyId_].length) {
-      uint256 latestClaimIdOfPolicy = latestCoverClaimId(policyId_);
+    // Check if there already an ongoing claim related to this cover
+    if (0 < coverIdToClaimIds[coverId_].length) {
+      uint256 latestClaimIdOfCover = latestCoverClaimId(coverId_);
       // Only allow for a new claim if it is not initiated or disputed
-      // @dev a policy can lead to multiple claims but if the total claimed amount exceeds their coverage amount then the claim may be disputed
-      Claim storage userClaim = claims[latestClaimIdOfPolicy];
+      // @dev a cover can lead to multiple claims but if the total claimed amount exceeds their coverage amount then the claim may be disputed
+      Claim storage userClaim = claims[latestClaimIdOfCover];
       if (
         userClaim.status == ClaimStatus.Initiated ||
         userClaim.status == ClaimStatus.Disputed
       ) revert PreviousClaimStillOngoing();
     }
 
-    // Save latest claim ID of policy and update claim index
+    // Save latest claim ID of cover and update claim index
     uint256 claimId = nextClaimId;
-    coverIdToClaimIds[policyId_].push(claimId);
+    coverIdToClaimIds[coverId_].push(claimId);
     nextClaimId++;
 
     // Save claim data
+    // @bw the amount of storage used can be lightened
     claims[claimId] = Claim({
       claimId: 0,
       status: ClaimStatus.Initiated,
@@ -585,14 +586,14 @@ contract ClaimManager is
       createdAt: block.timestamp,
       arbitrationCost: costOfArbitration,
       disputeId: 0,
-      coverId: policyId_,
+      coverId: coverId_,
       poolId: poolId,
       amount: amountClaimed_,
       metaEvidence: ipfsMetaEvidenceCid_
     });
 
     // Emit Athena claim creation event
-    emit ClaimCreated(msg.sender, policyId_, claimId);
+    emit ClaimCreated(msg.sender, coverId_, claimId);
     emit MetaEvidence(claimId, ipfsMetaEvidenceCid_);
   }
 
@@ -712,7 +713,7 @@ contract ClaimManager is
 
   /**
    * @notice
-   * Allows a policy holder to execute the claim if it has remained unchallenged.
+   * Allows a cover holder to execute the claim if it has remained unchallenged.
    * @param claimId_ The claim ID
    */
   function withdrawCompensationWithoutDispute(
@@ -742,7 +743,7 @@ contract ClaimManager is
     // poolFactoryInterface.removeClaimFromPool(userClaim.poolId);
 
     // Call Athena core to pay the compensation
-    // @bw this should reduce the user's policy to avoid stress on the pool
+    // @bw this should reduce the user's cover to avoid stress on the pool
     liquidityManager.payoutClaim(
       userClaim.poolId,
       userClaim.amount,
@@ -772,7 +773,7 @@ contract ClaimManager is
     // poolFactoryInterface.removeClaimFromPool(userClaim.poolId);
 
     // Call Athena core to pay the compensation
-    // @bw this should reduce the user's policy to avoid stress on the pool
+    // @bw this should reduce the user's cover to avoid stress on the pool
     liquidityManager.payoutClaim(
       userClaim.poolId,
       userClaim.amount,
