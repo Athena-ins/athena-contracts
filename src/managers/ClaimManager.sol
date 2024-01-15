@@ -493,7 +493,6 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
 
   // ======= CLAIMS ======= //
 
-  // @bw @dev TODO : should lock the capital in protocol pool
   /**
    * @notice
    * Initiates a payment claim to Kleros by a cover holder.
@@ -515,8 +514,7 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
     if (amountClaimed_ == 0) revert CannotClaimZero();
 
     // Register the claim to prevent exit from the pool untill resolution
-    // @bw commented until fix
-    // poolFactoryInterface.addClaimToPool(poolId);
+    liquidityManager.addClaimToPool(coverId_);
 
     // Check that the user has deposited the capital necessary for arbitration and collateral
     uint256 costOfArbitration = arbitrationCost();
@@ -537,8 +535,8 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
 
     // Save latest claim ID of cover and update claim index
     uint256 claimId = nextClaimId;
-    coverIdToClaimIds[coverId_].push(claimId);
     nextClaimId++;
+    coverIdToClaimIds[coverId_].push(claimId);
 
     // Save claim data
     Claim storage claim = claims[claimId];
@@ -635,10 +633,6 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
         challenger,
         userClaim.arbitrationCost + collateralAmount
       );
-
-      // Remove claims from pool to unblock withdrawals
-      // @bw commented until fix
-      // poolFactoryInterface.removeClaimFromPool(userClaim.coverId);
     } else {
       // This is the case where the arbitrator refuses to rule
       userClaim.status = ClaimStatus.RejectedWithDispute;
@@ -654,11 +648,10 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
       _sendValue(claimant, halfArbitrationCost + collateralAmount);
       // Send back half the arbitration cost to the challenger
       _sendValue(challenger, halfArbitrationCost);
-
-      // Remove claims from pool to unblock withdrawals
-      // @bw commented until fix
-      // poolFactoryInterface.removeClaimFromPool(userClaim.coverId);
     }
+
+    // Remove claims from pool to unblock withdrawals
+    liquidityManager.removeClaimFromPool(userClaim.coverId);
 
     emit DisputeResolved({
       claimId: claimId,
@@ -671,6 +664,9 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
    * @notice
    * Allows a cover holder to execute the claim if it has remained unchallenged.
    * @param claimId_ The claim ID
+   *
+   * @dev Intentionally public to prevent claimant from indefinitely blocking withdrawals
+   * from a pool by not executing the claims ruling.
    */
   function withdrawCompensationWithoutDispute(
     uint256 claimId_
@@ -695,11 +691,9 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
     );
 
     // Remove claims from pool to unblock withdrawals
-    // @bw commented until fix
-    // poolFactoryInterface.removeClaimFromPool(userClaim.coverId);
+    liquidityManager.removeClaimFromPool(userClaim.coverId);
 
     // Call Athena core to pay the compensation
-    // @bw this should reduce the user's cover to avoid stress on the pool
     liquidityManager.payoutClaim(userClaim.coverId, userClaim.amount);
   }
 
@@ -720,12 +714,7 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
     // Update claim status
     userClaim.status = ClaimStatus.CompensatedAfterAcceptation;
 
-    // Remove claims from pool to unblock withdrawals
-    // @bw commented until fix
-    // poolFactoryInterface.removeClaimFromPool(userClaim.coverId);
-
     // Call Athena core to pay the compensation
-    // @bw this should reduce the user's cover to avoid stress on the pool
     liquidityManager.payoutClaim(userClaim.coverId, userClaim.amount);
   }
 

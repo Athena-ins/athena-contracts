@@ -19,6 +19,7 @@ error CoverAlreadyExpired();
 error DurationTooLow();
 error InsufficientCapacity();
 error LiquidityNotAvailable();
+error PoolHasOnGoingClaims();
 
 /**
  * @title Athena Virtual Pool
@@ -110,6 +111,7 @@ library VirtualPool {
     address wrappedAsset; // tokenised strategy shares (ex: aTokens)
     bool isPaused;
     uint128[] overlappedPools;
+    uint256 ongoingClaims;
     // @bw should change to ids to fetch in map to use storage pointers
     PoolClaim[] processedClaims;
     /// @dev poolId 0 -> poolId 0 points to a pool's available liquidity
@@ -296,6 +298,8 @@ library VirtualPool {
         availableLiquidity(self) - amount_
       )
     ) revert LiquidityNotAvailable();
+
+    if (0 < self.ongoingClaims) revert PoolHasOnGoingClaims();
 
     (
       // The initial capital impacted by the claims

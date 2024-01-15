@@ -25,7 +25,6 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol"
 
 error OnlyTokenOwner();
 error OnlyClaimManager();
-error PoolsHaveOngoingClaims();
 error PoolIsPaused();
 error PoolIdsMustBeUniqueAndAscending();
 error IncompatiblePools(uint128 poolIdA, uint128 poolIdB);
@@ -601,11 +600,6 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
     if (block.timestamp < commitTimestamp + withdrawDelay)
       revert WithdrawCommitDelayNotReached();
 
-    // Check that pools have no ongoing claims
-    // @bw need fix
-    // bool claimsLock = claimManager.canWithdraw(poolIds);
-    // if (claimsLock) revert PoolsHaveOngoingClaims();
-
     address account = positionToken.ownerOf(tokenId_);
 
     uint256 feeDiscount = staking.feeDiscountOf(account);
@@ -619,7 +613,6 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
 
     // All pools have same strategy since they are compatible
     uint256 strategyId = _pools[position.poolIds[0]].strategyId;
-    // @bw this should send back funds to user with rewards, minus fees
     // @bw this should be impacted by capital loses incurred by claims
     if (keepWrapped_) {
       strategyManager.withdrawWrappedFromStrategy(
@@ -739,8 +732,21 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
     }
   }
 
-  /// ======= LIQUIDITY FOR CLAIMS ======= ///
+  /// ======= CLAIMS ======= ///
 
+  function addClaimToPool(
+    uint256 coverId_
+  ) external onlyClaimManager {
+    _pools[_covers[coverId_].poolId].ongoingClaims++;
+  }
+
+  function removeClaimFromPool(
+    uint256 coverId_
+  ) external onlyClaimManager {
+    _pools[_covers[coverId_].poolId].ongoingClaims--;
+  }
+
+  // @bw this should reduce the user's cover to avoid stress on the pool
   function payoutClaim(
     uint256 coverId_,
     uint256 amount_
