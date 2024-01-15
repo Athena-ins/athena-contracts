@@ -30,7 +30,7 @@ error BadRange();
 error WrongClaimStatus();
 error InvalidParty();
 error InvalidMetaEvidence();
-error InvalidClaimAmount();
+error CannotClaimZero();
 error NotEnoughEthForClaim();
 error PreviousClaimStillOngoing();
 error ClaimNotChallengeable();
@@ -41,12 +41,8 @@ error InvalidRuling();
 error DelayNotElapsed();
 error GuardianSetToAddressZero();
 
-contract ClaimManager is
-  IClaimManager,
-  Ownable,
-  VerifySignature,
-  IArbitrable
-{
+// IClaimManager,
+contract ClaimManager is Ownable, VerifySignature, IArbitrable {
   // ======= MODELS ======= //
 
   // @dev the 'Accepted' status is virtual as it is never written to the blockchain
@@ -66,18 +62,28 @@ contract ClaimManager is
     RejectClaim
   }
 
-  // @dev claimId is set to 0 to minimize gas cost but filled in view functions
-  struct Claim {
+  struct ClaimView {
+    uint256 coverId;
+    uint256 poolId;
     uint256 claimId;
+    uint256 disputeId;
     ClaimStatus status;
     uint256 createdAt;
-    address from;
     uint256 amount;
-    uint256 coverId;
-    uint128 poolId;
+    address challenger;
+    uint256 arbitrationCost;
+    string[] evidence;
+    string[] counterEvidence;
     string metaEvidence;
-    //
+  }
+
+  // @dev claimId is set to 0 to minimize gas cost but filled in view functions
+  struct Claim {
+    uint256 coverId;
     uint256 disputeId;
+    ClaimStatus status;
+    uint256 createdAt;
+    uint256 amount;
     address challenger;
     uint256 arbitrationCost;
   }
@@ -195,7 +201,7 @@ contract ClaimManager is
    * Check caller is owner of the cover holder NFT
    * @param coverId_ cover holder NFT ID
    */
-  modifier onlyCoverTokenOwner(uint256 coverId_) {
+  modifier onlyCoverOwner(uint256 coverId_) {
     if (msg.sender != coverToken.ownerOf(coverId_))
       revert OnlyCoverOwner();
     _;
@@ -213,30 +219,6 @@ contract ClaimManager is
     uint128 poolId
   ) external view returns (string memory) {
     return poolIdToCoverTerms[poolId];
-  }
-
-  /**
-   * @notice
-   * Returns the claimant of a claim.
-   * @param claimId_ The claim ID
-   * @return _ the claimant's address
-   */
-  function claimInitiator(
-    uint256 claimId_
-  ) external view returns (address) {
-    return claims[claimId_].from;
-  }
-
-  /**
-   * @notice
-   * Returns the challenger of a claim.
-   * @param claimId_ The claim ID
-   * @return _ the challenger's address
-   */
-  function claimChallenger(
-    uint256 claimId_
-  ) external view returns (address) {
-    return claims[claimId_].challenger;
   }
 
   /**
@@ -267,42 +249,42 @@ contract ClaimManager is
       return (userClaim.createdAt + challengeDelay) - block.timestamp;
   }
 
-  /**
-   * @notice
-   * Get all or a range of exiting claims.
-   * @dev The range is inclusive of the beginIndex and exclusive of the endIndex.
-   * @param beginIndex The index of the first claim to return
-   * @param endIndex The index of the claim at which to stop
-   * @return claimsInfo All the claims in the specified range
-   */
-  function linearClaimsView(
-    uint256 beginIndex,
-    uint256 endIndex
-  ) external view returns (Claim[] memory claimsInfo) {
-    if (nextClaimId < endIndex) revert OutOfRange();
-    if (endIndex <= beginIndex) revert BadRange();
+  // /**
+  //  * @notice
+  //  * Get all or a range of exiting claims.
+  //  * @dev The range is inclusive of the beginIndex and exclusive of the endIndex.
+  //  * @param beginIndex The index of the first claim to return
+  //  * @param endIndex The index of the claim at which to stop
+  //  * @return claimsInfo All the claims in the specified range
+  //  */
+  // function linearClaimsView(
+  //   uint256 beginIndex,
+  //   uint256 endIndex
+  // ) external view returns (ClaimView[] memory claimsInfo) {
+  //   if (nextClaimId < endIndex) revert OutOfRange();
+  //   if (endIndex <= beginIndex) revert BadRange();
 
-    claimsInfo = new Claim[](endIndex - beginIndex);
+  //   claimsInfo = new ClaimView[](endIndex - beginIndex);
 
-    uint256 positionCounter;
-    for (uint256 i = beginIndex; i < endIndex; i++) {
-      Claim memory claim = claims[i];
+  //   uint256 positionCounter;
+  //   for (uint256 i = beginIndex; i < endIndex; i++) {
+  //     Claim memory claim = claims[i];
 
-      claimsInfo[positionCounter] = claim;
+  //     claimsInfo[positionCounter] = claim;
 
-      // Fill the empty claimId with the item index
-      claimsInfo[positionCounter].claimId = i;
+  //     // Fill the empty claimId with the item index
+  //     claimsInfo[positionCounter].claimId = i;
 
-      // We should check if the claim is available for compensation
-      if (
-        claim.status == ClaimStatus.Initiated &&
-        claim.createdAt + challengeDelay < block.timestamp
-      ) {
-        claimsInfo[positionCounter].status = ClaimStatus.Accepted;
-      }
-      positionCounter++;
-    }
-  }
+  //     // We should check if the claim is available for compensation
+  //     if (
+  //       claim.status == ClaimStatus.Initiated &&
+  //       claim.createdAt + challengeDelay < block.timestamp
+  //     ) {
+  //       claimsInfo[positionCounter].status = ClaimStatus.Accepted;
+  //     }
+  //     positionCounter++;
+  //   }
+  // }
 
   function claimIdsByCoverId(
     uint256 coverId_
@@ -342,84 +324,84 @@ contract ClaimManager is
     }
   }
 
-  /**
-   * @notice
-   * Returns all the claims of a user.
-   * @param account_ The user's address
-   * @return claimsInfo All the user's claims
-   */
-  function claimsByAccount(
-    address account_
-  ) external view returns (Claim[] memory claimsInfo) {
-    uint256 nbClaims = 0;
-    for (uint256 i = 0; i < nextClaimId; i++) {
-      if (claims[i].from == account_) nbClaims++;
-    }
+  // /**
+  //  * @notice
+  //  * Returns all the claims of a user.
+  //  * @param account_ The user's address
+  //  * @return claimsInfo All the user's claims
+  //  */
+  // function claimsByAccount(
+  //   address account_
+  // ) external view returns (Claim[] memory claimsInfo) {
+  //   uint256 nbClaims = 0;
+  //   for (uint256 i = 0; i < nextClaimId; i++) {
+  //     if (claims[i].from == account_) nbClaims++;
+  //   }
 
-    claimsInfo = new Claim[](nbClaims);
+  //   claimsInfo = new Claim[](nbClaims);
 
-    uint256 positionCounter;
-    for (uint256 i = 0; i < nextClaimId; i++) {
-      Claim memory claim = claims[i];
+  //   uint256 positionCounter;
+  //   for (uint256 i = 0; i < nextClaimId; i++) {
+  //     Claim memory claim = claims[i];
 
-      if (claim.from == account_) {
-        claimsInfo[positionCounter] = claim;
+  //     if (claim.from == account_) {
+  //       claimsInfo[positionCounter] = claim;
 
-        // Fill the empty claimId with the item index
-        claimsInfo[positionCounter].claimId = i;
+  //       // Fill the empty claimId with the item index
+  //       claimsInfo[positionCounter].claimId = i;
 
-        // We should check if the claim is available for compensation
-        if (
-          claim.status == ClaimStatus.Initiated &&
-          claim.createdAt + challengeDelay < block.timestamp
-        ) {
-          claimsInfo[positionCounter].status = ClaimStatus.Accepted;
-        }
+  //       // We should check if the claim is available for compensation
+  //       if (
+  //         claim.status == ClaimStatus.Initiated &&
+  //         claim.createdAt + challengeDelay < block.timestamp
+  //       ) {
+  //         claimsInfo[positionCounter].status = ClaimStatus.Accepted;
+  //       }
 
-        positionCounter++;
-      }
-    }
-  }
+  //       positionCounter++;
+  //     }
+  //   }
+  // }
 
-  /**
-   * @notice
-   * Returns all the claims of a protocol.
-   * @param poolId_ The protocol's address
-   * @return claimsInfo All the protocol's claims
-   */
-  function claimsByProtocol(
-    uint128 poolId_
-  ) external view returns (Claim[] memory claimsInfo) {
-    uint256 nbClaims = 0;
-    for (uint256 i = 0; i < nextClaimId; i++) {
-      if (claims[i].poolId == poolId_) nbClaims++;
-    }
+  // /**
+  //  * @notice
+  //  * Returns all the claims of a protocol.
+  //  * @param poolId_ The protocol's address
+  //  * @return claimsInfo All the protocol's claims
+  //  */
+  // function claimsByProtocol(
+  //   uint128 poolId_
+  // ) external view returns (Claim[] memory claimsInfo) {
+  //   uint256 nbClaims = 0;
+  //   for (uint256 i = 0; i < nextClaimId; i++) {
+  //     if (claims[i].poolId == poolId_) nbClaims++;
+  //   }
 
-    claimsInfo = new Claim[](nbClaims);
+  //   claimsInfo = new Claim[](nbClaims);
 
-    uint256 positionCounter;
+  //   uint256 positionCounter;
 
-    for (uint256 i = 0; i < nextClaimId; i++) {
-      Claim memory claim = claims[i];
+  //   for (uint256 i = 0; i < nextClaimId; i++) {
+  //     Claim memory claim = claims[i];
 
-      if (claim.poolId == poolId_) {
-        claimsInfo[positionCounter] = claim;
+  //     if (claim.poolId == poolId_) {
+  //       claimsInfo[positionCounter] = claim;
 
-        // Fill the empty claimId with the item index
-        claimsInfo[positionCounter].claimId = i;
+  //       // Fill the empty claimId with the item index
+  //       claimsInfo[positionCounter].claimId = i;
 
-        // We should check if the claim is available for compensation
-        if (
-          claim.status == ClaimStatus.Initiated &&
-          claim.createdAt + challengeDelay < block.timestamp
-        ) {
-          claimsInfo[positionCounter].status = ClaimStatus.Accepted;
-        }
+  //       // We should check if the claim is available for compensation
+  //       if (
+  //         claim.status == ClaimStatus.Initiated &&
+  //         claim.createdAt + challengeDelay < block.timestamp
+  //       ) {
+  //         claimsInfo[positionCounter].status = ClaimStatus.Accepted;
+  //       }
 
-        positionCounter++;
-      }
-    }
-  }
+  //       positionCounter++;
+  //     }
+  //   }
+  // }
 
   function getClaimEvidence(
     uint256 claimId_
@@ -482,11 +464,12 @@ contract ClaimManager is
       userClaim.status != ClaimStatus.Disputed
     ) revert WrongClaimStatus();
 
-    bool isClaimant = msg.sender == userClaim.from;
-    address challenger = userClaim.challenger;
+    bool isClaimant = msg.sender ==
+      coverToken.ownerOf(userClaim.coverId);
+
     if (
       !isClaimant &&
-      msg.sender != challenger &&
+      msg.sender != userClaim.challenger &&
       msg.sender != metaEvidenceGuardian
     ) revert InvalidParty();
 
@@ -523,36 +506,17 @@ contract ClaimManager is
     uint256 amountClaimed_,
     string calldata ipfsMetaEvidenceCid_,
     bytes calldata signature_
-  ) external payable onlyCoverTokenOwner(coverId_) {
-    // Get the cover
-    ILiquidityManager.Cover memory cover = liquidityManager.covers(
-      coverId_
-    );
-
+  ) external payable onlyCoverOwner(coverId_) {
     // Verify authenticity of the IPFS meta-evidence CID
-    /// @dev Wrap in context to avoid stack too deep error
-    {
-      address metaEvidenceSigner = recoverSigner(
-        ipfsMetaEvidenceCid_,
-        signature_
-      );
-      if (metaEvidenceSigner != metaEvidenceGuardian)
-        revert InvalidMetaEvidence();
-    }
-
-    uint128 poolId = cover.poolId;
+    if (
+      recoverSigner(ipfsMetaEvidenceCid_, signature_) !=
+      metaEvidenceGuardian
+    ) revert InvalidMetaEvidence();
+    if (amountClaimed_ == 0) revert CannotClaimZero();
 
     // Register the claim to prevent exit from the pool untill resolution
     // @bw commented until fix
     // poolFactoryInterface.addClaimToPool(poolId);
-
-    // Update the protocol's policies
-    // @bw is this really required as expired policies can open claims ?
-    liquidityManager.syncPool(poolId);
-
-    // Check that the user is not trying to claim more than the amount covered
-    if (amountClaimed_ == 0 || cover.coverAmount < amountClaimed_)
-      revert InvalidClaimAmount();
 
     // Check that the user has deposited the capital necessary for arbitration and collateral
     uint256 costOfArbitration = arbitrationCost();
@@ -577,20 +541,11 @@ contract ClaimManager is
     nextClaimId++;
 
     // Save claim data
-    // @bw the amount of storage used can be lightened
-    claims[claimId] = Claim({
-      claimId: 0,
-      status: ClaimStatus.Initiated,
-      from: msg.sender,
-      challenger: address(0),
-      createdAt: block.timestamp,
-      arbitrationCost: costOfArbitration,
-      disputeId: 0,
-      coverId: coverId_,
-      poolId: poolId,
-      amount: amountClaimed_,
-      metaEvidence: ipfsMetaEvidenceCid_
-    });
+    Claim storage claim = claims[claimId];
+    claim.coverId = coverId_;
+    claim.amount = amountClaimed_;
+    claim.createdAt = block.timestamp;
+    claim.arbitrationCost = costOfArbitration;
 
     // Emit Athena claim creation event
     emit ClaimCreated(msg.sender, coverId_, claimId);
@@ -623,6 +578,7 @@ contract ClaimManager is
       revert MustMatchClaimantDeposit();
 
     // Create the claim and obtain the Kleros dispute ID
+    // @bw this is bad, need subcourt id + check cost of arbitration in court
     uint256 disputeId = arbitrator.createDispute{
       value: costOfArbitration
     }(2, "");
@@ -682,7 +638,7 @@ contract ClaimManager is
 
       // Remove claims from pool to unblock withdrawals
       // @bw commented until fix
-      // poolFactoryInterface.removeClaimFromPool(userClaim.poolId);
+      // poolFactoryInterface.removeClaimFromPool(userClaim.coverId);
     } else {
       // This is the case where the arbitrator refuses to rule
       userClaim.status = ClaimStatus.RejectedWithDispute;
@@ -701,7 +657,7 @@ contract ClaimManager is
 
       // Remove claims from pool to unblock withdrawals
       // @bw commented until fix
-      // poolFactoryInterface.removeClaimFromPool(userClaim.poolId);
+      // poolFactoryInterface.removeClaimFromPool(userClaim.coverId);
     }
 
     emit DisputeResolved({
@@ -734,21 +690,17 @@ contract ClaimManager is
 
     // Send back the collateral and arbitration cost to the claimant
     _sendValue(
-      userClaim.from,
+      coverToken.ownerOf(userClaim.coverId),
       userClaim.arbitrationCost + collateralAmount
     );
 
     // Remove claims from pool to unblock withdrawals
     // @bw commented until fix
-    // poolFactoryInterface.removeClaimFromPool(userClaim.poolId);
+    // poolFactoryInterface.removeClaimFromPool(userClaim.coverId);
 
     // Call Athena core to pay the compensation
     // @bw this should reduce the user's cover to avoid stress on the pool
-    liquidityManager.payoutClaim(
-      userClaim.poolId,
-      userClaim.amount,
-      userClaim.from
-    );
+    liquidityManager.payoutClaim(userClaim.coverId, userClaim.amount);
   }
 
   /**
@@ -770,15 +722,11 @@ contract ClaimManager is
 
     // Remove claims from pool to unblock withdrawals
     // @bw commented until fix
-    // poolFactoryInterface.removeClaimFromPool(userClaim.poolId);
+    // poolFactoryInterface.removeClaimFromPool(userClaim.coverId);
 
     // Call Athena core to pay the compensation
     // @bw this should reduce the user's cover to avoid stress on the pool
-    liquidityManager.payoutClaim(
-      userClaim.poolId,
-      userClaim.amount,
-      userClaim.from
-    );
+    liquidityManager.payoutClaim(userClaim.coverId, userClaim.amount);
   }
 
   // ======= ADMIN ======= //

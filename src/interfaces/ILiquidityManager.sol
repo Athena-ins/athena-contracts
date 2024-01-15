@@ -107,9 +107,5 @@ interface ILiquidityManager is IERC721Enumerable {
     uint128 poolId
   ) external view returns (uint256);
 
-  function payoutClaim(
-    uint128 poolId_,
-    uint256 amount_,
-    address claimant_
-  ) external;
+  function payoutClaim(uint256 poolId_, uint256 amount_) external;
 }

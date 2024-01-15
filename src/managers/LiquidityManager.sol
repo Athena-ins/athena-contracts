@@ -742,11 +742,11 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
   /// ======= LIQUIDITY FOR CLAIMS ======= ///
 
   function payoutClaim(
-    uint128 poolId_,
-    uint256 amount_,
-    address claimant_
+    uint256 coverId_,
+    uint256 amount_
   ) external onlyClaimManager {
-    VirtualPool.VPool storage poolA = _pools[poolId_];
+    uint128 poolId = _covers[coverId_].poolId;
+    VirtualPool.VPool storage poolA = _pools[poolId];
     uint256 ratio = amount_.rayDiv(poolA.availableLiquidity());
 
     // All pools have same strategy since they are compatible
@@ -758,10 +758,10 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
       uint128 poolIdB = poolA.overlappedPools[i];
       VirtualPool.VPool storage poolB = _pools[poolIdB];
 
-      (VirtualPool.VPool storage pool0, uint128 poolId1) = poolId_ <
+      (VirtualPool.VPool storage pool0, uint128 poolId1) = poolId <
         poolIdB
         ? (poolA, poolIdB)
-        : (poolB, poolId_);
+        : (poolB, poolId);
 
       // New context to avoid stack too deep error
       {
@@ -782,7 +782,7 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
 
       poolB.processedClaims.push(
         VirtualPool.PoolClaim({
-          fromPoolId: poolId_,
+          fromPoolId: poolId,
           ratio: ratio,
           liquidityIndexBeforeClaim: poolB.liquidityIndex,
           rewardIndexBeforeClaim: rewardIndex
@@ -790,10 +790,7 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
       );
     }
 
-    strategyManager.payoutFromStrategy(
-      strategyId,
-      amount_,
-      claimant_
-    );
+    address claimant = coverToken.ownerOf(coverId_);
+    strategyManager.payoutFromStrategy(strategyId, amount_, claimant);
   }
 }
