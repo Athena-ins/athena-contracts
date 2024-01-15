@@ -253,38 +253,25 @@ library VirtualPool {
   ) internal returns (uint256, uint256) {
     (
       uint256 newUserCapital,
-      uint256 totalRewards,
+      uint256 rewards,
       LPInfo memory newLPInfo,
       uint256 scaledAmountToRemove
     ) = _actualizingLPInfoWithClaims(
         self,
         tokenId_,
-        _userCapital,
-        _poolIds
+        amount_,
+        poolIds_
       );
 
-    uint256 liquidityIndex = self.liquidityIndex;
-
-    totalRewards += newUserCapital.rayMul(
-      liquidityIndex - newLPInfo.beginLiquidityIndex
-    );
-
-    // Compute net rewards earned from cover premiums
-    uint256 interestNet = (totalRewards * (1000 - _feeRate)) / 1000;
-
-    // @bw check that each pool pays its own fees (can be different tokens)
-    // @bw here should safe to position instead of initiating transfer when called for fee update
-    // @bw init transfer call in liq manager to strat holding funds
-    // IERC20(paymentAsset).safeTransfer(account_,  interestNet);
-    // transfer to treasury
-    // @bw FEE WARN! core has no way of using funds
-    // @bw init transfer call in liq manager to strat holding funds
-    // IERC20(paymentAsset).safeTransfer(
-    //   core,
-    //    totalRewards -  interestNet
+    // totalRewards += newUserCapital.rayMul(
+    //   liquidityIndex - newLPInfo.beginLiquidityIndex
     // );
 
+    _payRewardsAndFees(self, rewards, account_, feeDiscount_);
+
+    uint256 liquidityIndex = self.liquidityIndex;
     newLPInfo.beginLiquidityIndex = liquidityIndex;
+
     self.lpInfos[tokenId_] = newLPInfo;
 
     return (newUserCapital, scaledAmountToRemove);
@@ -306,73 +293,31 @@ library VirtualPool {
         0,
         0,
         self.slot0.totalInsuredCapital,
-        availableLiquidity(self) - _userCapital
+        availableLiquidity(self) - amount_
       )
-    ) {
-      revert LiquidityNotAvailable();
-    }
+    ) revert LiquidityNotAvailable();
 
     (
       // The initial capital impacted by the claims
-      uint256 __newUserCapital,
+      uint256 newUserCapital,
       // The rewards earned through premiums
-      uint256 __totalRewards,
-      LPInfo memory __newLPInfo,
-      uint256 __scaledAmountToRemove
+      uint256 rewards,
+      ,
+      uint256 scaledAmountToRemove
     ) = _actualizingLPInfoWithClaims(
         self,
         tokenId_,
-        _userCapital,
-        _poolIds
+        amount_,
+        poolIds_
       );
 
-    // Add investment strategy rewards
-    __totalRewards += __newUserCapital.rayMul(
-      self.liquidityIndex - __newLPInfo.beginLiquidityIndex
-    );
+    _payRewardsAndFees(self, rewards, account_, feeDiscount_);
 
-    // Remove protocol fees from rewards
-    // @bw needs to be fixed with pool specific fee - currntly fee rate
-    uint256 __rewardsNet;
-    if (__totalRewards > 0) {
-      __rewardsNet =
-        (__totalRewards * (10000 - feeDiscount_)) /
-        10000;
-      // @bw check that each pool pays its own fees (can be different tokens)
-      // @bw init transfer call in liq manager to strat holding funds
-      // IERC20(paymentAsset).safeTransfer(account_, __rewardsNet);
-      // @bw FEES are sent to core here
-      // @bw init transfer call in liq manager to strat holding funds
-      // IERC20(paymentAsset).safeTransfer(
-      //   core,
-      //   __totalRewards - __rewardsNet
-      // );
-    }
+    self._updateSlot0WhenAvailableLiquidityChange(0, newUserCapital);
 
-    self._updateSlot0WhenAvailableLiquidityChange(
-      0,
-      __newUserCapital
-    );
-
-    for (uint256 i; i < _poolIds.length; i++) {
-      uint128 poolIdB = _poolIds[i];
-      // Overlapping liquidity is always registered in poolId 0
-      // We allow equal values to withdraw from the pool's own liquidity
-      if (poolIdB <= self.poolId)
-        self.overlaps[poolIdB] -= __newUserCapital;
-    }
-
-    emit WithdrawLiquidity(
-      tokenId_,
-      __newUserCapital,
-      __totalRewards,
-      __rewardsNet,
-      __totalRewards - __rewardsNet
-    );
-
+    // @bw check is deleted correctly
     delete self.lpInfos[tokenId_];
-
-    return (__newUserCapital, __scaledAmountToRemove);
+    return (newUserCapital, scaledAmountToRemove);
   }
 
   // ======= COVERS ======= //
