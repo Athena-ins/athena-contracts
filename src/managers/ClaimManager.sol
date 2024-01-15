@@ -2,7 +2,6 @@
 pragma solidity 0.8.20;
 
 // Contracts
-import { ClaimEvidence } from "./modules/ClaimEvidence.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
 // Libraries
@@ -15,22 +14,21 @@ import { IClaimManager } from "../interfaces/IClaimManager.sol";
 import { ILiquidityManager } from "../interfaces/ILiquidityManager.sol";
 import { IAthenaCoverToken } from "../interfaces/IAthenaCoverToken.sol";
 
+// @bw need to set args for Kleros arbitrator (pass sub court ID in args, min amount of jurors, etc)
+// https://docs.kleros.io/integrations/types-of-integrations/1.-dispute-resolution-integration-plan/smart-contract-integration
+// https://etherscan.io/address/0x988b3a538b618c7a603e1c11ab82cd16dbe28069#code
+
+// @bw need to add veto power for V0
+
 // ======= ERRORS ======= //
 
 contract ClaimManager is
   IClaimManager,
-  VerifySignature,
   Ownable,
-  ClaimEvidence,
+  VerifySignature,
   IArbitrable
 {
-  IAthenaCoverToken public coverToken;
-  ILiquidityManager public liquidityManager;
-
-  address public metaEvidenceGuardian;
-  uint256 public challengeDelay = 14 days;
-  uint256 public nextClaimId;
-  uint256 public collateralAmount = 0.01 ether;
+  // ======= MODELS ======= //
 
   // @dev the 'Accepted' status is virtual as it is never written to the blockchain
   // It enables view functions to display the adequate state of the claim
@@ -48,7 +46,6 @@ contract ClaimManager is
     CompensateClaimant,
     RejectClaim
   }
-  uint256 public immutable numberOfRulingOptions = 2;
 
   // @dev claimId is set to 0 to minimize gas cost but filled in view functions
   struct Claim {
@@ -66,6 +63,19 @@ contract ClaimManager is
     uint256 arbitrationCost;
   }
 
+  // ======= STORAGE ======= //
+
+  IAthenaCoverToken public coverToken;
+  ILiquidityManager public liquidityManager;
+  IArbitrator public arbitrator;
+
+  address public metaEvidenceGuardian;
+  uint256 public challengeDelay = 14 days;
+  uint256 public nextClaimId;
+  uint256 public collateralAmount = 0.01 ether;
+
+  uint256 public immutable numberOfRulingOptions = 2;
+
   // Maps a claim ID to a claim's data
   mapping(uint256 => Claim) public claims;
   // Maps a coverId to its claim IDs
@@ -73,26 +83,28 @@ contract ClaimManager is
   // Maps a Kleros dispute ID to its claim ID
   mapping(uint256 => uint256) public disputeIdToClaimId;
 
+  // Maps a protocol ID to its generic meta-evidence IPFS file CID
+  mapping(uint256 => string) public poolIdToCoverTerms;
+
+  // Maps a claim ID to its submited evidence
+  mapping(uint256 => string[]) public claimIdToEvidence;
+  mapping(uint256 => string[]) public claimIdToCounterEvidence;
+
+  // ======= CONSTRUCTOR ======= //
+
   constructor(
     IAthenaCoverToken coverToken_,
     ILiquidityManager liquidityManager_,
     IArbitrator arbitrator_,
     address metaEvidenceGuardian_
-  ) ClaimEvidence(arbitrator_) Ownable(msg.sender) {
+  ) Ownable(msg.sender) {
     coverToken = coverToken_;
     liquidityManager = liquidityManager_;
     metaEvidenceGuardian = metaEvidenceGuardian_;
+    arbitrator = arbitrator_;
   }
 
-  // @bw need to set args for Kleros arbitrator (pass sub court ID in args, min amount of jurors, etc)
-  // https://docs.kleros.io/integrations/types-of-integrations/1.-dispute-resolution-integration-plan/smart-contract-integration
-  // https://etherscan.io/address/0x988b3a538b618c7a603e1c11ab82cd16dbe28069#code
-
-  // @bw need to add veto power for V0
-
-  /// ========================= ///
-  /// ========= EVENTS ======== ///
-  /// ========================= ///
+  // ======= EVENTS ======= //
 
   // Emitted upon claim creation
   event ClaimCreated(
@@ -108,9 +120,45 @@ contract ClaimManager is
     uint256 ruling
   );
 
-  /// ============================ ///
-  /// ========= MODIFIERS ======== ///
-  /// ============================ ///
+  /**
+   * @dev To be emitted when meta-evidence is submitted.
+   * @param _metaEvidenceID Unique identifier of meta-evidence.
+   * @param _evidence IPFS path to metaevidence, example: '/ipfs/Qmarwkf7C9RuzDEJNnarT3WZ7kem5bk8DZAzx78acJjMFH/metaevidence.json'
+   */
+  event MetaEvidence(
+    uint256 indexed _metaEvidenceID,
+    string _evidence
+  );
+
+  /**
+   * @dev To be raised when evidence is submitted. Should point to the resource (evidences are not to be stored on chain due to gas considerations).
+   * @param _arbitrator The arbitrator of the contract.
+   * @param _evidenceGroupID Unique identifier of the evidence group the evidence belongs to.
+   * @param _party The address of the party submiting the evidence. Note that 0x0 refers to evidence not submitted by any party.
+   * @param _evidence IPFS path to evidence, example: '/ipfs/Qmarwkf7C9RuzDEJNnarT3WZ7kem5bk8DZAzx78acJjMFH/evidence.json'
+   */
+  event Evidence(
+    IArbitrator indexed _arbitrator,
+    uint256 indexed _evidenceGroupID,
+    address indexed _party,
+    string _evidence
+  );
+
+  /**
+   * @dev To be emitted when a dispute is created to link the correct meta-evidence to the disputeID.
+   * @param _arbitrator The arbitrator of the contract.
+   * @param _disputeID ID of the dispute in the Arbitrator contract.
+   * @param _metaEvidenceID Unique identifier of meta-evidence.
+   * @param _evidenceGroupID Unique identifier of the evidence group that is linked to this dispute.
+   */
+  event Dispute(
+    IArbitrator indexed _arbitrator,
+    uint256 indexed _disputeID,
+    uint256 _metaEvidenceID,
+    uint256 _evidenceGroupID
+  );
+
+  // ======= MODIFIERS ======= //
 
   modifier onlyLiquidityManager() {
     require(msg.sender == address(liquidityManager), "CM: only core");
@@ -133,9 +181,7 @@ contract ClaimManager is
     _;
   }
 
-  /// ======================== ///
-  /// ========= VIEWS ======== ///
-  /// ======================== ///
+  // ======= VIEWS ======= //
 
   function getCoverIdToClaimIds(
     uint256 coverId
@@ -355,9 +401,19 @@ contract ClaimManager is
     }
   }
 
-  /// ============================ ///
-  /// ========== HELPER ========== ///
-  /// ============================ ///
+  function getClaimEvidence(
+    uint256 claimId_
+  ) external view returns (string[] memory) {
+    return claimIdToEvidence[claimId_];
+  }
+
+  function getClaimCounterEvidence(
+    uint256 claimId_
+  ) external view returns (string[] memory) {
+    return claimIdToCounterEvidence[claimId_];
+  }
+
+  // ======= HELPERS ======= //
 
   /**
    * @notice
@@ -374,9 +430,7 @@ contract ClaimManager is
     return payable(to_).call{ value: value_, gas: 4600 }("");
   }
 
-  /// ============================== ///
-  /// ========== EVIDENCE ========== ///
-  /// ============================== ///
+  // ======= EVIDENCE ======= //
 
   /**
    * @notice
@@ -388,7 +442,7 @@ contract ClaimManager is
     uint128 poolId_,
     string calldata ipfsAgreementCid_
   ) external onlyLiquidityManager {
-    _addCoverTermsForPool(poolId_, ipfsAgreementCid_);
+    poolIdToCoverTerms[poolId_] = ipfsAgreementCid_;
   }
 
   /**
@@ -418,17 +472,25 @@ contract ClaimManager is
       "CM: invalid party"
     );
 
-    _submitKlerosEvidence(
-      claimId_,
-      msg.sender,
-      isClaimant,
-      ipfsEvidenceCids_
-    );
+    string[] storage evidence = isClaimant
+      ? claimIdToEvidence[claimId_]
+      : claimIdToCounterEvidence[claimId_];
+
+    for (uint256 i = 0; i < ipfsEvidenceCids_.length; i++) {
+      // Save evidence files
+      evidence.push(ipfsEvidenceCids_[i]);
+
+      // Emit event for Kleros to pick up the evidence
+      emit Evidence(
+        arbitrator, // IArbitrator indexed _arbitrator
+        claimId_, // uint256 indexed _evidenceGroupID
+        msg.sender, // address indexed _party
+        ipfsEvidenceCids_[i] // string _evidence
+      );
+    }
   }
 
-  /// ============================ ///
-  /// ========== CLAIMS ========== ///
-  /// ============================ ///
+  // ======= CLAIMS ======= //
 
   // @bw @dev TODO : should lock the capital in protocol pool
   /**
@@ -523,9 +585,7 @@ contract ClaimManager is
     emit MetaEvidence(claimId, ipfsMetaEvidenceCid_);
   }
 
-  /// ============================= ///
-  /// ========== DISPUTE ========== ///
-  /// ============================= ///
+  // ======= DISPUTE ======= //
 
   /**
    * @notice
@@ -572,9 +632,7 @@ contract ClaimManager is
     emit Dispute(arbitrator, disputeId, claimId_, claimId_);
   }
 
-  /// ================================ ///
-  /// ========== RESOLUTION ========== ///
-  /// ================================ ///
+  // ======= RESOLUTION ======= //
 
   /**
    * @notice
@@ -724,9 +782,7 @@ contract ClaimManager is
     );
   }
 
-  /// =========================== ///
-  /// ========== ADMIN ========== ///
-  /// =========================== ///
+  // ======= ADMIN ======= //
 
   /**
    * @notice
