@@ -749,6 +749,9 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
     VirtualPool.VPool storage poolA = _pools[poolId];
     uint256 ratio = amount_.rayDiv(poolA.availableLiquidity());
 
+    // Remove expired covers in the pool of the claim
+    poolA._purgeExpiredCovers();
+
     // All pools have same strategy since they are compatible
     uint256 strategyId = _pools[poolA.overlappedPools[0]].strategyId;
     uint256 rewardIndex = strategyManager.getRewardIndex(strategyId);
@@ -770,15 +773,15 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
           ratio
         );
 
-      // Pool overlaps are used to compute the amount of liq to remove from each pool
-      pool0.overlaps[poolId1] -= amountToRemove;
-      poolB.overlaps[poolIdB] -= amountToRemove;
-
-        poolB._purgeExpiredCovers();
+        // Update pool pricing (premium rate & seconds per tick)
       poolB._updateSlot0WhenAvailableLiquidityChange(
         0,
         amountToRemove
       );
+
+        // Pool overlaps are used to compute the amount of liq to remove from each pool
+        pool0.overlaps[poolId1] -= amountToRemove;
+        poolB.overlaps[poolIdB] -= amountToRemove;
       }
 
       poolB.processedClaims.push(

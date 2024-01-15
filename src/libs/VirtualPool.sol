@@ -936,8 +936,8 @@ library VirtualPool {
 
   /**
    * @notice Computes the premium rate of a cover,
-   * the premium rate represents the premium fees APR paid by a cover buyer
-   * in relation to the cover amount.
+   * the premium rate is the APR cost for a cover in the pool,
+   * these are paid by cover buyer on their cover amount.
    *
    * @param self The pool
    * @param utilizationRate_ The utilization rate of the pool
