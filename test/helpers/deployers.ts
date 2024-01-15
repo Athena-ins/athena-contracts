@@ -239,6 +239,7 @@ export async function deployAllContractsAndInitializeProtocol(
     deployedAt.AthenaPositionToken,
     deployedAt.AthenaCoverToken,
     deployedAt.Staking,
+    deployedAt.EcclesiaDao,
     deployedAt.StrategyManager,
     deployedAt.ClaimManager,
   ]);

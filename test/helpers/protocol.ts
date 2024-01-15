@@ -366,54 +366,49 @@ async function updateCover(
 
 // ======== Claims ======== //
 
-// async function createClaim(
-//   contract: ClaimManager,
-//   policyHolder: Wallet,
-//   coverId: number,
-//   amountClaimed: string | number,
-//   valueOverride?: BigNumberish,
-// ): Promise<ContractReceipt> {
-//   // Get the cost of arbitration + challenge collateral
-//   const [arbitrationCost, collateralAmount] = await Promise.all([
-//     contract.connect(policyHolder).arbitrationCost(),
-//     contract.connect(policyHolder).collateralAmount(),
-//   ]);
+async function initiateClaim(
+  contract: ClaimManager,
+  user: Wallet,
+  coverId: number,
+  amountClaimed: string | number,
+): Promise<ContractReceipt> {
+  // Get the cost of arbitration + challenge collateral
+  const [arbitrationCost, collateralAmount] = await Promise.all([
+    contract.connect(user).arbitrationCost(),
+    contract.connect(user).collateralAmount(),
+  ]);
 
-//   const valueForTx = valueOverride || arbitrationCost.add(collateralAmount);
+  const valueForTx = arbitrationCost.add(collateralAmount);
 
-//   const ipfsCid = "QmaRxRRcQXFRzjrr4hgBydu6QetaFr687kfd9EjtoLaSyq";
+  const ipfsCid = "QmaRxRRcQXFRzjrr4hgBydu6QetaFr687kfd9EjtoLaSyq";
 
-//   const hash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(ipfsCid));
-//   const signature = await evidenceGuardianWallet().signMessage(
-//     ethers.utils.arrayify(hash),
-//   );
+  const hash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(ipfsCid));
+  const signature = await evidenceGuardianWallet().signMessage(
+    ethers.utils.arrayify(hash),
+  );
 
-//   // Create the claim
-//   await contract
-//     .connect(policyHolder)
-//     .initiateClaim(coverId, amountClaimed, ipfsCid, signature, {
-//       value: valueForTx,
-//     });
-// }
+  // Create the claim
+  return postTxHandler(
+    contract
+      .connect(user)
+      .initiateClaim(coverId, amountClaimed, ipfsCid, signature, {
+        value: valueForTx,
+      }),
+  );
+}
 
-// async function resolveClaimWithoutDispute(
-//   contract: ClaimManager,
-//   policyHolder: Wallet,
-//   coverId: number,
-//   timeLapse: number,
-// ): Promise<ContractReceipt> {
-//   const claimIds = await contract
-//     .connect(policyHolder)
-//     .getCoverIdToClaimIds(coverId);
+async function withdrawWithoutDispute(
+  contract: ClaimManager,
+  user: Wallet,
+  coverId: number,
+): Promise<ContractReceipt> {
+  const claimIds = await contract.connect(user).getCoverIdToClaimIds(coverId);
+  const latestClaimId = claimIds[claimIds.length - 1];
 
-//   const latestClaimId = claimIds[claimIds.length - 1];
-
-//   await setNextBlockTimestamp(timeLapse);
-
-//   await contract
-//     .connect(policyHolder)
-//     .withdrawCompensationWithoutDispute(latestClaimId);
-// }
+  return postTxHandler(
+    contract.connect(user).withdrawCompensationWithoutDispute(latestClaimId),
+  );
+}
 
 // ==================== //
 // === View helpers === //
@@ -454,6 +449,8 @@ export type TestHelper = TokenHelpers & {
   buyCover: OmitFirstArg<typeof buyCover>;
   increasePosition: OmitFirstArg<typeof increasePosition>;
   updateCover: OmitFirstArg<typeof updateCover>;
+  initiateClaim: OmitFirstArg<typeof initiateClaim>;
+  withdrawWithoutDispute: OmitFirstArg<typeof withdrawWithoutDispute>;
 };
 
 export async function makeTestHelpers(
@@ -481,6 +478,9 @@ export async function makeTestHelpers(
     buyCover: (...args) => buyCover(LiquidityManager, ...args),
     increasePosition: (...args) => increasePosition(LiquidityManager, ...args),
     updateCover: (...args) => updateCover(LiquidityManager, ...args),
+    initiateClaim: (...args) => initiateClaim(ClaimManager, ...args),
+    withdrawWithoutDispute: (...args) =>
+      withdrawWithoutDispute(ClaimManager, ...args),
     // tokens
     ...tokenHelpers,
   };
