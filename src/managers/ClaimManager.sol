@@ -22,6 +22,25 @@ import { IAthenaCoverToken } from "../interfaces/IAthenaCoverToken.sol";
 
 // ======= ERRORS ======= //
 
+error OnlyLiquidityManager();
+error OnlyArbitrator();
+error OnlyCoverOwner();
+error OutOfRange();
+error BadRange();
+error WrongClaimStatus();
+error InvalidParty();
+error InvalidMetaEvidence();
+error InvalidClaimAmount();
+error NotEnoughEthForClaim();
+error PreviousClaimStillOngoing();
+error ClaimNotChallengeable();
+error ClaimAlreadyChallenged();
+error MustMatchClaimantDeposit();
+error ClaimNotInDispute();
+error InvalidRuling();
+error DelayNotElapsed();
+error GuardianSetToAddressZero();
+
 contract ClaimManager is
   IClaimManager,
   Ownable,
@@ -161,12 +180,13 @@ contract ClaimManager is
   // ======= MODIFIERS ======= //
 
   modifier onlyLiquidityManager() {
-    require(msg.sender == address(liquidityManager), "CM: only core");
+    if (msg.sender != address(liquidityManager))
+      revert OnlyLiquidityManager();
     _;
   }
 
   modifier onlyArbitrator() {
-    require(msg.sender == address(arbitrator), "CM: only arbitrator");
+    if (msg.sender != address(arbitrator)) revert OnlyArbitrator();
     _;
   }
 
@@ -176,8 +196,8 @@ contract ClaimManager is
    * @param policyId_ policy holder NFT ID
    */
   modifier onlyPolicyTokenOwner(uint256 policyId_) {
-    address ownerOfToken = coverToken.ownerOf(policyId_);
-    require(msg.sender == ownerOfToken, "CM: not policy owner");
+    if (msg.sender != coverToken.ownerOf(policyId_))
+      revert OnlyCoverOwner();
     _;
   }
 
@@ -259,8 +279,8 @@ contract ClaimManager is
     uint256 beginIndex,
     uint256 endIndex
   ) external view returns (Claim[] memory claimsInfo) {
-    require(endIndex <= nextClaimId, "CM: outside of range");
-    require(beginIndex < endIndex, "CM: bad range");
+    if (nextClaimId < endIndex) revert OutOfRange();
+    if (endIndex <= beginIndex) revert BadRange();
 
     claimsInfo = new Claim[](endIndex - beginIndex);
 
@@ -457,20 +477,18 @@ contract ClaimManager is
   ) external {
     Claim storage userClaim = claims[claimId_];
 
-    require(
-      userClaim.status == ClaimStatus.Disputed ||
-        userClaim.status == ClaimStatus.Initiated,
-      "CM: wrong claim status"
-    );
+    if (
+      userClaim.status != ClaimStatus.Initiated &&
+      userClaim.status != ClaimStatus.Disputed
+    ) revert WrongClaimStatus();
 
     bool isClaimant = msg.sender == userClaim.from;
     address challenger = userClaim.challenger;
-    require(
-      isClaimant ||
-        msg.sender == challenger ||
-        msg.sender == metaEvidenceGuardian,
-      "CM: invalid party"
-    );
+    if (
+      !isClaimant &&
+      msg.sender != challenger &&
+      msg.sender != metaEvidenceGuardian
+    ) revert InvalidParty();
 
     string[] storage evidence = isClaimant
       ? claimIdToEvidence[claimId_]
@@ -518,10 +536,8 @@ contract ClaimManager is
         ipfsMetaEvidenceCid_,
         signature_
       );
-      require(
-        metaEvidenceSigner == metaEvidenceGuardian,
-        "CM: invalid meta-evidence"
-      );
+      if (metaEvidenceSigner != metaEvidenceGuardian)
+        revert InvalidMetaEvidence();
     }
 
     uint128 poolId = cover.poolId;
@@ -535,17 +551,13 @@ contract ClaimManager is
     liquidityManager.syncPool(poolId);
 
     // Check that the user is not trying to claim more than the amount covered
-    require(
-      0 < amountClaimed_ && amountClaimed_ <= cover.coverAmount,
-      "CM: bad amount range"
-    );
+    if (amountClaimed_ == 0 || cover.coverAmount < amountClaimed_)
+      revert InvalidClaimAmount();
 
     // Check that the user has deposited the capital necessary for arbitration and collateral
     uint256 costOfArbitration = arbitrationCost();
-    require(
-      costOfArbitration + collateralAmount <= msg.value,
-      "CM: not enough ETH for claim"
-    );
+    if (msg.value < costOfArbitration + collateralAmount)
+      revert NotEnoughEthForClaim();
 
     // Check if there already an ongoing claim related to this policy
     if (0 < coverIdToClaimIds[policyId_].length) {
@@ -553,11 +565,10 @@ contract ClaimManager is
       // Only allow for a new claim if it is not initiated or disputed
       // @dev a policy can lead to multiple claims but if the total claimed amount exceeds their coverage amount then the claim may be disputed
       Claim storage userClaim = claims[latestClaimIdOfPolicy];
-      require(
-        userClaim.status != ClaimStatus.Initiated &&
-          userClaim.status != ClaimStatus.Disputed,
-        "CM: previous claim still ongoing"
-      );
+      if (
+        userClaim.status == ClaimStatus.Initiated ||
+        userClaim.status == ClaimStatus.Disputed
+      ) revert PreviousClaimStillOngoing();
     }
 
     // Save latest claim ID of policy and update claim index
@@ -596,24 +607,19 @@ contract ClaimManager is
     Claim storage userClaim = claims[claimId_];
 
     // Check the claim is in the appropriate status and challenge is within delay
-    require(
-      userClaim.status == ClaimStatus.Initiated &&
-        block.timestamp < userClaim.createdAt + challengeDelay,
-      "CM: claim not challengeable"
-    );
+    if (
+      userClaim.status != ClaimStatus.Initiated ||
+      userClaim.createdAt + challengeDelay <= block.timestamp
+    ) revert ClaimNotChallengeable();
 
     // Check the claim is not already disputed
-    require(
-      userClaim.challenger == address(0),
-      "CM: claim already challenged"
-    );
+    if (userClaim.challenger != address(0))
+      revert ClaimAlreadyChallenged();
 
     // Check that the challenger has deposited enough capital for dispute creation
     uint256 costOfArbitration = userClaim.arbitrationCost;
-    require(
-      costOfArbitration <= msg.value,
-      "CM: must match claimant deposit"
-    );
+    if (msg.value < costOfArbitration)
+      revert MustMatchClaimantDeposit();
 
     // Create the claim and obtain the Kleros dispute ID
     uint256 disputeId = arbitrator.createDispute{
@@ -648,12 +654,10 @@ contract ClaimManager is
     Claim storage userClaim = claims[claimId];
 
     // Check the status of the claim
-    require(
-      userClaim.status == ClaimStatus.Disputed,
-      "CM: claim not in dispute"
-    );
+    if (userClaim.status != ClaimStatus.Disputed)
+      revert ClaimNotInDispute();
 
-    require(ruling_ <= numberOfRulingOptions, "CM: invalid ruling");
+    if (numberOfRulingOptions < ruling_) revert InvalidRuling();
 
     // Manage ETH for claim creation, claim collateral and dispute creation
     if (ruling_ == uint256(RulingOptions.CompensateClaimant)) {
@@ -717,16 +721,12 @@ contract ClaimManager is
     Claim storage userClaim = claims[claimId_];
 
     // Check the claim is in the appropriate status
-    require(
-      userClaim.status == ClaimStatus.Initiated,
-      "CM: wrong claim status"
-    );
+    if (userClaim.status != ClaimStatus.Initiated)
+      revert WrongClaimStatus();
 
     // Check the claim has passed the disputable delay
-    require(
-      userClaim.createdAt + challengeDelay < block.timestamp,
-      "CM: delay not elapsed"
-    );
+    if (block.timestamp < userClaim.createdAt + challengeDelay)
+      revert DelayNotElapsed();
 
     // Update claim status
     userClaim.status = ClaimStatus.CompensatedAfterAcceptation;
@@ -761,10 +761,8 @@ contract ClaimManager is
     Claim storage userClaim = claims[claimId_];
 
     // Check the status of the claim
-    require(
-      userClaim.status == ClaimStatus.AcceptedWithDispute,
-      "CM: wrong claim status"
-    );
+    if (userClaim.status != ClaimStatus.AcceptedWithDispute)
+      revert WrongClaimStatus();
 
     // Update claim status
     userClaim.status = ClaimStatus.CompensatedAfterAcceptation;
@@ -805,10 +803,9 @@ contract ClaimManager is
   function changeMetaEvidenceGuardian(
     address metaEvidenceGuardian_
   ) external onlyOwner {
-    require(
-      metaEvidenceGuardian_ != address(0),
-      "CM: guardian set to address(0)"
-    );
+    if (metaEvidenceGuardian_ == address(0))
+      revert GuardianSetToAddressZero();
+
     metaEvidenceGuardian = metaEvidenceGuardian_;
   }
 }
