@@ -126,6 +126,7 @@ library VirtualPool {
     mapping(uint256 _coverId => CoverPremiums) coverPremiums;
     // Function pointers to access child contract data
     function(uint256) view returns (uint256) coverSize;
+    function(uint256) expireCover;
   }
 
   // ======= VIRTUAL CONSTRUCTOR ======= //
@@ -144,6 +145,7 @@ library VirtualPool {
     uint256 rSlope2; //Ray
     // Function pointer to child contract cover data
     function(uint256) view returns (uint256) coverSize;
+    function(uint256) expireCover;
   }
 
   function _vPoolConstructor(
@@ -179,6 +181,7 @@ library VirtualPool {
     self.overlaps[params.poolId] = 1; // 1 wei
 
     self.coverSize = params.coverSize;
+    self.expireCover = params.expireCover;
   }
 
   // ======= EVENTS ======= //
@@ -502,7 +505,7 @@ library VirtualPool {
   ) private returns (uint256[] memory coverIds) {
     coverIds = self.ticks[_tick];
 
-    for (uint256 i = 0; i < coverIds.length; i++) {
+    for (uint256 i; i < coverIds.length; i++) {
       uint256 coverId = coverIds[i];
       delete self.coverPremiums[coverId];
 
@@ -543,57 +546,41 @@ library VirtualPool {
     );
   }
 
-  function _actualizing(
-    VPool storage self
-  ) internal returns (uint256[] memory expiredCoverIds) {
-    if (self.slot0.remainingCovers > 0) {
+  function _purgeExpiredCovers(VPool storage self) internal {
+    if (0 < self.slot0.remainingCovers) {
       (
-        Slot0 memory __slot0,
-        uint256 __liquidityIndex
+        Slot0 memory slot0,
+        uint256 liquidityIndex
       ) = _actualizingUntil(self, block.timestamp);
 
-      //now, we remove all crossed ticks
-      expiredCoverIds = new uint256[](
-        self.slot0.remainingCovers - __slot0.remainingCovers
-      );
-      uint256 index;
-
-      uint32 __observedTick = self.slot0.tick;
-      bool __initialized;
-      while (__observedTick < __slot0.tick) {
-        (__observedTick, __initialized) = self
+      uint32 observedTick = self.slot0.tick;
+      bool isInitialized;
+      while (observedTick < slot0.tick) {
+        (observedTick, isInitialized) = self
           .tickBitmap
-          .nextInitializedTickInTheRightWithinOneWord(__observedTick);
+          .nextInitializedTickInTheRightWithinOneWord(observedTick);
 
-        if (__initialized && __observedTick <= __slot0.tick) {
-          uint256[]
-            memory __currentExpiredCoversTokenId = _removeTick(
+        if (isInitialized && observedTick <= slot0.tick) {
+          uint256[] memory expiredCoverIds = _removeTick(
               self,
-              __observedTick
+            observedTick
             );
 
-          for (
-            uint256 i = 0;
-            i < __currentExpiredCoversTokenId.length;
-            i++
-          ) {
-            expiredCoverIds[index] = __currentExpiredCoversTokenId[i];
-
-            index++;
+          uint256 nbCovers = expiredCoverIds.length;
+          for (uint256 i; i < nbCovers; i++) {
+            self.expireCover(expiredCoverIds[i]);
           }
         }
       }
 
-      self.slot0.tick = __slot0.tick;
-      self.slot0.secondsPerTick = __slot0.secondsPerTick;
-      self.slot0.totalInsuredCapital = __slot0.totalInsuredCapital;
-      self.slot0.remainingCovers = __slot0.remainingCovers;
-      self.slot0.lastUpdateTimestamp = block.timestamp;
-      self.liquidityIndex = __liquidityIndex;
+      self.slot0.tick = slot0.tick;
+      self.slot0.secondsPerTick = slot0.secondsPerTick;
+      self.slot0.totalInsuredCapital = slot0.totalInsuredCapital;
+      self.slot0.remainingCovers = slot0.remainingCovers;
+      self.liquidityIndex = liquidityIndex;
     }
 
     self.slot0.lastUpdateTimestamp = block.timestamp;
-    return expiredCoverIds;
   }
 
   // ======= VIEW HELPERS ======= //
@@ -723,7 +710,7 @@ library VirtualPool {
     uint256[] memory coverIds = self.ticks[_tick];
     uint256 __insuredCapitalToRemove;
 
-    for (uint256 i = 0; i < coverIds.length; i++) {
+    for (uint256 i; i < coverIds.length; i++) {
       uint256 coverId = coverIds[i];
 
       __insuredCapitalToRemove += self.coverSize(coverId);
@@ -874,7 +861,7 @@ library VirtualPool {
 
     newUserCapital = userCapital_;
 
-    for (uint256 i = 0; i < claims.length; i++) {
+    for (uint256 i; i < claims.length; i++) {
       PoolClaim memory claim = claims[i];
 
       totalRewards += newUserCapital.rayMul(

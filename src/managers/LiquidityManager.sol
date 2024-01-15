@@ -267,7 +267,8 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
         r0: r0_, //Ray
         rSlope1: rSlope1_, //Ray
         rSlope2: rSlope2_, //Ray
-        coverSize: coverSize
+        coverSize: coverSize,
+        expireCover: _expireCover
       });
 
     // Get storage pointer to pool
@@ -285,24 +286,17 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
     }
   }
 
-  function syncPool(uint128 poolId_) external {
-    // Get storage pointer to pool
-    VirtualPool.VPool storage pool = _pools[poolId_];
+  function purgeExpiredCovers(uint128 poolId_) external {
     // Clean pool from expired covers
-    _processExpiredTokens(pool._actualizing());
+    _pools[poolId_]._purgeExpiredCovers();
   }
 
   /// ======= COVER HELPERS ======= ///
 
-  function _processExpiredTokens(
-    uint256[] memory tokenIds_
-  ) internal {
-    uint256 nbTokens = tokenIds_.length;
-    for (uint256 i; i < nbTokens; i++) {
-      _covers[tokenIds_[i]].end = block.timestamp;
+  function _expireCover(uint256 tokenId) internal {
+    _covers[tokenId].end = block.timestamp;
       // @bw check if spent premium is correct after manual expiration
       // @bw should auto unfarm if it is currently farming rewards
-    }
   }
 
   /// ======= BUY COVER ======= ///
@@ -316,7 +310,7 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
     VirtualPool.VPool storage pool = _pools[poolId_];
 
     // Clean pool from expired covers
-    _processExpiredTokens(pool._actualizing());
+    pool._purgeExpiredCovers();
 
     // Check if pool is currently paused
     if (pool.isPaused) revert PoolIsPaused();
@@ -366,7 +360,7 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
     VirtualPool.VPool storage pool = _pools[cover.poolId];
 
     // Clean pool from expired covers
-    _processExpiredTokens(pool._actualizing());
+    pool._purgeExpiredCovers();
 
     // Check if pool is currently paused
     if (pool.isPaused) revert PoolIsPaused();
@@ -541,7 +535,7 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
 
       // Clean pool from expired covers
       // @bw check if need to expire tokens before taking interests
-      _processExpiredTokens(pool._actualizing());
+      pool._purgeExpiredCovers();
 
       (uint256 _newUserCapital, uint256 _scaledAmountToRemove) = pool
         ._takePoolInterests(
@@ -662,7 +656,7 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
       if (pool0.isPaused) revert PoolIsPaused();
 
       // Remove expired covers
-      pool0._actualizing();
+      pool0._purgeExpiredCovers();
 
       // Add liquidity to the pools available liquidity
       pool0.overlaps[poolId0] += amount_;
@@ -712,7 +706,7 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
       VirtualPool.VPool storage pool0 = _pools[poolId0];
 
       // Need to clean covers to avoid them causing a utilization overflow
-      pool0._actualizing();
+      pool0._purgeExpiredCovers();
 
       // Remove liquidity
       pool0._withdrawLiquidity(
@@ -760,7 +754,7 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
     uint256 rewardIndex = strategyManager.getRewardIndex(strategyId);
 
     uint256 nbPools = poolA.overlappedPools.length;
-    for (uint128 i; i < nbPools + 1; i++) {
+    for (uint128 i; i < nbPools; i++) {
       uint128 poolIdB = poolA.overlappedPools[i];
       VirtualPool.VPool storage poolB = _pools[poolIdB];
 
@@ -775,11 +769,12 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
         uint256 amountToRemove = pool0.overlaps[poolId1].rayMul(
           ratio
         );
+
       // Pool overlaps are used to compute the amount of liq to remove from each pool
       pool0.overlaps[poolId1] -= amountToRemove;
       poolB.overlaps[poolIdB] -= amountToRemove;
 
-      poolB._actualizing();
+        poolB._purgeExpiredCovers();
       poolB._updateSlot0WhenAvailableLiquidityChange(
         0,
         amountToRemove
