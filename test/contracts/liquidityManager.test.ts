@@ -10,6 +10,8 @@ export function liquidityManager() {
   context("Liquidity Manager", function () {
     before(async function () {
       this.args = {
+        daoStakeAmount: parseUnits("1000", 6),
+        daoLockDuration: 60 * 60 * 24 * 365,
         lpAmount: parseUnits("1000", 6),
         coverAmount: parseUnits("500", 6),
         coverPremiums: parseUnits("20", 6),
@@ -18,6 +20,16 @@ export function liquidityManager() {
         coverIncreaseAmount: parseUnits("400", 6),
         coverIncreasePremiums: parseUnits("50", 6),
       };
+    });
+
+    it("creates lock in dao", async function () {
+      expect(
+        this.helpers.createDaoLock(
+          this.signers.deployer,
+          this.args.daoStakeAmount,
+          this.args.daoLockDuration,
+        ),
+      ).to.not.throw;
     });
 
     it("can create pools", async function () {

@@ -5,6 +5,7 @@ import {
   impersonateAccount,
   setNextBlockTimestamp,
   postTxHandler,
+  getCurrentTime,
 } from "./hardhat";
 
 // Types
@@ -204,6 +205,28 @@ async function getTokens(
 // =========================== //
 // === User action helpers === //
 // =========================== //
+
+// ======== DAO ======== //
+
+async function createDaoLock(
+  contract: EcclesiaDao,
+  atenContract: AthenaToken,
+  user: Wallet,
+  amount: BigNumberish,
+  lockTimeSec: number,
+): Promise<ContractReceipt> {
+  const [userAccount, unlockTs] = await Promise.all([
+    user.getAddress(),
+    getCurrentTime().then((ts) => ts + lockTimeSec),
+  ]);
+
+  await Promise.all([
+    getTokens(user, atenContract.address, userAccount, amount),
+    postTxHandler(atenContract.connect(user).approve(contract.address, amount)),
+  ]);
+
+  return postTxHandler(contract.connect(user).createLock(amount, unlockTs));
+}
 
 // ======== LP Positions ======== //
 
@@ -445,6 +468,7 @@ type TokenHelpers = {
 
 export type TestHelper = TokenHelpers & {
   // write
+  createDaoLock: OmitFirstTwoArgs<typeof createDaoLock>;
   createPosition: OmitFirstArg<typeof createPosition>;
   buyCover: OmitFirstArg<typeof buyCover>;
   increasePosition: OmitFirstArg<typeof increasePosition>;
@@ -457,8 +481,13 @@ export async function makeTestHelpers(
   deployer: Wallet,
   contracts: ProtocolContracts,
 ): Promise<TestHelper> {
-  const { AthenaToken, TetherToken, LiquidityManager, ClaimManager } =
-    contracts;
+  const {
+    AthenaToken,
+    TetherToken,
+    LiquidityManager,
+    ClaimManager,
+    EcclesiaDao,
+  } = contracts;
 
   const tokenHelpers: TokenHelpers = {
     transferAten: (...args) => transfer(AthenaToken, ...args),
@@ -474,6 +503,8 @@ export async function makeTestHelpers(
 
   return {
     // write
+    createDaoLock: (...args) =>
+      createDaoLock(EcclesiaDao, AthenaToken, ...args),
     createPosition: (...args) => createPosition(LiquidityManager, ...args),
     buyCover: (...args) => buyCover(LiquidityManager, ...args),
     increasePosition: (...args) => increasePosition(LiquidityManager, ...args),
