@@ -22,6 +22,7 @@ import { IERC20Permit } from "@openzeppelin/contracts/token/ERC20/extensions/IER
 error ZeroAddress();
 error NotPoolManager();
 error BadAmount();
+error ConversionToVotesYieldsZero();
 error LockAlreadyExists();
 error LockDoesNotExist();
 error LockExpired();
@@ -67,7 +68,7 @@ contract EcclesiaDao is ERC20, ReentrancyGuard, Ownable {
   // Duration at which point 1 AOE = 1 vote
   uint256 public constant EQUILIBRIUM_LOCK = 365 days;
   // Weight multiplier for tokens locked longer than equilibrium added to base x1 weight
-  uint256 public constant ADD_WEIGHT = 2;
+  uint256 public constant ADD_WEIGHT = 3;
   // Minimum duration to stake while participating in governance
   uint256 public constant MIN_TO_STAKE = MAX_LOCK / 2;
 
@@ -161,11 +162,10 @@ contract EcclesiaDao is ERC20, ReentrancyGuard, Ownable {
     // For lock duration smaller than EQUILIBRIUM_LOCK, the bias is negative 1 AOE < 1 vote
     // For lock duration equal to EQUILIBRIUM_LOCK, the bias is neutral 1 AOE = 1 vote
     // For lock duration larger than EQUILIBRIUM_LOCK, the bias is positive 1 AOE > 1 vote
-    uint256 bias = EQUILIBRIUM_LOCK <= _lockDuration
-      ? 1 +
-        ADD_WEIGHT *
-        (((_lockDuration - EQUILIBRIUM_LOCK) * RAY) /
-          (MAX_LOCK - EQUILIBRIUM_LOCK))
+    uint256 bias = EQUILIBRIUM_LOCK < _lockDuration
+      ? RAY +
+        (ADD_WEIGHT * ((_lockDuration - EQUILIBRIUM_LOCK) * RAY)) /
+        (MAX_LOCK - EQUILIBRIUM_LOCK)
       : (_lockDuration * RAY) / EQUILIBRIUM_LOCK;
 
     votes = (_amount * bias) / RAY;
@@ -175,11 +175,10 @@ contract EcclesiaDao is ERC20, ReentrancyGuard, Ownable {
     uint256 _votes,
     uint256 _lockDuration
   ) public pure returns (uint256 tokens) {
-    uint256 bias = EQUILIBRIUM_LOCK <= _lockDuration
-      ? 1 +
-        ADD_WEIGHT *
-        (((_lockDuration - EQUILIBRIUM_LOCK) * RAY) /
-          (MAX_LOCK - EQUILIBRIUM_LOCK))
+    uint256 bias = EQUILIBRIUM_LOCK < _lockDuration
+      ? RAY +
+        (ADD_WEIGHT * ((_lockDuration - EQUILIBRIUM_LOCK) * RAY)) /
+        (MAX_LOCK - EQUILIBRIUM_LOCK)
       : (_lockDuration * RAY) / EQUILIBRIUM_LOCK;
 
     tokens = (_votes * RAY) / bias;
@@ -264,6 +263,8 @@ contract EcclesiaDao is ERC20, ReentrancyGuard, Ownable {
     _deposit(_amount, _unlockTime);
 
     uint256 votes = tokenToVotes(_amount, lock.duration);
+    if (votes == 0) revert ConversionToVotesYieldsZero();
+
     _mint(msg.sender, votes);
   }
 
