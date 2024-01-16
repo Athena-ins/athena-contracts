@@ -76,7 +76,9 @@ export function deployProtocol() {
         );
       });
       it("deploys AthenaToken", async function () {
-        await deployAthenaToken(this.signers.deployer, []).then((contract) =>
+        await deployAthenaToken(this.signers.deployer, [
+          [this.deployedAt.EcclesiaDao],
+        ]).then((contract) =>
           postDeployCheck(contract, this.deployedAt.AthenaToken),
         );
       });

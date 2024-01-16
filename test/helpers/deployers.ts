@@ -214,7 +214,9 @@ export async function deployAllContractsAndInitializeProtocol(
   const AthenaPositionToken = await deployAthenaPositionToken(deployer, [
     deployedAt.LiquidityManager,
   ]);
-  const AthenaToken = await deployAthenaToken(deployer, []);
+  const AthenaToken = await deployAthenaToken(deployer, [
+    [deployedAt.EcclesiaDao],
+  ]);
 
   // ======= Managers ======= //
 
