@@ -252,7 +252,7 @@ contract EcclesiaDao is ERC20, ReentrancyGuard, Ownable {
     uint256 _amount,
     uint256 _unlockTime
   ) external nonReentrant {
-    LockedBalance memory lock = locks[msg.sender];
+    LockedBalance storage lock = locks[msg.sender];
 
     if (_amount == 0) revert BadAmount();
     if (lock.amount != 0) revert LockAlreadyExists();
@@ -273,7 +273,7 @@ contract EcclesiaDao is ERC20, ReentrancyGuard, Ownable {
   /// @notice Increase lock amount without increase "end"
   /// @param _amount The amount of ALPACA to be added to the lock
   function increaseLockAmount(uint256 _amount) external nonReentrant {
-    LockedBalance memory _lock = locks[msg.sender];
+    LockedBalance storage _lock = locks[msg.sender];
 
     if (_amount == 0) revert BadAmount();
     if (_lock.amount == 0) revert LockDoesNotExist();
@@ -292,7 +292,7 @@ contract EcclesiaDao is ERC20, ReentrancyGuard, Ownable {
   function increaseUnlockTime(
     uint256 _newUnlockTime
   ) external nonReentrant {
-    LockedBalance memory _lock = locks[msg.sender];
+    LockedBalance storage _lock = locks[msg.sender];
 
     if (_lock.amount == 0) revert LockDoesNotExist();
     if (_lock.end <= block.timestamp) revert LockExpired();
@@ -330,7 +330,7 @@ contract EcclesiaDao is ERC20, ReentrancyGuard, Ownable {
 
     if (_lock.amount < _withdrawAmount) revert BadAmount();
 
-    //_lock.end should remain the same if we do partially withdraw
+    //_lock.end should remain the same only if we do partially withdraw
     if (_lock.amount == _withdrawAmount) {
       _lock.duration = 0;
       _lock.end = 0;
