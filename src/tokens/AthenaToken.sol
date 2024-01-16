@@ -6,12 +6,22 @@ import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import { ERC20Permit } from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
+interface ITokenCallReceiver {
+  function onTokenTransfer(
+    address from,
+    uint256 amount,
+    bytes calldata data
+  ) external returns (bool);
+}
+
 //======== ERRORS ========//
 
 // When the length of array of arguments are not the same
 error ArgumentLengthMismatch();
 // When contracts allowed to receive tokens are currently limited
 error ContractNotYetAllowed();
+// When EAOs are targeted by the transfer & call function
+error OnlyContractsAllowed();
 
 /**
  * @title AthenaToken (ATEN), ERC-20 token
@@ -23,17 +33,24 @@ contract AthenaToken is ERC20Permit, Ownable {
   // Maps a contract address to its authorized status
   mapping(address destination => bool status) private canReceive;
   // Switch that checks if the destination status is to be checked
-  bool public isLimited;
+  bool public isLimited = true;
 
   //======== CONSTRUCTOR ========//
 
-  constructor()
+  constructor(
+    address[] memory destination
+  )
     ERC20("Athena Token", "ATEN")
     ERC20Permit("Athena Token")
     Ownable(msg.sender)
   {
     _mint(msg.sender, 3_000_000_000 ether);
-    isLimited = true;
+
+    uint256 length = destination.length;
+    bool[] memory status = new bool[](length);
+    for (uint i = 0; i < length; i++) status[i] = true;
+
+    setAuthorized(destination, status);
   }
 
   //======== FUNCTIONS ========//
@@ -85,6 +102,25 @@ contract AthenaToken is ERC20Permit, Ownable {
     super._update(from, to, value);
   }
 
+  /**
+   * @dev Send tokens to a contract address along with call data
+   * @param to destination address for the transfer
+   * @param value amount to be sent
+   * @param data supplementary data to be provided to the receiving contract
+   */
+  function transferAndCall(
+    address to,
+    uint value,
+    bytes calldata data
+  ) public returns (bool success) {
+    if (_isContract(to)) revert OnlyContractsAllowed();
+
+    _transfer(msg.sender, to, value);
+
+    return
+      ITokenCallReceiver(to).onTokenTransfer(msg.sender, value, data);
+  }
+
   //======== ADMIN ========//
 
   /**
@@ -93,9 +129,9 @@ contract AthenaToken is ERC20Permit, Ownable {
    * @param status status to set
    */
   function setAuthorized(
-    address[] calldata destination,
-    bool[] calldata status
-  ) external onlyOwner {
+    address[] memory destination,
+    bool[] memory status
+  ) public onlyOwner {
     if (destination.length != status.length)
       revert ArgumentLengthMismatch();
 
