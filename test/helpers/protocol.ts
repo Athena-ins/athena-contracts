@@ -211,6 +211,7 @@ async function getTokens(
 async function createDaoLock(
   contract: EcclesiaDao,
   atenContract: AthenaToken,
+  deployer: Wallet,
   user: Wallet,
   amount: BigNumberish,
   lockTimeSec: number,
@@ -221,7 +222,7 @@ async function createDaoLock(
   ]);
 
   await Promise.all([
-    getTokens(user, atenContract.address, userAccount, amount),
+    postTxHandler(atenContract.connect(deployer).transfer(userAccount, amount)),
     postTxHandler(atenContract.connect(user).approve(contract.address, amount)),
   ]);
 
@@ -453,6 +454,12 @@ type OmitFirstTwoArgs<T extends (...args: any) => any> = T extends (
   ? (...args: U) => R
   : never;
 
+type OmitThreeArgs<T extends (...args: any) => any> = T extends (
+  ...args: [any, any, any, ...infer U]
+) => infer R
+  ? (...args: U) => R
+  : never;
+
 // Token
 type TokenHelpers = {
   transferAten: OmitFirstArg<typeof transfer>;
@@ -468,7 +475,7 @@ type TokenHelpers = {
 
 export type TestHelper = TokenHelpers & {
   // write
-  createDaoLock: OmitFirstTwoArgs<typeof createDaoLock>;
+  createDaoLock: OmitThreeArgs<typeof createDaoLock>;
   createPosition: OmitFirstArg<typeof createPosition>;
   buyCover: OmitFirstArg<typeof buyCover>;
   increasePosition: OmitFirstArg<typeof increasePosition>;
@@ -504,7 +511,7 @@ export async function makeTestHelpers(
   return {
     // write
     createDaoLock: (...args) =>
-      createDaoLock(EcclesiaDao, AthenaToken, ...args),
+      createDaoLock(EcclesiaDao, AthenaToken, deployer, ...args),
     createPosition: (...args) => createPosition(LiquidityManager, ...args),
     buyCover: (...args) => buyCover(LiquidityManager, ...args),
     increasePosition: (...args) => increasePosition(LiquidityManager, ...args),
