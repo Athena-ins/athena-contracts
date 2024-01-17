@@ -447,7 +447,7 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
         amount
       );
 
-      strategyManager.depositWrappedToStrategy(strategyId, tokenId);
+      strategyManager.depositWrappedToStrategy(strategyId);
     } else {
       address underlyingAsset = _pools[poolIds[0]].underlyingAsset;
       IERC20(underlyingAsset).safeTransferFrom(
@@ -456,7 +456,7 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
         amount
       );
 
-      strategyManager.depositToStrategy(strategyId, tokenId, amount);
+      strategyManager.depositToStrategy(strategyId, amount);
     }
 
     _positions[tokenId] = Position({
@@ -501,7 +501,7 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
         amount
       );
 
-      strategyManager.depositWrappedToStrategy(strategyId, tokenId_);
+      strategyManager.depositWrappedToStrategy(strategyId);
     } else {
       address underlyingAsset = _pools[position.poolIds[0]]
         .underlyingAsset;
@@ -511,7 +511,7 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
         amount
       );
 
-      strategyManager.depositToStrategy(strategyId, tokenId_, amount);
+      strategyManager.depositToStrategy(strategyId, amount);
     }
 
     position.supplied += amountUnderlying;
@@ -555,9 +555,9 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
     // Withdraw interests from strategy
     // All pools have same strategy since they are compatible
     uint256 strategyId = _pools[position.poolIds[0]].strategyId;
-    strategyManager.withdrawRewards(
+    strategyManager.withdrawFromStrategy(
       strategyId,
-      tokenId_,
+      strategyRewards,
       account,
       feeDiscount
     );
@@ -576,12 +576,7 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
 
     position.commitWithdrawalTimestamp = block.timestamp;
 
-    // @bw should lock rewards in strategy to avoid commiting upon deposit
-    uint256 strategyId = _pools[position.poolIds[0]].strategyId;
-    strategyManager.lockRewardsPostWithdrawalCommit(
-      strategyId,
-      tokenId_
-    );
+    // @bw should lock rewards to avoid commiting upon deposit
   }
 
   function closePosition(
@@ -611,7 +606,6 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
     if (keepWrapped_) {
       strategyManager.withdrawWrappedFromStrategy(
         strategyId,
-        tokenId_,
         position.supplied,
         account,
         feeDiscount
@@ -619,7 +613,6 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
     } else {
       strategyManager.withdrawFromStrategy(
         strategyId,
-        tokenId_,
         position.supplied,
         account,
         feeDiscount
