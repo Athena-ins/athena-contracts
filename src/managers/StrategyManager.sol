@@ -35,14 +35,6 @@ contract StrategyManager is IStrategyManager, Ownable {
   address public usdt = 0xdAC17F958D2ee523a2206206994597C13D831ec7; // underlyingAsset (USDT)
   address public ausdt = 0x3Ed3B47Dd13EC9a98b44e6204A523E766B225811; // wrappedAsset (aUSDT v2)
 
-  struct PositionData {
-    // uint256 strategyId; // Unused in StrategyManager v0
-    uint256 startRewardIndex;
-    uint256 accumulatedRewards;
-  }
-
-  mapping(uint256 _tokenId => PositionData) public positionData;
-
   //======== CONSTRCUTOR ========//
 
   constructor(
@@ -78,27 +70,6 @@ contract StrategyManager is IStrategyManager, Ownable {
     return aaveLendingPool.getReserveNormalizedIncome(usdt);
   }
 
-  function rewardsOf(
-    uint256 strategyId_,
-    uint256 tokenId_
-  ) public view checkId(strategyId_) returns (uint256) {
-    PositionData storage data = positionData[tokenId_];
-
-    uint256 startIndex = data.startRewardIndex;
-    uint256 currentIndex = getRewardIndex(strategyId_);
-
-    if (startIndex < currentIndex) {
-      uint256 supplied = liquidityManager.positionSize(tokenId_);
-      uint256 newRewards = supplied.rayMul(currentIndex).rayDiv(
-        startIndex
-      ) - supplied;
-
-      return newRewards + data.accumulatedRewards;
-    } else {
-      return data.accumulatedRewards;
-    }
-  }
-
   function underlyingAsset(
     uint256 strategyId_
   ) external view checkId(strategyId_) returns (address) {
@@ -128,6 +99,7 @@ contract StrategyManager is IStrategyManager, Ownable {
     uint256 strategyId_,
     uint256 amountWrapped_
   ) public pure checkId(strategyId_) returns (uint256) {
+    // Underlying === wrapped as the aToken balance is increased as interests sum up
     return amountWrapped_;
   }
 
@@ -135,6 +107,7 @@ contract StrategyManager is IStrategyManager, Ownable {
     uint256 strategyId_,
     uint256 amountUnderlying_
   ) public pure checkId(strategyId_) returns (uint256) {
+    // Underlying === wrapped as the aToken balance is increased as interests sum up
     return amountUnderlying_;
   }
 
@@ -142,19 +115,8 @@ contract StrategyManager is IStrategyManager, Ownable {
 
   function depositToStrategy(
     uint256 strategyId_,
-    uint256 tokenId_,
     uint256 amountUnderlying_
   ) external checkId(strategyId_) onlyLiquidityManager {
-    PositionData storage data = positionData[tokenId_];
-
-    // If there is already a position then save current rewards
-    if (data.startRewardIndex != 0) {
-      data.accumulatedRewards = rewardsOf(strategyId_, tokenId_);
-    }
-
-    // Set the reward index to track future rewards
-    data.startRewardIndex = getRewardIndex(strategyId_);
-
     // Deposit underlying into strategy
     IERC20(usdt).forceApprove(
       address(aaveLendingPool),
@@ -170,91 +132,37 @@ contract StrategyManager is IStrategyManager, Ownable {
 
   function withdrawFromStrategy(
     uint256 strategyId_,
-    uint256 tokenId_,
     uint256 amountUnderlying_,
     address account_,
     uint256 /*feeDiscount_*/
   ) external checkId(strategyId_) onlyLiquidityManager {
-    PositionData storage data = positionData[tokenId_];
+    uint256 bal = IERC20(ausdt).balanceOf(address(this));
+    console.log("bal rew: ", bal);
 
-    // Compute latest rewards
-    uint256 rewards = rewardsOf(strategyId_, tokenId_);
-    uint256 total = amountUnderlying_ + rewards;
     // @dev No need to approve aToken since they are burned in pool
-    aaveLendingPool.withdraw(usdt, total, account_);
-
-    // Reset accumulated rewards
-    data.startRewardIndex = getRewardIndex(strategyId_);
-    data.accumulatedRewards = 0;
+    aaveLendingPool.withdraw(usdt, amountUnderlying_, account_);
   }
 
   //======== WRAPPED I/O ========//
 
   function depositWrappedToStrategy(
-    uint256 strategyId_,
-    uint256 tokenId_
+    uint256 strategyId_
   ) external checkId(strategyId_) onlyLiquidityManager {
-    PositionData storage data = positionData[tokenId_];
-
-    // If there is already a position then save current rewards
-    if (data.startRewardIndex != 0) {
-      data.accumulatedRewards = rewardsOf(strategyId_, tokenId_);
-    }
-
-    // Set the reward index to track future rewards
-    data.startRewardIndex = getRewardIndex(strategyId_);
-
     // No need to deposit wrapped asset into strategy
   }
 
   function withdrawWrappedFromStrategy(
     uint256 strategyId_,
-    uint256 tokenId_,
     uint256 amountUnderlying_,
     address account_,
     uint256 /*feeDiscount_*/
   ) external checkId(strategyId_) onlyLiquidityManager {
-    PositionData storage data = positionData[tokenId_];
-
-    // Compute latest rewards
-    uint256 rewards = rewardsOf(strategyId_, tokenId_);
-    uint256 total = amountUnderlying_ + rewards;
-
     // Compute amount of wrapped to send to account
-    uint256 amountWrapped = underlyingToWrapped(strategyId_, total);
+    uint256 amountWrapped = underlyingToWrapped(
+      strategyId_,
+      amountUnderlying_
+    );
     IERC20(ausdt).safeTransfer(account_, amountWrapped);
-
-    // Reset accumulated rewards
-    data.startRewardIndex = getRewardIndex(strategyId_);
-    data.accumulatedRewards = 0;
-  }
-
-  //======== TAKE INTERESTS ========//
-
-  function lockRewardsPostWithdrawalCommit(
-    uint256 strategyId_,
-    uint256 tokenId_
-  ) external checkId(strategyId_) onlyLiquidityManager {
-    // @bw should lock rewards in strategy to avoid commiting upon deposit
-  }
-
-  function withdrawRewards(
-    uint256 strategyId_,
-    uint256 tokenId_,
-    address account_,
-    uint256 /*feeDiscount_*/
-  ) external checkId(strategyId_) onlyLiquidityManager {
-    PositionData storage data = positionData[tokenId_];
-
-    // Compute latest rewards
-    uint256 rewards = rewardsOf(strategyId_, tokenId_);
-    // Transfer rewards to account
-    // @dev No need to approve aToken since they are burned in pool
-    aaveLendingPool.withdraw(usdt, rewards, account_);
-
-    // Reset accumulated rewards
-    data.startRewardIndex = getRewardIndex(strategyId_);
-    data.accumulatedRewards = 0;
   }
 
   //======== CLAIMS ========//
