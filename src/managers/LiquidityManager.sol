@@ -681,6 +681,9 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
 
         pool0.overlaps[poolId1] += amount_;
       }
+
+      // Deposit fund into pool and add amount to its own intersectingAmounts
+      pool0._depositToPool(tokenId_, amount_);
     }
   }
 
@@ -750,6 +753,7 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
     uint256 rewardIndex = strategyManager.getRewardIndex(strategyId);
 
     uint256 nbPools = poolA.overlappedPools.length;
+
     for (uint128 i; i < nbPools; i++) {
       uint128 poolIdB = poolA.overlappedPools[i];
       VirtualPool.VPool storage poolB = _pools[poolIdB];
@@ -772,9 +776,12 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
         amountToRemove
       );
 
-        // Pool overlaps are used to compute the amount of liq to remove from each pool
+        /**
+         * Skip first pool in second reduction of i=0 since it is the pool of the claim
+         * it has already been reduced in the first overlap reduction
+         */
         pool0.overlaps[poolId1] -= amountToRemove;
-        poolB.overlaps[poolIdB] -= amountToRemove;
+        if (i != 0) poolB.overlaps[poolIdB] -= amountToRemove;
       }
 
       poolB.processedClaims.push(
