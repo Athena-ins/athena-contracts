@@ -58,6 +58,12 @@ contract StrategyManager is IStrategyManager, Ownable {
 
   //======== VIEWS ========//
 
+  function itCompounds(
+    uint256 strategyId_
+  ) external pure checkId(strategyId_) returns (bool) {
+    return true;
+  }
+
   /**
    * @notice Returns the current index between aToken and underlying token
    * @return uint256 The current reward index in rays
@@ -68,6 +74,17 @@ contract StrategyManager is IStrategyManager, Ownable {
     uint256 strategyId_
   ) public view checkId(strategyId_) returns (uint256) {
     return aaveLendingPool.getReserveNormalizedIncome(usdt);
+  }
+
+  function computeReward(
+    uint256 strategyId_,
+    uint256 amount_,
+    uint256 startRewardIndex_,
+    uint256 endRewardIndex_
+  ) external pure checkId(strategyId_) returns (uint256) {
+    return
+      amount_.rayMul(endRewardIndex_).rayDiv(startRewardIndex_) -
+      amount_;
   }
 
   function underlyingAsset(

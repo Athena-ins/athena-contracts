@@ -45,4 +45,15 @@ interface IStrategyManager {
     uint256 amount,
     address claimant
   ) external;
+
+  function computeReward(
+    uint256 strategyId_,
+    uint256 amount_,
+    uint256 startRewardIndex_,
+    uint256 endRewardIndex_
+  ) external pure returns (uint256);
+
+  function itCompounds(
+    uint256 strategyId_
+  ) external pure returns (bool);
 }
