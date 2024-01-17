@@ -50,11 +50,11 @@ const { parseEther, parseUnits } = ethers.utils;
 // === Helpers === //
 // =============== //
 
-export function toUsdt(amount: number) {
+export function toUsd(amount: number) {
   return parseUnits(amount.toString(), 6);
 }
 
-export function toAten(amount: number) {
+export function toErc20(amount: number) {
   return parseUnits(amount.toString(), 18);
 }
 

@@ -19,7 +19,7 @@ export async function postTxHandler(txPromise: Promise<ContractTransaction>) {
   return txPromise
     .then((tx) => tx.wait())
     .catch((err) => {
-      throw Error(err.reason);
+      throw Error(err.reason || err.name || err.message || err);
     });
 }
 

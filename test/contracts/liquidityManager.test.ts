@@ -2,23 +2,22 @@ import { expect } from "chai";
 import { ethers } from "hardhat";
 // Helpers
 import { setNextBlockTimestamp, postTxHandler } from "../helpers/hardhat";
+import { toUsd, toErc20 } from "../helpers/protocol";
 import { BigNumber } from "ethers";
-
-const { parseUnits } = ethers.utils;
 
 export function liquidityManager() {
   context("Liquidity Manager", function () {
     before(async function () {
       this.args = {
-        daoStakeAmount: parseUnits("1000", 6),
+        daoStakeAmount: toErc20(1000),
         daoLockDuration: 60 * 60 * 24 * 365,
-        lpAmount: parseUnits("1000", 6),
-        coverAmount: parseUnits("500", 6),
-        coverPremiums: parseUnits("20", 6),
-        claimAmount: parseUnits("500", 6),
-        lpIncreaseAmount: parseUnits("1500", 6),
-        coverIncreaseAmount: parseUnits("400", 6),
-        coverIncreasePremiums: parseUnits("50", 6),
+        lpAmount: toUsd(1000),
+        coverAmount: toUsd(1000),
+        coverPremiums: toUsd(100),
+        claimAmount: toUsd(1000),
+        lpIncreaseAmount: toUsd(1500),
+        coverIncreaseAmount: toUsd(400),
+        coverIncreasePremiums: toUsd(50),
       };
     });
 
