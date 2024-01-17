@@ -10,6 +10,7 @@ import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.s
 // Interfaces
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { IEcclesiaDao } from "../interfaces/IEcclesiaDao.sol";
+import { IStrategyManager } from "../interfaces/IStrategyManager.sol";
 
 // ======= ERRORS ======= //
 
@@ -38,7 +39,7 @@ library VirtualPool {
   // ======= CONSTANTS ======= //
 
   uint256 internal constant MAX_SECONDS_PER_TICK = 86400;
-  uint256 internal constant FEE_BASE = 10000;
+  uint256 internal constant FEE_BASE = 10000; // @bw to 1e27 ?
 
   // ======= STRUCTS ======= //
 
@@ -57,9 +58,10 @@ library VirtualPool {
     uint256 lastUpdateTimestamp;
   }
 
-  struct LPInfo {
+  struct LpInfo {
     uint256 beginLiquidityIndex;
     uint256 beginClaimIndex;
+    uint256 beginRewardIndex;
   }
 
   struct PoolClaim {
@@ -102,9 +104,10 @@ library VirtualPool {
     uint128 poolId;
     uint256 protocolShare; // amount of fees on premiums
     IEcclesiaDao dao;
+    IStrategyManager strategyManager;
     Formula formula;
     Slot0 slot0;
-    uint256 liquidityIndex;
+    uint256 liquidityIndex; // This index grows with the premiums paid
     uint256 strategyId;
     address paymentAsset; // asset used to pay LP premiums
     address underlyingAsset; // asset required by the strategy
@@ -118,7 +121,7 @@ library VirtualPool {
     /// @dev liquidity overlap is always registered in the lower poolId
     // Maps poolId 0 -> poolId 1 -> overlapping capital
     mapping(uint128 _poolId => uint256 _amount) overlaps;
-    mapping(uint256 _positionId => LPInfo) lpInfos;
+    mapping(uint256 _positionId => LpInfo) lpInfos;
     mapping(uint24 => uint256) tickBitmap;
     // Maps a tick to the list of cover IDs
     mapping(uint32 _tick => uint256[] _coverIds) ticks;
@@ -134,6 +137,7 @@ library VirtualPool {
   struct VPoolConstructorParams {
     uint128 poolId;
     IEcclesiaDao dao;
+    IStrategyManager strategyManager;
     uint256 strategyId;
     address paymentAsset;
     address underlyingAsset;
@@ -161,6 +165,7 @@ library VirtualPool {
 
     self.poolId = params.poolId;
     self.dao = params.dao;
+    self.strategyManager = params.strategyManager;
     self.paymentAsset = params.paymentAsset;
     self.strategyId = params.strategyId;
     self.underlyingAsset = params.underlyingAsset;
@@ -222,9 +227,16 @@ library VirtualPool {
   ) internal {
     self._updateSlot0WhenAvailableLiquidityChange(amount_, 0);
 
-    self.lpInfos[tokenId_] = LPInfo({
+    uint256 beginRewardIndex = self.strategyManager.getRewardIndex(
+      self.strategyId
+    );
+
+    // This sets the point from which the position earns rewards & is impacted by claims
+    // also overwrites previous LpInfo after a withdrawal
+    self.lpInfos[tokenId_] = LpInfo({
       beginLiquidityIndex: self.liquidityIndex,
-      beginClaimIndex: self.processedClaims.length
+      beginClaimIndex: self.processedClaims.length,
+      beginRewardIndex: beginRewardIndex
     });
   }
 
