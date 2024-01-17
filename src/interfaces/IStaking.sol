@@ -18,7 +18,7 @@ interface IStaking is IERC20 {
 
   struct FeeLevel {
     uint256 atenAmount;
-    uint256 feeDiscount; // (10_000 = 100% discount)
+    uint256 feeDiscount; // Ray
   }
 
   /**

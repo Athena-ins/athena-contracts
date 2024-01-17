@@ -39,7 +39,7 @@ library VirtualPool {
   // ======= CONSTANTS ======= //
 
   uint256 internal constant MAX_SECONDS_PER_TICK = 86400;
-  uint256 internal constant FEE_BASE = 10000; // @bw to 1e27 ?
+  uint256 internal constant FEE_BASE = RayMath.RAY; // RAY = 1e27
 
   // ======= STRUCTS ======= //
 
@@ -94,7 +94,7 @@ library VirtualPool {
 
   struct VPoolRead {
     uint128 poolId;
-    uint256 protocolShare;
+    uint256 feeRate; //Ray
     Formula formula;
     Slot0 slot0;
     uint256 liquidityIndex;
@@ -109,7 +109,7 @@ library VirtualPool {
 
   struct VPool {
     uint128 poolId;
-    uint256 protocolShare; // amount of fees on premiums
+    uint256 feeRate; // amount of fees on premiums in RAY
     IEcclesiaDao dao;
     IStrategyManager strategyManager;
     Formula formula;
@@ -149,7 +149,7 @@ library VirtualPool {
     address paymentAsset;
     address underlyingAsset;
     address wrappedAsset;
-    uint256 protocolShare; //Ray
+    uint256 feeRate; //Ray
     uint256 uOptimal; //Ray
     uint256 r0; //Ray
     uint256 rSlope1; //Ray
@@ -177,7 +177,7 @@ library VirtualPool {
     self.strategyId = params.strategyId;
     self.underlyingAsset = params.underlyingAsset;
     self.wrappedAsset = params.wrappedAsset;
-    self.protocolShare = params.protocolShare;
+    self.feeRate = params.feeRate;
 
     self.formula = Formula({
       uOptimal: params.uOptimal,
@@ -253,8 +253,8 @@ library VirtualPool {
     uint256 feeDiscount_
   ) private {
     if (0 < rewards_) {
-      uint256 net = (rewards_ * (FEE_BASE - feeDiscount_)) / FEE_BASE;
-      uint256 fees = rewards_ - net;
+      uint256 fees = _feeFor(rewards_, self.feeRate, feeDiscount_);
+      uint256 net = rewards_ - fees;
 
       // Pay position owner
       IERC20(self.paymentAsset).safeTransfer(account_, net);
@@ -951,8 +951,8 @@ library VirtualPool {
     );
 
     netCoverRewards =
-      (info.coverRewards * (FEE_BASE - feeDiscount_)) /
-      FEE_BASE;
+      info.coverRewards -
+      _feeFor(info.coverRewards, self.feeRate, feeDiscount_);
 
     return (
       info.newUserCapital,
@@ -995,6 +995,16 @@ library VirtualPool {
   }
 
   // ======= PURE HELPERS ======= //
+
+  function _feeFor(
+    uint256 grossReward_,
+    uint256 feeRate_,
+    uint256 feeDiscount_
+  ) private pure returns (uint256) {
+    return
+      ((grossReward_ * feeRate_ * (FEE_BASE - feeDiscount_)) /
+        FEE_BASE) / FEE_BASE;
+  }
 
   /**
    * @notice Computes the new emission rate of a cover,

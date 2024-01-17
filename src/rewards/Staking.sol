@@ -404,7 +404,7 @@ contract Staking is IStaking, ERC20, Ownable {
       }
 
       // Check that fee discount is not higher than 100%
-      if (10_000 < level.feeDiscount) revert GreaterThan100Percent();
+      if (1e27 < level.feeDiscount) revert GreaterThan100Percent();
 
       // save to storage
       feeLevels.push(level);

@@ -192,7 +192,7 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
     return
       VirtualPool.VPoolRead({
         poolId: pool.poolId,
-        protocolShare: pool.protocolShare,
+        feeRate: pool.feeRate,
         formula: pool.formula,
         slot0: pool.slot0,
         liquidityIndex: pool.liquidityIndex,
@@ -239,7 +239,7 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
   function createPool(
     address paymentAsset_,
     uint256 strategyId_,
-    uint256 protocolShare_,
+    uint256 feeRate_, // Ray
     uint256 uOptimal_,
     uint256 r0_,
     uint256 rSlope1_,
@@ -263,7 +263,7 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
         paymentAsset: paymentAsset_,
         underlyingAsset: underlyingAsset,
         wrappedAsset: wrappedAsset,
-        protocolShare: protocolShare_, //Ray
+        feeRate: feeRate_, //Ray
         uOptimal: uOptimal_, //Ray
         r0: r0_, //Ray
         rSlope1: rSlope1_, //Ray
