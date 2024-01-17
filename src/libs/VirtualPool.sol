@@ -83,6 +83,13 @@ library VirtualPool {
     uint256 remainingSeconds;
   }
 
+  struct UpdatedPositionInfo {
+    uint256 newUserCapital;
+    uint256 coverRewards;
+    uint256 strategyRewards;
+    LpInfo newLpInfo;
+  }
+
   // ======= VIRTUAL STORAGE ======= //
 
   struct VPoolRead {
@@ -839,65 +846,87 @@ library VirtualPool {
    * it aggregates the fees earned by the position in the pool and
    * computes the losses incurred by the claims in this pool.
    *
+   * @dev Used for takeInterest, withdrawLiquidity and rewardsOf
+   *
    * @param self The pool
    * @param tokenId_ The LP position token ID
    * @param userCapital_ The amount of liquidity in the position
    * @param poolIds_ The pool IDs of the position
    *
-   * @return newUserCapital The user's capital after claims
-   * @return totalRewards The total rewards earned by the user
-   * @return newLPInfo The new LPInfo of the user
-   * @return scaledAmountToRemove The amount of capital to remove from the pool
+   * @return info Updated information about the position:
+   * - newUserCapital The user's capital after claims
+   * - coverRewards The rewards earned by covers in the pool
+   * - strategyRewards The rewards earned by the strategy
+   * - newLpInfo The updated LpInfo of the position
    */
-  function _actualizingLPInfoWithClaims(
+  function _getUpdatedPositionInfo(
     VPool storage self,
     uint256 tokenId_,
     uint256 userCapital_,
     uint128[] storage poolIds_
-  )
-    private
-    view
-    returns (
-      uint256 newUserCapital,
-      uint256 totalRewards,
-      LPInfo memory newLPInfo,
-      uint256 scaledAmountToRemove
-    )
-  {
-    newLPInfo = self.lpInfos[tokenId_];
+  ) private view returns (UpdatedPositionInfo memory info) {
+    info.newLpInfo = self.lpInfos[tokenId_];
     PoolClaim[] memory claims = _claims(
       self,
-      newLPInfo.beginClaimIndex
+      info.newLpInfo.beginClaimIndex
     );
 
-    newUserCapital = userCapital_;
+    info.newUserCapital = userCapital_;
 
-    for (uint256 i; i < claims.length; i++) {
+    uint256 strategyId = self.strategyId;
+    bool itCompounds = self.strategyManager.itCompounds(strategyId);
+
+    uint256 nbClaims = claims.length;
+    uint256 nbPools = poolIds_.length;
+
+    // @bw this is highly expensive, can transform to mapping parse ?
+    // For each pool this recalculates the amount of remaining capital at each claim
+    // amount of computation is potentially huge & very redundant
+    for (uint256 i; i < nbClaims; i++) {
       PoolClaim memory claim = claims[i];
 
-      totalRewards += newUserCapital.rayMul(
+      info.coverRewards += info.newUserCapital.rayMul(
         claim.liquidityIndexBeforeClaim -
-          newLPInfo.beginLiquidityIndex
+          info.newLpInfo.beginLiquidityIndex
       );
 
-      for (uint256 j = 0; j < poolIds_.length; j++) {
+      for (uint256 j; j < nbPools; j++) {
         if (poolIds_[j] == claim.fromPoolId) {
-          uint256 capitalToRemove = newUserCapital.rayMul(
+          uint256 capitalToRemove = info.newUserCapital.rayMul(
             claim.ratio
           );
 
-          // @bw Check how this impact claim withdraws, should only work with underlying if possible.
-          scaledAmountToRemove += capitalToRemove.rayDiv(
+          info.strategyRewards += self.strategyManager.computeReward(
+            strategyId,
+            itCompounds
+              ? info.newUserCapital + info.strategyRewards
+              : info.newUserCapital,
+            info.newLpInfo.beginRewardIndex,
             claim.rewardIndexBeforeClaim
           );
 
-          newUserCapital = newUserCapital - capitalToRemove;
+          info.newUserCapital -= capitalToRemove;
+
           break;
         }
       }
-      newLPInfo.beginLiquidityIndex = claim.liquidityIndexBeforeClaim;
+
+      info.newLpInfo.beginRewardIndex = claim.rewardIndexBeforeClaim;
+      info.newLpInfo.beginLiquidityIndex = claim
+        .liquidityIndexBeforeClaim;
     }
-    newLPInfo.beginClaimIndex += claims.length;
+
+    // Finally add the rewards from the last claim to the current block
+    info.strategyRewards += self.strategyManager.computeReward(
+      strategyId,
+      itCompounds
+        ? info.newUserCapital + info.strategyRewards
+        : info.newUserCapital,
+      info.newLpInfo.beginRewardIndex,
+      self.strategyManager.getRewardIndex(strategyId)
+    );
+
+    info.newLpInfo.beginClaimIndex += claims.length;
   }
 
   function _rewardsOf(
