@@ -121,8 +121,34 @@ export function liquidityManager() {
 
     // it("has coherent state", async function () {});
 
-    it("can create claim", async function () {});
-    it("can resolve claim", async function () {});
+    it("can create claim", async function () {
+      await setNextBlockTimestamp({ days: 365 });
+
+      expect(
+        await this.helpers.initiateClaim(
+          this.signers.deployer,
+          0,
+          this.args.claimAmount,
+        ),
+      ).to.not.throw;
+
+      const claim = await this.contracts.ClaimManager.claims(0);
+
+      expect(claim.status).to.equal(0);
+      expect(claim.createdAt.div(100)).to.equal(17367016);
+      expect(claim.amount).to.equal(this.args.claimAmount);
+      expect(claim.coverId).to.equal(0);
+      expect(claim.arbitrationCost).to.equal(
+        await this.contracts.ClaimManager.arbitrationCost(),
+      );
+    });
+    it("can resolve claim", async function () {
+      await setNextBlockTimestamp({ days: 15 });
+
+      expect(
+        await this.helpers.withdrawWithoutDispute(this.signers.deployer, 0),
+      ).to.not.throw;
+    });
 
     // it("has coherent state", async function () {});
 
