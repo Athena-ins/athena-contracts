@@ -274,30 +274,27 @@ library VirtualPool {
     uint256 feeDiscount_,
     uint128[] storage poolIds_
   ) internal returns (uint256, uint256) {
-    (
-      uint256 newUserCapital,
-      uint256 rewards,
-      LPInfo memory newLPInfo,
-      uint256 scaledAmountToRemove
-    ) = _actualizingLPInfoWithClaims(
+    // Get the updated position info
+    UpdatedPositionInfo memory info = _getUpdatedPositionInfo(
         self,
         tokenId_,
         amount_,
         poolIds_
       );
 
-    // totalRewards += newUserCapital.rayMul(
-    //   liquidityIndex - newLPInfo.beginLiquidityIndex
-    // );
+    // Pay cover rewards and send fees to treasury
+    _payRewardsAndFees(
+      self,
+      info.coverRewards,
+      account_,
+      feeDiscount_
+    );
 
-    _payRewardsAndFees(self, rewards, account_, feeDiscount_);
+    // Update lp info to reflect the new state of the position
+    self.lpInfos[tokenId_] = info.newLpInfo;
 
-    uint256 liquidityIndex = self.liquidityIndex;
-    newLPInfo.beginLiquidityIndex = liquidityIndex;
-
-    self.lpInfos[tokenId_] = newLPInfo;
-
-    return (newUserCapital, scaledAmountToRemove);
+    // Return the user's capital & strategy rewards for withdrawal
+    return (info.newUserCapital, info.strategyRewards);
   }
 
   /// -------- WITHDRAW -------- ///
@@ -319,30 +316,32 @@ library VirtualPool {
         availableLiquidity(self) - amount_
       )
     ) revert LiquidityNotAvailable();
-
     if (0 < self.ongoingClaims) revert PoolHasOnGoingClaims();
 
-    (
-      // The initial capital impacted by the claims
-      uint256 newUserCapital,
-      // The rewards earned through premiums
-      uint256 rewards,
-      ,
-      uint256 scaledAmountToRemove
-    ) = _actualizingLPInfoWithClaims(
+    // Get the updated position info
+    UpdatedPositionInfo memory info = _getUpdatedPositionInfo(
         self,
         tokenId_,
         amount_,
         poolIds_
       );
 
-    _payRewardsAndFees(self, rewards, account_, feeDiscount_);
+    // Pay cover rewards and send fees to treasury
+    _payRewardsAndFees(
+      self,
+      info.coverRewards,
+      account_,
+      feeDiscount_
+    );
 
-    self._updateSlot0WhenAvailableLiquidityChange(0, newUserCapital);
+    // Update liquidity index
+    self._updateSlot0WhenAvailableLiquidityChange(
+      0,
+      info.newUserCapital
+    );
 
-    // @bw check is deleted correctly
-    delete self.lpInfos[tokenId_];
-    return (newUserCapital, scaledAmountToRemove);
+    // Return the user's capital & strategy rewards for withdrawal
+    return (info.newUserCapital, info.strategyRewards);
   }
 
   // ======= COVERS ======= //
@@ -795,7 +794,7 @@ library VirtualPool {
 
     uint256 __pRate = getPremiumRate(self, __uRate * 100) / 100;
 
-    while (__secondsGap > 0) {
+    while (0 < __secondsGap) {
       (uint32 __tickNext, bool __initialized) = self
         .tickBitmap
         .nextInitializedTickInTheRightWithinOneWord(__slot0.tick);
@@ -932,46 +931,34 @@ library VirtualPool {
   function _rewardsOf(
     VPool storage self,
     uint256 tokenId_,
-    uint256 _userCapital,
-    uint128[] storage _poolIds,
-    uint256 _feeRate,
-    uint256 _dateInSecond
+    uint256 userCapital_,
+    uint128[] storage poolIds_,
+    uint256 feeDiscount_
   )
     internal
     view
     returns (
-      uint256 __newUserCapital,
-      uint256 __totalRewards,
-      LPInfo memory __newLPInfo
+      uint256 newUserCapital,
+      uint256 netCoverRewards,
+      uint256 strategyRewards
     )
   {
-    (
-      __newUserCapital,
-      __totalRewards,
-      __newLPInfo,
-
-    ) = _actualizingLPInfoWithClaims(
+    UpdatedPositionInfo memory info = _getUpdatedPositionInfo(
       self,
       tokenId_,
-      _userCapital,
-      _poolIds
+      userCapital_,
+      poolIds_
     );
 
-    uint256 __liquidityIndex;
+    netCoverRewards =
+      (info.coverRewards * (FEE_BASE - feeDiscount_)) /
+      FEE_BASE;
 
-    if (self.slot0.remainingCovers > 0) {
-      (, __liquidityIndex) = _actualizingUntil(self, _dateInSecond);
-    } else {
-      __liquidityIndex = self.liquidityIndex;
-    }
-
-    __totalRewards += __newUserCapital.rayMul(
-      __liquidityIndex - __newLPInfo.beginLiquidityIndex
+    return (
+      info.newUserCapital,
+      netCoverRewards,
+      info.strategyRewards
     );
-
-    __totalRewards = (__totalRewards * (1000 - _feeRate)) / 1000;
-
-    __newLPInfo.beginLiquidityIndex = __liquidityIndex;
   }
 
   /**

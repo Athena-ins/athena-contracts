@@ -216,7 +216,7 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
   function poolLpInfos(
     uint128 poolId_,
     uint256 positionId
-  ) external view returns (VirtualPool.LPInfo memory) {
+  ) external view returns (VirtualPool.LpInfo memory) {
     return _pools[poolId_].lpInfos[positionId];
   }
 
@@ -258,6 +258,7 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
       .VPoolConstructorParams({
         poolId: poolId,
         dao: ecclesiaDao,
+        strategyManager: strategyManager,
         strategyId: strategyId_,
         paymentAsset: paymentAsset_,
         underlyingAsset: underlyingAsset,
