@@ -437,7 +437,11 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
       : amount;
 
     // Check pool compatibility & underlying token then register overlapping capital
-    _addOverlappingCapitalAfterCheck(poolIds, amountUnderlying);
+    _addOverlappingCapitalAfterCheck(
+      poolIds,
+      tokenId,
+      amountUnderlying
+    );
 
     // Push funds to strategy manager
     if (isWrapped) {
@@ -490,6 +494,7 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
     // Check pool compatibility & underlying token then register overlapping capital
     _addOverlappingCapitalAfterCheck(
       position.poolIds,
+      tokenId_,
       amountUnderlying
     );
 
@@ -529,7 +534,8 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
     address account = positionToken.ownerOf(tokenId_);
     uint256 feeDiscount = staking.feeDiscountOf(account);
 
-    uint256 amountSuppliedUpdated;
+    uint256 newUserCapital;
+    uint256 strategyRewards;
     uint256 nbPools = position.poolIds.length;
     for (uint256 i; i < nbPools; i++) {
       VirtualPool.VPool storage pool = _pools[position.poolIds[i]];
@@ -538,7 +544,8 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
       // @bw check if need to expire tokens before taking interests
       pool._purgeExpiredCovers();
 
-      (uint256 _newUserCapital, uint256 _scaledAmountToRemove) = pool
+      // @bw check how to impact capital at each loop
+      (uint256 _newUserCapital, uint256 _strategyRewards) = pool
         ._takePoolInterests(
           tokenId_,
           account,
@@ -549,7 +556,8 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
 
       // Update capital based on claims on last loop
       if (i == nbPools - 1) {
-        amountSuppliedUpdated = _newUserCapital;
+        newUserCapital = _newUserCapital;
+        strategyRewards = _strategyRewards;
       }
     }
 
@@ -563,8 +571,8 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
       feeDiscount
     );
 
-    if (position.supplied != amountSuppliedUpdated) {
-      _positions[tokenId_].supplied = amountSuppliedUpdated;
+    if (position.supplied != newUserCapital) {
+      _positions[tokenId_].supplied = newUserCapital;
     }
   }
 
@@ -593,7 +601,10 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
     address account = positionToken.ownerOf(tokenId_);
 
     uint256 feeDiscount = staking.feeDiscountOf(account);
-    _removeOverlappingCapital(
+    (
+      uint256 newUserCapital,
+      uint256 strategyRewards
+    ) = _removeOverlappingCapital(
       tokenId_,
       account,
       position.supplied,
@@ -638,6 +649,7 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
   /// @dev Pool IDs must be checked to ensure they are unique and ascending
   function _addOverlappingCapitalAfterCheck(
     uint128[] memory poolIds_,
+    uint256 tokenId_,
     uint256 amount_
   ) internal {
     uint256 nbPoolIds = poolIds_.length;
@@ -695,7 +707,10 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
     uint256 amount_,
     uint256 feeDiscount_,
     uint128[] storage poolIds_
-  ) internal {
+  )
+    internal
+    returns (uint256 newUserCapital, uint256 strategyRewards)
+  {
     uint256 nbPoolIds = poolIds_.length;
 
     for (uint128 i; i < nbPoolIds; i++) {
@@ -706,7 +721,7 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
       pool0._purgeExpiredCovers();
 
       // Remove liquidity
-      pool0._withdrawLiquidity(
+      (newUserCapital, strategyRewards) = pool0._withdrawLiquidity(
         tokenId_,
         account_,
         amount_,
