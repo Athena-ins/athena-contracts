@@ -183,7 +183,6 @@ library VirtualPool {
     self.slot0.lastUpdateTimestamp = block.timestamp;
 
     self.overlappedPools.push(params.poolId);
-    self.overlaps[params.poolId] = 1; // 1 wei
 
     self.coverSize = params.coverSize;
     self.expireCover = params.expireCover;
