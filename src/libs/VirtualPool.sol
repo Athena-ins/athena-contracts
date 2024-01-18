@@ -905,15 +905,27 @@ library VirtualPool {
         .liquidityIndexBeforeClaim;
     }
 
-    // Finally add the rewards from the last claim to the current block
+    /**
+     * Finally add the rewards from the last claim to the current block
+     * & register latest reward indexes
+     */
+    uint256 latestRewardIndex = self.strategyManager.getRewardIndex(
+      strategyId
+    );
     info.strategyRewards += self.strategyManager.computeReward(
       strategyId,
       itCompounds
         ? info.newUserCapital + info.strategyRewards
         : info.newUserCapital,
       info.newLpInfo.beginRewardIndex,
-      self.strategyManager.getRewardIndex(strategyId)
+      latestRewardIndex
     );
+    info.newLpInfo.beginRewardIndex = latestRewardIndex;
+
+    info.coverRewards += info.newUserCapital.rayMul(
+      self.liquidityIndex - info.newLpInfo.beginLiquidityIndex
+    );
+    info.newLpInfo.beginLiquidityIndex = self.liquidityIndex;
 
     info.newLpInfo.beginClaimIndex += claims.length;
   }
