@@ -32,6 +32,7 @@ error WithdrawCommitDelayNotReached();
 error NotEnoughLiquidity();
 error CoverIsExpired();
 error NotEnoughPremiums();
+error SenderNotLiquidationManager();
 
 contract LiquidityManager is ReentrancyGuard, Ownable {
   using SafeERC20 for IERC20;
@@ -754,6 +755,17 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
     _pools[_covers[coverId_].poolId].ongoingClaims--;
   }
 
+  function attemptReopenCover(
+    uint128 poolId,
+    uint256 coverAmount,
+    uint256 premiums
+  ) external {
+    if (msg.sender != address(this)) {
+      revert SenderNotLiquidationManager();
+    } // this function should be called only by this contract
+    _pools[poolId]._buyCover(poolId, coverAmount, premiums);
+  }
+
   // @bw this should reduce the user's cover to avoid stress on the pool
   function payoutClaim(
     uint256 coverId_,
@@ -834,13 +846,23 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
           .premiumsLeft;
         // Close the existing cover
         poolA._closeCover(coverId_, cover.coverAmount);
-        // @bw need to check if liq is still available after close, if not close cover entirely
+
         // Update cover
-        poolA._buyCover(
-          cover.poolId,
+        try
+          this.attemptReopenCover(
+            poolId,
           cover.coverAmount - amount_,
           premiums
-        );
+          )
+        {} catch {
+          // If updating the cover fails beacause of not enough liquidity,
+          // then close the cover entirely & transfer premiums back to user
+          IERC20(poolA.paymentAsset).safeTransfer(
+            msg.sender,
+            premiums
+          );
+          cover.end = block.timestamp;
+        }
       }
     }
 
