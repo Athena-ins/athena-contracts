@@ -370,7 +370,9 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
 
     // Get the amount of premiums left
     uint256 premiums = pool._coverInfo(coverId_, false).premiumsLeft;
-    pool._closeCover(coverId_, cover.coverAmount);
+    uint256 coverAmount = cover.coverAmount;
+    // Close the existing cover
+    pool._closeCover(coverId_, coverAmount);
 
     // Only allow one operation on cover amount change
     if (0 < coverToAdd_) {
@@ -378,13 +380,13 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
        * Check if pool has enough liquidity,
        * we closed cover at this point so check for total
        * */
-      if (pool.availableLiquidity() < cover.coverAmount + coverToAdd_)
+      if (pool.availableLiquidity() < coverAmount + coverToAdd_)
         revert NotEnoughLiquidity();
 
-      cover.coverAmount += coverToAdd_;
+      coverAmount += coverToAdd_;
     } else if (0 < coverToRemove_) {
       // User is allowed to set the cover amount to 0 to pause the cover
-      cover.coverAmount -= coverToRemove_;
+      coverAmount -= coverToRemove_;
     }
 
     // Only allow one operation on premiums amount change
@@ -398,7 +400,6 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
       }
 
       premiums -= premiumsToRemove_;
-
       IERC20(pool.paymentAsset).safeTransfer(msg.sender, premiums);
     } else if (0 < premiumsToAdd_) {
       // Transfer premiums from user
@@ -412,10 +413,11 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
 
     // If no premiums left, then cover expires & should not be reopened
     if (premiums == 0) {
+      cover.coverAmount = coverAmount;
       cover.end = block.timestamp;
     } else {
       // Update cover
-      pool._buyCover(cover.poolId, cover.coverAmount, premiums);
+      pool._buyCover(cover.poolId, coverAmount, premiums);
     }
   }
 
@@ -695,7 +697,7 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
         pool0.overlaps[poolId1] += amount_;
       }
 
-      // Deposit fund into pool and add amount to its own intersectingAmounts
+      // Update premium rate, seconds per tick & LP position info
       pool0._depositToPool(tokenId_, amount_);
     }
   }
