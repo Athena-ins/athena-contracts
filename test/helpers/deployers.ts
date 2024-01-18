@@ -5,6 +5,8 @@ import {
   getCurrentBlockNumber,
 } from "./hardhat";
 import {
+  toErc20,
+  toRay,
   usdtTokenAddress,
   wethTokenAddress,
   evidenceGuardianWallet,
@@ -136,23 +138,23 @@ export type ProtocolConfig = {
   arbitrationCollateral: BigNumber;
   evidenceGuardian: Wallet;
   poolMarket: [BigNumber, BigNumber, BigNumber, BigNumber];
-  feeDiscounts: { atenAmount: number; feeDiscount: number }[];
+  feeDiscounts: { atenAmount: BigNumber; feeDiscount: BigNumber }[];
 };
 
 export const defaultProtocolConfig: ProtocolConfig = {
   arbitrationCollateral: utils.parseEther("0.05"), // in ETH
   evidenceGuardian: evidenceGuardianWallet(),
   poolMarket: [
-    BigNumber.from(75).mul(BigNumber.from(10).pow(27)), // uOptimal_
-    BigNumber.from(1).mul(BigNumber.from(10).pow(27)), // r0_
-    BigNumber.from(5).mul(BigNumber.from(10).pow(27)), // rSlope1_
-    BigNumber.from(11).mul(BigNumber.from(10).pow(26)), // rSlope2_
+    toRay(75), // uOptimal_
+    toRay(1), // r0_
+    toRay(5), // rSlope1_
+    toRay(1.1), // rSlope2_
   ],
   feeDiscounts: [
-    { atenAmount: 0, feeDiscount: 250 },
-    { atenAmount: 1_000, feeDiscount: 200 },
-    { atenAmount: 100_000, feeDiscount: 150 },
-    { atenAmount: 1_000_000, feeDiscount: 50 },
+    { atenAmount: toErc20(0), feeDiscount: toRay(250, 4) },
+    { atenAmount: toErc20(1_000), feeDiscount: toRay(200, 4) },
+    { atenAmount: toErc20(100_000), feeDiscount: toRay(150, 4) },
+    { atenAmount: toErc20(1_000_000), feeDiscount: toRay(50, 4) },
   ],
 };
 
