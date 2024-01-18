@@ -307,15 +307,7 @@ library VirtualPool {
     uint256 feeDiscount_,
     uint128[] storage poolIds_
   ) internal returns (uint256, uint256) {
-    if (
-      RayMath.RAY * 100 <
-      utilizationRate(
-        0,
-        0,
-        self.slot0.totalInsuredCapital,
-        availableLiquidity(self) - amount_
-      )
-    ) revert LiquidityNotAvailable();
+    // Pool is locked while there are ongoing claims
     if (0 < self.ongoingClaims) revert PoolHasOnGoingClaims();
 
     // Get the updated position info
@@ -339,6 +331,17 @@ library VirtualPool {
       0,
       info.newUserCapital
     );
+
+    // Check that the pool has enough liquidity to withdraw
+    if (
+      RayMath.RAY * 100 <
+      utilizationRate(
+        0,
+        0,
+        self.slot0.totalInsuredCapital,
+        availableLiquidity(self) - info.newUserCapital
+      )
+    ) revert LiquidityNotAvailable();
 
     // Return the user's capital & strategy rewards for withdrawal
     return (info.newUserCapital, info.strategyRewards);
