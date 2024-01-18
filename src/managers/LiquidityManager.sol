@@ -763,9 +763,6 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
     VirtualPool.VPool storage poolA = _pools[poolId];
     uint256 ratio = amount_.rayDiv(poolA.availableLiquidity());
 
-    // Remove expired covers in the pool of the claim
-    poolA._purgeExpiredCovers();
-
     // All pools have same strategy since they are compatible
     uint256 strategyId = _pools[poolA.overlappedPools[0]].strategyId;
     uint256 rewardIndex = strategyManager.getRewardIndex(strategyId);
@@ -775,6 +772,9 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
     for (uint128 i; i < nbPools; i++) {
       uint128 poolIdB = poolA.overlappedPools[i];
       VirtualPool.VPool storage poolB = _pools[poolIdB];
+
+      // Update pool state & remove expired covers
+      poolB._purgeExpiredCovers();
 
       (VirtualPool.VPool storage pool0, uint128 poolId1) = poolId <
         poolIdB
@@ -794,12 +794,20 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
         amountToRemove
       );
 
-        /**
-         * Skip first pool in second reduction of i=0 since it is the pool of the claim
-         * it has already been reduced in the first overlap reduction
-         */
+        // Reduce available liquidity,
+        // at i = 0 this is the self liquidity of claim's pool
         pool0.overlaps[poolId1] -= amountToRemove;
-        if (i != 0) poolB.overlaps[poolIdB] -= amountToRemove;
+
+        if (i != 0) {
+          // Check all pool combinations to reduce overlapping capital
+          for (uint128 j; j < nbPools; j++) {
+            uint128 poolIdC = poolA.overlappedPools[j];
+            if (poolIdC != poolId)
+              if (poolIdB <= poolIdC) {
+                poolB.overlaps[poolIdC] -= amountToRemove;
+              }
+          }
+        }
       }
 
       poolB.processedClaims.push(
@@ -813,6 +821,29 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
     }
 
     address claimant = coverToken.ownerOf(coverId_);
+
+    {
+      // Get storage pointer to cover
+      Cover storage cover = _covers[coverId_];
+
+      // If the cover isn't expired, then reduce the cover amount
+      if (cover.end == 0) {
+        // Get the amount of premiums left
+        uint256 premiums = poolA
+          ._coverInfo(coverId_, false)
+          .premiumsLeft;
+        // Close the existing cover
+        poolA._closeCover(coverId_, cover.coverAmount);
+        // @bw need to check if liq is still available after close, if not close cover entirely
+        // Update cover
+        poolA._buyCover(
+          cover.poolId,
+          cover.coverAmount - amount_,
+          premiums
+        );
+      }
+    }
+
     strategyManager.payoutFromStrategy(strategyId, amount_, claimant);
   }
 }
