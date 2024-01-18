@@ -20,6 +20,8 @@ import { IAthenaCoverToken } from "../interfaces/IAthenaCoverToken.sol";
 
 // @bw need to add veto power for V0
 
+// @bw need to implement burn of ATEN with insurance deductible (franchise)
+
 // ======= ERRORS ======= //
 
 error OnlyLiquidityManager();

@@ -418,19 +418,6 @@ library VirtualPool {
     self.slot0.remainingCovers++;
   }
 
-  /// -------- MODIFY -------- ///
-
-  function _modifyCover(
-    VPool storage self,
-    uint256 coverId_,
-    uint256 coverToAdd_,
-    uint256 coverToRemove_,
-    uint256 premiumsToAdd_,
-    uint256 premiumsToRemove_
-  ) internal {
-    // @bw need fn to change cover without closing & opening new one
-  }
-
   /// -------- CLOSE -------- ///
 
   function _closeCover(

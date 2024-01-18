@@ -41,10 +41,6 @@ contract AthenaCoverToken is ERC721Enumerable, Ownable {
     _;
   }
 
-  /// ======= VIEWS ======= ///
-
-  // @bw can add all user data views here to lighten the load on the liquidity manager
-
   /// ======= ERC-721 FUNCTIONS ======= ///
 
   function mint(
