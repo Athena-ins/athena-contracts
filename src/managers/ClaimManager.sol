@@ -104,18 +104,22 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
   uint256 public immutable numberOfRulingOptions = 2;
 
   // Maps a claim ID to a claim's data
-  mapping(uint256 => Claim) public claims;
+  mapping(uint256 _claimId => Claim) public claims;
   // Maps a coverId to its claim IDs
-  mapping(uint256 => uint256[]) public coverIdToClaimIds;
+  mapping(uint256 _coverId => uint256[] _claimIds)
+    public coverIdToClaimIds;
   // Maps a Kleros dispute ID to its claim ID
-  mapping(uint256 => uint256) public disputeIdToClaimId;
+  mapping(uint256 _disputeId => uint256 _claimId)
+    public disputeIdToClaimId;
 
-  // Maps a protocol ID to its generic meta-evidence IPFS file CID
-  mapping(uint256 => string) public poolIdToCoverTerms;
+  // Maps a pool ID to its generic meta-evidence IPFS file CID
+  mapping(uint256 _poolId => string _cid) public poolIdToCoverTerms;
 
   // Maps a claim ID to its submited evidence
-  mapping(uint256 => string[]) public claimIdToEvidence;
-  mapping(uint256 => string[]) public claimIdToCounterEvidence;
+  mapping(uint256 _claimId => string[] _cids)
+    public claimIdToEvidence;
+  mapping(uint256 _claimId => string[] _cids)
+    public claimIdToCounterEvidence;
 
   // ======= CONSTRUCTOR ======= //
 
