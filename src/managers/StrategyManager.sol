@@ -158,7 +158,8 @@ contract StrategyManager is IStrategyManager, Ownable {
     console.log("bal rew: ", bal);
 
     // @dev No need to approve aToken since they are burned in pool
-    aaveLendingPool.withdraw(usdt, amountUnderlying_, account_);
+    // @dev Remove 1 for rounding errors
+    aaveLendingPool.withdraw(usdt, amountUnderlying_ - 1, account_);
   }
 
   //======== WRAPPED I/O ========//
@@ -180,7 +181,8 @@ contract StrategyManager is IStrategyManager, Ownable {
       strategyId_,
       amountUnderlying_
     );
-    IERC20(ausdt).safeTransfer(account_, amountWrapped);
+    // @dev Remove 1 for rounding errors
+    IERC20(ausdt).safeTransfer(account_, amountWrapped - 1);
   }
 
   //======== CLAIMS ========//
@@ -191,7 +193,8 @@ contract StrategyManager is IStrategyManager, Ownable {
     address account_
   ) external checkId(strategyId_) onlyLiquidityManager {
     // @dev No need to approve aToken since they are burned in pool
-    aaveLendingPool.withdraw(usdt, amountUnderlying_, account_);
+    // @dev Remove 1 for rounding errors
+    aaveLendingPool.withdraw(usdt, amountUnderlying_ - 1, account_);
   }
 
   //======== ADMIN ========//
