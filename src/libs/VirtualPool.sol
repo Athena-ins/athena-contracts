@@ -12,6 +12,8 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol"
 import { IEcclesiaDao } from "../interfaces/IEcclesiaDao.sol";
 import { IStrategyManager } from "../interfaces/IStrategyManager.sol";
 
+import { console } from "hardhat/console.sol";
+
 // ======= ERRORS ======= //
 
 error ZeroAddressAsset();
@@ -217,7 +219,7 @@ library VirtualPool {
 
   // ======= READ METHODS ======= //
 
-  // @bw ex: availableCapital
+  // @bw need to update to latests on external reads
   function availableLiquidity(
     VPool storage self
   ) internal view returns (uint256) {
@@ -276,11 +278,11 @@ library VirtualPool {
   ) internal returns (uint256, uint256) {
     // Get the updated position info
     UpdatedPositionInfo memory info = _getUpdatedPositionInfo(
-        self,
-        tokenId_,
-        amount_,
-        poolIds_
-      );
+      self,
+      tokenId_,
+      amount_,
+      poolIds_
+    );
 
     // Pay cover rewards and send fees to treasury
     _payRewardsAndFees(
@@ -312,11 +314,11 @@ library VirtualPool {
 
     // Get the updated position info
     UpdatedPositionInfo memory info = _getUpdatedPositionInfo(
-        self,
-        tokenId_,
-        amount_,
-        poolIds_
-      );
+      self,
+      tokenId_,
+      amount_,
+      poolIds_
+    );
 
     // Pay cover rewards and send fees to treasury
     _payRewardsAndFees(
@@ -569,9 +571,9 @@ library VirtualPool {
 
         if (isInitialized && observedTick <= slot0.tick) {
           uint256[] memory expiredCoverIds = _removeTick(
-              self,
+            self,
             observedTick
-            );
+          );
 
           uint256 nbCovers = expiredCoverIds.length;
           for (uint256 i; i < nbCovers; i++) {
@@ -927,6 +929,10 @@ library VirtualPool {
     );
     info.newLpInfo.beginLiquidityIndex = self.liquidityIndex;
 
+    console.log("--------------------------------------");
+    console.log("newUserCapital: ", info.newUserCapital);
+    console.log("coverRewards: ", info.coverRewards);
+    console.log("strategyRewards: ", info.strategyRewards);
     info.newLpInfo.beginClaimIndex += claims.length;
   }
 

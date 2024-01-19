@@ -18,8 +18,11 @@ import { IAthenaCoverToken } from "../interfaces/IAthenaCoverToken.sol";
 import { IEcclesiaDao } from "../interfaces/IEcclesiaDao.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
+import { console } from "hardhat/console.sol";
+
 // Todo
 // @bw need dynamic risk pool fee system
+// @bw add fn to clear related pool if overlap = 0 to reduce computation cost
 
 // ======= ERRORS ======= //
 
@@ -297,8 +300,8 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
 
   function _expireCover(uint256 tokenId) internal {
     _covers[tokenId].end = block.timestamp;
-      // @bw check if spent premium is correct after manual expiration
-      // @bw should auto unfarm if it is currently farming rewards
+    // @bw check if spent premium is correct after manual expiration
+    // @bw should auto unfarm if it is currently farming rewards
   }
 
   /// ======= BUY COVER ======= ///
@@ -488,6 +491,7 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
     uint256 strategyId = _pools[position.poolIds[0]].strategyId;
 
     // Take interests in all pools before update
+    // @bw if removed, will update LP info in pool._depositToPool to latests and skip rewards & claims
     takeInterests(tokenId_);
 
     uint256 amountUnderlying = isWrapped
@@ -556,6 +560,8 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
           feeDiscount,
           position.poolIds
         );
+      console.log("ti _newUserCapital: ", _newUserCapital);
+      console.log("ti _strategyRewards: ", _strategyRewards);
 
       // Update capital based on claims on last loop
       if (i == nbPools - 1) {
@@ -563,6 +569,8 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
         strategyRewards = _strategyRewards;
       }
     }
+    console.log("ti newUserCapital: ", newUserCapital);
+    console.log("ti strategyRewards: ", strategyRewards);
 
     // Withdraw interests from strategy
     // All pools have same strategy since they are compatible
@@ -588,7 +596,7 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
 
     position.commitWithdrawalTimestamp = block.timestamp;
 
-    // @bw should lock rewards to avoid commiting upon deposit
+    // @bw should take interests now & only withdraw capital after delay so no more rewards are accrued to avoid commit on deposit
   }
 
   function closePosition(
@@ -604,16 +612,20 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
     address account = positionToken.ownerOf(tokenId_);
 
     uint256 feeDiscount = staking.feeDiscountOf(account);
+
     (
       uint256 newUserCapital,
       uint256 strategyRewards
     ) = _removeOverlappingCapital(
-      tokenId_,
-      account,
-      position.supplied,
-      feeDiscount,
-      position.poolIds
-    );
+        tokenId_,
+        account,
+        position.supplied,
+        feeDiscount,
+        position.poolIds
+      );
+
+    console.log("newUserCapital: ", newUserCapital);
+    console.log("strategyRewards: ", strategyRewards);
 
     // All pools have same strategy since they are compatible
     uint256 strategyId = _pools[position.poolIds[0]].strategyId;
@@ -731,6 +743,8 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
         feeDiscount_,
         poolIds_
       );
+      console.log("strategyRewards: ", strategyRewards);
+      console.log("newUserCapital: ", newUserCapital);
 
       // Considering the verification that pool IDs are unique & ascending
       // then start index is i to reduce required number of loops
@@ -795,16 +809,16 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
 
       // New context to avoid stack too deep error
       {
-      // Remove liquidity from dependant pool
+        // Remove liquidity from dependant pool
         uint256 amountToRemove = pool0.overlaps[poolId1].rayMul(
           ratio
         );
 
         // Update pool pricing (premium rate & seconds per tick)
-      poolB._updateSlot0WhenAvailableLiquidityChange(
-        0,
-        amountToRemove
-      );
+        poolB._updateSlot0WhenAvailableLiquidityChange(
+          0,
+          amountToRemove
+        );
 
         // Reduce available liquidity,
         // at i = 0 this is the self liquidity of claim's pool
@@ -851,8 +865,8 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
         try
           this.attemptReopenCover(
             poolId,
-          cover.coverAmount - amount_,
-          premiums
+            cover.coverAmount - amount_,
+            premiums
           )
         {} catch {
           // If updating the cover fails beacause of not enough liquidity,

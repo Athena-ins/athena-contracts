@@ -15,7 +15,8 @@ import { IStrategyManager } from "../interfaces/IStrategyManager.sol";
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import { ILiquidityManager } from "../interfaces/ILiquidityManager.sol";
 import { ILendingPool } from "../interfaces/ILendingPool.sol";
-// @bw seems underlying === wrapped as the aToken balance is increased as interests sum up
+
+import { console } from "hardhat/console.sol";
 
 //======== ERRORS ========//
 
