@@ -155,13 +155,6 @@ contract LiquidityManager is
     return _positions[tokenId_];
   }
 
-  function positionSize(
-    uint256 tokenId_
-  ) external view returns (uint256) {
-    // @bw This needs to be fixed to take into account loss of capital by claims, especially for computing strategy rewards
-    return _positions[tokenId_].supplied;
-  }
-
   function covers(
     uint256 tokenId_
   ) external view returns (CoverRead memory) {
@@ -537,8 +530,6 @@ contract LiquidityManager is
 
   /// ======= TAKE LP INTERESTS ======= ///
 
-  // @bw needs to be updated for strat reward withdraw + take fees in pools
-  // compute amount of rewards & transfer from cover manager to user + register new reward index
   function takeInterests(
     uint256 tokenId_
   ) public onlyPositionOwner(tokenId_) {
@@ -553,10 +544,8 @@ contract LiquidityManager is
       VirtualPool.VPool storage pool = _pools[position.poolIds[i]];
 
       // Clean pool from expired covers
-      // @bw check if need to expire tokens before taking interests
       pool._purgeExpiredCovers();
 
-      // @bw check how to impact capital at each loop
       (uint256 _newUserCapital, uint256 _strategyRewards) = pool
         ._takePoolInterests(
           tokenId_,
@@ -565,8 +554,6 @@ contract LiquidityManager is
           feeDiscount,
           position.poolIds
         );
-      console.log("ti _newUserCapital: ", _newUserCapital);
-      console.log("ti _strategyRewards: ", _strategyRewards);
 
       // Update capital based on claims on last loop
       if (i == nbPools - 1) {
@@ -574,12 +561,10 @@ contract LiquidityManager is
         strategyRewards = _strategyRewards;
       }
     }
-    console.log("ti newUserCapital: ", newUserCapital);
-    console.log("ti strategyRewards: ", strategyRewards);
 
-    // Withdraw interests from strategy
     // All pools have same strategy since they are compatible
     uint256 strategyId = _pools[position.poolIds[0]].strategyId;
+    // Withdraw interests from strategy
     strategyManager.withdrawFromStrategy(
       strategyId,
       strategyRewards,
@@ -587,9 +572,8 @@ contract LiquidityManager is
       feeDiscount
     );
 
-    if (position.supplied != newUserCapital) {
-      _positions[tokenId_].supplied = newUserCapital;
-    }
+    // Update the position capital to reflect potential reduction due to claims
+    _positions[tokenId_].supplied = newUserCapital;
   }
 
   /// ======= CLOSE LP POSITION ======= ///
@@ -618,34 +602,27 @@ contract LiquidityManager is
 
     uint256 feeDiscount = staking.feeDiscountOf(account);
 
-    (
-      uint256 newUserCapital,
-      uint256 strategyRewards
-    ) = _removeOverlappingCapital(
-        tokenId_,
-        account,
-        position.supplied,
-        feeDiscount,
-        position.poolIds
-      );
-
-    console.log("newUserCapital: ", newUserCapital);
-    console.log("strategyRewards: ", strategyRewards);
+    uint256 userCapitalAndRewards = _removeOverlappingCapital(
+      tokenId_,
+      account,
+      position.supplied,
+      feeDiscount,
+      position.poolIds
+    );
 
     // All pools have same strategy since they are compatible
     uint256 strategyId = _pools[position.poolIds[0]].strategyId;
-    // @bw this should be impacted by capital loses incurred by claims
     if (keepWrapped_) {
       strategyManager.withdrawWrappedFromStrategy(
         strategyId,
-        position.supplied,
+        userCapitalAndRewards,
         account,
         feeDiscount
       );
     } else {
       strategyManager.withdrawFromStrategy(
         strategyId,
-        position.supplied,
+        userCapitalAndRewards,
         account,
         feeDiscount
       );
@@ -727,10 +704,7 @@ contract LiquidityManager is
     uint256 amount_,
     uint256 feeDiscount_,
     uint128[] storage poolIds_
-  )
-    internal
-    returns (uint256 newUserCapital, uint256 strategyRewards)
-  {
+  ) internal returns (uint256 userCapitalAndRewards) {
     uint256 nbPoolIds = poolIds_.length;
 
     for (uint128 i; i < nbPoolIds; i++) {
@@ -741,15 +715,19 @@ contract LiquidityManager is
       pool0._purgeExpiredCovers();
 
       // Remove liquidity
-      (newUserCapital, strategyRewards) = pool0._withdrawLiquidity(
-        tokenId_,
-        account_,
-        amount_,
-        feeDiscount_,
-        poolIds_
-      );
-      console.log("strategyRewards: ", strategyRewards);
-      console.log("newUserCapital: ", newUserCapital);
+      (uint256 newUserCapital, uint256 strategyRewards) = pool0
+        ._withdrawLiquidity(
+          tokenId_,
+          account_,
+          amount_,
+          feeDiscount_,
+          poolIds_
+        );
+
+      if (i == 0) {
+        // The updated user capital & strategy rewards are the same at each iteration
+        userCapitalAndRewards = newUserCapital + strategyRewards;
+      }
 
       // Considering the verification that pool IDs are unique & ascending
       // then start index is i to reduce required number of loops
@@ -777,15 +755,19 @@ contract LiquidityManager is
   function attemptReopenCover(
     uint128 poolId,
     uint256 coverAmount,
+    uint256 payoutAmount,
     uint256 premiums
   ) external {
     if (msg.sender != address(this)) {
       revert SenderNotLiquidationManager();
     } // this function should be called only by this contract
-    _pools[poolId]._buyCover(poolId, coverAmount, premiums);
+    _pools[poolId]._buyCover(
+      poolId,
+      coverAmount - payoutAmount,
+      premiums
+    );
   }
 
-  // @bw this should reduce the user's cover to avoid stress on the pool
   function payoutClaim(
     uint256 coverId_,
     uint256 amount_
@@ -870,7 +852,8 @@ contract LiquidityManager is
         try
           this.attemptReopenCover(
             poolId,
-            cover.coverAmount - amount_,
+            cover.coverAmount,
+            amount_,
             premiums
           )
         {} catch {
