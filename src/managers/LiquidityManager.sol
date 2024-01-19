@@ -11,6 +11,7 @@ import { VirtualPool } from "../libs/VirtualPool.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 // Interfaces
+import { ILiquidityManager } from "../interfaces/ILiquidityManager.sol";
 import { IStrategyManager } from "../interfaces/IStrategyManager.sol";
 import { IStaking } from "../interfaces/IStaking.sol";
 import { IAthenaPositionToken } from "../interfaces/IAthenaPositionToken.sol";
@@ -37,7 +38,11 @@ error CoverIsExpired();
 error NotEnoughPremiums();
 error SenderNotLiquidationManager();
 
-contract LiquidityManager is ReentrancyGuard, Ownable {
+contract LiquidityManager is
+  ILiquidityManager,
+  ReentrancyGuard,
+  Ownable
+{
   using SafeERC20 for IERC20;
   using RayMath for uint256;
   using VirtualPool for VirtualPool.VPool;
