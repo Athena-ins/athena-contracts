@@ -33,6 +33,8 @@ contract AthenaPositionToken is ERC721Enumerable, Ownable {
     return baseDataURI;
   }
 
+  // @bw need to override transfer from to force TP if not same fee level
+
   /// ======= MODIFIERS ======= ///
 
   modifier onlyLiquidityManager() {

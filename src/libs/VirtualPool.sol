@@ -856,6 +856,8 @@ library VirtualPool {
     uint256 userCapital_,
     uint128[] storage poolIds_
   ) private view returns (UpdatedPositionInfo memory info) {
+    // @bw this is performed in each pool the position is in but the new capital & strat rewards seem to be the same
+    // every time, need to find a way to store lp & claim data globally to compute all at once
     info.newLpInfo = self.lpInfos[tokenId_];
     PoolClaim[] memory claims = _claims(
       self,
@@ -865,6 +867,7 @@ library VirtualPool {
     info.newUserCapital = userCapital_;
 
     uint256 strategyId = self.strategyId;
+    // If strategy compounds rewards then they are added to the capital to compute new rewards
     bool itCompounds = self.strategyManager.itCompounds(strategyId);
 
     uint256 nbClaims = claims.length;

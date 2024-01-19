@@ -235,8 +235,7 @@ contract Staking is IStaking, ERC20, Ownable {
     stakedToken.safeTransfer(_to, _tokensToWithdraw);
 
     feeDiscountOf[msg.sender] = 0;
-    // @bw to repair
-    // liquidityManager.feeDiscountUpdate(msg.sender, 0);
+    _updateAccountFeeDiscount(0, _currentBalance);
 
     emit EmergencyWithdraw(
       msg.sender,
@@ -330,8 +329,7 @@ contract Staking is IStaking, ERC20, Ownable {
 
     if (feeDiscount != newFeeDiscount) {
       feeDiscountOf[msg.sender] = newFeeDiscount;
-      // @bw to repair
-      // liquidityManager.feeDiscountUpdate(msg.sender, feeDiscount);
+      liquidityManager.feeDiscountUpdate(msg.sender, feeDiscount);
     }
   }
 

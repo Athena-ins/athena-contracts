@@ -654,7 +654,7 @@ contract LiquidityManager is ReentrancyGuard, Ownable {
 
   function feeDiscountUpdate(
     address account_,
-    uint128 prevFeeDiscount_
+    uint256 prevFeeDiscount_
   ) external {
     // @bw Should take interests in all positions using the prev fee discount
   }
