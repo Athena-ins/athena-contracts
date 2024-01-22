@@ -170,7 +170,7 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
     ILiquidityManager.Position memory lpPosition = liquidityManager
       .positions(_tokenId);
 
-    uint256 amount = lpPosition.amountSupplied;
+    uint256 amount = lpPosition.supplied;
     uint128[] memory poolIds = lpPosition.poolIds;
 
     uint256 nbPositionPools = poolIds.length;
@@ -215,9 +215,8 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
     coverToken.transferFrom(msg.sender, address(this), _tokenId);
 
     // @bw need to get updated premiums left
-    ILiquidityManager.Cover memory cover = liquidityManager.covers(
-      _tokenId
-    );
+    ILiquidityManager.CoverRead memory cover = liquidityManager
+      .covers(_tokenId);
 
     // For cover campaigns there is only one poolId
     if (campaignInfo[_campaignID].poolId != cover.poolId)

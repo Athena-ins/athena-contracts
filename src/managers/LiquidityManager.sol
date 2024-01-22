@@ -47,38 +47,6 @@ contract LiquidityManager is
   using RayMath for uint256;
   using VirtualPool for VirtualPool.VPool;
 
-  // ======= STRUCTS ======= //
-
-  struct CoverRead {
-    uint128 poolId;
-    uint256 coverAmount;
-    uint256 premiums;
-    uint256 start;
-    uint256 end;
-    uint256 premiumsLeft;
-    uint256 currentEmissionRate;
-    uint256 remainingSeconds;
-  }
-
-  struct Cover {
-    uint128 poolId;
-    uint256 coverAmount;
-    uint256 premiums;
-    uint256 start;
-    uint256 end;
-  }
-
-  struct Position {
-    uint256 supplied;
-    uint256 commitWithdrawalTimestamp;
-    uint128[] poolIds;
-  }
-
-  struct PoolOverlap {
-    uint128 poolId;
-    uint256 amount;
-  }
-
   // ======= STORAGE ======= //
 
   IAthenaPositionToken public positionToken;
