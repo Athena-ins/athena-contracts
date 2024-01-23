@@ -24,6 +24,8 @@ import { console } from "hardhat/console.sol";
 // Todo
 // @bw need dynamic risk pool fee system
 // @bw add fn to clear related pool if overlap = 0 to reduce computation cost
+// @bw limit max nb of leveraged pools per position
+// @bw add fns to debug if certain loops become too gas intensive to run in a single block
 
 // ======= ERRORS ======= //
 
@@ -34,7 +36,8 @@ error PoolIdsMustBeUniqueAndAscending();
 error AmountOfPoolsIsAboveMaxLeverage();
 error IncompatiblePools(uint128 poolIdA, uint128 poolIdB);
 error WithdrawCommitDelayNotReached();
-error NotEnoughLiquidity();
+error InsufficientLiquidityForCover();
+error RatioAbovePoolCapacity();
 error CoverIsExpired();
 error NotEnoughPremiums();
 error SenderNotLiquidationManager();
@@ -273,7 +276,7 @@ contract LiquidityManager is
     if (pool.isPaused) revert PoolIsPaused();
     // Check if pool has enough liquidity
     if (pool.availableLiquidity() < coverAmount_)
-      revert NotEnoughLiquidity();
+      revert InsufficientLiquidityForCover();
 
     // Transfer premiums from user
     IERC20(pool.paymentAsset).safeTransferFrom(
@@ -337,7 +340,7 @@ contract LiquidityManager is
        * we closed cover at this point so check for total
        * */
       if (pool.availableLiquidity() < coverAmount + coverToAdd_)
-        revert NotEnoughLiquidity();
+        revert InsufficientLiquidityForCover();
 
       coverAmount += coverToAdd_;
     } else if (0 < coverToRemove_) {
@@ -569,21 +572,23 @@ contract LiquidityManager is
     );
 
     // All pools have same strategy since they are compatible
-    uint256 strategyId = _pools[position.poolIds[0]].strategyId;
-    if (keepWrapped_) {
-      strategyManager.withdrawWrappedFromStrategy(
-        strategyId,
-        userCapitalAndRewards,
-        account,
-        feeDiscount
-      );
-    } else {
-      strategyManager.withdrawFromStrategy(
-        strategyId,
-        userCapitalAndRewards,
-        account,
-        feeDiscount
-      );
+    if (userCapitalAndRewards != 0) {
+      uint256 strategyId = _pools[position.poolIds[0]].strategyId;
+      if (keepWrapped_) {
+        strategyManager.withdrawWrappedFromStrategy(
+          strategyId,
+          userCapitalAndRewards,
+          account,
+          feeDiscount
+        );
+      } else {
+        strategyManager.withdrawFromStrategy(
+          strategyId,
+          userCapitalAndRewards,
+          account,
+          feeDiscount
+        );
+      }
     }
 
     // Reduce position to 0 since we cannot partial withdraw
@@ -691,7 +696,7 @@ contract LiquidityManager is
       // then start index is i to reduce required number of loops
       for (uint128 j = i; j < nbPoolIds; j++) {
         uint128 poolId1 = poolIds_[j];
-        pool0.overlaps[poolId1] -= amount_;
+        pool0.overlaps[poolId1] -= newUserCapital;
       }
     }
   }
@@ -726,6 +731,8 @@ contract LiquidityManager is
     );
   }
 
+  // @bw positions created between claim creation & payout will be affected by the claim
+  // check if RiskPool can deposit capital to cover the payouts if not enough liquidity
   function payoutClaim(
     uint256 coverId_,
     uint256 amount_
@@ -733,6 +740,8 @@ contract LiquidityManager is
     uint128 poolId = _covers[coverId_].poolId;
     VirtualPool.VPool storage poolA = _pools[poolId];
     uint256 ratio = amount_.rayDiv(poolA.availableLiquidity());
+    // The ration cannot be over 100% of the pool's liquidity (1 RAY)
+    if (RayMath.RAY < ratio) revert RatioAbovePoolCapacity();
 
     // All pools have same strategy since they are compatible
     uint256 strategyId = _pools[poolA.overlappedPools[0]].strategyId;

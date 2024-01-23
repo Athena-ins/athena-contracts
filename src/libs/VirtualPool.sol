@@ -22,6 +22,7 @@ error CoverAlreadyExpired();
 error DurationTooLow();
 error InsufficientCapacity();
 error LiquidityNotAvailable();
+error NotEnoughLiquidityForRemoval();
 error PoolHasOnGoingClaims();
 
 /**
@@ -527,24 +528,25 @@ library VirtualPool {
 
   function _updateSlot0WhenAvailableLiquidityChange(
     VPool storage self,
-    uint256 _amountToAdd,
-    uint256 _amountToRemove
+    uint256 amountToAdd_,
+    uint256 amountToRemove_
   ) internal {
     uint256 available = availableLiquidity(self);
-    uint256 totalInsured = self.slot0.totalInsuredCapital;
+    if (available + amountToAdd_ < amountToRemove_)
+      revert NotEnoughLiquidityForRemoval();
 
+    uint256 totalInsured = self.slot0.totalInsuredCapital;
     uint256 currentPremiumRate = getPremiumRate(
       self,
       utilizationRate(0, 0, totalInsured, available)
     );
-
     uint256 newPremiumRate = getPremiumRate(
       self,
       utilizationRate(
         0,
         0,
         totalInsured,
-        available + _amountToAdd - _amountToRemove
+        available + amountToAdd_ - amountToRemove_
       )
     );
 
@@ -834,8 +836,10 @@ library VirtualPool {
     uint256 userCapital_,
     uint128[] storage poolIds_
   ) private view returns (UpdatedPositionInfo memory info) {
-    // @bw this is performed in each pool the position is in but the new capital & strat rewards seem to be the same
-    // every time, need to find a way to store lp & claim data globally to compute all at once
+    /**
+     * // @bw this is performed in each pool of the pos but the computed new capital & strat rewards are same every time, need to find a way to store lp & claim data globally to compute all at once. Then only need to compute cover rewards for each pool
+     */
+
     info.newLpInfo = self.lpInfos[tokenId_];
     PoolClaim[] memory claims = _claims(
       self,
@@ -851,50 +855,53 @@ library VirtualPool {
     uint256 nbClaims = claims.length;
     uint256 nbPools = poolIds_.length;
 
-    // @bw this is highly expensive, can transform to mapping parse ?
-    // For each pool this recalculates the amount of remaining capital at each claim
-    // amount of computation is potentially huge & very redundant
+    /**
+     * Parse each claim that may affect capital because of overlap in order to
+     * compute rewards based on new amount of capital in the position
+     */
     for (uint256 i; i < nbClaims; i++) {
       PoolClaim memory claim = claims[i];
 
+      // Compute the rewards accumulated up to the claim
       info.coverRewards += info.newUserCapital.rayMul(
         claim.liquidityIndexBeforeClaim -
           info.newLpInfo.beginLiquidityIndex
       );
+      info.strategyRewards += self.strategyManager.computeReward(
+        strategyId,
+        itCompounds
+          ? info.newUserCapital + info.strategyRewards
+          : info.newUserCapital,
+        info.newLpInfo.beginRewardIndex,
+        claim.rewardIndexBeforeClaim
+      );
 
-      for (uint256 j; j < nbPools; j++) {
-        if (poolIds_[j] == claim.fromPoolId) {
-          uint256 capitalToRemove = info.newUserCapital.rayMul(
-            claim.ratio
-          );
-
-          info.strategyRewards += self.strategyManager.computeReward(
-            strategyId,
-            itCompounds
-              ? info.newUserCapital + info.strategyRewards
-              : info.newUserCapital,
-            info.newLpInfo.beginRewardIndex,
-            claim.rewardIndexBeforeClaim
-          );
-
-          info.newUserCapital -= capitalToRemove;
-
-          break;
-        }
-      }
-
+      // Register up to where the rewards have been accumulated
       info.newLpInfo.beginRewardIndex = claim.rewardIndexBeforeClaim;
       info.newLpInfo.beginLiquidityIndex = claim
         .liquidityIndexBeforeClaim;
+
+      // Check if the claim is incoming from one of the pools in the position
+      for (uint256 j; j < nbPools; j++) {
+        if (poolIds_[j] != claim.fromPoolId) continue;
+
+        // If it is then compute the new capital after the claim & break loop
+        info.newUserCapital -= info.newUserCapital.rayMul(
+          claim.ratio
+        );
+
+        break;
+      }
     }
 
     /**
-     * Finally add the rewards from the last claim to the current block
-     * & register latest reward indexes
+     * Finally add the rewards from the last claim or update to the current block
+     * & register latest reward & claim indexes
      */
     uint256 latestRewardIndex = self.strategyManager.getRewardIndex(
       strategyId
     );
+
     info.strategyRewards += self.strategyManager.computeReward(
       strategyId,
       itCompounds
@@ -903,11 +910,11 @@ library VirtualPool {
       info.newLpInfo.beginRewardIndex,
       latestRewardIndex
     );
-    info.newLpInfo.beginRewardIndex = latestRewardIndex;
-
     info.coverRewards += info.newUserCapital.rayMul(
       self.liquidityIndex - info.newLpInfo.beginLiquidityIndex
     );
+
+    info.newLpInfo.beginRewardIndex = latestRewardIndex;
     info.newLpInfo.beginLiquidityIndex = self.liquidityIndex;
     info.newLpInfo.beginClaimIndex += claims.length;
  
