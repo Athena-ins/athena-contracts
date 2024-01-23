@@ -64,6 +64,10 @@ export function toRay(amount: number, decimals = 0) {
   return parseUnits(amount.toString(), base);
 }
 
+export function makeIdArray(length: number) {
+  return [...Array(length).keys()];
+}
+
 export function aaveLendingPoolProviderV2Address(chainId: number): string {
   if (chainId === 1) return "0xb53c1a33016b2dc2ff3653530bff1848a515c8c5";
   if (chainId === 5) return "0x5E52dEc931FFb32f609681B8438A51c675cc232d";
