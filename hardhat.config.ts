@@ -141,8 +141,9 @@ const config: HardhatUserConfig = {
     enabled: REPORT_GAS === "true",
     currency: "USD",
     token: "ETH",
-    gasPriceApi:
-      "https://api.etherscan.io/api?module=proxy&action=eth_gasPrice",
+    gasPrice: 20, // in gwei
+    // gasPriceApi:
+    //   "https://api.etherscan.io/api?module=proxy&action=eth_gasPrice",
     coinmarketcap: COINMARKETCAP_API_KEY || "",
   },
 
