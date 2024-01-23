@@ -1,10 +1,7 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.20;
+pragma solidity ^0.8.20;
 
-// Contracts
-import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import { ERC20Permit } from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
-import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+//======== INTERFACES ========//
 
 interface ITokenCallReceiver {
   function onTokenTransfer(
@@ -22,46 +19,82 @@ error ArgumentLengthMismatch();
 error ContractNotYetAllowed();
 // When EAOs are targeted by the transfer & call function
 error OnlyContractsAllowed();
+// Not owner of the contract
+error Unauthorized();
 
-/**
- * @title AthenaToken (ATEN), ERC-20 token
- * @notice Inherit from the ERC20Permit, allowing to sign approve off chain
- */
-contract AthenaToken is ERC20Permit, Ownable {
+contract AthenaToken {
   //======== STORAGE ========//
 
   // Maps a contract address to its authorized status
   mapping(address destination => bool status) private canReceive;
   // Switch that checks if the destination status is to be checked
   bool public isLimited = true;
+  address public owner;
+
+  string public name = "Athena Token";
+  string public symbol = "ATEN";
+  uint8 public immutable decimals = 18;
+  uint256 public totalSupply = 3_000_000_000 ether;
+  mapping(address => uint256) public balanceOf;
+  mapping(address => mapping(address => uint256)) public allowance;
+  mapping(address => uint256) public nonces;
+
+  bytes32 public DOMAIN_SEPARATOR;
+  bytes32 public constant PERMIT_TYPEHASH =
+    keccak256(
+      "Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"
+    );
+  bytes32 public constant DOMAIN_TYPEHASH =
+    keccak256(
+      "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
+    );
+
+  //======== EVENTS ========//
+
+  event Approval(
+    address indexed owner,
+    address indexed spender,
+    uint256 value
+  );
+  event Transfer(
+    address indexed from,
+    address indexed to,
+    uint256 value
+  );
 
   //======== CONSTRUCTOR ========//
+  constructor(address[] memory destination) {
+    owner = msg.sender;
 
-  constructor(
-    address[] memory destination
-  )
-    ERC20("Athena Token", "ATEN")
-    ERC20Permit("Athena Token")
-    Ownable(msg.sender)
-  {
-    _mint(msg.sender, 3_000_000_000 ether);
+    DOMAIN_SEPARATOR = keccak256(
+      abi.encode(
+        DOMAIN_TYPEHASH,
+        keccak256(bytes(name)),
+        keccak256(bytes("1")),
+        block.chainid,
+        address(this)
+      )
+    );
+
+    unchecked {
+      balanceOf[msg.sender] += totalSupply;
+    }
+    emit Transfer(address(0), msg.sender, totalSupply);
 
     uint256 length = destination.length;
     bool[] memory status = new bool[](length);
     for (uint i = 0; i < length; i++) status[i] = true;
-
     setAuthorized(destination, status);
   }
 
-  //======== FUNCTIONS ========//
+  //======== MODIFIERS ========//
 
-  /**
-   * @notice Burns tokens from the caller
-   * @param amount amount of tokens to burn
-   */
-  function burn(uint256 amount) external {
-    _burn(msg.sender, amount);
+  modifier onlyOwner() {
+    if (msg.sender != owner) revert Unauthorized();
+    _;
   }
+
+  //======== FUNCTIONS ========//
 
   /**
    * @notice Checks if address is a contract
@@ -84,41 +117,122 @@ contract AthenaToken is ERC20Permit, Ownable {
     return (size > 0);
   }
 
-  /**
-   * @notice Overrides the internal ERC20 _update function
-   * @dev Adds a destination restrictions during inital phase of token launch
-   */
-  function _update(
+  function burn(uint256 amount) external {
+    balanceOf[msg.sender] -= amount;
+
+    unchecked {
+      totalSupply -= amount;
+    }
+
+    emit Transfer(msg.sender, address(0), amount);
+  }
+
+  function approve(
+    address spender,
+    uint256 amount
+  ) external returns (bool) {
+    allowance[msg.sender][spender] = amount;
+    emit Approval(msg.sender, spender, amount);
+    return true;
+  }
+
+  function _transfer(
     address from,
     address to,
-    uint256 value
-  ) internal override {
+    uint256 amount
+  ) internal returns (bool) {
     // During limited phase only authorized contracts are allowed
     if (isLimited)
       if (_isContract(to))
         if (!canReceive[to]) revert ContractNotYetAllowed();
 
-    // Call the original _update function
-    super._update(from, to, value);
+    balanceOf[from] -= amount;
+    unchecked {
+      balanceOf[to] += amount;
+    }
+
+    emit Transfer(msg.sender, to, amount);
+    return true;
+  }
+
+  function transfer(
+    address to,
+    uint256 amount
+  ) external returns (bool) {
+    return _transfer(msg.sender, to, amount);
+  }
+
+  function transferFrom(
+    address from,
+    address to,
+    uint256 amount
+  ) external returns (bool) {
+    uint256 allowed = allowance[from][msg.sender];
+
+    if (allowed != type(uint256).max)
+      allowance[from][msg.sender] = allowed - amount;
+
+    return _transfer(from, to, amount);
   }
 
   /**
    * @dev Send tokens to a contract address along with call data
    * @param to destination address for the transfer
-   * @param value amount to be sent
+   * @param amount amount to be sent
    * @param data supplementary data to be provided to the receiving contract
    */
   function transferAndCall(
     address to,
-    uint value,
+    uint256 amount,
     bytes calldata data
   ) public returns (bool success) {
     if (_isContract(to)) revert OnlyContractsAllowed();
 
-    _transfer(msg.sender, to, value);
+    _transfer(msg.sender, to, amount);
 
     return
-      ITokenCallReceiver(to).onTokenTransfer(msg.sender, value, data);
+      ITokenCallReceiver(to).onTokenTransfer(
+        msg.sender,
+        amount,
+        data
+      );
+  }
+
+  function permit(
+    address account,
+    address spender,
+    uint256 value,
+    uint256 deadline,
+    uint8 v,
+    bytes32 r,
+    bytes32 s
+  ) external {
+    require(deadline >= block.timestamp, "EXPIRED");
+    unchecked {
+      bytes32 digest = keccak256(
+        abi.encodePacked(
+          "\x19\x01",
+          DOMAIN_SEPARATOR,
+          keccak256(
+            abi.encode(
+              PERMIT_TYPEHASH,
+              account,
+              spender,
+              value,
+              nonces[account]++,
+              deadline
+            )
+          )
+        )
+      );
+      address recoveredAddress = ecrecover(digest, v, r, s);
+      require(
+        recoveredAddress != address(0) && recoveredAddress == account,
+        "INVALID_SIGNATURE"
+      );
+      allowance[recoveredAddress][spender] = value;
+    }
+    emit Approval(account, spender, value);
   }
 
   //======== ADMIN ========//
@@ -145,7 +259,7 @@ contract AthenaToken is ERC20Permit, Ownable {
    * @dev This function is irreversible
    */
   function allowAll() external onlyOwner {
-    renounceOwnership();
+    owner = address(0);
     isLimited = false;
   }
 }
