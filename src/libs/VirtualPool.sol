@@ -594,28 +594,6 @@ library VirtualPool {
 
   // ======= VIEW HELPERS ======= //
 
-  function _actualizingUntilGivenDate(
-    VPool storage self,
-    uint256 _dateInSeconds
-  )
-    internal
-    view
-    returns (Slot0 memory __slot0, uint256 __liquidityIndex)
-  {
-    if (_dateInSeconds < self.slot0.lastUpdateTimestamp)
-      revert UpdateMustBeGreaterThanLast();
-
-    if (self.slot0.remainingCovers > 0) {
-      (__slot0, __liquidityIndex) = _actualizingUntil(
-        self,
-        _dateInSeconds
-      );
-    } else {
-      __slot0 = self.slot0;
-      __slot0.lastUpdateTimestamp = _dateInSeconds;
-    }
-  }
-
   /**
    * @notice Computes the premium rate & daily cost of a cover,
    * this parses the pool's ticks to compute how much premiums are left and
@@ -931,45 +909,8 @@ library VirtualPool {
       self.liquidityIndex - info.newLpInfo.beginLiquidityIndex
     );
     info.newLpInfo.beginLiquidityIndex = self.liquidityIndex;
-
-    console.log("--------------------------------------");
-    console.log("newUserCapital: ", info.newUserCapital);
-    console.log("coverRewards: ", info.coverRewards);
-    console.log("strategyRewards: ", info.strategyRewards);
     info.newLpInfo.beginClaimIndex += claims.length;
-  }
-
-  function _rewardsOf(
-    VPool storage self,
-    uint256 tokenId_,
-    uint256 userCapital_,
-    uint128[] storage poolIds_,
-    uint256 feeDiscount_
-  )
-    internal
-    view
-    returns (
-      uint256 newUserCapital,
-      uint256 netCoverRewards,
-      uint256 strategyRewards
-    )
-  {
-    UpdatedPositionInfo memory info = _getUpdatedPositionInfo(
-      self,
-      tokenId_,
-      userCapital_,
-      poolIds_
-    );
-
-    netCoverRewards =
-      info.coverRewards -
-      _feeFor(info.coverRewards, self.feeRate, feeDiscount_);
-
-    return (
-      info.newUserCapital,
-      netCoverRewards,
-      info.strategyRewards
-    );
+ 
   }
 
   /**

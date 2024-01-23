@@ -183,27 +183,6 @@ contract LiquidityManager is
     return _pools[poolId0_].overlaps[poolId1_];
   }
 
-  function poolLpInfos(
-    uint128 poolId_,
-    uint256 positionId
-  ) external view returns (VirtualPool.LpInfo memory) {
-    return _pools[poolId_].lpInfos[positionId];
-  }
-
-  function poolTicks(
-    uint128 poolId_,
-    uint32 tick
-  ) external view returns (uint256[] memory) {
-    return _pools[poolId_].ticks[tick];
-  }
-
-  function poolCoverPremiums(
-    uint128 poolId_,
-    uint256 coverId
-  ) external view returns (VirtualPool.CoverPremiums memory) {
-    return _pools[poolId_].coverPremiums[coverId];
-  }
-
   /// ======= POOLS ======= ///
 
   function createPool(
