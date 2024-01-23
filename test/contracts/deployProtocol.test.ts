@@ -125,6 +125,8 @@ export function deployProtocol() {
           this.deployedAt.EcclesiaDao,
           this.deployedAt.StrategyManager,
           this.deployedAt.ClaimManager,
+          14 * 24 * 60 * 60,
+          30,
         ]).then((contract) =>
           postDeployCheck(contract, this.deployedAt.LiquidityManager),
         );

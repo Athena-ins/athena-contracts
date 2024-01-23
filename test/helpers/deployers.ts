@@ -252,6 +252,8 @@ export async function deployAllContractsAndInitializeProtocol(
     deployedAt.EcclesiaDao,
     deployedAt.StrategyManager,
     deployedAt.ClaimManager,
+    14 * 24 * 60 * 60,
+    30,
   ]);
 
   // ======= DAO ======= //

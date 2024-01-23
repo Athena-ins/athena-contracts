@@ -31,6 +31,7 @@ error OnlyTokenOwner();
 error OnlyClaimManager();
 error PoolIsPaused();
 error PoolIdsMustBeUniqueAndAscending();
+error AmountOfPoolsIsAboveMaxLeverage();
 error IncompatiblePools(uint128 poolIdA, uint128 poolIdB);
 error WithdrawCommitDelayNotReached();
 error NotEnoughLiquidity();
@@ -56,7 +57,8 @@ contract LiquidityManager is
   IStrategyManager public strategyManager;
   address claimManager;
 
-  uint256 public withdrawDelay = 14 days;
+  uint256 public withdrawDelay; // in seconds
+  uint256 public maxLeverage;
   // Maps pool0 -> pool1 -> areCompatible for LP leverage
   mapping(uint128 => mapping(uint128 => bool))
     public arePoolCompatible;
@@ -75,7 +77,7 @@ contract LiquidityManager is
 
   /// The token ID position data
   uint128 public nextPoolId;
-  // Maps a pool ID to the virtualized pool's storage
+  /// Maps a pool ID to the virtualized pool's storage
   mapping(uint128 _id => VirtualPool.VPool) private _pools;
 
   // ======= CONSTRUCTOR ======= //
@@ -86,7 +88,9 @@ contract LiquidityManager is
     IStaking staking_,
     IEcclesiaDao ecclesiaDao_,
     IStrategyManager strategyManager_,
-    address claimManager_
+    address claimManager_,
+    uint256 withdrawDelay_,
+    uint256 maxLeverage_
   ) Ownable(msg.sender) {
     positionToken = positionToken_;
     coverToken = coverToken_;
@@ -94,6 +98,9 @@ contract LiquidityManager is
     ecclesiaDao = ecclesiaDao_;
     strategyManager = strategyManager_;
     claimManager = claimManager_;
+
+    withdrawDelay = withdrawDelay_;
+    maxLeverage = maxLeverage_;
   }
 
   /// ======= MODIFIERS ======= ///
@@ -377,6 +384,10 @@ contract LiquidityManager is
     bool isWrapped,
     uint128[] calldata poolIds
   ) external {
+    // Check that the amount of pools is below the max leverage
+    if (maxLeverage < poolIds.length)
+      revert AmountOfPoolsIsAboveMaxLeverage();
+
     // Save new position tokenId and update for next
     uint256 tokenId = nextPositionId;
     nextPositionId++;
@@ -816,5 +827,15 @@ contract LiquidityManager is
     }
 
     strategyManager.payoutFromStrategy(strategyId, amount_, claimant);
+  }
+
+  /// ======= ADMIN ======= ///
+
+  function updateConfig(
+    uint256 withdrawDelay_,
+    uint256 maxLeverage_
+  ) external onlyOwner {
+    withdrawDelay = withdrawDelay_;
+    maxLeverage = maxLeverage_;
   }
 }
