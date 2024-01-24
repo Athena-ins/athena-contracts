@@ -532,6 +532,7 @@ contract LiquidityManager is
     // Withdraw interests from strategy
     strategyManager.withdrawFromStrategy(
       strategyId,
+      0, // No capital withdrawn
       strategyRewards,
       account,
       feeDiscount
@@ -567,7 +568,7 @@ contract LiquidityManager is
 
     uint256 feeDiscount = staking.feeDiscountOf(account);
 
-    uint256 userCapitalAndRewards = _removeOverlappingCapital(
+    (uint256 capital, uint256 rewards) = _removeOverlappingCapital(
       tokenId_,
       account,
       position.supplied,
@@ -576,19 +577,21 @@ contract LiquidityManager is
     );
 
     // All pools have same strategy since they are compatible
-    if (userCapitalAndRewards != 0) {
+    if (capital != 0 || rewards != 0) {
       uint256 strategyId = _pools[position.poolIds[0]].strategyId;
       if (keepWrapped_) {
         strategyManager.withdrawWrappedFromStrategy(
           strategyId,
-          userCapitalAndRewards,
+          capital,
+          rewards,
           account,
           feeDiscount
         );
       } else {
         strategyManager.withdrawFromStrategy(
           strategyId,
-          userCapitalAndRewards,
+          capital,
+          rewards,
           account,
           feeDiscount
         );
@@ -671,7 +674,7 @@ contract LiquidityManager is
     uint256 amount_,
     uint256 feeDiscount_,
     uint128[] storage poolIds_
-  ) internal returns (uint256 userCapitalAndRewards) {
+  ) internal returns (uint256 capital, uint256 rewards) {
     uint256 nbPoolIds = poolIds_.length;
 
     for (uint128 i; i < nbPoolIds; i++) {
@@ -693,7 +696,8 @@ contract LiquidityManager is
 
       if (i == 0) {
         // The updated user capital & strategy rewards are the same at each iteration
-        userCapitalAndRewards = newUserCapital + strategyRewards;
+        capital = newUserCapital;
+        rewards = strategyRewards;
       }
 
       // Considering the verification that pool IDs are unique & ascending

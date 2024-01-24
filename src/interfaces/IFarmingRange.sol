@@ -425,7 +425,7 @@ interface IFarmingRange {
   function userInfo(
     uint256 _campaignID,
     address _user
-  ) external view returns (uint256, uint256);
+  ) external view returns (uint256, uint256, uint256);
 
   /**
    * @notice how many reward phases can be set for a campaign
@@ -443,7 +443,5 @@ interface IFarmingRange {
    * @notice Freezes expired cover farming rewards
    * @param _tokenId token id of the cover
    */
-  function freezeExpiredCoverRewards(
-    uint256 _tokenId
-  ) external;
+  function freezeExpiredCoverRewards(uint256 _tokenId) external;
 }
