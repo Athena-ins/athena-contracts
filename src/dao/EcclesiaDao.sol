@@ -22,6 +22,7 @@ import { IERC20Permit } from "@openzeppelin/contracts/token/ERC20/extensions/IER
 
 error ZeroAddress();
 error NotPoolManager();
+error NotFeeCollector();
 error BadAmount();
 error ConversionToVotesYieldsZero();
 error LockAlreadyExists();
@@ -93,6 +94,8 @@ contract EcclesiaDao is
   IERC20 public token;
   // Address of the revenue unifier
   address public liquidityManager;
+  // Address of the strategy manager
+  address public strategyManager;
 
   // Total supply of AOE that get locked
   uint256 public supply;
@@ -138,7 +141,8 @@ contract EcclesiaDao is
   constructor(
     IERC20 _token,
     IStaking _staking,
-    address _liquidityManager
+    address _liquidityManager,
+    address _strategyManager
   ) ERC20("Athenian Vote", "vAOE") Ownable(msg.sender) {
     if (
       address(_token) == address(0) ||
@@ -149,12 +153,15 @@ contract EcclesiaDao is
     token = _token;
     staking = _staking;
     liquidityManager = _liquidityManager;
+    strategyManager = _strategyManager;
   }
 
   // ======= MODIFIERS ======= //
 
-  modifier onlyLiquidityManager() {
-    if (msg.sender != liquidityManager) revert NotPoolManager();
+  modifier onlyRevenueCollector() {
+    if (
+      msg.sender != liquidityManager && msg.sender != strategyManager
+    ) revert NotFeeCollector();
     _;
   }
 
@@ -463,7 +470,7 @@ contract EcclesiaDao is
   function accrueRevenue(
     address _token,
     uint256 _amount
-  ) external nonReentrant onlyLiquidityManager {
+  ) external nonReentrant onlyRevenueCollector {
     // Rewards are distributed per vote
     uint256 amountPerVoteRay = (_amount * RAY) / totalSupply();
     if (revenueIndex[_token] == 0) revenueTokens.push(_token);
