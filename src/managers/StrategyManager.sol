@@ -36,7 +36,10 @@ contract StrategyManager is IStrategyManager, Ownable {
   // Address of the buyback & burn wallet
   address public buybackWallet;
 
-  uint256 public payoutDeductibleRate = RayMath.RAY / 10;
+  // Amount of underlying to be deducted from payout in RAY
+  uint256 public payoutDeductibleRate;
+  // Amount of performance fee to be paid to ecclesiaDao in RAY
+  uint256 public performanceFee;
 
   ILendingPool public aaveLendingPool =
     ILendingPool(0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9); // AAVE lending pool v2
@@ -48,11 +51,21 @@ contract StrategyManager is IStrategyManager, Ownable {
   constructor(
     ILiquidityManager liquidityManager_,
     IEcclesiaDao ecclesiaDao_,
-    address buybackWallet_
+    address buybackWallet_,
+    uint256 payoutDeductibleRate_,
+    uint256 performanceFee_
   ) Ownable(msg.sender) {
     liquidityManager = liquidityManager_;
     ecclesiaDao = ecclesiaDao_;
     buybackWallet = buybackWallet_;
+
+    if (
+      RayMath.halfRAY < payoutDeductibleRate_ ||
+      RayMath.halfRAY < performanceFee_
+    ) revert RateAboveMax();
+
+    payoutDeductibleRate = payoutDeductibleRate_;
+    performanceFee = performanceFee_;
   }
 
   //======== MODIFIERS ========//
@@ -140,6 +153,18 @@ contract StrategyManager is IStrategyManager, Ownable {
     return amountUnderlying_;
   }
 
+  //======== HELPERS ========//
+
+  function _accrueToDao(address token_, uint256 amount_) private {
+    aaveLendingPool.withdraw(
+      token_,
+      amount_ - 1,
+      address(ecclesiaDao)
+    );
+
+    ecclesiaDao.accrueRevenue(token_, amount_);
+  }
+
   //======== UNDERLYING I/O ========//
 
   function depositToStrategy(
@@ -161,16 +186,29 @@ contract StrategyManager is IStrategyManager, Ownable {
 
   function withdrawFromStrategy(
     uint256 strategyId_,
-    uint256 amountUnderlying_,
+    uint256 amountCapitalUnderlying_,
+    uint256 amountRewardsUnderlying_,
     address account_,
     uint256 /*feeDiscount_*/
   ) external checkId(strategyId_) onlyLiquidityManager {
-    uint256 bal = IERC20(ausdt).balanceOf(address(this));
-    console.log("bal rew: ", bal);
+    uint256 amountToWithdraw = amountCapitalUnderlying_ +
+      amountRewardsUnderlying_;
+
+    // If the strategy has performance fees then compute the DAO share
+    if (performanceFee != 0 && amountRewardsUnderlying_ != 0) {
+      uint256 daoShare = (amountRewardsUnderlying_ * performanceFee) /
+        RayMath.RAY;
+
+      if (daoShare != 0) {
+        // Deduct the daoShare from the amount to withdraw
+        amountToWithdraw -= daoShare;
+        _accrueToDao(usdt, daoShare);
+      }
+    }
 
     // @dev No need to approve aToken since they are burned in pool
     // @dev Remove 1 for rounding errors
-    aaveLendingPool.withdraw(usdt, amountUnderlying_ - 1, account_);
+    aaveLendingPool.withdraw(usdt, amountToWithdraw - 1, account_);
   }
 
   //======== WRAPPED I/O ========//
@@ -183,17 +221,31 @@ contract StrategyManager is IStrategyManager, Ownable {
 
   function withdrawWrappedFromStrategy(
     uint256 strategyId_,
-    uint256 amountUnderlying_,
+    uint256 amountCapitalUnderlying_,
+    uint256 amountRewardsUnderlying_,
     address account_,
     uint256 /*feeDiscount_*/
   ) external checkId(strategyId_) onlyLiquidityManager {
     // Compute amount of wrapped to send to account
-    uint256 amountWrapped = underlyingToWrapped(
+    uint256 amountToWithdraw = underlyingToWrapped(
       strategyId_,
-      amountUnderlying_
-    );
+      amountCapitalUnderlying_
+    ) + underlyingToWrapped(strategyId_, amountRewardsUnderlying_);
+
+    // If the strategy has performance fees then compute the DAO share
+    if (performanceFee != 0 && amountRewardsUnderlying_ != 0) {
+      uint256 daoShare = (amountRewardsUnderlying_ * performanceFee) /
+        RayMath.RAY;
+
+      if (daoShare != 0) {
+        // Deduct the daoShare from the amount to withdraw
+        amountToWithdraw -= daoShare;
+        _accrueToDao(usdt, daoShare);
+      }
+    }
+
     // @dev Remove 1 for rounding errors
-    IERC20(ausdt).safeTransfer(account_, amountWrapped - 1);
+    IERC20(ausdt).safeTransfer(account_, amountToWithdraw - 1);
   }
 
   //======== CLAIMS ========//

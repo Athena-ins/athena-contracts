@@ -26,7 +26,8 @@ interface IStrategyManager {
 
   function withdrawFromStrategy(
     uint256 strategyId_,
-    uint256 amountUnderlying_,
+    uint256 amountCapitalUnderlying_,
+    uint256 amountRewardsUnderlying_,
     address account_,
     uint256 /*feeDiscount_*/
   ) external;
@@ -35,7 +36,8 @@ interface IStrategyManager {
 
   function withdrawWrappedFromStrategy(
     uint256 strategyId_,
-    uint256 amountUnderlying_,
+    uint256 amountCapitalUnderlying_,
+    uint256 amountRewardsUnderlying_,
     address account_,
     uint256 /*feeDiscount_*/
   ) external;
