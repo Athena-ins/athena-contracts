@@ -18,10 +18,6 @@ import { IAthenaCoverToken } from "../interfaces/IAthenaCoverToken.sol";
 // https://docs.kleros.io/integrations/types-of-integrations/1.-dispute-resolution-integration-plan/smart-contract-integration
 // https://etherscan.io/address/0x988b3a538b618c7a603e1c11ab82cd16dbe28069#code
 
-// @bw need to add veto power for V0
-
-// @bw need to implement burn of ATEN with insurance deductible (franchise)
-
 // ======= ERRORS ======= //
 
 error OnlyLiquidityManager();
@@ -40,8 +36,9 @@ error ClaimAlreadyChallenged();
 error MustMatchClaimantDeposit();
 error ClaimNotInDispute();
 error InvalidRuling();
-error DelayNotElapsed();
+error PeriodNotElapsed();
 error GuardianSetToAddressZero();
+error OverrulePeriodEnded();
 
 // IClaimManager,
 contract ClaimManager is Ownable, VerifySignature, IArbitrable {
@@ -55,12 +52,14 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
     Disputed,
     AcceptedWithDispute,
     RejectedWithDispute,
-    CompensatedAfterAcceptation
+    RejectedByOverrule,
+    Compensated,
+    CompensatedAfterDispute
   }
 
   enum RulingOptions {
     RefusedToArbitrate,
-    CompensateClaimant,
+    PayClaimant,
     RejectClaim
   }
 
@@ -77,6 +76,7 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
     string[] evidence;
     string[] counterEvidence;
     string metaEvidence;
+    uint256 rulingTimestamp;
   }
 
   // @dev claimId is set to 0 to minimize gas cost but filled in view functions
@@ -88,6 +88,7 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
     uint256 amount;
     address challenger;
     uint256 arbitrationCost;
+    uint256 rulingTimestamp;
   }
 
   // ======= STORAGE ======= //
@@ -97,12 +98,14 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
   IArbitrator public arbitrator;
 
   address public metaEvidenceGuardian;
-  uint256 public challengeDelay = 14 days;
-  uint256 public nextClaimId;
+  address public overruleGuardian;
+  uint256 public challengePeriod = 10 days;
+  uint256 public overrulePeriod = 4 days;
   uint256 public collateralAmount = 0.01 ether;
 
   uint256 public immutable numberOfRulingOptions = 2;
 
+  uint256 public nextClaimId;
   // Maps a claim ID to a claim's data
   mapping(uint256 _claimId => Claim) public claims;
   // Maps a coverId to its claim IDs
@@ -249,10 +252,11 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
 
     // If the claim is not in the Initiated state it cannot be challenged
     if (userClaim.status != ClaimStatus.Initiated) return 0;
-    else if (userClaim.createdAt + challengeDelay < block.timestamp)
+    else if (userClaim.createdAt + challengePeriod < block.timestamp)
       return 0;
     else
-      return (userClaim.createdAt + challengeDelay) - block.timestamp;
+      return
+        (userClaim.createdAt + challengePeriod) - block.timestamp;
   }
 
   // /**
@@ -284,7 +288,7 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
   //     // We should check if the claim is available for compensation
   //     if (
   //       claim.status == ClaimStatus.Initiated &&
-  //       claim.createdAt + challengeDelay < block.timestamp
+  //       claim.createdAt + challengePeriod < block.timestamp
   //     ) {
   //       claimsInfo[positionCounter].status = ClaimStatus.Accepted;
   //     }
@@ -359,7 +363,7 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
   //       // We should check if the claim is available for compensation
   //       if (
   //         claim.status == ClaimStatus.Initiated &&
-  //         claim.createdAt + challengeDelay < block.timestamp
+  //         claim.createdAt + challengePeriod < block.timestamp
   //       ) {
   //         claimsInfo[positionCounter].status = ClaimStatus.Accepted;
   //       }
@@ -399,7 +403,7 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
   //       // We should check if the claim is available for compensation
   //       if (
   //         claim.status == ClaimStatus.Initiated &&
-  //         claim.createdAt + challengeDelay < block.timestamp
+  //         claim.createdAt + challengePeriod < block.timestamp
   //       ) {
   //         claimsInfo[positionCounter].status = ClaimStatus.Accepted;
   //       }
@@ -566,10 +570,10 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
   function disputeClaim(uint256 claimId_) external payable {
     Claim storage userClaim = claims[claimId_];
 
-    // Check the claim is in the appropriate status and challenge is within delay
+    // Check the claim is in the appropriate status and challenge is within period
     if (
       userClaim.status != ClaimStatus.Initiated ||
-      userClaim.createdAt + challengeDelay <= block.timestamp
+      userClaim.createdAt + challengePeriod <= block.timestamp
     ) revert ClaimNotChallengeable();
 
     // Check the claim is not already disputed
@@ -617,19 +621,14 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
     // Check the status of the claim
     if (userClaim.status != ClaimStatus.Disputed)
       revert ClaimNotInDispute();
-
     if (numberOfRulingOptions < ruling_) revert InvalidRuling();
 
     // Manage ETH for claim creation, claim collateral and dispute creation
-    if (ruling_ == uint256(RulingOptions.CompensateClaimant)) {
+    if (ruling_ == uint256(RulingOptions.PayClaimant)) {
       userClaim.status = ClaimStatus.AcceptedWithDispute;
 
-      // Send back the collateral and arbitration cost to the claimant
-      address claimant = userClaim.challenger;
-      _sendValue(
-        claimant,
-        userClaim.arbitrationCost + collateralAmount
-      );
+      // Save timestamp to initiate overrule period
+      userClaim.rulingTimestamp = block.timestamp;
     } else if (ruling_ == uint256(RulingOptions.RejectClaim)) {
       userClaim.status = ClaimStatus.RejectedWithDispute;
 
@@ -668,27 +667,36 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
 
   /**
    * @notice
-   * Allows a cover holder to execute the claim if it has remained unchallenged.
+   * Allows the claimant to withdraw the compensation after a dispute has been resolved in
+   * their favor or the challenge period has elapsed.
    * @param claimId_ The claim ID
    *
    * @dev Intentionally public to prevent claimant from indefinitely blocking withdrawals
    * from a pool by not executing the claims ruling.
    */
-  function withdrawCompensationWithoutDispute(
-    uint256 claimId_
-  ) external {
+  function withdrawCompensation(uint256 claimId_) external {
     Claim storage userClaim = claims[claimId_];
 
     // Check the claim is in the appropriate status
-    if (userClaim.status != ClaimStatus.Initiated)
+    if (userClaim.status == ClaimStatus.Initiated) {
+      // Check the claim has passed the disputable period
+      if (block.timestamp < userClaim.createdAt + challengePeriod)
+        revert PeriodNotElapsed();
+
+      // Remove claims from pool to unblock withdrawals
+      liquidityManager.removeClaimFromPool(userClaim.coverId);
+
+      userClaim.status = ClaimStatus.Compensated;
+    } else if (userClaim.status == ClaimStatus.AcceptedWithDispute) {
+      // Check the ruling has passed the overrule period
+      if (
+        block.timestamp < userClaim.rulingTimestamp + overrulePeriod
+      ) revert PeriodNotElapsed();
+
+      userClaim.status = ClaimStatus.CompensatedAfterDispute;
+    } else {
       revert WrongClaimStatus();
-
-    // Check the claim has passed the disputable delay
-    if (block.timestamp < userClaim.createdAt + challengeDelay)
-      revert DelayNotElapsed();
-
-    // Update claim status
-    userClaim.status = ClaimStatus.CompensatedAfterAcceptation;
+    }
 
     // Send back the collateral and arbitration cost to the claimant
     _sendValue(
@@ -696,35 +704,30 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
       userClaim.arbitrationCost + collateralAmount
     );
 
-    // Remove claims from pool to unblock withdrawals
-    liquidityManager.removeClaimFromPool(userClaim.coverId);
-
-    // Call Athena core to pay the compensation
-    liquidityManager.payoutClaim(userClaim.coverId, userClaim.amount);
-  }
-
-  /**
-   * @notice
-   * Allows the claimant to withdraw the compensation after a dispute has been resolved in their favor.
-   * @param claimId_ The claim ID
-   */
-  function releaseCompensationAfterDispute(
-    uint256 claimId_
-  ) external {
-    Claim storage userClaim = claims[claimId_];
-
-    // Check the status of the claim
-    if (userClaim.status != ClaimStatus.AcceptedWithDispute)
-      revert WrongClaimStatus();
-
-    // Update claim status
-    userClaim.status = ClaimStatus.CompensatedAfterAcceptation;
-
     // Call Athena core to pay the compensation
     liquidityManager.payoutClaim(userClaim.coverId, userClaim.amount);
   }
 
   // ======= ADMIN ======= //
+
+  function overrule(uint256 claimId_) external onlyOwner {
+    Claim storage userClaim = claims[claimId_];
+
+    // Check the claim is in the appropriate status
+    if (userClaim.status != ClaimStatus.AcceptedWithDispute)
+      revert WrongClaimStatus();
+    // Check the ruling has passed the overrule period
+    if (userClaim.rulingTimestamp + overrulePeriod < block.timestamp)
+      revert OverrulePeriodEnded();
+
+    userClaim.status = ClaimStatus.RejectedByOverrule;
+
+    // Send back the collateral and arbitration cost to the claimant
+    _sendValue(
+      msg.sender,
+      userClaim.arbitrationCost + collateralAmount
+    );
+  }
 
   /**
    * @notice
@@ -738,10 +741,12 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
     collateralAmount = amount_;
   }
 
-  function changeChallengeDelay(
-    uint256 duration_
+  function changePeriods(
+    uint256 challengePeriod_,
+    uint256 overrulePeriod_
   ) external onlyOwner {
-    challengeDelay = duration_;
+    challengePeriod = challengePeriod_;
+    overrulePeriod = overrulePeriod_;
   }
 
   function changeMetaEvidenceGuardian(
