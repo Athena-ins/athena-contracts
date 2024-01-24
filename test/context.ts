@@ -30,9 +30,10 @@ export function baseContext(description: string, hooks: () => void): void {
       this.signers = {
         deployer: signers[0] as Signer as Wallet,
         evidenceGuardian: signers[1] as Signer as Wallet,
-        user: signers[2] as Signer as Wallet,
-        user2: signers[3] as Signer as Wallet,
-        user3: signers[4] as Signer as Wallet,
+        buybackWallet: signers[2] as Signer as Wallet,
+        user: signers[3] as Signer as Wallet,
+        user2: signers[4] as Signer as Wallet,
+        user3: signers[5] as Signer as Wallet,
       };
 
       // Setup protocol for testing & provide interfaces to tests
@@ -65,6 +66,7 @@ export function baseContext(description: string, hooks: () => void): void {
         chainId: await entityProviderChainId(this.signers.deployer),
         deployer: this.signers.deployer.address,
         evidenceGuardian: this.signers.evidenceGuardian.address,
+        buybackWallet: this.signers.buybackWallet.address,
         user: this.signers.user.address,
         user2: this.signers.user2.address,
         user3: this.signers.user3.address,

@@ -115,6 +115,12 @@ export function evidenceGuardianWallet() {
   return new ethers.Wallet(EVIDENCE_GUARDIAN_PK);
 }
 
+export function buybackWallet() {
+  const BUY_BACK_PK = process.env.BUY_BACK_PK;
+  if (!BUY_BACK_PK) throw new Error("BUY_BACK_PK not set");
+  return new ethers.Wallet(BUY_BACK_PK);
+}
+
 export async function balanceOfAaveUsdt(
   signer: Wallet,
   account: string | Wallet,

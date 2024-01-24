@@ -6,6 +6,7 @@ import { Wallet } from "ethers";
 type ContextSigners = {
   deployer: Wallet;
   evidenceGuardian: Wallet;
+  buybackWallet: Wallet;
   user: Wallet;
   user2: Wallet;
   user3: Wallet;

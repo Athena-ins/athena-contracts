@@ -28,6 +28,7 @@ const {
   GOERLI_RPC_URL,
   //
   EVIDENCE_GUARDIAN_PK,
+  BUY_BACK_PK,
   REPORT_GAS,
   ETHERSCAN_API_KEY,
   COINMARKETCAP_API_KEY,
@@ -38,6 +39,7 @@ if (!MAINNET_FORKING_BLOCK || !GOERLI_FORKING_BLOCK)
 if (!MAINNET_WALLET_PK || !GOERLI_WALLET_PK) throw Error("Missing wallet PK");
 if (!MAINNET_RPC_URL || !GOERLI_RPC_URL) throw Error("Missing RPC URL");
 if (!EVIDENCE_GUARDIAN_PK) throw Error("Missing evidence guardian PK");
+if (!BUY_BACK_PK) throw Error("Missing buy back wallet PK");
 
 function makeForkConfig(): HardhatNetworkUserConfig {
   const forkTarget = HARDHAT_FORK_TARGET?.toLowerCase();
@@ -127,11 +129,16 @@ const config: HardhatUserConfig = {
     hardhat: makeForkConfig(),
     mainnet: {
       url: MAINNET_RPC_URL,
-      accounts: [MAINNET_WALLET_PK, EVIDENCE_GUARDIAN_PK],
+      accounts: [MAINNET_WALLET_PK, EVIDENCE_GUARDIAN_PK, BUY_BACK_PK],
     },
     goerli: {
       url: GOERLI_RPC_URL,
-      accounts: [GOERLI_WALLET_PK, EVIDENCE_GUARDIAN_PK, id(GOERLI_WALLET_PK)],
+      accounts: [
+        GOERLI_WALLET_PK,
+        EVIDENCE_GUARDIAN_PK,
+        BUY_BACK_PK,
+        id(GOERLI_WALLET_PK),
+      ],
     },
   },
 
@@ -141,6 +148,7 @@ const config: HardhatUserConfig = {
     enabled: REPORT_GAS === "true",
     currency: "USD",
     token: "ETH",
+    // @dev Switch between fixed and dynamic gas price
     gasPrice: 20, // in gwei
     // gasPriceApi:
     //   "https://api.etherscan.io/api?module=proxy&action=eth_gasPrice",
