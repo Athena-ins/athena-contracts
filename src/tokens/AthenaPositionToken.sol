@@ -6,6 +6,8 @@ import { ERC721 } from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import { ERC721Enumerable } from "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
+// @bw need to move view fns here to lighten up the LM contract
+
 // Interfaces
 // import { IAthenaPositionToken } from "../interfaces/IAthenaPositionToken.sol";
 import { ILiquidityManager } from "../interfaces/ILiquidityManager.sol";
@@ -32,8 +34,6 @@ contract AthenaPositionToken is ERC721Enumerable, Ownable {
   function _baseURI() internal view override returns (string memory) {
     return baseDataURI;
   }
-
-  // @bw need to override transfer from to force TP if not same fee level
 
   /// ======= MODIFIERS ======= ///
 

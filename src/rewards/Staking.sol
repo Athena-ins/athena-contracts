@@ -324,6 +324,7 @@ contract Staking is IStaking, ERC20, Ownable {
   ) internal {
     uint256 tokenBalance = _sharesToTokens(_shares, _currentBalance);
 
+    // @bw change fee discount wording to bonus rate
     uint256 feeDiscount = feeDiscountOf[msg.sender];
     uint256 newFeeDiscount = amountToFeeDiscount(tokenBalance);
 
