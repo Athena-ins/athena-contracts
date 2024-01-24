@@ -14,6 +14,7 @@ import { RayMath } from "../libs/RayMath.sol";
 import { IStrategyManager } from "../interfaces/IStrategyManager.sol";
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import { ILiquidityManager } from "../interfaces/ILiquidityManager.sol";
+import { IEcclesiaDao } from "../interfaces/IEcclesiaDao.sol";
 import { ILendingPool } from "../interfaces/ILendingPool.sol";
 
 import { console } from "hardhat/console.sol";
@@ -23,6 +24,7 @@ import { console } from "hardhat/console.sol";
 // Not a valid strategy
 error NotAValidStrategy();
 error NotLiquidityManager();
+error RateAboveMax();
 
 contract StrategyManager is IStrategyManager, Ownable {
   using SafeERC20 for IERC20;
@@ -30,6 +32,11 @@ contract StrategyManager is IStrategyManager, Ownable {
 
   //======== STORAGE ========//
   ILiquidityManager public liquidityManager;
+  IEcclesiaDao public ecclesiaDao;
+  // Address of the buyback & burn wallet
+  address public buybackWallet;
+
+  uint256 public payoutDeductibleRate = RayMath.RAY / 10;
 
   ILendingPool public aaveLendingPool =
     ILendingPool(0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9); // AAVE lending pool v2
@@ -39,9 +46,13 @@ contract StrategyManager is IStrategyManager, Ownable {
   //======== CONSTRCUTOR ========//
 
   constructor(
-    ILiquidityManager liquidityManager_
+    ILiquidityManager liquidityManager_,
+    IEcclesiaDao ecclesiaDao_,
+    address buybackWallet_
   ) Ownable(msg.sender) {
     liquidityManager = liquidityManager_;
+    ecclesiaDao = ecclesiaDao_;
+    buybackWallet = buybackWallet_;
   }
 
   //======== MODIFIERS ========//
@@ -192,12 +203,33 @@ contract StrategyManager is IStrategyManager, Ownable {
     uint256 amountUnderlying_,
     address account_
   ) external checkId(strategyId_) onlyLiquidityManager {
+    uint256 deductible = (amountUnderlying_ * payoutDeductibleRate) /
+      RayMath.RAY;
+
+    // If there is a deductible, withdraw it from the pool
+    if (0 < deductible)
+      aaveLendingPool.withdraw(usdt, deductible, account_);
+
     // @dev No need to approve aToken since they are burned in pool
     // @dev Remove 1 for rounding errors
-    aaveLendingPool.withdraw(usdt, amountUnderlying_ - 1, account_);
+    uint256 amountToPayout = (amountUnderlying_ - deductible) - 1;
+    aaveLendingPool.withdraw(usdt, amountToPayout, account_);
   }
 
   //======== ADMIN ========//
+
+  function updateBuybackWallet(
+    address buybackWallet_
+  ) external onlyOwner {
+    buybackWallet = buybackWallet_;
+  }
+
+  function updatePayoutDeductibleRate(
+    uint256 rate_
+  ) external onlyOwner {
+    if (RayMath.halfRAY < rate_) revert RateAboveMax();
+    payoutDeductibleRate = rate_;
+  }
 
   function updateLiquidityManager(
     ILiquidityManager liquidityManager_
