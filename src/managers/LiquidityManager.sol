@@ -14,6 +14,7 @@ import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.s
 import { ILiquidityManager } from "../interfaces/ILiquidityManager.sol";
 import { IStrategyManager } from "../interfaces/IStrategyManager.sol";
 import { IStaking } from "../interfaces/IStaking.sol";
+import { IFarmingRange } from "../interfaces/IFarmingRange.sol";
 import { IAthenaPositionToken } from "../interfaces/IAthenaPositionToken.sol";
 import { IAthenaCoverToken } from "../interfaces/IAthenaCoverToken.sol";
 import { IEcclesiaDao } from "../interfaces/IEcclesiaDao.sol";
@@ -24,8 +25,8 @@ import { console } from "hardhat/console.sol";
 // Todo
 // @bw need dynamic risk pool fee system
 // @bw add fn to clear related pool if overlap = 0 to reduce computation cost
-// @bw limit max nb of leveraged pools per position
 // @bw add fns to debug if certain loops become too gas intensive to run in a single block
+// @bw need strategy fees option
 
 // ======= ERRORS ======= //
 
@@ -56,6 +57,7 @@ contract LiquidityManager is
   IAthenaPositionToken public positionToken;
   IAthenaCoverToken public coverToken;
   IStaking public staking;
+  IFarmingRange public farming;
   IEcclesiaDao public ecclesiaDao;
   IStrategyManager public strategyManager;
   address claimManager;
@@ -89,6 +91,7 @@ contract LiquidityManager is
     IAthenaPositionToken positionToken_,
     IAthenaCoverToken coverToken_,
     IStaking staking_,
+    IFarmingRange farming_,
     IEcclesiaDao ecclesiaDao_,
     IStrategyManager strategyManager_,
     address claimManager_,
@@ -98,6 +101,7 @@ contract LiquidityManager is
     positionToken = positionToken_;
     coverToken = coverToken_;
     staking = staking_;
+    farming = farming_;
     ecclesiaDao = ecclesiaDao_;
     strategyManager = strategyManager_;
     claimManager = claimManager_;
@@ -255,8 +259,8 @@ contract LiquidityManager is
 
   function _expireCover(uint256 tokenId) internal {
     _covers[tokenId].end = block.timestamp;
-    // @bw check if spent premium is correct after manual expiration
-    // @bw should auto unfarm if it is currently farming rewards
+    // This will freeze the farming rewards of the cover
+    farming.freezeExpiredCoverRewards(tokenId);
   }
 
   /// ======= BUY COVER ======= ///
@@ -281,7 +285,7 @@ contract LiquidityManager is
     // Transfer premiums from user
     IERC20(pool.paymentAsset).safeTransferFrom(
       msg.sender,
-      address(this), // @bw Check handling of funds
+      address(this),
       premiums_
     );
 
@@ -364,7 +368,7 @@ contract LiquidityManager is
       // Transfer premiums from user
       IERC20(pool.paymentAsset).safeTransferFrom(
         msg.sender,
-        address(this), // @bw Check handling of funds
+        address(this),
         premiumsToAdd_
       );
       premiums += premiumsToAdd_;

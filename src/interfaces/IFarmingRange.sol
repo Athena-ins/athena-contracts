@@ -24,6 +24,7 @@ interface IFarmingRange {
   struct UserInfo {
     uint256 amount;
     uint256 rewardDebt;
+    uint256 accRewardPerShareOnExpiry;
   }
 
   enum AssetType {
@@ -437,4 +438,12 @@ interface IFarmingRange {
    * @return address of reward manager
    */
   function rewardManager() external view returns (address);
+
+  /**
+   * @notice Freezes expired cover farming rewards
+   * @param _tokenId token id of the cover
+   */
+  function freezeExpiredCoverRewards(
+    uint256 _tokenId
+  ) external;
 }

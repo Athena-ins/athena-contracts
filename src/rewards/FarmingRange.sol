@@ -58,6 +58,8 @@ error NotDepositor();
 error BadCoverAmountToPremiumRatio();
 // Cover has not expired yet
 error CoverStillActive();
+// Only liquidity manager can call this function
+error OnlyLiquidityManager();
 
 /**
  * @title FarmingRange
@@ -80,6 +82,8 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
 
   mapping(uint256 _lpTokenId => uint256 _nbCampaigns)
     public nbLpTokenCampaigns;
+  mapping(uint256 _coverId => uint256 _campaignId)
+    public coverIdToCampaignId;
   mapping(uint256 _campaignId => mapping(uint256 _tokenId => address _account))
     public campaignTokenDeposits;
 
@@ -105,6 +109,14 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
     rewardManager = _rewardManager;
     positionToken = _positionToken;
     coverToken = _coverToken;
+  }
+
+  // ======= MODIFIERS ======= //
+
+  modifier onlyLiquidityManager() {
+    if (msg.sender != address(liquidityManager))
+      revert OnlyLiquidityManager();
+    _;
   }
 
   // ======= DEPOSITS ======= //
@@ -176,8 +188,6 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
     uint256 nbPositionPools = poolIds.length;
     uint256 nbCampaigns = _campaignIDs.length;
 
-    // @bw maybe a way to reduce complexity by looping pools first and
-    // ordering campaign IDs in the same order as pools
     for (uint256 i; i < nbCampaigns; i++) {
       uint256 campaignID = _campaignIDs[i];
       uint256 campaignPoolId = campaignInfo[campaignID].poolId;
@@ -214,7 +224,6 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
 
     coverToken.transferFrom(msg.sender, address(this), _tokenId);
 
-    // @bw need to get updated premiums left
     ILiquidityManager.CoverRead memory cover = liquidityManager
       .covers(_tokenId);
 
@@ -236,7 +245,7 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
     // Outside of these ranges farming is rejected
     //
     uint256 coverAmount = cover.coverAmount;
-    uint256 premiums = cover.premiums;
+    uint256 premiums = cover.premiumsLeft;
 
     uint256 ratioPenalty = 1;
     if (coverAmount * 2 < premiums || premiums * 500 < coverAmount) {
@@ -247,6 +256,7 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
     }
 
     campaignTokenDeposits[_campaignID][_tokenId] = msg.sender;
+    coverIdToCampaignId[_tokenId] = _campaignID;
 
     uint256 amount = (coverAmount * premiums) / ratioPenalty;
     _deposit(_campaignID, amount, true, _tokenId);
@@ -300,6 +310,12 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
     if (user.amount < _amount) {
       revert BadWithdrawAmount();
     }
+
+    // If the cover expired before withdrawal then use the accRewardPerShare at expiry
+    uint256 accRewardPerShare = _isNft &&
+      user.accRewardPerShareOnExpiry != 0
+      ? user.accRewardPerShareOnExpiry
+      : campaign.accRewardPerShare;
 
     _updateCampaign(_campaignID);
     uint256 _pending = (user.amount * campaign.accRewardPerShare) /
@@ -371,6 +387,7 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
     if (campaignTokenDeposits[_campaignID][_tokenId] != msg.sender)
       revert NotDepositor();
     campaignTokenDeposits[_campaignID][_tokenId] = address(0);
+    delete coverIdToCampaignId[_tokenId];
 
     uint256 amount = userInfoNft[_campaignID][_tokenId].amount;
     _withdraw(_campaignID, amount, true, _tokenId);
@@ -449,6 +466,7 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
 
         if (campaign.assetType == AssetType.COVER_ERC721) {
           coverToken.transferFrom(address(this), msg.sender, tokenId);
+          delete coverIdToCampaignId[tokenId];
         } else if (campaign.assetType == AssetType.LP_ERC721) {
           nbLpTokenCampaigns[tokenId]--;
 
@@ -466,37 +484,47 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
     }
   }
 
+  // ======= EXPIRED COVER ======= //
+
+  function freezeExpiredCoverRewards(
+    uint256 _tokenId
+  ) external onlyLiquidityManager {
+    uint256 campaignID = coverIdToCampaignId[_tokenId];
+    _updateCampaign(campaignID);
+
+    CampaignInfo storage campaign = campaignInfo[campaignID];
+    userInfoNft[campaignID][_tokenId]
+      .accRewardPerShareOnExpiry = campaign.accRewardPerShare;
+  }
+
   function forceExpiredCoverWithdrawal(
-    uint256 _campaignID,
     uint256 _tokenId
   ) public nonReentrant {
     // Avoids terminated covers to unfairly farm rewards
-    if (campaignInfo[_campaignID].assetType != AssetType.COVER_ERC721)
+    uint256 campaignID = coverIdToCampaignId[_tokenId];
+    if (campaignInfo[campaignID].assetType != AssetType.COVER_ERC721)
       revert OnlyCoverUserCampaigns();
 
     if (liquidityManager.isCoverActive(_tokenId))
       revert CoverStillActive();
 
-    uint256 amount = userInfoNft[_campaignID][_tokenId].amount;
-    _withdraw(_campaignID, amount, true, _tokenId);
+    uint256 amount = userInfoNft[campaignID][_tokenId].amount;
+    _withdraw(campaignID, amount, true, _tokenId);
 
-    address owner = campaignTokenDeposits[_campaignID][_tokenId];
+    address owner = campaignTokenDeposits[campaignID][_tokenId];
     coverToken.transferFrom(address(this), owner, _tokenId);
 
-    campaignTokenDeposits[_campaignID][_tokenId] = address(0);
+    campaignTokenDeposits[campaignID][_tokenId] = address(0);
+    delete coverIdToCampaignId[_tokenId];
   }
 
   function forceExpiredCoverWithdrawalMultiple(
-    uint256[] calldata _campaignIDs,
-    uint256[][] calldata _tokenIds
+    uint256[] calldata _tokenIds
   ) external nonReentrant {
-    for (uint256 i; i != _campaignIDs.length; i++) {
-      uint256 campaignID = _campaignIDs[i];
-
-      for (uint256 j; j != _tokenIds[i].length; j++) {
-        uint256 tokenId = _tokenIds[i][j];
-        forceExpiredCoverWithdrawal(campaignID, tokenId);
-      }
+    uint256 nbTokens = _tokenIds.length;
+    for (uint256 i; i < nbTokens; i++) {
+      uint256 tokenId = _tokenIds[i];
+      forceExpiredCoverWithdrawal(tokenId);
     }
   }
 
@@ -1101,7 +1129,6 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
       }
 
       if (_amount != 0) {
-        // @bw why transfer to rewardManager ?
         campaign.rewardToken.safeTransfer(rewardManager, _amount);
       }
 
