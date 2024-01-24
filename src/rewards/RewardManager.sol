@@ -4,6 +4,7 @@ pragma solidity 0.8.20;
 // Contracts
 import { FarmingRange } from "./FarmingRange.sol";
 import { Staking } from "./Staking.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
 // Libraries
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -32,7 +33,7 @@ error WrongCampaignId();
  * the FarmingRange, only the RewardManager is capable of sending funds to be farmed and only the RewardManager will get
  * the funds back when updating of removing campaigns.
  */
-contract RewardManager is IRewardManager {
+contract RewardManager is IRewardManager, Ownable {
   using SafeERC20 for IERC20;
 
   IFarmingRange public immutable farming;
@@ -53,7 +54,7 @@ contract RewardManager is IRewardManager {
     IERC20 _stakedToken,
     uint256 _startFarmingCampaign,
     Staking.FeeLevel[] memory feeLevels
-  ) {
+  ) Ownable(msg.sender) {
     if (_startFarmingCampaign <= block.number) {
       revert StartFarmingInPast();
     }
@@ -97,5 +98,17 @@ contract RewardManager is IRewardManager {
       address(farming),
       type(uint256).max
     );
+  }
+
+  function withdraw(
+    address token_,
+    uint256 amount_
+  ) external onlyOwner {
+    if (token_ == address(0)) {
+      // @dev It is acceptable to use transfer here since the owner trusted
+      payable(msg.sender).transfer(amount_);
+    } else {
+      IERC20(token_).safeTransfer(msg.sender, amount_);
+    }
   }
 }

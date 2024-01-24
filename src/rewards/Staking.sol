@@ -363,7 +363,8 @@ contract Staking is IStaking, ERC20, Ownable {
     if (stakedAten_ == 0) return feeLevels[0].feeDiscount;
 
     // Inversed loop starts with the end to find adequate level
-    for (uint256 i = feeLevels.length - 1; 0 <= i; i--) {
+    uint256 i = feeLevels.length - 1;
+    for (i; 0 <= i; i--) {
       // Rate level with atenAmount of 0 will always be true
       if (feeLevels[i].atenAmount <= stakedAten_)
         return feeLevels[i].feeDiscount;
@@ -382,8 +383,11 @@ contract Staking is IStaking, ERC20, Ownable {
     FeeLevel[] calldata levels_
   ) public onlyOwner {
     // First clean the storage
-    // @bw does not clear storage in classic manner, need to check
-    delete feeLevels;
+    uint256 nbLevels = feeLevels.length;
+    for (uint256 i = 0; i < nbLevels; i++) {
+      // This should reset all FeeLevel structs to default values
+      feeLevels.pop();
+    }
 
     // Set all cover supply fee levels
     uint256 previousAtenAmount = 0;

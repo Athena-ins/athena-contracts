@@ -13,6 +13,7 @@ import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.s
 // Libraries
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 // Interfaces
+import { IEcclesiaDao } from "../interfaces/IEcclesiaDao.sol";
 import { IStaking } from "../interfaces/IStaking.sol";
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import { IERC20Permit } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
@@ -41,7 +42,12 @@ error UnnecessaryEarlyWithdraw();
  * @notice Ecclesia is Athena's DAO allows participation in the Athena governance
  * Participants accrue protocol revenue rewards as well as AOE staking rewards if their lock meets the minimum duration
  */
-contract EcclesiaDao is ERC20, ReentrancyGuard, Ownable {
+contract EcclesiaDao is
+  IEcclesiaDao,
+  ERC20,
+  ReentrancyGuard,
+  Ownable
+{
   using SafeERC20 for IERC20;
 
   // ======= EVENTS ======= //
@@ -79,6 +85,8 @@ contract EcclesiaDao is ERC20, ReentrancyGuard, Ownable {
   // Switch to allow early withdrawal in case of migration
   bool public breaker;
 
+  // Address of treasury
+  address public treasuryWallet;
   // Staking contract
   IStaking public staking;
   // Token to be locked (AOE)
@@ -124,9 +132,6 @@ contract EcclesiaDao is ERC20, ReentrancyGuard, Ownable {
   uint256 public burnBps;
   // Portion of early withdrawal fees to be sent to treasury
   uint256 public treasuryBps;
-
-  // Address of treasury
-  address public treasuryAddr;
 
   // ======= CONSTRUCTOR ======= //
 
@@ -421,7 +426,7 @@ contract EcclesiaDao is ERC20, ReentrancyGuard, Ownable {
     // Treasury fee
     uint256 _amountTreasury = (_penalty - _amountRedistribute) -
       _amountBurn;
-    token.safeTransfer(treasuryAddr, _amountTreasury);
+    token.safeTransfer(treasuryWallet, _amountTreasury);
 
     // transfer remaining back to owner
     token.safeTransfer(msg.sender, _amount - _penalty);
@@ -540,9 +545,9 @@ contract EcclesiaDao is ERC20, ReentrancyGuard, Ownable {
     redistributeBps = _newRedistributeBps;
     burnBps = _newBurnBps;
     treasuryBps = _newTreasuryBps;
-    treasuryAddr = _newTreasuryAddr;
+    treasuryWallet = _newTreasuryAddr;
 
-    if (treasuryBps != 0 && treasuryAddr == address(0))
+    if (treasuryBps != 0 && treasuryWallet == address(0))
       revert InvalidTreasuryAddr();
 
     emit SetEarlyWithdrawConfig(
@@ -550,7 +555,7 @@ contract EcclesiaDao is ERC20, ReentrancyGuard, Ownable {
       redistributeBps,
       burnBps,
       treasuryBps,
-      treasuryAddr
+      treasuryWallet
     );
   }
 
