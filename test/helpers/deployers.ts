@@ -10,6 +10,7 @@ import {
   usdtTokenAddress,
   wethTokenAddress,
   evidenceGuardianWallet,
+  buybackWallet,
 } from "./protocol";
 // typechain
 import {
@@ -137,6 +138,7 @@ export async function deployAthenaToken(
 export type ProtocolConfig = {
   arbitrationCollateral: BigNumber;
   evidenceGuardian: Wallet;
+  buybackWallet: Wallet;
   poolMarket: [BigNumber, BigNumber, BigNumber, BigNumber];
   feeDiscounts: { atenAmount: BigNumber; feeDiscount: BigNumber }[];
 };
@@ -144,6 +146,7 @@ export type ProtocolConfig = {
 export const defaultProtocolConfig: ProtocolConfig = {
   arbitrationCollateral: utils.parseEther("0.05"), // in ETH
   evidenceGuardian: evidenceGuardianWallet(),
+  buybackWallet: buybackWallet(),
   poolMarket: [
     toRay(75), // uOptimal_
     toRay(1), // r0_
@@ -230,6 +233,10 @@ export async function deployAllContractsAndInitializeProtocol(
   ]);
   const StrategyManager = await deployStrategyManager(deployer, [
     deployedAt.LiquidityManager,
+    deployedAt.EcclesiaDao,
+    config.buybackWallet.address,
+    toRay(0.1), // payoutDeductibleRate
+    toRay(0.5), // performanceFee
   ]);
 
   const campaignStartBlock = (await getCurrentBlockNumber()) + 4;
@@ -249,10 +256,11 @@ export async function deployAllContractsAndInitializeProtocol(
     deployedAt.AthenaPositionToken,
     deployedAt.AthenaCoverToken,
     deployedAt.Staking,
+    deployedAt.FarmingRange,
     deployedAt.EcclesiaDao,
     deployedAt.StrategyManager,
     deployedAt.ClaimManager,
-    14 * 24 * 60 * 60,
+    14 * 24 * 60 * 60, // @bw need to move all this args to config
     30,
   ]);
 
@@ -261,6 +269,7 @@ export async function deployAllContractsAndInitializeProtocol(
     deployedAt.AthenaToken,
     deployedAt.Staking,
     deployedAt.LiquidityManager,
+    deployedAt.StrategyManager,
   ]);
 
   // ======= Claims ======= //

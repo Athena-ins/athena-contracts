@@ -437,7 +437,7 @@ async function initiateClaim(
   );
 }
 
-async function withdrawWithoutDispute(
+async function withdrawCompensation(
   contract: ClaimManager,
   user: Wallet,
   coverId: number,
@@ -446,7 +446,7 @@ async function withdrawWithoutDispute(
   const latestClaimId = claimIds[claimIds.length - 1];
 
   return postTxHandler(
-    contract.connect(user).withdrawCompensationWithoutDispute(latestClaimId),
+    contract.connect(user).withdrawCompensation(latestClaimId),
   );
 }
 
@@ -497,7 +497,7 @@ export type TestHelper = TokenHelpers & {
   increasePosition: OmitFirstArg<typeof increasePosition>;
   updateCover: OmitFirstArg<typeof updateCover>;
   initiateClaim: OmitFirstArg<typeof initiateClaim>;
-  withdrawWithoutDispute: OmitFirstArg<typeof withdrawWithoutDispute>;
+  withdrawCompensation: OmitFirstArg<typeof withdrawCompensation>;
 };
 
 export async function makeTestHelpers(
@@ -533,8 +533,8 @@ export async function makeTestHelpers(
     increasePosition: (...args) => increasePosition(LiquidityManager, ...args),
     updateCover: (...args) => updateCover(LiquidityManager, ...args),
     initiateClaim: (...args) => initiateClaim(ClaimManager, ...args),
-    withdrawWithoutDispute: (...args) =>
-      withdrawWithoutDispute(ClaimManager, ...args),
+    withdrawCompensation: (...args) =>
+      withdrawCompensation(ClaimManager, ...args),
     // tokens
     ...tokenHelpers,
   };

@@ -14,6 +14,7 @@ import {
   deployAllContractsAndInitializeProtocol,
 } from "../helpers/deployers";
 import { genContractAddress, getCurrentBlockNumber } from "../helpers/hardhat";
+import { toRay } from "../helpers/protocol";
 // Types
 import { BaseContract } from "ethers";
 
@@ -98,6 +99,10 @@ export function deployProtocol() {
       it("deploys StrategyManager", async function () {
         await deployStrategyManager(this.signers.deployer, [
           this.deployedAt.LiquidityManager,
+          this.deployedAt.EcclesiaDao,
+          this.signers.buybackWallet.address,
+          toRay(0.1), // payoutDeductibleRate
+          toRay(0.5), // performanceFee
         ]).then((contract) =>
           postDeployCheck(contract, this.deployedAt.StrategyManager),
         );
@@ -122,10 +127,11 @@ export function deployProtocol() {
           this.deployedAt.AthenaPositionToken,
           this.deployedAt.AthenaCoverToken,
           this.deployedAt.Staking,
+          this.deployedAt.FarmingRange,
           this.deployedAt.EcclesiaDao,
           this.deployedAt.StrategyManager,
           this.deployedAt.ClaimManager,
-          14 * 24 * 60 * 60,
+          14 * 24 * 60 * 60, // @bw need to take all args from config
           30,
         ]).then((contract) =>
           postDeployCheck(contract, this.deployedAt.LiquidityManager),
@@ -139,6 +145,7 @@ export function deployProtocol() {
           this.deployedAt.AthenaToken,
           this.deployedAt.Staking,
           this.deployedAt.LiquidityManager,
+          this.deployedAt.StrategyManager,
         ]).then((contract) =>
           postDeployCheck(contract, this.deployedAt.EcclesiaDao),
         );

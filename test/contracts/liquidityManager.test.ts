@@ -161,7 +161,7 @@ export function liquidityManager() {
 
       for (let i = 0; i < this.args.nbPools; i++) {
         expect(
-          await this.helpers.withdrawWithoutDispute(this.signers.deployer, i),
+          await this.helpers.withdrawCompensation(this.signers.deployer, i),
         ).to.not.throw;
       }
     });
