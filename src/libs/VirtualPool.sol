@@ -85,6 +85,13 @@ library VirtualPool {
     uint256 currentEmissionRate;
   }
 
+  struct Compensation {
+    uint128 fromPoolId;
+    uint256 ratio;
+    uint256 rewardIndexBeforeClaim;
+    mapping(uint128 _poolId => uint256 _amount) liquidityIndexBeforeClaim;
+  }
+
   struct UpdatedPositionInfo {
     uint256 newUserCapital;
     uint256 coverRewards;
@@ -138,6 +145,9 @@ library VirtualPool {
     // Function pointers to access child contract data
     function(uint256) view returns (uint256) coverSize;
     function(uint256) expireCover;
+    function(uint256)
+      view
+      returns (Compensation storage) getCompensation;
   }
 
   // ======= VIRTUAL CONSTRUCTOR ======= //
@@ -158,6 +168,9 @@ library VirtualPool {
     // Function pointer to child contract cover data
     function(uint256) view returns (uint256) coverSize;
     function(uint256) expireCover;
+    function(uint256)
+      view
+      returns (Compensation storage) getCompensation;
   }
 
   function _vPoolConstructor(
@@ -194,6 +207,7 @@ library VirtualPool {
 
     self.coverSize = params.coverSize;
     self.expireCover = params.expireCover;
+    self.getCompensation = params.getCompensation;
   }
 
   // ======= EVENTS ======= //

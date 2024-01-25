@@ -79,6 +79,11 @@ contract LiquidityManager is
   /// @dev left public to read positions without its poolIds array
   mapping(uint256 _id => Position) public _positions;
 
+  /// The ID of the next claim to be
+  uint256 public nextCompensationId;
+  mapping(uint256 _id => VirtualPool.Compensation)
+    public _compensations;
+
   /// The token ID position data
   uint128 public nextPoolId;
   /// Maps a pool ID to the virtualized pool's storage
@@ -166,6 +171,12 @@ contract LiquidityManager is
     return _covers[tokenId].end == 0;
   }
 
+  function _getCompensation(
+    uint256 compensationId_
+  ) internal view returns (VirtualPool.Compensation storage) {
+    return _compensations[compensationId_];
+  }
+
   function poolInfo(
     uint128 poolId_
   ) external view returns (VirtualPool.VPoolRead memory) {
@@ -230,7 +241,8 @@ contract LiquidityManager is
         rSlope1: rSlope1_, //Ray
         rSlope2: rSlope2_, //Ray
         coverSize: coverSize,
-        expireCover: _expireCover
+        expireCover: _expireCover,
+        getCompensation: _getCompensation
       });
 
     // Get storage pointer to pool
