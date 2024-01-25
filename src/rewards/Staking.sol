@@ -109,13 +109,13 @@ contract Staking is IStaking, ERC20, Ownable {
 
   /// @inheritdoc IStaking
   function initializeFarming(
-    FeeLevel[] calldata feeLevels_
+    BonusLevel[] calldata bonusLevels_
   ) external onlyOwner {
     if (farmingInitialized == true) {
       revert FarmingCampaignAlreadyInitialized();
     }
 
-    setFeeLevelsWithAten(feeLevels_);
+    setBonusLevelsWithAten(bonusLevels_);
 
     _approve(address(this), address(farming), 1 wei);
     _mint(address(this), 1 wei);
@@ -158,7 +158,7 @@ contract Staking is IStaking, ERC20, Ownable {
       depositAmount_
     );
 
-    _updateAccountFeeDiscount(
+    _updateAccountYieldBonus(
       userInfo[msg.sender].shares,
       _currentBalance
     );
@@ -220,7 +220,7 @@ contract Staking is IStaking, ERC20, Ownable {
     totalShares -= _sharesAmount;
     stakedToken.safeTransfer(_to, _tokensToWithdraw);
 
-    _updateAccountFeeDiscount(
+    _updateAccountYieldBonus(
       userInfo[msg.sender].shares,
       _currentBalance
     );
@@ -265,7 +265,7 @@ contract Staking is IStaking, ERC20, Ownable {
     userInfo[msg.sender].shares = 0;
     stakedToken.safeTransfer(_to, _tokensToWithdraw);
 
-    _updateAccountFeeDiscount(0, _currentBalance);
+    _updateAccountYieldBonus(0, _currentBalance);
 
     emit EmergencyWithdraw(
       msg.sender,
@@ -336,34 +336,32 @@ contract Staking is IStaking, ERC20, Ownable {
       : _shares / SHARES_FACTOR;
   }
 
-  //======== FEE DISCOUNT ========//
+  //======== YIELD BONUS ========//
 
   error MissingBaseRate();
   error MustSortInAscendingOrder();
   error GreaterThan100Percent();
 
-  // Performance fee discount levels
-  FeeLevel[] public feeLevels;
+  // Performance yield bonus levels
+  BonusLevel[] public bonusLevels;
 
-  mapping(address account => uint256 feeDiscount)
-    public feeDiscountOf;
+  mapping(address account => uint256 yieldBonus) public yieldBonusOf;
 
-  function _updateAccountFeeDiscount(
+  function _updateAccountYieldBonus(
     uint256 _shares,
     uint256 _currentBalance
   ) internal {
     uint256 tokenBalance = _sharesToTokens(_shares, _currentBalance);
     uint256 daoStakingBalance = stakedViaDao[msg.sender];
-    uint256 newFeeDiscount = amountToFeeDiscount(
+    uint256 newYieldBonus = amountToYieldBonus(
       tokenBalance + daoStakingBalance
     );
 
-    // @bw change fee discount wording to bonus rate
-    uint256 feeDiscount = feeDiscountOf[msg.sender];
+    uint256 yieldBonus = yieldBonusOf[msg.sender];
 
-    if (feeDiscount != newFeeDiscount) {
-      feeDiscountOf[msg.sender] = newFeeDiscount;
-      liquidityManager.feeDiscountUpdate(msg.sender, feeDiscount);
+    if (yieldBonus != newYieldBonus) {
+      yieldBonusOf[msg.sender] = newYieldBonus;
+      liquidityManager.yieldBonusUpdate(msg.sender, yieldBonus);
     }
   }
 
@@ -371,40 +369,40 @@ contract Staking is IStaking, ERC20, Ownable {
    * Gets all the cover supply fee levels according to the amount of staked ATEN.
    * @return levels all the fee levels
    **/
-  function getSupplyFeeLevels()
+  function getSupplyBonusLevels()
     public
     view
-    returns (FeeLevel[] memory levels)
+    returns (BonusLevel[] memory levels)
   {
-    uint256 nbLevels = feeLevels.length;
-    levels = new FeeLevel[](nbLevels);
+    uint256 nbLevels = bonusLevels.length;
+    levels = new BonusLevel[](nbLevels);
 
     for (uint256 i = 0; i < nbLevels; i++) {
-      levels[i] = feeLevels[i];
+      levels[i] = bonusLevels[i];
     }
   }
 
   /** @notice
-   * Retrieves the fee discount according to amount of staked ATEN.
+   * Retrieves the yield bonus according to amount of staked ATEN.
    * @dev Returns displays warning but levels require an amountAten of 0
    * @param stakedAten_ amount of ATEN the user stakes in GP
    * @return _ amount of fees applied to cover supply interests
    **/
-  function amountToFeeDiscount(
+  function amountToYieldBonus(
     uint256 stakedAten_
   ) public view returns (uint256) {
     // Lazy check to avoid loop if user doesn't stake
-    if (stakedAten_ == 0) return feeLevels[0].feeDiscount;
+    if (stakedAten_ == 0) return bonusLevels[0].yieldBonus;
 
     // Inversed loop starts with the end to find adequate level
-    uint256 i = feeLevels.length - 1;
+    uint256 i = bonusLevels.length - 1;
     for (i; 0 <= i; i--) {
       // Rate level with atenAmount of 0 will always be true
-      if (feeLevels[i].atenAmount <= stakedAten_)
-        return feeLevels[i].feeDiscount;
+      if (bonusLevels[i].atenAmount <= stakedAten_)
+        return bonusLevels[i].yieldBonus;
     }
 
-    return feeLevels[0].feeDiscount;
+    return bonusLevels[0].yieldBonus;
   }
 
   /** @notice
@@ -413,20 +411,20 @@ contract Staking is IStaking, ERC20, Ownable {
    * @dev The atenAmount indicates the upper limit for the level
    * @param levels_ array of fee level structs
    **/
-  function setFeeLevelsWithAten(
-    FeeLevel[] calldata levels_
+  function setBonusLevelsWithAten(
+    BonusLevel[] calldata levels_
   ) public onlyOwner {
     // First clean the storage
-    uint256 nbLevels = feeLevels.length;
+    uint256 nbLevels = bonusLevels.length;
     for (uint256 i = 0; i < nbLevels; i++) {
-      // This should reset all FeeLevel structs to default values
-      feeLevels.pop();
+      // This should reset all BonusLevel structs to default values
+      bonusLevels.pop();
     }
 
     // Set all cover supply fee levels
     uint256 previousAtenAmount = 0;
     for (uint256 i = 0; i < levels_.length; i++) {
-      FeeLevel calldata level = levels_[i];
+      BonusLevel calldata level = levels_[i];
 
       if (i == 0) {
         // Require that the first level indicates fees for atenAmount 0
@@ -439,11 +437,11 @@ contract Staking is IStaking, ERC20, Ownable {
         previousAtenAmount = level.atenAmount;
       }
 
-      // Check that fee discount is not higher than 100%
-      if (1e27 < level.feeDiscount) revert GreaterThan100Percent();
+      // Check that yield bonus is not higher than 100%
+      if (1e27 < level.yieldBonus) revert GreaterThan100Percent();
 
       // save to storage
-      feeLevels.push(level);
+      bonusLevels.push(level);
     }
   }
 }

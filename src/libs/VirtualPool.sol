@@ -253,10 +253,10 @@ library VirtualPool {
     VPool storage self,
     uint256 rewards_,
     address account_,
-    uint256 feeDiscount_
+    uint256 yieldBonus_
   ) private {
     if (0 < rewards_) {
-      uint256 fees = _feeFor(rewards_, self.feeRate, feeDiscount_);
+      uint256 fees = _feeFor(rewards_, self.feeRate, yieldBonus_);
       uint256 net = rewards_ - fees;
 
       // Pay position owner
@@ -274,7 +274,7 @@ library VirtualPool {
     uint256 tokenId_,
     address account_,
     uint256 amount_,
-    uint256 feeDiscount_,
+    uint256 yieldBonus_,
     uint128[] storage poolIds_
   ) internal returns (uint256, uint256) {
     // Get the updated position info
@@ -290,7 +290,7 @@ library VirtualPool {
       self,
       info.coverRewards,
       account_,
-      feeDiscount_
+      yieldBonus_
     );
 
     // Update lp info to reflect the new state of the position
@@ -307,7 +307,7 @@ library VirtualPool {
     uint256 tokenId_,
     address account_,
     uint256 amount_,
-    uint256 feeDiscount_,
+    uint256 yieldBonus_,
     uint128[] storage poolIds_
   ) internal returns (uint256, uint256) {
     // Pool is locked while there are ongoing claims
@@ -326,7 +326,7 @@ library VirtualPool {
       self,
       info.coverRewards,
       account_,
-      feeDiscount_
+      yieldBonus_
     );
 
     // Update liquidity index
@@ -917,7 +917,6 @@ library VirtualPool {
     info.newLpInfo.beginRewardIndex = latestRewardIndex;
     info.newLpInfo.beginLiquidityIndex = self.liquidityIndex;
     info.newLpInfo.beginClaimIndex += claims.length;
- 
   }
 
   /**
@@ -958,10 +957,10 @@ library VirtualPool {
   function _feeFor(
     uint256 grossReward_,
     uint256 feeRate_,
-    uint256 feeDiscount_
+    uint256 yieldBonus_
   ) private pure returns (uint256) {
     return
-      ((grossReward_ * feeRate_ * (FEE_BASE - feeDiscount_)) /
+      ((grossReward_ * feeRate_ * (FEE_BASE - yieldBonus_)) /
         FEE_BASE) / FEE_BASE;
   }
 

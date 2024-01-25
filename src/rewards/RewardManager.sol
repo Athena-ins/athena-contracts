@@ -46,7 +46,7 @@ contract RewardManager is IRewardManager, Ownable {
    * @param _coverToken address of the cover token
    * @param _stakedToken address of the staked token
    * @param _startFarmingCampaign block number the staking pool in the farming will start to give rewards
-   * @param feeLevels array of fee discount levels
+   * @param bonusLevels array of yield bonus levels
    */
   constructor(
     ILiquidityManager _liquidityManager,
@@ -55,7 +55,7 @@ contract RewardManager is IRewardManager, Ownable {
     IAthenaCoverToken _coverToken,
     IERC20 _stakedToken,
     uint256 _startFarmingCampaign,
-    Staking.FeeLevel[] memory feeLevels
+    Staking.BonusLevel[] memory bonusLevels
   ) Ownable(msg.sender) {
     if (_startFarmingCampaign <= block.number) {
       revert StartFarmingInPast();
@@ -81,7 +81,7 @@ contract RewardManager is IRewardManager, Ownable {
       _stakedToken,
       _startFarmingCampaign
     );
-    staking.initializeFarming(feeLevels);
+    staking.initializeFarming(bonusLevels);
 
     IOwnable(address(farming)).transferOwnership(msg.sender);
     IOwnable(address(staking)).transferOwnership(msg.sender);

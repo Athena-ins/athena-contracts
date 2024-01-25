@@ -29,7 +29,7 @@ interface IStrategyManager {
     uint256 amountCapitalUnderlying_,
     uint256 amountRewardsUnderlying_,
     address account_,
-    uint256 /*feeDiscount_*/
+    uint256 /*yieldBonus_*/
   ) external;
 
   function depositWrappedToStrategy(uint256 strategyId_) external;
@@ -39,7 +39,7 @@ interface IStrategyManager {
     uint256 amountCapitalUnderlying_,
     uint256 amountRewardsUnderlying_,
     address account_,
-    uint256 /*feeDiscount_*/
+    uint256 /*yieldBonus_*/
   ) external;
 
   function payoutFromStrategy(

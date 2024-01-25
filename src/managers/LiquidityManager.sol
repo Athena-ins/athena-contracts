@@ -500,7 +500,7 @@ contract LiquidityManager is
   ) public onlyPositionOwner(tokenId_) {
     Position storage position = _positions[tokenId_];
     address account = positionToken.ownerOf(tokenId_);
-    uint256 feeDiscount = staking.feeDiscountOf(account);
+    uint256 yieldBonus = staking.yieldBonusOf(account);
 
     uint256 newUserCapital;
     uint256 strategyRewards;
@@ -516,7 +516,7 @@ contract LiquidityManager is
           tokenId_,
           account,
           position.supplied,
-          feeDiscount,
+          yieldBonus,
           position.poolIds
         );
 
@@ -535,7 +535,7 @@ contract LiquidityManager is
       0, // No capital withdrawn
       strategyRewards,
       account,
-      feeDiscount
+      yieldBonus
     );
 
     // Update the position capital to reflect potential reduction due to claims
@@ -566,13 +566,13 @@ contract LiquidityManager is
 
     address account = positionToken.ownerOf(tokenId_);
 
-    uint256 feeDiscount = staking.feeDiscountOf(account);
+    uint256 yieldBonus = staking.yieldBonusOf(account);
 
     (uint256 capital, uint256 rewards) = _removeOverlappingCapital(
       tokenId_,
       account,
       position.supplied,
-      feeDiscount,
+      yieldBonus,
       position.poolIds
     );
 
@@ -585,7 +585,7 @@ contract LiquidityManager is
           capital,
           rewards,
           account,
-          feeDiscount
+          yieldBonus
         );
       } else {
         strategyManager.withdrawFromStrategy(
@@ -593,7 +593,7 @@ contract LiquidityManager is
           capital,
           rewards,
           account,
-          feeDiscount
+          yieldBonus
         );
       }
     }
@@ -602,13 +602,13 @@ contract LiquidityManager is
     position.supplied = 0;
   }
 
-  /// ======= LP FEE DISCOUNT ======= ///
+  /// ======= LP YIELD BONUS ======= ///
 
-  function feeDiscountUpdate(
+  function yieldBonusUpdate(
     address account_,
-    uint256 prevFeeDiscount_
+    uint256 prevYieldBonus_
   ) external {
-    // @bw Should take interests in all positions using the prev fee discount
+    // @bw Should take interests in all positions using the prev yield bonus
   }
 
   /// ======= LIQUIDITY OVERLAPS ======= ///
@@ -672,7 +672,7 @@ contract LiquidityManager is
     uint256 tokenId_,
     address account_,
     uint256 amount_,
-    uint256 feeDiscount_,
+    uint256 yieldBonus_,
     uint128[] storage poolIds_
   ) internal returns (uint256 capital, uint256 rewards) {
     uint256 nbPoolIds = poolIds_.length;
@@ -690,7 +690,7 @@ contract LiquidityManager is
           tokenId_,
           account_,
           amount_,
-          feeDiscount_,
+          yieldBonus_,
           poolIds_
         );
 

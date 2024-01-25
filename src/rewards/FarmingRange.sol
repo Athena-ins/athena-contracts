@@ -16,7 +16,7 @@ import { ILiquidityManager } from "../interfaces/ILiquidityManager.sol";
 import { IAthenaPositionToken } from "../interfaces/IAthenaPositionToken.sol";
 import { IAthenaCoverToken } from "../interfaces/IAthenaCoverToken.sol";
 
-// @bw move to here apply fee discount on deposit / withdraw positions from campaigns
+// @bw move to here apply yield bonus on deposit / withdraw positions from campaigns
 
 //======== ERRORS ========//
 

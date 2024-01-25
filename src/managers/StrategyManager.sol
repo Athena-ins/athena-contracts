@@ -189,7 +189,7 @@ contract StrategyManager is IStrategyManager, Ownable {
     uint256 amountCapitalUnderlying_,
     uint256 amountRewardsUnderlying_,
     address account_,
-    uint256 /*feeDiscount_*/
+    uint256 /*yieldBonus_*/
   ) external checkId(strategyId_) onlyLiquidityManager {
     uint256 amountToWithdraw = amountCapitalUnderlying_ +
       amountRewardsUnderlying_;
@@ -224,7 +224,7 @@ contract StrategyManager is IStrategyManager, Ownable {
     uint256 amountCapitalUnderlying_,
     uint256 amountRewardsUnderlying_,
     address account_,
-    uint256 /*feeDiscount_*/
+    uint256 /*yieldBonus_*/
   ) external checkId(strategyId_) onlyLiquidityManager {
     // Compute amount of wrapped to send to account
     uint256 amountToWithdraw = underlyingToWrapped(
