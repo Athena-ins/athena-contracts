@@ -111,6 +111,7 @@ export function deployProtocol() {
         const campaignStartBlock = (await getCurrentBlockNumber()) + 4;
         const rewardManager = await deployRewardManager(this.signers.deployer, [
           this.deployedAt.LiquidityManager,
+          this.deployedAt.EcclesiaDao,
           this.deployedAt.AthenaPositionToken,
           this.deployedAt.AthenaCoverToken,
           this.deployedAt.AthenaToken,

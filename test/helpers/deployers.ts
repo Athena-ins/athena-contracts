@@ -140,7 +140,7 @@ export type ProtocolConfig = {
   evidenceGuardian: Wallet;
   buybackWallet: Wallet;
   poolMarket: [BigNumber, BigNumber, BigNumber, BigNumber];
-  feeDiscounts: { atenAmount: BigNumber; feeDiscount: BigNumber }[];
+  yieldBonuses: { atenAmount: BigNumber; yieldBonus: BigNumber }[];
 };
 
 export const defaultProtocolConfig: ProtocolConfig = {
@@ -153,11 +153,11 @@ export const defaultProtocolConfig: ProtocolConfig = {
     toRay(5), // rSlope1_
     toRay(1.1), // rSlope2_
   ],
-  feeDiscounts: [
-    { atenAmount: toErc20(0), feeDiscount: toRay(250, 4) },
-    { atenAmount: toErc20(1_000), feeDiscount: toRay(200, 4) },
-    { atenAmount: toErc20(100_000), feeDiscount: toRay(150, 4) },
-    { atenAmount: toErc20(1_000_000), feeDiscount: toRay(50, 4) },
+  yieldBonuses: [
+    { atenAmount: toErc20(0), yieldBonus: toRay(250, 4) },
+    { atenAmount: toErc20(1_000), yieldBonus: toRay(200, 4) },
+    { atenAmount: toErc20(100_000), yieldBonus: toRay(150, 4) },
+    { atenAmount: toErc20(1_000_000), yieldBonus: toRay(50, 4) },
   ],
 };
 
@@ -242,11 +242,12 @@ export async function deployAllContractsAndInitializeProtocol(
   const campaignStartBlock = (await getCurrentBlockNumber()) + 4;
   const RewardManager = await deployRewardManager(deployer, [
     deployedAt.LiquidityManager,
+    deployedAt.EcclesiaDao,
     deployedAt.AthenaPositionToken,
     deployedAt.AthenaCoverToken,
     deployedAt.AthenaToken,
     campaignStartBlock,
-    config.feeDiscounts,
+    config.yieldBonuses,
   ]);
   // Required for DAO & Liquidity Manager contract
   deployedAt.Staking = await RewardManager.staking();
