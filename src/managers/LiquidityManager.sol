@@ -195,7 +195,7 @@ contract LiquidityManager is
         wrappedAsset: pool.wrappedAsset,
         isPaused: pool.isPaused,
         overlappedPools: pool.overlappedPools,
-        processedClaims: pool.processedClaims
+        compensationIds: pool.compensationIds
       });
   }
 
@@ -768,17 +768,30 @@ contract LiquidityManager is
 
     uint256 nbPools = poolA.overlappedPools.length;
 
+    // Get compensation ID and its storage pointer
+    uint256 compensationId = nextCompensationId;
+    nextCompensationId++;
+    VirtualPool.Compensation storage compensation = _compensations[
+      compensationId
+    ];
+    // Register data common to all affected pools
+    compensation.fromPoolId = poolId;
+    compensation.ratio = ratio;
+    compensation.rewardIndexBeforeClaim = rewardIndex;
+
     for (uint128 i; i < nbPools; i++) {
       uint128 poolIdB = poolA.overlappedPools[i];
       VirtualPool.VPool storage poolB = _pools[poolIdB];
-
-      // Update pool state & remove expired covers
-      poolB._purgeExpiredCovers();
 
       (VirtualPool.VPool storage pool0, uint128 poolId1) = poolId <
         poolIdB
         ? (poolA, poolIdB)
         : (poolB, poolId);
+
+      // Skip if overlap is 0
+      if (pool0.overlaps[poolId1] == 0) continue;
+      // Update pool state & remove expired covers
+      poolB._purgeExpiredCovers();
 
       // New context to avoid stack too deep error
       {
@@ -786,6 +799,9 @@ contract LiquidityManager is
         uint256 amountToRemove = pool0.overlaps[poolId1].rayMul(
           ratio
         );
+
+        // Skip if the amount to remove is 0
+        if (amountToRemove == 0) continue;
 
         // Update pool pricing (premium rate & seconds per tick)
         poolB._updateSlot0WhenAvailableLiquidityChange(
@@ -807,16 +823,12 @@ contract LiquidityManager is
               }
           }
         }
-      }
 
-      poolB.processedClaims.push(
-        VirtualPool.PoolClaim({
-          fromPoolId: poolId,
-          ratio: ratio,
-          liquidityIndexBeforeClaim: poolB.liquidityIndex,
-          rewardIndexBeforeClaim: rewardIndex
-        })
-      );
+        // Trade references to track reward indexes in single compensation struct
+        poolB.compensationIds.push(compensationId);
+        compensation.liquidityIndexBeforeClaim[poolIdB] = poolB
+          .liquidityIndex;
+      }
     }
 
     address claimant = coverToken.ownerOf(coverId_);

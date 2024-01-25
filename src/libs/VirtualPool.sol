@@ -67,13 +67,6 @@ library VirtualPool {
     uint256 beginRewardIndex;
   }
 
-  struct PoolClaim {
-    uint128 fromPoolId;
-    uint256 ratio; // Ray //ratio = claimAmount / capital
-    uint256 liquidityIndexBeforeClaim;
-    uint256 rewardIndexBeforeClaim;
-  }
-
   struct CoverPremiums {
     uint256 beginPremiumRate;
     uint32 lastTick; // The tick at which the cover will expire
@@ -113,7 +106,7 @@ library VirtualPool {
     address wrappedAsset;
     bool isPaused;
     uint128[] overlappedPools;
-    PoolClaim[] processedClaims;
+    uint256[] compensationIds;
   }
 
   struct VPool {
@@ -131,7 +124,7 @@ library VirtualPool {
     bool isPaused;
     uint128[] overlappedPools;
     uint256 ongoingClaims;
-    PoolClaim[] processedClaims;
+    uint256[] compensationIds;
     /// @dev poolId 0 -> poolId 0 points to a pool's available liquidity
     /// @dev liquidity overlap is always registered in the lower poolId
     // Maps poolId 0 -> poolId 1 -> overlapping capital
@@ -256,7 +249,7 @@ library VirtualPool {
     // also overwrites previous LpInfo after a withdrawal
     self.lpInfos[tokenId_] = LpInfo({
       beginLiquidityIndex: self.liquidityIndex,
-      beginClaimIndex: self.processedClaims.length,
+      beginClaimIndex: self.compensationIds.length,
       beginRewardIndex: beginRewardIndex
     });
   }
@@ -484,25 +477,6 @@ library VirtualPool {
     } else {
       _removeTick(self, coverPremium.lastTick);
     }
-  }
-
-  // ======= CLAIMS ======= //
-
-  function _claims(
-    VPool storage self,
-    uint256 beginIndex
-  ) private view returns (PoolClaim[] memory) {
-    uint256 nbProcessed = self.processedClaims.length;
-    if (nbProcessed == beginIndex) return new PoolClaim[](0);
-
-    uint256 toProcess = nbProcessed - beginIndex;
-    PoolClaim[] memory claims = new PoolClaim[](toProcess);
-
-    for (uint256 i; i < toProcess; i++) {
-      claims[i] = self.processedClaims[beginIndex + i];
-    }
-
-    return claims;
   }
 
   // ======= INTERNAL POOL HELPERS ======= //
