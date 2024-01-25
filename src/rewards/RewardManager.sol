@@ -15,6 +15,7 @@ import { IRewardManager } from "../interfaces/IRewardManager.sol";
 import { IFarmingRange } from "../interfaces/IFarmingRange.sol";
 import { IStaking } from "../interfaces/IStaking.sol";
 import { ILiquidityManager } from "../interfaces/ILiquidityManager.sol";
+import { IEcclesiaDao } from "../interfaces/IEcclesiaDao.sol";
 import { IAthenaPositionToken } from "../interfaces/IAthenaPositionToken.sol";
 import { IAthenaCoverToken } from "../interfaces/IAthenaCoverToken.sol";
 import { IOwnable } from "../interfaces/IOwnable.sol";
@@ -49,6 +50,7 @@ contract RewardManager is IRewardManager, Ownable {
    */
   constructor(
     ILiquidityManager _liquidityManager,
+    IEcclesiaDao _ecclesiaDao,
     IAthenaPositionToken _positionToken,
     IAthenaCoverToken _coverToken,
     IERC20 _stakedToken,
@@ -65,7 +67,12 @@ contract RewardManager is IRewardManager, Ownable {
       _positionToken,
       _coverToken
     );
-    staking = new Staking(_stakedToken, farming, _liquidityManager);
+    staking = new Staking(
+      _stakedToken,
+      farming,
+      _liquidityManager,
+      _ecclesiaDao
+    );
 
     farming.addCampaignInfo(
       IFarmingRange.AssetType.ERC20,
