@@ -232,14 +232,14 @@ contract EcclesiaDao is
       supply += _amount;
     }
 
-    if (MIN_TO_STAKE < userLock.duration) {
+    uint256 toStake = userLock.amount - userLock.staking;
+    if (0 < toStake && MIN_TO_STAKE < userLock.duration) {
       // We want to track the amount of staking rewards we harvest
       uint256 balBefore = token.balanceOf(address(this));
 
-      uint256 toStake = userLock.amount - userLock.staking;
       token.safeIncreaseAllowance(address(staking), toStake);
       // This will cause a harvest of rewards
-      staking.deposit(toStake);
+      staking.depositDao(msg.sender, toStake);
 
       // Reincorporate amount sent to staking for net rewards
       uint256 stakingRewards = (token.balanceOf(address(this)) +
@@ -355,7 +355,11 @@ contract EcclesiaDao is
       uint256 balBefore = token.balanceOf(address(this));
 
       // This will cause a harvest of rewards
-      staking.withdrawToken(address(this), _withdrawAmount);
+      staking.withdrawTokenDao(
+        msg.sender,
+        address(this),
+        _withdrawAmount
+      );
 
       // Remove amount received from staking for net rewards
       uint256 stakingRewards = (token.balanceOf(address(this)) -

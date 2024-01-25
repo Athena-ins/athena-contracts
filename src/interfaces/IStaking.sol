@@ -181,4 +181,15 @@ interface IStaking is IERC20 {
   function feeDiscountOf(
     address _user
   ) external view returns (uint256);
+
+  function depositDao(
+    address account_,
+    uint256 depositAmount_
+  ) external;
+
+  function withdrawTokenDao(
+    address account_,
+    address to_,
+    uint256 tokensAmount_
+  ) external;
 }
