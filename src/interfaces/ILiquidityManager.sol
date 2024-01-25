@@ -12,7 +12,6 @@ interface ILiquidityManager {
     uint256 end;
     uint256 premiumsLeft;
     uint256 currentEmissionRate;
-    uint256 remainingSeconds;
   }
 
   struct Cover {

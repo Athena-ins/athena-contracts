@@ -24,9 +24,8 @@ import { console } from "hardhat/console.sol";
 
 // Todo
 // @bw need dynamic risk pool fee system
-// @bw add fn to clear related pool if overlap = 0 to reduce computation cost
 // @bw add fns to debug if certain loops become too gas intensive to run in a single block
-// @bw need strategy fees option
+// @bw add proxies to major contracts and fns to update state variables
 
 // ======= ERRORS ======= //
 
@@ -153,8 +152,7 @@ contract LiquidityManager is
         start: cover.start,
         end: cover.end,
         premiumsLeft: info.premiumsLeft,
-        currentEmissionRate: info.currentEmissionRate,
-        remainingSeconds: info.remainingSeconds
+        currentEmissionRate: info.currentEmissionRate
       });
   }
 
@@ -454,7 +452,7 @@ contract LiquidityManager is
     uint256 strategyId = _pools[position.poolIds[0]].strategyId;
 
     // Take interests in all pools before update
-    // @bw if removed, will update LP info in pool._depositToPool to latests and skip rewards & claims
+    // @dev Needed to keep register rewards & claims impact on capital
     takeInterests(tokenId_);
 
     uint256 amountUnderlying = isWrapped
@@ -739,6 +737,7 @@ contract LiquidityManager is
     );
   }
 
+  // @bw opti - Store single claim in liqman with all liq index of dep pools. Check only from same pool id if single pool pos. Compute new cap & strat Rew & all Prem rew once and not for each pool.
   // @bw positions created between claim creation & payout will be affected by the claim
   // check if RiskPool can deposit capital to cover the payouts if not enough liquidity
   function payoutClaim(

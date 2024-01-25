@@ -83,7 +83,6 @@ library VirtualPool {
   struct CoverInfo {
     uint256 premiumsLeft;
     uint256 currentEmissionRate;
-    uint256 remainingSeconds;
   }
 
   struct UpdatedPositionInfo {
@@ -125,7 +124,6 @@ library VirtualPool {
     bool isPaused;
     uint128[] overlappedPools;
     uint256 ongoingClaims;
-    // @bw should change to ids to fetch in map to use storage pointers
     PoolClaim[] processedClaims;
     /// @dev poolId 0 -> poolId 0 points to a pool's available liquidity
     /// @dev liquidity overlap is always registered in the lower poolId
@@ -620,12 +618,7 @@ library VirtualPool {
 
     if (coverPremium.lastTick < slot0.tick) {
       // If the cover's last tick is overtaken then it's expired and all values are 0
-      return
-        CoverInfo({
-          premiumsLeft: 0,
-          currentEmissionRate: 0,
-          remainingSeconds: 0
-        });
+      return CoverInfo({ premiumsLeft: 0, currentEmissionRate: 0 });
     } else {
       uint256 available = availableLiquidity(self);
       uint256 coverBeginEmissionRate = self
@@ -660,9 +653,6 @@ library VirtualPool {
           info.premiumsLeft +=
             (secondsPassed * coverCurrentEmissionRate) /
             MAX_SECONDS_PER_TICK;
-
-          // @bw redundant data
-          info.remainingSeconds += secondsPassed;
 
           currentTick = tick;
         }
