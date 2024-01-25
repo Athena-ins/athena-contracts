@@ -814,59 +814,59 @@ library VirtualPool {
     uint256 userCapital_,
     uint128[] storage poolIds_
   ) private view returns (UpdatedPositionInfo memory info) {
-    /**
-     * // @bw this is performed in each pool of the pos but the computed new capital & strat rewards are same every time, need to find a way to store lp & claim data globally to compute all at once. Then only need to compute cover rewards for each pool
-     */
-
     info.newLpInfo = self.lpInfos[tokenId_];
-    PoolClaim[] memory claims = _claims(
-      self,
-      info.newLpInfo.beginClaimIndex
-    );
-
     info.newUserCapital = userCapital_;
 
     uint256 strategyId = self.strategyId;
-    // If strategy compounds rewards then they are added to the capital to compute new rewards
+    // If strategy compounds then add to capital to compute next new rewards
     bool itCompounds = self.strategyManager.itCompounds(strategyId);
 
-    uint256 nbClaims = claims.length;
+    uint256 compensationId = info.newLpInfo.beginClaimIndex;
+    uint256 endCompensationId = self.compensationIds.length;
     uint256 nbPools = poolIds_.length;
 
     /**
-     * Parse each claim that may affect capital because of overlap in order to
-     * compute rewards based on new amount of capital in the position
+     * Parse each claim that may affect capital due to overlap in order to
+     * compute rewards on post compensation capital
      */
-    for (uint256 i; i < nbClaims; i++) {
-      PoolClaim memory claim = claims[i];
-
-      // Compute the rewards accumulated up to the claim
-      info.coverRewards += info.newUserCapital.rayMul(
-        claim.liquidityIndexBeforeClaim -
-          info.newLpInfo.beginLiquidityIndex
-      );
-      info.strategyRewards += self.strategyManager.computeReward(
-        strategyId,
-        itCompounds
-          ? info.newUserCapital + info.strategyRewards
-          : info.newUserCapital,
-        info.newLpInfo.beginRewardIndex,
-        claim.rewardIndexBeforeClaim
+    for (
+      compensationId;
+      compensationId < endCompensationId;
+      compensationId++
+    ) {
+      Compensation storage comp = self.getCompensation(
+        compensationId
       );
 
-      // Register up to where the rewards have been accumulated
-      info.newLpInfo.beginRewardIndex = claim.rewardIndexBeforeClaim;
-      info.newLpInfo.beginLiquidityIndex = claim
-        .liquidityIndexBeforeClaim;
-
-      // Check if the claim is incoming from one of the pools in the position
+      // Check if the comp is incoming from one of the pools in the position
       for (uint256 j; j < nbPools; j++) {
-        if (poolIds_[j] != claim.fromPoolId) continue;
+        uint128 poolId = poolIds_[j];
+        if (poolId != comp.fromPoolId) continue;
 
-        // If it is then compute the new capital after the claim & break loop
-        info.newUserCapital -= info.newUserCapital.rayMul(
-          claim.ratio
+        uint256 liquidityIndexBeforeClaim = comp
+          .liquidityIndexBeforeClaim[poolId];
+
+        // Compute the rewards accumulated up to the claim
+        info.coverRewards += info.newUserCapital.rayMul(
+          liquidityIndexBeforeClaim -
+            info.newLpInfo.beginLiquidityIndex
         );
+        info.strategyRewards += self.strategyManager.computeReward(
+          strategyId,
+          itCompounds
+            ? info.newUserCapital + info.strategyRewards
+            : info.newUserCapital,
+          info.newLpInfo.beginRewardIndex,
+          comp.rewardIndexBeforeClaim
+        );
+
+        // Register up to where the rewards have been accumulated
+        info.newLpInfo.beginRewardIndex = comp.rewardIndexBeforeClaim;
+        info
+          .newLpInfo
+          .beginLiquidityIndex = liquidityIndexBeforeClaim;
+        // Reduce capital after the comp & break loop
+        info.newUserCapital -= info.newUserCapital.rayMul(comp.ratio);
 
         break;
       }
@@ -894,7 +894,7 @@ library VirtualPool {
 
     info.newLpInfo.beginRewardIndex = latestRewardIndex;
     info.newLpInfo.beginLiquidityIndex = self.liquidityIndex;
-    info.newLpInfo.beginClaimIndex += claims.length;
+    info.newLpInfo.beginClaimIndex = endCompensationId;
   }
 
   /**
