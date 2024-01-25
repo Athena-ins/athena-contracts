@@ -14,6 +14,7 @@ import { IERC20Permit } from "@openzeppelin/contracts/token/ERC20/extensions/IER
 import { IFarmingRange } from "../interfaces/IFarmingRange.sol";
 import { IStaking } from "../interfaces/IStaking.sol";
 import { ILiquidityManager } from "../interfaces/ILiquidityManager.sol";
+import { IEcclesiaDao } from "../interfaces/IEcclesiaDao.sol";
 
 //======== ERRORS ========//
 
@@ -37,6 +38,8 @@ error NoNewSharesReceived();
 error CantWithdrawMoreThanUserSharesOrZero();
 // No shares to withdraw
 error NoSharesToWithdraw();
+// Only DAO can call this function
+error OnlyDao();
 
 /**
  * @title FarmingRange
@@ -53,8 +56,10 @@ contract Staking is IStaking, ERC20, Ownable {
 
   IERC20 public immutable stakedToken;
   IFarmingRange public immutable farming;
+  IEcclesiaDao public immutable ecclesiaDao;
 
-  mapping(address => UserInfo) public userInfo;
+  mapping(address _account => UserInfo) public userInfo;
+  mapping(address _account => uint256 _amount) public stakedViaDao;
   uint256 public totalShares;
   bool public farmingInitialized = false;
 
@@ -75,10 +80,16 @@ contract Staking is IStaking, ERC20, Ownable {
     _;
   }
 
+  modifier onlyDao() {
+    if (msg.sender != address(ecclesiaDao)) revert OnlyDao();
+    _;
+  }
+
   constructor(
     IERC20 _stakedToken,
     IFarmingRange _farming,
-    ILiquidityManager liquidityManager_
+    ILiquidityManager liquidityManager_,
+    IEcclesiaDao ecclesiaDao_
   ) ERC20("Staked Aten Token", "stAOE") Ownable(msg.sender) {
     if (address(_stakedToken) == address(0)) {
       revert AtenTokenIsNotDefined();
@@ -93,6 +104,7 @@ contract Staking is IStaking, ERC20, Ownable {
     stakedToken = _stakedToken;
     farming = _farming;
     liquidityManager = liquidityManager_;
+    ecclesiaDao = ecclesiaDao_;
   }
 
   /// @inheritdoc IStaking
@@ -114,9 +126,9 @@ contract Staking is IStaking, ERC20, Ownable {
 
   /// @inheritdoc IStaking
   function deposit(
-    uint256 _depositAmount
+    uint256 depositAmount_
   ) public isFarmingInitialized checkUserBlock {
-    if (_depositAmount == 0) {
+    if (depositAmount_ == 0) {
       revert CantDepositZeroToken();
     }
 
@@ -124,7 +136,7 @@ contract Staking is IStaking, ERC20, Ownable {
 
     uint256 _currentBalance = stakedToken.balanceOf(address(this));
     uint256 _newShares = _tokensToShares(
-      _depositAmount,
+      depositAmount_,
       _currentBalance
     );
 
@@ -139,10 +151,11 @@ contract Staking is IStaking, ERC20, Ownable {
     userInfo[msg.sender].shares += _userNewShares;
     totalShares += _newShares;
 
+    // Tokens are transfered from the calling wallet in any case
     stakedToken.safeTransferFrom(
       msg.sender,
       address(this),
-      _depositAmount
+      depositAmount_
     );
 
     _updateAccountFeeDiscount(
@@ -150,7 +163,15 @@ contract Staking is IStaking, ERC20, Ownable {
       _currentBalance
     );
 
-    emit Deposit(msg.sender, _depositAmount, _userNewShares);
+    emit Deposit(msg.sender, depositAmount_, _userNewShares);
+  }
+
+  function depositDao(
+    address account_,
+    uint256 depositAmount_
+  ) external isFarmingInitialized onlyDao {
+    stakedViaDao[account_] += depositAmount_;
+    deposit(depositAmount_);
   }
 
   /// @inheritdoc IStaking
@@ -207,6 +228,16 @@ contract Staking is IStaking, ERC20, Ownable {
     emit Withdraw(msg.sender, _to, _tokensToWithdraw, _sharesAmount);
   }
 
+  function withdrawTokenDao(
+    address account_,
+    address to_,
+    uint256 tokensAmount_
+  ) external isFarmingInitialized onlyDao {
+    stakedViaDao[account_] -= tokensAmount_;
+    uint256 shares = tokensToShares(tokensAmount_);
+    withdraw(to_, shares);
+  }
+
   function withdrawToken(
     address _to,
     uint256 _tokensAmount
@@ -234,7 +265,6 @@ contract Staking is IStaking, ERC20, Ownable {
     userInfo[msg.sender].shares = 0;
     stakedToken.safeTransfer(_to, _tokensToWithdraw);
 
-    feeDiscountOf[msg.sender] = 0;
     _updateAccountFeeDiscount(0, _currentBalance);
 
     emit EmergencyWithdraw(
@@ -323,10 +353,13 @@ contract Staking is IStaking, ERC20, Ownable {
     uint256 _currentBalance
   ) internal {
     uint256 tokenBalance = _sharesToTokens(_shares, _currentBalance);
+    uint256 daoStakingBalance = stakedViaDao[msg.sender];
+    uint256 newFeeDiscount = amountToFeeDiscount(
+      tokenBalance + daoStakingBalance
+    );
 
     // @bw change fee discount wording to bonus rate
     uint256 feeDiscount = feeDiscountOf[msg.sender];
-    uint256 newFeeDiscount = amountToFeeDiscount(tokenBalance);
 
     if (feeDiscount != newFeeDiscount) {
       feeDiscountOf[msg.sender] = newFeeDiscount;
