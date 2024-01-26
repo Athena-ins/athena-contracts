@@ -911,23 +911,30 @@ library VirtualPool {
   ) private view returns (uint256) {
     Formula storage formula = self.formula;
     // returns actual rate for insurance
-    // @bw case for overusage ? see utilizationRate
     if (utilizationRate_ < formula.uOptimal) {
+      // Return base rate + proportional slope 1 rate
       return
         formula.r0 +
         formula.rSlope1.rayMul(
           utilizationRate_.rayDiv(formula.uOptimal)
         );
-    } else if (FULL_UTILIZATION_RATE < utilizationRate_) {
-      // This means the pool is currently overused
-      return formula.r0 + formula.rSlope1 + formula.rSlope2;
-    } else {
+    } else if (utilizationRate_ < FULL_UTILIZATION_RATE) {
+      // Return base rate + slope 1 rate + proportional slope 2 rate
       return
         formula.r0 +
         formula.rSlope1 +
         (formula.rSlope2 * (utilizationRate_ - formula.uOptimal)) /
         (FULL_UTILIZATION_RATE - formula.uOptimal) /
         100;
+    } else {
+      /**
+       * @dev Premium rate is capped because in case of overusage the
+       * liquidity providers are exposed to the same risk as 100% usage but
+       * cover buyers are not fully covered.
+       * This means cover buyers only pay for the effective cover they have.
+       */
+      // Return base rate + slope 1 rate + slope 2 rate
+      return formula.r0 + formula.rSlope1 + formula.rSlope2;
     }
   }
 
@@ -992,19 +999,20 @@ library VirtualPool {
     uint256 _insuredCapitalToRemove,
     uint256 _totalInsuredCapital,
     uint256 _availableLiquidity
-  ) private pure returns (uint256) {
+  ) private pure returns (uint256 rate) {
     if (_availableLiquidity == 0) {
       return 0;
     }
-    uint256 rate = (((_totalInsuredCapital + _insuredCapitalToAdd) -
+    rate = (((_totalInsuredCapital + _insuredCapitalToAdd) -
       _insuredCapitalToRemove) * 100).rayDiv(_availableLiquidity);
 
-    //  @bw problem if usage is above 100% (ex: 100$ insured and 1$ capital)
-    // In this case the usage should be ajusted to reflect available capital
-    // The ratio should be slightly favorable for liquidity provider to incentivise equilibrium
-    // Special rules for +100% -> adapt uRate to be based on capital + bonus to incentivize provider
-    // 100% = 100 1e27 (rays)
-
-    return rate;
+    /**
+     * @dev Utilization rate is capped at 100% because in case of overusage the
+     * liquidity providers are exposed to the same risk as 100% usage but
+     * cover buyers are not fully covered.
+     * This means cover buyers only pay for the effective cover they have.
+     */
+    return
+      FULL_UTILIZATION_RATE < rate ? FULL_UTILIZATION_RATE : rate;
   }
 }
