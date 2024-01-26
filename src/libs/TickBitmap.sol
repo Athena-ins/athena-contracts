@@ -44,7 +44,8 @@ library TickBitmap {
   /// to the left (less than or equal to) or right (greater than) of the given tick
   /// @param self The mapping in which to compute the next initialized tick
   /// @param tick The starting tick
-  function nextInitializedTickInTheRightWithinOneWord(
+  /// previous name: nextInitializedTickInTheRightWithinOneWord
+  function nextTick(
     mapping(uint24 => uint256) storage self,
     uint32 tick
   ) internal view returns (uint32 next, bool initialized) {

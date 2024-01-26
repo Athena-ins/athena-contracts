@@ -816,10 +816,7 @@ contract LiquidityManager is
         if (amountToRemove == 0) continue;
 
         // Update pool pricing (premium rate & seconds per tick)
-        poolB._updateSlot0WhenAvailableLiquidityChange(
-          0,
-          amountToRemove
-        );
+        poolB._syncLiquidity(0, amountToRemove);
 
         // Reduce available liquidity,
         // at i = 0 this is the self liquidity of cover's pool

@@ -137,7 +137,7 @@ library VirtualPool {
     // Maps poolId 0 -> poolId 1 -> overlapping capital
     mapping(uint64 _poolId => uint256 _amount) overlaps;
     mapping(uint256 _positionId => LpInfo) lpInfos;
-    mapping(uint24 => uint256) tickBitmap;
+    mapping(uint24 _wordPos => uint256 _bitmap) tickBitmap;
     // Maps a tick to the list of cover IDs
     mapping(uint32 _tick => uint256[] _coverIds) ticks;
     // Maps a cover ID to the premium position of the cover
@@ -248,7 +248,7 @@ library VirtualPool {
     uint256 tokenId_,
     uint256 amount_
   ) internal {
-    self._updateSlot0WhenAvailableLiquidityChange(amount_, 0);
+    self._syncLiquidity(amount_, 0);
 
     // This sets the point from which the position earns rewards & is impacted by claims
     // also overwrites previous LpInfo after a withdrawal
@@ -339,10 +339,7 @@ library VirtualPool {
     );
 
     // Update liquidity index
-    self._updateSlot0WhenAvailableLiquidityChange(
-      0,
-      info.newUserCapital
-    );
+    self._syncLiquidity(0, info.newUserCapital);
 
     // Check that the pool has enough liquidity to withdraw
     uint256 utilization = getUtilizationRate(
@@ -478,10 +475,16 @@ library VirtualPool {
     self.slot0.remainingCovers--;
 
     if (1 < self.ticks.getCoverIdNumber(coverPremium.lastTick)) {
-      self.replaceAndRemoveCoverId(
-        coverId_,
-        self.ticks.getLastCoverIdInTick(coverPremium.lastTick)
+      uint256 coverIdToReplace = self.ticks.getLastCoverIdInTick(
+        coverPremium.lastTick
       );
+
+      if (coverId_ != coverIdToReplace) {
+        self.coverPremiums[coverIdToReplace].coverIdIndex = self
+          .coverPremiums[coverId_]
+          .coverIdIndex;
+      }
+      delete self.coverPremiums[coverId_];
 
       self.ticks.removeCoverId(
         coverPremium.coverIdIndex,
@@ -493,20 +496,6 @@ library VirtualPool {
   }
 
   // ======= INTERNAL POOL HELPERS ======= //
-
-  function replaceAndRemoveCoverId(
-    VPool storage self,
-    uint256 coverIdToRemove,
-    uint256 coverIdToReplace
-  ) internal {
-    if (coverIdToRemove != coverIdToReplace) {
-      self.coverPremiums[coverIdToReplace].coverIdIndex = self
-        .coverPremiums[coverIdToRemove]
-        .coverIdIndex;
-    }
-
-    delete self.coverPremiums[coverIdToRemove];
-  }
 
   function _removeTick(
     VPool storage self,
@@ -525,7 +514,14 @@ library VirtualPool {
     self.tickBitmap.flipTick(_tick);
   }
 
-  function _updateSlot0WhenAvailableLiquidityChange(
+  /**
+   * @notice Updates the pool's slot0 when the available liquidity changes.
+   *
+   * @param self The pool
+   * @param amountToAdd_ The amount of liquidity to add
+   * @param amountToRemove_ The amount of liquidity to remove
+   */
+  function _syncLiquidity(
     VPool storage self,
     uint256 amountToAdd_,
     uint256 amountToRemove_
@@ -566,9 +562,9 @@ library VirtualPool {
       uint32 observedTick = self.slot0.tick;
       bool isInitialized;
       while (observedTick < slot0.tick) {
-        (observedTick, isInitialized) = self
-          .tickBitmap
-          .nextInitializedTickInTheRightWithinOneWord(observedTick);
+        (observedTick, isInitialized) = self.tickBitmap.nextTick(
+          observedTick
+        );
 
         if (isInitialized && observedTick <= slot0.tick) {
           uint256[] memory expiredCoverIds = _removeTick(
@@ -642,8 +638,9 @@ library VirtualPool {
       while (currentTick < coverPremium.lastTick) {
         (uint32 tickNext, bool initialized) = self
           .tickBitmap
-          .nextInitializedTickInTheRightWithinOneWord(currentTick);
+          .nextTick(currentTick);
 
+// New context to avoid stack too deep error
         {
           uint32 tick = tickNext < coverPremium.lastTick
             ? tickNext
@@ -659,6 +656,7 @@ library VirtualPool {
         }
 
         if (initialized && tickNext < coverPremium.lastTick) {
+          // @bw check if need to consume updated data
           _crossingInitializedTick(self, slot0, available, tickNext);
 
           currentPremiumRate = getPremiumRate(
@@ -784,7 +782,7 @@ library VirtualPool {
     while (0 < remaining) {
       (uint32 nextTick, bool isInitialized) = self
         .tickBitmap
-        .nextInitializedTickInTheRightWithinOneWord(tick);
+        .nextTick(tick);
 
       // Tick size in seconds
       uint256 tickSize = (nextTick - tick) * slot0.secondsPerTick;
