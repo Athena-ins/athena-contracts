@@ -696,44 +696,56 @@ library VirtualPool {
    */
   function _crossingInitializedTick(
     VPool storage self,
-    Slot0 memory _slot0,
-    uint256 _availableLiquidity,
-    uint32 _tick
-  ) private view {
-    uint256[] memory coverIds = self.ticks[_tick];
-    uint256 __insuredCapitalToRemove;
+    Slot0 memory slot0_,
+    uint256 availableLiquidity_,
+    uint32 tick_
+  )
+    private
+    view
+    returns (
+      Slot0 memory,
+      uint256 utilizationRate,
+      uint256 premiumRate
+    )
+  {
+    uint256[] memory coverIds = self.ticks[tick_];
 
+    uint256 insuredCapitalToRemove;
     for (uint256 i; i < coverIds.length; i++) {
       uint256 coverId = coverIds[i];
-
-      __insuredCapitalToRemove += self.coverSize(coverId);
+      // Add all the size of all covers in the tick
+      insuredCapitalToRemove += self.coverSize(coverId);
     }
 
-    uint256 __currentPremiumRate = getPremiumRate(
+    uint256 previousPremiumRate = getPremiumRate(
       self,
-      utilizationRate(
+      getUtilizationRate(
         0,
         0,
-        _slot0.totalInsuredCapital,
-        _availableLiquidity
+        slot0_.totalInsuredCapital,
+        availableLiquidity_
       )
     );
 
-    uint256 __newPremiumRate = getPremiumRate(
-      self,
-      utilizationRate(
+    utilizationRate = getUtilizationRate(
         0,
-        __insuredCapitalToRemove,
-        _slot0.totalInsuredCapital,
-        _availableLiquidity
-      )
+      insuredCapitalToRemove,
+      slot0_.totalInsuredCapital,
+      availableLiquidity_
+    );
+    premiumRate = getPremiumRate(self, utilizationRate);
+
+    // These are the mutated values
+    slot0_.totalInsuredCapital -= insuredCapitalToRemove;
+    slot0_.remainingCovers -= coverIds.length;
+    slot0_.secondsPerTick = getSecondsPerTick(
+      slot0_.secondsPerTick,
+      previousPremiumRate,
+      premiumRate
     );
 
-    _slot0.secondsPerTick = getSecondsPerTick(
-      _slot0.secondsPerTick,
-      __currentPremiumRate,
-      __newPremiumRate
-    );
+    return (slot0_, utilizationRate, premiumRate);
+  }
 
   /**
    * @notice Computes an updated slot0 & liquidity index up to a timestamp.
