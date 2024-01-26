@@ -41,8 +41,11 @@ library VirtualPool {
 
   // ======= CONSTANTS ======= //
 
-  uint256 internal constant MAX_SECONDS_PER_TICK = 86400;
+  uint256 internal constant DAY = 86400; // 1 day in seconds
+  uint256 internal constant YEAR = 365 * DAY; // 365 day
+  uint256 internal constant MAX_SECONDS_PER_TICK = DAY;
   uint256 internal constant FEE_BASE = RayMath.RAY; // RAY = 1e27
+  uint256 internal constant FULL_UTILIZATION_RATE = 100 * RayMath.RAY; // RAY = 1e27
 
   // ======= STRUCTS ======= //
 
@@ -227,7 +230,6 @@ library VirtualPool {
 
   // ======= READ METHODS ======= //
 
-  // @bw need to update to latests on external reads
   function availableLiquidity(
     VPool storage self
   ) internal view returns (uint256) {
@@ -338,15 +340,14 @@ library VirtualPool {
     );
 
     // Check that the pool has enough liquidity to withdraw
-    if (
-      RayMath.RAY * 100 <
-      utilizationRate(
+    uint256 utilization = utilizationRate(
         0,
         0,
         self.slot0.totalInsuredCapital,
         availableLiquidity(self) - info.newUserCapital
-      )
-    ) revert LiquidityNotAvailable();
+    );
+    if (FULL_UTILIZATION_RATE < utilization)
+      revert LiquidityNotAvailable();
 
     // Return the user's capital & strategy rewards for withdrawal
     return (info.newUserCapital, info.strategyRewards);
@@ -753,7 +754,7 @@ library VirtualPool {
         __slot0.tick = __tickNext;
         __liquidityIndex +=
           (__uRate.rayMul(__pRate) * __secondsStep) /
-          31536000;
+          YEAR;
         __secondsGap -= __secondsStep;
 
         if (__initialized) {
@@ -779,7 +780,7 @@ library VirtualPool {
         __slot0.tick += uint32(__secondsGap / __slot0.secondsPerTick);
         __liquidityIndex +=
           (__uRate.rayMul(__pRate) * __secondsGap) /
-          31536000;
+          YEAR;
         __secondsGap = 0;
       }
     }
@@ -917,12 +918,15 @@ library VirtualPool {
         formula.rSlope1.rayMul(
           utilizationRate_.rayDiv(formula.uOptimal)
         );
+    } else if (FULL_UTILIZATION_RATE < utilizationRate_) {
+      // This means the pool is currently overused
+      return formula.r0 + formula.rSlope1 + formula.rSlope2;
     } else {
       return
         formula.r0 +
         formula.rSlope1 +
         (formula.rSlope2 * (utilizationRate_ - formula.uOptimal)) /
-        (100 * RayMath.RAY - formula.uOptimal) /
+        (FULL_UTILIZATION_RATE - formula.uOptimal) /
         100;
     }
   }
@@ -976,9 +980,8 @@ library VirtualPool {
     uint256 _insuredCapital,
     uint256 _premiumRate //Ray
   ) private pure returns (uint256) {
-    //31536000 * 100 = (365 * 24 * 60 * 60) * 100 // total seconds per year * 100
     return
-      ((_premium * 3153600000) / _insuredCapital).rayDiv(
+      ((_premium * YEAR * 100) / _insuredCapital).rayDiv(
         _premiumRate
       );
   }

@@ -822,9 +822,9 @@ contract LiquidityManager is
         );
 
         // Reduce available liquidity,
-        // at i = 0 this is the self liquidity of claim's pool
+        // at i = 0 this is the self liquidity of cover's pool
         pool0.overlaps[poolId1] -= amountToRemove;
-
+        // Only remove deps liquidity if the pool of the cover
         if (i != 0) {
           // Check all pool combinations to reduce overlapping capital
           for (uint64 j; j < nbPools; j++) {
