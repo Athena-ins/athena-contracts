@@ -30,7 +30,12 @@ error PoolHasOnGoingClaims();
  * @author vblackwhale
  *
  * Definitions:
- * - ticks: a tick is a variable time unit expressed in seconds. The first tick is initialized with the tick max value of 86400 seconds (1 day). It can be explained as a variable amount of cover time bought with the premiums. This is why when the pool's usage rises, the current tick's value decreases and conversely when the pool's usage decreases, the tick increases.
+ *
+ * Ticks:
+ * They are a serie equidistant points in time who's distance from one another is variable.
+ * Initially the tick after the first tick is at a distance of 86400 seconds (1 day), its maximum amount.
+ * The distance between ticks will reduce as usage grows and increase when usage falls.
+ * The change in distance represents the change in premium cost of cover time in relation to usage.
  */
 library VirtualPool {
   using VirtualPool for VPool;
@@ -58,7 +63,7 @@ library VirtualPool {
 
   struct Slot0 {
     uint32 tick; // The last tick at which the pool's liquidity was updated
-    uint256 secondsPerTick;
+    uint256 secondsPerTick; // The distance in seconds between ticks
     uint256 totalInsuredCapital;
     uint256 remainingCovers;
     uint256 lastUpdateTimestamp;
@@ -340,7 +345,7 @@ library VirtualPool {
     );
 
     // Check that the pool has enough liquidity to withdraw
-    uint256 utilization = utilizationRate(
+    uint256 utilization = getUtilizationRate(
         0,
         0,
         self.slot0.totalInsuredCapital,
@@ -394,12 +399,17 @@ library VirtualPool {
 
     uint256 currentPremiumRate = getPremiumRate(
       self,
-      utilizationRate(0, 0, totalInsuredCapital, available)
+      getUtilizationRate(0, 0, totalInsuredCapital, available)
     );
 
     uint256 beginPremiumRate = getPremiumRate(
       self,
-      utilizationRate(coverAmount_, 0, totalInsuredCapital, available)
+      getUtilizationRate(
+        coverAmount_,
+        0,
+        totalInsuredCapital,
+        available
+      )
     );
 
     uint256 durationInSeconds = durationSecondsUnit(
@@ -445,11 +455,16 @@ library VirtualPool {
 
     uint256 currentPremiumRate = getPremiumRate(
       self,
-      utilizationRate(0, 0, totalInsuredCapital, available)
+      getUtilizationRate(0, 0, totalInsuredCapital, available)
     );
     uint256 newPremiumRate = getPremiumRate(
       self,
-      utilizationRate(0, coverAmount_, totalInsuredCapital, available)
+      getUtilizationRate(
+        0,
+        coverAmount_,
+        totalInsuredCapital,
+        available
+      )
     );
 
     uint256 newSecondsPerTick = getSecondsPerTick(
@@ -522,11 +537,11 @@ library VirtualPool {
     uint256 totalInsured = self.slot0.totalInsuredCapital;
     uint256 currentPremiumRate = getPremiumRate(
       self,
-      utilizationRate(0, 0, totalInsured, available)
+      getUtilizationRate(0, 0, totalInsured, available)
     );
     uint256 newPremiumRate = getPremiumRate(
       self,
-      utilizationRate(
+      getUtilizationRate(
         0,
         0,
         totalInsured,
@@ -612,7 +627,7 @@ library VirtualPool {
         .rayMul(coverPremium.beginPremiumRate / 100) / 365;
       uint256 currentPremiumRate = getPremiumRate(
         self,
-        utilizationRate(0, 0, slot0.totalInsuredCapital, available)
+        getUtilizationRate(0, 0, slot0.totalInsuredCapital, available)
       );
 
       info.currentEmissionRate = getEmissionRate(
@@ -648,7 +663,7 @@ library VirtualPool {
 
           currentPremiumRate = getPremiumRate(
             self,
-            utilizationRate(
+            getUtilizationRate(
               0,
               0,
               slot0.totalInsuredCapital,
@@ -666,6 +681,19 @@ library VirtualPool {
     }
   }
 
+  /**
+   * @notice Mutates a slot0 to reflect states changes upon crossing an initialized tick.
+   * The covers crossed tick are expired and the pool's liquidity is updated.
+   *
+   * @dev It must be mutative so it can be used by read & write fns.
+   *
+   * @param self The pool
+   * @param slot0_ The slot0 to mutate
+   * @param availableLiquidity_ The available liquidity of the pool
+   * @param tick_ The tick to cross
+   *
+   * @return The mutated slot0
+   */
   function _crossingInitializedTick(
     VPool storage self,
     Slot0 memory _slot0,
@@ -707,11 +735,16 @@ library VirtualPool {
       __newPremiumRate
     );
 
-    _slot0.totalInsuredCapital -= __insuredCapitalToRemove;
-    _slot0.remainingCovers -= coverIds.length;
-  }
-
-  function _actualizingUntil(
+  /**
+   * @notice Computes an updated slot0 & liquidity index up to a timestamp.
+   * These changes are virtual an not reflected in storage in this function.
+   *
+   * @param self The pool
+   * @param timestamp_ The timestamp to update the slot0 & liquidity index to
+   *
+   * @return slot0 The updated slot0
+   * @return liquidityIndex The updated liquidity index
+   */
     VPool storage self,
     uint256 _dateInSeconds
   )
@@ -994,7 +1027,7 @@ library VirtualPool {
   }
 
   // returns actual usage rate on capital insured / capital provided for insurance
-  function utilizationRate(
+  function getUtilizationRate(
     uint256 _insuredCapitalToAdd,
     uint256 _insuredCapitalToRemove,
     uint256 _totalInsuredCapital,
