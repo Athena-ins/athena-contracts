@@ -225,7 +225,7 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
   }
 
   function getPoolCoverTerms(
-    uint128 poolId
+    uint64 poolId
   ) external view returns (string memory) {
     return poolIdToCoverTerms[poolId];
   }
@@ -380,7 +380,7 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
   //  * @return claimsInfo All the protocol's claims
   //  */
   // function claimsByProtocol(
-  //   uint128 poolId_
+  //   uint64 poolId_
   // ) external view returns (Claim[] memory claimsInfo) {
   //   uint256 nbClaims = 0;
   //   for (uint256 i = 0; i < nextClaimId; i++) {
@@ -451,7 +451,7 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
    * @param ipfsAgreementCid_ The IPFS CID of the meta evidence
    */
   function addCoverTermsForPool(
-    uint128 poolId_,
+    uint64 poolId_,
     string calldata ipfsAgreementCid_
   ) external onlyLiquidityManager {
     poolIdToCoverTerms[poolId_] = ipfsAgreementCid_;

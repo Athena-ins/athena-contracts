@@ -3,7 +3,7 @@ pragma solidity 0.8.20;
 
 interface IClaimManager {
   function getPoolCoverTerms(
-    uint128 poolId
+    uint64 poolId
   ) external view returns (string memory);
 
   function claimInitiator(
@@ -15,7 +15,7 @@ interface IClaimManager {
   ) external view returns (address);
 
   function addCoverTermsForPool(
-    uint128 poolId_,
+    uint64 poolId_,
     string calldata ipfsAgreementCid_
   ) external;
 }

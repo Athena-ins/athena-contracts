@@ -79,10 +79,10 @@ library VirtualPool {
   }
 
   struct Compensation {
-    uint128 fromPoolId;
+    uint64 fromPoolId;
     uint256 ratio;
     uint256 rewardIndexBeforeClaim;
-    mapping(uint128 _poolId => uint256 _amount) liquidityIndexBeforeClaim;
+    mapping(uint64 _poolId => uint256 _amount) liquidityIndexBeforeClaim;
   }
 
   struct UpdatedPositionInfo {
@@ -95,7 +95,7 @@ library VirtualPool {
   // ======= VIRTUAL STORAGE ======= //
 
   struct VPoolRead {
-    uint128 poolId;
+    uint64 poolId;
     uint256 feeRate; //Ray
     Formula formula;
     Slot0 slot0;
@@ -105,12 +105,12 @@ library VirtualPool {
     address underlyingAsset;
     address wrappedAsset;
     bool isPaused;
-    uint128[] overlappedPools;
+    uint64[] overlappedPools;
     uint256[] compensationIds;
   }
 
   struct VPool {
-    uint128 poolId;
+    uint64 poolId;
     uint256 feeRate; // amount of fees on premiums in RAY
     IEcclesiaDao dao;
     IStrategyManager strategyManager;
@@ -122,13 +122,13 @@ library VirtualPool {
     address underlyingAsset; // asset required by the strategy
     address wrappedAsset; // tokenised strategy shares (ex: aTokens)
     bool isPaused;
-    uint128[] overlappedPools;
+    uint64[] overlappedPools;
     uint256 ongoingClaims;
     uint256[] compensationIds;
     /// @dev poolId 0 -> poolId 0 points to a pool's available liquidity
     /// @dev liquidity overlap is always registered in the lower poolId
     // Maps poolId 0 -> poolId 1 -> overlapping capital
-    mapping(uint128 _poolId => uint256 _amount) overlaps;
+    mapping(uint64 _poolId => uint256 _amount) overlaps;
     mapping(uint256 _positionId => LpInfo) lpInfos;
     mapping(uint24 => uint256) tickBitmap;
     // Maps a tick to the list of cover IDs
@@ -146,7 +146,7 @@ library VirtualPool {
   // ======= VIRTUAL CONSTRUCTOR ======= //
 
   struct VPoolConstructorParams {
-    uint128 poolId;
+    uint64 poolId;
     IEcclesiaDao dao;
     IStrategyManager strategyManager;
     uint256 strategyId;
@@ -280,7 +280,7 @@ library VirtualPool {
     address account_,
     uint256 amount_,
     uint256 yieldBonus_,
-    uint128[] storage poolIds_
+    uint64[] storage poolIds_
   ) internal returns (uint256, uint256) {
     // Get the updated position info
     UpdatedPositionInfo memory info = _getUpdatedPositionInfo(
@@ -313,7 +313,7 @@ library VirtualPool {
     address account_,
     uint256 amount_,
     uint256 yieldBonus_,
-    uint128[] storage poolIds_
+    uint64[] storage poolIds_
   ) internal returns (uint256, uint256) {
     // Pool is locked while there are ongoing claims
     if (0 < self.ongoingClaims) revert PoolHasOnGoingClaims();
@@ -812,7 +812,7 @@ library VirtualPool {
     VPool storage self,
     uint256 tokenId_,
     uint256 userCapital_,
-    uint128[] storage poolIds_
+    uint64[] storage poolIds_
   ) private view returns (UpdatedPositionInfo memory info) {
     info.newLpInfo = self.lpInfos[tokenId_];
     info.newUserCapital = userCapital_;
@@ -840,7 +840,7 @@ library VirtualPool {
 
       // Check if the comp is incoming from one of the pools in the position
       for (uint256 j; j < nbPools; j++) {
-        uint128 poolId = poolIds_[j];
+        uint64 poolId = poolIds_[j];
         if (poolId != comp.fromPoolId) continue;
 
         uint256 liquidityIndexBeforeClaim = comp

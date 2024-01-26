@@ -183,7 +183,7 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
       .positions(_tokenId);
 
     uint256 amount = lpPosition.supplied;
-    uint128[] memory poolIds = lpPosition.poolIds;
+    uint64[] memory poolIds = lpPosition.poolIds;
 
     uint256 nbPositionPools = poolIds.length;
     uint256 nbCampaigns = _campaignIDs.length;

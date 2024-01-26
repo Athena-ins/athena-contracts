@@ -34,7 +34,7 @@ error OnlyClaimManager();
 error PoolIsPaused();
 error PoolIdsMustBeUniqueAndAscending();
 error AmountOfPoolsIsAboveMaxLeverage();
-error IncompatiblePools(uint128 poolIdA, uint128 poolIdB);
+error IncompatiblePools(uint64 poolIdA, uint64 poolIdB);
 error WithdrawCommitDelayNotReached();
 error InsufficientLiquidityForCover();
 error RatioAbovePoolCapacity();
@@ -64,8 +64,7 @@ contract LiquidityManager is
   uint256 public withdrawDelay; // in seconds
   uint256 public maxLeverage;
   // Maps pool0 -> pool1 -> areCompatible for LP leverage
-  mapping(uint128 => mapping(uint128 => bool))
-    public arePoolCompatible;
+  mapping(uint64 => mapping(uint64 => bool)) public arePoolCompatible;
 
   /// The ID of the next cover to be minted
   uint256 public nextCoverId;
@@ -85,9 +84,9 @@ contract LiquidityManager is
     public _compensations;
 
   /// The token ID position data
-  uint128 public nextPoolId;
+  uint64 public nextPoolId;
   /// Maps a pool ID to the virtualized pool's storage
-  mapping(uint128 _id => VirtualPool.VPool) private _pools;
+  mapping(uint64 _id => VirtualPool.VPool) private _pools;
 
   // ======= CONSTRUCTOR ======= //
 
@@ -178,7 +177,7 @@ contract LiquidityManager is
   }
 
   function poolInfo(
-    uint128 poolId_
+    uint64 poolId_
   ) external view returns (VirtualPool.VPoolRead memory) {
     VirtualPool.VPool storage pool = _pools[poolId_];
 
@@ -200,8 +199,8 @@ contract LiquidityManager is
   }
 
   function poolOverlaps(
-    uint128 poolId0_,
-    uint128 poolId1_
+    uint64 poolId0_,
+    uint64 poolId1_
   ) external view returns (uint256) {
     return _pools[poolId0_].overlaps[poolId1_];
   }
@@ -216,10 +215,10 @@ contract LiquidityManager is
     uint256 r0_,
     uint256 rSlope1_,
     uint256 rSlope2_,
-    uint128[] calldata compatiblePools_
+    uint64[] calldata compatiblePools_
   ) external onlyOwner {
     // Save pool ID to memory and update for next
-    uint128 poolId = nextPoolId;
+    uint64 poolId = nextPoolId;
     nextPoolId++;
 
     (address underlyingAsset, address wrappedAsset) = strategyManager
@@ -254,13 +253,13 @@ contract LiquidityManager is
     // @dev Registered both ways for safety
     uint256 nbPools = compatiblePools_.length;
     for (uint256 i; i < nbPools; i++) {
-      uint128 compatiblePoolId = compatiblePools_[i];
+      uint64 compatiblePoolId = compatiblePools_[i];
       arePoolCompatible[poolId][compatiblePoolId] = true;
       arePoolCompatible[compatiblePoolId][poolId] = true;
     }
   }
 
-  function purgeExpiredCovers(uint128 poolId_) external {
+  function purgeExpiredCovers(uint64 poolId_) external {
     // Clean pool from expired covers
     _pools[poolId_]._purgeExpiredCovers();
   }
@@ -276,7 +275,7 @@ contract LiquidityManager is
   /// ======= BUY COVER ======= ///
 
   function buyCover(
-    uint128 poolId_,
+    uint64 poolId_,
     uint256 coverAmount_,
     uint256 premiums_
   ) external {
@@ -399,7 +398,7 @@ contract LiquidityManager is
   function createPosition(
     uint256 amount,
     bool isWrapped,
-    uint128[] calldata poolIds
+    uint64[] calldata poolIds
   ) external {
     // Check that the amount of pools is below the max leverage
     if (maxLeverage < poolIds.length)
@@ -625,14 +624,14 @@ contract LiquidityManager is
 
   /// @dev Pool IDs must be checked to ensure they are unique and ascending
   function _addOverlappingCapitalAfterCheck(
-    uint128[] memory poolIds_,
+    uint64[] memory poolIds_,
     uint256 tokenId_,
     uint256 amount_
   ) internal {
     uint256 nbPoolIds = poolIds_.length;
 
-    for (uint128 i; i < nbPoolIds; i++) {
-      uint128 poolId0 = poolIds_[i];
+    for (uint256 i; i < nbPoolIds; i++) {
+      uint64 poolId0 = poolIds_[i];
       VirtualPool.VPool storage pool0 = _pools[poolId0];
 
       // Check if pool is currently paused
@@ -651,8 +650,8 @@ contract LiquidityManager is
        *
        * The loop starts at i + 1 to avoid redundant combinations.
        */
-      for (uint128 j = i + 1; j < nbPoolIds; j++) {
-        uint128 poolId1 = poolIds_[j];
+      for (uint256 j = i + 1; j < nbPoolIds; j++) {
+        uint64 poolId1 = poolIds_[j];
         VirtualPool.VPool storage pool1 = _pools[poolId1];
 
         // Check if pool ID is greater than the previous one
@@ -683,12 +682,12 @@ contract LiquidityManager is
     address account_,
     uint256 amount_,
     uint256 yieldBonus_,
-    uint128[] storage poolIds_
+    uint64[] storage poolIds_
   ) internal returns (uint256 capital, uint256 rewards) {
     uint256 nbPoolIds = poolIds_.length;
 
-    for (uint128 i; i < nbPoolIds; i++) {
-      uint128 poolId0 = poolIds_[i];
+    for (uint256 i; i < nbPoolIds; i++) {
+      uint64 poolId0 = poolIds_[i];
       VirtualPool.VPool storage pool0 = _pools[poolId0];
 
       // Need to clean covers to avoid them causing a utilization overflow
@@ -712,8 +711,8 @@ contract LiquidityManager is
 
       // Considering the verification that pool IDs are unique & ascending
       // then start index is i to reduce required number of loops
-      for (uint128 j = i; j < nbPoolIds; j++) {
-        uint128 poolId1 = poolIds_[j];
+      for (uint256 j = i; j < nbPoolIds; j++) {
+        uint64 poolId1 = poolIds_[j];
         pool0.overlaps[poolId1] -= newUserCapital;
       }
     }
@@ -734,7 +733,7 @@ contract LiquidityManager is
   }
 
   function attemptReopenCover(
-    uint128 poolId,
+    uint64 poolId,
     uint256 coverAmount,
     uint256 payoutAmount,
     uint256 premiums
@@ -756,7 +755,7 @@ contract LiquidityManager is
     uint256 coverId_,
     uint256 amount_
   ) external onlyClaimManager {
-    uint128 poolId = _covers[coverId_].poolId;
+    uint64 poolId = _covers[coverId_].poolId;
     VirtualPool.VPool storage poolA = _pools[poolId];
     uint256 ratio = amount_.rayDiv(poolA.availableLiquidity());
     // The ration cannot be over 100% of the pool's liquidity (1 RAY)
@@ -779,11 +778,11 @@ contract LiquidityManager is
     compensation.ratio = ratio;
     compensation.rewardIndexBeforeClaim = rewardIndex;
 
-    for (uint128 i; i < nbPools; i++) {
-      uint128 poolIdB = poolA.overlappedPools[i];
+    for (uint256 i; i < nbPools; i++) {
+      uint64 poolIdB = poolA.overlappedPools[i];
       VirtualPool.VPool storage poolB = _pools[poolIdB];
 
-      (VirtualPool.VPool storage pool0, uint128 poolId1) = poolId <
+      (VirtualPool.VPool storage pool0, uint64 poolId1) = poolId <
         poolIdB
         ? (poolA, poolIdB)
         : (poolB, poolId);
@@ -815,8 +814,8 @@ contract LiquidityManager is
 
         if (i != 0) {
           // Check all pool combinations to reduce overlapping capital
-          for (uint128 j; j < nbPools; j++) {
-            uint128 poolIdC = poolA.overlappedPools[j];
+          for (uint64 j; j < nbPools; j++) {
+            uint64 poolIdC = poolA.overlappedPools[j];
             if (poolIdC != poolId)
               if (poolIdB <= poolIdC) {
                 poolB.overlaps[poolIdC] -= amountToRemove;

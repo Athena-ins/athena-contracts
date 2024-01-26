@@ -5,7 +5,7 @@ interface ILiquidityManager {
   // ======= STRUCTS ======= //
 
   struct CoverRead {
-    uint128 poolId;
+    uint64 poolId;
     uint256 coverAmount;
     uint256 premiums;
     uint256 start;
@@ -15,7 +15,7 @@ interface ILiquidityManager {
   }
 
   struct Cover {
-    uint128 poolId;
+    uint64 poolId;
     uint256 coverAmount;
     uint256 premiums;
     uint256 start;
@@ -25,11 +25,11 @@ interface ILiquidityManager {
   struct Position {
     uint256 supplied;
     uint256 commitWithdrawalTimestamp;
-    uint128[] poolIds;
+    uint64[] poolIds;
   }
 
   struct PoolOverlap {
-    uint128 poolId;
+    uint64 poolId;
     uint256 amount;
   }
 
