@@ -64,7 +64,6 @@ library VirtualPool {
   struct LpInfo {
     uint256 beginLiquidityIndex;
     uint256 beginClaimIndex;
-    uint256 beginRewardIndex;
   }
 
   struct CoverPremiums {
@@ -141,6 +140,7 @@ library VirtualPool {
     function(uint256)
       view
       returns (Compensation storage) getCompensation;
+    function(uint256) view returns (uint256) posRewardIndex;
   }
 
   // ======= VIRTUAL CONSTRUCTOR ======= //
@@ -164,6 +164,7 @@ library VirtualPool {
     function(uint256)
       view
       returns (Compensation storage) getCompensation;
+    function(uint256) view returns (uint256) posRewardIndex;
   }
 
   function _vPoolConstructor(
@@ -201,6 +202,7 @@ library VirtualPool {
     self.coverSize = params.coverSize;
     self.expireCover = params.expireCover;
     self.getCompensation = params.getCompensation;
+    self.posRewardIndex = params.posRewardIndex;
   }
 
   // ======= EVENTS ======= //
@@ -241,16 +243,11 @@ library VirtualPool {
   ) internal {
     self._updateSlot0WhenAvailableLiquidityChange(amount_, 0);
 
-    uint256 beginRewardIndex = self.strategyManager.getRewardIndex(
-      self.strategyId
-    );
-
     // This sets the point from which the position earns rewards & is impacted by claims
     // also overwrites previous LpInfo after a withdrawal
     self.lpInfos[tokenId_] = LpInfo({
       beginLiquidityIndex: self.liquidityIndex,
-      beginClaimIndex: self.compensationIds.length,
-      beginRewardIndex: beginRewardIndex
+      beginClaimIndex: self.compensationIds.length
     });
   }
 
@@ -825,6 +822,7 @@ library VirtualPool {
     uint256 endCompensationId = self.compensationIds.length;
     uint256 nbPools = poolIds_.length;
 
+    uint256 rewardIndex = self.posRewardIndex(tokenId_);
     /**
      * Parse each claim that may affect capital due to overlap in order to
      * compute rewards on post compensation capital
@@ -856,12 +854,12 @@ library VirtualPool {
           itCompounds
             ? info.newUserCapital + info.strategyRewards
             : info.newUserCapital,
-          info.newLpInfo.beginRewardIndex,
+          rewardIndex,
           comp.rewardIndexBeforeClaim
         );
 
         // Register up to where the rewards have been accumulated
-        info.newLpInfo.beginRewardIndex = comp.rewardIndexBeforeClaim;
+        rewardIndex = comp.rewardIndexBeforeClaim;
         info
           .newLpInfo
           .beginLiquidityIndex = liquidityIndexBeforeClaim;
@@ -885,14 +883,13 @@ library VirtualPool {
       itCompounds
         ? info.newUserCapital + info.strategyRewards
         : info.newUserCapital,
-      info.newLpInfo.beginRewardIndex,
+      rewardIndex,
       latestRewardIndex
     );
     info.coverRewards += info.newUserCapital.rayMul(
       self.liquidityIndex - info.newLpInfo.beginLiquidityIndex
     );
 
-    info.newLpInfo.beginRewardIndex = latestRewardIndex;
     info.newLpInfo.beginLiquidityIndex = self.liquidityIndex;
     info.newLpInfo.beginClaimIndex = endCompensationId;
   }

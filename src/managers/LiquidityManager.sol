@@ -77,6 +77,7 @@ contract LiquidityManager is
   /// User LP data
   /// @dev left public to read positions without its poolIds array
   mapping(uint256 _id => Position) public _positions;
+  mapping(uint256 _id => uint256) public _posRewardIndex;
 
   /// The ID of the next claim to be
   uint256 public nextCompensationId;
@@ -138,6 +139,12 @@ contract LiquidityManager is
     uint256 tokenId_
   ) external view returns (Position memory) {
     return _positions[tokenId_];
+  }
+
+  function posRewardIndex(
+    uint256 tokenId_
+  ) internal view returns (uint256) {
+    return _posRewardIndex[tokenId_];
   }
 
   function covers(
@@ -241,7 +248,8 @@ contract LiquidityManager is
         rSlope2: rSlope2_, //Ray
         coverSize: coverSize,
         expireCover: _expireCover,
-        getCompensation: _getCompensation
+        getCompensation: _getCompensation,
+        posRewardIndex: posRewardIndex
       });
 
     // Get storage pointer to pool
@@ -414,6 +422,11 @@ contract LiquidityManager is
       ? strategyManager.wrappedToUnderlying(strategyId, amount)
       : amount;
 
+    // Save index from which the position will start accruing strategy rewards
+    _posRewardIndex[tokenId] = strategyManager.getRewardIndex(
+      strategyId
+    );
+
     // Check pool compatibility & underlying token then register overlapping capital
     _addOverlappingCapitalAfterCheck(
       poolIds,
@@ -464,7 +477,7 @@ contract LiquidityManager is
 
     // Take interests in all pools before update
     // @dev Needed to keep register rewards & claims impact on capital
-    takeInterests(tokenId_);
+    _takeInterests(tokenId_);
 
     uint256 amountUnderlying = isWrapped
       ? strategyManager.wrappedToUnderlying(strategyId, amount)
