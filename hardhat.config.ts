@@ -113,7 +113,7 @@ const config: HardhatUserConfig = {
         settings: {
           optimizer: {
             enabled: true,
-            runs: 1000,
+            runs: 1_000,
           },
         },
       },
@@ -147,12 +147,13 @@ const config: HardhatUserConfig = {
   gasReporter: {
     enabled: REPORT_GAS === "true",
     currency: "USD",
-    token: "ETH",
-    // @dev Switch between fixed and dynamic gas price
-    gasPrice: 20, // in gwei
+    token: "USDT", // Use USDT to hack our way to a fixed ETH price
+    coinmarketcap: COINMARKETCAP_API_KEY || "",
+
+    // @dev Switch between fixed and dynamic gas & ETH price
+    gasPrice: 20 * 2000, // gwei price * price of ETH in USDT
     // gasPriceApi:
     //   "https://api.etherscan.io/api?module=proxy&action=eth_gasPrice",
-    coinmarketcap: COINMARKETCAP_API_KEY || "",
   },
 
   // ====== Etherscan ====== //
