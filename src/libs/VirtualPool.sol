@@ -346,10 +346,10 @@ library VirtualPool {
 
     // Check that the pool has enough liquidity to withdraw
     uint256 utilization = getUtilizationRate(
-        0,
-        0,
-        self.slot0.totalInsuredCapital,
-        availableLiquidity(self) - info.newUserCapital
+      0,
+      0,
+      self.slot0.totalInsuredCapital,
+      availableLiquidity(self) - info.newUserCapital
     );
     if (FULL_UTILIZATION_RATE < utilization)
       revert LiquidityNotAvailable();
@@ -558,10 +558,10 @@ library VirtualPool {
 
   function _purgeExpiredCovers(VPool storage self) internal {
     if (0 < self.slot0.remainingCovers) {
-      (
-        Slot0 memory slot0,
-        uint256 liquidityIndex
-      ) = _actualizingUntil(self, block.timestamp);
+      (Slot0 memory slot0, uint256 liquidityIndex) = _refresh(
+        self,
+        block.timestamp
+      );
 
       uint32 observedTick = self.slot0.tick;
       bool isInitialized;
@@ -613,7 +613,7 @@ library VirtualPool {
   ) internal view returns (CoverInfo memory info) {
     // For reads we sync the slot0 to the current timestamp to have latests data
     (Slot0 memory slot0, ) = syncSlot0_
-      ? _actualizingUntil(self, block.timestamp)
+      ? _refresh(self, block.timestamp)
       : (self.slot0, 0);
     CoverPremiums storage coverPremium = self.coverPremiums[coverId_];
 
@@ -728,7 +728,7 @@ library VirtualPool {
     );
 
     utilizationRate = getUtilizationRate(
-        0,
+      0,
       insuredCapitalToRemove,
       slot0_.totalInsuredCapital,
       availableLiquidity_
@@ -757,80 +757,78 @@ library VirtualPool {
    * @return slot0 The updated slot0
    * @return liquidityIndex The updated liquidity index
    */
+  function _refresh(
     VPool storage self,
-    uint256 _dateInSeconds
+    uint256 timestamp_
   )
     private
     view
-    returns (Slot0 memory __slot0, uint256 __liquidityIndex)
+    returns (Slot0 memory /*slot0*/, uint256 /*liquidityIndex*/)
   {
-    __slot0 = Slot0({
-      tick: self.slot0.tick,
-      secondsPerTick: self.slot0.secondsPerTick,
-      totalInsuredCapital: self.slot0.totalInsuredCapital,
-      remainingCovers: self.slot0.remainingCovers,
-      lastUpdateTimestamp: self.slot0.lastUpdateTimestamp
-    });
+    // Make copies in memory to allow for mutations
+    Slot0 memory slot0 = self.slot0;
 
-    __liquidityIndex = self.liquidityIndex;
+    uint256 liquidityIndex = self.liquidityIndex;
+    uint256 available = availableLiquidity(self);
+    // The remaining time in seconds to run through to sync up to the timestamp
 
-    uint256 __availableLiquidity = availableLiquidity(self);
-    uint256 __secondsGap = _dateInSeconds -
-      __slot0.lastUpdateTimestamp;
-
-    uint256 __uRate = utilizationRate(
+    uint256 utilization = getUtilizationRate(
       0,
       0,
-      __slot0.totalInsuredCapital,
-      __availableLiquidity
-    ) / 100;
-
-    uint256 __pRate = getPremiumRate(self, __uRate * 100) / 100;
-
-    while (0 < __secondsGap) {
-      (uint32 __tickNext, bool __initialized) = self
+      slot0.totalInsuredCapital,
+      available
+    );
+    uint256 premiumRate = getPremiumRate(self, utilization);
+    uint32 tick = slot0.tick;
+    uint256 remaining = timestamp_ - slot0.lastUpdateTimestamp;
+    while (0 < remaining) {
+      (uint32 nextTick, bool isInitialized) = self
         .tickBitmap
-        .nextInitializedTickInTheRightWithinOneWord(__slot0.tick);
+        .nextInitializedTickInTheRightWithinOneWord(tick);
 
-      uint256 __secondsStep = (__tickNext - __slot0.tick) *
-        __slot0.secondsPerTick;
+      // Tick size in seconds
+      uint256 tickSize = (nextTick - tick) * slot0.secondsPerTick;
 
-      if (__secondsStep <= __secondsGap) {
-        __slot0.tick = __tickNext;
-        __liquidityIndex +=
-          (__uRate.rayMul(__pRate) * __secondsStep) /
-          YEAR;
-        __secondsGap -= __secondsStep;
+      if (tickSize <= remaining) {
+        tick = nextTick;
 
-        if (__initialized) {
-          _crossingInitializedTick(
+        if (isInitialized) {
+          // If the tick has covers then expire then upon crossing the tick & update liquidity
+          // Save the updated slot0
+          (
+            slot0,
+            utilization,
+            premiumRate
+          ) = _crossingInitializedTick(
             self,
-            __slot0,
-            __availableLiquidity,
-            __tickNext
+            slot0,
+            available,
+            nextTick
           );
-
-          __uRate =
-            utilizationRate(
-              0,
-              0,
-              __slot0.totalInsuredCapital,
-              __availableLiquidity
-            ) /
-            100;
-
-          __pRate = getPremiumRate(self, __uRate * 100) / 100;
         }
-      } else {
-        __slot0.tick += uint32(__secondsGap / __slot0.secondsPerTick);
-        __liquidityIndex +=
-          (__uRate.rayMul(__pRate) * __secondsGap) /
+
+        liquidityIndex +=
+          (utilization.rayMul(premiumRate) * tickSize) /
           YEAR;
-        __secondsGap = 0;
+
+        // Remove parsed tick size from remaining time to current timestamp
+        remaining -= tickSize;
+      } else {
+        tick += uint32(remaining / slot0.secondsPerTick);
+
+        liquidityIndex +=
+          (utilization.rayMul(premiumRate) * remaining) /
+          YEAR;
+
+        break; // remaining is 0
       }
     }
 
-    __slot0.lastUpdateTimestamp = _dateInSeconds;
+    // Update current tick & last update timestamp
+    slot0.tick = tick;
+    slot0.lastUpdateTimestamp = timestamp_;
+
+    return (slot0, liquidityIndex);
   }
 
   /**
