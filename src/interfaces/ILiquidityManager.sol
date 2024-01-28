@@ -51,8 +51,5 @@ interface ILiquidityManager {
 
   function payoutClaim(uint256 poolId_, uint256 amount_) external;
 
-  function yieldBonusUpdate(
-    address account_,
-    uint256 prevYieldBonus_
-  ) external;
+  function yieldBonusUpdate(uint256[] calldata positionIds_) external;
 }

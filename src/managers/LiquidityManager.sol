@@ -30,6 +30,7 @@ import { console } from "hardhat/console.sol";
 
 error OnlyTokenOwner();
 error OnlyClaimManager();
+error OnlyFarmingRange();
 error PoolIsPaused();
 error PoolIdsMustBeUniqueAndAscending();
 error AmountOfPoolsIsAboveMaxLeverage();
@@ -58,7 +59,7 @@ contract LiquidityManager is
   IFarmingRange public farming;
   IEcclesiaDao public ecclesiaDao;
   IStrategyManager public strategyManager;
-  address claimManager;
+  address public claimManager;
 
   uint256 public withdrawDelay; // in seconds
   uint256 public maxLeverage;
@@ -132,6 +133,11 @@ contract LiquidityManager is
 
   modifier onlyClaimManager() {
     if (msg.sender != claimManager) revert OnlyClaimManager();
+    _;
+  }
+
+  modifier onlyFarmingRange() {
+    if (msg.sender != address(farming)) revert OnlyFarmingRange();
     _;
   }
 
@@ -520,9 +526,7 @@ contract LiquidityManager is
 
   /// ======= TAKE LP INTERESTS ======= ///
 
-  function takeInterests(
-    uint256 tokenId_
-  ) public onlyPositionOwner(tokenId_) {
+  function _takeInterests(uint256 tokenId_) private {
     Position storage position = _positions[tokenId_];
     address account = positionToken.ownerOf(tokenId_);
     uint256 yieldBonus = staking.yieldBonusOf(account);
@@ -565,6 +569,24 @@ contract LiquidityManager is
 
     // Update the position capital to reflect potential reduction due to claims
     _positions[tokenId_].supplied = newUserCapital;
+  }
+
+  function takeInterests(
+    uint256 tokenId_
+  ) public onlyPositionOwner(tokenId_) {
+    _takeInterests(tokenId_);
+  }
+
+  /// ======= LP YIELD BONUS ======= ///
+
+  function yieldBonusUpdate(
+    uint256[] calldata positionIds_
+  ) external onlyFarmingRange {
+    // @bw Should take interests in all positions using the prev yield bonus - called on bonus yield change in staking then to farming to get affected token ids of user. Should change yield bonus AFTER tp
+    uint256 nbPositions = positionIds_.length;
+    for (uint256 i; i < nbPositions; i++) {
+      _takeInterests(positionIds_[i]);
+    }
   }
 
   /// ======= CLOSE LP POSITION ======= ///
@@ -627,16 +649,32 @@ contract LiquidityManager is
     position.supplied = 0;
   }
 
-  /// ======= LP YIELD BONUS ======= ///
+  /// ======= LIQUIDITY CHANGES ======= ///
 
-  function yieldBonusUpdate(
-    address account_,
-    uint256 prevYieldBonus_
-  ) external {
-    // @bw Should take interests in all positions using the prev yield bonus
-  }
+  // function _getUpdatedPositionInfo(
+  //   uint256 tokenId_,
+  //   address account_,
+  //   uint256 amount_,
+  //   uint64[] storage poolIds_
+  // )
+  //   private
+  //   view
+  //   returns (
+  //     uint256 newUserCapital,
+  //     uint256 strategyRewards,
+  //     uint256[] memory poolRewards
+  //   )
+  // {
+  //   // Manage before withdraw or take profit pool actions
 
-  /// ======= LIQUIDITY OVERLAPS ======= ///
+  //   // This need to be updated in each pool
+  //   // struct LpInfo {
+  //   //   uint256 beginLiquidityIndex;
+  //   //   uint256 beginClaimIndex;
+  //   //   uint256 beginRewardIndex; // this can be deleted as shared
+  //   // }
+  //   // Manage after withdraw or take profit pool actions
+  // }
 
   /// @dev Pool IDs must be checked to ensure they are unique and ascending
   function _addOverlappingCapitalAfterCheck(
