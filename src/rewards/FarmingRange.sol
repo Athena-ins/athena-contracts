@@ -60,6 +60,8 @@ error BadCoverAmountToPremiumRatio();
 error CoverStillActive();
 // Only liquidity manager can call this function
 error OnlyLiquidityManager();
+// Cannot farm position commited to withdrawal
+error CannotFarmPositionCommitedToWithdrawal();
 
 /**
  * @title FarmingRange
