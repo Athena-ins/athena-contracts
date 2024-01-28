@@ -67,7 +67,7 @@ function makeForkConfig(): HardhatNetworkUserConfig {
 
   const networkConfig = {
     chainId,
-    allowUnlimitedContractSize: false,
+    allowUnlimitedContractSize: true,
     forking: {
       // We can cast safely because we checked for undefined
       url: RPC_URL as string,
@@ -151,7 +151,7 @@ const config: HardhatUserConfig = {
     coinmarketcap: COINMARKETCAP_API_KEY || "",
 
     // @dev Switch between fixed and dynamic gas & ETH price
-    gasPrice: 20 * 2000, // gwei price * price of ETH in USDT
+    gasPrice: 20 * 2233, // gwei price * price of ETH in USDT
     // gasPriceApi:
     //   "https://api.etherscan.io/api?module=proxy&action=eth_gasPrice",
   },
