@@ -618,59 +618,56 @@ library VirtualPool {
       return CoverInfo({ premiumsLeft: 0, currentEmissionRate: 0 });
     } else {
       uint256 available = availableLiquidity(self);
-      uint256 coverBeginEmissionRate = self
-        .coverSize(coverId_)
-        .rayMul(coverPremium.beginPremiumRate / 100) / 365;
+      uint256 beginEmissionRate = self.coverSize(coverId_).rayMul(
+        coverPremium.beginPremiumRate / 100
+      ) / 365;
       uint256 currentPremiumRate = getPremiumRate(
         self,
         getUtilizationRate(0, 0, slot0.totalInsuredCapital, available)
       );
 
       info.currentEmissionRate = getEmissionRate(
-        coverBeginEmissionRate,
+        beginEmissionRate,
         coverPremium.beginPremiumRate,
         currentPremiumRate
       );
 
-      uint256 coverCurrentEmissionRate = info.currentEmissionRate;
+      uint256 emissionRate = info.currentEmissionRate;
       uint32 currentTick = slot0.tick;
 
+      // As long as the tick at which the cover expires is not overtaken
       while (currentTick < coverPremium.lastTick) {
-        (uint32 tickNext, bool initialized) = self
+        (uint32 nextTick, bool initialized) = self
           .tickBitmap
           .nextTick(currentTick);
 
-// New context to avoid stack too deep error
+        // New context to avoid stack too deep error
         {
-          uint32 tick = tickNext < coverPremium.lastTick
-            ? tickNext
+          currentTick = nextTick < coverPremium.lastTick
+            ? nextTick
             : coverPremium.lastTick;
-          uint256 secondsPassed = (tick - currentTick) *
+
+          // Tick size in seconds
+          uint256 tickSize = (nextTick - currentTick) *
             slot0.secondsPerTick;
 
           info.premiumsLeft +=
-            (secondsPassed * coverCurrentEmissionRate) /
+            (tickSize * emissionRate) /
             MAX_SECONDS_PER_TICK;
-
-          currentTick = tick;
         }
 
-        if (initialized && tickNext < coverPremium.lastTick) {
-          // @bw check if need to consume updated data
-          _crossingInitializedTick(self, slot0, available, tickNext);
-
-          currentPremiumRate = getPremiumRate(
+        // If the next tick is initialized does not overtake cover expiry tick
+        if (initialized && nextTick < coverPremium.lastTick) {
+          (slot0, , currentPremiumRate) = _crossingInitializedTick(
             self,
-            getUtilizationRate(
-              0,
-              0,
-              slot0.totalInsuredCapital,
-              available
-            )
+            slot0,
+            available,
+            nextTick
           );
 
-          coverCurrentEmissionRate = getEmissionRate(
-            coverBeginEmissionRate,
+          // @bw should we not use em & prem rate from previous round ?
+          emissionRate = getEmissionRate(
+            beginEmissionRate,
             coverPremium.beginPremiumRate,
             currentPremiumRate
           );
@@ -777,18 +774,19 @@ library VirtualPool {
       available
     );
     uint256 premiumRate = getPremiumRate(self, utilization);
-    uint32 tick = slot0.tick;
+    uint32 currentTick = slot0.tick;
     uint256 remaining = timestamp_ - slot0.lastUpdateTimestamp;
     while (0 < remaining) {
       (uint32 nextTick, bool isInitialized) = self
         .tickBitmap
-        .nextTick(tick);
+        .nextTick(currentTick);
 
       // Tick size in seconds
-      uint256 tickSize = (nextTick - tick) * slot0.secondsPerTick;
+      uint256 tickSize = (nextTick - currentTick) *
+        slot0.secondsPerTick;
 
       if (tickSize <= remaining) {
-        tick = nextTick;
+        currentTick = nextTick;
 
         if (isInitialized) {
           // If the tick has covers then expire then upon crossing the tick & update liquidity
@@ -812,7 +810,7 @@ library VirtualPool {
         // Remove parsed tick size from remaining time to current timestamp
         remaining -= tickSize;
       } else {
-        tick += uint32(remaining / slot0.secondsPerTick);
+        currentTick += uint32(remaining / slot0.secondsPerTick);
 
         liquidityIndex +=
           (utilization.rayMul(premiumRate) * remaining) /
@@ -823,7 +821,7 @@ library VirtualPool {
     }
 
     // Update current tick & last update timestamp
-    slot0.tick = tick;
+    slot0.tick = currentTick;
     slot0.lastUpdateTimestamp = timestamp_;
 
     return (slot0, liquidityIndex);
