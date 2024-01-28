@@ -182,6 +182,10 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
     ILiquidityManager.Position memory lpPosition = liquidityManager
       .positions(_tokenId);
 
+    // Check that the position is not committed to be withdrawn
+    if (lpPosition.commitWithdrawalTimestamp != 0)
+      revert CannotFarmPositionCommitedToWithdrawal();
+
     uint256 amount = lpPosition.supplied;
     uint64[] memory poolIds = lpPosition.poolIds;
 

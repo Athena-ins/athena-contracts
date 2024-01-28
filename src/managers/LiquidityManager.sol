@@ -41,6 +41,9 @@ error RatioAbovePoolCapacity();
 error CoverIsExpired();
 error NotEnoughPremiums();
 error SenderNotLiquidationManager();
+error CannotTakeInterestsIfCommittedWithdrawal();
+error CannotIncreaseIfCommittedWithdrawal();
+error PositionNotCommited();
 
 contract LiquidityManager is
   ILiquidityManager,
@@ -412,6 +415,10 @@ contract LiquidityManager is
 
   /// ======= MAKE LP POSITION ======= ///
 
+  /**
+   *
+   * @dev Positions created after claim creation & before compensation are affected by the claim
+   */
   function createPosition(
     uint256 amount,
     bool isWrapped,
@@ -484,9 +491,13 @@ contract LiquidityManager is
     Position storage position = _positions[tokenId_];
     uint256 strategyId = _pools[position.poolIds[0]].strategyId;
 
+    // Positions that are commit for withdrawal cannot be increased
+    if (position.commitWithdrawalTimestamp != 0)
+      revert CannotIncreaseIfCommittedWithdrawal();
+
     // Take interests in all pools before update
     // @dev Needed to keep register rewards & claims impact on capital
-    _takeInterests(tokenId_);
+    _takeInterests(tokenId_, positionToken.ownerOf(tokenId_));
 
     uint256 amountUnderlying = isWrapped
       ? strategyManager.wrappedToUnderlying(strategyId, amount)
@@ -526,13 +537,22 @@ contract LiquidityManager is
 
   /// ======= TAKE LP INTERESTS ======= ///
 
-  function _takeInterests(uint256 tokenId_) private {
+  function _takeInterests(
+    uint256 tokenId_,
+    address coverRewardsBeneficiary_
+  ) private {
     Position storage position = _positions[tokenId_];
-    address account = positionToken.ownerOf(tokenId_);
-    uint256 yieldBonus = staking.yieldBonusOf(account);
+
+    // Locks interests to avoid abusively early withdrawal commits
+    if (position.commitWithdrawalTimestamp != 0)
+      revert CannotTakeInterestsIfCommittedWithdrawal();
+
+    address posOwner = positionToken.ownerOf(tokenId_);
+    uint256 yieldBonus = staking.yieldBonusOf(posOwner);
 
     uint256 newUserCapital;
     uint256 strategyRewards;
+
     uint256 nbPools = position.poolIds.length;
     for (uint256 i; i < nbPools; i++) {
       VirtualPool.VPool storage pool = _pools[position.poolIds[i]];
@@ -540,20 +560,14 @@ contract LiquidityManager is
       // Clean pool from expired covers
       pool._purgeExpiredCovers();
 
-      (uint256 _newUserCapital, uint256 _strategyRewards) = pool
-        ._takePoolInterests(
-          tokenId_,
-          account,
-          position.supplied,
-          yieldBonus,
-          position.poolIds
-        );
-
-      // Update capital based on claims on last loop
-      if (i == nbPools - 1) {
-        newUserCapital = _newUserCapital;
-        strategyRewards = _strategyRewards;
-      }
+      // These are the same values at each iteration
+      (newUserCapital, strategyRewards) = pool._takePoolInterests(
+        tokenId_,
+        coverRewardsBeneficiary_,
+        position.supplied,
+        yieldBonus,
+        position.poolIds
+      );
     }
 
     // All pools have same strategy since they are compatible
@@ -563,7 +577,7 @@ contract LiquidityManager is
       strategyId,
       0, // No capital withdrawn
       strategyRewards,
-      account,
+      posOwner, // Always paid out to owner
       yieldBonus
     );
 
@@ -574,18 +588,25 @@ contract LiquidityManager is
   function takeInterests(
     uint256 tokenId_
   ) public onlyPositionOwner(tokenId_) {
-    _takeInterests(tokenId_);
+    _takeInterests(tokenId_, positionToken.ownerOf(tokenId_));
   }
 
   /// ======= LP YIELD BONUS ======= ///
 
   function yieldBonusUpdate(
-    uint256[] calldata positionIds_
+    uint256[] calldata tokenIds_
   ) external onlyFarmingRange {
-    // @bw Should take interests in all positions using the prev yield bonus - called on bonus yield change in staking then to farming to get affected token ids of user. Should change yield bonus AFTER tp
-    uint256 nbPositions = positionIds_.length;
+    /**
+     * // @bw Should take interests in all positions using the prev yield bonus -
+     * called on bonus yield change in staking then to farming to get affected token ids of user.
+     * Should change yield bonus AFTER tp
+     * Should be ok with commit fee redirect since only uncommit positions can farm & farming is required to get the discount
+     *  */
+    address posOwner = positionToken.ownerOf(tokenIds_[0]);
+
+    uint256 nbPositions = tokenIds_.length;
     for (uint256 i; i < nbPositions; i++) {
-      _takeInterests(positionIds_[i]);
+      _takeInterests(tokenIds_[i], posOwner);
     }
   }
 
@@ -596,9 +617,26 @@ contract LiquidityManager is
   ) external onlyPositionOwner(tokenId_) {
     Position storage position = _positions[tokenId_];
 
-    position.commitWithdrawalTimestamp = block.timestamp;
+    // Take interests in all pools before withdrawal
+    // @dev Any rewards accrued after this point will be send to the leverage risk wallet
+    _takeInterests(tokenId_, positionToken.ownerOf(tokenId_));
 
-    // @bw should take interests now & only withdraw capital after delay so no more rewards are accrued to avoid commit on deposit
+    position.commitWithdrawalTimestamp = block.timestamp;
+  }
+
+  function uncommitPositionWithdrawal(
+    uint256 tokenId_
+  ) external onlyPositionOwner(tokenId_) {
+    Position storage position = _positions[tokenId_];
+
+    // Avoid users accidentally paying their rewards to the leverage risk wallet
+    if (position.commitWithdrawalTimestamp == 0)
+      revert PositionNotCommited();
+
+    // Pool rewards after commit are paid in favor of the DAO's leverage risk wallet
+    _takeInterests(tokenId_, address(ecclesiaDao));
+
+    position.commitWithdrawalTimestamp = 0;
   }
 
   function closePosition(
@@ -612,25 +650,27 @@ contract LiquidityManager is
       revert WithdrawCommitDelayNotReached();
 
     address account = positionToken.ownerOf(tokenId_);
-
     uint256 yieldBonus = staking.yieldBonusOf(account);
 
-    (uint256 capital, uint256 rewards) = _removeOverlappingCapital(
-      tokenId_,
-      account,
-      position.supplied,
-      yieldBonus,
-      position.poolIds
-    );
+    (
+      uint256 capital,
+      uint256 strategyRewards
+    ) = _removeOverlappingCapital(
+        tokenId_,
+        account,
+        position.supplied,
+        yieldBonus,
+        position.poolIds
+      );
 
     // All pools have same strategy since they are compatible
-    if (capital != 0 || rewards != 0) {
+    if (capital != 0 || strategyRewards != 0) {
       uint256 strategyId = _pools[position.poolIds[0]].strategyId;
       if (keepWrapped_) {
         strategyManager.withdrawWrappedFromStrategy(
           strategyId,
           capital,
-          rewards,
+          strategyRewards,
           account,
           yieldBonus
         );
@@ -638,7 +678,7 @@ contract LiquidityManager is
         strategyManager.withdrawFromStrategy(
           strategyId,
           capital,
-          rewards,
+          strategyRewards,
           account,
           yieldBonus
         );
@@ -803,7 +843,6 @@ contract LiquidityManager is
   }
 
   // @bw opti - Store single claim in liqman with all liq index of dep pools. Check only from same pool id if single pool pos. Compute new cap & strat Rew & all Prem rew once and not for each pool.
-  // @bw positions created between claim creation & payout will be affected by the claim
   // check if RiskPool can deposit capital to cover the payouts if not enough liquidity
   function payoutClaim(
     uint256 coverId_,

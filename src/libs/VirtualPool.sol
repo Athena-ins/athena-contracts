@@ -270,18 +270,27 @@ library VirtualPool {
   ) private {
     if (0 < rewards_) {
       uint256 fees = _feeFor(rewards_, self.feeRate, yieldBonus_);
-      // The risk fee is only applied when using leverage
-      uint256 leverageFee = nbPools_ == 1
-        ? 0
-        : (rewards_ * (self.leverageFeePerPool * nbPools_)) /
+
+      uint256 leverageFee;
+      if (1 < nbPools_) {
+        // The risk fee is only applied when using leverage
+        leverageFee =
+          (rewards_ * (self.leverageFeePerPool * nbPools_)) /
           RayMath.RAY;
+      } else if (account_ == address(self.dao)) {
+        // Take profits for the DAO accumulate the net in the leverage risk wallet
+        leverageFee = rewards_ - fees;
+      }
 
       uint256 totalFees = fees + leverageFee;
       uint256 net = rewards_ - totalFees;
 
       // Pay position owner
-      IERC20(self.paymentAsset).safeTransfer(account_, net);
-      // Pay treasury
+      if (net == 0) {
+        IERC20(self.paymentAsset).safeTransfer(account_, net);
+      }
+
+      // Pay treasury & leverage risk wallet
       if (totalFees != 0) {
         IERC20(self.paymentAsset).safeTransfer(
           address(self.dao),
@@ -294,6 +303,9 @@ library VirtualPool {
 
   /// -------- TAKE INTERESTS -------- ///
 
+  /**
+   * @dev Need to update user capital & payout strategy rewards upon calling this function
+   */
   function _takePoolInterests(
     VPool storage self,
     uint256 tokenId_,
@@ -347,12 +359,12 @@ library VirtualPool {
       poolIds_
     );
 
-    // Pay cover rewards and send fees to treasury
+    // Pool rewards after commit are paid in favor of the DAO's leverage risk wallet
     _payRewardsAndFees(
       self,
       info.coverRewards,
-      account_,
-      yieldBonus_,
+      address(self.dao),
+      0, // No yield bonus for the DAO
       poolIds_.length
     );
 
