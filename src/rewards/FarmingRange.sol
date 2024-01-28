@@ -318,7 +318,7 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
       : campaign.accRewardPerShare;
 
     _updateCampaign(_campaignID);
-    uint256 _pending = (user.amount * campaign.accRewardPerShare) /
+    uint256 _pending = (user.amount * accRewardPerShare) /
       1e20 -
       user.rewardDebt;
     if (_pending != 0) {
@@ -328,9 +328,7 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
       user.amount = user.amount - _amount;
       campaign.totalStaked = campaign.totalStaked - _amount;
     }
-    user.rewardDebt =
-      (user.amount * campaign.accRewardPerShare) /
-      1e20;
+    user.rewardDebt = (user.amount * accRewardPerShare) / 1e20;
 
     emit Withdraw(owner, _amount, _campaignID);
   }
