@@ -119,6 +119,7 @@ library VirtualPool {
   struct VPool {
     uint64 poolId;
     uint256 feeRate; // amount of fees on premiums in RAY
+    uint256 leverageFeePerPool; // amount of fees per pool when using leverage
     IEcclesiaDao dao;
     IStrategyManager strategyManager;
     Formula formula;
@@ -162,6 +163,7 @@ library VirtualPool {
     address underlyingAsset;
     address wrappedAsset;
     uint256 feeRate; //Ray
+    uint256 leverageFeePerPool; //Ray
     uint256 uOptimal; //Ray
     uint256 r0; //Ray
     uint256 rSlope1; //Ray
@@ -194,6 +196,7 @@ library VirtualPool {
     self.underlyingAsset = params.underlyingAsset;
     self.wrappedAsset = params.wrappedAsset;
     self.feeRate = params.feeRate;
+    self.leverageFeePerPool = params.leverageFeePerPool;
 
     self.formula = Formula({
       uOptimal: params.uOptimal,
@@ -262,17 +265,30 @@ library VirtualPool {
     VPool storage self,
     uint256 rewards_,
     address account_,
-    uint256 yieldBonus_
+    uint256 yieldBonus_,
+    uint256 nbPools_
   ) private {
     if (0 < rewards_) {
       uint256 fees = _feeFor(rewards_, self.feeRate, yieldBonus_);
-      uint256 net = rewards_ - fees;
+      // The risk fee is only applied when using leverage
+      uint256 leverageFee = nbPools_ == 1
+        ? 0
+        : (rewards_ * (self.leverageFeePerPool * nbPools_)) /
+          RayMath.RAY;
+
+      uint256 totalFees = fees + leverageFee;
+      uint256 net = rewards_ - totalFees;
 
       // Pay position owner
       IERC20(self.paymentAsset).safeTransfer(account_, net);
       // Pay treasury
-      IERC20(self.paymentAsset).safeTransfer(address(self.dao), fees);
-      self.dao.accrueRevenue(self.paymentAsset, fees);
+      if (totalFees != 0) {
+        IERC20(self.paymentAsset).safeTransfer(
+          address(self.dao),
+          totalFees
+        );
+        self.dao.accrueRevenue(self.paymentAsset, fees, leverageFee);
+      }
     }
   }
 
@@ -299,7 +315,8 @@ library VirtualPool {
       self,
       info.coverRewards,
       account_,
-      yieldBonus_
+      yieldBonus_,
+      poolIds_.length
     );
 
     // Update lp info to reflect the new state of the position
@@ -335,7 +352,8 @@ library VirtualPool {
       self,
       info.coverRewards,
       account_,
-      yieldBonus_
+      yieldBonus_,
+      poolIds_.length
     );
 
     // Update liquidity index

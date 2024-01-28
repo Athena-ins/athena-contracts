@@ -23,7 +23,6 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol"
 import { console } from "hardhat/console.sol";
 
 // Todo
-// @bw need dynamic risk pool fee system
 // @bw add fns to debug if certain loops become too gas intensive to run in a single block
 // @bw add proxies to major contracts and fns to update state variables
 
@@ -63,6 +62,7 @@ contract LiquidityManager is
 
   uint256 public withdrawDelay; // in seconds
   uint256 public maxLeverage;
+  uint256 public leverageFeePerPool; // Ray
   // Maps pool0 -> pool1 -> areCompatible for LP leverage
   mapping(uint64 => mapping(uint64 => bool)) public arePoolCompatible;
 
@@ -100,7 +100,8 @@ contract LiquidityManager is
     IStrategyManager strategyManager_,
     address claimManager_,
     uint256 withdrawDelay_,
-    uint256 maxLeverage_
+    uint256 maxLeverage_,
+    uint256 leverageFeePerPool_
   ) Ownable(msg.sender) {
     positionToken = positionToken_;
     coverToken = coverToken_;
@@ -112,6 +113,7 @@ contract LiquidityManager is
 
     withdrawDelay = withdrawDelay_;
     maxLeverage = maxLeverage_;
+    leverageFeePerPool = leverageFeePerPool_;
   }
 
   /// ======= MODIFIERS ======= ///
@@ -242,6 +244,7 @@ contract LiquidityManager is
         underlyingAsset: underlyingAsset,
         wrappedAsset: wrappedAsset,
         feeRate: feeRate_, //Ray
+        leverageFeePerPool: leverageFeePerPool, //Ray
         uOptimal: uOptimal_, //Ray
         r0: r0_, //Ray
         rSlope1: rSlope1_, //Ray

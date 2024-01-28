@@ -162,7 +162,7 @@ contract StrategyManager is IStrategyManager, Ownable {
       address(ecclesiaDao)
     );
 
-    ecclesiaDao.accrueRevenue(token_, amount_);
+    ecclesiaDao.accrueRevenue(token_, amount_, 0);
   }
 
   //======== UNDERLYING I/O ========//

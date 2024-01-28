@@ -84,6 +84,8 @@ contract EcclesiaDao is
 
   // Address of treasury
   address public treasuryWallet;
+  // Address of leverage risk wallet
+  address public leverageRiskWallet;
   // Staking contract
   IStaking public staking;
   // Token to be locked (AOE)
@@ -138,7 +140,9 @@ contract EcclesiaDao is
     IERC20 _token,
     IStaking _staking,
     address _liquidityManager,
-    address _strategyManager
+    address _strategyManager,
+    address treasuryWallet_,
+    address leverageRiskWallet_
   ) ERC20("Athenian Vote", "vAOE") Ownable(msg.sender) {
     if (
       address(_token) == address(0) ||
@@ -150,6 +154,9 @@ contract EcclesiaDao is
     staking = _staking;
     liquidityManager = _liquidityManager;
     strategyManager = _strategyManager;
+
+    treasuryWallet = treasuryWallet_;
+    leverageRiskWallet = leverageRiskWallet_;
   }
 
   // ======= MODIFIERS ======= //
@@ -469,8 +476,13 @@ contract EcclesiaDao is
   // Called after a pool pushes token revenue to the DAO
   function accrueRevenue(
     address _token,
-    uint256 _amount
+    uint256 _amount,
+    uint256 leverageFee_
   ) external nonReentrant onlyRevenueCollector {
+    // Send risk provision to leverage risk wallet
+    if (leverageFee_ != 0)
+      IERC20(_token).safeTransfer(leverageRiskWallet, leverageFee_);
+
     // Rewards are distributed per vote
     uint256 amountPerVoteRay = (_amount * RAY) / totalSupply();
     if (revenueIndex[_token] == 0) revenueTokens.push(_token);
