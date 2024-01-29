@@ -26,14 +26,18 @@ export function baseContext(description: string, hooks: () => void): void {
   describe(description, function () {
     before(async function () {
       // Provides signers for testing
+      const nbSpecialAccounts = 5;
       const signers = await ethers.getSigners();
       this.signers = {
         deployer: signers[0] as Signer as Wallet,
         evidenceGuardian: signers[1] as Signer as Wallet,
         buybackWallet: signers[2] as Signer as Wallet,
-        user: signers[3] as Signer as Wallet,
-        user2: signers[4] as Signer as Wallet,
-        user3: signers[5] as Signer as Wallet,
+        treasuryWallet: signers[3] as Signer as Wallet,
+        leverageRiskWallet: signers[4] as Signer as Wallet,
+        //
+        user: signers[nbSpecialAccounts] as Signer as Wallet,
+        user2: signers[nbSpecialAccounts + 1] as Signer as Wallet,
+        user3: signers[nbSpecialAccounts + 2] as Signer as Wallet,
       };
 
       // Setup protocol for testing & provide interfaces to tests

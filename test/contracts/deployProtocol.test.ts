@@ -134,6 +134,7 @@ export function deployProtocol() {
           this.deployedAt.ClaimManager,
           14 * 24 * 60 * 60, // @bw need to take all args from config
           30,
+          this.config.leverageFeePerPool,
         ]).then((contract) =>
           postDeployCheck(contract, this.deployedAt.LiquidityManager),
         );
@@ -147,6 +148,8 @@ export function deployProtocol() {
           this.deployedAt.Staking,
           this.deployedAt.LiquidityManager,
           this.deployedAt.StrategyManager,
+          this.signers.treasuryWallet.address,
+          this.signers.leverageRiskWallet.address,
         ]).then((contract) =>
           postDeployCheck(contract, this.deployedAt.EcclesiaDao),
         );

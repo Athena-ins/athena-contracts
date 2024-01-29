@@ -7,6 +7,8 @@ type ContextSigners = {
   deployer: Wallet;
   evidenceGuardian: Wallet;
   buybackWallet: Wallet;
+  treasuryWallet: Wallet;
+  leverageRiskWallet: Wallet;
   user: Wallet;
   user2: Wallet;
   user3: Wallet;

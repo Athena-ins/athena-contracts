@@ -121,6 +121,18 @@ export function buybackWallet() {
   return new ethers.Wallet(BUY_BACK_PK);
 }
 
+export function treasuryWallet() {
+  const BUY_BACK_PK = process.env.BUY_BACK_PK;
+  if (!BUY_BACK_PK) throw new Error("BUY_BACK_PK not set");
+  return new ethers.Wallet(BUY_BACK_PK);
+}
+
+export function leverageRiskWallet() {
+  const BUY_BACK_PK = process.env.BUY_BACK_PK;
+  if (!BUY_BACK_PK) throw new Error("BUY_BACK_PK not set");
+  return new ethers.Wallet(BUY_BACK_PK);
+}
+
 export async function balanceOfAaveUsdt(
   signer: Wallet,
   account: string | Wallet,

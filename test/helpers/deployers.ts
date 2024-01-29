@@ -11,6 +11,8 @@ import {
   wethTokenAddress,
   evidenceGuardianWallet,
   buybackWallet,
+  treasuryWallet,
+  leverageRiskWallet,
 } from "./protocol";
 // typechain
 import {
@@ -139,6 +141,9 @@ export type ProtocolConfig = {
   arbitrationCollateral: BigNumber;
   evidenceGuardian: Wallet;
   buybackWallet: Wallet;
+  treasuryWallet: Wallet;
+  leverageRiskWallet: Wallet;
+  leverageFeePerPool: BigNumber;
   poolMarket: [BigNumber, BigNumber, BigNumber, BigNumber];
   yieldBonuses: { atenAmount: BigNumber; yieldBonus: BigNumber }[];
 };
@@ -147,6 +152,9 @@ export const defaultProtocolConfig: ProtocolConfig = {
   arbitrationCollateral: utils.parseEther("0.05"), // in ETH
   evidenceGuardian: evidenceGuardianWallet(),
   buybackWallet: buybackWallet(),
+  treasuryWallet: treasuryWallet(),
+  leverageRiskWallet: leverageRiskWallet(),
+  leverageFeePerPool: toRay(1.5),
   poolMarket: [
     toRay(75), // uOptimal_
     toRay(1), // r0_
@@ -263,6 +271,7 @@ export async function deployAllContractsAndInitializeProtocol(
     deployedAt.ClaimManager,
     14 * 24 * 60 * 60, // @bw need to move all this args to config
     30,
+    config.leverageFeePerPool,
   ]);
 
   // ======= DAO ======= //
@@ -271,6 +280,8 @@ export async function deployAllContractsAndInitializeProtocol(
     deployedAt.Staking,
     deployedAt.LiquidityManager,
     deployedAt.StrategyManager,
+    config.treasuryWallet.address,
+    config.leverageRiskWallet.address,
   ]);
 
   // ======= Claims ======= //
