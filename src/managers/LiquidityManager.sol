@@ -657,9 +657,7 @@ contract LiquidityManager is
       uint256 strategyRewards
     ) = _removeOverlappingCapital(
         tokenId_,
-        account,
         position.supplied,
-        yieldBonus,
         position.poolIds
       );
 
@@ -773,9 +771,7 @@ contract LiquidityManager is
   // @dev poolIds have been checked at creation to ensure they are unique and ascending
   function _removeOverlappingCapital(
     uint256 tokenId_,
-    address account_,
     uint256 amount_,
-    uint256 yieldBonus_,
     uint64[] storage poolIds_
   ) internal returns (uint256 capital, uint256 rewards) {
     uint256 nbPoolIds = poolIds_.length;
@@ -789,13 +785,7 @@ contract LiquidityManager is
 
       // Remove liquidity
       (uint256 newUserCapital, uint256 strategyRewards) = pool0
-        ._withdrawLiquidity(
-          tokenId_,
-          account_,
-          amount_,
-          yieldBonus_,
-          poolIds_
-        );
+        ._withdrawLiquidity(tokenId_, amount_, poolIds_);
 
       if (i == 0) {
         // The updated user capital & strategy rewards are the same at each iteration

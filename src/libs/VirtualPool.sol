@@ -343,9 +343,7 @@ library VirtualPool {
   function _withdrawLiquidity(
     VPool storage self,
     uint256 tokenId_,
-    address account_,
     uint256 amount_,
-    uint256 yieldBonus_,
     uint64[] storage poolIds_
   ) internal returns (uint256, uint256) {
     // Pool is locked while there are ongoing claims
