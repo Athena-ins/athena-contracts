@@ -990,9 +990,11 @@ library VirtualPool {
       return
         formula.r0 +
         formula.rSlope1 +
-        (formula.rSlope2 * (utilizationRate_ - formula.uOptimal)) /
-        (FULL_UTILIZATION_RATE - formula.uOptimal) /
-        100;
+        formula.rSlope2.rayMul(
+          (utilizationRate_ - formula.uOptimal).rayDiv(
+            FULL_UTILIZATION_RATE - formula.uOptimal
+          )
+        );
     } else {
       /**
        * @dev Premium rate is capped because in case of overusage the
