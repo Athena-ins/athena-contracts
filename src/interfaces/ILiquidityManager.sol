@@ -5,13 +5,15 @@ interface ILiquidityManager {
   // ======= STRUCTS ======= //
 
   struct CoverRead {
+    uint256 coverId;
     uint64 poolId;
     uint256 coverAmount;
-    uint256 premiums;
+    uint256 premiums; // @bw never actually used by the protocol
     uint256 start;
     uint256 end;
     uint256 premiumsLeft;
     uint256 currentEmissionRate;
+    uint256 premiumRate;
   }
 
   struct Cover {

@@ -168,13 +168,15 @@ contract LiquidityManager is
 
     return
       CoverRead({
+        coverId: tokenId_,
         poolId: cover.poolId,
         coverAmount: cover.coverAmount,
         premiums: cover.premiums,
         start: cover.start,
         end: cover.end,
         premiumsLeft: info.premiumsLeft,
-        currentEmissionRate: info.currentEmissionRate
+        currentEmissionRate: info.currentEmissionRate,
+        premiumRate: info.premiumRate
       });
   }
 

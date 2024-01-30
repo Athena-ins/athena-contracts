@@ -83,6 +83,7 @@ library VirtualPool {
   struct CoverInfo {
     uint256 premiumsLeft;
     uint256 currentEmissionRate;
+    uint256 premiumRate;
   }
 
   struct Compensation {
