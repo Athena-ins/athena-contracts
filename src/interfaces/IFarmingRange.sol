@@ -3,6 +3,7 @@ pragma solidity 0.8.20;
 
 // Interfaces
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
+import { IStaking } from "./IStaking.sol";
 
 interface IFarmingRange {
   /**
@@ -454,4 +455,10 @@ interface IFarmingRange {
     address account_,
     uint256 yieldBonus_
   ) external;
+
+  /**
+   * @notice Set the staking contract address
+   * @param staking_ address of the staking contract
+   */
+  function setStaking(IStaking staking_) external;
 }

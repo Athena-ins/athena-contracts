@@ -74,6 +74,7 @@ contract RewardManager is IRewardManager, Ownable {
       _ecclesiaDao
     );
 
+    farming.setStaking(staking);
     farming.addCampaignInfo(
       IFarmingRange.AssetType.ERC20,
       1e18, // Use impossibly high pool ID

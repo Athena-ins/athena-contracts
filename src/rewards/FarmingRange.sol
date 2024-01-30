@@ -112,7 +112,6 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
 
   constructor(
     address _rewardManager,
-    IStaking _staking,
     ILiquidityManager _liquidityManager,
     IAthenaPositionToken _positionToken,
     IAthenaCoverToken _coverToken
@@ -122,9 +121,8 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
       revert RewardManagerNotDefined();
     }
 
-    staking = _staking;
-    liquidityManager = _liquidityManager;
     rewardManager = _rewardManager;
+    liquidityManager = _liquidityManager;
     positionToken = _positionToken;
     coverToken = _coverToken;
   }
@@ -1313,5 +1311,9 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
         ++_i;
       }
     }
+  }
+
+  function setStaking(IStaking staking_) external onlyOwner {
+    staking = staking_;
   }
 }
