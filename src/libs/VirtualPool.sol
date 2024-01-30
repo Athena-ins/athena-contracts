@@ -503,7 +503,7 @@ library VirtualPool {
     self.slot0.secondsPerTick = newSecondsPerTick;
     self.slot0.remainingCovers--;
 
-    if (1 < self.ticks.getCoverIdNumber(coverPremium.lastTick)) {
+    if (1 < self.ticks.nbCoversInTick(coverPremium.lastTick)) {
       uint256 coverIdToReplace = self.ticks.getLastCoverIdInTick(
         coverPremium.lastTick
       );
@@ -513,6 +513,7 @@ library VirtualPool {
           .coverPremiums[coverId_]
           .coverIdIndex;
       }
+      // @bw does not delete correctly
       delete self.coverPremiums[coverId_];
 
       self.ticks.removeCoverId(

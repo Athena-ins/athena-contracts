@@ -38,7 +38,7 @@ library Tick {
     return coverIds[coverIds.length - 1];
   }
 
-  function getCoverIdNumber(
+  function nbCoversInTick(
     mapping(uint32 => uint256[]) storage self,
     uint32 tick
   ) internal view returns (uint256) {

@@ -334,7 +334,7 @@ contract LiquidityManager is
     });
 
     // Create cover in pool
-    pool._buyCover(poolId_, coverAmount_, premiums_);
+    pool._buyCover(coverId, coverAmount_, premiums_);
 
     // Mint cover NFT
     coverToken.mint(msg.sender, coverId);
