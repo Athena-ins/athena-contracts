@@ -324,16 +324,14 @@ library VirtualPool {
     uint64[] storage poolIds_
   ) internal returns (uint256, uint256) {
     // Get the updated position info
-    UpdatedPositionInfo memory info = _getUpdatedPositionInfo(
-      self,
+    UpdatedPositionInfo memory info = self._getUpdatedPositionInfo(
       tokenId_,
       amount_,
       poolIds_
     );
 
     // Pay cover rewards and send fees to treasury
-    _payRewardsAndFees(
-      self,
+    self._payRewardsAndFees(
       info.coverRewards,
       account_,
       yieldBonus_,
@@ -359,8 +357,7 @@ library VirtualPool {
     if (0 < self.ongoingClaims) revert PoolHasOnGoingClaims();
 
     // Get the updated position info
-    UpdatedPositionInfo memory info = _getUpdatedPositionInfo(
-      self,
+    UpdatedPositionInfo memory info = self._getUpdatedPositionInfo(
       tokenId_,
       amount_,
       poolIds_
@@ -421,13 +418,11 @@ library VirtualPool {
       revert InsufficientCapacity();
     }
 
-    uint256 currentPremiumRate = getPremiumRate(
-      self,
+    uint256 currentPremiumRate = self.getPremiumRate(
       getUtilizationRate(0, 0, totalInsuredCapital, liquidity)
     );
 
-    uint256 newPremiumRate = getPremiumRate(
-      self,
+    uint256 newPremiumRate = self.getPremiumRate(
       getUtilizationRate(
         coverAmount_,
         0,
@@ -454,7 +449,7 @@ library VirtualPool {
     uint32 lastTick = self.slot0.tick +
       uint32(durationInSeconds / newSecondsPerTick);
 
-    _addPremiumPosition(self, coverId_, newPremiumRate, lastTick);
+    self._addPremiumPosition(coverId_, newPremiumRate, lastTick);
 
     self.slot0.totalInsuredCapital += coverAmount_;
     self.slot0.secondsPerTick = newSecondsPerTick;
@@ -477,12 +472,10 @@ library VirtualPool {
 
     uint256 liquidity = totalLiquidity(self);
 
-    uint256 currentPremiumRate = getPremiumRate(
-      self,
+    uint256 currentPremiumRate = self.getPremiumRate(
       getUtilizationRate(0, 0, totalInsuredCapital, liquidity)
     );
-    uint256 newPremiumRate = getPremiumRate(
-      self,
+    uint256 newPremiumRate = self.getPremiumRate(
       getUtilizationRate(
         0,
         coverAmount_,
@@ -519,7 +512,7 @@ library VirtualPool {
         coverPremium.lastTick
       );
     } else {
-      _removeTick(self, coverPremium.lastTick);
+      self._removeTick(coverPremium.lastTick);
     }
   }
 
@@ -557,12 +550,10 @@ library VirtualPool {
       revert NotEnoughLiquidityForRemoval();
 
     uint256 totalInsured = self.slot0.totalInsuredCapital;
-    uint256 currentPremiumRate = getPremiumRate(
-      self,
+    uint256 currentPremiumRate = self.getPremiumRate(
       getUtilizationRate(0, 0, totalInsured, liquidity)
     );
-    uint256 newPremiumRate = getPremiumRate(
-      self,
+    uint256 newPremiumRate = self.getPremiumRate(
       getUtilizationRate(
         0,
         0,
@@ -580,8 +571,7 @@ library VirtualPool {
 
   function _purgeExpiredCovers(VPool storage self) internal {
     if (0 < self.slot0.remainingCovers) {
-      (Slot0 memory slot0, uint256 liquidityIndex) = _refresh(
-        self,
+      (Slot0 memory slot0, uint256 liquidityIndex) = self._refresh(
         block.timestamp
       );
 
@@ -593,8 +583,7 @@ library VirtualPool {
         );
 
         if (isInitialized && observedTick <= slot0.tick) {
-          uint256[] memory expiredCoverIds = _removeTick(
-            self,
+          uint256[] memory expiredCoverIds = self._removeTick(
             observedTick
           );
 
@@ -635,7 +624,7 @@ library VirtualPool {
   ) internal view returns (CoverInfo memory info) {
     // For reads we sync the slot0 to the current timestamp to have latests data
     (Slot0 memory slot0, ) = syncSlot0_
-      ? _refresh(self, block.timestamp)
+      ? self._refresh(block.timestamp)
       : (self.slot0, 0);
     CoverPremiums storage coverPremium = self.coverPremiums[coverId_];
 
@@ -647,8 +636,7 @@ library VirtualPool {
     } else {
       uint256 liquidity = totalLiquidity(self);
 
-      info.premiumRate = getPremiumRate(
-        self,
+      info.premiumRate = self.getPremiumRate(
         getUtilizationRate(0, 0, slot0.totalInsuredCapital, liquidity)
       );
 
@@ -693,8 +681,7 @@ library VirtualPool {
         if (initialized && nextTick < coverPremium.lastTick) {
           uint256 premiumRate;
           // @bw check if the assign is the right way or keep initial slot0
-          (, , premiumRate) = _crossingInitializedTick(
-            self,
+          (, , premiumRate) = self._crossingInitializedTick(
             slot0,
             liquidity,
             nextTick
@@ -745,8 +732,7 @@ library VirtualPool {
       insuredCapitalToRemove += self.coverSize(coverIds[i]);
     }
 
-    uint256 previousPremiumRate = getPremiumRate(
-      self,
+    uint256 previousPremiumRate = self.getPremiumRate(
       getUtilizationRate(0, 0, slot0_.totalInsuredCapital, liquidity_)
     );
 
@@ -756,7 +742,7 @@ library VirtualPool {
       slot0_.totalInsuredCapital,
       liquidity_
     );
-    premiumRate = getPremiumRate(self, utilizationRate);
+    premiumRate = self.getPremiumRate(utilizationRate);
 
     // These are the mutated values
     slot0_.totalInsuredCapital -= insuredCapitalToRemove;
@@ -801,9 +787,10 @@ library VirtualPool {
       slot0.totalInsuredCapital,
       liquidity
     );
-    uint256 premiumRate = getPremiumRate(self, utilization);
+    uint256 premiumRate = self.getPremiumRate(utilization);
     uint32 currentTick = slot0.tick;
     uint256 remaining = timestamp_ - slot0.lastUpdateTimestamp;
+
     while (0 < remaining) {
       (uint32 nextTick, bool isInitialized) = self
         .tickBitmap
@@ -819,16 +806,8 @@ library VirtualPool {
         if (isInitialized) {
           // If the tick has covers then expire then upon crossing the tick & update liquidity
           // Save the updated slot0
-          (
-            slot0,
-            utilization,
-            premiumRate
-          ) = _crossingInitializedTick(
-            self,
-            slot0,
-            liquidity,
-            nextTick
-          );
+          (slot0, utilization, premiumRate) = self
+            ._crossingInitializedTick(slot0, liquidity, nextTick);
         }
 
         liquidityIndex +=
