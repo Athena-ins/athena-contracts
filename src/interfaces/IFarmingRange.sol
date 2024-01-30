@@ -444,4 +444,14 @@ interface IFarmingRange {
    * @param _tokenId token id of the cover
    */
   function freezeExpiredCoverRewards(uint256 _tokenId) external;
+
+  /**
+   * @notice Yield farming bonus multiplier
+   * @param account_ farmer account
+   * @param yieldBonus_ yield bonus
+   */
+  function yieldBonusChanged(
+    address account_,
+    uint256 yieldBonus_
+  ) external;
 }

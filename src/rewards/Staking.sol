@@ -361,8 +361,9 @@ contract Staking is IStaking, ERC20, Ownable {
 
     if (yieldBonus != newYieldBonus) {
       yieldBonusOf[msg.sender] = newYieldBonus;
-      // @bw need get farming positions & update them
-      // liquidityManager.yieldBonusUpdate(yieldBonus);
+
+      // Signal to farming contract that yield bonus has changed
+      farming.yieldBonusChanged(msg.sender, yieldBonus);
     }
   }
 

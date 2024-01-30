@@ -12,6 +12,7 @@ import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.s
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import { IERC20Permit } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
 import { IFarmingRange } from "../interfaces/IFarmingRange.sol";
+import { IStaking } from "../interfaces/IStaking.sol";
 import { ILiquidityManager } from "../interfaces/ILiquidityManager.sol";
 import { IAthenaPositionToken } from "../interfaces/IAthenaPositionToken.sol";
 import { IAthenaCoverToken } from "../interfaces/IAthenaCoverToken.sol";
@@ -60,6 +61,8 @@ error BadCoverAmountToPremiumRatio();
 error CoverStillActive();
 // Only liquidity manager can call this function
 error OnlyLiquidityManager();
+// Only staking contract can call this function
+error OnlyStaking();
 // Cannot farm position commited to withdrawal
 error CannotFarmPositionCommitedToWithdrawal();
 
@@ -101,6 +104,7 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
 
   uint256 public rewardInfoLimit;
   address public immutable rewardManager;
+  IStaking public staking;
   ILiquidityManager public liquidityManager;
 
   IAthenaPositionToken public positionToken;
@@ -108,6 +112,7 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
 
   constructor(
     address _rewardManager,
+    IStaking _staking,
     ILiquidityManager _liquidityManager,
     IAthenaPositionToken _positionToken,
     IAthenaCoverToken _coverToken
@@ -117,6 +122,7 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
       revert RewardManagerNotDefined();
     }
 
+    staking = _staking;
     liquidityManager = _liquidityManager;
     rewardManager = _rewardManager;
     positionToken = _positionToken;
@@ -131,11 +137,16 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
     _;
   }
 
+  modifier onlyStaking() {
+    if (msg.sender != address(staking)) revert OnlyStaking();
+    _;
+  }
+
   // ======= ACCOUNT ERC-721 BALANCE ======= //
 
   function depositedLpTokens(
     address _account
-  ) external view returns (uint256[] memory) {
+  ) public view returns (uint256[] memory) {
     return _balances[_account].lpTokenIds;
   }
 
@@ -196,6 +207,41 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
         coverTokenIds.pop();
         break;
       }
+    }
+  }
+
+  // ======= TAKE PROFIT WITH FEE BONUS ======= //
+
+  function yieldBonusChanged(
+    address account_,
+    uint256 yieldBonus_
+  ) external onlyStaking {
+    // Check if user has farming LP tokens
+    uint256[] memory positionIds = depositedLpTokens(account_);
+
+    if (0 != positionIds.length) {
+      // Cause a take profit of farming LP tokens at previous yield bonus rate
+      liquidityManager.takeInterestsWithYieldBonus(
+        account_,
+        yieldBonus_,
+        positionIds
+      );
+    }
+  }
+
+  function _takeProfitOnWithdrawal(uint256 tokenId_) internal {
+    uint256 yieldBonus = staking.yieldBonusOf(msg.sender);
+
+    // If user has a yield bonus then take interest with yield bonus
+    if (yieldBonus != 0) {
+      uint256[] memory positionIds = new uint256[](1);
+      positionIds[0] = tokenId_;
+
+      liquidityManager.takeInterestsWithYieldBonus(
+        msg.sender,
+        yieldBonus,
+        positionIds
+      );
     }
   }
 
@@ -460,6 +506,9 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
     }
 
     if (nbLpTokenCampaigns[_tokenId] == 0) {
+      // Check if user benefits from a yield bonus
+      _takeProfitOnWithdrawal(_tokenId);
+
       positionToken.transferFrom(address(this), msg.sender, _tokenId);
       // Remove lp token from user balance
       _removeToken(msg.sender, _tokenId, AssetType.LP_ERC721);
@@ -540,9 +589,9 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
     for (uint256 i; i != _campaignIDs.length; i++) {
       uint256 campaignID = _campaignIDs[i];
       CampaignInfo storage campaign = campaignInfo[campaignID];
+      AssetType assetType = campaign.assetType;
 
-      if (campaign.assetType == AssetType.ERC20)
-        revert OnlyERC721Campaigns();
+      if (assetType == AssetType.ERC20) revert OnlyERC721Campaigns();
 
       for (uint256 j; j != _tokenIds[i].length; j++) {
         uint256 tokenId = _tokenIds[i][j];
@@ -557,12 +606,13 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
         user.amount = 0;
         user.rewardDebt = 0;
 
-        if (campaign.assetType == AssetType.COVER_ERC721) {
+        if (assetType == AssetType.COVER_ERC721) {
           coverToken.transferFrom(address(this), msg.sender, tokenId);
-          // Remove cover token from user balance
-          _removeCoverToken(msg.sender, tokenId);
+
           delete coverIdToCampaignId[tokenId];
-        } else if (campaign.assetType == AssetType.LP_ERC721) {
+          // Remove cover token from user balance
+          _removeToken(msg.sender, tokenId, assetType);
+        } else if (assetType == AssetType.LP_ERC721) {
           nbLpTokenCampaigns[tokenId]--;
 
           if (nbLpTokenCampaigns[tokenId] == 0) {
@@ -571,8 +621,9 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
               msg.sender,
               tokenId
             );
+
             // Remove lp token from user balance
-            _removeToken(msg.sender, tokenId, AssetType.LP_ERC721);
+            _removeToken(msg.sender, tokenId, assetType);
           }
         }
 
