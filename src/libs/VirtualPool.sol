@@ -36,6 +36,9 @@ error PoolHasOnGoingClaims();
  * Initially the tick after the first tick is at a distance of 86400 seconds (1 day), its maximum amount.
  * The distance between ticks will reduce as usage grows and increase when usage falls.
  * The change in distance represents the change in premium cost of cover time in relation to usage.
+ *
+ * Core pool states are computed with the following flow:
+ * Utilization Rate (ray %) -> Premium Rate (ray %) -> Emission Rate (token/day)
  */
 library VirtualPool {
   using VirtualPool for VPool;
@@ -273,7 +276,7 @@ library VirtualPool {
     address account_,
     uint256 yieldBonus_,
     uint256 nbPools_
-  ) private {
+  ) internal {
     if (0 < rewards_) {
       uint256 fees = _feeFor(rewards_, self.feeRate, yieldBonus_);
 
@@ -364,8 +367,7 @@ library VirtualPool {
     );
 
     // Pool rewards after commit are paid in favor of the DAO's leverage risk wallet
-    _payRewardsAndFees(
-      self,
+    self._payRewardsAndFees(
       info.coverRewards,
       address(self.dao),
       0, // No yield bonus for the DAO
@@ -388,7 +390,7 @@ library VirtualPool {
     uint256 tokenId_,
     uint256 beginPremiumRate_,
     uint32 lastTick_
-  ) private {
+  ) internal {
     uint224 nbCoversInTick = self.ticks.addCoverId(
       tokenId_,
       lastTick_
@@ -526,7 +528,7 @@ library VirtualPool {
   function _removeTick(
     VPool storage self,
     uint32 _tick
-  ) private returns (uint256[] memory coverIds) {
+  ) internal returns (uint256[] memory coverIds) {
     coverIds = self.ticks[_tick];
 
     for (uint256 i; i < coverIds.length; i++) {
@@ -727,7 +729,7 @@ library VirtualPool {
     uint256 liquidity_,
     uint32 tick_
   )
-    private
+    internal
     view
     returns (
       Slot0 memory,
@@ -739,9 +741,8 @@ library VirtualPool {
 
     uint256 insuredCapitalToRemove;
     for (uint256 i; i < coverIds.length; i++) {
-      uint256 coverId = coverIds[i];
       // Add all the size of all covers in the tick
-      insuredCapitalToRemove += self.coverSize(coverId);
+      insuredCapitalToRemove += self.coverSize(coverIds[i]);
     }
 
     uint256 previousPremiumRate = getPremiumRate(
@@ -783,7 +784,7 @@ library VirtualPool {
     VPool storage self,
     uint256 timestamp_
   )
-    private
+    internal
     view
     returns (Slot0 memory /*slot0*/, uint256 /*liquidityIndex*/)
   {
@@ -877,7 +878,7 @@ library VirtualPool {
     uint256 tokenId_,
     uint256 userCapital_,
     uint64[] storage poolIds_
-  ) private view returns (UpdatedPositionInfo memory info) {
+  ) internal view returns (UpdatedPositionInfo memory info) {
     info.newLpInfo = self.lpInfos[tokenId_];
     info.newUserCapital = userCapital_;
 
@@ -974,7 +975,7 @@ library VirtualPool {
   function getPremiumRate(
     VPool storage self,
     uint256 utilizationRate_
-  ) private view returns (uint256) {
+  ) internal view returns (uint256) {
     Formula storage formula = self.formula;
     // returns actual rate for insurance
     if (utilizationRate_ < formula.uOptimal) {
@@ -1012,7 +1013,7 @@ library VirtualPool {
     uint256 grossReward_,
     uint256 feeRate_,
     uint256 yieldBonus_
-  ) private pure returns (uint256) {
+  ) internal pure returns (uint256) {
     return
       ((grossReward_ * feeRate_ * (FEE_BASE - yieldBonus_)) /
         FEE_BASE) / FEE_BASE;
@@ -1032,7 +1033,7 @@ library VirtualPool {
     uint256 oldEmissionRate_,
     uint256 oldPremiumRate_,
     uint256 newPremiumRate_
-  ) private pure returns (uint256) {
+  ) internal pure returns (uint256) {
     return
       oldEmissionRate_.rayMul(newPremiumRate_).rayDiv(
         oldPremiumRate_
@@ -1043,7 +1044,7 @@ library VirtualPool {
     uint256 _oldSecondsPerTick,
     uint256 _oldPremiumRate,
     uint256 _newPremiumRate
-  ) private pure returns (uint256) {
+  ) internal pure returns (uint256) {
     return
       _oldSecondsPerTick.rayMul(_oldPremiumRate).rayDiv(
         _newPremiumRate
@@ -1054,7 +1055,7 @@ library VirtualPool {
     uint256 _premium,
     uint256 _insuredCapital,
     uint256 _premiumRate //Ray
-  ) private pure returns (uint256) {
+  ) internal pure returns (uint256) {
     return
       ((_premium * YEAR * 100) / _insuredCapital).rayDiv(
         _premiumRate
@@ -1066,13 +1067,13 @@ library VirtualPool {
     uint256 _insuredCapitalToAdd,
     uint256 _insuredCapitalToRemove,
     uint256 _totalInsuredCapital,
-    uint256 _availableLiquidity
-  ) private pure returns (uint256 rate) {
-    if (_availableLiquidity == 0) {
+    uint256 _liquidity
+  ) internal pure returns (uint256 rate) {
+    if (_liquidity == 0) {
       return 0;
     }
     rate = (((_totalInsuredCapital + _insuredCapitalToAdd) -
-      _insuredCapitalToRemove) * 100).rayDiv(_availableLiquidity);
+      _insuredCapitalToRemove) * 100).rayDiv(_liquidity);
 
     /**
      * @dev Utilization rate is capped at 100% because in case of overusage the
