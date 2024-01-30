@@ -258,9 +258,9 @@ contract StrategyManager is IStrategyManager, Ownable {
     uint256 deductible = (amountUnderlying_ * payoutDeductibleRate) /
       RayMath.RAY;
 
-    // If there is a deductible, withdraw it from the pool
+    // If there is a deductible, withdraw it from the pool to buy back & burn wallet
     if (0 < deductible)
-      aaveLendingPool.withdraw(usdt, deductible, account_);
+      aaveLendingPool.withdraw(usdt, deductible, buybackWallet);
 
     // @dev No need to approve aToken since they are burned in pool
     // @dev Remove 1 for rounding errors
