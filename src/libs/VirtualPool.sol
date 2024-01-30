@@ -409,7 +409,7 @@ library VirtualPool {
     uint256 coverAmount_,
     uint256 premiums_
   ) internal {
-    uint256 available = availableLiquidity(self);
+    uint256 available = self.availableLiquidity();
 
     if (available < coverAmount_) {
       revert InsufficientCapacity();
@@ -434,6 +434,8 @@ library VirtualPool {
       currentPremiumRate,
       newPremiumRate
     );
+    console.log("durationInSeconds: ", durationInSeconds);
+    console.log("newSecondsPerTick: ", newSecondsPerTick);
 
     if (durationInSeconds < newSecondsPerTick)
       revert DurationTooLow();
@@ -528,7 +530,7 @@ library VirtualPool {
     uint256 amountToAdd_,
     uint256 amountToRemove_
   ) internal {
-    uint256 available = availableLiquidity(self);
+    uint256 available = self.availableLiquidity();
     if (available + amountToAdd_ < amountToRemove_)
       revert NotEnoughLiquidityForRemoval();
 
@@ -536,7 +538,10 @@ library VirtualPool {
       self.getUtilizationRate(0, 0)
     );
     uint256 newPremiumRate = self.getPremiumRate(
-      self.getUtilizationRate(amountToAdd_, amountToRemove_)
+      utilizationRate(
+        self.slot0.coveredCapital,
+        (self.totalLiquidity() + amountToAdd_) - amountToRemove_
+      )
     );
 
     self.slot0.secondsPerTick = secondsPerTick(
@@ -597,29 +602,37 @@ library VirtualPool {
     VPool storage self,
     uint256 coverId_
   ) internal view returns (CoverInfo memory info) {
+    console.log("---------------------: ", coverId_);
     // For reads we sync the slot0 to the current timestamp to have latests data
     (Slot0 memory slot0, ) = self._refresh(block.timestamp);
     CoverPremiums storage coverPremium = self.coverPremiums[coverId_];
 
+    console.log("slot0.tick: ", slot0.tick);
+    console.log("coverPremium.lastTick: ", coverPremium.lastTick);
     if (coverPremium.lastTick < slot0.tick) {
       /**
        * If the cover's last tick is overtaken then it's expired & no premiums are left.
        * Return default 0 values in the returned struct.
        */
     } else {
+      uint256 liquidity = totalLiquidity(self);
+      console.log("totalLiquidity: ", self.totalLiquidity());
       info.premiumRate = self.getPremiumRate(
         self.getUtilizationRate(0, 0)
       );
+      console.log("info.premiumRate: ", info.premiumRate);
 
       uint256 beginDailyCost = self.coverSize(coverId_).rayMul(
         coverPremium.beginPremiumRate / 100
       ) / 365;
+      console.log("beginDailyCost: ", beginDailyCost);
 
       info.currentDailyCost = getDailyCost(
         beginDailyCost,
         coverPremium.beginPremiumRate,
         info.premiumRate
       );
+      console.log("info.currentDailyCost: ", info.currentDailyCost);
 
       // Daily cost will be mutated
       uint256 dailyCost = info.currentDailyCost;
@@ -654,6 +667,7 @@ library VirtualPool {
           // @bw check if the assign is the right way or keep initial slot0
           (, , premiumRate) = self._crossingInitializedTick(
             slot0,
+            liquidity,
             nextTick
           );
 
@@ -682,15 +696,12 @@ library VirtualPool {
   function _crossingInitializedTick(
     VPool storage self,
     Slot0 memory slot0_,
+    uint256 liquidity_,
     uint32 tick_
   )
     internal
     view
-    returns (
-      Slot0 memory,
-      uint256 utilizationRate,
-      uint256 premiumRate
-    )
+    returns (Slot0 memory, uint256 utilization, uint256 premiumRate)
   {
     uint256[] memory coverIds = self.ticks[tick_];
 
@@ -698,18 +709,19 @@ library VirtualPool {
     for (uint256 i; i < coverIds.length; i++) {
       // Add all the size of all covers in the tick
       coveredCapitalToRemove += self.coverSize(coverIds[i]);
+      console.log("coverIds[i]: ", coverIds[i]);
       // @bw should expired cover
     }
 
     uint256 previousPremiumRate = self.getPremiumRate(
-      self.getUtilizationRate(0, 0)
+      utilizationRate(slot0_.coveredCapital, liquidity_)
     );
 
-    utilizationRate = self.getUtilizationRate(
-      0,
-      coveredCapitalToRemove
-    );
-    premiumRate = self.getPremiumRate(utilizationRate);
+    utilization = self.getUtilizationRate(0, coveredCapitalToRemove);
+    premiumRate = self.getPremiumRate(utilization);
+
+    console.log("coveredCapitalToRemove: ", coveredCapitalToRemove);
+    console.log("utilization: ", utilization);
 
     // These are the mutated values
     slot0_.coveredCapital -= coveredCapitalToRemove;
@@ -720,7 +732,15 @@ library VirtualPool {
       premiumRate
     );
 
-    return (slot0_, utilizationRate, premiumRate);
+    return (slot0_, utilization, premiumRate);
+  }
+
+  struct RefreshState {
+    uint256 liquidityIndex;
+    uint256 utilization;
+    uint256 premiumRate;
+    uint256 remaining;
+    uint32 currentTick;
   }
 
   /**
@@ -744,43 +764,60 @@ library VirtualPool {
     // Make copies in memory to allow for mutations
     Slot0 memory slot0 = self.slot0;
 
-    uint256 liquidityIndex = self.liquidityIndex;
-    uint256 utilization = self.getUtilizationRate(0, 0);
-    uint256 premiumRate = self.getPremiumRate(utilization);
-    // The remaining time in seconds to run through to sync up to the timestamp
-    uint256 remaining = timestamp_ - slot0.lastUpdateTimestamp;
+    uint256 liquidity = self.totalLiquidity();
+    uint256 utilization = utilizationRate(
+      slot0.coveredCapital,
+      liquidity
+    );
 
-    uint32 currentTick = slot0.tick;
-    while (0 < remaining) {
+    RefreshState memory _state = RefreshState({
+      liquidityIndex: self.liquidityIndex,
+      utilization: utilization,
+      premiumRate: self.getPremiumRate(utilization),
+      // The remaining time in seconds to run through to sync up to the timestamp
+      remaining: timestamp_ - slot0.lastUpdateTimestamp,
+      currentTick: slot0.tick
+    });
+
+    console.log("_state.remaining: ", _state.remaining);
+    while (0 < _state.remaining) {
       (uint32 nextTick, bool isInitialized) = self
         .tickBitmap
-        .nextTick(currentTick);
+        .nextTick(_state.currentTick);
 
       // Tick size in seconds
-      uint256 tickSize = (nextTick - currentTick) *
+      uint256 tickSize = (nextTick - _state.currentTick) *
         slot0.secondsPerTick;
+      console.log("tickSize: ", tickSize);
 
-      if (tickSize <= remaining) {
-        currentTick = nextTick;
+      if (tickSize <= _state.remaining) {
+        _state.currentTick = nextTick;
 
         if (isInitialized) {
           // If the tick has covers then expire then upon crossing the tick & update liquidity
           // Save the updated slot0
-          (slot0, utilization, premiumRate) = self
-            ._crossingInitializedTick(slot0, nextTick);
+          (slot0, _state.utilization, _state.premiumRate) = self
+            ._crossingInitializedTick(slot0, liquidity, nextTick);
         }
 
-        liquidityIndex +=
-          (utilization.rayMul(premiumRate) * tickSize) /
+        _state.liquidityIndex +=
+          (_state.utilization.rayMul(_state.premiumRate) * tickSize) /
           YEAR;
 
         // Remove parsed tick size from remaining time to current timestamp
-        remaining -= tickSize;
+        _state.remaining -= tickSize;
       } else {
-        currentTick += uint32(remaining / slot0.secondsPerTick);
+        _state.currentTick += uint32(
+          _state.remaining / slot0.secondsPerTick
+        );
+        console.log(
+          "_state.remaining / slot0.secondsPerTick: ",
+          _state.remaining / slot0.secondsPerTick
+        );
 
-        liquidityIndex +=
-          (utilization.rayMul(premiumRate) * remaining) /
+        _state.liquidityIndex +=
+          (_state.utilization.rayMul(_state.premiumRate) *
+            _state.remaining) /
           YEAR;
 
         break; // remaining is 0
@@ -788,10 +825,10 @@ library VirtualPool {
     }
 
     // Update current tick & last update timestamp
-    slot0.tick = currentTick;
+    slot0.tick = _state.currentTick;
     slot0.lastUpdateTimestamp = timestamp_;
 
-    return (slot0, liquidityIndex);
+    return (slot0, _state.liquidityIndex);
   }
 
   /**
@@ -999,19 +1036,14 @@ library VirtualPool {
       );
   }
 
-  // returns actual usage rate on capital covered / capital provided for insurance
-  function getUtilizationRate(
-    VPool storage self,
-    uint256 _coveredCapitalToAdd,
-    uint256 _coveredCapitalToRemove
-  ) internal view returns (uint256 rate) {
-    uint256 liquidity = totalLiquidity(self);
-
+  function utilizationRate(
+    uint256 coveredCapital_,
+    uint256 liquidity_
+  ) internal pure returns (uint256 rate) {
     // If the pool has no liquidity then the utilization rate is 0
-    if (liquidity == 0) return 0;
+    if (liquidity_ == 0) return 0;
 
-    rate = (((self.slot0.coveredCapital + _coveredCapitalToAdd) -
-      _coveredCapitalToRemove) * 100).rayDiv(liquidity);
+    rate = coveredCapital_.rayDiv(liquidity_);
 
     /**
      * @dev Utilization rate is capped at 100% because in case of overusage the
@@ -1019,7 +1051,20 @@ library VirtualPool {
      * cover buyers are not fully covered.
      * This means cover buyers only pay for the effective cover they have.
      */
+    if (FULL_UTILIZATION_RATE < rate) rate = FULL_UTILIZATION_RATE;
+  }
+
+  // returns actual usage rate on capital covered / capital provided for insurance
+  function getUtilizationRate(
+    VPool storage self,
+    uint256 _coveredCapitalToAdd,
+    uint256 _coveredCapitalToRemove
+  ) internal view returns (uint256) {
     return
-      FULL_UTILIZATION_RATE < rate ? FULL_UTILIZATION_RATE : rate;
+      utilizationRate(
+        ((self.slot0.coveredCapital + _coveredCapitalToAdd) -
+          _coveredCapitalToRemove) * 100,
+        self.totalLiquidity()
+      );
   }
 }
