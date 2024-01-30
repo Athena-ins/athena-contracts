@@ -175,7 +175,7 @@ contract LiquidityManager is
         start: cover.start,
         end: cover.end,
         premiumsLeft: info.premiumsLeft,
-        currentEmissionRate: info.currentEmissionRate,
+        dailyCost: info.currentDailyCost,
         premiumRate: info.premiumRate
       });
   }

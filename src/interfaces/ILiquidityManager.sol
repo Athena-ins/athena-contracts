@@ -12,7 +12,7 @@ interface ILiquidityManager {
     uint256 start;
     uint256 end;
     uint256 premiumsLeft;
-    uint256 currentEmissionRate;
+    uint256 dailyCost;
     uint256 premiumRate;
   }
 
