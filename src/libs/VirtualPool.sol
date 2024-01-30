@@ -424,12 +424,12 @@ library VirtualPool {
       revert InsufficientCapacity();
     }
 
-    uint256 currentPremiumRate = self.getPremiumRate(
-      getUtilizationRate(0, 0, coveredCapital, liquidity)
+    uint256 previousPremiumRate = self.getPremiumRate(
+      utilizationRate(0, 0, coveredCapital, liquidity)
     );
 
     uint256 newPremiumRate = self.getPremiumRate(
-      getUtilizationRate(coverAmount_, 0, coveredCapital, liquidity)
+      utilizationRate(coverAmount_, 0, coveredCapital, liquidity)
     );
 
     uint256 durationInSeconds = durationSecondsUnit(
@@ -438,9 +438,9 @@ library VirtualPool {
       newPremiumRate
     );
 
-    uint256 newSecondsPerTick = getSecondsPerTick(
+    uint256 newSecondsPerTick = secondsPerTick(
       self.slot0.secondsPerTick,
-      currentPremiumRate,
+      previousPremiumRate,
       newPremiumRate
     );
 
@@ -473,16 +473,16 @@ library VirtualPool {
 
     uint256 liquidity = totalLiquidity(self);
 
-    uint256 currentPremiumRate = self.getPremiumRate(
-      getUtilizationRate(0, 0, coveredCapital, liquidity)
+    uint256 previousPremiumRate = self.getPremiumRate(
+      utilizationRate(0, 0, coveredCapital, liquidity)
     );
     uint256 newPremiumRate = self.getPremiumRate(
-      getUtilizationRate(0, coverAmount_, coveredCapital, liquidity)
+      utilizationRate(0, coverAmount_, coveredCapital, liquidity)
     );
 
-    uint256 newSecondsPerTick = getSecondsPerTick(
+    uint256 newSecondsPerTick = secondsPerTick(
       self.slot0.secondsPerTick,
-      currentPremiumRate,
+      previousPremiumRate,
       newPremiumRate
     );
 
@@ -532,35 +532,35 @@ library VirtualPool {
    * @notice Updates the pool's slot0 when the available liquidity changes.
    *
    * @param self The pool
-   * @param amountToAdd_ The amount of liquidity to add
-   * @param amountToRemove_ The amount of liquidity to remove
+   * @param liquidityToAdd_ The amount of liquidity to add
+   * @param liquidityToRemove_ The amount of liquidity to remove
    */
   function _syncLiquidity(
     VPool storage self,
-    uint256 amountToAdd_,
-    uint256 amountToRemove_
+    uint256 liquidityToAdd_,
+    uint256 liquidityToRemove_
   ) internal {
     uint256 liquidity = totalLiquidity(self);
     uint256 available = availableLiquidity(self);
-    if (available + amountToAdd_ < amountToRemove_)
+    if (available + liquidityToAdd_ < liquidityToRemove_)
       revert NotEnoughLiquidityForRemoval();
 
     uint256 totalCovered = self.slot0.coveredCapital;
-    uint256 currentPremiumRate = self.getPremiumRate(
-      getUtilizationRate(0, 0, totalCovered, liquidity)
+    uint256 previousPremiumRate = self.getPremiumRate(
+      utilizationRate(0, 0, totalCovered, liquidity)
     );
     uint256 newPremiumRate = self.getPremiumRate(
-      getUtilizationRate(
+      utilizationRate(
         0,
         0,
         totalCovered,
-        (liquidity + amountToAdd_) - amountToRemove_
+        (liquidity + liquidityToAdd_) - liquidityToRemove_
       )
     );
 
-    self.slot0.secondsPerTick = getSecondsPerTick(
+    self.slot0.secondsPerTick = secondsPerTick(
       self.slot0.secondsPerTick,
-      currentPremiumRate,
+      previousPremiumRate,
       newPremiumRate
     );
   }
@@ -629,7 +629,7 @@ library VirtualPool {
       uint256 liquidity = totalLiquidity(self);
 
       info.premiumRate = self.getPremiumRate(
-        getUtilizationRate(0, 0, slot0.coveredCapital, liquidity)
+        utilizationRate(0, 0, slot0.coveredCapital, liquidity)
       );
 
       uint256 beginDailyCost = self.coverSize(coverId_).rayMul(
@@ -710,11 +710,7 @@ library VirtualPool {
   )
     internal
     view
-    returns (
-      Slot0 memory,
-      uint256 utilizationRate,
-      uint256 premiumRate
-    )
+    returns (Slot0 memory, uint256 utilization, uint256 premiumRate)
   {
     uint256[] memory coverIds = self.ticks[tick_];
 
@@ -725,27 +721,27 @@ library VirtualPool {
     }
 
     uint256 previousPremiumRate = self.getPremiumRate(
-      getUtilizationRate(0, 0, slot0_.coveredCapital, liquidity_)
+      utilizationRate(0, 0, slot0_.coveredCapital, liquidity_)
     );
 
-    utilizationRate = getUtilizationRate(
+    utilization = utilizationRate(
       0,
       coveredCapitalToRemove,
       slot0_.coveredCapital,
       liquidity_
     );
-    premiumRate = self.getPremiumRate(utilizationRate);
+    premiumRate = self.getPremiumRate(utilization);
 
     // These are the mutated values
     slot0_.coveredCapital -= coveredCapitalToRemove;
     slot0_.remainingCovers -= coverIds.length;
-    slot0_.secondsPerTick = getSecondsPerTick(
+    slot0_.secondsPerTick = secondsPerTick(
       slot0_.secondsPerTick,
       previousPremiumRate,
       premiumRate
     );
 
-    return (slot0_, utilizationRate, premiumRate);
+    return (slot0_, utilization, premiumRate);
   }
 
   /**
@@ -770,7 +766,7 @@ library VirtualPool {
     Slot0 memory slot0 = self.slot0;
 
     uint256 liquidity = totalLiquidity(self);
-    uint256 utilization = getUtilizationRate(
+    uint256 utilization = utilizationRate(
       0,
       0,
       slot0.coveredCapital,
@@ -1013,7 +1009,7 @@ library VirtualPool {
       oldDailyCost_.rayMul(newPremiumRate_).rayDiv(oldPremiumRate_);
   }
 
-  function getSecondsPerTick(
+  function secondsPerTick(
     uint256 _oldSecondsPerTick,
     uint256 _oldPremiumRate,
     uint256 _newPremiumRate
@@ -1035,18 +1031,23 @@ library VirtualPool {
       );
   }
 
-  // returns actual usage rate on capital covered / capital provided for insurance
-  function getUtilizationRate(
-    uint256 _coveredCapitalToAdd,
-    uint256 _coveredCapitalToRemove,
-    uint256 _totalCoveredCapital,
-    uint256 _liquidity
+  function currentPremiumRate(
+    VPool storage self
+  ) internal view returns (uint256) {
+    return
+      self.getPremiumRate(
+        _utilization(self.slot0.coveredCapital, self.totalLiquidity())
+      );
+  }
+
+  function _utilization(
+    uint256 coveredCapital_,
+    uint256 liquidity_
   ) internal pure returns (uint256 rate) {
-    if (_liquidity == 0) {
-      return 0;
-    }
-    rate = (((_totalCoveredCapital + _coveredCapitalToAdd) -
-      _coveredCapitalToRemove) * 100).rayDiv(_liquidity);
+    // If the pool has no liquidity then the utilization rate is 0
+    if (liquidity_ == 0) return 0;
+
+    rate = (coveredCapital_ * 100).rayDiv(liquidity_);
 
     /**
      * @dev Utilization rate is capped at 100% because in case of overusage the
@@ -1054,7 +1055,21 @@ library VirtualPool {
      * cover buyers are not fully covered.
      * This means cover buyers only pay for the effective cover they have.
      */
+    if (FULL_UTILIZATION_RATE < rate) rate = FULL_UTILIZATION_RATE;
+  }
+
+  // returns actual usage rate on capital covered / capital provided for insurance
+  function utilizationRate(
+    uint256 _coveredCapitalToAdd,
+    uint256 _coveredCapitalToRemove,
+    uint256 _totalCoveredCapital,
+    uint256 _liquidity
+  ) internal pure returns (uint256 rate) {
     return
-      FULL_UTILIZATION_RATE < rate ? FULL_UTILIZATION_RATE : rate;
+      _utilization(
+        ((_totalCoveredCapital + _coveredCapitalToAdd) -
+          _coveredCapitalToRemove),
+        _liquidity
+      );
   }
 }
