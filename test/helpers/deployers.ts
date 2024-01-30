@@ -159,7 +159,7 @@ export const defaultProtocolConfig: ProtocolConfig = {
     toRay(75), // uOptimal_
     toRay(1), // r0_
     toRay(5), // rSlope1_
-    toRay(1.1), // rSlope2_
+    toRay(10), // rSlope2_
   ],
   yieldBonuses: [
     { atenAmount: toErc20(0), yieldBonus: toRay(250, 4) },
