@@ -40,10 +40,10 @@ error InsufficientLiquidityForCover();
 error RatioAbovePoolCapacity();
 error CoverIsExpired();
 error NotEnoughPremiums();
-error SenderNotLiquidationManager();
 error CannotTakeInterestsIfCommittedWithdrawal();
 error CannotIncreaseIfCommittedWithdrawal();
 error PositionNotCommited();
+error SenderNotLiquidationManager();
 
 contract LiquidityManager is
   ILiquidityManager,
@@ -288,10 +288,11 @@ contract LiquidityManager is
 
   /// ======= COVER HELPERS ======= ///
 
-  function _expireCover(uint256 tokenId) internal {
-    _covers[tokenId].end = block.timestamp;
+  function _expireCover(uint256 coverId_) internal {
+    _covers[coverId_].end = block.timestamp;
+
     // This will freeze the farming rewards of the cover
-    farming.freezeExpiredCoverRewards(tokenId);
+    farming.freezeExpiredCoverRewards(coverId_);
   }
 
   /// ======= BUY COVER ======= ///
@@ -840,11 +841,13 @@ contract LiquidityManager is
   // check if RiskPool can deposit capital to cover the payouts if not enough liquidity
   function payoutClaim(
     uint256 coverId_,
-    uint256 amount_
+    uint256 compensationAmount_
   ) external onlyClaimManager {
     uint64 poolId = _covers[coverId_].poolId;
     VirtualPool.VPool storage poolA = _pools[poolId];
-    uint256 ratio = amount_.rayDiv(poolA.totalLiquidity());
+    uint256 ratio = compensationAmount_.rayDiv(
+      poolA.totalLiquidity()
+    );
     // The ration cannot be over 100% of the pool's liquidity (1 RAY)
     if (RayMath.RAY < ratio) revert RatioAbovePoolCapacity();
 
@@ -950,7 +953,11 @@ contract LiquidityManager is
       }
     }
 
-    strategyManager.payoutFromStrategy(strategyId, amount_, claimant);
+    strategyManager.payoutFromStrategy(
+      strategyId,
+      compensationAmount_,
+      claimant
+    );
   }
 
   /// ======= ADMIN ======= ///

@@ -392,16 +392,16 @@ library VirtualPool {
 
   function _addPremiumPosition(
     VPool storage self,
-    uint256 tokenId_,
+    uint256 coverId_,
     uint256 beginPremiumRate_,
     uint32 lastTick_
   ) internal {
     uint224 nbCoversInTick = self.ticks.addCoverId(
-      tokenId_,
+      coverId_,
       lastTick_
     );
 
-    self.coverPremiums[tokenId_] = CoverPremiums({
+    self.coverPremiums[coverId_] = CoverPremiums({
       beginPremiumRate: beginPremiumRate_,
       lastTick: lastTick_,
       coverIdIndex: nbCoversInTick
@@ -425,7 +425,6 @@ library VirtualPool {
     }
 
     uint256 previousPremiumRate = self.currentPremiumRate();
-
     uint256 newPremiumRate = self.updatedPremiumRate(coverAmount_, 0);
 
     uint256 durationInSeconds = ((premiums_ * YEAR * 100) /
@@ -902,6 +901,7 @@ library VirtualPool {
       rewardIndex,
       latestRewardIndex
     );
+
     info.coverRewards += info.newUserCapital.rayMul(
       self.liquidityIndex - info.newLpInfo.beginLiquidityIndex
     );
