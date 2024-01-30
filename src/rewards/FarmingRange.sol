@@ -72,16 +72,26 @@ error CannotFarmPositionCommitedToWithdrawal();
 contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
   using SafeERC20 for IERC20;
 
+  struct AccountTokens {
+    uint256[] lpTokenIds;
+    uint256[] coverTokenIds;
+  }
+
   mapping(uint256 _campaignId => RewardInfo[])
     public campaignRewardInfo;
 
   CampaignInfo[] public campaignInfo;
 
+  // For ERC-20 campaigns
   mapping(uint256 _campaignId => mapping(address _account => UserInfo))
     public userInfo;
+  // For ERC-721 campaigns
   mapping(uint256 _campaignId => mapping(uint256 _tokenId => UserInfo))
     public userInfoNft;
 
+  // Used to track the ERC-721 tokens deposited by a user
+  mapping(address _account => AccountTokens _balances)
+    private _balances;
   mapping(uint256 _lpTokenId => uint256 _nbCampaigns)
     public nbLpTokenCampaigns;
   mapping(uint256 _coverId => uint256 _campaignId)
@@ -119,6 +129,72 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
     if (msg.sender != address(liquidityManager))
       revert OnlyLiquidityManager();
     _;
+  }
+
+  // ======= ACCOUNT BALANCE TRACKING ======= //
+
+  function depositedLpTokens(
+    address _account
+  ) external view returns (uint256[] memory) {
+    return _balances[_account].lpTokenIds;
+  }
+
+  function depositedCoverTokens(
+    address _account
+  ) external view returns (uint256[] memory) {
+    return _balances[_account].coverTokenIds;
+  }
+
+  function _addToken(
+    address _account,
+    uint256 _lpTokenId,
+    AssetType _assetType
+  ) internal {
+    if (_assetType == AssetType.ERC20) revert OnlyERC721Campaigns();
+
+    uint256[] storage tokenIds = _assetType == AssetType.LP_ERC721
+      ? _balances[_account].lpTokenIds
+      : _balances[_account].coverTokenIds;
+
+    tokenIds.push(_lpTokenId);
+  }
+
+  function _removeToken(
+    address _account,
+    uint256 _lpTokenId,
+    AssetType _assetType
+  ) internal {
+     if (_assetType == AssetType.ERC20) revert OnlyERC721Campaigns();
+
+        uint256[] storage tokenIds = _assetType == AssetType.LP_ERC721
+      ? _balances[_account].lpTokenIds
+      : _balances[_account].coverTokenIds;
+
+    uint256 nbLpTokens = tokenIds.length;
+    for (uint256 i; i < nbLpTokens; i++) {
+      if (tokenIds[i] == _lpTokenId) {
+        // @bw bad
+        tokenIds[i] = tokenIds[nbLpTokens - 1];
+        tokenIds.pop();
+        break;
+      }
+    }
+  }
+
+  function _removeCoverToken(
+    address _account,
+    uint256 _coverTokenId
+  ) internal {
+    uint256[] storage coverTokenIds = _balances[_account]
+      .coverTokenIds;
+    uint256 nbCoverTokens = coverTokenIds.length;
+    for (uint256 i; i < nbCoverTokens; i++) {
+      if (coverTokenIds[i] == _coverTokenId) {
+        coverTokenIds[i] = coverTokenIds[nbCoverTokens - 1];
+        coverTokenIds.pop();
+        break;
+      }
+    }
   }
 
   // ======= DEPOSITS ======= //
