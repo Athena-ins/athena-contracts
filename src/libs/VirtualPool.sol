@@ -38,7 +38,7 @@ error PoolHasOnGoingClaims();
  * The change in distance represents the change in premium cost of cover time in relation to usage.
  *
  * Core pool states are computed with the following flow:
- * Utilization Rate (ray %) -> Premium Rate (ray %) -> Emission Rate (token/day)
+ * Utilization Rate (ray %) -> Premium Rate (ray %) -> Daily Cost (token/day)
  */
 library VirtualPool {
   using VirtualPool for VPool;
@@ -92,7 +92,7 @@ library VirtualPool {
 
   struct CoverInfo {
     uint256 premiumsLeft;
-    uint256 currentEmissionRate;
+    uint256 currentDailyCost;
     uint256 premiumRate;
   }
 
@@ -632,18 +632,18 @@ library VirtualPool {
         getUtilizationRate(0, 0, slot0.coveredCapital, liquidity)
       );
 
-      uint256 beginEmissionRate = self.coverSize(coverId_).rayMul(
+      uint256 beginDailyCost = self.coverSize(coverId_).rayMul(
         coverPremium.beginPremiumRate / 100
       ) / 365;
 
-      info.currentEmissionRate = getEmissionRate(
-        beginEmissionRate,
+      info.currentDailyCost = getDailyCost(
+        beginDailyCost,
         coverPremium.beginPremiumRate,
         info.premiumRate
       );
 
-      // Emission rate will be mutated
-      uint256 emissionRate = info.currentEmissionRate;
+      // Daily cost will be mutated
+      uint256 dailyCost = info.currentDailyCost;
       uint32 currentTick = slot0.tick;
 
       // As long as the tick at which the cover expires is not overtaken
@@ -663,7 +663,7 @@ library VirtualPool {
             slot0.secondsPerTick;
 
           info.premiumsLeft +=
-            (duration * emissionRate) /
+            (duration * dailyCost) /
             MAX_SECONDS_PER_TICK;
 
           currentTick = nextMaxTick;
@@ -679,8 +679,8 @@ library VirtualPool {
             nextTick
           );
 
-          emissionRate = getEmissionRate(
-            beginEmissionRate,
+          dailyCost = getDailyCost(
+            beginDailyCost,
             coverPremium.beginPremiumRate,
             premiumRate
           );
@@ -995,24 +995,22 @@ library VirtualPool {
   }
 
   /**
-   * @notice Computes the new emission rate of a cover,
+   * @notice Computes the new daily cost of a cover,
    * the emmission rate is the daily cost of a cover in the pool.
    *
-   * @param oldEmissionRate_ The emission rate of the cover before the change
+   * @param oldDailyCost_ The daily cost of the cover before the change
    * @param oldPremiumRate_ The premium rate of the cover before the change
    * @param newPremiumRate_ The premium rate of the cover after the change
    *
-   * @return The new emission rate of the cover expressed in tokens/day
+   * @return The new daily cost of the cover expressed in tokens/day
    */
-  function getEmissionRate(
-    uint256 oldEmissionRate_,
+  function getDailyCost(
+    uint256 oldDailyCost_,
     uint256 oldPremiumRate_,
     uint256 newPremiumRate_
   ) internal pure returns (uint256) {
     return
-      oldEmissionRate_.rayMul(newPremiumRate_).rayDiv(
-        oldPremiumRate_
-      );
+      oldDailyCost_.rayMul(newPremiumRate_).rayDiv(oldPremiumRate_);
   }
 
   function getSecondsPerTick(
