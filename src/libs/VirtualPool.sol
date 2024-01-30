@@ -590,19 +590,15 @@ library VirtualPool {
    *
    * @param self The pool
    * @param coverId_ The cover ID
-   * @param syncSlot0_ Whether to sync the slot0 to the current timestamp in memory
    *
    * @return info A struct containing the cover's premium rate & the cover's daily cost
    */
   function _coverInfo(
     VPool storage self,
-    uint256 coverId_,
-    bool syncSlot0_
+    uint256 coverId_
   ) internal view returns (CoverInfo memory info) {
     // For reads we sync the slot0 to the current timestamp to have latests data
-    (Slot0 memory slot0, ) = syncSlot0_
-      ? self._refresh(block.timestamp)
-      : (self.slot0, 0);
+    (Slot0 memory slot0, ) = self._refresh(block.timestamp);
     CoverPremiums storage coverPremium = self.coverPremiums[coverId_];
 
     if (coverPremium.lastTick < slot0.tick) {
@@ -702,6 +698,7 @@ library VirtualPool {
     for (uint256 i; i < coverIds.length; i++) {
       // Add all the size of all covers in the tick
       coveredCapitalToRemove += self.coverSize(coverIds[i]);
+      // @bw should expired cover
     }
 
     uint256 previousPremiumRate = self.getPremiumRate(

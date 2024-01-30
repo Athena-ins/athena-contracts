@@ -164,7 +164,7 @@ contract LiquidityManager is
     Cover storage cover = _covers[tokenId_];
 
     VirtualPool.CoverInfo memory info = _pools[cover.poolId]
-      ._coverInfo(tokenId_, true);
+      ._coverInfo(tokenId_);
 
     return
       CoverRead({
@@ -363,7 +363,7 @@ contract LiquidityManager is
     if (cover.end != 0) revert CoverIsExpired();
 
     // Get the amount of premiums left
-    uint256 premiums = pool._coverInfo(coverId_, false).premiumsLeft;
+    uint256 premiums = pool._coverInfo(coverId_).premiumsLeft;
     uint256 coverAmount = cover.coverAmount;
     // Close the existing cover
     pool._closeCover(coverId_, coverAmount);
@@ -921,9 +921,7 @@ contract LiquidityManager is
       // If the cover isn't expired, then reduce the cover amount
       if (cover.end == 0) {
         // Get the amount of premiums left
-        uint256 premiums = poolA
-          ._coverInfo(coverId_, false)
-          .premiumsLeft;
+        uint256 premiums = poolA._coverInfo(coverId_).premiumsLeft;
         // Close the existing cover
         poolA._closeCover(coverId_, cover.coverAmount);
 
