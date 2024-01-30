@@ -842,7 +842,7 @@ contract LiquidityManager is
   ) external onlyClaimManager {
     uint64 poolId = _covers[coverId_].poolId;
     VirtualPool.VPool storage poolA = _pools[poolId];
-    uint256 ratio = amount_.rayDiv(poolA.availableLiquidity());
+    uint256 ratio = amount_.rayDiv(poolA.totalLiquidity());
     // The ration cannot be over 100% of the pool's liquidity (1 RAY)
     if (RayMath.RAY < ratio) revert RatioAbovePoolCapacity();
 
