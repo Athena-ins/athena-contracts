@@ -131,7 +131,7 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
     _;
   }
 
-  // ======= ACCOUNT BALANCE TRACKING ======= //
+  // ======= ACCOUNT ERC-721 BALANCE ======= //
 
   function depositedLpTokens(
     address _account
@@ -150,8 +150,7 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
     uint256 _lpTokenId,
     AssetType _assetType
   ) internal {
-    if (_assetType == AssetType.ERC20) revert OnlyERC721Campaigns();
-
+    // @dev Requires to have checked that campaign is not for ERC-20 tokens
     uint256[] storage tokenIds = _assetType == AssetType.LP_ERC721
       ? _balances[_account].lpTokenIds
       : _balances[_account].coverTokenIds;
@@ -164,17 +163,20 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
     uint256 _lpTokenId,
     AssetType _assetType
   ) internal {
-     if (_assetType == AssetType.ERC20) revert OnlyERC721Campaigns();
-
-        uint256[] storage tokenIds = _assetType == AssetType.LP_ERC721
+    // @dev Requires to have checked that campaign is not for ERC-20 tokens
+    uint256[] storage tokenIds = _assetType == AssetType.LP_ERC721
       ? _balances[_account].lpTokenIds
       : _balances[_account].coverTokenIds;
 
     uint256 nbLpTokens = tokenIds.length;
     for (uint256 i; i < nbLpTokens; i++) {
       if (tokenIds[i] == _lpTokenId) {
-        // @bw bad
-        tokenIds[i] = tokenIds[nbLpTokens - 1];
+        // If the token is not the last in the array, replace it with the last one
+        if (i != nbLpTokens - 1) {
+          tokenIds[i] = tokenIds[nbLpTokens - 1];
+        }
+
+        // Delete last element from the array
         tokenIds.pop();
         break;
       }
@@ -295,6 +297,8 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
     }
 
     nbLpTokenCampaigns[_tokenId] += nbCampaigns;
+    // Add lp token to user balance
+    _addToken(msg.sender, _tokenId, AssetType.LP_ERC721);
   }
 
   function depositCoverNft(
@@ -342,6 +346,9 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
 
     uint256 amount = (coverAmount * premiums) / ratioPenalty;
     _deposit(_campaignID, amount, true, _tokenId);
+
+    // Add cover token to user balance
+    _addToken(msg.sender, _tokenId, AssetType.COVER_ERC721);
   }
 
   /// @inheritdoc IFarmingRange
@@ -454,6 +461,8 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
 
     if (nbLpTokenCampaigns[_tokenId] == 0) {
       positionToken.transferFrom(address(this), msg.sender, _tokenId);
+      // Remove lp token from user balance
+      _removeToken(msg.sender, _tokenId, AssetType.LP_ERC721);
     }
   }
 
@@ -473,6 +482,8 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
     _withdraw(_campaignID, amount, true, _tokenId);
 
     coverToken.transferFrom(address(this), msg.sender, _tokenId);
+    // Remove cover token from user balance
+    _removeToken(msg.sender, _tokenId, AssetType.COVER_ERC721);
   }
 
   /// @inheritdoc IFarmingRange
@@ -480,13 +491,15 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
     uint256[] calldata _campaignIDs,
     uint256[][] calldata _tokenIds
   ) external nonReentrant {
-    for (uint256 i; i != _campaignIDs.length; i++) {
+    uint256 nbCampaigns = _campaignIDs.length;
+    for (uint256 i; i != nbCampaigns; i++) {
       uint256 campaignID = _campaignIDs[i];
 
       if (campaignInfo[campaignID].assetType == AssetType.ERC20) {
         _withdraw(campaignID, 0, false, 0);
       } else {
-        for (uint256 j; j != _tokenIds[i].length; j++) {
+        uint256 nbTokens = _tokenIds[i].length;
+        for (uint256 j; j != nbTokens; j++) {
           uint256 tokenId = _tokenIds[i][j];
 
           if (
@@ -546,6 +559,8 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
 
         if (campaign.assetType == AssetType.COVER_ERC721) {
           coverToken.transferFrom(address(this), msg.sender, tokenId);
+          // Remove cover token from user balance
+          _removeCoverToken(msg.sender, tokenId);
           delete coverIdToCampaignId[tokenId];
         } else if (campaign.assetType == AssetType.LP_ERC721) {
           nbLpTokenCampaigns[tokenId]--;
@@ -556,6 +571,8 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
               msg.sender,
               tokenId
             );
+            // Remove lp token from user balance
+            _removeToken(msg.sender, tokenId, AssetType.LP_ERC721);
           }
         }
 
@@ -593,6 +610,8 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
 
     address owner = campaignTokenDeposits[campaignID][_tokenId];
     coverToken.transferFrom(address(this), owner, _tokenId);
+    // Remove cover token from user balance
+    _removeToken(owner, _tokenId, AssetType.COVER_ERC721);
 
     campaignTokenDeposits[campaignID][_tokenId] = address(0);
     delete coverIdToCampaignId[_tokenId];
