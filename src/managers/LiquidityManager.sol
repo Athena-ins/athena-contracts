@@ -364,9 +364,9 @@ contract LiquidityManager is
 
     // Get the amount of premiums left
     uint256 premiums = pool._coverInfo(coverId_).premiumsLeft;
-    uint256 coverAmount = cover.coverAmount;
+
     // Close the existing cover
-    pool._closeCover(coverId_, coverAmount);
+    pool._closeCover(coverId_, cover.coverAmount);
 
     // Only allow one operation on cover amount change
     if (0 < coverToAdd_) {
@@ -374,13 +374,13 @@ contract LiquidityManager is
        * Check if pool has enough liquidity,
        * we closed cover at this point so check for total
        * */
-      if (pool.availableLiquidity() < coverAmount + coverToAdd_)
+      if (pool.availableLiquidity() < cover.coverAmount + coverToAdd_)
         revert InsufficientLiquidityForCover();
 
-      coverAmount += coverToAdd_;
+      cover.coverAmount += coverToAdd_;
     } else if (0 < coverToRemove_) {
       // User is allowed to set the cover amount to 0 to pause the cover
-      coverAmount -= coverToRemove_;
+      cover.coverAmount -= coverToRemove_;
     }
 
     // Only allow one operation on premiums amount change
@@ -407,11 +407,10 @@ contract LiquidityManager is
 
     // If no premiums left, then cover expires & should not be reopened
     if (premiums == 0) {
-      cover.coverAmount = coverAmount;
-      cover.end = block.timestamp;
+      _expireCover(coverId_);
     } else {
       // Update cover
-      pool._buyCover(cover.poolId, coverAmount, premiums);
+      pool._buyCover(coverId_, cover.coverAmount, premiums);
     }
   }
 
@@ -574,6 +573,12 @@ contract LiquidityManager is
 
     // All pools have same strategy since they are compatible
     uint256 strategyId = _pools[position.poolIds[0]].strategyId;
+
+    // Save index up to which the position is receiving strategy rewards
+    _posRewardIndex[tokenId_] = strategyManager.getRewardIndex(
+      strategyId
+    );
+
     // Withdraw interests from strategy
     strategyManager.withdrawFromStrategy(
       strategyId,
@@ -819,19 +824,16 @@ contract LiquidityManager is
   }
 
   function attemptReopenCover(
-    uint64 poolId,
-    uint256 coverAmount,
-    uint256 payoutAmount,
-    uint256 premiums
+    uint64 poolId_,
+    uint256 coverId_,
+    uint256 newCoverAmount_,
+    uint256 premiums_
   ) external {
     if (msg.sender != address(this)) {
       revert SenderNotLiquidationManager();
     } // this function should be called only by this contract
-    _pools[poolId]._buyCover(
-      poolId,
-      coverAmount - payoutAmount,
-      premiums
-    );
+
+    _pools[poolId_]._buyCover(coverId_, newCoverAmount_, premiums_);
   }
 
   // @bw opti - Store single claim in liqman with all liq index of dep pools. Check only from same pool id if single pool pos. Compute new cap & strat Rew & all Prem rew once and not for each pool.
@@ -925,12 +927,15 @@ contract LiquidityManager is
         // Close the existing cover
         poolA._closeCover(coverId_, cover.coverAmount);
 
+        // Reduce the cover amount by the compensation amount
+        cover.coverAmount -= compensationAmount_;
+
         // Update cover
         try
           this.attemptReopenCover(
             poolId,
+            coverId_,
             cover.coverAmount,
-            amount_,
             premiums
           )
         {} catch {
@@ -940,7 +945,7 @@ contract LiquidityManager is
             msg.sender,
             premiums
           );
-          cover.end = block.timestamp;
+          _expireCover(coverId_);
         }
       }
     }
