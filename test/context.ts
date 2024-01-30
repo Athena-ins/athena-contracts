@@ -1,6 +1,4 @@
-import { Signer, Wallet } from "ethers";
 import { ethers } from "hardhat";
-import { Suite, AsyncFunc } from "mocha";
 // Functions
 import {
   makeForkSnapshot,
@@ -12,6 +10,10 @@ import {
   defaultProtocolConfig,
 } from "./helpers/deployers";
 import { makeTestHelpers, evidenceGuardianWallet } from "./helpers/protocol";
+// Types
+import { Signer, Wallet } from "ethers";
+import { Suite, AsyncFunc } from "mocha";
+import { LiquidityManager__factory } from "../typechain";
 
 // Custom hook to run a function before each child test suite
 function beforeEachSuite(fn: AsyncFunc) {
@@ -25,6 +27,9 @@ function beforeEachSuite(fn: AsyncFunc) {
 export function baseContext(description: string, hooks: () => void): void {
   describe(description, function () {
     before(async function () {
+      const liqManagerSize = LiquidityManager__factory.bytecode.length;
+      console.log(`\nLiquidity Manager Size: ${liqManagerSize}\n`);
+
       // Provides signers for testing
       const nbSpecialAccounts = 5;
       const signers = await ethers.getSigners();
