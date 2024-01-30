@@ -499,7 +499,7 @@ contract LiquidityManager is
 
     // Take interests in all pools before update
     // @dev Needed to keep register rewards & claims impact on capital
-    _takeInterests(tokenId_, positionToken.ownerOf(tokenId_));
+    _takeInterests(tokenId_, positionToken.ownerOf(tokenId_), 0);
 
     uint256 amountUnderlying = isWrapped
       ? strategyManager.wrappedToUnderlying(strategyId, amount)
@@ -541,7 +541,8 @@ contract LiquidityManager is
 
   function _takeInterests(
     uint256 tokenId_,
-    address coverRewardsBeneficiary_
+    address coverRewardsBeneficiary_,
+    uint256 yieldBonus_
   ) private {
     Position storage position = _positions[tokenId_];
 
@@ -550,7 +551,6 @@ contract LiquidityManager is
       revert CannotTakeInterestsIfCommittedWithdrawal();
 
     address posOwner = positionToken.ownerOf(tokenId_);
-    uint256 yieldBonus = staking.yieldBonusOf(posOwner);
 
     uint256 newUserCapital;
     uint256 strategyRewards;
@@ -567,7 +567,7 @@ contract LiquidityManager is
         tokenId_,
         coverRewardsBeneficiary_,
         position.supplied,
-        yieldBonus,
+        yieldBonus_,
         position.poolIds
       );
     }
@@ -586,7 +586,7 @@ contract LiquidityManager is
       0, // No capital withdrawn
       strategyRewards,
       posOwner, // Always paid out to owner
-      yieldBonus
+      yieldBonus_
     );
 
     // Update the position capital to reflect potential reduction due to claims
@@ -596,25 +596,19 @@ contract LiquidityManager is
   function takeInterests(
     uint256 tokenId_
   ) public onlyPositionOwner(tokenId_) {
-    _takeInterests(tokenId_, positionToken.ownerOf(tokenId_));
+    _takeInterests(tokenId_, positionToken.ownerOf(tokenId_), 0);
   }
 
   /// ======= LP YIELD BONUS ======= ///
 
-  function yieldBonusUpdate(
-    uint256[] calldata tokenIds_
+  function takeInterestsWithYieldBonus(
+    address account_,
+    uint256 yieldBonus_,
+    uint256[] calldata positionIds_
   ) external onlyFarmingRange {
-    /**
-     * // @bw Should take interests in all positions using the prev yield bonus -
-     * called on bonus yield change in staking then to farming to get affected token ids of user.
-     * Should change yield bonus AFTER tp
-     * Should be ok with commit fee redirect since only uncommit positions can farm & farming is required to get the discount
-     *  */
-    address posOwner = positionToken.ownerOf(tokenIds_[0]);
-
-    uint256 nbPositions = tokenIds_.length;
+    uint256 nbPositions = positionIds_.length;
     for (uint256 i; i < nbPositions; i++) {
-      _takeInterests(tokenIds_[i], posOwner);
+      _takeInterests(positionIds_[i], account_, yieldBonus_);
     }
   }
 
@@ -627,7 +621,7 @@ contract LiquidityManager is
 
     // Take interests in all pools before withdrawal
     // @dev Any rewards accrued after this point will be send to the leverage risk wallet
-    _takeInterests(tokenId_, positionToken.ownerOf(tokenId_));
+    _takeInterests(tokenId_, positionToken.ownerOf(tokenId_), 0);
 
     position.commitWithdrawalTimestamp = block.timestamp;
   }
@@ -642,7 +636,7 @@ contract LiquidityManager is
       revert PositionNotCommited();
 
     // Pool rewards after commit are paid in favor of the DAO's leverage risk wallet
-    _takeInterests(tokenId_, address(ecclesiaDao));
+    _takeInterests(tokenId_, address(ecclesiaDao), 0);
 
     position.commitWithdrawalTimestamp = 0;
   }
@@ -658,7 +652,6 @@ contract LiquidityManager is
       revert WithdrawCommitDelayNotReached();
 
     address account = positionToken.ownerOf(tokenId_);
-    uint256 yieldBonus = staking.yieldBonusOf(account);
 
     (
       uint256 capital,
@@ -678,7 +671,7 @@ contract LiquidityManager is
           capital,
           strategyRewards,
           account,
-          yieldBonus
+          0 // No yield bonus
         );
       } else {
         strategyManager.withdrawFromStrategy(
@@ -686,7 +679,7 @@ contract LiquidityManager is
           capital,
           strategyRewards,
           account,
-          yieldBonus
+          0 // No yield bonus
         );
       }
     }
@@ -837,7 +830,6 @@ contract LiquidityManager is
     _pools[poolId_]._buyCover(coverId_, newCoverAmount_, premiums_);
   }
 
-  // @bw opti - Store single claim in liqman with all liq index of dep pools. Check only from same pool id if single pool pos. Compute new cap & strat Rew & all Prem rew once and not for each pool.
   // check if RiskPool can deposit capital to cover the payouts if not enough liquidity
   function payoutClaim(
     uint256 coverId_,

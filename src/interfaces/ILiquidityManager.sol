@@ -8,7 +8,7 @@ interface ILiquidityManager {
     uint256 coverId;
     uint64 poolId;
     uint256 coverAmount;
-    uint256 premiums; // @bw never actually used by the protocol
+    uint256 premiums;
     uint256 start;
     uint256 end;
     uint256 premiumsLeft;
@@ -53,5 +53,9 @@ interface ILiquidityManager {
 
   function payoutClaim(uint256 poolId_, uint256 amount_) external;
 
-  function yieldBonusUpdate(uint256[] calldata positionIds_) external;
+  function takeInterestsWithYieldBonus(
+    address account_,
+    uint256 yieldBonus_,
+    uint256[] calldata positionIds_
+  ) external;
 }

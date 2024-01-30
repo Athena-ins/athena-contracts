@@ -485,7 +485,7 @@ library VirtualPool {
           .coverPremiums[coverId_]
           .coverIdIndex;
       }
-      // @bw does not delete correctly
+
       delete self.coverPremiums[coverId_];
 
       self.ticks.removeCoverId(
