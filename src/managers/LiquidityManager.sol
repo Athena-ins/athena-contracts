@@ -185,9 +185,11 @@ contract LiquidityManager is
   }
 
   function isCoverActive(
-    uint256 tokenId
+    uint256 coverId_
   ) external view returns (bool) {
-    return _covers[tokenId].end == 0;
+    VirtualPool.VPool storage pool = _pools[_covers[coverId_].poolId];
+    // Check if the last tick of the cover was overtaken by the pool
+    return pool.slot0.tick < pool.coverPremiums[coverId_].lastTick;
   }
 
   function _getCompensation(
