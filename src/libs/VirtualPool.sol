@@ -707,12 +707,11 @@ library VirtualPool {
 
     uint256 previousPremiumRate = self.currentPremiumRate();
 
-    utilization = utilizationRate(
-      0,
-      coveredCapitalToRemove,
-      slot0_.coveredCapital,
+    utilization = _utilization(
+      slot0_.coveredCapital - coveredCapitalToRemove,
       liquidity
     );
+
     premiumRate = self.getPremiumRate(utilization);
 
     // These are the mutated values
@@ -1033,20 +1032,5 @@ library VirtualPool {
      * This means cover buyers only pay for the effective cover they have.
      */
     if (FULL_UTILIZATION_RATE < rate) rate = FULL_UTILIZATION_RATE;
-  }
-
-  // returns actual usage rate on capital covered / capital provided for insurance
-  function utilizationRate(
-    uint256 _coveredCapitalToAdd,
-    uint256 _coveredCapitalToRemove,
-    uint256 _totalCoveredCapital,
-    uint256 _liquidity
-  ) internal pure returns (uint256 rate) {
-    return
-      _utilization(
-        ((_totalCoveredCapital + _coveredCapitalToAdd) -
-          _coveredCapitalToRemove),
-        _liquidity
-      );
   }
 }

@@ -171,7 +171,6 @@ contract LiquidityManager is
         coverId: tokenId_,
         poolId: cover.poolId,
         coverAmount: cover.coverAmount,
-        premiums: cover.premiums,
         start: cover.start,
         end: cover.end,
         premiumsLeft: info.premiumsLeft,
@@ -331,7 +330,6 @@ contract LiquidityManager is
     _covers[coverId] = Cover({
       poolId: poolId_,
       coverAmount: coverAmount_,
-      premiums: premiums_,
       start: block.timestamp,
       end: 0
     });

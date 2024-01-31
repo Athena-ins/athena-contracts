@@ -8,7 +8,6 @@ interface ILiquidityManager {
     uint256 coverId;
     uint64 poolId;
     uint256 coverAmount;
-    uint256 premiums;
     uint256 start;
     uint256 end;
     uint256 premiumsLeft;
@@ -19,7 +18,6 @@ interface ILiquidityManager {
   struct Cover {
     uint64 poolId;
     uint256 coverAmount;
-    uint256 premiums;
     uint256 start;
     uint256 end;
   }
