@@ -45,11 +45,13 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
   enum ClaimStatus {
     Initiated,
     Accepted,
-    Disputed,
-    AcceptedWithDispute,
-    RejectedWithDispute,
-    RejectedByOverrule,
     Compensated,
+    // Statuses below are only used when a claim is disputed
+    Disputed,
+    RejectedByOverrule,
+    RejectedByRefusalToArbitrate,
+    RejectedByCourtDecision,
+    AcceptedByCourtDecision,
     CompensatedAfterDispute
   }
 
@@ -83,7 +85,7 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
     uint256 createdAt;
     uint256 amount;
     address challenger;
-    uint256 arbitrationCost;
+    uint256 arbitrationCost; // @bw change to deposited amount in case of collat amount change
     uint256 rulingTimestamp;
   }
 
@@ -195,12 +197,6 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
   );
 
   // ======= MODIFIERS ======= //
-
-  modifier onlyLiquidityManager() {
-    if (msg.sender != address(liquidityManager))
-      revert OnlyLiquidityManager();
-    _;
-  }
 
   modifier onlyArbitrator() {
     if (msg.sender != address(arbitrator)) revert OnlyArbitrator();
@@ -455,7 +451,7 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
   function addCoverTermsForPool(
     uint64 poolId_,
     string calldata ipfsAgreementCid_
-  ) external onlyLiquidityManager {
+  ) external onlyOwner {
     poolIdToCoverTerms[poolId_] = ipfsAgreementCid_;
   }
 
@@ -626,12 +622,12 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
 
     // Manage ETH for claim creation, claim collateral and dispute creation
     if (ruling_ == uint256(RulingOptions.PayClaimant)) {
-      userClaim.status = ClaimStatus.AcceptedWithDispute;
+      userClaim.status = ClaimStatus.AcceptedByCourtDecision;
 
       // Save timestamp to initiate overrule period
       userClaim.rulingTimestamp = block.timestamp;
     } else if (ruling_ == uint256(RulingOptions.RejectClaim)) {
-      userClaim.status = ClaimStatus.RejectedWithDispute;
+      userClaim.status = ClaimStatus.RejectedByCourtDecision;
 
       address challenger = userClaim.challenger;
       // Refund arbitration cost to the challenger and pay them with collateral
@@ -641,7 +637,7 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
       );
     } else {
       // This is the case where the arbitrator refuses to rule
-      userClaim.status = ClaimStatus.RejectedWithDispute;
+      userClaim.status = ClaimStatus.RejectedByRefusalToArbitrate;
 
       /// @dev we remove 1 wei from the arbitration cost to avoid a rounding errors
       uint256 halfArbitrationCost = (userClaim.arbitrationCost / 2) -
@@ -688,7 +684,9 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
       liquidityManager.removeClaimFromPool(userClaim.coverId);
 
       userClaim.status = ClaimStatus.Compensated;
-    } else if (userClaim.status == ClaimStatus.AcceptedWithDispute) {
+    } else if (
+      userClaim.status == ClaimStatus.AcceptedByCourtDecision
+    ) {
       // Check the ruling has passed the overrule period
       if (
         block.timestamp < userClaim.rulingTimestamp + overrulePeriod
@@ -711,11 +709,14 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
 
   // ======= ADMIN ======= //
 
-  function overrule(uint256 claimId_) external onlyOwner {
+  function overrule(
+    uint256 claimId_,
+    bool punishClaimant_
+  ) external onlyOwner {
     Claim storage userClaim = claims[claimId_];
 
     // Check the claim is in the appropriate status
-    if (userClaim.status != ClaimStatus.AcceptedWithDispute)
+    if (userClaim.status != ClaimStatus.AcceptedByCourtDecision)
       revert WrongClaimStatus();
     // Check the ruling has passed the overrule period
     if (userClaim.rulingTimestamp + overrulePeriod < block.timestamp)
