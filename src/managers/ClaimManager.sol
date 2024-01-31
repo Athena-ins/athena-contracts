@@ -723,6 +723,15 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
 
     userClaim.status = ClaimStatus.RejectedByOverrule;
 
+    uint256 amountForUser = userClaim.arbitrationCost;
+
+    // In case of blatant attacks on the claim process then punish the offender
+    if (punishClaimant_) {
+      _sendValue(owner(), collateralAmount);
+    } else {
+      amountForUser += collateralAmount;
+    }
+
     // Send back the collateral and arbitration cost to the claimant
     _sendValue(
       msg.sender,
