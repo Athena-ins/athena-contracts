@@ -439,6 +439,7 @@ library VirtualPool {
     if (durationInSeconds < newSecondsPerTick)
       revert DurationTooLow();
 
+    // @dev The user can loose up to almost 1 tick of cover due to the division
     uint32 lastTick = self.slot0.tick +
       uint32(durationInSeconds / newSecondsPerTick);
 
@@ -688,7 +689,11 @@ library VirtualPool {
   )
     internal
     view
-    returns (Slot0 memory, uint256 utilization, uint256 premiumRate)
+    returns (
+      Slot0 memory /* slot0_ */,
+      uint256 utilization,
+      uint256 premiumRate
+    )
   {
     uint256[] memory coverIds = self.ticks[tick_];
     uint256 liquidity = self.totalLiquidity();
@@ -738,7 +743,7 @@ library VirtualPool {
   )
     internal
     view
-    returns (Slot0 memory /*slot0*/, uint256 /*liquidityIndex*/)
+    returns (Slot0 memory /* slot0 */, uint256 /* liquidityIndex */)
   {
     // Make copies in memory to allow for mutations
     Slot0 memory slot0 = self.slot0;
@@ -923,7 +928,7 @@ library VirtualPool {
   function getPremiumRate(
     VPool storage self,
     uint256 utilizationRate_
-  ) internal view returns (uint256) {
+  ) internal view returns (uint256 /* premiumRate */) {
     Formula storage formula = self.formula;
     // returns actual rate for insurance
     if (utilizationRate_ < formula.uOptimal) {

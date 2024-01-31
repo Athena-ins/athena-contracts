@@ -6,16 +6,18 @@ import { ERC721 } from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import { ERC721Enumerable } from "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
-// @bw need to move view fns here to lighten up the LM contract
-
 // Interfaces
-// import { IAthenaCoverToken } from "../interfaces/IAthenaCoverToken.sol";
+import { IAthenaCoverToken } from "../interfaces/IAthenaCoverToken.sol";
 import { ILiquidityManager } from "../interfaces/ILiquidityManager.sol";
 
 // ======= ERRORS ======= //
 error NotLiquidtyManager();
 
-contract AthenaCoverToken is ERC721Enumerable, Ownable {
+contract AthenaCoverToken is
+  IAthenaCoverToken,
+  ERC721Enumerable,
+  Ownable
+{
   // ======= STORAGE ======= //
 
   ILiquidityManager public liquidityManager;
