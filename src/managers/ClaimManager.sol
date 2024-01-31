@@ -14,10 +14,6 @@ import { IClaimManager } from "../interfaces/IClaimManager.sol";
 import { ILiquidityManager } from "../interfaces/ILiquidityManager.sol";
 import { IAthenaCoverToken } from "../interfaces/IAthenaCoverToken.sol";
 
-// @bw need to set args for Kleros arbitrator (pass sub court ID in args, min amount of jurors, etc)
-// https://docs.kleros.io/integrations/types-of-integrations/1.-dispute-resolution-integration-plan/smart-contract-integration
-// https://etherscan.io/address/0x988b3a538b618c7a603e1c11ab82cd16dbe28069#code
-
 // ======= ERRORS ======= //
 
 error OnlyLiquidityManager();
@@ -99,9 +95,12 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
 
   address public metaEvidenceGuardian;
   address public overruleGuardian;
+
+  // The params for Kleros specifying the subcourt ID and the number of jurors
+  bytes public klerosExtraData;
   uint256 public challengePeriod = 10 days;
   uint256 public overrulePeriod = 4 days;
-  uint256 public collateralAmount = 0.01 ether;
+  uint256 public collateralAmount = 0.1 ether;
 
   uint256 public immutable numberOfRulingOptions = 2;
 
@@ -130,12 +129,15 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
     IAthenaCoverToken coverToken_,
     ILiquidityManager liquidityManager_,
     IArbitrator arbitrator_,
-    address metaEvidenceGuardian_
+    address metaEvidenceGuardian_,
+    uint256 subcourtId_,
+    uint256 nbOfJurors_
   ) Ownable(msg.sender) {
     coverToken = coverToken_;
     liquidityManager = liquidityManager_;
     metaEvidenceGuardian = metaEvidenceGuardian_;
-    arbitrator = arbitrator_;
+
+    setKlerosConfiguration(arbitrator_, subcourtId_, nbOfJurors_);
   }
 
   // ======= EVENTS ======= //
@@ -236,7 +238,7 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
    * @return _ the arbitration cost
    */
   function arbitrationCost() public view returns (uint256) {
-    return arbitrator.arbitrationCost("");
+    return arbitrator.arbitrationCost(klerosExtraData);
   }
 
   /**
@@ -586,10 +588,9 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
       revert MustMatchClaimantDeposit();
 
     // Create the claim and obtain the Kleros dispute ID
-    // @bw this is bad, need subcourt id + check cost of arbitration in court
     uint256 disputeId = arbitrator.createDispute{
       value: costOfArbitration
-    }(2, "");
+    }(2, klerosExtraData);
 
     // Update the claim with challenged status and challenger address
     userClaim.status = ClaimStatus.Disputed;
@@ -727,6 +728,15 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
       msg.sender,
       userClaim.arbitrationCost + collateralAmount
     );
+  }
+
+  function setKlerosConfiguration(
+    IArbitrator klerosArbitrator_,
+    uint256 subcourtId_,
+    uint256 nbOfJurors_
+  ) public onlyOwner {
+    arbitrator = klerosArbitrator_;
+    klerosExtraData = abi.encode(subcourtId_, nbOfJurors_);
   }
 
   /**
