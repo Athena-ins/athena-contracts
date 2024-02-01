@@ -183,6 +183,12 @@ contract LiquidityManager is
     return _covers[tokenId_].coverAmount;
   }
 
+  function coverPoolId(
+    uint256 tokenId_
+  ) external view returns (uint64) {
+    return _covers[tokenId_].poolId;
+  }
+
   function isCoverActive(
     uint256 coverId_
   ) external view returns (bool) {

@@ -304,7 +304,7 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
     Claim storage claim = claims[claimId_];
 
     address claimant = coverToken.ownerOf(claim.coverId);
-    uint64 poolId = liquidityManager._covers(claim.coverId).poolId;
+    uint64 poolId = liquidityManager.coverPoolId(claim.coverId);
 
     claimData = ClaimView({
       claimant: claimant,
