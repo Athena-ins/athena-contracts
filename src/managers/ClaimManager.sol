@@ -70,7 +70,7 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
     uint256 createdAt;
     uint256 amount;
     address challenger;
-    uint256 arbitrationCost;
+    uint256 deposit;
     string[] evidence;
     string[] counterEvidence;
     string metaEvidence;
@@ -85,7 +85,7 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
     uint256 createdAt;
     uint256 amount;
     address challenger;
-    uint256 arbitrationCost; // @bw change to deposited amount in case of collat amount change
+    uint256 deposit;
     uint256 rulingTimestamp;
   }
 
@@ -97,6 +97,7 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
 
   address public metaEvidenceGuardian;
   address public overruleGuardian;
+  address public leverageRiskWallet;
 
   // The params for Kleros specifying the subcourt ID and the number of jurors
   bytes public klerosExtraData;
@@ -132,12 +133,14 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
     ILiquidityManager liquidityManager_,
     IArbitrator arbitrator_,
     address metaEvidenceGuardian_,
+    address leverageRiskWallet_,
     uint256 subcourtId_,
     uint256 nbOfJurors_
   ) Ownable(msg.sender) {
     coverToken = coverToken_;
     liquidityManager = liquidityManager_;
     metaEvidenceGuardian = metaEvidenceGuardian_;
+    leverageRiskWallet = leverageRiskWallet_;
 
     setKlerosConfiguration(arbitrator_, subcourtId_, nbOfJurors_);
   }
@@ -551,7 +554,7 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
     claim.coverId = coverId_;
     claim.amount = amountClaimed_;
     claim.createdAt = block.timestamp;
-    claim.arbitrationCost = costOfArbitration;
+    claim.deposit = msg.value;
 
     // Emit Athena claim creation event
     emit ClaimCreated(msg.sender, coverId_, claimId);
@@ -579,7 +582,7 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
       revert ClaimAlreadyChallenged();
 
     // Check that the challenger has deposited enough capital for dispute creation
-    uint256 costOfArbitration = userClaim.arbitrationCost;
+    uint256 costOfArbitration = arbitrationCost();
     if (msg.value < costOfArbitration)
       revert MustMatchClaimantDeposit();
 
@@ -631,23 +634,19 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
 
       address challenger = userClaim.challenger;
       // Refund arbitration cost to the challenger and pay them with collateral
-      _sendValue(
-        challenger,
-        userClaim.arbitrationCost + collateralAmount
-      );
+      _sendValue(challenger, userClaim.deposit);
     } else {
       // This is the case where the arbitrator refuses to rule
       userClaim.status = ClaimStatus.RejectedByRefusalToArbitrate;
 
       /// @dev we remove 1 wei from the arbitration cost to avoid a rounding errors
-      uint256 halfArbitrationCost = (userClaim.arbitrationCost / 2) -
-        1;
+      uint256 halfArbitrationCost = (arbitrationCost() / 2) - 1;
 
       address claimant = userClaim.challenger;
       address challenger = userClaim.challenger;
 
       // Send back the collateral and half the arbitration cost to the claimant
-      _sendValue(claimant, halfArbitrationCost + collateralAmount);
+      _sendValue(claimant, userClaim.deposit - halfArbitrationCost);
       // Send back half the arbitration cost to the challenger
       _sendValue(challenger, halfArbitrationCost);
     }
@@ -700,7 +699,7 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
     // Send back the collateral and arbitration cost to the claimant
     _sendValue(
       coverToken.ownerOf(userClaim.coverId),
-      userClaim.arbitrationCost + collateralAmount
+      userClaim.deposit
     );
 
     // Call Athena core to pay the compensation
@@ -724,20 +723,13 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
 
     userClaim.status = ClaimStatus.RejectedByOverrule;
 
-    uint256 amountForUser = userClaim.arbitrationCost;
-
-    // In case of blatant attacks on the claim process then punish the offender
     if (punishClaimant_) {
-      _sendValue(owner(), collateralAmount);
+      // In case of blatant attacks on the claim process then punish the offender
+      _sendValue(leverageRiskWallet, userClaim.deposit);
     } else {
-      amountForUser += collateralAmount;
+      // Send back the collateral and arbitration cost to the claimant
+      _sendValue(msg.sender, userClaim.deposit);
     }
-
-    // Send back the collateral and arbitration cost to the claimant
-    _sendValue(
-      msg.sender,
-      userClaim.arbitrationCost + collateralAmount
-    );
   }
 
   function setKlerosConfiguration(
