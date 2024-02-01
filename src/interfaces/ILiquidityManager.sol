@@ -37,6 +37,10 @@ interface ILiquidityManager {
     uint256 tokenId_
   ) external view returns (Position memory);
 
+  function _covers(
+    uint256 tokenId_
+  ) external view returns (Cover memory);
+
   function covers(
     uint256 tokenId_
   ) external view returns (CoverRead memory);

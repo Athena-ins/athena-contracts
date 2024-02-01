@@ -62,8 +62,9 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
   }
 
   struct ClaimView {
+    address claimant;
     uint256 coverId;
-    uint256 poolId;
+    uint64 poolId;
     uint256 claimId;
     uint256 disputeId;
     ClaimStatus status;
@@ -118,8 +119,7 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
     public disputeIdToClaimId;
 
   // Maps a pool ID to its generic meta-evidence IPFS file CID
-  mapping(uint256 _poolId => string _cid) public poolIdToCoverTerms;
-
+  mapping(uint64 _poolId => string _cid) public poolIdToCoverTerms;
   // Maps a claim ID to its submited evidence
   mapping(uint256 _claimId => string[] _cids)
     public claimIdToEvidence;
@@ -260,43 +260,6 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
         (userClaim.createdAt + challengePeriod) - block.timestamp;
   }
 
-  // /**
-  //  * @notice
-  //  * Get all or a range of exiting claims.
-  //  * @dev The range is inclusive of the beginIndex and exclusive of the endIndex.
-  //  * @param beginIndex The index of the first claim to return
-  //  * @param endIndex The index of the claim at which to stop
-  //  * @return claimsInfo All the claims in the specified range
-  //  */
-  // function linearClaimsView(
-  //   uint256 beginIndex,
-  //   uint256 endIndex
-  // ) external view returns (ClaimView[] memory claimsInfo) {
-  //   if (nextClaimId < endIndex) revert OutOfRange();
-  //   if (endIndex <= beginIndex) revert BadRange();
-
-  //   claimsInfo = new ClaimView[](endIndex - beginIndex);
-
-  //   uint256 positionCounter;
-  //   for (uint256 i = beginIndex; i < endIndex; i++) {
-  //     Claim memory claim = claims[i];
-
-  //     claimsInfo[positionCounter] = claim;
-
-  //     // Fill the empty claimId with the item index
-  //     claimsInfo[positionCounter].claimId = i;
-
-  //     // We should check if the claim is available for compensation
-  //     if (
-  //       claim.status == ClaimStatus.Initiated &&
-  //       claim.createdAt + challengePeriod < block.timestamp
-  //     ) {
-  //       claimsInfo[positionCounter].status = ClaimStatus.Accepted;
-  //     }
-  //     positionCounter++;
-  //   }
-  // }
-
   function claimIdsByCoverId(
     uint256 coverId_
   ) external view returns (uint256[] memory claimIds) {
@@ -317,7 +280,7 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
 
     claimsInfo = new Claim[](nbClaims);
 
-    for (uint256 i = 0; i < nbClaims; i++) {
+    for (uint256 i; i < nbClaims; i++) {
       uint256 claimId = coverIdToClaimIds[coverId_][i];
       claimsInfo[i] = claims[claimId];
     }
@@ -330,89 +293,97 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
 
     claimsInfoArray = new Claim[][](nbCovers);
 
-    for (uint256 i = 0; i < nbCovers; i++) {
+    for (uint256 i; i < nbCovers; i++) {
       claimsInfoArray[i] = claimsByCoverId(coverIds_[i]);
     }
   }
 
-  // /**
-  //  * @notice
-  //  * Returns all the claims of a user.
-  //  * @param account_ The user's address
-  //  * @return claimsInfo All the user's claims
-  //  */
-  // function claimsByAccount(
-  //   address account_
-  // ) external view returns (Claim[] memory claimsInfo) {
-  //   uint256 nbClaims = 0;
-  //   for (uint256 i = 0; i < nextClaimId; i++) {
-  //     if (claims[i].from == account_) nbClaims++;
-  //   }
+  function _claimViewData(
+    uint256 claimId_
+  ) internal view returns (ClaimView memory claimData) {
+    Claim storage claim = claims[claimId_];
 
-  //   claimsInfo = new Claim[](nbClaims);
+    address claimant = coverToken.ownerOf(claim.coverId);
+    uint64 poolId = liquidityManager._covers(claim.coverId).poolId;
 
-  //   uint256 positionCounter;
-  //   for (uint256 i = 0; i < nextClaimId; i++) {
-  //     Claim memory claim = claims[i];
+    claimData = ClaimView({
+      claimant: claimant,
+      claimId: claimId_,
+      poolId: poolId,
+      metaEvidence: poolIdToCoverTerms[poolId],
+      evidence: claimIdToEvidence[claimId_],
+      counterEvidence: claimIdToCounterEvidence[claimId_],
+      coverId: claim.coverId,
+      disputeId: claim.disputeId,
+      status: claim.status,
+      createdAt: claim.createdAt,
+      amount: claim.amount,
+      challenger: claim.challenger,
+      deposit: claim.deposit,
+      rulingTimestamp: claim.rulingTimestamp
+    });
 
-  //     if (claim.from == account_) {
-  //       claimsInfo[positionCounter] = claim;
+    // We should check if the claim is available for compensation
+    if (
+      claim.status == ClaimStatus.Initiated &&
+      claim.createdAt + challengePeriod < block.timestamp
+    ) {
+      claimData.status = ClaimStatus.Accepted;
+    }
+  }
 
-  //       // Fill the empty claimId with the item index
-  //       claimsInfo[positionCounter].claimId = i;
+  /**
+   * @notice
+   * Get all or a range of exiting claims.
+   * @dev The range is inclusive of the beginIndex and exclusive of the endIndex.
+   * @param beginIndex The index of the first claim to return (included)
+   * @param endIndex The index of the claim at which to stop (excluded)
+   * @return claimsInfo All the claims in the specified range
+   */
+  function linearClaimsView(
+    uint256 beginIndex,
+    uint256 endIndex
+  ) external view returns (ClaimView[] memory claimsInfo) {
+    if (nextClaimId < endIndex) revert OutOfRange();
+    if (endIndex <= beginIndex) revert BadRange();
 
-  //       // We should check if the claim is available for compensation
-  //       if (
-  //         claim.status == ClaimStatus.Initiated &&
-  //         claim.createdAt + challengePeriod < block.timestamp
-  //       ) {
-  //         claimsInfo[positionCounter].status = ClaimStatus.Accepted;
-  //       }
+    uint256 nbOfClaims = endIndex - beginIndex;
+    claimsInfo = new ClaimView[](nbOfClaims);
 
-  //       positionCounter++;
-  //     }
-  //   }
-  // }
+    for (uint256 i = beginIndex; i < nbOfClaims; i++) {
+      claimsInfo[i] = _claimViewData(beginIndex + i);
+    }
+  }
 
-  // /**
-  //  * @notice
-  //  * Returns all the claims of a protocol.
-  //  * @param poolId_ The protocol's address
-  //  * @return claimsInfo All the protocol's claims
-  //  */
-  // function claimsByProtocol(
-  //   uint64 poolId_
-  // ) external view returns (Claim[] memory claimsInfo) {
-  //   uint256 nbClaims = 0;
-  //   for (uint256 i = 0; i < nextClaimId; i++) {
-  //     if (claims[i].poolId == poolId_) nbClaims++;
-  //   }
+  /**
+   * @notice
+   * Returns all the claims of a user.
+   * @param account_ The user's address
+   * @return claimsInfo All the user's claims
+   */
+  function claimsByAccount(
+    address account_
+  ) external view returns (ClaimView[] memory claimsInfo) {
+    uint256[] memory coverIds = coverToken.tokensOf(account_);
 
-  //   claimsInfo = new Claim[](nbClaims);
+    uint256 nbOfCovers = coverIds.length;
+    uint256 nbOfClaims;
+    for (uint256 i; i < nbOfCovers; i++) {
+      nbOfClaims += coverIdToClaimIds[coverIds[i]].length;
+    }
 
-  //   uint256 positionCounter;
+    claimsInfo = new ClaimView[](nbOfClaims);
 
-  //   for (uint256 i = 0; i < nextClaimId; i++) {
-  //     Claim memory claim = claims[i];
+    for (uint256 i; i < nbOfCovers; i++) {
+      uint256[] memory claimsForCover = coverIdToClaimIds[
+        coverIds[i]
+      ];
 
-  //     if (claim.poolId == poolId_) {
-  //       claimsInfo[positionCounter] = claim;
-
-  //       // Fill the empty claimId with the item index
-  //       claimsInfo[positionCounter].claimId = i;
-
-  //       // We should check if the claim is available for compensation
-  //       if (
-  //         claim.status == ClaimStatus.Initiated &&
-  //         claim.createdAt + challengePeriod < block.timestamp
-  //       ) {
-  //         claimsInfo[positionCounter].status = ClaimStatus.Accepted;
-  //       }
-
-  //       positionCounter++;
-  //     }
-  //   }
-  // }
+      for (uint256 j; j < claimsForCover.length; j++) {
+        claimsInfo[i] = _claimViewData(claimsForCover[j]);
+      }
+    }
+  }
 
   function getClaimEvidence(
     uint256 claimId_
@@ -488,7 +459,7 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
       ? claimIdToEvidence[claimId_]
       : claimIdToCounterEvidence[claimId_];
 
-    for (uint256 i = 0; i < ipfsEvidenceCids_.length; i++) {
+    for (uint256 i; i < ipfsEvidenceCids_.length; i++) {
       // Save evidence files
       evidence.push(ipfsEvidenceCids_[i]);
 
