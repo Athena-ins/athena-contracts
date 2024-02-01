@@ -45,6 +45,18 @@ contract AthenaPositionToken is
     _;
   }
 
+  /// ======= VIEWS ======= ///
+
+  function tokensOf(
+    address account_
+  ) external view returns (uint256[] memory) {
+    uint256[] memory tokens = new uint256[](balanceOf(account_));
+    for (uint256 i = 0; i < tokens.length; i++) {
+      tokens[i] = tokenOfOwnerByIndex(account_, i);
+    }
+    return tokens;
+  }
+
   /// ======= ERC-721 FUNCTIONS ======= ///
 
   function mint(

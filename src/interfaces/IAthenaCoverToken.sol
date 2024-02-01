@@ -8,4 +8,8 @@ interface IAthenaCoverToken is IERC721Enumerable {
   function mint(address to, uint256 tokenId) external;
 
   function burn(uint256 tokenId) external;
+
+  function tokensOf(
+    address account_
+  ) external view returns (uint256[] memory);
 }
