@@ -35,6 +35,8 @@ error InvalidRuling();
 error PeriodNotElapsed();
 error GuardianSetToAddressZero();
 error OverrulePeriodEnded();
+error ClaimDoesNotExist();
+error NoClaimsForCover();
 
 // IClaimManager,
 contract ClaimManager is Ownable, VerifySignature, IArbitrable {
@@ -238,12 +240,22 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
 
   // ======= VIEWS ======= //
 
+  /**
+   * @notice Returns the claim IDs associated with a cover.
+   * @param coverId_ The cover ID
+   * @return _ The claim IDs associated with the cover
+   */
   function getCoverIdToClaimIds(
-    uint256 coverId
-  ) external view returns (uint256[] memory) {
-    return coverIdToClaimIds[coverId];
+    uint256 coverId_
+  ) external view coverExists(coverId_) returns (uint256[] memory) {
+    return coverIdToClaimIds[coverId_];
   }
 
+  /**
+   * @notice Returns the URI of the cover terms for a pool.
+   * @param poolId The pool ID*
+   * @return _ The URI of the cover terms
+   */
   function getPoolCoverTerms(
     uint64 poolId
   ) external view returns (string memory) {
@@ -267,7 +279,7 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
    */
   function remainingTimeToChallenge(
     uint256 claimId_
-  ) external view returns (uint256) {
+  ) external view claimsExists(claimId_) returns (uint256) {
     Claim memory userClaim = claims[claimId_];
 
     // If the claim is not in the Initiated state it cannot be challenged
@@ -279,47 +291,49 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
         (userClaim.createdAt + challengePeriod) - block.timestamp;
   }
 
+  /**
+   * @notice Returns all claim IDs associated with a cover.
+   * @param coverId_ The cover ID
+   * @return claimIds All the claim IDs associated with the cover
+   */
   function claimIdsByCoverId(
     uint256 coverId_
-  ) external view returns (uint256[] memory claimIds) {
+  )
+    external
+    view
+    coverExists(coverId_)
+    returns (uint256[] memory claimIds)
+  {
     claimIds = coverIdToClaimIds[coverId_];
   }
 
+  /**
+   * @notice Returns the latest claim ID associated with a cover.
+   * @param coverId_ The cover ID
+   * @return claimId The latest claim ID associated with the cover
+   */
   function latestCoverClaimId(
     uint256 coverId_
-  ) public view returns (uint256) {
+  ) public view coverExists(coverId_) returns (uint256) {
     uint256 nbClaims = coverIdToClaimIds[coverId_].length;
+    if (0 == nbClaims) revert NoClaimsForCover();
+
     return coverIdToClaimIds[coverId_][nbClaims - 1];
   }
 
-  function claimsByCoverId(
-    uint256 coverId_
-  ) public view returns (Claim[] memory claimsInfo) {
-    uint256 nbClaims = coverIdToClaimIds[coverId_].length;
-
-    claimsInfo = new Claim[](nbClaims);
-
-    for (uint256 i; i < nbClaims; i++) {
-      uint256 claimId = coverIdToClaimIds[coverId_][i];
-      claimsInfo[i] = claims[claimId];
-    }
-  }
-
-  function claimsByMultiCoverIds(
-    uint256[] calldata coverIds_
-  ) external view returns (Claim[][] memory claimsInfoArray) {
-    uint256 nbCovers = coverIds_.length;
-
-    claimsInfoArray = new Claim[][](nbCovers);
-
-    for (uint256 i; i < nbCovers; i++) {
-      claimsInfoArray[i] = claimsByCoverId(coverIds_[i]);
-    }
-  }
-
+  /**
+   * @notice Internal function to complete the claim data for a view function.
+   * @param claimId_ The claim ID
+   * @return claimData The extended claim data
+   */
   function _claimViewData(
     uint256 claimId_
-  ) internal view returns (ClaimView memory claimData) {
+  )
+    internal
+    view
+    claimsExists(claimId_)
+    returns (ClaimView memory claimData)
+  {
     Claim storage claim = claims[claimId_];
 
     address claimant = coverToken.ownerOf(claim.coverId);
@@ -352,14 +366,13 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
   }
 
   /**
-   * @notice
-   * Get all or a range of exiting claims.
+   * @notice Get all or a range of exiting claims.
    * @dev The range is inclusive of the beginIndex and exclusive of the endIndex.
-   * @param beginIndex The index of the first claim to return (included)
-   * @param endIndex The index of the claim at which to stop (excluded)
+   * @param beginIndex The index of the first claim to return
+   * @param endIndex The index of the claim at which to stop
    * @return claimsInfo All the claims in the specified range
    */
-  function linearClaimsView(
+  function claimRange(
     uint256 beginIndex,
     uint256 endIndex
   ) external view returns (ClaimView[] memory claimsInfo) {
@@ -375,8 +388,29 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
   }
 
   /**
-   * @notice
-   * Returns all the claims of a user.
+   * @notice Returns all the claims associated with a cover.
+   * @param coverId_ The cover ID
+   * @return claimsInfo All the cover's claims
+   */
+  function claimsByCoverId(
+    uint256 coverId_
+  )
+    public
+    view
+    coverExists(coverId_)
+    returns (ClaimView[] memory claimsInfo)
+  {
+    uint256 nbClaims = coverIdToClaimIds[coverId_].length;
+
+    claimsInfo = new ClaimView[](nbClaims);
+
+    for (uint256 i; i < nbClaims; i++) {
+      claimsInfo[i] = _claimViewData(coverIdToClaimIds[coverId_][i]);
+    }
+  }
+
+  /**
+   * @notice Returns all the claims of a user.
    * @param account_ The user's address
    * @return claimsInfo All the user's claims
    */
@@ -404,15 +438,25 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
     }
   }
 
+  /**
+   * @notice Returns the evidence submitted by claimant for a claim.
+   * @param claimId_ The claim ID
+   * @return _ The evidence CIDs
+   */
   function getClaimEvidence(
     uint256 claimId_
-  ) external view returns (string[] memory) {
+  ) external view claimsExists(claimId_) returns (string[] memory) {
     return claimIdToEvidence[claimId_];
   }
 
+  /**
+   * @notice Returns the counter-evidence submitted by challenger or Athena for a claim.
+   * @param claimId_ The claim ID
+   * @return _ The counter-evidence CIDs
+   */
   function getClaimCounterEvidence(
     uint256 claimId_
-  ) external view returns (string[] memory) {
+  ) external view claimsExists(claimId_) returns (string[] memory) {
     return claimIdToCounterEvidence[claimId_];
   }
 
@@ -457,7 +501,7 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
   function submitEvidenceForClaim(
     uint256 claimId_,
     string[] calldata ipfsEvidenceCids_
-  ) external {
+  ) external claimsExists(claimId_) {
     Claim storage userClaim = claims[claimId_];
 
     if (
@@ -558,7 +602,9 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
    * Allows a user to challenge a pending claim by creating a dispute in Kleros.
    * @param claimId_ The claim ID
    */
-  function disputeClaim(uint256 claimId_) external payable {
+  function disputeClaim(
+    uint256 claimId_
+  ) external payable claimsExists(claimId_) {
     Claim storage userClaim = claims[claimId_];
 
     // Check the claim is in the appropriate status and challenge is within period
@@ -596,8 +642,7 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
   // ======= RESOLUTION ======= //
 
   /**
-   * @notice
-   * Give a ruling for a dispute. Must be called by the arbitrator.
+   * @notice Give a ruling for a dispute. Must be called by the arbitrator.
    * @param disputeId_ ID of the dispute in the Arbitrator contract.
    * @param ruling_ Ruling given by the arbitrator. Note that 0 is reserved for "Not able/wanting to make a decision".
    */
@@ -652,15 +697,16 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
   }
 
   /**
-   * @notice
-   * Allows the claimant to withdraw the compensation after a dispute has been resolved in
+   * @notice Allows the claimant to withdraw the compensation after a dispute has been resolved in
    * their favor or the challenge period has elapsed.
    * @param claimId_ The claim ID
    *
    * @dev Intentionally public to prevent claimant from indefinitely blocking withdrawals
    * from a pool by not executing the claims ruling.
    */
-  function withdrawCompensation(uint256 claimId_) external {
+  function withdrawCompensation(
+    uint256 claimId_
+  ) external claimsExists(claimId_) {
     Claim storage userClaim = claims[claimId_];
 
     // Check the claim is in the appropriate status
@@ -698,10 +744,15 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
 
   // ======= ADMIN ======= //
 
+  /**
+   * @notice Allows the owner to overrule a claim that has been accepted by the court decision.
+   * @param claimId_ The claim ID
+   * @param punishClaimant_ Whether to punish the claimant by taking their deposit
+   */
   function overrule(
     uint256 claimId_,
     bool punishClaimant_
-  ) external onlyOwner {
+  ) external claimsExists(claimId_) onlyOwner {
     Claim storage userClaim = claims[claimId_];
 
     // Check the claim is in the appropriate status
@@ -722,6 +773,12 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
     }
   }
 
+  /**
+   * @notice Changes the Kleros arbitration configuration.
+   * @param klerosArbitrator_ The new Kleros arbitrator.
+   * @param subcourtId_ The new subcourt ID.
+   * @param nbOfJurors_ The new number of jurors.
+   */
   function setKlerosConfiguration(
     IArbitrator klerosArbitrator_,
     uint256 subcourtId_,
@@ -743,6 +800,11 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
     collateralAmount = amount_;
   }
 
+  /**
+   * @notice Changes the periods for challenging and overruling a claim.
+   * @param challengePeriod_ The new challenge period.
+   * @param overrulePeriod_ The new overrule period.
+   */
   function changePeriods(
     uint256 challengePeriod_,
     uint256 overrulePeriod_
@@ -751,6 +813,10 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
     overrulePeriod = overrulePeriod_;
   }
 
+  /**
+   * @notice Changes the address of the meta-evidence guardian.
+   * @param metaEvidenceGuardian_ The new address of the meta-evidence guardian.
+   */
   function changeMetaEvidenceGuardian(
     address metaEvidenceGuardian_
   ) external onlyOwner {
