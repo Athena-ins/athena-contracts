@@ -6,8 +6,39 @@ import { toUsd, toErc20, makeIdArray } from "../../helpers/protocol";
 
 export function ClaimManager_changeMetaEvidenceGuardian() {
   context("changeMetaEvidenceGuardian", function () {
-    before(async function () {
-      this.args = {};
+    beforeEach(async function () {
+      // Common setup before each test
+    });
+
+    it("should revert if trying to set the meta-evidence guardian to address zero", async function () {
+      // Attempt to set the meta-evidence guardian to the zero address
+      await expect(
+        this.contract.changeMetaEvidenceGuardian(ethers.constants.AddressZero),
+      ).to.be.revertedWith("GuardianSetToAddressZero");
+    });
+
+    it("should allow the owner to change the meta-evidence guardian", async function () {
+      // Change the meta-evidence guardian by the owner
+      await expect(
+        this.contract.changeMetaEvidenceGuardian(
+          this.args.newMetaEvidenceGuardian,
+          { from: this.signers.owner },
+        ),
+      ).to.not.throw;
+
+      // Verify the change
+      const newGuardian = await this.contract.metaEvidenceGuardian();
+      expect(newGuardian).to.equal(this.args.newMetaEvidenceGuardian);
+    });
+
+    it("should revert if a non-owner tries to change the meta-evidence guardian", async function () {
+      // Attempt to change the meta-evidence guardian by a non-owner
+      await expect(
+        this.contract.changeMetaEvidenceGuardian(
+          this.args.newMetaEvidenceGuardian,
+          { from: this.signers.notOwner },
+        ),
+      ).to.be.revertedWith("Ownable: caller is not the owner");
     });
   });
 }

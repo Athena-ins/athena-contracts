@@ -6,8 +6,21 @@ import { toUsd, toErc20, makeIdArray } from "../../helpers/protocol";
 
 export function ClaimManager_arbitrationCost() {
   context("arbitrationCost", function () {
-    before(async function () {
-      this.args = {};
+    beforeEach(async function () {
+      // Common setup before each test
+    });
+
+    it("should return the correct arbitration cost", async function () {
+      // Call the arbitrationCost function
+      const cost = await this.contract.arbitrationCost();
+
+      // Get the expected cost directly from the arbitrator contract
+      const expectedCost = await this.arbitrator.arbitrationCost(
+        this.args.klerosExtraData,
+      );
+
+      // Check if the returned cost matches the expected cost
+      expect(cost).to.equal(expectedCost);
     });
   });
 }
