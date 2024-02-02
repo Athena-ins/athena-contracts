@@ -37,7 +37,7 @@ error UnnecessaryEarlyWithdraw();
 /**
  * @title EcclesiaDao
  * @notice Ecclesia is Athena's DAO allows participation in the Athena governance
- * Participants accrue protocol revenue rewards as well as AOE staking rewards if their lock meets the minimum duration
+ * Participants accrue protocol revenue rewards as well as ATEN staking rewards if their lock meets the minimum duration
  */
 contract EcclesiaDao is
   IEcclesiaDao,
@@ -66,9 +66,9 @@ contract EcclesiaDao is
 
   // ======= CONSTANTS ======= //
 
-  // Maxiumum duration to lock AOE
+  // Maxiumum duration to lock ATEN
   uint256 public constant MAX_LOCK = 365 days * 3;
-  // Duration at which point 1 AOE = 1 vote
+  // Duration at which point 1 ATEN = 1 vote
   uint256 public constant EQUILIBRIUM_LOCK = 365 days;
   // Weight multiplier for tokens locked longer than equilibrium added to base x1 weight
   uint256 public constant ADD_WEIGHT = 3;
@@ -88,19 +88,19 @@ contract EcclesiaDao is
   address public leverageRiskWallet;
   // Staking contract
   IStaking public staking;
-  // Token to be locked (AOE)
+  // Token to be locked (ATEN)
   IERC20 public token;
   // Address of the revenue unifier
   address public liquidityManager;
   // Address of the strategy manager
   address public strategyManager;
 
-  // Total supply of AOE that get locked
+  // Total supply of ATEN that get locked
   uint256 public supply;
-  // Total supply of AOE that get staked
+  // Total supply of ATEN that get staked
   uint256 public supplyStaking;
 
-  // Index for redistributed AOE
+  // Index for redistributed ATEN
   uint256 public redistributeIndex;
   // Index for staking rewards
   uint256 public stakingIndex;
@@ -110,7 +110,7 @@ contract EcclesiaDao is
   address[] public revenueTokens;
 
   struct LockedBalance {
-    uint256 amount; // amount of AOE locked
+    uint256 amount; // amount of ATEN locked
     uint256 staking;
     uint256 userRedisIndex; // stored as ray (1e27)
     uint256 userStakingIndex; // stored as ray (1e27)
@@ -143,7 +143,7 @@ contract EcclesiaDao is
     address _strategyManager,
     address treasuryWallet_,
     address leverageRiskWallet_
-  ) ERC20("Athenian Vote", "vAOE") Ownable(msg.sender) {
+  ) ERC20("Athenian Vote", "vATEN") Ownable(msg.sender) {
     if (
       address(_token) == address(0) ||
       address(_staking) == address(0) ||
@@ -174,9 +174,9 @@ contract EcclesiaDao is
     uint256 _amount,
     uint256 _lockDuration
   ) public pure returns (uint256 votes) {
-    // For lock duration smaller than EQUILIBRIUM_LOCK, the bias is negative 1 AOE < 1 vote
-    // For lock duration equal to EQUILIBRIUM_LOCK, the bias is neutral 1 AOE = 1 vote
-    // For lock duration larger than EQUILIBRIUM_LOCK, the bias is positive 1 AOE > 1 vote
+    // For lock duration smaller than EQUILIBRIUM_LOCK, the bias is negative 1 ATEN < 1 vote
+    // For lock duration equal to EQUILIBRIUM_LOCK, the bias is neutral 1 ATEN = 1 vote
+    // For lock duration larger than EQUILIBRIUM_LOCK, the bias is positive 1 ATEN > 1 vote
     uint256 bias = EQUILIBRIUM_LOCK < _lockDuration
       ? RAY +
         (ADD_WEIGHT * ((_lockDuration - EQUILIBRIUM_LOCK) * RAY)) /
@@ -258,11 +258,13 @@ contract EcclesiaDao is
     }
   }
 
-  /// @notice Create a new lock.
-  /// @dev This will crate a new lock and deposit AOE to vAOE Vault
-  /// @param _amount the amount that user wishes to deposit
-  /// @param _unlockTime the timestamp when AOE get unlocked, it will be
-  /// floored down to whole weeks
+  /**
+   * @notice Create a new lock.
+   * @dev This will crate a new lock and deposit ATEN to vATEN Vault
+   * @param _amount the amount that user wishes to deposit
+   * @param _unlockTime the timestamp when ATEN get unlocked, it will be
+   * floored down to whole weeks
+   */
   function createLock(
     uint256 _amount,
     uint256 _unlockTime
