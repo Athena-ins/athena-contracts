@@ -33,6 +33,7 @@ error FeePerDayTooHigh();
 error InvalidBps();
 error InvalidTreasuryAddr();
 error UnnecessaryEarlyWithdraw();
+error TransfersNotAllowed();
 
 /**
  * @title EcclesiaDao
@@ -49,19 +50,19 @@ contract EcclesiaDao is
 
   // ======= EVENTS ======= //
 
-  event SetBreaker(bool _newBreaker);
+  event SetBreaker(bool newBreaker);
   event SetEarlyWithdrawConfig(
-    uint256 _newEarlyWithdrawBpsPerDay,
-    uint256 _newRedistributeBps,
-    uint256 _newBurnBps,
-    uint256 _newTreasuryBps,
-    address _newTreasuryAddr
+    uint256 newEarlyWithdrawBpsPerDay,
+    uint256 newRedistributeBps,
+    uint256 newBurnBps,
+    uint256 newTreasuryBps,
+    address newTreasuryAddr
   );
-  event Withdraw(address indexed _user, uint256 _amount);
+  event Withdraw(address indexed user, uint256 amount);
   event EarlyWithdraw(
-    address indexed _user,
-    uint256 _amount,
-    uint256 _timestamp
+    address indexed user,
+    uint256 amount,
+    uint256 timestamp
   );
 
   // ======= CONSTANTS ======= //
@@ -119,7 +120,7 @@ contract EcclesiaDao is
   }
 
   // Maps user to DAO account information
-  mapping(address _user => LockedBalance _lock) public locks;
+  mapping(address _user => LockedBalance) public locks;
   // Maps user address to token address to ray index for claimed revenue
   mapping(address _user => mapping(address _token => uint256 _index))
     public userRevenueIndex;
@@ -137,23 +138,23 @@ contract EcclesiaDao is
   // ======= CONSTRUCTOR ======= //
 
   constructor(
-    IERC20 _token,
-    IStaking _staking,
-    address _liquidityManager,
-    address _strategyManager,
+    IERC20 token_,
+    IStaking staking_,
+    address liquidityManager_,
+    address strategyManager_,
     address treasuryWallet_,
     address leverageRiskWallet_
   ) ERC20("Athenian Vote", "vATEN") Ownable(msg.sender) {
     if (
-      address(_token) == address(0) ||
-      address(_staking) == address(0) ||
-      address(_liquidityManager) == address(0)
+      address(token_) == address(0) ||
+      address(staking_) == address(0) ||
+      address(liquidityManager_) == address(0)
     ) revert ZeroAddress();
 
-    token = _token;
-    staking = _staking;
-    liquidityManager = _liquidityManager;
-    strategyManager = _strategyManager;
+    token = token_;
+    staking = staking_;
+    liquidityManager = liquidityManager_;
+    strategyManager = strategyManager_;
 
     treasuryWallet = treasuryWallet_;
     leverageRiskWallet = leverageRiskWallet_;
@@ -170,33 +171,58 @@ contract EcclesiaDao is
 
   // ======= VIEWS ======= //
 
+  /**
+   * @notice Convert ATEN to votes depending on lock duration
+   * @param amount_ the amount of ATEN to convert
+   * @param lockDuration_ the duration of the lock
+   * @return votes the amount of votes
+   */
   function tokenToVotes(
-    uint256 _amount,
-    uint256 _lockDuration
+    uint256 amount_,
+    uint256 lockDuration_
   ) public pure returns (uint256 votes) {
     // For lock duration smaller than EQUILIBRIUM_LOCK, the bias is negative 1 ATEN < 1 vote
     // For lock duration equal to EQUILIBRIUM_LOCK, the bias is neutral 1 ATEN = 1 vote
     // For lock duration larger than EQUILIBRIUM_LOCK, the bias is positive 1 ATEN > 1 vote
-    uint256 bias = EQUILIBRIUM_LOCK < _lockDuration
+    uint256 bias = EQUILIBRIUM_LOCK < lockDuration_
       ? RAY +
-        (ADD_WEIGHT * ((_lockDuration - EQUILIBRIUM_LOCK) * RAY)) /
+        (ADD_WEIGHT * ((lockDuration_ - EQUILIBRIUM_LOCK) * RAY)) /
         (MAX_LOCK - EQUILIBRIUM_LOCK)
-      : (_lockDuration * RAY) / EQUILIBRIUM_LOCK;
+      : (lockDuration_ * RAY) / EQUILIBRIUM_LOCK;
 
-    votes = (_amount * bias) / RAY;
+    votes = (amount_ * bias) / RAY;
   }
 
+  /**
+   * @notice Convert votes to ATEN depending on lock duration
+   * @param votes_ the amount of votes to convert
+   * @param lockDuration_ the duration of the lock
+   * @return tokens the amount of ATEN
+   */
   function votesToTokens(
-    uint256 _votes,
-    uint256 _lockDuration
+    uint256 votes_,
+    uint256 lockDuration_
   ) public pure returns (uint256 tokens) {
-    uint256 bias = EQUILIBRIUM_LOCK < _lockDuration
+    uint256 bias = EQUILIBRIUM_LOCK < lockDuration_
       ? RAY +
-        (ADD_WEIGHT * ((_lockDuration - EQUILIBRIUM_LOCK) * RAY)) /
+        (ADD_WEIGHT * ((lockDuration_ - EQUILIBRIUM_LOCK) * RAY)) /
         (MAX_LOCK - EQUILIBRIUM_LOCK)
-      : (_lockDuration * RAY) / EQUILIBRIUM_LOCK;
+      : (lockDuration_ * RAY) / EQUILIBRIUM_LOCK;
 
-    tokens = (_votes * RAY) / bias;
+    tokens = (votes_ * RAY) / bias;
+  }
+
+  // ======= OVERRIDES ======= //
+
+  /**
+   * @notice Override vATEN internal _transfer to disallow transfers
+   */
+  function _transfer(
+    address from,
+    address to,
+    uint256 value
+  ) internal override(ERC20) {
+    revert TransfersNotAllowed();
   }
 
   // ======= DEPOSIT ======= //
@@ -209,7 +235,7 @@ contract EcclesiaDao is
     }
   }
 
-  function _deposit(uint256 _amount, uint256 _unlockTime) internal {
+  function _deposit(uint256 amount_, uint256 unlockTime_) internal {
     LockedBalance storage userLock = locks[msg.sender];
 
     if (userLock.amount == 0) {
@@ -217,22 +243,22 @@ contract EcclesiaDao is
       _revenueSnapshot();
     }
 
-    if (_unlockTime != 0) {
+    if (unlockTime_ != 0) {
       // When updated we compute the added time to keep track of total duration
       uint256 durationAdded = userLock.end == 0
-        ? _unlockTime - block.timestamp
-        : _unlockTime - userLock.end;
+        ? unlockTime_ - block.timestamp
+        : unlockTime_ - userLock.end;
 
       userLock.duration = durationAdded;
       // Cap duration since the addition can be pushed above max lock
       if (MAX_LOCK < userLock.duration) userLock.duration = MAX_LOCK;
-      userLock.end = _unlockTime;
+      userLock.end = unlockTime_;
     }
 
-    if (_amount != 0) {
-      token.safeTransferFrom(msg.sender, address(this), _amount);
-      userLock.amount += _amount;
-      supply += _amount;
+    if (amount_ != 0) {
+      token.safeTransferFrom(msg.sender, address(this), amount_);
+      userLock.amount += amount_;
+      supply += amount_;
     }
 
     uint256 toStake = userLock.amount - userLock.staking;
@@ -261,25 +287,25 @@ contract EcclesiaDao is
   /**
    * @notice Create a new lock.
    * @dev This will crate a new lock and deposit ATEN to vATEN Vault
-   * @param _amount the amount that user wishes to deposit
-   * @param _unlockTime the timestamp when ATEN get unlocked, it will be
+   * @param amount_ the amount that user wishes to deposit
+   * @param unlockTime_ the timestamp when ATEN get unlocked, it will be
    * floored down to whole weeks
    */
   function createLock(
-    uint256 _amount,
-    uint256 _unlockTime
+    uint256 amount_,
+    uint256 unlockTime_
   ) external nonReentrant {
     LockedBalance storage lock = locks[msg.sender];
 
-    if (_amount == 0) revert BadAmount();
+    if (amount_ == 0) revert BadAmount();
     if (lock.amount != 0) revert LockAlreadyExists();
-    if (_unlockTime <= block.timestamp) revert CanOnlyLockInFuture();
-    if (block.timestamp + MAX_LOCK < _unlockTime)
+    if (unlockTime_ <= block.timestamp) revert CanOnlyLockInFuture();
+    if (block.timestamp + MAX_LOCK < unlockTime_)
       revert LockLongerThanMax();
 
-    _deposit(_amount, _unlockTime);
+    _deposit(amount_, unlockTime_);
 
-    uint256 votes = tokenToVotes(_amount, lock.duration);
+    uint256 votes = tokenToVotes(amount_, lock.duration);
     if (votes == 0) revert ConversionToVotesYieldsZero();
 
     _mint(msg.sender, votes);
@@ -287,34 +313,38 @@ contract EcclesiaDao is
 
   // ======= UPDATE ======= //
 
-  /// @notice Increase lock amount without increase "end"
-  /// @param _amount The amount of ALPACA to be added to the lock
-  function increaseLockAmount(uint256 _amount) external nonReentrant {
+  /**
+   * @notice Increase lock amount without changing unlock time.
+   * @param amount_ the amount that user wishes to deposit
+   */
+  function increaseLockAmount(uint256 amount_) external nonReentrant {
     LockedBalance storage _lock = locks[msg.sender];
 
-    if (_amount == 0) revert BadAmount();
+    if (amount_ == 0) revert BadAmount();
     if (_lock.amount == 0) revert LockDoesNotExist();
     if (_lock.end <= block.timestamp) revert LockExpired();
 
     // Harvest to update reward indexes before adding more tokens
     harvest(new address[](0));
-    _deposit(_amount, 0);
+    _deposit(amount_, 0);
 
-    uint256 votes = tokenToVotes(_amount, _lock.duration);
+    uint256 votes = tokenToVotes(amount_, _lock.duration);
     _mint(msg.sender, votes);
   }
 
-  /// @notice Increase unlock time without changing locked amount
-  /// @param _newUnlockTime The new unlock time to be updated
+  /**
+   * @notice Increase lock duration without changing lock amount.
+   * @param newUnlockTime_ the new unlock time to be updated
+   */
   function increaseUnlockTime(
-    uint256 _newUnlockTime
+    uint256 newUnlockTime_
   ) external nonReentrant {
     LockedBalance storage _lock = locks[msg.sender];
 
     if (_lock.amount == 0) revert LockDoesNotExist();
     if (_lock.end <= block.timestamp) revert LockExpired();
-    if (_newUnlockTime <= _lock.end) revert CanOnlyExtendLock();
-    if (block.timestamp + MAX_LOCK < _newUnlockTime)
+    if (newUnlockTime_ <= _lock.end) revert CanOnlyExtendLock();
+    if (block.timestamp + MAX_LOCK < newUnlockTime_)
       revert LockLongerThanMax();
 
     // Save previous balance to compute amount of new votes to mint
@@ -323,7 +353,7 @@ contract EcclesiaDao is
       _lock.duration
     );
 
-    _deposit(0, _newUnlockTime);
+    _deposit(0, newUnlockTime_);
 
     uint256 votes = tokenToVotes(_lock.amount, _lock.duration) -
       previousVotes;
@@ -332,27 +362,20 @@ contract EcclesiaDao is
 
   // ======= WITHDRAW ======= //
 
-  /// @notice Set breaker
-  /// @param _breaker The new value of breaker false if off, true if on
-  function setBreaker(bool _breaker) external onlyOwner {
-    breaker = _breaker;
-    emit SetBreaker(breaker);
-  }
-
   function _unlock(
-    LockedBalance memory _lock,
-    uint256 _withdrawAmount
+    LockedBalance memory lock_,
+    uint256 withdrawAmount_
   ) internal {
     LockedBalance storage userLock = locks[msg.sender];
 
-    if (_lock.amount < _withdrawAmount) revert BadAmount();
+    if (lock_.amount < withdrawAmount_) revert BadAmount();
 
-    //_lock.end should remain the same only if we do partially withdraw
-    if (_lock.amount == _withdrawAmount) {
-      _lock.duration = 0;
-      _lock.end = 0;
+    //lock_.end should remain the same only if we do partially withdraw
+    if (lock_.amount == withdrawAmount_) {
+      lock_.duration = 0;
+      lock_.end = 0;
     }
-    _lock.amount -= _withdrawAmount;
+    lock_.amount -= withdrawAmount_;
 
     // Tokens are either 100% staked or 100% not staked
     if (userLock.staking != 0) {
@@ -363,22 +386,24 @@ contract EcclesiaDao is
       staking.withdrawTokenDao(
         msg.sender,
         address(this),
-        _withdrawAmount
+        withdrawAmount_
       );
 
       // Remove amount received from staking for net rewards
       uint256 stakingRewards = (token.balanceOf(address(this)) -
-        _withdrawAmount) - balBefore;
+        withdrawAmount_) - balBefore;
       _accrueStaking(stakingRewards);
 
-      userLock.staking -= _withdrawAmount;
-      supplyStaking -= _withdrawAmount;
+      userLock.staking -= withdrawAmount_;
+      supplyStaking -= withdrawAmount_;
     }
 
-    supply -= _withdrawAmount;
+    supply -= withdrawAmount_;
   }
 
-  /// @notice Withdraw all ALPACA when lock has expired.
+  /**
+   * @notice Withdraw ATEN after lock period is over.
+   */
   function withdraw() external nonReentrant {
     // This copy of the lock will be used for harvesting
     LockedBalance memory _lock = locks[msg.sender];
@@ -402,13 +427,16 @@ contract EcclesiaDao is
     emit Withdraw(msg.sender, _amount);
   }
 
-  /// @notice Early withdraw ALPACA with penalty.
-  function earlyWithdraw(uint256 _amount) external nonReentrant {
+  /**
+   * @notice Withdraw ATEN with penalty before lock period is over.
+   * @param amount_ the amount of ATEN to withdraw
+   */
+  function earlyWithdraw(uint256 amount_) external nonReentrant {
     LockedBalance memory _lock = locks[msg.sender];
 
     if (_lock.amount == 0) revert LockDoesNotExist();
     if (_lock.end <= block.timestamp) revert LockExpired();
-    if (_lock.amount < _amount) revert BadAmount();
+    if (_lock.amount < amount_) revert BadAmount();
     if (breaker == true) revert UnnecessaryEarlyWithdraw();
 
     // Burn the user's corresponding votes
@@ -419,7 +447,7 @@ contract EcclesiaDao is
 
     // prevent mutated memory in _unlock() function as it will be used in fee calculation afterward
     uint256 _prevLockEnd = _lock.end;
-    _unlock(_lock, _amount);
+    _unlock(_lock, amount_);
 
     // ceil the day by adding 1 day first
     uint256 remainingDays = (_prevLockEnd +
@@ -428,7 +456,7 @@ contract EcclesiaDao is
     // calculate penalty
     uint256 _penalty = (earlyWithdrawBpsPerDay *
       remainingDays *
-      _amount) / RAY;
+      amount_) / RAY;
 
     // Harvest after unlock for staking reward index update
     harvest(revenueTokens);
@@ -445,12 +473,15 @@ contract EcclesiaDao is
     token.safeTransfer(treasuryWallet, _amountTreasury);
 
     // transfer remaining back to owner
-    token.safeTransfer(msg.sender, _amount - _penalty);
-    emit EarlyWithdraw(msg.sender, _amount, block.timestamp);
+    token.safeTransfer(msg.sender, amount_ - _penalty);
+    emit EarlyWithdraw(msg.sender, amount_, block.timestamp);
   }
 
   // ======= REWARDS ======= //
 
+  /**
+   * @notice Manually sync staking rewards index
+   */
   function syncStaking() external nonReentrant {
     // We want to track the amount of staking rewards we harvest
     uint256 balBefore = token.balanceOf(address(this));
@@ -463,35 +494,44 @@ contract EcclesiaDao is
     _accrueStaking(stakingRewards);
   }
 
-  function _accrueStaking(uint256 _amount) private nonReentrant {
+  function _accrueStaking(uint256 amount_) private nonReentrant {
     // Rewards are distributed per staked token
-    uint256 amountPerVoteRay = (_amount * RAY) / supplyStaking;
+    uint256 amountPerVoteRay = (amount_ * RAY) / supplyStaking;
     stakingIndex += amountPerVoteRay;
   }
 
-  function _redistribute(uint256 _amount) private nonReentrant {
+  function _redistribute(uint256 amount_) private nonReentrant {
     // Rewards are distributed per vote
-    uint256 amountPerVoteRay = (_amount * RAY) / totalSupply();
+    uint256 amountPerVoteRay = (amount_ * RAY) / totalSupply();
     redistributeIndex += amountPerVoteRay;
   }
 
-  // Called after a pool pushes token revenue to the DAO
+  /**
+   * @notice Accrue revenue for DAO participants
+   * @param token_ the token to accrue revenue
+   * @param amount_ the amount of token to accrue
+   * @param leverageFee_ the amount of leverage fee
+   */
   function accrueRevenue(
-    address _token,
-    uint256 _amount,
+    address token_,
+    uint256 amount_,
     uint256 leverageFee_
   ) external nonReentrant onlyRevenueCollector {
     // Send risk provision to leverage risk wallet
     if (leverageFee_ != 0)
-      IERC20(_token).safeTransfer(leverageRiskWallet, leverageFee_);
+      IERC20(token_).safeTransfer(leverageRiskWallet, leverageFee_);
 
     // Rewards are distributed per vote
-    uint256 amountPerVoteRay = (_amount * RAY) / totalSupply();
-    if (revenueIndex[_token] == 0) revenueTokens.push(_token);
-    revenueIndex[_token] += amountPerVoteRay;
+    uint256 amountPerVoteRay = (amount_ * RAY) / totalSupply();
+    if (revenueIndex[token_] == 0) revenueTokens.push(token_);
+    revenueIndex[token_] += amountPerVoteRay;
   }
 
-  function harvest(address[] memory tokens) public nonReentrant {
+  /**
+   * @notice Harvest rewards from staking & DAO revenue
+   * @param tokens_ the tokens to harvest
+   */
+  function harvest(address[] memory tokens_) public nonReentrant {
     LockedBalance storage userLock = locks[msg.sender];
     uint256 votes = tokenToVotes(userLock.amount, userLock.duration);
 
@@ -523,10 +563,10 @@ contract EcclesiaDao is
     }
 
     // Withdraw revenue rewards
-    uint256 nbTokens = tokens.length;
+    uint256 nbTokens = tokens_.length;
 
     for (uint i; i < nbTokens; i++) {
-      address _token = tokens[i];
+      address _token = tokens_[i];
       // Harvest all specified tokens
       if (
         userRevenueIndex[msg.sender][_token] != revenueIndex[_token]
@@ -546,27 +586,35 @@ contract EcclesiaDao is
 
   // ======= ADMIN ======= //
 
+  /**
+   * @notice Set early withdraw configuration in case of migration
+   * @param newEarlyWithdrawBpsPerDay_ the new early withdraw fee per day
+   * @param newRedistributeBps_ the new portion of early withdrawal fees to be redistributed
+   * @param newBurnBps_ the new portion of early withdrawal fees to be burned
+   * @param newTreasuryBps_ the new portion of early withdrawal fees to be sent to treasury
+   * @param newTreasuryAddr_ the new treasury address
+   */
   function setEarlyWithdrawConfig(
-    uint256 _newEarlyWithdrawBpsPerDay,
-    uint256 _newRedistributeBps,
-    uint256 _newBurnBps,
-    uint256 _newTreasuryBps,
-    address _newTreasuryAddr
+    uint256 newEarlyWithdrawBpsPerDay_,
+    uint256 newRedistributeBps_,
+    uint256 newBurnBps_,
+    uint256 newTreasuryBps_,
+    address newTreasuryAddr_
   ) external onlyOwner {
     // Maximum early withdraw fee per day bps is 100% / max lock duration in day
     uint256 maxFeePerDay = RAY / (MAX_LOCK / 1 days);
-    if (maxFeePerDay < _newEarlyWithdrawBpsPerDay)
+    if (maxFeePerDay < newEarlyWithdrawBpsPerDay_)
       revert FeePerDayTooHigh();
 
     // Sum of fee distribution must equal RAY (100%)
-    if (RAY != _newRedistributeBps + _newBurnBps + _newTreasuryBps)
+    if (RAY != newRedistributeBps_ + newBurnBps_ + newTreasuryBps_)
       revert InvalidBps();
 
-    earlyWithdrawBpsPerDay = _newEarlyWithdrawBpsPerDay;
-    redistributeBps = _newRedistributeBps;
-    burnBps = _newBurnBps;
-    treasuryBps = _newTreasuryBps;
-    treasuryWallet = _newTreasuryAddr;
+    earlyWithdrawBpsPerDay = newEarlyWithdrawBpsPerDay_;
+    redistributeBps = newRedistributeBps_;
+    burnBps = newBurnBps_;
+    treasuryBps = newTreasuryBps_;
+    treasuryWallet = newTreasuryAddr_;
 
     if (treasuryBps != 0 && treasuryWallet == address(0))
       revert InvalidTreasuryAddr();
@@ -580,6 +628,18 @@ contract EcclesiaDao is
     );
   }
 
+  /**
+   * @notice Set breaker to allow or disallow early withdrawal
+   * @param breaker_ the new value of breaker false if off, true if on
+   */
+  function setBreaker(bool breaker_) external onlyOwner {
+    breaker = breaker_;
+    emit SetBreaker(breaker);
+  }
+
+  /**
+   * @notice Withdraw ETH from the contract
+   */
   function withdrawETH() external onlyOwner {
     payable(msg.sender).transfer(address(this).balance);
   }
