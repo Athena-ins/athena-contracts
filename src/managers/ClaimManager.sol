@@ -217,6 +217,25 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
     _;
   }
 
+  /**
+   * @notice Check that the cover exists
+   * @param coverId_ The cover ID
+   */
+  modifier coverExists(uint256 coverId_) {
+    // This will revert the cover does not exist
+    coverToken.ownerOf(coverId_);
+    _;
+  }
+
+  /**
+   * @notice Check that the claim exists
+   * @param claimId_ The claim ID
+   */
+  modifier claimsExists(uint256 claimId_) {
+    if (claims[claimId_].createdAt == 0) revert ClaimDoesNotExist();
+    _;
+  }
+
   // ======= VIEWS ======= //
 
   function getCoverIdToClaimIds(
