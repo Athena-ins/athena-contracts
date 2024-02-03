@@ -21,5 +21,6 @@ declare module "mocha" {
     protocolConfig: ProtocolConfig;
     snapshortId: string; // Used to reset fork
     helpers: TestHelper;
+    args: any; // Used to set arguments within a test suite
   }
 }

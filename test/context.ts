@@ -45,6 +45,8 @@ export function baseContext(description: string, hooks: () => void): void {
         user3: signers[nbSpecialAccounts + 2] as Signer as Wallet,
       };
 
+      this.protocolConfig = defaultProtocolConfig;
+
       // Setup protocol for testing & provide interfaces to tests
       this.contracts = await deployAllContractsAndInitializeProtocol(
         this.signers.deployer,
@@ -69,8 +71,6 @@ export function baseContext(description: string, hooks: () => void): void {
         ),
       );
 
-      this.protocolConfig = defaultProtocolConfig;
-
       const logData = {
         chainId: await entityProviderChainId(this.signers.deployer),
         deployer: this.signers.deployer.address,
@@ -83,24 +83,22 @@ export function baseContext(description: string, hooks: () => void): void {
         // contracts: Object.keys(this.contracts),
       };
 
-      // Used to restore fork at this point in the test suites
-      this.snapshortId = await makeForkSnapshot();
-
-      // Make instance of helpers connected to contracts,
-      // this is mostly to transition out of previous test framework
+      // Make instance of helpers connected to contracts
       this.helpers = await makeTestHelpers(
         this.signers.deployer,
         this.contracts,
       );
+
+      // Used to restore fork at this point in the test suites
+      this.snapshortId = await makeForkSnapshot();
 
       // console.log(
       //   `\n=> Test context setup:\n${JSON.stringify(logData, null, 2)}\n`,
       // );
     });
 
+    // This is run before each child test suite
     beforeEachSuite(async function () {
-      this.retries(2);
-
       // Roll over snapshortId since snapshot ID reuse if forbidden
       await restoreForkSnapshot(this.snapshortId);
       this.snapshortId = await makeForkSnapshot();

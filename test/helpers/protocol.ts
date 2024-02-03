@@ -422,7 +422,7 @@ async function initiateClaim(
   contract: ClaimManager,
   user: Wallet,
   coverId: number,
-  amountClaimed: string | number,
+  amountClaimed: BigNumberish,
 ): Promise<ContractReceipt> {
   // Get the cost of arbitration + challenge collateral
   const [arbitrationCost, collateralAmount] = await Promise.all([

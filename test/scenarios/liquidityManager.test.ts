@@ -5,9 +5,25 @@ import { toUsd, toErc20, makeIdArray } from "../helpers/protocol";
 // Types
 import { BigNumber } from "ethers";
 
+interface Arguments extends Mocha.Context {
+  args: {
+    nbPools: number;
+    daoStakeAmount: BigNumber;
+    daoLockDuration: number;
+    lpAmount: BigNumber;
+    nbLpProviders: number;
+    coverAmount: BigNumber;
+    coverPremiums: BigNumber;
+    claimAmount: BigNumber;
+    lpIncreaseAmount: BigNumber;
+    coverIncreaseAmount: BigNumber;
+    coverIncreasePremiums: BigNumber;
+  };
+}
+
 export function liquidityManager() {
   context("Liquidity Manager", function () {
-    before(async function () {
+    before(async function (this: Arguments) {
       this.args = {
         nbPools: 1,
         daoStakeAmount: toErc20(1000),
@@ -23,7 +39,7 @@ export function liquidityManager() {
       };
     });
 
-    it("creates lock in dao", async function () {
+    it("creates lock in dao", async function (this: Arguments) {
       expect(
         await this.helpers.createDaoLock(
           this.signers.deployer,
@@ -33,7 +49,7 @@ export function liquidityManager() {
       ).to.not.throw;
     });
 
-    it("can create pools", async function () {
+    it("can create pools", async function (this: Arguments) {
       this.timeout(300_000);
 
       for (let i = 0; i < this.args.nbPools; i++) {
@@ -75,7 +91,7 @@ export function liquidityManager() {
       }
     });
 
-    it("accepts LPs", async function () {
+    it("accepts LPs", async function (this: Arguments) {
       this.timeout(300_000);
 
       for (let i = 0; i < this.args.nbLpProviders; i++) {
@@ -104,7 +120,7 @@ export function liquidityManager() {
       }
     });
 
-    it("accepts covers", async function () {
+    it("accepts covers", async function (this: Arguments) {
       this.timeout(300_000);
 
       for (let i = 0; i < this.args.nbPools; i++) {
@@ -135,9 +151,9 @@ export function liquidityManager() {
       }
     });
 
-    // it("has coherent state", async function () {});
+    // it("has coherent state", async function (this: Arguments) {});
 
-    it("can create claims", async function () {
+    it("can create claims", async function (this: Arguments) {
       this.timeout(300_000);
       await setNextBlockTimestamp({ days: 365 });
 
@@ -160,7 +176,7 @@ export function liquidityManager() {
         );
       }
     });
-    it("can resolve claims", async function () {
+    it("can resolve claims", async function (this: Arguments) {
       this.timeout(600_000);
       await setNextBlockTimestamp({ days: 15 });
 
@@ -171,9 +187,9 @@ export function liquidityManager() {
       }
     });
 
-    // it("has coherent state", async function () {});
+    // it("has coherent state", async function (this: Arguments) {});
 
-    it("can increase LPs", async function () {
+    it("can increase LPs", async function (this: Arguments) {
       await setNextBlockTimestamp({ days: 365 });
 
       expect(
@@ -204,7 +220,7 @@ export function liquidityManager() {
       // );
     });
 
-    it("can increase cover & premiums", async function () {
+    it("can increase cover & premiums", async function (this: Arguments) {
       expect(
         await this.helpers.updateCover(
           this.signers.deployer,
@@ -238,14 +254,14 @@ export function liquidityManager() {
       expect(cover.end).to.equal(0);
     });
 
-    // it("has coherent state", async function () {});
+    // it("has coherent state", async function (this: Arguments) {});
 
-    // it("can decrease cover amount", async function () {});
-    // it("can decrease cover premiums", async function () {});
+    // it("can decrease cover amount", async function (this: Arguments) {});
+    // it("can decrease cover premiums", async function (this: Arguments) {});
 
-    // it("has coherent state", async function () {});
+    // it("has coherent state", async function (this: Arguments) {});
 
-    it("can close cover", async function () {
+    it("can close cover", async function (this: Arguments) {
       const uint256Max = BigNumber.from(2).pow(256).sub(1);
       expect(
         await postTxHandler(
@@ -272,7 +288,7 @@ export function liquidityManager() {
       // expect(cover.end.div(100)).to.equal(17060296);
     });
 
-    it("can commit LPs withdrawal", async function () {
+    it("can commit LPs withdrawal", async function (this: Arguments) {
       this.timeout(300_000);
       await setNextBlockTimestamp({ days: 10 });
 
@@ -286,7 +302,7 @@ export function liquidityManager() {
       // expect(position.commitWithdrawalTimestamp.div(100)).to.equal(17060296);
     });
 
-    it("can withdraw LPs", async function () {
+    it("can withdraw LPs", async function (this: Arguments) {
       this.timeout(600_000);
       // Wait for unlock delay to pass
       await setNextBlockTimestamp({ days: 15 });
@@ -305,6 +321,6 @@ export function liquidityManager() {
       // expect(position.commitWithdrawalTimestamp.div(100)).to.equal(17060296);
     });
 
-    // it("has coherent state", async function () {});
+    // it("has coherent state", async function (this: Arguments) {});
   });
 }
