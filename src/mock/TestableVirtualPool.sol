@@ -110,7 +110,7 @@ abstract contract TestableVirtualPool {
 
   // ======= LIQUIDITY ======= //
 
-  function _depositToPool(
+  function depositToPool(
     uint64 poolId_,
     uint256 tokenId_,
     uint256 amount_
@@ -118,7 +118,7 @@ abstract contract TestableVirtualPool {
     return getPool(poolId_)._depositToPool(tokenId_, amount_);
   }
 
-  function _payRewardsAndFees(
+  function payRewardsAndFees(
     uint64 poolId_,
     uint256 rewards_,
     address account_,
@@ -139,7 +139,7 @@ abstract contract TestableVirtualPool {
   /**
    * @dev Need to update user capital & payout strategy rewards upon calling this function
    */
-  function _takePoolInterests(
+  function takePoolInterests(
     uint64 poolId_,
     uint256 tokenId_,
     address account_,
@@ -162,7 +162,7 @@ abstract contract TestableVirtualPool {
 
   /// -------- WITHDRAW -------- ///
 
-  function _withdrawLiquidity(
+  function withdrawLiquidity(
     uint64 poolId_,
     uint256 tokenId_,
     uint256 amount_,
@@ -183,7 +183,7 @@ abstract contract TestableVirtualPool {
 
   /// -------- BUY -------- ///
 
-  function _addPremiumPosition(
+  function addPremiumPosition(
     uint64 poolId_,
     uint256 coverId_,
     uint256 beginPremiumRate_,
@@ -197,7 +197,7 @@ abstract contract TestableVirtualPool {
       );
   }
 
-  function _buyCover(
+  function buyCover(
     uint64 poolId_,
     uint256 coverId_,
     uint256 coverAmount_,
@@ -209,7 +209,7 @@ abstract contract TestableVirtualPool {
 
   /// -------- CLOSE -------- ///
 
-  function _closeCover(
+  function closeCover(
     uint64 poolId_,
     uint256 coverId_,
     uint256 coverAmount_
@@ -219,14 +219,14 @@ abstract contract TestableVirtualPool {
 
   // ======= public POOL HELPERS ======= //
 
-  function _removeTick(
+  function removeTick(
     uint64 poolId_,
     uint32 _tick
   ) public returns (uint256[] memory coverIds) {
     return getPool(poolId_)._removeTick(_tick);
   }
 
-  function _syncLiquidity(
+  function syncLiquidity(
     uint64 poolId_,
     uint256 liquidityToAdd_,
     uint256 liquidityToRemove_
@@ -238,20 +238,20 @@ abstract contract TestableVirtualPool {
       );
   }
 
-  function _purgeExpiredCovers(uint64 poolId_) public {
+  function purgeExpiredCovers(uint64 poolId_) public {
     return getPool(poolId_)._purgeExpiredCovers();
   }
 
   // ======= VIEW HELPERS ======= //
 
-  function _coverInfo(
+  function coverInfo(
     uint64 poolId_,
     uint256 coverId_
   ) public view returns (VirtualPool.CoverInfo memory info) {
     return getPool(poolId_)._coverInfo(coverId_);
   }
 
-  function _crossingInitializedTick(
+  function crossingInitializedTick(
     uint64 poolId_,
     VirtualPool.Slot0 memory slot0_,
     uint32 tick_
@@ -267,7 +267,7 @@ abstract contract TestableVirtualPool {
     return getPool(poolId_)._crossingInitializedTick(slot0_, tick_);
   }
 
-  function _refresh(
+  function refresh(
     uint64 poolId_,
     uint256 timestamp_
   )
@@ -281,7 +281,7 @@ abstract contract TestableVirtualPool {
     return getPool(poolId_)._refresh(timestamp_);
   }
 
-  function _getUpdatedPositionInfo(
+  function getUpdatedPositionInfo(
     uint64 poolId_,
     uint256 tokenId_,
     uint256 userCapital_,
@@ -313,7 +313,11 @@ abstract contract TestableVirtualPool {
     uint256 newPremiumRate_
   ) public pure returns (uint256) {
     return
-      getDailyCost(oldDailyCost_, oldPremiumRate_, newPremiumRate_);
+      VirtualPool.getDailyCost(
+        oldDailyCost_,
+        oldPremiumRate_,
+        newPremiumRate_
+      );
   }
 
   function secondsPerTick(
@@ -322,7 +326,7 @@ abstract contract TestableVirtualPool {
     uint256 _newPremiumRate
   ) public pure returns (uint256) {
     return
-      secondsPerTick(
+      VirtualPool.secondsPerTick(
         _oldSecondsPerTick,
         _oldPremiumRate,
         _newPremiumRate
@@ -347,10 +351,10 @@ abstract contract TestableVirtualPool {
       );
   }
 
-  function _utilization(
+  function utilization(
     uint256 coveredCapital_,
     uint256 liquidity_
-  ) public pure returns (uint256 rate) {
-    return _utilization(coveredCapital_, liquidity_);
+  ) public pure returns (uint256 /* rate */) {
+    return VirtualPool._utilization(coveredCapital_, liquidity_);
   }
 }
