@@ -179,6 +179,13 @@ const config: HardhatUserConfig = {
     cache: "./cache",
     artifacts: "./artifacts",
   },
+
+  // ====== Mocha ====== //
+
+  mocha: {
+    parallel: true,
+    timeout: 30_000,
+  },
 };
 
 // You need to export an object to set up your config
