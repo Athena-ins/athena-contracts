@@ -20,6 +20,8 @@ import { IAthenaCoverToken } from "../interfaces/IAthenaCoverToken.sol";
 import { IEcclesiaDao } from "../interfaces/IEcclesiaDao.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
+// Testing - @bw to remove before deployment
+import { TestableVirtualPool } from "../mock/TestableVirtualPool.sol";
 import { console } from "hardhat/console.sol";
 
 // Todo
@@ -46,6 +48,7 @@ error PositionNotCommited();
 error SenderNotLiquidationManager();
 
 contract LiquidityManager is
+  TestableVirtualPool,
   ILiquidityManager,
   ReentrancyGuard,
   Ownable
@@ -106,7 +109,7 @@ contract LiquidityManager is
     uint256 withdrawDelay_,
     uint256 maxLeverage_,
     uint256 leverageFeePerPool_
-  ) Ownable(msg.sender) {
+  ) Ownable(msg.sender) TestableVirtualPool(_getPool) {
     positionToken = positionToken_;
     coverToken = coverToken_;
     staking = staking_;
@@ -195,6 +198,12 @@ contract LiquidityManager is
     VirtualPool.VPool storage pool = _pools[_covers[coverId_].poolId];
     // Check if the last tick of the cover was overtaken by the pool
     return pool.slot0.tick < pool.coverPremiums[coverId_].lastTick;
+  }
+
+  function _getPool(
+    uint64 poolId_
+  ) internal view returns (VirtualPool.VPool storage) {
+    return _pools[poolId_];
   }
 
   function _getCompensation(
