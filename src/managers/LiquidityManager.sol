@@ -46,6 +46,7 @@ error CannotTakeInterestsIfCommittedWithdrawal();
 error CannotIncreaseIfCommittedWithdrawal();
 error PositionNotCommited();
 error SenderNotLiquidationManager();
+error PoolHasOnGoingClaims();
 
 contract LiquidityManager is
   TestableVirtualPool,
@@ -633,6 +634,12 @@ contract LiquidityManager is
     uint256 tokenId_
   ) external onlyPositionOwner(tokenId_) {
     Position storage position = _positions[tokenId_];
+
+    for (uint256 i; i < position.poolIds.length; i++) {
+      VirtualPool.VPool storage pool = _pools[position.poolIds[i]];
+      // Cannot commit to withdraw while there are ongoing claims
+      if (0 < pool.ongoingClaims) revert PoolHasOnGoingClaims();
+    }
 
     // Take interests in all pools before withdrawal
     // @dev Any rewards accrued after this point will be send to the leverage risk wallet

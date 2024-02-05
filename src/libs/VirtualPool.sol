@@ -23,7 +23,6 @@ error DurationTooLow();
 error InsufficientCapacity();
 error LiquidityNotAvailable();
 error NotEnoughLiquidityForRemoval();
-error PoolHasOnGoingClaims();
 
 /**
  * @title Athena Virtual Pool
@@ -404,9 +403,6 @@ library VirtualPool {
     uint256 amount_,
     uint64[] storage poolIds_
   ) internal returns (uint256, uint256) {
-    // Pool is locked while there are ongoing claims
-    if (0 < self.ongoingClaims) revert PoolHasOnGoingClaims();
-
     // Get the updated position info
     UpdatedPositionInfo memory info = self._getUpdatedPositionInfo(
       tokenId_,
