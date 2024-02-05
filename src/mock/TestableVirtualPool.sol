@@ -39,6 +39,61 @@ abstract contract TestableVirtualPool {
     getPool = getPool_;
   }
 
+  // ======= READ POOL STORAGE ======= //
+
+  function slot0(
+    uint64 poolId_
+  ) public view returns (VirtualPool.Slot0 memory) {
+    return getPool(poolId_).slot0;
+  }
+
+  function overlappedPools(
+    uint64 poolId_
+  ) public view returns (uint64[] memory) {
+    return getPool(poolId_).overlappedPools;
+  }
+
+  function compensationIds(
+    uint64 poolId_
+  ) public view returns (uint256[] memory) {
+    return getPool(poolId_).compensationIds;
+  }
+
+  function overlaps(
+    uint64 poolId_,
+    uint64 poolId1_
+  ) public view returns (uint256) {
+    return getPool(poolId_).overlaps[poolId1_];
+  }
+
+  function lpInfos(
+    uint64 poolId_,
+    uint256 tokenId_
+  ) public view returns (VirtualPool.LpInfo memory) {
+    return getPool(poolId_).lpInfos[tokenId_];
+  }
+
+  function tickBitmap(
+    uint64 poolId_,
+    uint24 wordPos_
+  ) public view returns (uint256 /* bitmap */) {
+    return getPool(poolId_).tickBitmap[wordPos_];
+  }
+
+  function ticks(
+    uint64 poolId_,
+    uint32 tick_
+  ) public view returns (uint256[] memory /* coverIds */) {
+    return getPool(poolId_).ticks[tick_];
+  }
+
+  function coverPremiums(
+    uint64 poolId_,
+    uint256 coverId_
+  ) public view returns (VirtualPool.CoverPremiums memory) {
+    return getPool(poolId_).coverPremiums[coverId_];
+  }
+
   // ======= READ METHODS ======= //
 
   function totalLiquidity(
