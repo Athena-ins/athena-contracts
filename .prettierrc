@@ -7,9 +7,9 @@
   "bracketSpacing": true,
   "singleQuote": false,
   "overrides": [
-    { 
+    {
       "files": "*.ts",
-      "options": { 
+      "options": {
         "printWidth": 80
       }
     },
@@ -17,10 +17,8 @@
       "files": "*.sol",
       "options": {
         "printWidth": 70,
-        "semi": true 
+        "semi": true
       }
     }
   ]
 }
- 
- 

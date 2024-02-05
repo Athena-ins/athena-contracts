@@ -67,7 +67,7 @@ function makeForkConfig(): HardhatNetworkUserConfig {
 
   const networkConfig = {
     chainId,
-    allowUnlimitedContractSize: false,
+    allowUnlimitedContractSize: true,
     forking: {
       // We can cast safely because we checked for undefined
       url: RPC_URL as string,
