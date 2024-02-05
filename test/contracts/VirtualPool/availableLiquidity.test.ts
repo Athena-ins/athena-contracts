@@ -9,5 +9,18 @@ export function VirtualPool_availableLiquidity() {
     before(async function () {
       this.args = {};
     });
+
+    it("should return the available liquidity of the pool", async function () {
+      // Call availableLiquidity on the TestableVirtualPool contract
+      const availableLiquidity =
+        await this.contracts.TestableVirtualPool.availableLiquidity();
+
+      // The expected available liquidity is the pool's total liquidity minus the covered capital
+      const expectedAvailableLiquidity =
+        this.args.totalLiquidity - this.args.coveredCapital;
+
+      // Check if the returned available liquidity matches the expected value
+      expect(availableLiquidity).to.equal(expectedAvailableLiquidity);
+    });
   });
 }

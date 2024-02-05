@@ -9,5 +9,17 @@ export function VirtualPool_currentPremiumRate() {
     before(async function () {
       this.args = {};
     });
+
+    it("should return the current premium rate based on pool utilization", async function () {
+      // Get the current premium rate
+      const currentPremiumRate =
+        await this.contracts.TestableVirtualPool.currentPremiumRate();
+
+      // Expected premium rate based on utilization
+      const expectedPremiumRate = this.args.expectedPremiumRate;
+
+      // Compare the result with the expected premium rate
+      expect(currentPremiumRate).to.equal(expectedPremiumRate);
+    });
   });
 }

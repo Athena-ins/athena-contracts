@@ -9,5 +9,14 @@ export function VirtualPool_totalLiquidity() {
     before(async function () {
       this.args = {};
     });
+
+    it("should return the total liquidity of the pool", async function () {
+      // Call totalLiquidity on the TestableVirtualPool contract
+      const totalLiquidity =
+        await this.contracts.TestableVirtualPool.totalLiquidity();
+
+      // Compare the result with the expected total liquidity value
+      expect(totalLiquidity).to.equal(this.args.expectedTotalLiquidity);
+    });
   });
 }
