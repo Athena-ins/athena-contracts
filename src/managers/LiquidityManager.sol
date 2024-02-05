@@ -213,6 +213,11 @@ contract LiquidityManager is
     return _compensations[compensationId_];
   }
 
+  /**
+   * @notice Returns the virtual pool's storage
+   * @param poolId_ The ID of the pool
+   * @return The virtual pool's storage
+   */
   function poolInfo(
     uint64 poolId_
   ) external view returns (VirtualPool.VPoolRead memory) {
@@ -244,10 +249,21 @@ contract LiquidityManager is
 
   /// ======= POOLS ======= ///
 
+  /**
+   * @notice Creates a new pool, combining a cover product with a strategy
+   * @param paymentAsset_ The asset used to pay for premiums
+   * @param strategyId_ The ID of the strategy to be used
+   * @param feeRate_ The fee rate paid out to the DAO
+   * @param uOptimal_ The optimal utilization rate
+   * @param r0_ The base interest rate
+   * @param rSlope1_ The initial slope of the interest rate curve
+   * @param rSlope2_ The slope of the interest rate curve above uOptimal
+   * @param compatiblePools_ An array of pool IDs that are compatible with the new pool
+   */
   function createPool(
     address paymentAsset_,
     uint256 strategyId_,
-    uint256 feeRate_, // Ray
+    uint256 feeRate_,
     uint256 uOptimal_,
     uint256 r0_,
     uint256 rSlope1_,
@@ -827,12 +843,24 @@ contract LiquidityManager is
 
   /// ======= CLAIMS ======= ///
 
+  /**
+   * @notice Registers a claim in the pool after a claim is created
+   * @param coverId_ The ID of the cover
+   *
+   * @dev The existence of th cover is checked in the claim manager
+   */
   function addClaimToPool(
     uint256 coverId_
   ) external onlyClaimManager {
     _pools[_covers[coverId_].poolId].ongoingClaims++;
   }
 
+  /**
+   * @notice Removes a claim from the pool after a claim is resolved
+   * @param coverId_ The ID of the cover
+   *
+   * @dev The existence of th cover is checked in the claim manager
+   */
   function removeClaimFromPool(
     uint256 coverId_
   ) external onlyClaimManager {
@@ -976,6 +1004,11 @@ contract LiquidityManager is
 
   /// ======= ADMIN ======= ///
 
+  /**
+   * @notice Updates the withdraw delay and the maximum leverage
+   * @param withdrawDelay_ The new withdraw delay
+   * @param maxLeverage_ The new maximum leverage
+   */
   function updateConfig(
     uint256 withdrawDelay_,
     uint256 maxLeverage_
