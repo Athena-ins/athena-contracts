@@ -44,6 +44,8 @@ import {
   AthenaToken__factory,
   AthenaToken,
   // Other
+  TestableVirtualPool__factory,
+  TestableVirtualPool,
   TetherToken__factory,
   TetherToken,
   IWETH,
@@ -138,6 +140,8 @@ export async function deployAthenaToken(
 // ======================= //
 
 export type ProtocolConfig = {
+  subcourtId: number;
+  nbOfJurors: number;
   arbitrationCollateral: BigNumber;
   evidenceGuardian: Wallet;
   buybackWallet: Wallet;
@@ -149,6 +153,8 @@ export type ProtocolConfig = {
 };
 
 export const defaultProtocolConfig: ProtocolConfig = {
+  subcourtId: 2,
+  nbOfJurors: 4,
   arbitrationCollateral: utils.parseEther("0.05"), // in ETH
   evidenceGuardian: evidenceGuardianWallet(),
   buybackWallet: buybackWallet(),
@@ -183,6 +189,7 @@ export type ProtocolContracts = {
   FarmingRange: FarmingRange;
   RewardManager: RewardManager;
   Staking: Staking;
+  TestableVirtualPool: TestableVirtualPool;
 };
 
 export async function deployAllContractsAndInitializeProtocol(
@@ -234,10 +241,13 @@ export async function deployAllContractsAndInitializeProtocol(
   // ======= Managers ======= //
 
   const ClaimManager = await deployClaimManager(deployer, [
-    deployedAt.AthenaCoverToken,
-    deployedAt.LiquidityManager,
-    deployedAt.MockArbitrator,
-    config.evidenceGuardian.address,
+    deployedAt.AthenaCoverToken, // IAthenaCoverToken coverToken_
+    deployedAt.LiquidityManager, // ILiquidityManager liquidityManager_
+    deployedAt.MockArbitrator, // IArbitrator arbitrator_
+    config.evidenceGuardian.address, // address metaEvidenceGuardian_
+    config.leverageRiskWallet.address, // address leverageRiskWallet_
+    config.subcourtId, // uint256 subcourtId_
+    config.nbOfJurors, // uint256 nbOfJurors_
   ]);
   const StrategyManager = await deployStrategyManager(deployer, [
     deployedAt.LiquidityManager,
@@ -306,6 +316,11 @@ export async function deployAllContractsAndInitializeProtocol(
       deployer,
     ),
     Staking: Staking__factory.connect(deployedAt.Staking, deployer),
+    // Mocks or testing contracts
+    TestableVirtualPool: TestableVirtualPool__factory.connect(
+      deployedAt.LiquidityManager,
+      deployer,
+    ),
   };
 
   if (logAddresses) {

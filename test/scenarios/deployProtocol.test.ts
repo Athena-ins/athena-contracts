@@ -88,10 +88,13 @@ export function deployProtocol() {
 
       it("deploys ClaimManager", async function () {
         await deployClaimManager(this.signers.deployer, [
-          this.deployedAt.AthenaCoverToken,
-          this.deployedAt.LiquidityManager,
-          this.deployedAt.MockArbitrator,
-          this.signers.evidenceGuardian.address,
+          this.deployedAt.AthenaCoverToken, // IAthenaCoverToken coverToken_
+          this.deployedAt.LiquidityManager, // ILiquidityManager liquidityManager_
+          this.deployedAt.MockArbitrator, // IArbitrator arbitrator_
+          this.signers.evidenceGuardian.address, // address metaEvidenceGuardian_
+          this.signers.leverageRiskWallet.address, // address leverageRiskWallet_
+          this.protocolConfig.subcourtId, // uint256 subcourtId_
+          this.protocolConfig.nbOfJurors, // uint256 nbOfJurors_
         ]).then((contract) =>
           postDeployCheck(contract, this.deployedAt.ClaimManager),
         );
@@ -134,7 +137,7 @@ export function deployProtocol() {
           this.deployedAt.ClaimManager,
           14 * 24 * 60 * 60, // @bw need to take all args from config
           30,
-          this.config.leverageFeePerPool,
+          this.protocolConfig.leverageFeePerPool,
         ]).then((contract) =>
           postDeployCheck(contract, this.deployedAt.LiquidityManager),
         );
