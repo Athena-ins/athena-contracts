@@ -247,12 +247,20 @@ library VirtualPool {
 
   // ======= READ METHODS ======= //
 
+  /**
+   * @notice Returns the total liquidity of the pool
+   * @param self The pool
+   */
   function totalLiquidity(
     VPool storage self
   ) internal view returns (uint256) {
     return self.overlaps[self.poolId];
   }
 
+  /**
+   * @notice Returns the available liquidity of the pool
+   * @param self The pool
+   */
   function availableLiquidity(
     VPool storage self
   ) internal view returns (uint256) {
@@ -261,6 +269,12 @@ library VirtualPool {
 
   // ======= LIQUIDITY ======= //
 
+  /**
+   * @notice Adds liquidity info to the pool and updates the pool's state.
+   * @param self The pool
+   * @param tokenId_ The LP position token ID
+   * @param amount_ The amount of liquidity to deposit
+   */
   function _depositToPool(
     VPool storage self,
     uint256 tokenId_,
@@ -276,6 +290,14 @@ library VirtualPool {
     });
   }
 
+  /**
+   * @notice Pays the rewards and fees to the position owner and the DAO.
+   * @param self The pool
+   * @param rewards_ The rewards to pay
+   * @param account_ The account to pay the rewards to
+   * @param yieldBonus_ The yield bonus to apply to the rewards
+   * @param nbPools_ The number of pools in the position
+   */
   function _payRewardsAndFees(
     VPool storage self,
     uint256 rewards_,
@@ -321,6 +343,17 @@ library VirtualPool {
   /// -------- TAKE INTERESTS -------- ///
 
   /**
+   * @notice Takes the interests of a position and updates the pool's state.
+   * @param self The pool
+   * @param tokenId_ The LP position token ID
+   * @param account_ The account to pay the rewards to
+   * @param amount_ The amount of liquidity to take interest on
+   * @param yieldBonus_ The yield bonus to apply to the rewards
+   * @param poolIds_ The pool IDs of the position
+   *
+   * @return newUserCapital The user's capital after claims
+   * @return coverRewards The rewards earned by covers in the pool
+   *
    * @dev Need to update user capital & payout strategy rewards upon calling this function
    */
   function _takePoolInterests(
@@ -355,6 +388,16 @@ library VirtualPool {
 
   /// -------- WITHDRAW -------- ///
 
+  /**
+   * @notice Withdraws liquidity from the pool and updates the pool's state.
+   * @param self The pool
+   * @param tokenId_ The LP position token ID
+   * @param amount_ The amount of liquidity to withdraw
+   * @param poolIds_ The pool IDs of the position
+   *
+   * @return newUserCapital The user's capital after claims
+   * @return strategyRewards The rewards earned by the strategy
+   */
   function _withdrawLiquidity(
     VPool storage self,
     uint256 tokenId_,
@@ -390,6 +433,14 @@ library VirtualPool {
 
   /// -------- BUY -------- ///
 
+  /**
+   * @notice Registers a premium position for a cover,
+   * it also initializes the last tick (expiration tick) of the cover is needed.
+   * @param self The pool
+   * @param coverId_ The cover ID
+   * @param beginPremiumRate_ The premium rate at the beginning of the cover
+   * @param lastTick_ The last tick of the cover
+   */
   function _addPremiumPosition(
     VPool storage self,
     uint256 coverId_,
@@ -412,6 +463,13 @@ library VirtualPool {
     }
   }
 
+  /**
+   * @notice Registers a premium position of a cover and updates the pool's slot0.
+   * @param self The pool
+   * @param coverId_ The cover ID
+   * @param coverAmount_ The amount of cover to buy
+   * @param premiums_ The amount of premiums deposited
+   */
   function _buyCover(
     VPool storage self,
     uint256 coverId_,
@@ -452,6 +510,12 @@ library VirtualPool {
 
   /// -------- CLOSE -------- ///
 
+  /**
+   * @notice Closes a cover and updates the pool's slot0.
+   * @param self The pool
+   * @param coverId_ The cover ID
+   * @param coverAmount_ The amount of cover to close
+   */
   function _closeCover(
     VPool storage self,
     uint256 coverId_,
@@ -500,18 +564,23 @@ library VirtualPool {
 
   // ======= INTERNAL POOL HELPERS ======= //
 
+  /**
+   * @notice Wipes a tick and the premium data of covers within it.
+   * @param self The pool
+   * @param tick_ The tick to remove
+   */
   function _removeTick(
     VPool storage self,
-    uint32 _tick
+    uint32 tick_
   ) internal returns (uint256[] memory coverIds) {
-    coverIds = self.ticks[_tick];
+    coverIds = self.ticks[tick_];
 
     for (uint256 i; i < coverIds.length; i++) {
       delete self.coverPremiums[coverIds[i]];
     }
 
-    self.ticks.clear(_tick);
-    self.tickBitmap.flipTick(_tick);
+    self.ticks.clear(tick_);
+    self.tickBitmap.flipTick(tick_);
   }
 
   /**
@@ -548,6 +617,10 @@ library VirtualPool {
     );
   }
 
+  /**
+   * @notice Removes expired covers from the pool and updates the pool's slot0.
+   * @param self The pool
+   */
   function _purgeExpiredCovers(VPool storage self) internal {
     if (0 < self.slot0.remainingCovers) {
       (Slot0 memory slot0, uint256 liquidityIndex) = self._refresh(
@@ -980,17 +1053,33 @@ library VirtualPool {
       oldDailyCost_.rayMul(newPremiumRate_).rayDiv(oldPremiumRate_);
   }
 
+  /**
+   * @notice Computes the new seconds per tick of a pool,
+   * the seconds per tick is the time between two ticks in the pool.
+   *
+   * @param oldSecondsPerTick_ The seconds per tick before the change
+   * @param oldPremiumRate_ The premium rate before the change
+   * @param newPremiumRate_ The premium rate after the change
+   *
+   * @return The new seconds per tick of the pool
+   */
   function secondsPerTick(
-    uint256 _oldSecondsPerTick,
-    uint256 _oldPremiumRate,
-    uint256 _newPremiumRate
+    uint256 oldSecondsPerTick_,
+    uint256 oldPremiumRate_,
+    uint256 newPremiumRate_
   ) internal pure returns (uint256) {
     return
-      _oldSecondsPerTick.rayMul(_oldPremiumRate).rayDiv(
-        _newPremiumRate
+      oldSecondsPerTick_.rayMul(oldPremiumRate_).rayDiv(
+        newPremiumRate_
       );
   }
 
+  /**
+   * @notice Computes the current premium rate of the pool based on utilization.
+   * @param self The pool
+   *
+   * @return The current premium rate of the pool
+   */
   function currentPremiumRate(
     VPool storage self
   ) internal view returns (uint256) {
@@ -1000,21 +1089,38 @@ library VirtualPool {
       );
   }
 
+  /**
+   * @notice Computes the updated premium rate of the pool based on utilization.
+   * @param self The pool
+   * @param coveredCapitalToAdd_ The amount of covered capital to add
+   * @param coveredCapitalToRemove_ The amount of covered capital to remove
+   *
+   * @return The updated premium rate of the pool
+   */
   function updatedPremiumRate(
     VPool storage self,
-    uint256 _coveredCapitalToAdd,
-    uint256 _coveredCapitalToRemove
+    uint256 coveredCapitalToAdd_,
+    uint256 coveredCapitalToRemove_
   ) internal view returns (uint256) {
     return
       self.getPremiumRate(
         _utilization(
-          ((self.slot0.coveredCapital + _coveredCapitalToAdd) -
-            _coveredCapitalToRemove),
+          ((self.slot0.coveredCapital + coveredCapitalToAdd_) -
+            coveredCapitalToRemove_),
           self.totalLiquidity()
         )
       );
   }
 
+  /**
+   * @notice Computes the percentage of the pool's liquidity used for covers.
+   * @param coveredCapital_ The amount of covered capital in the pool
+   * @param liquidity_ The amount of liquidity in the pool
+   *
+   * @return rate The utilization rate of the pool
+   *
+   * @dev The utilization rate is capped at 100%.
+   */
   function _utilization(
     uint256 coveredCapital_,
     uint256 liquidity_
