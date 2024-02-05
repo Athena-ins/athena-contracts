@@ -297,7 +297,7 @@ contract LiquidityManager is
     }
   }
 
-  function purgeExpiredCovers(uint64 poolId_) external {
+  function purgeExpiredCoversInPool(uint64 poolId_) external {
     // Clean pool from expired covers
     _pools[poolId_]._purgeExpiredCovers();
   }
