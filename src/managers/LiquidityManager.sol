@@ -68,8 +68,11 @@ contract LiquidityManager is
   IStrategyManager public strategyManager;
   address public claimManager;
 
+  /// The delay after commiting before a position can be withdrawn
   uint256 public withdrawDelay; // in seconds
+  /// The maximum amount of pools a position can supply liquidity to
   uint256 public maxLeverage;
+  /// The fee paid out to the DAO for each leveraged pool in a position
   uint256 public leverageFeePerPool; // Ray
   // Maps pool0 -> pool1 -> areCompatible for LP leverage
   mapping(uint64 => mapping(uint64 => bool)) public arePoolCompatible;
@@ -126,23 +129,38 @@ contract LiquidityManager is
 
   /// ======= MODIFIERS ======= ///
 
-  modifier onlyCoverOwner(uint256 tokenId) {
-    if (msg.sender != coverToken.ownerOf(tokenId))
+  /**
+   * @notice Throws if the caller is not the owner of the cover token
+   * @param coverId_ The ID of the cover token
+   */
+  modifier onlyCoverOwner(uint256 coverId_) {
+    if (msg.sender != coverToken.ownerOf(coverId_))
       revert OnlyTokenOwner();
     _;
   }
 
-  modifier onlyPositionOwner(uint256 tokenId) {
-    if (msg.sender != positionToken.ownerOf(tokenId))
+  /**
+   * @notice Throws if the caller is not the owner of the position token
+   * @param positionId_ The ID of the position token
+   */
+  modifier onlyPositionOwner(uint256 positionId_) {
+    if (msg.sender != positionToken.ownerOf(positionId_))
       revert OnlyTokenOwner();
     _;
   }
 
+  /**
+   * @notice Throws if the caller is not the claim manager
+   * @dev The claim manager is the contract that creates claims
+   */
   modifier onlyClaimManager() {
     if (msg.sender != claimManager) revert OnlyClaimManager();
     _;
   }
 
+  /**
+   * @notice Throws if the caller is not the farming range
+   */
   modifier onlyFarmingRange() {
     if (msg.sender != address(farming)) revert OnlyFarmingRange();
     _;
@@ -150,29 +168,44 @@ contract LiquidityManager is
 
   /// ======= VIEWS ======= ///
 
+  /**
+   * @notice Returns the position data of a token
+   * @param positionId_ The ID of the position
+   * @return The position data
+   */
   function positions(
-    uint256 tokenId_
+    uint256 positionId_
   ) external view returns (Position memory) {
-    return _positions[tokenId_];
+    return _positions[positionId_];
   }
 
+  /**
+   * @notice Returns the strategy reward index of a position
+   * @param positionId_ The ID of the position
+   * @return The reward index
+   */
   function posRewardIndex(
-    uint256 tokenId_
+    uint256 positionId_
   ) internal view returns (uint256) {
-    return _posRewardIndex[tokenId_];
+    return _posRewardIndex[positionId_];
   }
 
+  /**
+   * @notice Returns the cover data of a token
+   * @param coverId_ The ID of the cover
+   * @return The cover data formatted for reading
+   */
   function covers(
-    uint256 tokenId_
+    uint256 coverId_
   ) external view returns (CoverRead memory) {
-    Cover storage cover = _covers[tokenId_];
+    Cover storage cover = _covers[coverId_];
 
     VirtualPool.CoverInfo memory info = _pools[cover.poolId]
-      ._coverInfo(tokenId_);
+      ._coverInfo(coverId_);
 
     return
       CoverRead({
-        coverId: tokenId_,
+        coverId: coverId_,
         poolId: cover.poolId,
         coverAmount: cover.coverAmount,
         start: cover.start,
@@ -183,34 +216,37 @@ contract LiquidityManager is
       });
   }
 
-  function coverSize(uint256 tokenId_) public view returns (uint256) {
-    return _covers[tokenId_].coverAmount;
+  /**
+   * @notice Returns the size of a cover's protection
+   * @param coverId_ The ID of the cover
+   * @return The size of the cover's protection
+   */
+  function coverSize(uint256 coverId_) public view returns (uint256) {
+    return _covers[coverId_].coverAmount;
   }
 
+  /**
+   * @notice Returns the pool ID of a cover
+   * @param coverId_ The ID of the cover
+   * @return The pool ID of the cover
+   */
   function coverPoolId(
-    uint256 tokenId_
+    uint256 coverId_
   ) external view returns (uint64) {
-    return _covers[tokenId_].poolId;
+    return _covers[coverId_].poolId;
   }
 
+  /**
+   * @notice Returns if the cover is still active or has expired
+   * @param coverId_ The ID of the cover
+   * @return True if the cover is still active, otherwise false
+   */
   function isCoverActive(
     uint256 coverId_
   ) external view returns (bool) {
     VirtualPool.VPool storage pool = _pools[_covers[coverId_].poolId];
     // Check if the last tick of the cover was overtaken by the pool
     return pool.slot0.tick < pool.coverPremiums[coverId_].lastTick;
-  }
-
-  function _getPool(
-    uint64 poolId_
-  ) internal view returns (VirtualPool.VPool storage) {
-    return _pools[poolId_];
-  }
-
-  function _getCompensation(
-    uint256 compensationId_
-  ) internal view returns (VirtualPool.Compensation storage) {
-    return _compensations[compensationId_];
   }
 
   /**
@@ -240,11 +276,44 @@ contract LiquidityManager is
       });
   }
 
+  /**
+   * @notice Returns amount liquidity overlap between two pools
+   * @param poolIdA_ The ID of the first pool
+   * @param poolIdB_ The ID of the second pool
+   * @return The amount of liquidity overlap
+   */
   function poolOverlaps(
-    uint64 poolId0_,
-    uint64 poolId1_
+    uint64 poolIdA_,
+    uint64 poolIdB_
   ) external view returns (uint256) {
-    return _pools[poolId0_].overlaps[poolId1_];
+    return
+      poolIdA_ < poolIdB_
+        ? _pools[poolIdA_].overlaps[poolIdB_]
+        : _pools[poolIdB_].overlaps[poolIdA_];
+  }
+
+  /// ======= INTERNAL VIEWS ======= ///
+
+  /**
+   * @notice Returns the virtual pool's storage pointer
+   * @param poolId_ The ID of the pool
+   * @return The virtual pool's storage pointer
+   */
+  function _getPool(
+    uint64 poolId_
+  ) internal view returns (VirtualPool.VPool storage) {
+    return _pools[poolId_];
+  }
+
+  /**
+   * @notice Returns the compensation's storage pointer
+   * @param compensationId_ The ID of the compensation
+   * @return The compensation's storage pointer
+   */
+  function _getCompensation(
+    uint256 compensationId_
+  ) internal view returns (VirtualPool.Compensation storage) {
+    return _compensations[compensationId_];
   }
 
   /// ======= POOLS ======= ///
@@ -314,6 +383,10 @@ contract LiquidityManager is
     }
   }
 
+  /**
+   * @notice Removes all expired covers from a pool
+   * @param poolId_ The ID of the pool
+   */
   function purgeExpiredCoversInPool(uint64 poolId_) external {
     // Clean pool from expired covers
     _pools[poolId_]._purgeExpiredCovers();
@@ -321,6 +394,10 @@ contract LiquidityManager is
 
   /// ======= COVER HELPERS ======= ///
 
+  /**
+   * @notice Expires a cover & freezes its farming rewards
+   * @param coverId_ The ID of the cover
+   */
   function _expireCover(uint256 coverId_) internal {
     _covers[coverId_].end = block.timestamp;
 
@@ -330,6 +407,12 @@ contract LiquidityManager is
 
   /// ======= BUY COVER ======= ///
 
+  /**
+   * @notice Buys a cover
+   * @param poolId_ The ID of the pool
+   * @param coverAmount_ The amount of cover to buy
+   * @param premiums_ The amount of premiums to pay
+   */
   function buyCover(
     uint64 poolId_,
     uint256 coverAmount_,
@@ -375,6 +458,17 @@ contract LiquidityManager is
 
   /// ======= UPDATE COVER ======= ///
 
+  /**
+   * @notice Updates or closes a cover
+   * @param coverId_ The ID of the cover
+   * @param coverToAdd_ The amount of cover to add
+   * @param coverToRemove_ The amount of cover to remove
+   * @param premiumsToAdd_ The amount of premiums to add
+   * @param premiumsToRemove_ The amount of premiums to remove
+   *
+   * @dev If premiumsToRemove_ is max uint256 then withdraw premiums
+   * & closes the cover
+   */
   function updateCover(
     uint256 coverId_,
     uint256 coverToAdd_,
@@ -438,8 +532,8 @@ contract LiquidityManager is
       premiums += premiumsToAdd_;
     }
 
-    // If no premiums left, then cover expires & should not be reopened
     if (premiums == 0) {
+      // If there is no premiums left then expire the cover
       _expireCover(coverId_);
     } else {
       // Update cover
@@ -450,7 +544,13 @@ contract LiquidityManager is
   /// ======= MAKE LP POSITION ======= ///
 
   /**
+   * @notice Creates a new LP position
+   * @param amount The amount of tokens to supply
+   * @param isWrapped True if the user can & wants to provide strategy tokens
+   * @param poolIds The IDs of the pools to provide liquidity to
    *
+   * @dev Wrapped tokens are tokens representing a position in a strategy,
+   * it allows the user to reinvest DeFi liquidity without having to withdraw
    * @dev Positions created after claim creation & before compensation are affected by the claim
    */
   function createPosition(
@@ -462,8 +562,8 @@ contract LiquidityManager is
     if (maxLeverage < poolIds.length)
       revert AmountOfPoolsIsAboveMaxLeverage();
 
-    // Save new position tokenId and update for next
-    uint256 tokenId = nextPositionId;
+    // Save new position positionId and update for next
+    uint256 positionId = nextPositionId;
     nextPositionId++;
 
     // All pools share the same strategy so we can use the first pool ID
@@ -473,14 +573,14 @@ contract LiquidityManager is
       : amount;
 
     // Save index from which the position will start accruing strategy rewards
-    _posRewardIndex[tokenId] = strategyManager.getRewardIndex(
+    _posRewardIndex[positionId] = strategyManager.getRewardIndex(
       strategyId
     );
 
     // Check pool compatibility & underlying token then register overlapping capital
     _addOverlappingCapitalAfterCheck(
       poolIds,
-      tokenId,
+      positionId,
       amountUnderlying
     );
 
@@ -505,24 +605,33 @@ contract LiquidityManager is
       strategyManager.depositToStrategy(strategyId, amount);
     }
 
-    _positions[tokenId] = Position({
+    _positions[positionId] = Position({
       supplied: amountUnderlying,
       commitWithdrawalTimestamp: 0,
       poolIds: poolIds
     });
 
     // Mint position NFT
-    positionToken.mint(msg.sender, tokenId);
+    positionToken.mint(msg.sender, positionId);
   }
 
   /// ======= UPDATE LP POSITION ======= ///
 
+  /**
+   * @notice Increases the position's provided liquidity
+   * @param positionId_ The ID of the position
+   * @param amount The amount of tokens to supply
+   * @param isWrapped True if the user can & wants to provide strategy tokens
+   *
+   * @dev Wrapped tokens are tokens representing a position in a strategy,
+   * it allows the user to reinvest DeFi liquidity without having to withdraw
+   */
   function increasePosition(
-    uint256 tokenId_,
+    uint256 positionId_,
     uint256 amount,
     bool isWrapped
-  ) external onlyPositionOwner(tokenId_) {
-    Position storage position = _positions[tokenId_];
+  ) external onlyPositionOwner(positionId_) {
+    Position storage position = _positions[positionId_];
     uint256 strategyId = _pools[position.poolIds[0]].strategyId;
 
     // Positions that are commit for withdrawal cannot be increased
@@ -531,16 +640,20 @@ contract LiquidityManager is
 
     // Take interests in all pools before update
     // @dev Needed to keep register rewards & claims impact on capital
-    _takeInterests(tokenId_, positionToken.ownerOf(tokenId_), 0);
+    _takeInterests(
+      positionId_,
+      positionToken.ownerOf(positionId_),
+      0
+    );
 
     uint256 amountUnderlying = isWrapped
       ? strategyManager.wrappedToUnderlying(strategyId, amount)
       : amount;
 
-    // Check pool compatibility & underlying token then register overlapping capital
+    // Check pool compatibility & underlying position then register overlapping capital
     _addOverlappingCapitalAfterCheck(
       position.poolIds,
-      tokenId_,
+      positionId_,
       amountUnderlying
     );
 
@@ -566,23 +679,30 @@ contract LiquidityManager is
       strategyManager.depositToStrategy(strategyId, amount);
     }
 
+    // Update the position's capital
     position.supplied += amountUnderlying;
   }
 
   /// ======= TAKE LP INTERESTS ======= ///
 
+  /**
+   * @notice Takes the interests of a position
+   * @param positionId_ The ID of the position
+   * @param coverRewardsBeneficiary_ The address to send the cover rewards to
+   * @param yieldBonus_ The yield bonus to apply
+   */
   function _takeInterests(
-    uint256 tokenId_,
+    uint256 positionId_,
     address coverRewardsBeneficiary_,
     uint256 yieldBonus_
   ) private {
-    Position storage position = _positions[tokenId_];
+    Position storage position = _positions[positionId_];
 
     // Locks interests to avoid abusively early withdrawal commits
     if (position.commitWithdrawalTimestamp != 0)
       revert CannotTakeInterestsIfCommittedWithdrawal();
 
-    address posOwner = positionToken.ownerOf(tokenId_);
+    address posOwner = positionToken.ownerOf(positionId_);
 
     uint256 newUserCapital;
     uint256 strategyRewards;
@@ -596,7 +716,7 @@ contract LiquidityManager is
 
       // These are the same values at each iteration
       (newUserCapital, strategyRewards) = pool._takePoolInterests(
-        tokenId_,
+        positionId_,
         coverRewardsBeneficiary_,
         position.supplied,
         yieldBonus_,
@@ -608,7 +728,7 @@ contract LiquidityManager is
     uint256 strategyId = _pools[position.poolIds[0]].strategyId;
 
     // Save index up to which the position is receiving strategy rewards
-    _posRewardIndex[tokenId_] = strategyManager.getRewardIndex(
+    _posRewardIndex[positionId_] = strategyManager.getRewardIndex(
       strategyId
     );
 
@@ -622,17 +742,33 @@ contract LiquidityManager is
     );
 
     // Update the position capital to reflect potential reduction due to claims
-    _positions[tokenId_].supplied = newUserCapital;
+    _positions[positionId_].supplied = newUserCapital;
   }
 
+  /**
+   * @notice Takes the interests of a position
+   * @param positionId_ The ID of the position
+   */
   function takeInterests(
-    uint256 tokenId_
-  ) public onlyPositionOwner(tokenId_) {
-    _takeInterests(tokenId_, positionToken.ownerOf(tokenId_), 0);
+    uint256 positionId_
+  ) public onlyPositionOwner(positionId_) {
+    _takeInterests(
+      positionId_,
+      positionToken.ownerOf(positionId_),
+      0
+    );
   }
 
   /// ======= LP YIELD BONUS ======= ///
 
+  /**
+   * @notice Takes the interests of a position taking into account the user yield bonus
+   * @param account_ The address of the account
+   * @param yieldBonus_ The yield bonus to apply
+   * @param positionIds_ The IDs of the positions
+   *
+   * @dev This function is only callable by the farming range
+   */
   function takeInterestsWithYieldBonus(
     address account_,
     uint256 yieldBonus_,
@@ -646,10 +782,17 @@ contract LiquidityManager is
 
   /// ======= CLOSE LP POSITION ======= ///
 
+  /**
+   * @notice Commits to withdraw the position's liquidity
+   * @param positionId_ The ID of the position
+   *
+   * @dev Ongoing claims must be resolved before being able to commit
+   * @dev Interests earned between the commit and the withdrawal are sent to the DAO
+   */
   function commitPositionWithdrawal(
-    uint256 tokenId_
-  ) external onlyPositionOwner(tokenId_) {
-    Position storage position = _positions[tokenId_];
+    uint256 positionId_
+  ) external onlyPositionOwner(positionId_) {
+    Position storage position = _positions[positionId_];
 
     for (uint256 i; i < position.poolIds.length; i++) {
       VirtualPool.VPool storage pool = _pools[position.poolIds[i]];
@@ -659,43 +802,62 @@ contract LiquidityManager is
 
     // Take interests in all pools before withdrawal
     // @dev Any rewards accrued after this point will be send to the leverage risk wallet
-    _takeInterests(tokenId_, positionToken.ownerOf(tokenId_), 0);
+    _takeInterests(
+      positionId_,
+      positionToken.ownerOf(positionId_),
+      0
+    );
 
+    // Register the commit timestamp
     position.commitWithdrawalTimestamp = block.timestamp;
   }
 
+  /**
+   * @notice Cancels a position's commit to withdraw its liquidity
+   * @param positionId_ The ID of the position
+   *
+   * @dev This redirects interest back to the position owner
+   */
   function uncommitPositionWithdrawal(
-    uint256 tokenId_
-  ) external onlyPositionOwner(tokenId_) {
-    Position storage position = _positions[tokenId_];
+    uint256 positionId_
+  ) external onlyPositionOwner(positionId_) {
+    Position storage position = _positions[positionId_];
 
     // Avoid users accidentally paying their rewards to the leverage risk wallet
     if (position.commitWithdrawalTimestamp == 0)
       revert PositionNotCommited();
 
     // Pool rewards after commit are paid in favor of the DAO's leverage risk wallet
-    _takeInterests(tokenId_, address(ecclesiaDao), 0);
+    _takeInterests(positionId_, address(ecclesiaDao), 0);
 
     position.commitWithdrawalTimestamp = 0;
   }
 
+  /**
+   * @notice Closes a position and withdraws its liquidity
+   * @param positionId_ The ID of the position
+   * @param keepWrapped_ True if the user wants to keep the strategy tokens
+   *
+   * @dev The position must be committed and the delay elapsed to withdrawal
+   * @dev Interests earned between the commit and the withdrawal are sent to the DAO
+   */
   function closePosition(
-    uint256 tokenId_,
+    uint256 positionId_,
     bool keepWrapped_
-  ) external onlyPositionOwner(tokenId_) {
-    Position storage position = _positions[tokenId_];
+  ) external onlyPositionOwner(positionId_) {
+    Position storage position = _positions[positionId_];
     uint256 commitTimestamp = position.commitWithdrawalTimestamp;
 
     if (block.timestamp < commitTimestamp + withdrawDelay)
       revert WithdrawCommitDelayNotReached();
 
-    address account = positionToken.ownerOf(tokenId_);
+    address account = positionToken.ownerOf(positionId_);
 
     (
       uint256 capital,
       uint256 strategyRewards
     ) = _removeOverlappingCapital(
-        tokenId_,
+        positionId_,
         position.supplied,
         position.poolIds
       );
@@ -729,7 +891,7 @@ contract LiquidityManager is
   /// ======= LIQUIDITY CHANGES ======= ///
 
   // function _getUpdatedPositionInfo(
-  //   uint256 tokenId_,
+  //   uint256 positionId_,
   //   address account_,
   //   uint256 amount_,
   //   uint64[] storage poolIds_
@@ -753,10 +915,17 @@ contract LiquidityManager is
   //   // Manage after withdraw or take profit pool actions
   // }
 
-  /// @dev Pool IDs must be checked to ensure they are unique and ascending
+  /**
+   * @notice Adds a position's liquidity to the pools and their overlaps
+   * @param poolIds_ The IDs of the pools to add liquidity to
+   * @param positionId_ The ID of the position
+   * @param amount_ The amount of liquidity to add
+   *
+   * @dev PoolIds are checked at creation to ensure they are unique and ascending
+   */
   function _addOverlappingCapitalAfterCheck(
     uint64[] memory poolIds_,
-    uint256 tokenId_,
+    uint256 positionId_,
     uint256 amount_
   ) internal {
     uint256 nbPoolIds = poolIds_.length;
@@ -803,13 +972,23 @@ contract LiquidityManager is
       }
 
       // Update premium rate, seconds per tick & LP position info
-      pool0._depositToPool(tokenId_, amount_);
+      pool0._depositToPool(positionId_, amount_);
     }
   }
 
-  // @dev poolIds have been checked at creation to ensure they are unique and ascending
+  /**
+   * @notice Removes a position's liquidity to the pools and their overlaps
+   * @param positionId_ The ID of the position
+   * @param amount_ The amount of liquidity to remove
+   * @param poolIds_ The IDs of the pools to remove liquidity from
+   *
+   * @return capital The updated user capital
+   * @return rewards The strategy rewards
+   *
+   * @dev PoolIds have been checked at creation to ensure they are unique and ascending
+   */
   function _removeOverlappingCapital(
-    uint256 tokenId_,
+    uint256 positionId_,
     uint256 amount_,
     uint64[] storage poolIds_
   ) internal returns (uint256 capital, uint256 rewards) {
@@ -824,7 +1003,7 @@ contract LiquidityManager is
 
       // Remove liquidity
       (uint256 newUserCapital, uint256 strategyRewards) = pool0
-        ._withdrawLiquidity(tokenId_, amount_, poolIds_);
+        ._withdrawLiquidity(positionId_, amount_, poolIds_);
 
       if (i == 0) {
         // The updated user capital & strategy rewards are the same at each iteration
@@ -867,6 +1046,15 @@ contract LiquidityManager is
     _pools[_covers[coverId_].poolId].ongoingClaims--;
   }
 
+  /**
+   * @notice Attemps to open an updated cover after a compensation is paid out
+   * @param poolId_ The ID of the pool
+   * @param coverId_ The ID of the cover
+   * @param newCoverAmount_ The amount of cover to buy
+   * @param premiums_ The amount of premiums to pay
+   *
+   * @dev The function is external to use try/catch but can only be called internally
+   */
   function attemptReopenCover(
     uint64 poolId_,
     uint256 coverId_,
@@ -880,7 +1068,11 @@ contract LiquidityManager is
     _pools[poolId_]._buyCover(coverId_, newCoverAmount_, premiums_);
   }
 
-  // check if RiskPool can deposit capital to cover the payouts if not enough liquidity
+  /**
+   * @notice Pays out a compensation following an valid claim
+   * @param coverId_ The ID of the cover
+   * @param compensationAmount_ The amount of compensation to pay out
+   */
   function payoutClaim(
     uint256 coverId_,
     uint256 compensationAmount_
@@ -995,6 +1187,7 @@ contract LiquidityManager is
       }
     }
 
+    // Pay out the compensation from the strategy
     strategyManager.payoutFromStrategy(
       strategyId,
       compensationAmount_,
