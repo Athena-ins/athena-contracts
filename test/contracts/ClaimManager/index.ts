@@ -1,0 +1,47 @@
+import { ClaimManager_getCoverIdToClaimIds } from "./getCoverIdToClaimIds.test";
+import { ClaimManager_getPoolCoverTerms } from "./getPoolCoverTerms.test";
+import { ClaimManager_arbitrationCost } from "./arbitrationCost.test";
+import { ClaimManager_remainingTimeToChallenge } from "./remainingTimeToChallenge.test";
+import { ClaimManager_claimIdsByCoverId } from "./claimIdsByCoverId.test";
+import { ClaimManager_latestCoverClaimId } from "./latestCoverClaimId.test";
+import { ClaimManager_claimsByCoverId } from "./claimsByCoverId.test";
+import { ClaimManager_claimRange } from "./claimRange.test";
+import { ClaimManager_claimsByAccount } from "./claimsByAccount.test";
+import { ClaimManager_getClaimEvidence } from "./getClaimEvidence.test";
+import { ClaimManager_getClaimCounterEvidence } from "./getClaimCounterEvidence.test";
+import { ClaimManager_addCoverTermsForPool } from "./addCoverTermsForPool.test";
+import { ClaimManager_submitEvidenceForClaim } from "./submitEvidenceForClaim.test";
+import { ClaimManager_initiateClaim } from "./initiateClaim.test";
+import { ClaimManager_disputeClaim } from "./disputeClaim.test";
+import { ClaimManager_rule } from "./rule.test";
+import { ClaimManager_withdrawCompensation } from "./withdrawCompensation.test";
+import { ClaimManager_overrule } from "./overrule.test";
+import { ClaimManager_setKlerosConfiguration } from "./setKlerosConfiguration.test";
+import { ClaimManager_changeRequiredCollateral } from "./changeRequiredCollateral.test";
+import { ClaimManager_changePeriods } from "./changePeriods.test";
+import { ClaimManager_changeMetaEvidenceGuardian } from "./changeMetaEvidenceGuardian.test";
+
+export async function ClaimManagerTests() {
+  ClaimManager_getCoverIdToClaimIds();
+  ClaimManager_getPoolCoverTerms();
+  ClaimManager_arbitrationCost();
+  ClaimManager_remainingTimeToChallenge();
+  ClaimManager_claimIdsByCoverId();
+  ClaimManager_latestCoverClaimId();
+  ClaimManager_claimsByCoverId();
+  ClaimManager_claimRange();
+  ClaimManager_claimsByAccount();
+  ClaimManager_getClaimEvidence();
+  ClaimManager_getClaimCounterEvidence();
+  ClaimManager_addCoverTermsForPool();
+  ClaimManager_submitEvidenceForClaim();
+  ClaimManager_initiateClaim();
+  ClaimManager_disputeClaim();
+  ClaimManager_rule();
+  ClaimManager_withdrawCompensation();
+  ClaimManager_overrule();
+  ClaimManager_setKlerosConfiguration();
+  ClaimManager_changeRequiredCollateral();
+  ClaimManager_changePeriods();
+  ClaimManager_changeMetaEvidenceGuardian();
+}
