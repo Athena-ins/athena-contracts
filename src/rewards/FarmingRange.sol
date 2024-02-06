@@ -636,11 +636,16 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
     uint256 _tokenId
   ) external onlyLiquidityManager {
     uint256 campaignID = coverIdToCampaignId[_tokenId];
-    _updateCampaign(campaignID);
+    address account = campaignTokenDeposits[campaignID][_tokenId];
 
-    CampaignInfo storage campaign = campaignInfo[campaignID];
-    userInfoNft[campaignID][_tokenId]
-      .accRewardPerShareOnExpiry = campaign.accRewardPerShare;
+    // If the account is address 0then the cover is not deposited in a campaign
+    if (account != address(0)) {
+      _updateCampaign(campaignID);
+
+      CampaignInfo storage campaign = campaignInfo[campaignID];
+      userInfoNft[campaignID][_tokenId]
+        .accRewardPerShareOnExpiry = campaign.accRewardPerShare;
+    }
   }
 
   function forceExpiredCoverWithdrawal(
