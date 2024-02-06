@@ -115,8 +115,8 @@ export function testClaimsView() {
     });
 
     it("Should call ClaimManager.linearClaimsView(beginDisputeId = 3, numberOfClaims = 2)", async function () {
-      await expect(
-        this.contracts.ClaimManager.connect(owner).linearClaimsView(3, 2),
+      expect(
+        await this.contracts.ClaimManager.connect(owner).linearClaimsView(3, 2),
       ).to.be.revertedWith("begin dispute Id is not exist");
     });
   });

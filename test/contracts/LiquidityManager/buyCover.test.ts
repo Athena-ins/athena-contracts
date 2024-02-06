@@ -12,12 +12,10 @@ export function LiquidityManager_buyCover() {
 
     it("should buy a cover and update the pool and cover information correctly", async function () {
       // Simulate buying a cover
-      await expect(
-        this.contracts.LiquidityManager.connect(this.signers.user).buyCover(
-          this.args.poolId,
-          this.args.coverAmount,
-          this.args.premiums,
-        ),
+      expect(
+        await this.contracts.LiquidityManager.connect(
+          this.signers.user,
+        ).buyCover(this.args.poolId, this.args.coverAmount, this.args.premiums),
       ).to.not.throw;
 
       // Retrieve the created cover information
@@ -50,12 +48,10 @@ export function LiquidityManager_buyCover() {
       );
 
       // Attempt to buy a cover in a paused pool
-      await expect(
-        this.contracts.LiquidityManager.connect(this.signers.user).buyCover(
-          this.args.poolId,
-          this.args.coverAmount,
-          this.args.premiums,
-        ),
+      expect(
+        await this.contracts.LiquidityManager.connect(
+          this.signers.user,
+        ).buyCover(this.args.poolId, this.args.coverAmount, this.args.premiums),
       ).to.be.revertedWith("PoolIsPaused");
 
       // Reset pool pause for subsequent tests
@@ -67,8 +63,10 @@ export function LiquidityManager_buyCover() {
 
     it("should revert if there is insufficient liquidity in the pool", async function () {
       // Attempt to buy a cover with an amount higher than available liquidity
-      await expect(
-        this.contracts.LiquidityManager.connect(this.signers.user).buyCover(
+      expect(
+        await this.contracts.LiquidityManager.connect(
+          this.signers.user,
+        ).buyCover(
           this.args.poolId,
           this.args.coverAmountExceedingLiquidity,
           this.args.premiums,

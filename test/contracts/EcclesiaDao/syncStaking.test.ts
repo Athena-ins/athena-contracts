@@ -12,7 +12,7 @@ export function EcclesiaDao_syncStaking() {
 
     it("should successfully sync staking rewards", async function () {
       // Sync staking rewards
-      await expect(this.contract.syncStaking()).to.not.throw;
+      expect(await this.contract.syncStaking()).to.not.throw;
       // Add logic to verify the staking rewards are updated correctly
     });
 

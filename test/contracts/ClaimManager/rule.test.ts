@@ -12,8 +12,8 @@ export function ClaimManager_rule() {
 
     it("should revert if called by a non-arbitrator", async function () {
       // Attempt to rule on a dispute as a non-arbitrator
-      await expect(
-        this.contract.rule(this.args.disputeId, this.args.ruling, {
+      expect(
+        await this.contract.rule(this.args.disputeId, this.args.ruling, {
           from: this.signers.nonArbitrator,
         }),
       ).to.be.revertedWith("OnlyArbitrator");
@@ -21,8 +21,8 @@ export function ClaimManager_rule() {
 
     it("should revert if the claim is not in dispute", async function () {
       // Attempt to rule on a claim that is not in dispute
-      await expect(
-        this.contract.rule(
+      expect(
+        await this.contract.rule(
           this.args.nonDisputedClaimDisputeId,
           this.args.ruling,
         ),
@@ -31,8 +31,11 @@ export function ClaimManager_rule() {
 
     it("should revert if the ruling is invalid", async function () {
       // Attempt to rule with an invalid ruling number
-      await expect(
-        this.contract.rule(this.args.validDisputeId, this.args.invalidRuling),
+      expect(
+        await this.contract.rule(
+          this.args.validDisputeId,
+          this.args.invalidRuling,
+        ),
       ).to.be.revertedWith("InvalidRuling");
     });
 

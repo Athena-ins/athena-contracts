@@ -12,8 +12,8 @@ export function EcclesiaDao_accrueRevenue() {
 
     it("should revert if called by a non-revenue collector", async function () {
       // Attempt to accrue revenue by a non-revenue collector
-      await expect(
-        this.contract.accrueRevenue(
+      expect(
+        await this.contract.accrueRevenue(
           this.args.token,
           this.args.amount,
           this.args.leverageFee,
@@ -24,8 +24,8 @@ export function EcclesiaDao_accrueRevenue() {
 
     it("should transfer leverage fee to the leverage risk wallet if leverage fee is non-zero", async function () {
       // Accrue revenue with a non-zero leverage fee
-      await expect(
-        this.contract.accrueRevenue(
+      expect(
+        await this.contract.accrueRevenue(
           this.args.token,
           this.args.amount,
           this.args.nonZeroLeverageFee,
@@ -36,8 +36,8 @@ export function EcclesiaDao_accrueRevenue() {
 
     it("should not transfer any tokens if leverage fee is zero", async function () {
       // Accrue revenue with a zero leverage fee
-      await expect(
-        this.contract.accrueRevenue(this.args.token, this.args.amount, 0),
+      expect(
+        await this.contract.accrueRevenue(this.args.token, this.args.amount, 0),
       ).to.not.throw;
       // Check that no tokens are transferred
     });

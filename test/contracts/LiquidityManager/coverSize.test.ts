@@ -28,8 +28,10 @@ export function LiquidityManager_coverSize() {
 
     it("should revert when querying the size of protection for a non-existent cover", async function () {
       // Attempt to retrieve the size of protection for a non-existent cover
-      await expect(
-        this.contracts.LiquidityManager.coverSize(this.args.nonExistentCoverId),
+      expect(
+        await this.contracts.LiquidityManager.coverSize(
+          this.args.nonExistentCoverId,
+        ),
       ).to.be.reverted; // Check for appropriate revert condition for non-existent cover
     });
 

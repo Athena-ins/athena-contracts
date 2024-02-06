@@ -205,8 +205,8 @@ export function testProtocolPool() {
         expect(discountThird.atenAmount).to.equal(BN(1_000_000));
         expect(discountThird.feeRate).to.equal(BN(50));
 
-        await expect(
-          ATHENA_CONTRACT.connect(owner).supplyFeeLevels(4),
+        expect(
+          await ATHENA_CONTRACT.connect(owner).supplyFeeLevels(4),
         ).to.be.rejectedWith();
       });
 
@@ -223,8 +223,8 @@ export function testProtocolPool() {
       });
 
       it("Should set reward Rates ATEN with USD", async function () {
-        await expect(
-          ATHENA_CONTRACT.connect(owner).setStakingRewardRates([
+        expect(
+          await ATHENA_CONTRACT.connect(owner).setStakingRewardRates([
             [0, 1_000],
             [10_000, 1_200],
             [1_000_000, 2_000],
@@ -559,8 +559,8 @@ export function testProtocolPool() {
         // expect(rewardsUser3.gte(0)).to.be.true;
 
         await ATHENA_CONTRACT.connect(user3).committingWithdrawAll();
-        await expect(
-          ATHENA_CONTRACT.connect(user3).withdrawAll(),
+        expect(
+          await ATHENA_CONTRACT.connect(user3).withdrawAll(),
         ).to.eventually.rejectedWith("withdraw reserve");
 
         await ATHENA_CONTRACT.connect(user1).committingWithdrawAll();
@@ -616,8 +616,8 @@ export function testProtocolPool() {
           await user2.getAddress(),
         );
 
-        await expect(
-          ATHENA_CONTRACT.connect(user2).withdrawAll(),
+        expect(
+          await ATHENA_CONTRACT.connect(user2).withdrawAll(),
         ).to.eventually.rejectedWith("use rate > 100%");
 
         const balAfter = await this.contracts.USDT.connect(user2).balanceOf(
@@ -637,8 +637,8 @@ export function testProtocolPool() {
         const balBefore1 = await this.contracts.USDT.connect(user1).balanceOf(
           await user1.getAddress(),
         );
-        await expect(
-          ATHENA_CONTRACT.connect(user1).withdrawAll(),
+        expect(
+          await ATHENA_CONTRACT.connect(user1).withdrawAll(),
         ).to.eventually.rejectedWith("use rate > 100%");
 
         const balAfter1 = await this.contracts.USDT.connect(user1).balanceOf(

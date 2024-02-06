@@ -18,8 +18,8 @@ export function LiquidityManager_addClaimToPool() {
       );
 
       // Add a claim to the pool for the registered cover
-      await expect(
-        this.contracts.LiquidityManager.connect(
+      expect(
+        await this.contracts.LiquidityManager.connect(
           this.signers.claimManager,
         ).addClaimToPool(this.args.coverId),
       ).to.not.throw;
@@ -36,8 +36,8 @@ export function LiquidityManager_addClaimToPool() {
 
     it("should only allow the claim manager to add a claim to the pool", async function () {
       // Attempt to add a claim to the pool by a non-claim manager
-      await expect(
-        this.contracts.LiquidityManager.connect(
+      expect(
+        await this.contracts.LiquidityManager.connect(
           this.signers.nonClaimManager,
         ).addClaimToPool(this.args.coverId),
       ).to.be.revertedWith("OnlyClaimManager");
@@ -45,8 +45,8 @@ export function LiquidityManager_addClaimToPool() {
 
     it("should not allow adding a claim to a non-existent cover", async function () {
       // Attempt to add a claim to the pool for a non-existent cover
-      await expect(
-        this.contracts.LiquidityManager.connect(
+      expect(
+        await this.contracts.LiquidityManager.connect(
           this.signers.claimManager,
         ).addClaimToPool(this.args.nonExistentCoverId),
       ).to.be.reverted; // Check for appropriate revert condition for non-existent cover

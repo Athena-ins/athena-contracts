@@ -12,8 +12,8 @@ export function ClaimManager_claimRange() {
 
     it("should revert if the end index is out of range", async function () {
       // Attempt to retrieve claims with an end index beyond the range of existing claims
-      await expect(
-        this.contract.claimRange(
+      expect(
+        await this.contract.claimRange(
           this.args.validBeginIndex,
           this.args.outOfRangeEndIndex,
         ),
@@ -22,8 +22,11 @@ export function ClaimManager_claimRange() {
 
     it("should revert if the end index is less than or equal to the begin index", async function () {
       // Attempt to retrieve claims with an end index less than or equal to the begin index
-      await expect(
-        this.contract.claimRange(this.args.beginIndex, this.args.beginIndex),
+      expect(
+        await this.contract.claimRange(
+          this.args.beginIndex,
+          this.args.beginIndex,
+        ),
       ).to.be.revertedWith("BadRange");
     });
 

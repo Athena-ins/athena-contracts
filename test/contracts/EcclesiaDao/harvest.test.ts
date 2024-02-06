@@ -12,8 +12,8 @@ export function EcclesiaDao_harvest() {
 
     it("should revert if the user does not have a lock", async function () {
       // Attempt to harvest rewards for a user without a lock
-      await expect(
-        this.contract.harvest(this.args.tokens, {
+      expect(
+        await this.contract.harvest(this.args.tokens, {
           from: this.signers.userWithoutLock,
         }),
       ).to.be.revertedWith("LockDoesNotExist"); // Use appropriate error message
@@ -83,8 +83,8 @@ export function EcclesiaDao_harvest() {
 
     it("should not transfer any tokens if there are no rewards to harvest", async function () {
       // Attempt to harvest when there are no rewards
-      await expect(
-        this.contract.harvest(this.args.tokens, {
+      expect(
+        await this.contract.harvest(this.args.tokens, {
           from: this.signers.userWithNoRewards,
         }),
       ).to.not.throw;

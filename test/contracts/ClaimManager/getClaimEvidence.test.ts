@@ -12,8 +12,8 @@ export function ClaimManager_getClaimEvidence() {
 
     it("should revert if the claim does not exist", async function () {
       // Attempt to retrieve evidence for a non-existent claim
-      await expect(
-        this.contract.getClaimEvidence(this.args.nonExistentClaimId),
+      expect(
+        await this.contract.getClaimEvidence(this.args.nonExistentClaimId),
       ).to.be.revertedWith("ClaimDoesNotExist"); // Use the actual error message
     });
 

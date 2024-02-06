@@ -12,8 +12,8 @@ export function ClaimManager_setKlerosConfiguration() {
 
     it("should revert if called by a non-owner", async function () {
       // Attempt to change Kleros configuration as a non-owner
-      await expect(
-        this.contract.setKlerosConfiguration(
+      expect(
+        await this.contract.setKlerosConfiguration(
           this.args.newKlerosArbitrator,
           this.args.newSubcourtId,
           this.args.newNbOfJurors,

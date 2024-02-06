@@ -12,17 +12,21 @@ export function ClaimManager_overrule() {
 
     it("should revert if called by a non-owner", async function () {
       // Attempt to overrule a claim as a non-owner
-      await expect(
-        this.contract.overrule(this.args.claimId, this.args.punishClaimant, {
-          from: this.signers.nonOwner,
-        }),
+      expect(
+        await this.contract.overrule(
+          this.args.claimId,
+          this.args.punishClaimant,
+          {
+            from: this.signers.nonOwner,
+          },
+        ),
       ).to.be.revertedWith("Ownable: caller is not the owner");
     });
 
     it("should revert if the claim status is not 'AcceptedByCourtDecision'", async function () {
       // Attempt to overrule a claim not in 'AcceptedByCourtDecision' status
-      await expect(
-        this.contract.overrule(
+      expect(
+        await this.contract.overrule(
           this.args.claimIdNotAcceptedByCourt,
           this.args.punishClaimant,
         ),
@@ -31,8 +35,8 @@ export function ClaimManager_overrule() {
 
     it("should revert if the ruling has passed the overrule period", async function () {
       // Attempt to overrule a claim after the overrule period has ended
-      await expect(
-        this.contract.overrule(
+      expect(
+        await this.contract.overrule(
           this.args.claimIdAfterOverrulePeriod,
           this.args.punishClaimant,
         ),

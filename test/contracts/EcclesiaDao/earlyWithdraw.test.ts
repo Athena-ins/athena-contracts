@@ -12,8 +12,8 @@ export function EcclesiaDao_earlyWithdraw() {
 
     it("should revert if the user does not have an existing lock", async function () {
       // Attempt to early withdraw without an existing lock
-      await expect(
-        this.contract.earlyWithdraw(this.args.amount, {
+      expect(
+        await this.contract.earlyWithdraw(this.args.amount, {
           from: this.signers.userWithoutLock,
         }),
       ).to.be.revertedWith("LockDoesNotExist");
@@ -21,8 +21,8 @@ export function EcclesiaDao_earlyWithdraw() {
 
     it("should revert if the lock has already expired", async function () {
       // Attempt to early withdraw after the lock has expired
-      await expect(
-        this.contract.earlyWithdraw(this.args.amount, {
+      expect(
+        await this.contract.earlyWithdraw(this.args.amount, {
           from: this.signers.userWithExpiredLock,
         }),
       ).to.be.revertedWith("LockExpired");
@@ -30,8 +30,8 @@ export function EcclesiaDao_earlyWithdraw() {
 
     it("should revert if the withdrawal amount exceeds the locked amount", async function () {
       // Attempt to withdraw an amount greater than the locked amount
-      await expect(
-        this.contract.earlyWithdraw(this.args.amountGreaterThanLocked, {
+      expect(
+        await this.contract.earlyWithdraw(this.args.amountGreaterThanLocked, {
           from: this.signers.userWithValidLock,
         }),
       ).to.be.revertedWith("BadAmount");
@@ -40,8 +40,8 @@ export function EcclesiaDao_earlyWithdraw() {
     it("should revert if the breaker is enabled", async function () {
       // Attempt to early withdraw when the breaker is enabled
       await this.contract.setBreaker(true);
-      await expect(
-        this.contract.earlyWithdraw(this.args.amount, {
+      expect(
+        await this.contract.earlyWithdraw(this.args.amount, {
           from: this.signers.userWithValidLock,
         }),
       ).to.be.revertedWith("UnnecessaryEarlyWithdraw");
@@ -50,8 +50,8 @@ export function EcclesiaDao_earlyWithdraw() {
 
     it("should revert if the user does not have enough votes to burn", async function () {
       // Attempt to early withdraw when the user does not have enough votes
-      await expect(
-        this.contract.earlyWithdraw(this.args.amount, {
+      expect(
+        await this.contract.earlyWithdraw(this.args.amount, {
           from: this.signers.userWithInsufficientVotes,
         }),
       ).to.be.revertedWith("NotEnoughVotes");

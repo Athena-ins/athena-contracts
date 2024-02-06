@@ -12,8 +12,8 @@ export function EcclesiaDao_withdrawETH() {
 
     it("should revert if called by a non-owner", async function () {
       // Attempt to withdraw ETH by a non-owner
-      await expect(
-        this.contract.withdrawETH({ from: this.signers.nonOwner }),
+      expect(
+        await this.contract.withdrawETH({ from: this.signers.nonOwner }),
       ).to.be.revertedWith("Ownable: caller is not the owner");
     });
 

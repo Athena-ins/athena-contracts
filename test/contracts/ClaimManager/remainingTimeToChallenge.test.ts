@@ -12,8 +12,10 @@ export function ClaimManager_remainingTimeToChallenge() {
 
     it("should revert if the claim does not exist", async function () {
       // Attempt to get the remaining time to challenge for a non-existent claim
-      await expect(
-        this.contract.remainingTimeToChallenge(this.args.nonExistentClaimId),
+      expect(
+        await this.contract.remainingTimeToChallenge(
+          this.args.nonExistentClaimId,
+        ),
       ).to.be.revertedWith("ClaimDoesNotExist"); // Use the actual error message
     });
 

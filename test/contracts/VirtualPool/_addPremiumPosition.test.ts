@@ -12,8 +12,8 @@ export function VirtualPool__addPremiumPosition() {
 
     it("should add a premium position for the cover", async function () {
       // Add a premium position for a cover
-      await expect(
-        this.contracts.TestableVirtualPool.addPremiumPosition(
+      expect(
+        await this.contracts.TestableVirtualPool.addPremiumPosition(
           this.args.coverId,
           this.args.beginPremiumRate,
           this.args.lastTick,

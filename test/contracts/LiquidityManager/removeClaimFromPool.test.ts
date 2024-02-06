@@ -17,8 +17,8 @@ export function LiquidityManager_removeClaimFromPool() {
       ).addClaimToPool(this.args.coverId);
 
       // Remove the claim from the pool
-      await expect(
-        this.contracts.LiquidityManager.connect(
+      expect(
+        await this.contracts.LiquidityManager.connect(
           this.signers.claimManager,
         ).removeClaimFromPool(this.args.coverId),
       ).to.not.throw;
@@ -38,8 +38,8 @@ export function LiquidityManager_removeClaimFromPool() {
       ).addClaimToPool(this.args.coverId);
 
       // Attempt to remove a claim from the pool by a non-claim manager
-      await expect(
-        this.contracts.LiquidityManager.connect(
+      expect(
+        await this.contracts.LiquidityManager.connect(
           this.signers.nonClaimManager,
         ).removeClaimFromPool(this.args.coverId),
       ).to.be.revertedWith("OnlyClaimManager");
@@ -47,8 +47,8 @@ export function LiquidityManager_removeClaimFromPool() {
 
     it("should not allow removing a claim from a non-existent cover", async function () {
       // Attempt to remove a claim from the pool for a non-existent cover
-      await expect(
-        this.contracts.LiquidityManager.connect(
+      expect(
+        await this.contracts.LiquidityManager.connect(
           this.signers.claimManager,
         ).removeClaimFromPool(this.args.nonExistentCoverId),
       ).to.be.reverted; // Check for appropriate revert condition for non-existent cover
@@ -59,8 +59,8 @@ export function LiquidityManager_removeClaimFromPool() {
       await this.contracts.LiquidityManager.connect(
         this.signers.claimManager,
       ).removeClaimFromPool(this.args.coverId);
-      await expect(
-        this.contracts.LiquidityManager.connect(
+      expect(
+        await this.contracts.LiquidityManager.connect(
           this.signers.claimManager,
         ).removeClaimFromPool(this.args.coverId),
       ).to.not.throw; // Should not revert even if no claims are left

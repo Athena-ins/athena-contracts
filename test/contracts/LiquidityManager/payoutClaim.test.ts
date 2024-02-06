@@ -13,8 +13,8 @@ export function LiquidityManager_payoutClaim() {
     describe("payoutClaim", function () {
       it("should revert if called by a non-claim manager", async function () {
         // Simulate call by a non-claim manager
-        await expect(
-          this.contracts.LiquidityManager.connect(
+        expect(
+          await this.contracts.LiquidityManager.connect(
             this.signers.nonClaimManager,
           ).payoutClaim(this.args.coverId, this.args.compensationAmount),
         ).to.be.revertedWith("OnlyClaimManager");
@@ -22,8 +22,8 @@ export function LiquidityManager_payoutClaim() {
 
       it("should succeed if called by the claim manager", async function () {
         // Simulate call by the claim manager
-        await expect(
-          this.contracts.LiquidityManager.connect(
+        expect(
+          await this.contracts.LiquidityManager.connect(
             this.signers.claimManager,
           ).payoutClaim(this.args.coverId, this.args.compensationAmount),
         ).to.not.be.reverted;
@@ -39,8 +39,8 @@ export function LiquidityManager_payoutClaim() {
         const poolCapacity = await poolInfo.totalLiquidity();
         const excessiveCompensation = poolCapacity.add(1);
 
-        await expect(
-          this.contracts.LiquidityManager.connect(
+        expect(
+          await this.contracts.LiquidityManager.connect(
             this.signers.claimManager,
           ).payoutClaim(this.args.coverId, excessiveCompensation),
         ).to.be.revertedWith("RatioAbovePoolCapacity");
@@ -144,8 +144,8 @@ export function LiquidityManager_payoutClaim() {
             this.args.poolId,
             0,
           );
-          await expect(
-            this.contracts.LiquidityManager.connect(
+          expect(
+            await this.contracts.LiquidityManager.connect(
               this.signers.claimManager,
             ).payoutClaim(this.args.coverId, this.args.compensationAmount),
           ).to.be.revertedWith("InsufficientLiquidityForCover");
@@ -187,8 +187,8 @@ export function LiquidityManager_payoutClaim() {
       describe("Edge Cases and External Contracts Interaction", function () {
         it("should handle invalid coverId_ values correctly", async function () {
           const invalidCoverId = this.args.nextCoverId.add(1); // Assuming nextCoverId is the last valid coverId
-          await expect(
-            this.contracts.LiquidityManager.connect(
+          expect(
+            await this.contracts.LiquidityManager.connect(
               this.signers.claimManager,
             ).payoutClaim(invalidCoverId, this.args.compensationAmount),
           ).to.be.revertedWith("CoverDoesNotExist"); // Replace with the correct error message

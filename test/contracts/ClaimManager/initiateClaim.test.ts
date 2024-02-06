@@ -12,8 +12,8 @@ export function ClaimManager_initiateClaim() {
 
     it("should revert if called by a non-cover owner", async function () {
       // Attempt to initiate a claim as a non-cover owner
-      await expect(
-        this.contract.initiateClaim(
+      expect(
+        await this.contract.initiateClaim(
           this.args.coverId,
           this.args.amountClaimed,
           this.args.ipfsMetaEvidenceCid,
@@ -25,8 +25,8 @@ export function ClaimManager_initiateClaim() {
 
     it("should revert if the IPFS meta-evidence CID is not authenticated", async function () {
       // Attempt to initiate a claim with an unauthenticated meta-evidence CID
-      await expect(
-        this.contract.initiateClaim(
+      expect(
+        await this.contract.initiateClaim(
           this.args.coverId,
           this.args.amountClaimed,
           this.args.invalidIpfsMetaEvidenceCid,
@@ -38,8 +38,8 @@ export function ClaimManager_initiateClaim() {
 
     it("should revert if the claimed amount is zero", async function () {
       // Attempt to initiate a claim with a zero claimed amount
-      await expect(
-        this.contract.initiateClaim(
+      expect(
+        await this.contract.initiateClaim(
           this.args.coverId,
           0,
           this.args.ipfsMetaEvidenceCid,
@@ -51,8 +51,8 @@ export function ClaimManager_initiateClaim() {
 
     it("should revert if there is not enough ETH for arbitration and collateral", async function () {
       // Attempt to initiate a claim with insufficient ETH for arbitration and collateral
-      await expect(
-        this.contract.initiateClaim(
+      expect(
+        await this.contract.initiateClaim(
           this.args.coverId,
           this.args.amountClaimed,
           this.args.ipfsMetaEvidenceCid,
@@ -64,8 +64,8 @@ export function ClaimManager_initiateClaim() {
 
     it("should revert if there is a previous claim still ongoing for the cover", async function () {
       // Attempt to initiate a claim when there is an ongoing claim for the cover
-      await expect(
-        this.contract.initiateClaim(
+      expect(
+        await this.contract.initiateClaim(
           this.args.coverIdWithOngoingClaim,
           this.args.amountClaimed,
           this.args.ipfsMetaEvidenceCid,
@@ -77,8 +77,8 @@ export function ClaimManager_initiateClaim() {
 
     it("should successfully initiate a new claim", async function () {
       // Successfully initiate a new claim
-      await expect(
-        this.contract.initiateClaim(
+      expect(
+        await this.contract.initiateClaim(
           this.args.coverId,
           this.args.amountClaimed,
           this.args.ipfsMetaEvidenceCid,

@@ -12,22 +12,22 @@ export function EcclesiaDao_withdraw() {
 
     it("should revert if the lock period is not over and the breaker is not enabled", async function () {
       // Attempt to withdraw before the lock period is over without breaker being enabled
-      await expect(
-        this.contract.withdraw({ from: this.signers.userBeforeLockEnd }),
+      expect(
+        await this.contract.withdraw({ from: this.signers.userBeforeLockEnd }),
       ).to.be.revertedWith("LockPeriodNotOver");
     });
 
     it("should allow withdrawal if the lock period is over", async function () {
       // Withdraw after the lock period is over
-      await expect(
-        this.contract.withdraw({ from: this.signers.userAfterLockEnd }),
+      expect(
+        await this.contract.withdraw({ from: this.signers.userAfterLockEnd }),
       ).to.not.throw;
     });
 
     it("should revert if the user does not have enough votes to burn", async function () {
       // Attempt to withdraw when the user does not have enough votes
-      await expect(
-        this.contract.withdraw({
+      expect(
+        await this.contract.withdraw({
           from: this.signers.userWithInsufficientVotes,
         }),
       ).to.be.revertedWith("NotEnoughVotes");
@@ -66,8 +66,8 @@ export function EcclesiaDao_withdraw() {
     it("should allow withdrawal if the breaker is enabled regardless of the lock period", async function () {
       // Enable breaker and attempt to withdraw before the lock period is over
       await this.contract.setBreaker(true);
-      await expect(
-        this.contract.withdraw({ from: this.signers.userBeforeLockEnd }),
+      expect(
+        await this.contract.withdraw({ from: this.signers.userBeforeLockEnd }),
       ).to.not.throw;
       // Reset breaker for subsequent tests
       await this.contract.setBreaker(false);

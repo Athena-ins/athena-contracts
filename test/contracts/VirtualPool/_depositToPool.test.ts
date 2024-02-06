@@ -12,8 +12,8 @@ export function VirtualPool__depositToPool() {
 
     it("should correctly add liquidity to the pool and update its state", async function () {
       // Deposit liquidity to the pool
-      await expect(
-        this.contracts.TestableVirtualPool.depositToPool(
+      expect(
+        await this.contracts.TestableVirtualPool.depositToPool(
           this.args.tokenId,
           this.args.amount,
         ),
@@ -36,8 +36,8 @@ export function VirtualPool__depositToPool() {
 
     it("should revert if the added liquidity results in not enough liquidity for removal", async function () {
       // Attempt to add liquidity that results in not enough liquidity for removal
-      await expect(
-        this.contracts.TestableVirtualPool.depositToPool(
+      expect(
+        await this.contracts.TestableVirtualPool.depositToPool(
           this.args.tokenId,
           this.args.amountLeadingToLiquidityShortage,
         ),

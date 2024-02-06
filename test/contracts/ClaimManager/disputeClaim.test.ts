@@ -12,8 +12,8 @@ export function ClaimManager_disputeClaim() {
 
     it("should revert if the claim does not exist", async function () {
       // Attempt to dispute a non-existent claim
-      await expect(
-        this.contract.disputeClaim(this.args.nonExistentClaimId, {
+      expect(
+        await this.contract.disputeClaim(this.args.nonExistentClaimId, {
           value: this.args.disputeStake,
         }),
       ).to.be.revertedWith("ClaimDoesNotExist"); // Use the actual error message
@@ -21,8 +21,8 @@ export function ClaimManager_disputeClaim() {
 
     it("should revert if the claim status is not 'Initiated'", async function () {
       // Attempt to dispute a claim not in 'Initiated' status
-      await expect(
-        this.contract.disputeClaim(this.args.claimIdNotInitiated, {
+      expect(
+        await this.contract.disputeClaim(this.args.claimIdNotInitiated, {
           value: this.args.disputeStake,
         }),
       ).to.be.revertedWith("ClaimNotChallengeable");
@@ -30,8 +30,8 @@ export function ClaimManager_disputeClaim() {
 
     it("should revert if the challenge period has expired", async function () {
       // Attempt to dispute a claim after challenge period expiration
-      await expect(
-        this.contract.disputeClaim(this.args.expiredChallengeClaimId, {
+      expect(
+        await this.contract.disputeClaim(this.args.expiredChallengeClaimId, {
           value: this.args.disputeStake,
         }),
       ).to.be.revertedWith("ClaimNotChallengeable");
@@ -39,8 +39,8 @@ export function ClaimManager_disputeClaim() {
 
     it("should revert if the claim is already disputed", async function () {
       // Attempt to dispute an already disputed claim
-      await expect(
-        this.contract.disputeClaim(this.args.alreadyDisputedClaimId, {
+      expect(
+        await this.contract.disputeClaim(this.args.alreadyDisputedClaimId, {
           value: this.args.disputeStake,
         }),
       ).to.be.revertedWith("ClaimAlreadyChallenged");
@@ -48,8 +48,8 @@ export function ClaimManager_disputeClaim() {
 
     it("should revert if not enough ETH is sent to cover the arbitration cost", async function () {
       // Attempt to dispute a claim with insufficient ETH for arbitration cost
-      await expect(
-        this.contract.disputeClaim(this.args.claimId, {
+      expect(
+        await this.contract.disputeClaim(this.args.claimId, {
           value: this.args.insufficientStake,
         }),
       ).to.be.revertedWith("MustMatchClaimantDeposit");
@@ -57,8 +57,8 @@ export function ClaimManager_disputeClaim() {
 
     it("should successfully create a dispute in Kleros", async function () {
       // Successfully create a dispute for a claim
-      await expect(
-        this.contract.disputeClaim(this.args.claimId, {
+      expect(
+        await this.contract.disputeClaim(this.args.claimId, {
           value: this.args.disputeStake,
         }),
       ).to.emit(this.arbitrator, "DisputeCreation");

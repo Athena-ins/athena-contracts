@@ -12,8 +12,8 @@ export function EcclesiaDao_setBreaker() {
 
     it("should revert if called by a non-owner", async function () {
       // Attempt to set the breaker by a non-owner
-      await expect(
-        this.contract.setBreaker(this.args.breakerValue, {
+      expect(
+        await this.contract.setBreaker(this.args.breakerValue, {
           from: this.signers.nonOwner,
         }),
       ).to.be.revertedWith("Ownable: caller is not the owner");
@@ -21,7 +21,7 @@ export function EcclesiaDao_setBreaker() {
 
     it("should successfully set the breaker to true", async function () {
       // Set the breaker to true
-      await expect(this.contract.setBreaker(true, { from: this.signers.owner }))
+      expect(await this.contract.setBreaker(true, { from: this.signers.owner }))
         .to.not.throw;
 
       // Verify the breaker is set to true
@@ -31,8 +31,8 @@ export function EcclesiaDao_setBreaker() {
 
     it("should successfully set the breaker to false", async function () {
       // Set the breaker to false
-      await expect(
-        this.contract.setBreaker(false, { from: this.signers.owner }),
+      expect(
+        await this.contract.setBreaker(false, { from: this.signers.owner }),
       ).to.not.throw;
 
       // Verify the breaker is set to false

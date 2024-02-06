@@ -12,22 +12,24 @@ export function ClaimManager_withdrawCompensation() {
 
     it("should revert if the claim does not exist", async function () {
       // Attempt to withdraw compensation for a non-existent claim
-      await expect(
-        this.contract.withdrawCompensation(this.args.nonExistentClaimId),
+      expect(
+        await this.contract.withdrawCompensation(this.args.nonExistentClaimId),
       ).to.be.revertedWith("ClaimDoesNotExist"); // Use the actual error message
     });
 
     it("should revert if the claim status is not 'Initiated' or 'AcceptedByCourtDecision'", async function () {
       // Attempt to withdraw compensation for a claim not in eligible status
-      await expect(
-        this.contract.withdrawCompensation(this.args.ineligibleStatusClaimId),
+      expect(
+        await this.contract.withdrawCompensation(
+          this.args.ineligibleStatusClaimId,
+        ),
       ).to.be.revertedWith("WrongClaimStatus");
     });
 
     it("should revert if the challenge period for an 'Initiated' claim has not elapsed", async function () {
       // Attempt to withdraw compensation for an 'Initiated' claim before the challenge period ends
-      await expect(
-        this.contract.withdrawCompensation(
+      expect(
+        await this.contract.withdrawCompensation(
           this.args.initiatedClaimIdBeforeChallengeEnds,
         ),
       ).to.be.revertedWith("PeriodNotElapsed");
@@ -35,8 +37,8 @@ export function ClaimManager_withdrawCompensation() {
 
     it("should revert if the overrule period for an 'AcceptedByCourtDecision' claim has not elapsed", async function () {
       // Attempt to withdraw compensation for an 'AcceptedByCourtDecision' claim before the overrule period ends
-      await expect(
-        this.contract.withdrawCompensation(
+      expect(
+        await this.contract.withdrawCompensation(
           this.args.acceptedByCourtClaimIdBeforeOverruleEnds,
         ),
       ).to.be.revertedWith("PeriodNotElapsed");
@@ -44,8 +46,8 @@ export function ClaimManager_withdrawCompensation() {
 
     it("should successfully withdraw compensation for an 'Initiated' claim after the challenge period", async function () {
       // Withdraw compensation for an 'Initiated' claim after the challenge period
-      await expect(
-        this.contract.withdrawCompensation(
+      expect(
+        await this.contract.withdrawCompensation(
           this.args.initiatedClaimIdAfterChallengeEnds,
         ),
       ).to.not.throw;
@@ -54,8 +56,8 @@ export function ClaimManager_withdrawCompensation() {
 
     it("should successfully withdraw compensation for an 'AcceptedByCourtDecision' claim after the overrule period", async function () {
       // Withdraw compensation for an 'AcceptedByCourtDecision' claim after the overrule period
-      await expect(
-        this.contract.withdrawCompensation(
+      expect(
+        await this.contract.withdrawCompensation(
           this.args.acceptedByCourtClaimIdAfterOverruleEnds,
         ),
       ).to.not.throw;

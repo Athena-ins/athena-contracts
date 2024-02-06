@@ -108,15 +108,15 @@ export function testPremiumRewards() {
       // );
     });
     it("Should have rate calculations", async function () {
-      await expect(
-        POLICY_COVER_CONTRACT.getStakingRewardRate(0, true),
+      expect(
+        await POLICY_COVER_CONTRACT.getStakingRewardRate(0, true),
       ).to.eventually.equal(BN("1").mul(BN(10000))); // 10% = 0.1 => 10 / 100 / 10000
       // 1000$ on 100000$ Pool => 1% utilisation rate = 10.33%
-      // await expect(POLICY_COVER_CONTRACT.getStakingRewardRate(1000, true)).to.eventually.equal(
+      // expect( await POLICY_COVER_CONTRACT.getStakingRewardRate(1000, true)).to.eventually.equal(
       //   BN("116").mul(BN(10000)).div(100)
       // );
       // 90000$ on 100000$ Pool => 90% utilisation rate = 40%
-      // await expect(
+      // expect( await
       //   POLICY_COVER_CONTRACT.getStakingRewardRate(90000, true)
       // ).to.eventually.equal(BN("40").mul(BN(10000)));
     });
@@ -149,15 +149,15 @@ export function testPremiumRewards() {
         ethers.utils.parseEther(ETH_VALUE),
       );
       await POLICY_COVER_CONTRACT.connect(user).buyPolicy(10, 10000);
-      await expect(
-        this.contracts.USDT.connect(user).balanceOf(
+      expect(
+        await this.contracts.USDT.connect(user).balanceOf(
           POLICY_COVER_CONTRACT.address,
         ),
       ).to.eventually.equal(BN(10));
-      await expect(POLICY_COVER_CONTRACT.totalInsured()).to.eventually.equal(
+      expect(await POLICY_COVER_CONTRACT.totalInsured()).to.eventually.equal(
         BN(10000),
       );
-      await expect(POLICY_COVER_CONTRACT.premiumSupply()).to.eventually.equal(
+      expect(await POLICY_COVER_CONTRACT.premiumSupply()).to.eventually.equal(
         BN(10),
       );
       const slot0 = await POLICY_COVER_CONTRACT.slot0();

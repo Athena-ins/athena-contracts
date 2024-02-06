@@ -7,16 +7,25 @@ import { toUsd, toErc20, makeIdArray } from "../../helpers/protocol";
 export function ClaimManager_addCoverTermsForPool() {
   describe("addCoverTermsForPool Functionality", function () {
     beforeEach(async function () {
-      // Common setup before each test, e.g., deploying contracts
+      this.args = {
+        nonOwnerAccount: this.signers.user,
+        poolId: 0,
+        ipfsAgreementCid: "QmY5W9p5B6q2Z5kXs3mZz2b6z3Z5kXs3mZz2b6z",
+        newPoolId: 1,
+        newIpfsAgreementCid: "QmY5W9p5B6q2Z5kXs3mZz2b6z3Z5kXs3mZz2b6z",
+        existingPoolId: 2,
+        oldIpfsAgreementCid: "QmY5W9p5B6q2Z5kXs3mZz2b6z3Z5kXs3mZz2b6z",
+        updatedIpfsAgreementCid: "QmY5W9p5B6q2Z5kXs3mZz2b6z3Z5kXs3mZz2b6z",
+      };
     });
 
     it("should revert if called by a non-owner account", async function () {
       // Attempt to call addCoverTermsForPool by a non-owner account
-      await expect(
-        this.contract.addCoverTermsForPool(
+      expect(
+        await this.contract.addCoverTermsForPool(
           this.args.poolId,
           this.args.ipfsAgreementCid,
-          { from: nonOwnerAccount },
+          { from: this.args.nonOwnerAccount },
         ),
       ).to.be.revertedWith("Ownable: caller is not the owner");
     });
@@ -26,7 +35,7 @@ export function ClaimManager_addCoverTermsForPool() {
       const tx = await this.contract.addCoverTermsForPool(
         this.args.newPoolId,
         this.args.newIpfsAgreementCid,
-        { from: ownerAccount },
+        { from: this.args.ownerAccount },
       );
 
       // Wait for the transaction to be mined
@@ -44,14 +53,14 @@ export function ClaimManager_addCoverTermsForPool() {
       await this.contract.addCoverTermsForPool(
         this.args.existingPoolId,
         this.args.oldIpfsAgreementCid,
-        { from: ownerAccount },
+        { from: this.args.ownerAccount },
       );
 
       // Call addCoverTermsForPool to overwrite the term
       const tx = await this.contract.addCoverTermsForPool(
         this.args.existingPoolId,
         this.args.updatedIpfsAgreementCid,
-        { from: ownerAccount },
+        { from: this.args.ownerAccount },
       );
 
       // Wait for the transaction to be mined

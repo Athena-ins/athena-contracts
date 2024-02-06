@@ -12,8 +12,8 @@ export function ClaimManager_submitEvidenceForClaim() {
 
     it("should revert if claim status is not 'Initiated' or 'Disputed'", async function () {
       // Check revert when claim status is neither 'Initiated' nor 'Disputed'
-      await expect(
-        this.contract.submitEvidenceForClaim(
+      expect(
+        await this.contract.submitEvidenceForClaim(
           this.args.nonInitiatedClaimId,
           this.args.evidenceCids,
         ),
@@ -22,8 +22,8 @@ export function ClaimManager_submitEvidenceForClaim() {
 
     it("should allow claimant to submit evidence for an 'Initiated' claim", async function () {
       // Check successful evidence submission by claimant for an 'Initiated' claim
-      await expect(
-        this.contract.submitEvidenceForClaim(
+      expect(
+        await this.contract.submitEvidenceForClaim(
           this.args.initiatedClaimId,
           this.args.evidenceCids,
           { from: this.signers.claimant },
@@ -33,8 +33,8 @@ export function ClaimManager_submitEvidenceForClaim() {
 
     it("should allow claimant to submit evidence for a 'Disputed' claim", async function () {
       // Check successful evidence submission by claimant for a 'Disputed' claim
-      await expect(
-        this.contract.submitEvidenceForClaim(
+      expect(
+        await this.contract.submitEvidenceForClaim(
           this.args.disputedClaimId,
           this.args.evidenceCids,
           { from: this.signers.claimant },
@@ -44,8 +44,8 @@ export function ClaimManager_submitEvidenceForClaim() {
 
     it("should allow challenger to submit evidence for an 'Initiated' claim", async function () {
       // Check successful evidence submission by challenger for an 'Initiated' claim
-      await expect(
-        this.contract.submitEvidenceForClaim(
+      expect(
+        await this.contract.submitEvidenceForClaim(
           this.args.initiatedClaimId,
           this.args.evidenceCids,
           { from: this.signers.challenger },
@@ -55,8 +55,8 @@ export function ClaimManager_submitEvidenceForClaim() {
 
     it("should allow challenger to submit evidence for a 'Disputed' claim", async function () {
       // Check successful evidence submission by challenger for a 'Disputed' claim
-      await expect(
-        this.contract.submitEvidenceForClaim(
+      expect(
+        await this.contract.submitEvidenceForClaim(
           this.args.disputedClaimId,
           this.args.evidenceCids,
           { from: this.signers.challenger },
@@ -66,8 +66,8 @@ export function ClaimManager_submitEvidenceForClaim() {
 
     it("should allow metaEvidenceGuardian to submit evidence", async function () {
       // Check successful evidence submission by metaEvidenceGuardian
-      await expect(
-        this.contract.submitEvidenceForClaim(
+      expect(
+        await this.contract.submitEvidenceForClaim(
           this.args.claimId,
           this.args.evidenceCids,
           { from: this.signers.metaEvidenceGuardian },
@@ -77,8 +77,8 @@ export function ClaimManager_submitEvidenceForClaim() {
 
     it("should revert if a non-involved party tries to submit evidence", async function () {
       // Check revert when an unrelated party attempts to submit evidence
-      await expect(
-        this.contract.submitEvidenceForClaim(
+      expect(
+        await this.contract.submitEvidenceForClaim(
           this.args.claimId,
           this.args.evidenceCids,
           { from: this.signers.unrelatedParty },

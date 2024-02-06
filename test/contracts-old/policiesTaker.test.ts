@@ -230,8 +230,8 @@ export function testPoliciesTaker() {
 
         await setNextBlockTimestamp(20 * 24 * 60 * 60);
 
-        await expect(
-          this.contracts.Athena.connect(policyTaker2).buyPolicies(
+        expect(
+          await this.contracts.Athena.connect(policyTaker2).buyPolicies(
             [109500],
             [1],
             [atensLocked],

@@ -19,7 +19,7 @@ export function VirtualPool__removeTick() {
       ); // Replace with actual setup method
 
       // Remove the tick
-      await expect(this.contracts.TestableVirtualPool.removeTick(tickToRemove))
+      expect(await this.contracts.TestableVirtualPool.removeTick(tickToRemove))
         .to.not.throw;
 
       // Verify the tick and associated premium data are removed

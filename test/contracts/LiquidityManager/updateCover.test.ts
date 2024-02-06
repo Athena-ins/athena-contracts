@@ -3,8 +3,8 @@ const { expect } = require("chai");
 describe("updateCover Functionality", function () {
   it("should revert if called by non-cover owner", async function () {
     // Attempt to update cover by a non-cover owner
-    await expect(
-      this.contracts.LiquidityManager.connect(
+    expect(
+      await this.contracts.LiquidityManager.connect(
         this.signers.nonOwner,
       ).updateCover(
         this.args.coverId,
@@ -18,8 +18,8 @@ describe("updateCover Functionality", function () {
 
   it("should succeed if called by cover owner", async function () {
     // Update the cover by the cover owner
-    await expect(
-      this.contracts.LiquidityManager.connect(
+    expect(
+      await this.contracts.LiquidityManager.connect(
         this.signers.coverOwner,
       ).updateCover(
         this.args.coverId,
@@ -37,8 +37,8 @@ describe("updateCover Functionality", function () {
       this.args.coverId,
       this.args.poolId,
     );
-    await expect(
-      this.contracts.LiquidityManager.connect(
+    expect(
+      await this.contracts.LiquidityManager.connect(
         this.signers.coverOwner,
       ).updateCover(
         this.args.coverId,
@@ -60,8 +60,8 @@ describe("updateCover Functionality", function () {
     );
 
     // Update the cover with added cover and premiums
-    await expect(
-      this.contracts.LiquidityManager.connect(
+    expect(
+      await this.contracts.LiquidityManager.connect(
         this.signers.coverOwner,
       ).updateCover(
         this.args.coverId,
@@ -99,8 +99,8 @@ describe("updateCover Functionality", function () {
     );
 
     // Attempt to update a cover in a paused pool
-    await expect(
-      this.contracts.LiquidityManager.connect(
+    expect(
+      await this.contracts.LiquidityManager.connect(
         this.signers.coverOwner,
       ).updateCover(
         this.args.coverId,
@@ -126,8 +126,8 @@ describe("updateCover Functionality", function () {
     );
 
     // Attempt to update an expired cover
-    await expect(
-      this.contracts.LiquidityManager.connect(
+    expect(
+      await this.contracts.LiquidityManager.connect(
         this.signers.coverOwner,
       ).updateCover(
         this.args.coverId,

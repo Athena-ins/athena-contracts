@@ -12,8 +12,8 @@ export function LiquidityManager_updateConfig() {
 
     it("should update the withdraw delay and maximum leverage", async function () {
       // Update the configuration
-      await expect(
-        this.contracts.LiquidityManager.updateConfig(
+      expect(
+        await this.contracts.LiquidityManager.updateConfig(
           this.args.newWithdrawDelay,
           this.args.newMaxLeverage,
         ),
@@ -32,8 +32,8 @@ export function LiquidityManager_updateConfig() {
 
     it("should only allow the owner to update the configuration", async function () {
       // Attempt to update the configuration by a non-owner
-      await expect(
-        this.contracts.LiquidityManager.connect(
+      expect(
+        await this.contracts.LiquidityManager.connect(
           this.signers.nonOwner,
         ).updateConfig(this.args.newWithdrawDelay, this.args.newMaxLeverage),
       ).to.be.revertedWith("Ownable: caller is not the owner");

@@ -12,8 +12,8 @@ export function ClaimManager_getCoverIdToClaimIds() {
 
     it("should revert if the cover does not exist", async function () {
       // Attempt to retrieve claim IDs for a non-existent cover
-      await expect(
-        this.contract.getCoverIdToClaimIds(this.args.nonExistentCoverId),
+      expect(
+        await this.contract.getCoverIdToClaimIds(this.args.nonExistentCoverId),
       ).to.be.revertedWith("CoverDoesNotExist"); // Use the actual error message
     });
 

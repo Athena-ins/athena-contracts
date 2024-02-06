@@ -226,8 +226,10 @@ export function testDeployProtocol() {
         expect(discountThird.atenAmount).to.equal(BN(1_000_000));
         expect(discountThird.feeRate).to.equal(BN(50));
 
-        await expect(
-          this.contracts.StakingGeneralPool.connect(owner).supplyFeeLevels(4),
+        expect(
+          await this.contracts.StakingGeneralPool.connect(
+            owner,
+          ).supplyFeeLevels(4),
         ).to.be.rejectedWith();
       });
 
@@ -250,8 +252,8 @@ export function testDeployProtocol() {
       });
 
       it("Should set reward Rates ATEN with USD", async function () {
-        await expect(
-          this.contracts.StakingGeneralPool.connect(
+        expect(
+          await this.contracts.StakingGeneralPool.connect(
             owner,
           ).setStakingRewardRates([
             { amountSupplied: 0, aprStaking: 1_000 },

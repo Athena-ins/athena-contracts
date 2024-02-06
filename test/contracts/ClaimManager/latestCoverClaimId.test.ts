@@ -12,15 +12,15 @@ export function ClaimManager_latestCoverClaimId() {
 
     it("should revert if the cover does not exist", async function () {
       // Attempt to retrieve the latest claim ID for a non-existent cover
-      await expect(
-        this.contract.latestCoverClaimId(this.args.nonExistentCoverId),
+      expect(
+        await this.contract.latestCoverClaimId(this.args.nonExistentCoverId),
       ).to.be.revertedWith("CoverDoesNotExist"); // Use the actual error message
     });
 
     it("should revert if there are no claims associated with the cover", async function () {
       // Attempt to retrieve the latest claim ID for a cover with no claims
-      await expect(
-        this.contract.latestCoverClaimId(this.args.coverIdWithNoClaims),
+      expect(
+        await this.contract.latestCoverClaimId(this.args.coverIdWithNoClaims),
       ).to.be.revertedWith("NoClaimsForCover"); // Use the actual error message if checking for empty claims array
     });
 

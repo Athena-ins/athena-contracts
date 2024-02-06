@@ -28,8 +28,8 @@ export function LiquidityManager_coverPoolId() {
 
     it("should revert when querying the pool ID of a non-existent cover", async function () {
       // Attempt to retrieve the pool ID for a non-existent cover
-      await expect(
-        this.contracts.LiquidityManager.coverPoolId(
+      expect(
+        await this.contracts.LiquidityManager.coverPoolId(
           this.args.nonExistentCoverId,
         ),
       ).to.be.reverted; // Check for appropriate revert condition for non-existent cover

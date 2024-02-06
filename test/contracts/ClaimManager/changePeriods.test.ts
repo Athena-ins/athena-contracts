@@ -12,8 +12,8 @@ export function ClaimManager_changePeriods() {
 
     it("should revert if called by a non-owner", async function () {
       // Attempt to call changeRequiredCollateral by a non-owner account
-      await expect(
-        await this.contract.changePeriods(
+      expect(
+        await await this.contract.changePeriods(
           this.args.newChallengePeriod,
           this.args.overrulePeriod,
         ),

@@ -8,8 +8,8 @@ export function ClaimManager_changeRequiredCollateral() {
   context("changeRequiredCollateral", function () {
     it("should revert if called by a non-owner", async function () {
       // Attempt to call changeRequiredCollateral by a non-owner account
-      await expect(
-        this.contract
+      expect(
+        await this.contract
           .connect(this.signers.nonOwner)
           .changeRequiredCollateral(this.args.newCollateralAmount),
       ).to.be.revertedWith("Ownable: caller is not the owner");

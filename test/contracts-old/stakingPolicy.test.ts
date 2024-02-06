@@ -139,8 +139,8 @@ export function testStakingPolicy() {
     });
 
     it("Should reject withdraw of other user's policy rewards", async function () {
-      await expect(
-        this.contracts.Athena.connect(
+      expect(
+        await this.contracts.Athena.connect(
           policyTaker3,
         ).withdrawCoverRefundStakedAten(1, 10),
       ).to.eventually.be.rejectedWith("NotPolicyOwner()");

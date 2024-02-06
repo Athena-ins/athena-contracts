@@ -12,8 +12,8 @@ export function LiquidityManager_attemptReopenCover() {
 
     it("should succeed in reopening a cover with valid parameters", async function () {
       // Simulate successful reopening of a cover
-      await expect(
-        this.contracts.LiquidityManager.attemptReopenCover(
+      expect(
+        await this.contracts.LiquidityManager.attemptReopenCover(
           this.args.poolId,
           this.args.coverId,
           this.args.newCoverAmount,
@@ -24,8 +24,8 @@ export function LiquidityManager_attemptReopenCover() {
 
     it("should revert if called by an address other than the LiquidityManager contract", async function () {
       // Attempt to call the function from an external address
-      await expect(
-        this.contracts.LiquidityManager.connect(
+      expect(
+        await this.contracts.LiquidityManager.connect(
           this.signers.external,
         ).attemptReopenCover(
           this.args.poolId,

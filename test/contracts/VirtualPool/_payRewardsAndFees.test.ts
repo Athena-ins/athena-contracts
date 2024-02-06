@@ -12,8 +12,8 @@ export function VirtualPool__payRewardsAndFees() {
 
     it("should revert if the rewards are less than the fees and yield bonus", async function () {
       // Attempt to pay rewards when the rewards are insufficient to cover fees and yield bonus
-      await expect(
-        this.contracts.TestableVirtualPool.payRewardsAndFees(
+      expect(
+        await this.contracts.TestableVirtualPool.payRewardsAndFees(
           this.args.insufficientRewards, // Rewards less than fees and yield bonus
           this.args.account,
           this.args.yieldBonus,
@@ -24,8 +24,8 @@ export function VirtualPool__payRewardsAndFees() {
 
     it("should apply leverage fee only when using leverage", async function () {
       // Pay rewards with leverage and check for leverage fee application
-      await expect(
-        this.contracts.TestableVirtualPool.payRewardsAndFees(
+      expect(
+        await this.contracts.TestableVirtualPool.payRewardsAndFees(
           this.args.rewards,
           this.args.account,
           this.args.yieldBonus,

@@ -12,8 +12,8 @@ export function LiquidityManager_increasePosition() {
 
     it("should increase the position's liquidity with valid parameters", async function () {
       // Simulate increasing the position's liquidity
-      await expect(
-        this.contracts.LiquidityManager.connect(
+      expect(
+        await this.contracts.LiquidityManager.connect(
           this.signers.positionOwner,
         ).increasePosition(
           this.args.tokenId,
@@ -33,8 +33,8 @@ export function LiquidityManager_increasePosition() {
 
     it("should revert if called by non-position owner", async function () {
       // Attempt to increase position's liquidity by non-owner
-      await expect(
-        this.contracts.LiquidityManager.connect(
+      expect(
+        await this.contracts.LiquidityManager.connect(
           this.signers.nonOwner,
         ).increasePosition(
           this.args.tokenId,
@@ -46,8 +46,8 @@ export function LiquidityManager_increasePosition() {
 
     it("should revert if the position is committed for withdrawal", async function () {
       // Assuming position is committed for withdrawal
-      await expect(
-        this.contracts.LiquidityManager.connect(
+      expect(
+        await this.contracts.LiquidityManager.connect(
           this.signers.positionOwner,
         ).increasePosition(
           this.args.committedTokenId,

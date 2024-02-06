@@ -12,8 +12,8 @@ export function VirtualPool__syncLiquidity() {
 
     it("should revert if trying to remove more liquidity than available", async function () {
       // Attempt to sync liquidity with removal greater than available liquidity
-      await expect(
-        this.contracts.TestableVirtualPool.syncLiquidity(
+      expect(
+        await this.contracts.TestableVirtualPool.syncLiquidity(
           this.args.liquidityToAdd,
           this.args.liquidityToRemoveExceedingAvailable,
         ),
@@ -22,8 +22,8 @@ export function VirtualPool__syncLiquidity() {
 
     it("should successfully update the pool's slot0 when adding liquidity", async function () {
       // Sync liquidity with adding liquidity
-      await expect(
-        this.contracts.TestableVirtualPool.syncLiquidity(
+      expect(
+        await this.contracts.TestableVirtualPool.syncLiquidity(
           this.args.liquidityToAdd,
           0, // No liquidity removal
         ),
@@ -37,8 +37,8 @@ export function VirtualPool__syncLiquidity() {
 
     it("should successfully update the pool's slot0 when removing liquidity", async function () {
       // Sync liquidity with removing liquidity
-      await expect(
-        this.contracts.TestableVirtualPool.syncLiquidity(
+      expect(
+        await this.contracts.TestableVirtualPool.syncLiquidity(
           0, // No liquidity addition
           this.args.liquidityToRemove,
         ),

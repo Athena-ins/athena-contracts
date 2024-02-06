@@ -12,8 +12,8 @@ export function LiquidityManager_createPosition() {
 
     it("should create a new LP position with valid parameters", async function () {
       // Simulate creating a new LP position
-      await expect(
-        this.contracts.LiquidityManager.connect(
+      expect(
+        await this.contracts.LiquidityManager.connect(
           this.signers.user,
         ).createPosition(
           this.args.amount,
@@ -43,8 +43,8 @@ export function LiquidityManager_createPosition() {
       const excessPoolIds = new Array(this.args.maxLeverage + 1)
         .fill(0)
         .map((_, i) => i);
-      await expect(
-        this.contracts.LiquidityManager.connect(
+      expect(
+        await this.contracts.LiquidityManager.connect(
           this.signers.user,
         ).createPosition(this.args.amount, this.args.isWrapped, excessPoolIds),
       ).to.be.revertedWith("AmountOfPoolsIsAboveMaxLeverage");
@@ -81,8 +81,8 @@ export function LiquidityManager_createPosition() {
     it("should check pool compatibility before creating a position", async function () {
       // Attempt to create a position with incompatible pools
       const incompatiblePools = [this.args.poolId1, this.args.poolId2]; // Assume these pool IDs are incompatible
-      await expect(
-        this.contracts.LiquidityManager.connect(
+      expect(
+        await this.contracts.LiquidityManager.connect(
           this.signers.user,
         ).createPosition(
           this.args.amount,
@@ -132,8 +132,8 @@ export function LiquidityManager_createPosition() {
       const invalidPoolIds = [this.args.nonExistentPoolId].concat(
         this.args.poolIds,
       );
-      await expect(
-        this.contracts.LiquidityManager.connect(
+      expect(
+        await this.contracts.LiquidityManager.connect(
           this.signers.user,
         ).createPosition(this.args.amount, this.args.isWrapped, invalidPoolIds),
       ).to.be.reverted; // Specific error message depends on contract implementation
@@ -161,8 +161,8 @@ export function LiquidityManager_createPosition() {
     it("should revert if pool IDs are not unique and in ascending order", async function () {
       // Attempt to create a position with non-unique or non-ascending pool IDs
       const unorderedPoolIds = [...this.args.poolIds].sort().reverse(); // Assuming this results in a non-ascending order
-      await expect(
-        this.contracts.LiquidityManager.connect(
+      expect(
+        await this.contracts.LiquidityManager.connect(
           this.signers.user,
         ).createPosition(
           this.args.amount,

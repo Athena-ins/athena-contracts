@@ -12,8 +12,8 @@ export function VirtualPool__buyCover() {
 
     it("should revert if available liquidity is less than the cover amount", async function () {
       // Attempt to buy cover when available liquidity is insufficient
-      await expect(
-        this.contracts.TestableVirtualPool.buyCover(
+      expect(
+        await this.contracts.TestableVirtualPool.buyCover(
           this.args.coverId,
           this.args.coverAmountExceedingLiquidity,
           this.args.premiums,
@@ -23,8 +23,8 @@ export function VirtualPool__buyCover() {
 
     it("should revert if the calculated duration is too low", async function () {
       // Attempt to buy cover with a duration shorter than the new seconds per tick
-      await expect(
-        this.contracts.TestableVirtualPool.buyCover(
+      expect(
+        await this.contracts.TestableVirtualPool.buyCover(
           this.args.coverId,
           this.args.coverAmount,
           this.args.premiumsLeadingToLowDuration,
@@ -34,8 +34,8 @@ export function VirtualPool__buyCover() {
 
     it("should successfully register a premium position and update the pool's slot0", async function () {
       // Buy cover and check successful registration of premium position
-      await expect(
-        this.contracts.TestableVirtualPool.buyCover(
+      expect(
+        await this.contracts.TestableVirtualPool.buyCover(
           this.args.coverId,
           this.args.coverAmount,
           this.args.premiums,

@@ -12,8 +12,8 @@ export function LiquidityManager_createPool() {
 
     it("should create a new pool and initialize its parameters", async function () {
       // Create a new pool
-      await expect(
-        this.contracts.LiquidityManager.createPool(
+      expect(
+        await this.contracts.LiquidityManager.createPool(
           this.args.paymentAsset,
           this.args.strategyId,
           this.args.feeRate,
@@ -86,8 +86,8 @@ export function LiquidityManager_createPool() {
 
     it("should only allow the owner to create a new pool", async function () {
       // Attempt to create a new pool by a non-owner
-      await expect(
-        this.contracts.LiquidityManager.connect(
+      expect(
+        await this.contracts.LiquidityManager.connect(
           this.signers.nonOwner,
         ).createPool(
           this.args.paymentAsset,

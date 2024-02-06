@@ -68,8 +68,8 @@ export function LiquidityManager_isCoverActive() {
 
     it("should revert when querying the active state of a non-existent cover", async function () {
       // Attempt to check the active state of a non-existent cover
-      await expect(
-        this.contracts.LiquidityManager.isCoverActive(
+      expect(
+        await this.contracts.LiquidityManager.isCoverActive(
           this.args.nonExistentCoverId,
         ),
       ).to.be.reverted; // Check for appropriate revert condition for non-existent cover

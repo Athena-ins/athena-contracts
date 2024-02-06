@@ -12,15 +12,15 @@ export function EcclesiaDao_increaseLockAmount() {
 
     it("should revert if the amount to increase is zero", async function () {
       // Attempt to increase the lock amount by zero
-      await expect(
-        this.contract.increaseLockAmount(0, { from: this.signers.user }),
+      expect(
+        await this.contract.increaseLockAmount(0, { from: this.signers.user }),
       ).to.be.revertedWith("BadAmount");
     });
 
     it("should revert if the user does not have an existing lock", async function () {
       // Attempt to increase lock amount for a user without an existing lock
-      await expect(
-        this.contract.increaseLockAmount(this.args.amount, {
+      expect(
+        await this.contract.increaseLockAmount(this.args.amount, {
           from: this.signers.userWithoutLock,
         }),
       ).to.be.revertedWith("LockDoesNotExist");
@@ -28,8 +28,8 @@ export function EcclesiaDao_increaseLockAmount() {
 
     it("should revert if the user's lock has expired", async function () {
       // Attempt to increase lock amount for a user whose lock has expired
-      await expect(
-        this.contract.increaseLockAmount(this.args.amount, {
+      expect(
+        await this.contract.increaseLockAmount(this.args.amount, {
           from: this.signers.userWithExpiredLock,
         }),
       ).to.be.revertedWith("LockExpired");
@@ -37,8 +37,8 @@ export function EcclesiaDao_increaseLockAmount() {
 
     it("should successfully increase the lock amount", async function () {
       // Increase the lock amount for a user with a valid lock
-      await expect(
-        this.contract.increaseLockAmount(this.args.additionalAmount, {
+      expect(
+        await this.contract.increaseLockAmount(this.args.additionalAmount, {
           from: this.signers.userWithValidLock,
         }),
       ).to.not.throw;

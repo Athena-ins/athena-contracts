@@ -12,8 +12,8 @@ export function VirtualPool__closeCover() {
 
     it("should revert if the cover has already expired", async function () {
       // Attempt to close an already expired cover
-      await expect(
-        this.contracts.TestableVirtualPool.closeCover(
+      expect(
+        await this.contracts.TestableVirtualPool.closeCover(
           this.args.coverIdExpired,
           this.args.coverAmount,
         ),
@@ -22,8 +22,8 @@ export function VirtualPool__closeCover() {
 
     it("should successfully close a cover and update the pool's slot0", async function () {
       // Close a valid cover and check successful update of the pool's slot0
-      await expect(
-        this.contracts.TestableVirtualPool.closeCover(
+      expect(
+        await this.contracts.TestableVirtualPool.closeCover(
           this.args.coverId,
           this.args.coverAmount,
         ),
