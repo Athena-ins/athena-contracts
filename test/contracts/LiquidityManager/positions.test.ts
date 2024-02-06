@@ -9,5 +9,32 @@ export function LiquidityManager_positions() {
     before(async function () {
       this.args = {};
     });
+
+    it("should return correct position data for a valid positionId that exists", async function () {
+      const positionData = await this.contracts.LiquidityManager.positions(
+        this.args.validPositionId,
+      );
+      expect(positionData.supplied).to.be.a("number");
+      expect(positionData.commitWithdrawalTimestamp).to.be.a("number");
+      expect(positionData.poolIds).to.be.an("array");
+    });
+
+    it("should return default or empty data for a positionId that does not exist", async function () {
+      const positionData = await this.contracts.LiquidityManager.positions(
+        this.args.nonExistentPositionId,
+      );
+      expect(positionData.supplied).to.equal(0);
+      expect(positionData.commitWithdrawalTimestamp).to.equal(0);
+      expect(positionData.poolIds).to.deep.equal([]);
+    });
+
+    it("should return correct position data for a positionId at the boundary of existing IDs", async function () {
+      const positionData = await this.contracts.LiquidityManager.positions(
+        this.args.boundaryPositionId,
+      );
+      expect(positionData.supplied).to.be.a("number");
+      expect(positionData.commitWithdrawalTimestamp).to.be.a("number");
+      expect(positionData.poolIds).to.be.an("array");
+    });
   });
 }

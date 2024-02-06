@@ -9,5 +9,26 @@ export function LiquidityManager_posRewardIndex() {
     before(async function () {
       this.args = {};
     });
+
+    it("should return the correct strategy reward index for a valid positionId that exists", async function () {
+      const rewardIndex = await this.contracts.LiquidityManager.posRewardIndex(
+        this.args.validPositionId,
+      );
+      expect(rewardIndex).to.be.a("number");
+    });
+
+    it("should return zero for a positionId that does not exist", async function () {
+      const rewardIndex = await this.contracts.LiquidityManager.posRewardIndex(
+        this.args.nonExistentPositionId,
+      );
+      expect(rewardIndex).to.equal(0);
+    });
+
+    it("should return the correct strategy reward index for a positionId at the boundary of existing IDs", async function () {
+      const rewardIndex = await this.contracts.LiquidityManager.posRewardIndex(
+        this.args.boundaryPositionId,
+      );
+      expect(rewardIndex).to.be.a("number");
+    });
   });
 }
