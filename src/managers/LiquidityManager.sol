@@ -88,7 +88,6 @@ contract LiquidityManager is
   /// User LP data
   /// @dev left public to read positions without its poolIds array
   mapping(uint256 _id => Position) public _positions;
-  mapping(uint256 _id => uint256) public _posRewardIndex;
 
   /// The ID of the next claim to be
   uint256 public nextCompensationId;
@@ -186,8 +185,8 @@ contract LiquidityManager is
    */
   function posRewardIndex(
     uint256 positionId_
-  ) internal view returns (uint256) {
-    return _posRewardIndex[positionId_];
+  ) public view returns (uint256) {
+    return _positions[positionId_].rewardIndex;
   }
 
   /**
@@ -281,6 +280,9 @@ contract LiquidityManager is
    * @param poolIdA_ The ID of the first pool
    * @param poolIdB_ The ID of the second pool
    * @return The amount of liquidity overlap
+   *
+   * @dev The overlap is always stored in the pool with the lowest ID
+   * @dev The overlap if poolA = poolB is the pool's liquidity
    */
   function poolOverlaps(
     uint64 poolIdA_,
@@ -572,11 +574,6 @@ contract LiquidityManager is
       ? strategyManager.wrappedToUnderlying(strategyId, amount)
       : amount;
 
-    // Save index from which the position will start accruing strategy rewards
-    _posRewardIndex[positionId] = strategyManager.getRewardIndex(
-      strategyId
-    );
-
     // Check pool compatibility & underlying token then register overlapping capital
     _addOverlappingCapitalAfterCheck(
       poolIds,
@@ -608,7 +605,9 @@ contract LiquidityManager is
     _positions[positionId] = Position({
       supplied: amountUnderlying,
       commitWithdrawalTimestamp: 0,
-      poolIds: poolIds
+      poolIds: poolIds,
+      // Save index from which the position will start accruing strategy rewards
+      rewardIndex: strategyManager.getRewardIndex(strategyId)
     });
 
     // Mint position NFT
@@ -727,11 +726,6 @@ contract LiquidityManager is
     // All pools have same strategy since they are compatible
     uint256 strategyId = _pools[position.poolIds[0]].strategyId;
 
-    // Save index up to which the position is receiving strategy rewards
-    _posRewardIndex[positionId_] = strategyManager.getRewardIndex(
-      strategyId
-    );
-
     // Withdraw interests from strategy
     strategyManager.withdrawFromStrategy(
       strategyId,
@@ -740,6 +734,10 @@ contract LiquidityManager is
       posOwner, // Always paid out to owner
       yieldBonus_
     );
+
+    // Save index up to which the position has received strategy rewards
+    _positions[positionId_].rewardIndex = strategyManager
+      .getRewardIndex(strategyId);
 
     // Update the position capital to reflect potential reduction due to claims
     _positions[positionId_].supplied = newUserCapital;

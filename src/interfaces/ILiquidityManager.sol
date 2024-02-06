@@ -25,6 +25,7 @@ interface ILiquidityManager {
   struct Position {
     uint256 supplied;
     uint256 commitWithdrawalTimestamp;
+    uint256 rewardIndex;
     uint64[] poolIds;
   }
 
