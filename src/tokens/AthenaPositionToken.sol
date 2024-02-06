@@ -13,6 +13,11 @@ import { ILiquidityManager } from "../interfaces/ILiquidityManager.sol";
 // ======= ERRORS ======= //
 error NotLiquidtyManager();
 
+/**
+ * @title AthenaPositionToken
+ * @notice ERC-721 token representing a LP position in the Athena protocol
+ * @dev The Athena position ID is equivalent to the ERC-721 token ID
+ */
 contract AthenaPositionToken is
   IAthenaPositionToken,
   ERC721Enumerable,
@@ -61,13 +66,13 @@ contract AthenaPositionToken is
 
   function mint(
     address to,
-    uint256 tokenId
+    uint256 positionId
   ) external onlyLiquidityManager {
-    _mint(to, tokenId);
+    _mint(to, positionId);
   }
 
-  function burn(uint256 tokenId) external onlyLiquidityManager {
-    _burn(tokenId);
+  function burn(uint256 positionId) external onlyLiquidityManager {
+    _burn(positionId);
   }
 
   /// ======= ADMIN ======= ///

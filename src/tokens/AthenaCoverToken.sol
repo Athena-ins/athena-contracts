@@ -13,6 +13,11 @@ import { ILiquidityManager } from "../interfaces/ILiquidityManager.sol";
 // ======= ERRORS ======= //
 error NotLiquidtyManager();
 
+/**
+ * @title AthenaCoverToken
+ * @notice ERC-721 token representing a cover in the Athena protocol
+ * @dev The Athena cover ID is equivalent to the ERC-721 token ID
+ */
 contract AthenaCoverToken is
   IAthenaCoverToken,
   ERC721Enumerable,
@@ -61,13 +66,13 @@ contract AthenaCoverToken is
 
   function mint(
     address to,
-    uint256 tokenId
+    uint256 coverId // equivalent to tokenId
   ) external onlyLiquidityManager {
-    _mint(to, tokenId);
+    _mint(to, coverId);
   }
 
-  function burn(uint256 tokenId) external onlyLiquidityManager {
-    _burn(tokenId);
+  function burn(uint256 coverId) external onlyLiquidityManager {
+    _burn(coverId);
   }
 
   /// ======= ADMIN ======= ///
