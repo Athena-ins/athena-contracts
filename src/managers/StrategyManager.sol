@@ -83,6 +83,11 @@ contract StrategyManager is IStrategyManager, Ownable {
 
   //======== VIEWS ========//
 
+  /**
+   * @notice Returns true if a strategy compounds yield
+   * @param strategyId_ The ID of the strategy
+   * @return True if the strategy compounds
+   */
   function itCompounds(
     uint256 strategyId_
   ) external pure checkId(strategyId_) returns (bool) {
@@ -101,6 +106,14 @@ contract StrategyManager is IStrategyManager, Ownable {
     return aaveLendingPool.getReserveNormalizedIncome(usdt);
   }
 
+  /**
+   * @notice Computes rewards given their amount of underlying & start and end reward indexes
+   * @param strategyId_ The ID of the strategy
+   * @param amount_ The amount of underlying tokens
+   * @param startRewardIndex_ The reward index at the time of deposit
+   * @param endRewardIndex_ The reward index at the time of withdrawal
+   * @return uint256 The amount of rewards in underlying tokens
+   */
   function computeReward(
     uint256 strategyId_,
     uint256 amount_,
@@ -112,18 +125,34 @@ contract StrategyManager is IStrategyManager, Ownable {
       amount_;
   }
 
+  /**
+   * @notice Returns the underlying asset token address for a strategy
+   * @param strategyId_ The ID of the strategy
+   * @return The address of the underlying asset
+   */
   function underlyingAsset(
     uint256 strategyId_
   ) external view checkId(strategyId_) returns (address) {
     return usdt;
   }
 
+  /**
+   * @notice Returns the wrapped asset token address for a strategy
+   * @param strategyId_ The ID of the strategy
+   * @return The address of the wrapped asset
+   */
   function wrappedAsset(
     uint256 strategyId_
   ) external view checkId(strategyId_) returns (address) {
     return ausdt;
   }
 
+  /**
+   * @notice Returns the underlying and wrapped asset token addresses for a strategy
+   * @param strategyId_ The ID of the strategy
+   * @return underlying The address of the underlying asset
+   * @return wrapped The address of the wrapped asset
+   */
   function assets(
     uint256 strategyId_
   )
@@ -136,37 +165,60 @@ contract StrategyManager is IStrategyManager, Ownable {
     wrapped = ausdt;
   }
 
-  // To be called by liq manager to compute how many underlying the user has supplied
+  /**
+   * @notice Returns the amount of underlying tokens for a given amount of wrapped tokens
+   * @param strategyId_ The ID of the strategy
+   * @param amountWrapped_ The amount of wrapped tokens
+   * @return The amount of underlying tokens
+   */
   function wrappedToUnderlying(
     uint256 strategyId_,
     uint256 amountWrapped_
   ) public pure checkId(strategyId_) returns (uint256) {
-    // Underlying === wrapped as the aToken balance is increased as interests sum up
+    // Underlying === wrapped for aave as the aToken balance is increased as interests sum up
     return amountWrapped_;
   }
 
+  /**
+   * @notice Returns the amount of wrapped tokens for a given amount of underlying tokens
+   * @param strategyId_ The ID of the strategy
+   * @param amountUnderlying_ The amount of underlying tokens
+   * @return The amount of wrapped tokens
+   */
   function underlyingToWrapped(
     uint256 strategyId_,
     uint256 amountUnderlying_
   ) public pure checkId(strategyId_) returns (uint256) {
-    // Underlying === wrapped as the aToken balance is increased as interests sum up
+    // Underlying === wrapped for aave as the aToken balance is increased as interests sum up
     return amountUnderlying_;
   }
 
   //======== HELPERS ========//
 
+  /**
+   * @notice Withdraws DAO revenue from the strategy and accrues it in the DAO
+   * @param token_ The address of the token
+   * @param amount_ The amount of tokens to accrue
+   */
   function _accrueToDao(address token_, uint256 amount_) private {
+    // Withdraw the revenue from the strategy to the DAO contract
     aaveLendingPool.withdraw(
       token_,
       amount_ - 1,
       address(ecclesiaDao)
     );
 
+    // This will register the revenue in the DAO for distribution
     ecclesiaDao.accrueRevenue(token_, amount_, 0);
   }
 
   //======== UNDERLYING I/O ========//
 
+  /**
+   * @notice Deposits underlying tokens into the strategy
+   * @param strategyId_ The ID of the strategy
+   * @param amountUnderlying_ The amount of underlying tokens to deposit
+   */
   function depositToStrategy(
     uint256 strategyId_,
     uint256 amountUnderlying_
@@ -184,20 +236,28 @@ contract StrategyManager is IStrategyManager, Ownable {
     );
   }
 
+  /**
+   * @notice Withdraws underlying tokens from the strategy
+   * @param strategyId_ The ID of the strategy
+   * @param amountCapitalUnderlying_ The amount of capital underlying tokens to withdraw
+   * @param amountRewardsUnderlying_ The amount of rewards underlying tokens to withdraw
+   * @param account_ The address to send the underlying tokens to
+   * @param yieldBonus_ The yield bonus in RAY
+   */
   function withdrawFromStrategy(
     uint256 strategyId_,
     uint256 amountCapitalUnderlying_,
     uint256 amountRewardsUnderlying_,
     address account_,
-    uint256 /*yieldBonus_*/
+    uint256 yieldBonus_
   ) external checkId(strategyId_) onlyLiquidityManager {
     uint256 amountToWithdraw = amountCapitalUnderlying_ +
       amountRewardsUnderlying_;
 
     // If the strategy has performance fees then compute the DAO share
     if (performanceFee != 0 && amountRewardsUnderlying_ != 0) {
-      uint256 daoShare = (amountRewardsUnderlying_ * performanceFee) /
-        RayMath.RAY;
+      uint256 daoShare = (amountRewardsUnderlying_ *
+        (performanceFee - yieldBonus_)) / RayMath.RAY;
 
       if (daoShare != 0) {
         // Deduct the daoShare from the amount to withdraw
@@ -213,18 +273,30 @@ contract StrategyManager is IStrategyManager, Ownable {
 
   //======== WRAPPED I/O ========//
 
+  /**
+   * @notice Deposits wrapped tokens into the strategy
+   * @param strategyId_ The ID of the strategy
+   */
   function depositWrappedToStrategy(
     uint256 strategyId_
   ) external checkId(strategyId_) onlyLiquidityManager {
-    // No need to deposit wrapped asset into strategy
+    // No need to deposit wrapped asset into strategy as they already compound by holding
   }
 
+  /**
+   * @notice Withdraws wrapped tokens from the strategy
+   * @param strategyId_ The ID of the strategy
+   * @param amountCapitalUnderlying_ The amount of capital underlying tokens to withdraw
+   * @param amountRewardsUnderlying_ The amount of rewards underlying tokens to withdraw
+   * @param account_ The address to send the underlying tokens to
+   * @param yieldBonus_ The yield bonus in RAY
+   */
   function withdrawWrappedFromStrategy(
     uint256 strategyId_,
     uint256 amountCapitalUnderlying_,
     uint256 amountRewardsUnderlying_,
     address account_,
-    uint256 /*yieldBonus_*/
+    uint256 yieldBonus_
   ) external checkId(strategyId_) onlyLiquidityManager {
     // Compute amount of wrapped to send to account
     uint256 amountToWithdraw = underlyingToWrapped(
@@ -234,8 +306,8 @@ contract StrategyManager is IStrategyManager, Ownable {
 
     // If the strategy has performance fees then compute the DAO share
     if (performanceFee != 0 && amountRewardsUnderlying_ != 0) {
-      uint256 daoShare = (amountRewardsUnderlying_ * performanceFee) /
-        RayMath.RAY;
+      uint256 daoShare = (amountRewardsUnderlying_ *
+        (performanceFee - yieldBonus_)) / RayMath.RAY;
 
       if (daoShare != 0) {
         // Deduct the daoShare from the amount to withdraw
@@ -250,6 +322,12 @@ contract StrategyManager is IStrategyManager, Ownable {
 
   //======== CLAIMS ========//
 
+  /**
+   * @notice Pay a valid claim compensation from the strategy
+   * @param strategyId_ The ID of the strategy
+   * @param amountUnderlying_ The amount of underlying tokens to payout
+   * @param account_ The address to send the underlying tokens to
+   */
   function payoutFromStrategy(
     uint256 strategyId_,
     uint256 amountUnderlying_,
@@ -270,22 +348,42 @@ contract StrategyManager is IStrategyManager, Ownable {
 
   //======== ADMIN ========//
 
-  function updateBuybackWallet(
+  /**
+   * @notice Updates the addresses of the liquidity manager, ecclesiaDao, and buyback wallet
+   * @param liquidityManager_ The address of the liquidity manager
+   * @param ecclesiaDao_ The address of the ecclesiaDao
+   * @param buybackWallet_ The address of the buyback & burn wallet
+   */
+  function updateAddressList(
+    ILiquidityManager liquidityManager_,
+    IEcclesiaDao ecclesiaDao_,
     address buybackWallet_
   ) external onlyOwner {
-    buybackWallet = buybackWallet_;
+    if (address(liquidityManager_) != address(0))
+      liquidityManager = liquidityManager_;
+    if (address(ecclesiaDao_) != address(0))
+      ecclesiaDao = ecclesiaDao_;
+    if (address(buybackWallet_) != address(0))
+      buybackWallet = buybackWallet_;
   }
 
+  /**
+   * @notice Updates the performance fee for the strategy
+   * @param fee_ The new performance fee in RAY
+   */
+  function updatePerformanceFee(uint256 fee_) external onlyOwner {
+    if (RayMath.halfRAY < fee_) revert RateAboveMax();
+    performanceFee = fee_;
+  }
+
+  /**
+   * @notice Updates the deductible rate for compensations
+   * @param rate_ The new deductible rate in RAY
+   */
   function updatePayoutDeductibleRate(
     uint256 rate_
   ) external onlyOwner {
     if (RayMath.halfRAY < rate_) revert RateAboveMax();
     payoutDeductibleRate = rate_;
-  }
-
-  function updateLiquidityManager(
-    ILiquidityManager liquidityManager_
-  ) external onlyOwner {
-    liquidityManager = liquidityManager_;
   }
 }

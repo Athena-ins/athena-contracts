@@ -187,6 +187,11 @@ library VirtualPool {
     function(uint256) view returns (uint256) posRewardIndex;
   }
 
+  /**
+   * @notice Initializes a virtual pool & populates its storage
+   * @param self The pool
+   * @param params The pool's constructor parameters
+   */
   function _vPoolConstructor(
     VPool storage self,
     VPoolConstructorParams memory params

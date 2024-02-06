@@ -463,8 +463,7 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
   // ======= HELPERS ======= //
 
   /**
-   * @notice
-   * Sends value to an address.
+   * @notice Sends value to an address.
    * @param to_ The address to send value to
    * @param value_ The amount of ETH to send
    */
