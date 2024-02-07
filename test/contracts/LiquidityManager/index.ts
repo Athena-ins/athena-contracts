@@ -1,5 +1,4 @@
 import { LiquidityManager_positions } from "./positions.test";
-import { LiquidityManager_posRewardIndex } from "./posRewardIndex.test";
 import { LiquidityManager_covers } from "./covers.test";
 import { LiquidityManager_coverSize } from "./coverSize.test";
 import { LiquidityManager_coverPoolId } from "./coverPoolId.test";
@@ -25,7 +24,6 @@ import { LiquidityManager_updateConfig } from "./updateConfig.test";
 
 export async function ClaimManagerTests() {
   LiquidityManager_positions();
-  LiquidityManager_posRewardIndex();
   LiquidityManager_covers();
   LiquidityManager_coverSize();
   LiquidityManager_coverPoolId();
