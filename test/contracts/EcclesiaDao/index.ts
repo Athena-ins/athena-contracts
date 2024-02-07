@@ -12,7 +12,7 @@ import { EcclesiaDao_harvest } from "./harvest.test";
 import { EcclesiaDao_setEarlyWithdrawConfig } from "./setEarlyWithdrawConfig.test";
 import { EcclesiaDao_withdrawETH } from "./withdrawETH.test";
 
-export async function EcclesiaDaoTests() {
+export function EcclesiaDaoTests() {
   EcclesiaDao_tokenToVotes();
   EcclesiaDao_votesToTokens();
   EcclesiaDao_createLock();

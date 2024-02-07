@@ -22,7 +22,7 @@ import { LiquidityManager_attemptReopenCover } from "./attemptReopenCover.test";
 import { LiquidityManager_payoutClaim } from "./payoutClaim.test";
 import { LiquidityManager_updateConfig } from "./updateConfig.test";
 
-export async function ClaimManagerTests() {
+export function ClaimManagerTests() {
   LiquidityManager_positions();
   LiquidityManager_covers();
   LiquidityManager_coverSize();

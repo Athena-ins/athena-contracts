@@ -21,7 +21,7 @@ import { ClaimManager_changeRequiredCollateral } from "./changeRequiredCollatera
 import { ClaimManager_changePeriods } from "./changePeriods.test";
 import { ClaimManager_changeMetaEvidenceGuardian } from "./changeMetaEvidenceGuardian.test";
 
-export async function ClaimManagerTests() {
+export function ClaimManagerTests() {
   ClaimManager_getCoverIdToClaimIds();
   ClaimManager_getPoolCoverTerms();
   ClaimManager_arbitrationCost();

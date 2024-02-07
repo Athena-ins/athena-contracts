@@ -33,7 +33,7 @@ import { FarmingRange_massUpdateCampaigns } from "./massUpdateCampaigns.test";
 import { FarmingRange_attemptTransfer } from "./attemptTransfer.test";
 import { FarmingRange_setStaking } from "./setStaking.test";
 
-export async function FarmingRangeTests() {
+export function FarmingRangeTests() {
   FarmingRange_depositedLpTokens();
   FarmingRange_depositedCoverTokens();
   FarmingRange_yieldBonusChanged();

@@ -21,7 +21,7 @@ import { VirtualPool_currentPremiumRate } from "./currentPremiumRate.test";
 import { VirtualPool_updatedPremiumRate } from "./updatedPremiumRate.test";
 import { VirtualPool__utilization } from "./_utilization.test";
 
-export async function ClaimManagerTests() {
+export function ClaimManagerTests() {
   VirtualPool_totalLiquidity();
   VirtualPool_availableLiquidity();
   VirtualPool__depositToPool();
