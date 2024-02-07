@@ -348,7 +348,7 @@ library VirtualPool {
    * @param self The pool
    * @param tokenId_ The LP position token ID
    * @param account_ The account to pay the rewards to
-   * @param amount_ The amount of liquidity to take interest on
+   * @param supplied_ The amount of liquidity to take interest on
    * @param yieldBonus_ The yield bonus to apply to the rewards
    * @param poolIds_ The pool IDs of the position
    *
@@ -361,7 +361,7 @@ library VirtualPool {
     VPool storage self,
     uint256 tokenId_,
     address account_,
-    uint256 amount_,
+    uint256 supplied_,
     uint256 rewardIndex_,
     uint256 yieldBonus_,
     uint64[] storage poolIds_
@@ -369,7 +369,7 @@ library VirtualPool {
     // Get the updated position info
     UpdatedPositionInfo memory info = self._getUpdatedPositionInfo(
       tokenId_,
-      amount_,
+      supplied_,
       rewardIndex_,
       poolIds_
     );
@@ -395,7 +395,7 @@ library VirtualPool {
    * @notice Withdraws liquidity from the pool and updates the pool's state.
    * @param self The pool
    * @param tokenId_ The LP position token ID
-   * @param amount_ The amount of liquidity to withdraw
+   * @param supplied_ The amount of liquidity to withdraw
    * @param poolIds_ The pool IDs of the position
    *
    * @return newUserCapital The user's capital after claims
@@ -404,6 +404,7 @@ library VirtualPool {
   function _withdrawLiquidity(
     VPool storage self,
     uint256 tokenId_,
+    uint256 supplied_,
     uint256 amount_,
     uint256 rewardIndex_,
     uint64[] storage poolIds_
@@ -411,7 +412,7 @@ library VirtualPool {
     // Get the updated position info
     UpdatedPositionInfo memory info = self._getUpdatedPositionInfo(
       tokenId_,
-      amount_,
+      supplied_,
       rewardIndex_,
       poolIds_
     );
@@ -428,7 +429,7 @@ library VirtualPool {
     self.lpInfos[tokenId_] = info.newLpInfo;
 
     // Update liquidity index
-    self._syncLiquidity(0, info.newUserCapital);
+    self._syncLiquidity(0, amount_);
 
     // Return the user's capital & strategy rewards for withdrawal
     return (info.newUserCapital, info.strategyRewards);

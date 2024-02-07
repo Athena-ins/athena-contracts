@@ -828,8 +828,9 @@ contract LiquidityManager is
    * @dev The position must be committed and the delay elapsed to withdrawal
    * @dev Interests earned between the commit and the withdrawal are sent to the DAO
    */
-  function closePosition(
+  function removeLiquidity(
     uint256 positionId_,
+    uint256 amount_,
     bool keepWrapped_
   ) external onlyPositionOwner(positionId_) {
     Position storage position = _positions[positionId_];
@@ -846,17 +847,24 @@ contract LiquidityManager is
     ) = _removeOverlappingCapital(
         positionId_,
         position.supplied,
+        amount_,
         position.rewardIndex,
         position.poolIds
       );
 
+    // Reduce position of new amount of capital minus the amount withdrawn
+    // @dev Should underflow if the amount is greater than the capital
+    position.supplied = capital - amount_;
+    // Reset the position's commitWithdrawalTimestamp
+    position.commitWithdrawalTimestamp = 0;
+
     // All pools have same strategy since they are compatible
-    if (capital != 0 || strategyRewards != 0) {
+    if (amount_ != 0 || strategyRewards != 0) {
       uint256 strategyId = _pools[position.poolIds[0]].strategyId;
       if (keepWrapped_) {
         strategyManager.withdrawWrappedFromStrategy(
           strategyId,
-          capital,
+          amount_,
           strategyRewards,
           account,
           0 // No yield bonus
@@ -864,16 +872,13 @@ contract LiquidityManager is
       } else {
         strategyManager.withdrawFromStrategy(
           strategyId,
-          capital,
+          amount_,
           strategyRewards,
           account,
           0 // No yield bonus
         );
       }
     }
-
-    // Reduce position to 0 since we cannot partial withdraw
-    position.supplied = 0;
   }
 
   /// ======= LIQUIDITY CHANGES ======= ///
@@ -977,6 +982,7 @@ contract LiquidityManager is
    */
   function _removeOverlappingCapital(
     uint256 positionId_,
+    uint256 supplied_,
     uint256 amount_,
     uint256 rewardIndex_,
     uint64[] storage poolIds_
@@ -994,6 +1000,7 @@ contract LiquidityManager is
       (uint256 newUserCapital, uint256 strategyRewards) = pool0
         ._withdrawLiquidity(
           positionId_,
+          supplied_,
           amount_,
           rewardIndex_,
           poolIds_
