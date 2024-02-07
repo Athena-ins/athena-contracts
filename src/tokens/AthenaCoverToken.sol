@@ -32,7 +32,7 @@ contract AthenaCoverToken is
 
   constructor(
     ILiquidityManager liquidityManager_
-  ) ERC721("Athena Cover Token", "ACTv1") Ownable(msg.sender) {
+  ) ERC721("Athena Cover Token", "AthenaCT") Ownable(msg.sender) {
     liquidityManager = liquidityManager_;
   }
 

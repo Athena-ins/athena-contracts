@@ -32,7 +32,10 @@ contract AthenaPositionToken is
 
   constructor(
     ILiquidityManager liquidityManager_
-  ) ERC721("Athena Position Token", "APTv1") Ownable(msg.sender) {
+  )
+    ERC721("Athena Liquidity Position Token", "AthenaLPT")
+    Ownable(msg.sender)
+  {
     liquidityManager = liquidityManager_;
   }
 
