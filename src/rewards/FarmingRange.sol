@@ -355,7 +355,7 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
     coverToken.transferFrom(msg.sender, address(this), _tokenId);
 
     ILiquidityManager.CoverRead memory cover = liquidityManager
-      .covers(_tokenId);
+      .coverInfo(_tokenId);
 
     // For cover campaigns there is only one poolId
     if (campaignInfo[_campaignID].poolId != cover.poolId)

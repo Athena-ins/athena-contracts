@@ -22,6 +22,16 @@ interface ILiquidityManager {
     uint256 end;
   }
 
+  struct PositionRead {
+    uint256 supplied;
+    uint256 commitWithdrawalTimestamp;
+    uint256 rewardIndex;
+    uint64[] poolIds;
+    uint256 newUserCapital;
+    uint256 coverRewards;
+    uint256 strategyRewards;
+  }
+
   struct Position {
     uint256 supplied;
     uint256 commitWithdrawalTimestamp;
@@ -42,7 +52,7 @@ interface ILiquidityManager {
     uint256 tokenId_
   ) external view returns (uint64);
 
-  function covers(
+  function coverInfo(
     uint256 tokenId_
   ) external view returns (CoverRead memory);
 

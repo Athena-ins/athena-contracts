@@ -77,13 +77,12 @@ contract LiquidityManager is
   uint256 public nextCoverId;
   /// User cover data
   /// @dev left public to read cover initital cover data
-  mapping(uint256 _id => Cover) public _covers;
+  mapping(uint256 _id => Cover) public covers;
 
   /// The ID of the next token that will be minted.
   uint256 public nextPositionId;
   /// User LP data
-  /// @dev left public to read positions without its poolIds array
-  mapping(uint256 _id => Position) public _positions;
+  mapping(uint256 _id => Position) private _positions;
 
   /// The ID of the next claim to be
   uint256 public nextCompensationId;
@@ -163,26 +162,51 @@ contract LiquidityManager is
 
   /// ======= VIEWS ======= ///
 
-  /**
-   * @notice Returns the position data of a token
-   * @param positionId_ The ID of the position
-   * @return The position data
-   */
   function positions(
-    uint256 positionId_
+    uint256 tokenId_
   ) external view returns (Position memory) {
-    return _positions[positionId_];
+    return _positions[tokenId_];
   }
 
   /**
-   * @notice Returns the cover data of a token
+   * @notice Returns the up to date position data of a token
+   * @param positionId_ The ID of the position
+   * @return The position data
+   */
+  function positionInfo(
+    uint256 positionId_
+  ) external view returns (PositionRead memory) {
+    Position storage position = _positions[positionId_];
+    VirtualPool.UpdatedPositionInfo memory info = _pools[
+      position.poolIds[0]
+    ]._getUpdatedPositionInfo(
+        positionId_,
+        position.supplied,
+        position.rewardIndex,
+        position.poolIds
+      );
+
+    return
+      PositionRead({
+        supplied: position.supplied,
+        commitWithdrawalTimestamp: position.commitWithdrawalTimestamp,
+        rewardIndex: position.rewardIndex,
+        poolIds: position.poolIds,
+        newUserCapital: info.newUserCapital,
+        coverRewards: info.coverRewards,
+        strategyRewards: info.strategyRewards
+      });
+  }
+
+  /**
+   * @notice Returns the up to date cover data of a token
    * @param coverId_ The ID of the cover
    * @return The cover data formatted for reading
    */
-  function covers(
+  function coverInfo(
     uint256 coverId_
   ) external view returns (CoverRead memory) {
-    Cover storage cover = _covers[coverId_];
+    Cover storage cover = covers[coverId_];
 
     VirtualPool.CoverInfo memory info = _pools[cover.poolId]
       ._coverInfo(coverId_);
@@ -206,7 +230,7 @@ contract LiquidityManager is
    * @return The size of the cover's protection
    */
   function coverSize(uint256 coverId_) public view returns (uint256) {
-    return _covers[coverId_].coverAmount;
+    return covers[coverId_].coverAmount;
   }
 
   /**
@@ -217,7 +241,7 @@ contract LiquidityManager is
   function coverPoolId(
     uint256 coverId_
   ) external view returns (uint64) {
-    return _covers[coverId_].poolId;
+    return covers[coverId_].poolId;
   }
 
   /**
@@ -228,7 +252,7 @@ contract LiquidityManager is
   function isCoverActive(
     uint256 coverId_
   ) external view returns (bool) {
-    VirtualPool.VPool storage pool = _pools[_covers[coverId_].poolId];
+    VirtualPool.VPool storage pool = _pools[covers[coverId_].poolId];
     // Check if the last tick of the cover was overtaken by the pool
     return pool.slot0.tick < pool.coverPremiums[coverId_].lastTick;
   }
@@ -385,7 +409,7 @@ contract LiquidityManager is
    * @param coverId_ The ID of the cover
    */
   function _expireCover(uint256 coverId_) internal {
-    _covers[coverId_].end = block.timestamp;
+    covers[coverId_].end = block.timestamp;
 
     // This will freeze the farming rewards of the cover
     farming.freezeExpiredCoverRewards(coverId_);
@@ -428,7 +452,7 @@ contract LiquidityManager is
     nextCoverId++;
 
     // Create cover
-    _covers[coverId] = Cover({
+    covers[coverId] = Cover({
       poolId: poolId_,
       coverAmount: coverAmount_,
       start: block.timestamp,
@@ -463,7 +487,7 @@ contract LiquidityManager is
     uint256 premiumsToRemove_
   ) external onlyCoverOwner(coverId_) {
     // Get storage pointer to cover
-    Cover storage cover = _covers[coverId_];
+    Cover storage cover = covers[coverId_];
     // Get storage pointer to pool
     VirtualPool.VPool storage pool = _pools[cover.poolId];
 
@@ -829,6 +853,7 @@ contract LiquidityManager is
   ) external onlyPositionOwner(positionId_) {
     Position storage position = _positions[positionId_];
 
+    // Check that commit delay has been reached
     if (
       block.timestamp <
       position.commitWithdrawalTimestamp + withdrawDelay
@@ -836,6 +861,7 @@ contract LiquidityManager is
 
     address account = positionToken.ownerOf(positionId_);
 
+    // Remove capital from pool & compute capital after claims & strategy rewards
     (
       uint256 capital,
       uint256 strategyRewards
@@ -1025,7 +1051,7 @@ contract LiquidityManager is
   function addClaimToPool(
     uint256 coverId_
   ) external onlyClaimManager {
-    _pools[_covers[coverId_].poolId].ongoingClaims++;
+    _pools[covers[coverId_].poolId].ongoingClaims++;
   }
 
   /**
@@ -1037,7 +1063,7 @@ contract LiquidityManager is
   function removeClaimFromPool(
     uint256 coverId_
   ) external onlyClaimManager {
-    _pools[_covers[coverId_].poolId].ongoingClaims--;
+    _pools[covers[coverId_].poolId].ongoingClaims--;
   }
 
   /**
@@ -1071,7 +1097,7 @@ contract LiquidityManager is
     uint256 coverId_,
     uint256 compensationAmount_
   ) external onlyClaimManager {
-    uint64 poolId = _covers[coverId_].poolId;
+    uint64 poolId = covers[coverId_].poolId;
     VirtualPool.VPool storage poolA = _pools[poolId];
     uint256 ratio = compensationAmount_.rayDiv(
       poolA.totalLiquidity()
@@ -1149,7 +1175,7 @@ contract LiquidityManager is
 
     {
       // Get storage pointer to cover
-      Cover storage cover = _covers[coverId_];
+      Cover storage cover = covers[coverId_];
 
       // If the cover isn't expired, then reduce the cover amount
       if (cover.end == 0) {
