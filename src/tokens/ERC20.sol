@@ -1,0 +1,87 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+
+contract ERC20 is IERC20 {
+  //======== STORAGE ========//
+
+  string public name;
+  string public symbol;
+  uint8 public immutable decimals = 18;
+
+  uint256 public totalSupply;
+  mapping(address _account => uint256 _amount) public balanceOf;
+  mapping(address _account => mapping(address _spender => uint256 _amount))
+    public allowance;
+
+  //======== CONSTRUCTOR ========//
+
+  constructor(string memory name_, string memory symbol_) {
+    name = name_;
+    symbol = symbol_;
+  }
+
+  //======== FUNCTIONS ========//
+
+  function _mint(address account, uint256 amount) internal {
+    balanceOf[account] += amount;
+    totalSupply += amount;
+    emit IERC20.Transfer(address(0), account, amount);
+  }
+
+  function _burn(address account, uint256 amount) internal {
+    balanceOf[account] -= amount;
+    unchecked {
+      totalSupply -= amount;
+    }
+    emit IERC20.Transfer(account, address(0), amount);
+  }
+
+  function burn(uint256 amount) external {
+    _burn(msg.sender, amount);
+  }
+
+  function approve(
+    address spender,
+    uint256 amount
+  ) external returns (bool) {
+    allowance[msg.sender][spender] = amount;
+    emit IERC20.Approval(msg.sender, spender, amount);
+    return true;
+  }
+
+  function _transfer(
+    address from,
+    address to,
+    uint256 amount
+  ) internal virtual returns (bool) {
+    balanceOf[from] -= amount;
+    unchecked {
+      balanceOf[to] += amount;
+    }
+
+    emit IERC20.Transfer(msg.sender, to, amount);
+    return true;
+  }
+
+  function transfer(
+    address to,
+    uint256 amount
+  ) external returns (bool) {
+    return _transfer(msg.sender, to, amount);
+  }
+
+  function transferFrom(
+    address from,
+    address to,
+    uint256 amount
+  ) external returns (bool) {
+    uint256 allowed = allowance[from][msg.sender];
+
+    if (allowed != type(uint256).max)
+      allowance[from][msg.sender] = allowed - amount;
+
+    return _transfer(from, to, amount);
+  }
+}
