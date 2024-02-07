@@ -337,9 +337,13 @@ contract LiquidityManager is
     (address underlyingAsset, address wrappedAsset) = strategyManager
       .assets(strategyId_);
 
+    // Get storage pointer to pool
+    VirtualPool.VPool storage pool = _pools[poolId];
+
+    // Create virtual pool
+    pool._vPoolConstructor(
     // Create virtual pool argument struct
-    VirtualPool.VPoolConstructorParams memory args = VirtualPool
-      .VPoolConstructorParams({
+      VirtualPool.VPoolConstructorParams({
         poolId: poolId,
         dao: ecclesiaDao,
         strategyManager: strategyManager,
@@ -356,12 +360,8 @@ contract LiquidityManager is
         coverSize: coverSize,
         expireCover: _expireCover,
         getCompensation: _getCompensation
-      });
-
-    // Get storage pointer to pool
-    VirtualPool.VPool storage pool = _pools[poolId];
-    // Create virtual pool
-    pool._vPoolConstructor(args);
+      })
+    );
 
     // Add compatible pools
     // @dev Registered both ways for safety
@@ -834,10 +834,11 @@ contract LiquidityManager is
     bool keepWrapped_
   ) external onlyPositionOwner(positionId_) {
     Position storage position = _positions[positionId_];
-    uint256 commitTimestamp = position.commitWithdrawalTimestamp;
 
-    if (block.timestamp < commitTimestamp + withdrawDelay)
-      revert WithdrawCommitDelayNotReached();
+    if (
+      block.timestamp <
+      position.commitWithdrawalTimestamp + withdrawDelay
+    ) revert WithdrawCommitDelayNotReached();
 
     address account = positionToken.ownerOf(positionId_);
 
@@ -1006,11 +1007,9 @@ contract LiquidityManager is
           poolIds_
         );
 
-      if (i == 0) {
         // The updated user capital & strategy rewards are the same at each iteration
         capital = newUserCapital;
         rewards = strategyRewards;
-      }
 
       // Considering the verification that pool IDs are unique & ascending
       // then start index is i to reduce required number of loops

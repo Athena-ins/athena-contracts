@@ -167,6 +167,7 @@ abstract contract TestableVirtualPool {
   function withdrawLiquidity(
     uint64 poolId_,
     uint256 tokenId_,
+    uint256 supplied_,
     uint256 amount_,
     uint256 rewardIndex_,
     uint64[] memory poolIds_
@@ -177,6 +178,7 @@ abstract contract TestableVirtualPool {
     return
       getPool(poolId_)._withdrawLiquidity(
         tokenId_,
+        supplied_,
         amount_,
         rewardIndex_,
         transientPoolIds[currentIndex]

@@ -17,11 +17,9 @@ import { console } from "hardhat/console.sol";
 // ======= ERRORS ======= //
 
 error ZeroAddressAsset();
-error UpdateMustBeGreaterThanLast();
 error CoverAlreadyExpired();
 error DurationTooLow();
 error InsufficientCapacity();
-error LiquidityNotAvailable();
 error NotEnoughLiquidityForRemoval();
 
 /**
@@ -326,7 +324,7 @@ library VirtualPool {
       uint256 net = rewards_ - totalFees;
 
       // Pay position owner
-      if (net == 0) {
+      if (net != 0) {
         IERC20(self.paymentAsset).safeTransfer(account_, net);
       }
 
@@ -603,11 +601,11 @@ library VirtualPool {
   ) internal {
     uint256 liquidity = self.totalLiquidity();
     uint256 available = self.availableLiquidity();
+    uint256 totalCovered = self.slot0.coveredCapital;
 
     if (available + liquidityToAdd_ < liquidityToRemove_)
       revert NotEnoughLiquidityForRemoval();
 
-    uint256 totalCovered = self.slot0.coveredCapital;
     uint256 previousPremiumRate = self.currentPremiumRate();
     uint256 newPremiumRate = self.getPremiumRate(
       _utilization(
