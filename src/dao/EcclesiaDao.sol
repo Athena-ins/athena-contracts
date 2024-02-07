@@ -3,7 +3,7 @@
 pragma solidity 0.8.20;
 
 // Contracts
-import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import { ERC20 } from "../tokens/ERC20.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 // Libraries
@@ -90,7 +90,7 @@ contract EcclesiaDao is
   // Staking contract
   IStaking public staking;
   // Token to be locked (ATEN)
-  IERC20 public token;
+  IERC20 public atenToken;
   // Address of the revenue unifier
   address public liquidityManager;
   // Address of the strategy manager
@@ -138,7 +138,7 @@ contract EcclesiaDao is
   // ======= CONSTRUCTOR ======= //
 
   constructor(
-    IERC20 token_,
+    IERC20 atenToken_,
     IStaking staking_,
     address liquidityManager_,
     address strategyManager_,
@@ -146,12 +146,12 @@ contract EcclesiaDao is
     address leverageRiskWallet_
   ) ERC20("Athenian Vote", "vATEN") Ownable(msg.sender) {
     if (
-      address(token_) == address(0) ||
+      address(atenToken_) == address(0) ||
       address(staking_) == address(0) ||
       address(liquidityManager_) == address(0)
     ) revert ZeroAddress();
 
-    token = token_;
+    atenToken = atenToken_;
     staking = staking_;
     liquidityManager = liquidityManager_;
     strategyManager = strategyManager_;
@@ -218,10 +218,10 @@ contract EcclesiaDao is
    * @notice Override vATEN internal _transfer to disallow transfers
    */
   function _transfer(
-    address from,
-    address to,
-    uint256 value
-  ) internal override(ERC20) {
+    address /* from */,
+    address /* to */,
+    uint256 /* value */
+  ) internal pure override returns (bool) {
     revert TransfersNotAllowed();
   }
 
@@ -256,7 +256,7 @@ contract EcclesiaDao is
     }
 
     if (amount_ != 0) {
-      token.safeTransferFrom(msg.sender, address(this), amount_);
+      atenToken.safeTransferFrom(msg.sender, address(this), amount_);
       userLock.amount += amount_;
       supply += amount_;
     }
@@ -264,14 +264,14 @@ contract EcclesiaDao is
     uint256 toStake = userLock.amount - userLock.staking;
     if (0 < toStake && MIN_TO_STAKE < userLock.duration) {
       // We want to track the amount of staking rewards we harvest
-      uint256 balBefore = token.balanceOf(address(this));
+      uint256 balBefore = atenToken.balanceOf(address(this));
 
-      token.safeIncreaseAllowance(address(staking), toStake);
+      atenToken.safeIncreaseAllowance(address(staking), toStake);
       // This will cause a harvest of rewards
       staking.depositDao(msg.sender, toStake);
 
       // Reincorporate amount sent to staking for net rewards
-      uint256 stakingRewards = (token.balanceOf(address(this)) +
+      uint256 stakingRewards = (atenToken.balanceOf(address(this)) +
         toStake) - balBefore;
       _accrueStaking(stakingRewards);
 
@@ -380,7 +380,7 @@ contract EcclesiaDao is
     // Tokens are either 100% staked or 100% not staked
     if (userLock.staking != 0) {
       // We want to track the amount of staking rewards we harvest
-      uint256 balBefore = token.balanceOf(address(this));
+      uint256 balBefore = atenToken.balanceOf(address(this));
 
       // This will cause a harvest of rewards
       staking.withdrawTokenDao(
@@ -390,7 +390,7 @@ contract EcclesiaDao is
       );
 
       // Remove amount received from staking for net rewards
-      uint256 stakingRewards = (token.balanceOf(address(this)) -
+      uint256 stakingRewards = (atenToken.balanceOf(address(this)) -
         withdrawAmount_) - balBefore;
       _accrueStaking(stakingRewards);
 
@@ -413,13 +413,13 @@ contract EcclesiaDao is
 
     // Burn the user's corresponding votes
     uint256 votes = tokenToVotes(_lock.amount, _lock.duration);
-    uint256 userVotes = balanceOf(msg.sender);
+    uint256 userVotes = ERC20.balanceOf[msg.sender];
     if (userVotes < votes) revert NotEnoughVotes();
     _burn(msg.sender, votes);
 
     uint256 _amount = _lock.amount;
     _unlock(_lock, _amount);
-    token.safeTransfer(msg.sender, _amount);
+    atenToken.safeTransfer(msg.sender, _amount);
 
     // Harvest after unlock for staking reward index update
     harvest(revenueTokens);
@@ -441,7 +441,7 @@ contract EcclesiaDao is
 
     // Burn the user's corresponding votes
     uint256 votes = tokenToVotes(_lock.amount, _lock.duration);
-    uint256 userVotes = balanceOf(msg.sender);
+    uint256 userVotes = ERC20.balanceOf[msg.sender];
     if (userVotes < votes) revert NotEnoughVotes();
     _burn(msg.sender, votes);
 
@@ -470,10 +470,10 @@ contract EcclesiaDao is
     // Treasury fee
     uint256 _amountTreasury = (_penalty - _amountRedistribute) -
       _amountBurn;
-    token.safeTransfer(treasuryWallet, _amountTreasury);
+    atenToken.safeTransfer(treasuryWallet, _amountTreasury);
 
     // transfer remaining back to owner
-    token.safeTransfer(msg.sender, amount_ - _penalty);
+    atenToken.safeTransfer(msg.sender, amount_ - _penalty);
     emit EarlyWithdraw(msg.sender, amount_, block.timestamp);
   }
 
@@ -484,12 +484,12 @@ contract EcclesiaDao is
    */
   function syncStaking() external nonReentrant {
     // We want to track the amount of staking rewards we harvest
-    uint256 balBefore = token.balanceOf(address(this));
+    uint256 balBefore = atenToken.balanceOf(address(this));
 
     // Harvest rewards
     staking.harvestFarming();
 
-    uint256 stakingRewards = token.balanceOf(address(this)) -
+    uint256 stakingRewards = atenToken.balanceOf(address(this)) -
       balBefore;
     _accrueStaking(stakingRewards);
   }
@@ -502,7 +502,7 @@ contract EcclesiaDao is
 
   function _redistribute(uint256 amount_) private nonReentrant {
     // Rewards are distributed per vote
-    uint256 amountPerVoteRay = (amount_ * RAY) / totalSupply();
+    uint256 amountPerVoteRay = (amount_ * RAY) / ERC20.totalSupply;
     redistributeIndex += amountPerVoteRay;
   }
 
@@ -522,7 +522,7 @@ contract EcclesiaDao is
       IERC20(token_).safeTransfer(leverageRiskWallet, leverageFee_);
 
     // Rewards are distributed per vote
-    uint256 amountPerVoteRay = (amount_ * RAY) / totalSupply();
+    uint256 amountPerVoteRay = (amount_ * RAY) / ERC20.totalSupply;
     if (revenueIndex[token_] == 0) revenueTokens.push(token_);
     revenueIndex[token_] += amountPerVoteRay;
   }
@@ -554,7 +554,7 @@ contract EcclesiaDao is
 
     uint256 tokenRewards = tokenRewardsRay / RAY;
     if (tokenRewards != 0) {
-      IERC20(token).safeTransfer(msg.sender, tokenRewards);
+      atenToken.safeTransfer(msg.sender, tokenRewards);
 
       // Update indexes to reflect withdrawn rewards
       userLock.userStakingIndex = stakingIndex;
