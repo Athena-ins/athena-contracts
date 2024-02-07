@@ -136,6 +136,26 @@ abstract contract TestableVirtualPool {
 
   /// -------- TAKE INTERESTS -------- ///
 
+  // Private fn to circumvent takePoolInterests stack to deep error
+  function _poolInterests(
+    uint64 poolId_,
+    uint256 tokenId_,
+    address account_,
+    uint256 amount_,
+    uint256 rewardIndex_,
+    uint256 yieldBonus_
+  ) private returns (uint256, uint256) {
+    return
+      getPool(poolId_)._takePoolInterests(
+        tokenId_,
+        account_,
+        amount_,
+        rewardIndex_,
+        yieldBonus_,
+        transientPoolIds[currentIndex]
+      );
+  }
+
   /**
    * @dev Need to update user capital & payout strategy rewards upon calling this function
    */
@@ -152,13 +172,13 @@ abstract contract TestableVirtualPool {
     transientPoolIds[currentIndex] = poolIds_;
 
     return
-      getPool(poolId_)._takePoolInterests(
+      _poolInterests(
+        poolId_,
         tokenId_,
         account_,
         amount_,
         rewardIndex_,
-        yieldBonus_,
-        transientPoolIds[currentIndex]
+        yieldBonus_
       );
   }
 
