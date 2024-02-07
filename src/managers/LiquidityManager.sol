@@ -702,13 +702,15 @@ contract LiquidityManager is
       pool._purgeExpiredCovers();
 
       // These are the same values at each iteration
-      (newUserCapital, strategyRewards) = pool._takePoolInterests(
+      (newUserCapital, strategyRewards) = pool
+        ._positionLiquidityOrInterestsChange(
         positionId_,
-        coverRewardsBeneficiary_,
         position.supplied,
+          0, // No capital withdrawn
         position.rewardIndex,
-        yieldBonus_,
-        position.poolIds
+          position.poolIds,
+          coverRewardsBeneficiary_,
+          yieldBonus_
       );
     }
 
@@ -992,11 +994,14 @@ contract LiquidityManager is
 
       // Remove liquidity
       (uint256 newUserCapital, uint256 strategyRewards) = pool0
-        ._withdrawLiquidity(
+        ._positionLiquidityOrInterestsChange(
           positionId_,
           amount_,
+          amount_,
           rewardIndex_,
-          poolIds_
+          poolIds_,
+          address(ecclesiaDao),
+          0 // No yield bonus for DAO
         );
 
       if (i == 0) {

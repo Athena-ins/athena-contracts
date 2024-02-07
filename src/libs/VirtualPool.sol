@@ -341,6 +341,45 @@ library VirtualPool {
     }
   }
 
+  /// -------- TAKE INTERESTS & WITHDRAW -------- ///
+
+  function _positionLiquidityOrInterestsChange(
+    VPool storage self,
+    uint256 tokenId_,
+    uint256 supplied_,
+    uint256 withdrawing_,
+    uint256 rewardIndex_,
+    uint64[] storage poolIds_,
+    address account_,
+    uint256 yieldBonus_
+  ) internal returns (uint256, uint256) {
+    // Get the updated position info
+    UpdatedPositionInfo memory info = self._getUpdatedPositionInfo(
+      tokenId_,
+      supplied_,
+      rewardIndex_,
+      poolIds_
+    );
+
+    // Pay cover rewards and send fees to treasury
+    // Pool rewards after commit are paid in favor of the DAO's leverage risk wallet
+    self._payRewardsAndFees(
+      info.coverRewards,
+      account_,
+      yieldBonus_,
+      poolIds_.length
+    );
+
+    // Update lp info to reflect the new state of the position
+    self.lpInfos[tokenId_] = info.newLpInfo;
+
+    // If user is withdrawing liquidity we need to sync liquidity parameters
+    if (withdrawing_ != 0) self._syncLiquidity(0, withdrawing_);
+
+    // Return the user's capital & strategy rewards for withdrawal
+    return (info.newUserCapital, info.strategyRewards);
+  }
+
   /// -------- TAKE INTERESTS -------- ///
 
   /**
@@ -357,37 +396,37 @@ library VirtualPool {
    *
    * @dev Need to update user capital & payout strategy rewards upon calling this function
    */
-  function _takePoolInterests(
-    VPool storage self,
-    uint256 tokenId_,
-    address account_,
-    uint256 amount_,
-    uint256 rewardIndex_,
-    uint256 yieldBonus_,
-    uint64[] storage poolIds_
-  ) internal returns (uint256, uint256) {
-    // Get the updated position info
-    UpdatedPositionInfo memory info = self._getUpdatedPositionInfo(
-      tokenId_,
-      amount_,
-      rewardIndex_,
-      poolIds_
-    );
+  // function _takePoolInterests(
+  //   VPool storage self,
+  //   uint256 tokenId_,
+  //   address account_,
+  //   uint256 amount_,
+  //   uint256 rewardIndex_,
+  //   uint256 yieldBonus_,
+  //   uint64[] storage poolIds_
+  // ) internal returns (uint256, uint256) {
+  //   // Get the updated position info
+  //   UpdatedPositionInfo memory info = self._getUpdatedPositionInfo(
+  //     tokenId_,
+  //     amount_,
+  //     rewardIndex_,
+  //     poolIds_
+  //   );
 
-    // Pay cover rewards and send fees to treasury
-    self._payRewardsAndFees(
-      info.coverRewards,
-      account_,
-      yieldBonus_,
-      poolIds_.length
-    );
+  //   // Pay cover rewards and send fees to treasury
+  //   self._payRewardsAndFees(
+  //     info.coverRewards,
+  //     account_,
+  //     yieldBonus_,
+  //     poolIds_.length
+  //   );
 
-    // Update lp info to reflect the new state of the position
-    self.lpInfos[tokenId_] = info.newLpInfo;
+  //   // Update lp info to reflect the new state of the position
+  //   self.lpInfos[tokenId_] = info.newLpInfo;
 
-    // Return the user's capital & strategy rewards for withdrawal
-    return (info.newUserCapital, info.strategyRewards);
-  }
+  //   // Return the user's capital & strategy rewards for withdrawal
+  //   return (info.newUserCapital, info.strategyRewards);
+  // }
 
   /// -------- WITHDRAW -------- ///
 
@@ -401,35 +440,38 @@ library VirtualPool {
    * @return newUserCapital The user's capital after claims
    * @return strategyRewards The rewards earned by the strategy
    */
-  function _withdrawLiquidity(
-    VPool storage self,
-    uint256 tokenId_,
-    uint256 amount_,
-    uint256 rewardIndex_,
-    uint64[] storage poolIds_
-  ) internal returns (uint256, uint256) {
-    // Get the updated position info
-    UpdatedPositionInfo memory info = self._getUpdatedPositionInfo(
-      tokenId_,
-      amount_,
-      rewardIndex_,
-      poolIds_
-    );
+  // function _withdrawLiquidity(
+  //   VPool storage self,
+  //   uint256 tokenId_,
+  //   uint256 amount_,
+  //   uint256 rewardIndex_,
+  //   uint64[] storage poolIds_
+  // ) internal returns (uint256, uint256) {
+  //   // Get the updated position info
+  //   UpdatedPositionInfo memory info = self._getUpdatedPositionInfo(
+  //     tokenId_,
+  //     amount_,
+  //     rewardIndex_,
+  //     poolIds_
+  //   );
 
-    // Pool rewards after commit are paid in favor of the DAO's leverage risk wallet
-    self._payRewardsAndFees(
-      info.coverRewards,
-      address(self.dao),
-      0, // No yield bonus for the DAO
-      poolIds_.length
-    );
+  //   // Pool rewards after commit are paid in favor of the DAO's leverage risk wallet
+  //   self._payRewardsAndFees(
+  //     info.coverRewards,
+  //     address(self.dao),
+  //     0, // No yield bonus for the DAO
+  //     poolIds_.length
+  //   );
 
-    // Update liquidity index
-    self._syncLiquidity(0, info.newUserCapital);
+  //   // Update lp info to reflect the new state of the position
+  //   self.lpInfos[tokenId_] = info.newLpInfo;
 
-    // Return the user's capital & strategy rewards for withdrawal
-    return (info.newUserCapital, info.strategyRewards);
-  }
+  //   // Update liquidity index
+  //   self._syncLiquidity(0, info.newUserCapital);
+
+  //   // Return the user's capital & strategy rewards for withdrawal
+  //   return (info.newUserCapital, info.strategyRewards);
+  // }
 
   // ======= COVERS ======= //
 
