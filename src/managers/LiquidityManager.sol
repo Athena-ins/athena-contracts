@@ -179,17 +179,6 @@ contract LiquidityManager is
   }
 
   /**
-   * @notice Returns the strategy reward index of a position
-   * @param positionId_ The ID of the position
-   * @return The reward index
-   */
-  function posRewardIndex(
-    uint256 positionId_
-  ) public view returns (uint256) {
-    return _positions[positionId_].rewardIndex;
-  }
-
-  /**
    * @notice Returns the cover data of a token
    * @param coverId_ The ID of the cover
    * @return The cover data formatted for reading
@@ -366,8 +355,7 @@ contract LiquidityManager is
         rSlope2: rSlope2_, //Ray
         coverSize: coverSize,
         expireCover: _expireCover,
-        getCompensation: _getCompensation,
-        posRewardIndex: posRewardIndex
+        getCompensation: _getCompensation
       });
 
     // Get storage pointer to pool
@@ -718,6 +706,7 @@ contract LiquidityManager is
         positionId_,
         coverRewardsBeneficiary_,
         position.supplied,
+        position.rewardIndex,
         yieldBonus_,
         position.poolIds
       );
@@ -857,6 +846,7 @@ contract LiquidityManager is
     ) = _removeOverlappingCapital(
         positionId_,
         position.supplied,
+        position.rewardIndex,
         position.poolIds
       );
 
@@ -975,7 +965,7 @@ contract LiquidityManager is
   }
 
   /**
-   * @notice Removes a position's liquidity to the pools and their overlaps
+   * @notice Removes the position liquidity from its pools and overlaps
    * @param positionId_ The ID of the position
    * @param amount_ The amount of liquidity to remove
    * @param poolIds_ The IDs of the pools to remove liquidity from
@@ -988,6 +978,7 @@ contract LiquidityManager is
   function _removeOverlappingCapital(
     uint256 positionId_,
     uint256 amount_,
+    uint256 rewardIndex_,
     uint64[] storage poolIds_
   ) internal returns (uint256 capital, uint256 rewards) {
     uint256 nbPoolIds = poolIds_.length;
@@ -1001,7 +992,12 @@ contract LiquidityManager is
 
       // Remove liquidity
       (uint256 newUserCapital, uint256 strategyRewards) = pool0
-        ._withdrawLiquidity(positionId_, amount_, poolIds_);
+        ._withdrawLiquidity(
+          positionId_,
+          amount_,
+          rewardIndex_,
+          poolIds_
+        );
 
       if (i == 0) {
         // The updated user capital & strategy rewards are the same at each iteration

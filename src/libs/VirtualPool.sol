@@ -154,12 +154,11 @@ library VirtualPool {
     // Maps a cover ID to the premium position of the cover
     mapping(uint256 _coverId => CoverPremiums) coverPremiums;
     // Function pointers to access child contract data
-    function(uint256) view returns (uint256) coverSize;
-    function(uint256) expireCover;
     function(uint256)
       view
       returns (Compensation storage) getCompensation;
-    function(uint256) view returns (uint256) posRewardIndex;
+    function(uint256) view returns (uint256) coverSize;
+    function(uint256) expireCover;
   }
 
   // ======= VIRTUAL CONSTRUCTOR ======= //
@@ -178,13 +177,12 @@ library VirtualPool {
     uint256 r0; //Ray
     uint256 rSlope1; //Ray
     uint256 rSlope2; //Ray
-    // Function pointer to child contract cover data
-    function(uint256) view returns (uint256) coverSize;
-    function(uint256) expireCover;
+    // Function pointer to child contract data
     function(uint256)
       view
       returns (Compensation storage) getCompensation;
-    function(uint256) view returns (uint256) posRewardIndex;
+    function(uint256) view returns (uint256) coverSize;
+    function(uint256) expireCover;
   }
 
   /**
@@ -228,7 +226,6 @@ library VirtualPool {
     self.coverSize = params.coverSize;
     self.expireCover = params.expireCover;
     self.getCompensation = params.getCompensation;
-    self.posRewardIndex = params.posRewardIndex;
   }
 
   // ======= EVENTS ======= //
@@ -365,6 +362,7 @@ library VirtualPool {
     uint256 tokenId_,
     address account_,
     uint256 amount_,
+    uint256 rewardIndex_,
     uint256 yieldBonus_,
     uint64[] storage poolIds_
   ) internal returns (uint256, uint256) {
@@ -372,6 +370,7 @@ library VirtualPool {
     UpdatedPositionInfo memory info = self._getUpdatedPositionInfo(
       tokenId_,
       amount_,
+      rewardIndex_,
       poolIds_
     );
 
@@ -406,12 +405,14 @@ library VirtualPool {
     VPool storage self,
     uint256 tokenId_,
     uint256 amount_,
+    uint256 rewardIndex_,
     uint64[] storage poolIds_
   ) internal returns (uint256, uint256) {
     // Get the updated position info
     UpdatedPositionInfo memory info = self._getUpdatedPositionInfo(
       tokenId_,
       amount_,
+      rewardIndex_,
       poolIds_
     );
 
@@ -902,6 +903,7 @@ library VirtualPool {
     VPool storage self,
     uint256 tokenId_,
     uint256 userCapital_,
+    uint256 rewardIndex_,
     uint64[] storage poolIds_
   ) internal view returns (UpdatedPositionInfo memory info) {
     info.newLpInfo = self.lpInfos[tokenId_];
@@ -915,7 +917,6 @@ library VirtualPool {
     uint256 endCompensationId = self.compensationIds.length;
     uint256 nbPools = poolIds_.length;
 
-    uint256 rewardIndex = self.posRewardIndex(tokenId_);
     /**
      * Parse each claim that may affect capital due to overlap in order to
      * compute rewards on post compensation capital
@@ -947,12 +948,12 @@ library VirtualPool {
           itCompounds
             ? info.newUserCapital + info.strategyRewards
             : info.newUserCapital,
-          rewardIndex,
+          rewardIndex_,
           comp.rewardIndexBeforeClaim
         );
 
         // Register up to where the rewards have been accumulated
-        rewardIndex = comp.rewardIndexBeforeClaim;
+        rewardIndex_ = comp.rewardIndexBeforeClaim;
         info
           .newLpInfo
           .beginLiquidityIndex = liquidityIndexBeforeClaim;
@@ -976,7 +977,7 @@ library VirtualPool {
       itCompounds
         ? info.newUserCapital + info.strategyRewards
         : info.newUserCapital,
-      rewardIndex,
+      rewardIndex_,
       latestRewardIndex
     );
 

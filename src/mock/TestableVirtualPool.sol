@@ -144,6 +144,7 @@ abstract contract TestableVirtualPool {
     uint256 tokenId_,
     address account_,
     uint256 amount_,
+    uint256 rewardIndex_,
     uint256 yieldBonus_,
     uint64[] memory poolIds_
   ) public returns (uint256, uint256) {
@@ -155,6 +156,7 @@ abstract contract TestableVirtualPool {
         tokenId_,
         account_,
         amount_,
+        rewardIndex_,
         yieldBonus_,
         transientPoolIds[currentIndex]
       );
@@ -166,6 +168,7 @@ abstract contract TestableVirtualPool {
     uint64 poolId_,
     uint256 tokenId_,
     uint256 amount_,
+    uint256 rewardIndex_,
     uint64[] memory poolIds_
   ) public returns (uint256, uint256) {
     currentIndex++;
@@ -175,6 +178,7 @@ abstract contract TestableVirtualPool {
       getPool(poolId_)._withdrawLiquidity(
         tokenId_,
         amount_,
+        rewardIndex_,
         transientPoolIds[currentIndex]
       );
   }
@@ -260,8 +264,8 @@ abstract contract TestableVirtualPool {
     view
     returns (
       VirtualPool.Slot0 memory /* slot0_ */,
-      uint256 utilization,
-      uint256 premiumRate
+      uint256 _utilization,
+      uint256 _premiumRate
     )
   {
     return getPool(poolId_)._crossingInitializedTick(slot0_, tick_);
@@ -285,6 +289,7 @@ abstract contract TestableVirtualPool {
     uint64 poolId_,
     uint256 tokenId_,
     uint256 userCapital_,
+    uint256 rewardIndex_,
     uint64[] memory poolIds_
   ) public returns (VirtualPool.UpdatedPositionInfo memory info) {
     currentIndex++;
@@ -294,6 +299,7 @@ abstract contract TestableVirtualPool {
       getPool(poolId_)._getUpdatedPositionInfo(
         tokenId_,
         userCapital_,
+        rewardIndex_,
         transientPoolIds[currentIndex]
       );
   }
