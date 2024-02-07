@@ -96,7 +96,7 @@ export function liquidityManager() {
 
       for (let i = 0; i < this.args.nbLpProviders; i++) {
         expect(
-          await this.helpers.createPosition(
+          await this.helpers.openPosition(
             this.signers.deployer,
             this.args.lpAmount,
             false,
@@ -125,7 +125,7 @@ export function liquidityManager() {
 
       for (let i = 0; i < this.args.nbPools; i++) {
         expect(
-          await this.helpers.buyCover(
+          await this.helpers.openCover(
             this.signers.deployer,
             i,
             this.args.coverAmount,
@@ -193,7 +193,7 @@ export function liquidityManager() {
       await setNextBlockTimestamp({ days: 365 });
 
       expect(
-        await this.helpers.increasePosition(
+        await this.helpers.addLiquidity(
           this.signers.deployer,
           0,
           this.args.lpIncreaseAmount,
@@ -294,7 +294,7 @@ export function liquidityManager() {
 
       expect(
         await postTxHandler(
-          this.contracts.LiquidityManager.commitPositionWithdrawal(0),
+          this.contracts.LiquidityManager.commitRemoveLiquidity(0),
         ),
       ).to.not.throw;
 
@@ -309,7 +309,7 @@ export function liquidityManager() {
 
       expect(
         await postTxHandler(
-          this.contracts.LiquidityManager.closePosition(0, false),
+          this.contracts.LiquidityManager.removeLiquidity(0, false),
         ),
       ).to.not.throw;
 

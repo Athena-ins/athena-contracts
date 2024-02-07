@@ -4,8 +4,8 @@ import { setNextBlockTimestamp, postTxHandler } from "../../helpers/hardhat";
 import { toUsd, toErc20, makeIdArray } from "../../helpers/protocol";
 // Types
 
-export function LiquidityManager_closePosition() {
-  context("closePosition", function () {
+export function LiquidityManager_removeLiquidity() {
+  context("removeLiquidity", function () {
     before(async function () {
       this.args = {};
     });

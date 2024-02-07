@@ -4,14 +4,14 @@ import { setNextBlockTimestamp, postTxHandler } from "../../helpers/hardhat";
 import { toUsd, toErc20, makeIdArray } from "../../helpers/protocol";
 // Types
 
-export function LiquidityManager_uncommitPositionWithdrawal() {
-  context("uncommitPositionWithdrawal", function () {
+export function LiquidityManager_uncommitRemoveLiquidity() {
+  context("uncommitRemoveLiquidity", function () {
     before(async function () {
       this.args = {};
     });
     it("should successfully uncommit a committed position owned by the caller", async function () {
       // First, commit the position to set the commitWithdrawalTimestamp
-      await this.contracts.LiquidityManager.commitPositionWithdrawal(
+      await this.contracts.LiquidityManager.commitRemoveLiquidity(
         this.args.validPositionId,
       );
 
@@ -22,7 +22,7 @@ export function LiquidityManager_uncommitPositionWithdrawal() {
       expect(committedTimestamp).to.be.above(0);
 
       // Now, uncommit the position
-      await this.contracts.LiquidityManager.uncommitPositionWithdrawal(
+      await this.contracts.LiquidityManager.uncommitRemoveLiquidity(
         this.args.validPositionId,
       );
 
@@ -35,7 +35,7 @@ export function LiquidityManager_uncommitPositionWithdrawal() {
 
     it("should revert when trying to uncommit a position not owned by the caller", async function () {
       try {
-        await this.contracts.LiquidityManager.uncommitPositionWithdrawal(
+        await this.contracts.LiquidityManager.uncommitRemoveLiquidity(
           this.args.positionIdNotOwned,
         );
         throw new Error(
@@ -48,7 +48,7 @@ export function LiquidityManager_uncommitPositionWithdrawal() {
 
     it("should revert when trying to uncommit a position that is not committed", async function () {
       try {
-        await this.contracts.LiquidityManager.uncommitPositionWithdrawal(
+        await this.contracts.LiquidityManager.uncommitRemoveLiquidity(
           this.args.uncommittedPositionId,
         );
         throw new Error(
@@ -61,7 +61,7 @@ export function LiquidityManager_uncommitPositionWithdrawal() {
 
     it("should revert when trying to uncommit a non-existent positionId", async function () {
       try {
-        await this.contracts.LiquidityManager.uncommitPositionWithdrawal(
+        await this.contracts.LiquidityManager.uncommitRemoveLiquidity(
           this.args.nonExistentPositionId,
         );
         throw new Error(
@@ -73,10 +73,10 @@ export function LiquidityManager_uncommitPositionWithdrawal() {
     });
 
     it("should reset the commitWithdrawalTimestamp to zero after uncommitting", async function () {
-      await this.contracts.LiquidityManager.commitPositionWithdrawal(
+      await this.contracts.LiquidityManager.commitRemoveLiquidity(
         this.args.validPositionId,
       );
-      await this.contracts.LiquidityManager.uncommitPositionWithdrawal(
+      await this.contracts.LiquidityManager.uncommitRemoveLiquidity(
         this.args.validPositionId,
       );
       const timestamp = await this.contracts.LiquidityManager.positions(
@@ -90,10 +90,10 @@ export function LiquidityManager_uncommitPositionWithdrawal() {
         await this.contracts.LiquidityManager.getOwnerReward(
           this.args.positionOwner,
         ); // Replace with actual method to get owner reward
-      await this.contracts.LiquidityManager.commitPositionWithdrawal(
+      await this.contracts.LiquidityManager.commitRemoveLiquidity(
         this.args.validPositionId,
       );
-      await this.contracts.LiquidityManager.uncommitPositionWithdrawal(
+      await this.contracts.LiquidityManager.uncommitRemoveLiquidity(
         this.args.validPositionId,
       );
       const finalOwnerReward =

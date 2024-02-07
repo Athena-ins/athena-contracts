@@ -259,7 +259,7 @@ async function createDaoLock(
 
 // ======== LP Positions ======== //
 
-async function createPosition(
+async function openPosition(
   contract: LiquidityManager,
   user: Wallet,
   amount: BigNumberish,
@@ -284,11 +284,11 @@ async function createPosition(
   ]);
 
   return postTxHandler(
-    contract.connect(user).createPosition(amount, isWrapped, poolIds),
+    contract.connect(user).openPosition(amount, isWrapped, poolIds),
   );
 }
 
-async function increasePosition(
+async function addLiquidity(
   contract: LiquidityManager,
   user: Wallet,
   tokenId: BigNumberish,
@@ -317,13 +317,13 @@ async function increasePosition(
   ]);
 
   return postTxHandler(
-    contract.connect(user).increasePosition(tokenId, amount, isWrapped),
+    contract.connect(user).addLiquidity(tokenId, amount, isWrapped),
   );
 }
 
 // ======== Covers ======== //
 
-async function buyCover(
+async function openCover(
   contract: LiquidityManager,
   user: Wallet,
   poolId: number,
@@ -345,7 +345,7 @@ async function buyCover(
   ]);
 
   return postTxHandler(
-    contract.connect(user).buyCover(poolId, coverAmount, premiums),
+    contract.connect(user).openCover(poolId, coverAmount, premiums),
   );
 }
 
@@ -504,9 +504,9 @@ type TokenHelpers = {
 export type TestHelper = TokenHelpers & {
   // write
   createDaoLock: OmitThreeArgs<typeof createDaoLock>;
-  createPosition: OmitFirstArg<typeof createPosition>;
-  buyCover: OmitFirstArg<typeof buyCover>;
-  increasePosition: OmitFirstArg<typeof increasePosition>;
+  openPosition: OmitFirstArg<typeof openPosition>;
+  openCover: OmitFirstArg<typeof openCover>;
+  addLiquidity: OmitFirstArg<typeof addLiquidity>;
   updateCover: OmitFirstArg<typeof updateCover>;
   initiateClaim: OmitFirstArg<typeof initiateClaim>;
   withdrawCompensation: OmitFirstArg<typeof withdrawCompensation>;
@@ -540,9 +540,9 @@ export async function makeTestHelpers(
     // write
     createDaoLock: (...args) =>
       createDaoLock(EcclesiaDao, AthenaToken, deployer, ...args),
-    createPosition: (...args) => createPosition(LiquidityManager, ...args),
-    buyCover: (...args) => buyCover(LiquidityManager, ...args),
-    increasePosition: (...args) => increasePosition(LiquidityManager, ...args),
+    openPosition: (...args) => openPosition(LiquidityManager, ...args),
+    openCover: (...args) => openCover(LiquidityManager, ...args),
+    addLiquidity: (...args) => addLiquidity(LiquidityManager, ...args),
     updateCover: (...args) => updateCover(LiquidityManager, ...args),
     initiateClaim: (...args) => initiateClaim(ClaimManager, ...args),
     withdrawCompensation: (...args) =>

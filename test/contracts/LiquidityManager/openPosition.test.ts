@@ -4,8 +4,8 @@ import { setNextBlockTimestamp, postTxHandler } from "../../helpers/hardhat";
 import { toUsd, toErc20, makeIdArray } from "../../helpers/protocol";
 // Types
 
-export function LiquidityManager_createPosition() {
-  context("createPosition", function () {
+export function LiquidityManager_openPosition() {
+  context("openPosition", function () {
     before(async function () {
       this.args = {};
     });
@@ -15,7 +15,7 @@ export function LiquidityManager_createPosition() {
       expect(
         await this.contracts.LiquidityManager.connect(
           this.signers.user,
-        ).createPosition(
+        ).openPosition(
           this.args.amount,
           this.args.isWrapped,
           this.args.poolIds,
@@ -46,7 +46,7 @@ export function LiquidityManager_createPosition() {
       expect(
         await this.contracts.LiquidityManager.connect(
           this.signers.user,
-        ).createPosition(this.args.amount, this.args.isWrapped, excessPoolIds),
+        ).openPosition(this.args.amount, this.args.isWrapped, excessPoolIds),
       ).to.be.revertedWith("AmountOfPoolsIsAboveMaxLeverage");
     });
 
@@ -54,12 +54,12 @@ export function LiquidityManager_createPosition() {
       // Create a position with non-wrapped tokens
       await this.contracts.LiquidityManager.connect(
         this.signers.user,
-      ).createPosition(this.args.amount, false, this.args.poolIds);
+      ).openPosition(this.args.amount, false, this.args.poolIds);
 
       // Create a position with wrapped tokens
       await this.contracts.LiquidityManager.connect(
         this.signers.user,
-      ).createPosition(this.args.amount, true, this.args.poolIds);
+      ).openPosition(this.args.amount, true, this.args.poolIds);
 
       // Check if the positions are created correctly
       const nonWrappedPosition =
@@ -84,7 +84,7 @@ export function LiquidityManager_createPosition() {
       expect(
         await this.contracts.LiquidityManager.connect(
           this.signers.user,
-        ).createPosition(
+        ).openPosition(
           this.args.amount,
           this.args.isWrapped,
           incompatiblePools,
@@ -96,7 +96,7 @@ export function LiquidityManager_createPosition() {
       // Create a leveraged position
       await this.contracts.LiquidityManager.connect(
         this.signers.user,
-      ).createPosition(
+      ).openPosition(
         this.args.amount,
         this.args.isWrapped,
         this.args.leveragedPoolIds,
@@ -114,11 +114,7 @@ export function LiquidityManager_createPosition() {
       // Create a new LP position
       await this.contracts.LiquidityManager.connect(
         this.signers.user,
-      ).createPosition(
-        this.args.amount,
-        this.args.isWrapped,
-        this.args.poolIds,
-      );
+      ).openPosition(this.args.amount, this.args.isWrapped, this.args.poolIds);
 
       // Check if the position NFT is minted correctly
       const tokenId = this.args.nextPositionId - 1; // The last minted position ID
@@ -135,7 +131,7 @@ export function LiquidityManager_createPosition() {
       expect(
         await this.contracts.LiquidityManager.connect(
           this.signers.user,
-        ).createPosition(this.args.amount, this.args.isWrapped, invalidPoolIds),
+        ).openPosition(this.args.amount, this.args.isWrapped, invalidPoolIds),
       ).to.be.reverted; // Specific error message depends on contract implementation
     });
 
@@ -143,11 +139,7 @@ export function LiquidityManager_createPosition() {
       // Create a position
       await this.contracts.LiquidityManager.connect(
         this.signers.user,
-      ).createPosition(
-        this.args.amount,
-        this.args.isWrapped,
-        this.args.poolIds,
-      );
+      ).openPosition(this.args.amount, this.args.isWrapped, this.args.poolIds);
 
       // Retrieve the updated reward index for the position
       const tokenId = this.args.nextPositionId - 1; // The last minted position ID
@@ -164,11 +156,7 @@ export function LiquidityManager_createPosition() {
       expect(
         await this.contracts.LiquidityManager.connect(
           this.signers.user,
-        ).createPosition(
-          this.args.amount,
-          this.args.isWrapped,
-          unorderedPoolIds,
-        ),
+        ).openPosition(this.args.amount, this.args.isWrapped, unorderedPoolIds),
       ).to.be.revertedWith("PoolIdsMustBeUniqueAndAscending");
     });
 
@@ -177,11 +165,7 @@ export function LiquidityManager_createPosition() {
       // Assuming a claim has been created and compensation ID is set accordingly
       await this.contracts.LiquidityManager.connect(
         this.signers.user,
-      ).createPosition(
-        this.args.amount,
-        this.args.isWrapped,
-        this.args.poolIds,
-      );
+      ).openPosition(this.args.amount, this.args.isWrapped, this.args.poolIds);
 
       const tokenId = this.args.nextPositionId - 1; // The last minted position ID
       const position =

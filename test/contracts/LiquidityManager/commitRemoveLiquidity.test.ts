@@ -4,8 +4,8 @@ import { setNextBlockTimestamp, postTxHandler } from "../../helpers/hardhat";
 import { toUsd, toErc20, makeIdArray } from "../../helpers/protocol";
 // Types
 
-export function LiquidityManager_commitPositionWithdrawal() {
-  context("commitPositionWithdrawal", function () {
+export function LiquidityManager_commitRemoveLiquidity() {
+  context("commitRemoveLiquidity", function () {
     before(async function () {
       this.args = {};
     });
@@ -15,7 +15,7 @@ export function LiquidityManager_commitPositionWithdrawal() {
         this.args.validPositionId,
       ).commitWithdrawalTimestamp;
 
-      await this.contracts.LiquidityManager.commitPositionWithdrawal(
+      await this.contracts.LiquidityManager.commitRemoveLiquidity(
         this.args.validPositionId,
       );
 
@@ -28,7 +28,7 @@ export function LiquidityManager_commitPositionWithdrawal() {
 
     it("should revert when trying to commit withdrawal for a positionId not owned by the caller", async function () {
       try {
-        await this.contracts.LiquidityManager.commitPositionWithdrawal(
+        await this.contracts.LiquidityManager.commitRemoveLiquidity(
           this.args.positionIdNotOwned,
         );
         throw new Error(
@@ -41,7 +41,7 @@ export function LiquidityManager_commitPositionWithdrawal() {
 
     it("should revert when trying to commit withdrawal for a position with ongoing claims in associated pools", async function () {
       try {
-        await this.contracts.LiquidityManager.commitPositionWithdrawal(
+        await this.contracts.LiquidityManager.commitRemoveLiquidity(
           this.args.positionIdWithOngoingClaims,
         );
         throw new Error(
@@ -54,7 +54,7 @@ export function LiquidityManager_commitPositionWithdrawal() {
 
     it("should revert when trying to commit withdrawal for a non-existent positionId", async function () {
       try {
-        await this.contracts.LiquidityManager.commitPositionWithdrawal(
+        await this.contracts.LiquidityManager.commitRemoveLiquidity(
           this.args.nonExistentPositionId,
         );
         throw new Error(
@@ -67,7 +67,7 @@ export function LiquidityManager_commitPositionWithdrawal() {
     });
 
     it("should take interests in all pools associated with the position before withdrawal", async function () {
-      await this.contracts.LiquidityManager.commitPositionWithdrawal(
+      await this.contracts.LiquidityManager.commitRemoveLiquidity(
         this.args.validPositionId,
       );
       const position = await this.contracts.LiquidityManager.positions(
@@ -80,7 +80,7 @@ export function LiquidityManager_commitPositionWithdrawal() {
     });
 
     it("should update the commitWithdrawalTimestamp on each commit to withdraw the same position", async function () {
-      await this.contracts.LiquidityManager.commitPositionWithdrawal(
+      await this.contracts.LiquidityManager.commitRemoveLiquidity(
         this.args.validPositionId,
       );
       const firstTimestamp = await this.contracts.LiquidityManager.positions(
@@ -90,7 +90,7 @@ export function LiquidityManager_commitPositionWithdrawal() {
       // Wait for some time (if necessary) before making another commit
       // Example: await network.provider.send("evm_increaseTime", [someTime]);
 
-      await this.contracts.LiquidityManager.commitPositionWithdrawal(
+      await this.contracts.LiquidityManager.commitRemoveLiquidity(
         this.args.validPositionId,
       );
       const secondTimestamp = await this.contracts.LiquidityManager.positions(
@@ -104,7 +104,7 @@ export function LiquidityManager_commitPositionWithdrawal() {
       // Assuming we have a method to get the DAO's balance or relevant state
       const initialDaoState = await getDaoState(); // Replace with actual method to get DAO state
 
-      await this.contracts.LiquidityManager.commitPositionWithdrawal(
+      await this.contracts.LiquidityManager.commitRemoveLiquidity(
         this.args.validPositionId,
       );
 

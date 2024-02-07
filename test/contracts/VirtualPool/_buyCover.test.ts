@@ -4,8 +4,8 @@ import { setNextBlockTimestamp, postTxHandler } from "../../helpers/hardhat";
 import { toUsd, toErc20, makeIdArray } from "../../helpers/protocol";
 // Types
 
-export function VirtualPool__buyCover() {
-  context("_buyCover", function () {
+export function VirtualPool__openCover() {
+  context("_openCover", function () {
     before(async function () {
       this.args = {};
     });
@@ -13,7 +13,7 @@ export function VirtualPool__buyCover() {
     it("should revert if available liquidity is less than the cover amount", async function () {
       // Attempt to buy cover when available liquidity is insufficient
       expect(
-        await this.contracts.TestableVirtualPool.buyCover(
+        await this.contracts.TestableVirtualPool.openCover(
           this.args.coverId,
           this.args.coverAmountExceedingLiquidity,
           this.args.premiums,
@@ -24,7 +24,7 @@ export function VirtualPool__buyCover() {
     it("should revert if the calculated duration is too low", async function () {
       // Attempt to buy cover with a duration shorter than the new seconds per tick
       expect(
-        await this.contracts.TestableVirtualPool.buyCover(
+        await this.contracts.TestableVirtualPool.openCover(
           this.args.coverId,
           this.args.coverAmount,
           this.args.premiumsLeadingToLowDuration,
@@ -35,7 +35,7 @@ export function VirtualPool__buyCover() {
     it("should successfully register a premium position and update the pool's slot0", async function () {
       // Buy cover and check successful registration of premium position
       expect(
-        await this.contracts.TestableVirtualPool.buyCover(
+        await this.contracts.TestableVirtualPool.openCover(
           this.args.coverId,
           this.args.coverAmount,
           this.args.premiums,
@@ -50,7 +50,7 @@ export function VirtualPool__buyCover() {
 
     it("should correctly calculate the new premium rate, duration, and update the premium position", async function () {
       // Buy cover and verify the new premium rate and duration calculation
-      await this.contracts.TestableVirtualPool.buyCover(
+      await this.contracts.TestableVirtualPool.openCover(
         this.args.coverId,
         this.args.coverAmount,
         this.args.premiums,

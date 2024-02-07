@@ -203,14 +203,14 @@ abstract contract TestableVirtualPool {
       );
   }
 
-  function buyCover(
+  function openCover(
     uint64 poolId_,
     uint256 coverId_,
     uint256 coverAmount_,
     uint256 premiums_
   ) public {
     return
-      getPool(poolId_)._buyCover(coverId_, coverAmount_, premiums_);
+      getPool(poolId_)._openCover(coverId_, coverAmount_, premiums_);
   }
 
   /// -------- CLOSE -------- ///

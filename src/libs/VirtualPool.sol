@@ -474,7 +474,7 @@ library VirtualPool {
    * @param coverAmount_ The amount of cover to buy
    * @param premiums_ The amount of premiums deposited
    */
-  function _buyCover(
+  function _openCover(
     VPool storage self,
     uint256 coverId_,
     uint256 coverAmount_,

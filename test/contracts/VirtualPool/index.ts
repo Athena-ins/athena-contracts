@@ -5,7 +5,7 @@ import { VirtualPool__payRewardsAndFees } from "./_payRewardsAndFees.test";
 import { VirtualPool__takePoolInterests } from "./_takePoolInterests.test";
 import { VirtualPool__withdrawLiquidity } from "./_withdrawLiquidity.test";
 import { VirtualPool__addPremiumPosition } from "./_addPremiumPosition.test";
-import { VirtualPool__buyCover } from "./_buyCover.test";
+import { VirtualPool__openCover } from "./_openCover.test";
 import { VirtualPool__closeCover } from "./_closeCover.test";
 import { VirtualPool__removeTick } from "./_removeTick.test";
 import { VirtualPool__syncLiquidity } from "./_syncLiquidity.test";
@@ -29,7 +29,7 @@ export async function ClaimManagerTests() {
   VirtualPool__takePoolInterests();
   VirtualPool__withdrawLiquidity();
   VirtualPool__addPremiumPosition();
-  VirtualPool__buyCover();
+  VirtualPool__openCover();
   VirtualPool__closeCover();
   VirtualPool__removeTick();
   VirtualPool__syncLiquidity();

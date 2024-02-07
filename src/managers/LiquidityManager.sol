@@ -403,7 +403,7 @@ contract LiquidityManager is
    * @param coverAmount_ The amount of cover to buy
    * @param premiums_ The amount of premiums to pay
    */
-  function buyCover(
+  function openCover(
     uint64 poolId_,
     uint256 coverAmount_,
     uint256 premiums_
@@ -440,7 +440,7 @@ contract LiquidityManager is
     });
 
     // Create cover in pool
-    pool._buyCover(coverId, coverAmount_, premiums_);
+    pool._openCover(coverId, coverAmount_, premiums_);
 
     // Mint cover NFT
     coverToken.mint(msg.sender, coverId);
@@ -527,7 +527,7 @@ contract LiquidityManager is
       _expireCover(coverId_);
     } else {
       // Update cover
-      pool._buyCover(coverId_, cover.coverAmount, premiums);
+      pool._openCover(coverId_, cover.coverAmount, premiums);
     }
   }
 
@@ -543,7 +543,7 @@ contract LiquidityManager is
    * it allows the user to reinvest DeFi liquidity without having to withdraw
    * @dev Positions created after claim creation & before compensation are affected by the claim
    */
-  function createPosition(
+  function openPosition(
     uint256 amount,
     bool isWrapped,
     uint64[] calldata poolIds
@@ -613,7 +613,7 @@ contract LiquidityManager is
    * @dev Wrapped tokens are tokens representing a position in a strategy,
    * it allows the user to reinvest DeFi liquidity without having to withdraw
    */
-  function increasePosition(
+  function addLiquidity(
     uint256 positionId_,
     uint256 amount,
     bool isWrapped
@@ -746,8 +746,6 @@ contract LiquidityManager is
     );
   }
 
-  /// ======= LP YIELD BONUS ======= ///
-
   /**
    * @notice Takes the interests of a position taking into account the user yield bonus
    * @param account_ The address of the account
@@ -776,7 +774,7 @@ contract LiquidityManager is
    * @dev Ongoing claims must be resolved before being able to commit
    * @dev Interests earned between the commit and the withdrawal are sent to the DAO
    */
-  function commitPositionWithdrawal(
+  function commitRemoveLiquidity(
     uint256 positionId_
   ) external onlyPositionOwner(positionId_) {
     Position storage position = _positions[positionId_];
@@ -805,7 +803,7 @@ contract LiquidityManager is
    *
    * @dev This redirects interest back to the position owner
    */
-  function uncommitPositionWithdrawal(
+  function uncommitRemoveLiquidity(
     uint256 positionId_
   ) external onlyPositionOwner(positionId_) {
     Position storage position = _positions[positionId_];
@@ -1065,7 +1063,7 @@ contract LiquidityManager is
       revert SenderNotLiquidationManager();
     } // this function should be called only by this contract
 
-    _pools[poolId_]._buyCover(coverId_, newCoverAmount_, premiums_);
+    _pools[poolId_]._openCover(coverId_, newCoverAmount_, premiums_);
   }
 
   /**

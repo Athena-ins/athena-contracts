@@ -4,8 +4,8 @@ import { setNextBlockTimestamp, postTxHandler } from "../../helpers/hardhat";
 import { toUsd, toErc20, makeIdArray } from "../../helpers/protocol";
 // Types
 
-export function LiquidityManager_increasePosition() {
-  context("increasePosition", function () {
+export function LiquidityManager_addLiquidity() {
+  context("addLiquidity", function () {
     before(async function () {
       this.args = {};
     });
@@ -15,7 +15,7 @@ export function LiquidityManager_increasePosition() {
       expect(
         await this.contracts.LiquidityManager.connect(
           this.signers.positionOwner,
-        ).increasePosition(
+        ).addLiquidity(
           this.args.tokenId,
           this.args.amount,
           this.args.isWrapped,
@@ -36,7 +36,7 @@ export function LiquidityManager_increasePosition() {
       expect(
         await this.contracts.LiquidityManager.connect(
           this.signers.nonOwner,
-        ).increasePosition(
+        ).addLiquidity(
           this.args.tokenId,
           this.args.amount,
           this.args.isWrapped,
@@ -49,7 +49,7 @@ export function LiquidityManager_increasePosition() {
       expect(
         await this.contracts.LiquidityManager.connect(
           this.signers.positionOwner,
-        ).increasePosition(
+        ).addLiquidity(
           this.args.committedTokenId,
           this.args.amount,
           this.args.isWrapped,
@@ -61,12 +61,12 @@ export function LiquidityManager_increasePosition() {
       // Increase position with non-wrapped tokens
       await this.contracts.LiquidityManager.connect(
         this.signers.positionOwner,
-      ).increasePosition(this.args.tokenId, this.args.amount, false);
+      ).addLiquidity(this.args.tokenId, this.args.amount, false);
 
       // Increase position with wrapped tokens
       await this.contracts.LiquidityManager.connect(
         this.signers.positionOwner,
-      ).increasePosition(this.args.tokenId, this.args.amount, true);
+      ).addLiquidity(this.args.tokenId, this.args.amount, true);
 
       // Check if the positions are updated correctly
       const position = await this.contracts.LiquidityManager._positions(
@@ -81,11 +81,7 @@ export function LiquidityManager_increasePosition() {
       // Increase the position's liquidity
       await this.contracts.LiquidityManager.connect(
         this.signers.positionOwner,
-      ).increasePosition(
-        this.args.tokenId,
-        this.args.amount,
-        this.args.isWrapped,
-      );
+      ).addLiquidity(this.args.tokenId, this.args.amount, this.args.isWrapped);
 
       // Check if interests are taken into account before updating the position
       // Specific checks depend on contract implementation and state

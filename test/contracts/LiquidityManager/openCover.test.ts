@@ -4,8 +4,8 @@ import { setNextBlockTimestamp, postTxHandler } from "../../helpers/hardhat";
 import { toUsd, toErc20, makeIdArray } from "../../helpers/protocol";
 // Types
 
-export function LiquidityManager_buyCover() {
-  context("buyCover", function () {
+export function LiquidityManager_openCover() {
+  context("openCover", function () {
     before(async function () {
       this.args = {};
     });
@@ -15,7 +15,11 @@ export function LiquidityManager_buyCover() {
       expect(
         await this.contracts.LiquidityManager.connect(
           this.signers.user,
-        ).buyCover(this.args.poolId, this.args.coverAmount, this.args.premiums),
+        ).openCover(
+          this.args.poolId,
+          this.args.coverAmount,
+          this.args.premiums,
+        ),
       ).to.not.throw;
 
       // Retrieve the created cover information
@@ -51,7 +55,11 @@ export function LiquidityManager_buyCover() {
       expect(
         await this.contracts.LiquidityManager.connect(
           this.signers.user,
-        ).buyCover(this.args.poolId, this.args.coverAmount, this.args.premiums),
+        ).openCover(
+          this.args.poolId,
+          this.args.coverAmount,
+          this.args.premiums,
+        ),
       ).to.be.revertedWith("PoolIsPaused");
 
       // Reset pool pause for subsequent tests
@@ -66,7 +74,7 @@ export function LiquidityManager_buyCover() {
       expect(
         await this.contracts.LiquidityManager.connect(
           this.signers.user,
-        ).buyCover(
+        ).openCover(
           this.args.poolId,
           this.args.coverAmountExceedingLiquidity,
           this.args.premiums,
@@ -76,11 +84,9 @@ export function LiquidityManager_buyCover() {
 
     it("should transfer premiums from the user to the contract", async function () {
       // Buy a cover and check premiums transfer
-      await this.contracts.LiquidityManager.connect(this.signers.user).buyCover(
-        this.args.poolId,
-        this.args.coverAmount,
-        this.args.premiums,
-      );
+      await this.contracts.LiquidityManager.connect(
+        this.signers.user,
+      ).openCover(this.args.poolId, this.args.coverAmount, this.args.premiums);
 
       // Check if the premiums are transferred from the user to the contract
       const balanceOfContract = await this.contracts.AthenaCoverToken.balanceOf(
