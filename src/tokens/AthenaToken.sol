@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
+// Contracts
+import { ERC20 } from "./ERC20.sol";
+
 //======== INTERFACES ========//
 
 interface ITokenCallReceiver {
@@ -22,7 +25,7 @@ error OnlyContractsAllowed();
 // Not owner of the contract
 error Unauthorized();
 
-contract AthenaToken {
+contract AthenaToken is ERC20 {
   //======== STORAGE ========//
 
   // Maps a contract address to its authorized status
@@ -31,12 +34,6 @@ contract AthenaToken {
   bool public isLimited = true;
   address public owner;
 
-  string public name = "Athena Token";
-  string public symbol = "ATEN";
-  uint8 public immutable decimals = 18;
-  uint256 public totalSupply = 3_000_000_000 ether;
-  mapping(address => uint256) public balanceOf;
-  mapping(address => mapping(address => uint256)) public allowance;
   mapping(address => uint256) public nonces;
 
   bytes32 public DOMAIN_SEPARATOR;
@@ -49,21 +46,10 @@ contract AthenaToken {
       "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
     );
 
-  //======== EVENTS ========//
-
-  event Approval(
-    address indexed owner,
-    address indexed spender,
-    uint256 value
-  );
-  event Transfer(
-    address indexed from,
-    address indexed to,
-    uint256 value
-  );
-
   //======== CONSTRUCTOR ========//
-  constructor(address[] memory destination) {
+  constructor(
+    address[] memory destination
+  ) ERC20("Athena Token", "ATEN") {
     owner = msg.sender;
 
     DOMAIN_SEPARATOR = keccak256(
@@ -76,10 +62,7 @@ contract AthenaToken {
       )
     );
 
-    unchecked {
-      balanceOf[msg.sender] += totalSupply;
-    }
-    emit Transfer(address(0), msg.sender, totalSupply);
+    _mint(msg.sender, 3_000_000_000 ether);
 
     uint256 length = destination.length;
     bool[] memory status = new bool[](length);
@@ -117,62 +100,17 @@ contract AthenaToken {
     return (size > 0);
   }
 
-  function burn(uint256 amount) external {
-    balanceOf[msg.sender] -= amount;
-
-    unchecked {
-      totalSupply -= amount;
-    }
-
-    emit Transfer(msg.sender, address(0), amount);
-  }
-
-  function approve(
-    address spender,
-    uint256 amount
-  ) external returns (bool) {
-    allowance[msg.sender][spender] = amount;
-    emit Approval(msg.sender, spender, amount);
-    return true;
-  }
-
   function _transfer(
     address from,
     address to,
     uint256 amount
-  ) internal returns (bool) {
+  ) internal override returns (bool) {
     // During limited phase only authorized contracts are allowed
     if (isLimited)
       if (_isContract(to))
         if (!canReceive[to]) revert ContractNotYetAllowed();
 
-    balanceOf[from] -= amount;
-    unchecked {
-      balanceOf[to] += amount;
-    }
-
-    emit Transfer(msg.sender, to, amount);
-    return true;
-  }
-
-  function transfer(
-    address to,
-    uint256 amount
-  ) external returns (bool) {
-    return _transfer(msg.sender, to, amount);
-  }
-
-  function transferFrom(
-    address from,
-    address to,
-    uint256 amount
-  ) external returns (bool) {
-    uint256 allowed = allowance[from][msg.sender];
-
-    if (allowed != type(uint256).max)
-      allowance[from][msg.sender] = allowed - amount;
-
-    return _transfer(from, to, amount);
+    return super._transfer(from, to, amount);
   }
 
   /**
@@ -185,7 +123,7 @@ contract AthenaToken {
     address to,
     uint256 amount,
     bytes calldata data
-  ) public returns (bool success) {
+  ) public returns (bool) {
     if (_isContract(to)) revert OnlyContractsAllowed();
 
     _transfer(msg.sender, to, amount);
