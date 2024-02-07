@@ -209,7 +209,7 @@ contract LiquidityManager is
     Cover storage cover = covers[coverId_];
 
     VirtualPool.CoverInfo memory info = _pools[cover.poolId]
-      ._coverInfo(coverId_);
+      ._computeCoverInfo(coverId_);
 
     return
       CoverRead({
@@ -460,7 +460,7 @@ contract LiquidityManager is
     });
 
     // Create cover in pool
-    pool._openCover(coverId, coverAmount_, premiums_);
+    pool._registerCover(coverId, coverAmount_, premiums_);
 
     // Mint cover NFT
     coverToken.mint(msg.sender, coverId);
@@ -500,7 +500,7 @@ contract LiquidityManager is
     if (cover.end != 0) revert CoverIsExpired();
 
     // Get the amount of premiums left
-    uint256 premiums = pool._coverInfo(coverId_).premiumsLeft;
+    uint256 premiums = pool._computeCoverInfo(coverId_).premiumsLeft;
 
     // Close the existing cover
     pool._closeCover(coverId_, cover.coverAmount);
@@ -547,7 +547,7 @@ contract LiquidityManager is
       _expireCover(coverId_);
     } else {
       // Update cover
-      pool._openCover(coverId_, cover.coverAmount, premiums);
+      pool._registerCover(coverId_, cover.coverAmount, premiums);
     }
   }
 
@@ -1085,7 +1085,11 @@ contract LiquidityManager is
       revert SenderNotLiquidationManager();
     } // this function should be called only by this contract
 
-    _pools[poolId_]._openCover(coverId_, newCoverAmount_, premiums_);
+    _pools[poolId_]._registerCover(
+      coverId_,
+      newCoverAmount_,
+      premiums_
+    );
   }
 
   /**
@@ -1180,7 +1184,9 @@ contract LiquidityManager is
       // If the cover isn't expired, then reduce the cover amount
       if (cover.end == 0) {
         // Get the amount of premiums left
-        uint256 premiums = poolA._coverInfo(coverId_).premiumsLeft;
+        uint256 premiums = poolA
+          ._computeCoverInfo(coverId_)
+          .premiumsLeft;
         // Close the existing cover
         poolA._closeCover(coverId_, cover.coverAmount);
 

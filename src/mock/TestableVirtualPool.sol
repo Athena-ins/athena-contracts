@@ -223,14 +223,18 @@ abstract contract TestableVirtualPool {
       );
   }
 
-  function openCover(
+  function registerCover(
     uint64 poolId_,
     uint256 coverId_,
     uint256 coverAmount_,
     uint256 premiums_
   ) public {
     return
-      getPool(poolId_)._openCover(coverId_, coverAmount_, premiums_);
+      getPool(poolId_)._registerCover(
+        coverId_,
+        coverAmount_,
+        premiums_
+      );
   }
 
   /// -------- CLOSE -------- ///
@@ -270,11 +274,11 @@ abstract contract TestableVirtualPool {
 
   // ======= VIEW HELPERS ======= //
 
-  function coverInfo(
+  function computeCoverInfo(
     uint64 poolId_,
     uint256 coverId_
   ) public view returns (VirtualPool.CoverInfo memory info) {
-    return getPool(poolId_)._coverInfo(coverId_);
+    return getPool(poolId_)._computeCoverInfo(coverId_);
   }
 
   function crossingInitializedTick(

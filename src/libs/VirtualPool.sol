@@ -474,7 +474,7 @@ library VirtualPool {
    * @param coverAmount_ The amount of cover to buy
    * @param premiums_ The amount of premiums deposited
    */
-  function _openCover(
+  function _registerCover(
     VPool storage self,
     uint256 coverId_,
     uint256 coverAmount_,
@@ -672,7 +672,7 @@ library VirtualPool {
    *
    * @return info A struct containing the cover's premium rate & the cover's daily cost
    */
-  function _coverInfo(
+  function _computeCoverInfo(
     VPool storage self,
     uint256 coverId_
   ) internal view returns (CoverInfo memory info) {
