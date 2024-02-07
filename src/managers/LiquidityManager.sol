@@ -24,10 +24,6 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol"
 import { TestableVirtualPool } from "../mock/TestableVirtualPool.sol";
 import { console } from "hardhat/console.sol";
 
-// Todo
-// @bw add fns to debug if certain loops become too gas intensive to run in a single block
-// @bw add proxies to major contracts and fns to update state variables
-
 // ======= ERRORS ======= //
 
 error OnlyTokenOwner();
@@ -342,7 +338,7 @@ contract LiquidityManager is
 
     // Create virtual pool
     pool._vPoolConstructor(
-    // Create virtual pool argument struct
+      // Create virtual pool argument struct
       VirtualPool.VPoolConstructorParams({
         poolId: poolId,
         dao: ecclesiaDao,
@@ -1005,9 +1001,9 @@ contract LiquidityManager is
           poolIds_
         );
 
-        // The updated user capital & strategy rewards are the same at each iteration
-        capital = newUserCapital;
-        rewards = strategyRewards;
+      // The updated user capital & strategy rewards are the same at each iteration
+      capital = newUserCapital;
+      rewards = strategyRewards;
 
       // Considering the verification that pool IDs are unique & ascending
       // then start index is i to reduce required number of loops
