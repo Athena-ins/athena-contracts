@@ -177,14 +177,28 @@ contract LiquidityManager is
     uint256 positionId_
   ) external view returns (PositionRead memory) {
     Position storage position = _positions[positionId_];
-    VirtualPool.UpdatedPositionInfo memory info = _pools[
-      position.poolIds[0]
-    ]._getUpdatedPositionInfo(
+
+    uint256 nbPools = position.poolIds.length;
+
+    uint256[] memory coverRewards = new uint256[](nbPools);
+    VirtualPool.UpdatedPositionInfo memory info;
+
+    for (uint256 i; i < nbPools; i++) {
+      VirtualPool.VPool storage pool = _pools[position.poolIds[i]];
+
+      uint256 currentLiquidityIndex = pool
+        ._refresh(block.timestamp)
+        .liquidityIndex;
+
+      info = pool._getUpdatedPositionInfo(
+        currentLiquidityIndex,
         positionId_,
         position.supplied,
         position.rewardIndex,
         position.poolIds
       );
+      coverRewards[i] = info.coverRewards;
+    }
 
     return
       PositionRead({
@@ -193,7 +207,7 @@ contract LiquidityManager is
         rewardIndex: position.rewardIndex,
         poolIds: position.poolIds,
         newUserCapital: info.newUserCapital,
-        coverRewards: info.coverRewards,
+        coverRewards: coverRewards,
         strategyRewards: info.strategyRewards
       });
   }

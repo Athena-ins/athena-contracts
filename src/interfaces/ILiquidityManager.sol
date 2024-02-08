@@ -28,7 +28,7 @@ interface ILiquidityManager {
     uint256 rewardIndex;
     uint64[] poolIds;
     uint256 newUserCapital;
-    uint256 coverRewards;
+    uint256[] coverRewards;
     uint256 strategyRewards;
   }
 

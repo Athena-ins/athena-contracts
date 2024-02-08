@@ -358,6 +358,7 @@ library VirtualPool {
   ) internal returns (uint256, uint256) {
     // Get the updated position info
     UpdatedPositionInfo memory info = self._getUpdatedPositionInfo(
+      self.slot0.liquidityIndex,
       tokenId_,
       supplied_,
       rewardIndex_,
@@ -401,6 +402,7 @@ library VirtualPool {
   ) internal returns (uint256, uint256) {
     // Get the updated position info
     UpdatedPositionInfo memory info = self._getUpdatedPositionInfo(
+      self.slot0.liquidityIndex,
       tokenId_,
       supplied_,
       rewardIndex_,
@@ -640,13 +642,10 @@ library VirtualPool {
         }
       }
 
-      self.slot0.tick = slot0.tick;
-      self.slot0.secondsPerTick = slot0.secondsPerTick;
-      self.slot0.coveredCapital = slot0.coveredCapital;
-      self.slot0.remainingCovers = slot0.remainingCovers;
-      self.slot0.liquidityIndex = slot0.liquidityIndex;
+      self.slot0 = slot0;
     }
 
+    // Update update timestamp in any case
     self.slot0.lastUpdateTimestamp = block.timestamp;
   }
 
@@ -682,9 +681,10 @@ library VirtualPool {
         _utilization(slot0.coveredCapital, liquidity)
       );
 
-      uint256 beginDailyCost = self.coverSize(coverId_).rayMul(
-        coverPremium.beginPremiumRate / 100
-      ) / 365;
+      uint256 beginDailyCost = self
+        .coverSize(coverId_)
+        .rayMul(coverPremium.beginPremiumRate)
+        .rayDiv(365 * 100 * RayMath.RAY);
 
       info.currentDailyCost = getDailyCost(
         beginDailyCost,
@@ -869,6 +869,7 @@ library VirtualPool {
    * @dev Used for takeInterest, withdrawLiquidity and rewardsOf
    *
    * @param self The pool
+   * @param currentLiquidityIndex_ The current liquidity index
    * @param tokenId_ The LP position token ID
    * @param userCapital_ The amount of liquidity in the position
    * @param poolIds_ The pool IDs of the position
@@ -881,6 +882,7 @@ library VirtualPool {
    */
   function _getUpdatedPositionInfo(
     VPool storage self,
+    uint256 currentLiquidityIndex_,
     uint256 tokenId_,
     uint256 userCapital_,
     uint256 rewardIndex_,
@@ -964,12 +966,12 @@ library VirtualPool {
 
     info.coverRewards += getCoverRewards(
       info.newUserCapital,
-      self.slot0.liquidityIndex,
+      currentLiquidityIndex_,
       info.newLpInfo.beginLiquidityIndex
     );
 
     // Register up to where the position has been updated
-    info.newLpInfo.beginLiquidityIndex = self.slot0.liquidityIndex;
+    info.newLpInfo.beginLiquidityIndex = currentLiquidityIndex_;
     info.newLpInfo.beginClaimIndex = endCompensationId;
   }
 
@@ -1126,12 +1128,9 @@ library VirtualPool {
   function _utilization(
     uint256 coveredCapital_,
     uint256 liquidity_
-  ) internal pure returns (uint256 rate) {
+  ) internal pure returns (uint256 /* rate */) {
     // If the pool has no liquidity then the utilization rate is 0
     if (liquidity_ == 0) return 0;
-
-    // Multiply by 100 to get a percentage
-    rate = (coveredCapital_ * 100).rayDiv(liquidity_);
 
     /**
      * @dev Utilization rate is capped at 100% because in case of overusage the
@@ -1139,6 +1138,9 @@ library VirtualPool {
      * cover buyers are not fully covered.
      * This means cover buyers only pay for the effective cover they have.
      */
-    if (FULL_UTILIZATION_RATE < rate) rate = FULL_UTILIZATION_RATE;
+    if (liquidity_ < coveredCapital_) return FULL_UTILIZATION_RATE;
+
+    // Multiply by 100 to get a base 100 percentage
+    return (coveredCapital_ * 100).rayDiv(liquidity_);
   }
 }
