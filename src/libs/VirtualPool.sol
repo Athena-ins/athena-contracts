@@ -54,13 +54,6 @@ library VirtualPool {
 
   // ======= STRUCTS ======= //
 
-  struct RefreshTemporaryState {
-    uint256 liquidityIndex;
-    uint256 premiumRate;
-    uint256 remaining;
-    uint32 currentTick;
-  }
-
   struct Formula {
     uint256 uOptimal;
     uint256 r0;
@@ -74,6 +67,7 @@ library VirtualPool {
     uint256 coveredCapital;
     uint256 remainingCovers;
     uint256 lastUpdateTimestamp;
+    uint256 liquidityIndex; // This index grows with the premiums paid
   }
 
   struct LpInfo {
@@ -114,7 +108,6 @@ library VirtualPool {
     uint256 feeRate; //Ray
     Formula formula;
     Slot0 slot0;
-    uint256 liquidityIndex;
     uint256 strategyId;
     address paymentAsset;
     address underlyingAsset;
@@ -132,7 +125,6 @@ library VirtualPool {
     IStrategyManager strategyManager;
     Formula formula;
     Slot0 slot0;
-    uint256 liquidityIndex; // This index grows with the premiums paid
     uint256 strategyId;
     address paymentAsset; // asset used to pay LP premiums
     address underlyingAsset; // asset required by the strategy
@@ -284,7 +276,7 @@ library VirtualPool {
     // This sets the point from which the position earns rewards & is impacted by claims
     // also overwrites previous LpInfo after a withdrawal
     self.lpInfos[tokenId_] = LpInfo({
-      beginLiquidityIndex: self.liquidityIndex,
+      beginLiquidityIndex: self.slot0.liquidityIndex,
       beginClaimIndex: self.compensationIds.length
     });
   }
@@ -627,9 +619,7 @@ library VirtualPool {
    */
   function _purgeExpiredCovers(VPool storage self) internal {
     if (0 < self.slot0.remainingCovers) {
-      (Slot0 memory slot0, uint256 liquidityIndex) = self._refresh(
-        block.timestamp
-      );
+      Slot0 memory slot0 = self._refresh(block.timestamp);
 
       uint32 observedTick = self.slot0.tick;
       bool isInitialized;
@@ -654,7 +644,7 @@ library VirtualPool {
       self.slot0.secondsPerTick = slot0.secondsPerTick;
       self.slot0.coveredCapital = slot0.coveredCapital;
       self.slot0.remainingCovers = slot0.remainingCovers;
-      self.liquidityIndex = liquidityIndex;
+      self.slot0.liquidityIndex = slot0.liquidityIndex;
     }
 
     self.slot0.lastUpdateTimestamp = block.timestamp;
@@ -677,7 +667,7 @@ library VirtualPool {
     uint256 coverId_
   ) internal view returns (CoverInfo memory info) {
     // For reads we sync the slot0 to the current timestamp to have latests data
-    (Slot0 memory slot0, ) = self._refresh(block.timestamp);
+    Slot0 memory slot0 = self._refresh(block.timestamp);
     CoverPremiums storage coverPremium = self.coverPremiums[coverId_];
 
     if (coverPremium.lastTick < slot0.tick) {
@@ -811,18 +801,13 @@ library VirtualPool {
    * @param timestamp_ The timestamp to update the slot0 & liquidity index to
    *
    * @return slot0 The updated slot0
-   * @return liquidityIndex The updated liquidity index
    */
   function _refresh(
     VPool storage self,
     uint256 timestamp_
-  )
-    internal
-    view
-    returns (Slot0 memory /* slot0 */, uint256 /* liquidityIndex */)
-  {
+  ) internal view returns (Slot0 memory slot0) {
     // Make copies in memory to allow for mutations
-    Slot0 memory slot0 = self.slot0;
+    slot0 = self.slot0;
 
     uint256 liquidity = self.totalLiquidity();
     uint256 utilization = _utilization(
@@ -830,46 +815,41 @@ library VirtualPool {
       liquidity
     );
 
-    RefreshTemporaryState memory _temp = RefreshTemporaryState({
-      liquidityIndex: self.liquidityIndex,
-      premiumRate: self.getPremiumRate(utilization),
-      // The remaining time in seconds to run through to sync up to the timestamp
-      remaining: timestamp_ - slot0.lastUpdateTimestamp,
-      currentTick: slot0.tick
-    });
+    // The remaining time in seconds to run through to sync up to the timestamp
+    uint256 remaining = timestamp_ - slot0.lastUpdateTimestamp;
+    uint256 premiumRate = self.getPremiumRate(utilization);
+    uint32 currentTick = slot0.tick;
 
-    while (0 < _temp.remaining) {
+    while (0 < remaining) {
       (uint32 nextTick, bool isInitialized) = self
         .tickBitmap
-        .nextTick(_temp.currentTick);
+        .nextTick(currentTick);
 
       // Tick size in seconds
-      uint256 tickSize = (nextTick - _temp.currentTick) *
+      uint256 tickSize = (nextTick - currentTick) *
         slot0.secondsPerTick;
 
-      if (tickSize <= _temp.remaining) {
-        _temp.currentTick = nextTick;
+      if (tickSize <= remaining) {
+        currentTick = nextTick;
 
         if (isInitialized) {
           // If the tick has covers then expire then upon crossing the tick & update liquidity
           // Save the updated slot0
-          (slot0, utilization, _temp.premiumRate) = self
+          (slot0, utilization, premiumRate) = self
             ._crossingInitializedTick(slot0, nextTick);
         }
 
-        _temp.liquidityIndex +=
-          (utilization.rayMul(_temp.premiumRate) * tickSize) /
+        slot0.liquidityIndex +=
+          (utilization.rayMul(premiumRate) * tickSize) /
           YEAR;
 
         // Remove parsed tick size from remaining time to current timestamp
-        _temp.remaining -= tickSize;
+        remaining -= tickSize;
       } else {
-        _temp.currentTick += uint32(
-          _temp.remaining / slot0.secondsPerTick
-        );
+        currentTick += uint32(remaining / slot0.secondsPerTick);
 
-        _temp.liquidityIndex +=
-          (utilization.rayMul(_temp.premiumRate) * _temp.remaining) /
+        slot0.liquidityIndex +=
+          (utilization.rayMul(premiumRate) * remaining) /
           YEAR;
 
         break; // remaining is 0
@@ -877,10 +857,8 @@ library VirtualPool {
     }
 
     // Update current tick & last update timestamp
-    slot0.tick = _temp.currentTick;
+    slot0.tick = currentTick;
     slot0.lastUpdateTimestamp = timestamp_;
-
-    return (slot0, _temp.liquidityIndex);
   }
 
   /**
@@ -986,12 +964,12 @@ library VirtualPool {
 
     info.coverRewards += getCoverRewards(
       info.newUserCapital,
-      self.liquidityIndex,
+      self.slot0.liquidityIndex,
       info.newLpInfo.beginLiquidityIndex
     );
 
     // Register up to where the position has been updated
-    info.newLpInfo.beginLiquidityIndex = self.liquidityIndex;
+    info.newLpInfo.beginLiquidityIndex = self.slot0.liquidityIndex;
     info.newLpInfo.beginClaimIndex = endCompensationId;
   }
 

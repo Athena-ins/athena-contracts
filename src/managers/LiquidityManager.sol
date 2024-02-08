@@ -273,7 +273,6 @@ contract LiquidityManager is
         feeRate: pool.feeRate,
         formula: pool.formula,
         slot0: pool.slot0,
-        liquidityIndex: pool.liquidityIndex,
         strategyId: pool.strategyId,
         paymentAsset: pool.paymentAsset,
         underlyingAsset: pool.underlyingAsset,
@@ -1146,6 +1145,7 @@ contract LiquidityManager is
         // Trade references to track reward indexes in single compensation struct
         poolB.compensationIds.push(compensationId);
         compensation.liquidityIndexBeforeClaim[poolIdB] = poolB
+          .slot0
           .liquidityIndex;
       }
     }
