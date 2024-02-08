@@ -646,7 +646,7 @@ contract LiquidityManager is
       revert CannotIncreaseIfCommittedWithdrawal();
 
     // Take interests in all pools before update
-    // @dev Needed to keep register rewards & claims impact on capital
+    // @dev Needed to register rewards & claims impact on capital
     _takeInterests(
       positionId_,
       positionToken.ownerOf(positionId_),
@@ -903,31 +903,6 @@ contract LiquidityManager is
   }
 
   /// ======= LIQUIDITY CHANGES ======= ///
-
-  // function _getUpdatedPositionInfo(
-  //   uint256 positionId_,
-  //   address account_,
-  //   uint256 amount_,
-  //   uint64[] storage poolIds_
-  // )
-  //   private
-  //   view
-  //   returns (
-  //     uint256 newUserCapital,
-  //     uint256 strategyRewards,
-  //     uint256[] memory poolRewards
-  //   )
-  // {
-  //   // Manage before withdraw or take profit pool actions
-
-  //   // This need to be updated in each pool
-  //   // struct LpInfo {
-  //   //   uint256 beginLiquidityIndex;
-  //   //   uint256 beginClaimIndex;
-  //   //   uint256 beginRewardIndex; // this can be deleted as shared
-  //   // }
-  //   // Manage after withdraw or take profit pool actions
-  // }
 
   /**
    * @notice Adds a position's liquidity to the pools and their overlaps

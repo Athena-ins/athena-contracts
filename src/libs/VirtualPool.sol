@@ -941,9 +941,10 @@ library VirtualPool {
           .liquidityIndexBeforeClaim[poolId];
 
         // Compute the rewards accumulated up to the claim
-        info.coverRewards += info.newUserCapital.rayMul(
-          liquidityIndexBeforeClaim -
-            info.newLpInfo.beginLiquidityIndex
+        info.coverRewards += getCoverRewards(
+          info.newUserCapital,
+          liquidityIndexBeforeClaim,
+          info.newLpInfo.beginLiquidityIndex
         );
         info.strategyRewards += self.strategyManager.computeReward(
           strategyId,
@@ -983,10 +984,13 @@ library VirtualPool {
       latestRewardIndex
     );
 
-    info.coverRewards += info.newUserCapital.rayMul(
-      self.liquidityIndex - info.newLpInfo.beginLiquidityIndex
+    info.coverRewards += getCoverRewards(
+      info.newUserCapital,
+      self.liquidityIndex,
+      info.newLpInfo.beginLiquidityIndex
     );
 
+    // Register up to where the position has been updated
     info.newLpInfo.beginLiquidityIndex = self.liquidityIndex;
     info.newLpInfo.beginClaimIndex = endCompensationId;
   }
@@ -1037,6 +1041,22 @@ library VirtualPool {
   }
 
   // ======= PURE HELPERS ======= //
+
+  /**
+   * @notice Computes the premium interests earned by a liquidity in the pool
+   * @param userCapital_ The amount of liquidity in the position
+   * @param liquidityIndex_ The end liquidity index
+   * @param beginLiquidityIndex_ The start liquidity index
+   */
+  function getCoverRewards(
+    uint256 userCapital_,
+    uint256 liquidityIndex_,
+    uint256 beginLiquidityIndex_
+  ) internal pure returns (uint256) {
+    return
+      (userCapital_.rayMul(liquidityIndex_) -
+        userCapital_.rayMul(beginLiquidityIndex_)) / 10_000;
+  }
 
   /**
    * @notice Computes the new daily cost of a cover,
