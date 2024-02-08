@@ -343,7 +343,7 @@ library VirtualPool {
    * @param poolIds_ The pool IDs of the position
    *
    * @return newUserCapital The user's capital after claims
-   * @return coverRewards The rewards earned by covers in the pool
+   * @return coverRewards The rewards earned from cover premiums
    *
    * @dev Need to update user capital & payout strategy rewards upon calling this function
    */
@@ -863,7 +863,7 @@ library VirtualPool {
 
   /**
    * @notice Computes the state changes of an LP position,
-   * it aggregates the fees earned by the position in the pool and
+   * it aggregates the fees earned by the position   and
    * computes the losses incurred by the claims in this pool.
    *
    * @dev Used for takeInterest, withdrawLiquidity and rewardsOf
@@ -876,7 +876,7 @@ library VirtualPool {
    *
    * @return info Updated information about the position:
    * - newUserCapital The user's capital after claims
-   * - coverRewards The rewards earned by covers in the pool
+   * - coverRewards The rewards earned from cover premiums
    * - strategyRewards The rewards earned by the strategy
    * - newLpInfo The updated LpInfo of the position
    */
@@ -977,7 +977,7 @@ library VirtualPool {
 
   /**
    * @notice Computes the premium rate of a cover,
-   * the premium rate is the APR cost for a cover in the pool,
+   * the premium rate is the APR cost for a cover  ,
    * these are paid by cover buyer on their cover amount.
    *
    * @param self The pool
@@ -1023,7 +1023,7 @@ library VirtualPool {
   // ======= PURE HELPERS ======= //
 
   /**
-   * @notice Computes the premium interests earned by a liquidity in the pool
+   * @notice Computes the premium interests earned by a liquidity
    * @param userCapital_ The amount of liquidity in the position
    * @param liquidityIndex_ The end liquidity index
    * @param beginLiquidityIndex_ The start liquidity index
@@ -1040,7 +1040,7 @@ library VirtualPool {
 
   /**
    * @notice Computes the new daily cost of a cover,
-   * the emmission rate is the daily cost of a cover in the pool.
+   * the emmission rate is the daily cost of a cover  .
    *
    * @param oldDailyCost_ The daily cost of the cover before the change
    * @param oldPremiumRate_ The premium rate of the cover before the change
@@ -1059,7 +1059,7 @@ library VirtualPool {
 
   /**
    * @notice Computes the new seconds per tick of a pool,
-   * the seconds per tick is the time between two ticks in the pool.
+   * the seconds per tick is the time between two ticks  .
    *
    * @param oldSecondsPerTick_ The seconds per tick before the change
    * @param oldPremiumRate_ The premium rate before the change
@@ -1118,8 +1118,8 @@ library VirtualPool {
 
   /**
    * @notice Computes the percentage of the pool's liquidity used for covers.
-   * @param coveredCapital_ The amount of covered capital in the pool
-   * @param liquidity_ The amount of liquidity in the pool
+   * @param coveredCapital_ The amount of covered capital
+   * @param liquidity_ The total amount liquidity
    *
    * @return rate The utilization rate of the pool
    *
