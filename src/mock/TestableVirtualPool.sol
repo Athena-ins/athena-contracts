@@ -300,14 +300,7 @@ abstract contract TestableVirtualPool {
   function refresh(
     uint64 poolId_,
     uint256 timestamp_
-  )
-    public
-    view
-    returns (
-      VirtualPool.Slot0 memory /* slot0 */,
-      uint256 /* liquidityIndex */
-    )
-  {
+  ) public view returns (VirtualPool.Slot0 memory /* slot0 */) {
     return getPool(poolId_)._refresh(timestamp_);
   }
 
@@ -324,6 +317,7 @@ abstract contract TestableVirtualPool {
     return
       getPool(poolId_)._getUpdatedPositionInfo(
         tokenId_,
+        getPool(poolId_).slot0.liquidityIndex,
         userCapital_,
         rewardIndex_,
         transientPoolIds[currentIndex]
