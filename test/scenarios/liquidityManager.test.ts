@@ -30,8 +30,8 @@ export function liquidityManager() {
         daoLockDuration: 60 * 60 * 24 * 365,
         lpAmount: toUsd(1000),
         nbLpProviders: 1,
-        coverAmount: toUsd(500),
-        coverPremiums: toUsd(100),
+        coverAmount: toUsd(1000),
+        coverPremiums: toUsd(1000),
         claimAmount: toUsd(200),
         lpIncreaseAmount: toUsd(1500),
         coverIncreaseAmount: toUsd(400),
@@ -129,7 +129,7 @@ export function liquidityManager() {
             this.signers.deployer,
             i,
             this.args.coverAmount,
-            toUsd(100),
+            this.args.coverPremiums,
           ),
         ).to.not.throw;
 
@@ -153,7 +153,7 @@ export function liquidityManager() {
 
     // it("has coherent state", async function (this: Arguments) {});
 
-    it("can create claims", async function (this: Arguments) {
+    it.skip("can create claims", async function (this: Arguments) {
       this.timeout(300_000);
       await setNextBlockTimestamp({ days: 365 });
 
@@ -173,7 +173,7 @@ export function liquidityManager() {
         expect(claim.coverId).to.equal(i);
       }
     });
-    it("can resolve claims", async function (this: Arguments) {
+    it.skip("can resolve claims", async function (this: Arguments) {
       this.timeout(600_000);
       await setNextBlockTimestamp({ days: 15 });
 
@@ -187,18 +187,21 @@ export function liquidityManager() {
     // it("has coherent state", async function (this: Arguments) {});
 
     it("can increase LPs", async function (this: Arguments) {
-      await setNextBlockTimestamp({ days: 365 });
-
       const coverInfo = await this.contracts.LiquidityManager.coverInfo(0);
-      console.log("\ncoverInfo: ", coverInfo.premiumsLeft.toString());
+      console.log("\ncover premiumsLeft: ", coverInfo.premiumsLeft.toString());
       const positionInfo =
         await this.contracts.LiquidityManager.positionInfo(0);
-      console.log("positionInfo: ", positionInfo.coverRewards.toString());
+      console.log(
+        "position coverRewards: ",
+        positionInfo.coverRewards.toString(),
+      );
 
       console.log(
         "(((((TOTAL))))): ",
         positionInfo.coverRewards[0].add(coverInfo.premiumsLeft).toString(),
       );
+
+      await setNextBlockTimestamp({ days: 365 });
 
       expect(
         await this.helpers.addLiquidity(

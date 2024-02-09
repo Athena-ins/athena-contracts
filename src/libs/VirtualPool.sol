@@ -48,7 +48,7 @@ library VirtualPool {
 
   uint256 internal constant DAY = 86400; // 1 day in seconds
   uint256 internal constant YEAR = 365 * DAY; // 365 day
-  uint256 internal constant MAX_SECONDS_PER_TICK = DAY;
+  uint256 internal constant MAX_SECONDS_PER_TICK = DAY; // @bw redundant with DAY
   uint256 internal constant FEE_BASE = RayMath.RAY; // RAY = 1e27
   uint256 internal constant FULL_UTILIZATION_RATE = 100 * RayMath.RAY; // RAY = 1e27
 
@@ -712,6 +712,7 @@ library VirtualPool {
           uint256 duration = (nextMaxTick - currentTick) *
             slot0.secondsPerTick;
 
+          // @bw probably some rounding issue with the use of seconds in secondsPerTick
           info.premiumsLeft +=
             (duration * dailyCost) /
             MAX_SECONDS_PER_TICK;
@@ -839,18 +840,22 @@ library VirtualPool {
             ._crossingInitializedTick(slot0, nextTick);
         }
 
-        slot0.liquidityIndex +=
-          (utilization.rayMul(premiumRate) * tickSize) /
-          YEAR;
+        slot0.liquidityIndex += computeLiquidityIndex(
+          utilization,
+          premiumRate,
+          tickSize
+        );
 
         // Remove parsed tick size from remaining time to current timestamp
         remaining -= tickSize;
       } else {
         currentTick += uint32(remaining / slot0.secondsPerTick);
 
-        slot0.liquidityIndex +=
-          (utilization.rayMul(premiumRate) * remaining) /
-          YEAR;
+        slot0.liquidityIndex += computeLiquidityIndex(
+          utilization,
+          premiumRate,
+          remaining
+        );
 
         break; // remaining is 0
       }
@@ -990,7 +995,7 @@ library VirtualPool {
     uint256 utilizationRate_
   ) internal view returns (uint256 /* premiumRate */) {
     Formula storage formula = self.formula;
-    // returns actual rate for insurance
+
     if (utilizationRate_ < formula.uOptimal) {
       // Return base rate + proportional slope 1 rate
       return
@@ -1009,13 +1014,13 @@ library VirtualPool {
           )
         );
     } else {
+      // Return base rate + slope 1 rate + slope 2 rate
       /**
        * @dev Premium rate is capped because in case of overusage the
        * liquidity providers are exposed to the same risk as 100% usage but
        * cover buyers are not fully covered.
        * This means cover buyers only pay for the effective cover they have.
        */
-      // Return base rate + slope 1 rate + slope 2 rate
       return formula.r0 + formula.rSlope1 + formula.rSlope2;
     }
   }
@@ -1023,7 +1028,23 @@ library VirtualPool {
   // ======= PURE HELPERS ======= //
 
   /**
-   * @notice Computes the premium interests earned by a liquidity
+   * @notice Computes the liquidity index for a given period
+   * @param utilizationRate_ The utilization rate
+   * @param premiumRate_ The premium rate
+   * @param timeSeconds_ The time in seconds
+   * @return The liquidity index to add for the given time
+   */
+  function computeLiquidityIndex(
+    uint256 utilizationRate_,
+    uint256 premiumRate_,
+    uint256 timeSeconds_
+  ) internal pure returns (uint /* liquidityIndex */) {
+    return
+      (utilizationRate_.rayMul(premiumRate_) * timeSeconds_) / YEAR;
+  }
+
+  /**
+   * @notice Computes the premiums or interests earned by a liquidity position
    * @param userCapital_ The amount of liquidity in the position
    * @param liquidityIndex_ The end liquidity index
    * @param beginLiquidityIndex_ The start liquidity index
