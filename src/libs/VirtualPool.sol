@@ -46,11 +46,12 @@ library VirtualPool {
 
   // ======= CONSTANTS ======= //
 
-  uint256 internal constant DAY = 86400; // 1 day in seconds
-  uint256 internal constant YEAR = 365 * DAY; // 365 day
-  uint256 internal constant MAX_SECONDS_PER_TICK = DAY; // @bw redundant with DAY
-  uint256 internal constant FEE_BASE = RayMath.RAY; // RAY = 1e27
-  uint256 internal constant FULL_UTILIZATION_RATE = 100 * RayMath.RAY; // RAY = 1e27
+  uint256 constant YEAR = 365 days;
+  uint256 constant RAY = RayMath.RAY;
+  uint256 constant MAX_SECONDS_PER_TICK = 1 days;
+  uint256 constant FEE_BASE = RAY;
+  uint256 constant PERCENTAGE_BASE = 100;
+  uint256 constant FULL_CAPACITY = PERCENTAGE_BASE * RAY;
 
   // ======= STRUCTS ======= //
 
@@ -208,6 +209,7 @@ library VirtualPool {
       rSlope2: params.rSlope2
     });
 
+    /// @dev the initial tick spacing is its maximum value 86400 seconds
     self.slot0.secondsPerTick = MAX_SECONDS_PER_TICK;
     self.slot0.lastUpdateTimestamp = block.timestamp;
 
@@ -306,7 +308,7 @@ library VirtualPool {
         // The risk fee is only applied when using leverage
         leverageFee =
           (rewards_ * (self.leverageFeePerPool * nbPools_)) /
-          RayMath.RAY;
+          FEE_BASE;
       } else if (account_ == address(self.dao)) {
         // Take profits for the DAO accumulate the net in the leverage risk wallet
         leverageFee = rewards_ - fees;
@@ -483,8 +485,8 @@ library VirtualPool {
     uint256 previousPremiumRate = self.currentPremiumRate();
     uint256 newPremiumRate = self.updatedPremiumRate(coverAmount_, 0);
 
-    uint256 durationInSeconds = ((premiums_ * YEAR * 100) /
-      coverAmount_).rayDiv(newPremiumRate);
+    uint256 durationInSeconds = (premiums_ * YEAR * PERCENTAGE_BASE)
+      .rayDiv(newPremiumRate) / coverAmount_;
 
     uint256 newSecondsPerTick = secondsPerTick(
       self.slot0.secondsPerTick,
@@ -836,8 +838,8 @@ library VirtualPool {
         .nextTick(currentTick);
 
       // Tick size in seconds
-      uint256 tickSize = (nextTick - currentTick) *
-        slot0.secondsPerTick;
+      uint256 tickSize = slot0.secondsPerTick *
+        (nextTick - currentTick);
 
       if (tickSize <= remaining) {
         currentTick = nextTick;
@@ -1012,14 +1014,14 @@ library VirtualPool {
         formula.rSlope1.rayMul(
           utilizationRate_.rayDiv(formula.uOptimal)
         );
-    } else if (utilizationRate_ < FULL_UTILIZATION_RATE) {
+    } else if (utilizationRate_ < FULL_CAPACITY) {
       // Return base rate + slope 1 rate + proportional slope 2 rate
       return
         formula.r0 +
         formula.rSlope1 +
         formula.rSlope2.rayMul(
           (utilizationRate_ - formula.uOptimal).rayDiv(
-            FULL_UTILIZATION_RATE - formula.uOptimal
+            FULL_CAPACITY - formula.uOptimal
           )
         );
     } else {
@@ -1049,7 +1051,10 @@ library VirtualPool {
     uint256 timeSeconds_
   ) internal pure returns (uint /* liquidityIndex */) {
     return
-      (utilizationRate_.rayMul(premiumRate_) * timeSeconds_) / YEAR;
+      utilizationRate_
+        .rayMul(premiumRate_)
+        .rayMul(timeSeconds_)
+        .rayDiv(YEAR);
   }
 
   /**
@@ -1083,8 +1088,7 @@ library VirtualPool {
     uint256 oldPremiumRate_,
     uint256 newPremiumRate_
   ) internal pure returns (uint256) {
-    return
-      oldDailyCost_.rayMul(newPremiumRate_).rayDiv(oldPremiumRate_);
+    return (oldDailyCost_ * newPremiumRate_) / oldPremiumRate_;
   }
 
   /**
@@ -1168,9 +1172,9 @@ library VirtualPool {
      * cover buyers are not fully covered.
      * This means cover buyers only pay for the effective cover they have.
      */
-    if (liquidity_ < coveredCapital_) return FULL_UTILIZATION_RATE;
+    if (liquidity_ < coveredCapital_) return FULL_CAPACITY;
 
-    // Multiply by 100 to get a base 100 percentage
-    return (coveredCapital_ * 100).rayDiv(liquidity_);
+    // Get a base PERCENTAGE_BASE percentage
+    return (coveredCapital_ * PERCENTAGE_BASE).rayDiv(liquidity_);
   }
 }
