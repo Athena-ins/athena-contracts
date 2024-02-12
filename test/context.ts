@@ -27,8 +27,8 @@ function beforeEachSuite(fn: AsyncFunc) {
 export function baseContext(description: string, hooks: () => void): void {
   describe(description, function () {
     before(async function () {
-      const liqManagerSize = LiquidityManager__factory.bytecode.length;
-      console.log(`\nLiquidity Manager Size: ${liqManagerSize}\n`);
+      const liqManagerSize = LiquidityManager__factory.bytecode.length / 2;
+      console.log(`\nLiq. Manager size: ${liqManagerSize}/24576\n`);
 
       // Provides signers for testing
       const nbSpecialAccounts = 5;

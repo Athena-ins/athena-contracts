@@ -20,9 +20,7 @@ import { IAthenaCoverToken } from "../interfaces/IAthenaCoverToken.sol";
 import { IEcclesiaDao } from "../interfaces/IEcclesiaDao.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-// Testing - @bw to remove before deployment
-import { TestableVirtualPool } from "../mock/TestableVirtualPool.sol";
-import { console } from "hardhat/console.sol";
+// import { console } from "hardhat/console.sol";
 
 // ======= ERRORS ======= //
 
@@ -45,7 +43,6 @@ error SenderNotLiquidationManager();
 error PoolHasOnGoingClaims();
 
 contract LiquidityManager is
-  TestableVirtualPool,
   ILiquidityManager,
   ReentrancyGuard,
   Ownable
@@ -92,7 +89,7 @@ contract LiquidityManager is
   /// The token ID position data
   uint64 public nextPoolId;
   /// Maps a pool ID to the virtualized pool's storage
-  mapping(uint64 _id => VirtualPool.VPool) private _pools;
+  mapping(uint64 _id => VirtualPool.VPool) internal _pools;
 
   // ======= CONSTRUCTOR ======= //
 
@@ -107,7 +104,7 @@ contract LiquidityManager is
     uint256 withdrawDelay_,
     uint256 maxLeverage_,
     uint256 leverageFeePerPool_
-  ) Ownable(msg.sender) TestableVirtualPool(_getPool) {
+  ) Ownable(msg.sender) {
     positionToken = positionToken_;
     coverToken = coverToken_;
     staking = staking_;
@@ -317,17 +314,6 @@ contract LiquidityManager is
   }
 
   /// ======= INTERNAL VIEWS ======= ///
-
-  /**
-   * @notice Returns the virtual pool's storage pointer
-   * @param poolId_ The ID of the pool
-   * @return The virtual pool's storage pointer
-   */
-  function _getPool(
-    uint64 poolId_
-  ) internal view returns (VirtualPool.VPool storage) {
-    return _pools[poolId_];
-  }
 
   /**
    * @notice Returns the compensation's storage pointer
