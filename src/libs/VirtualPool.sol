@@ -681,10 +681,11 @@ library VirtualPool {
         _utilization(slot0.coveredCapital, liquidity)
       );
 
+      // @dev Skip division by premium rate PERCENTAGE_BASE for precision
       uint256 beginDailyCost = self
         .coverSize(coverId_)
         .rayMul(coverPremium.beginPremiumRate)
-        .rayDiv(365 * 100 * RayMath.RAY);
+        .rayDiv(365);
 
       info.currentDailyCost = getDailyCost(
         beginDailyCost,
@@ -712,15 +713,13 @@ library VirtualPool {
           uint256 duration = (nextMaxTick - currentTick) *
             slot0.secondsPerTick;
 
-          // @bw probably some rounding issue with the use of seconds in secondsPerTick
-          info.premiumsLeft +=
-            (duration * dailyCost) /
-            MAX_SECONDS_PER_TICK;
+          /// @dev Skip division by 1 days for precision
+          info.premiumsLeft += duration * dailyCost;
 
           currentTick = nextMaxTick;
         }
 
-        // If the next tick is initialized does not overtake cover expiry tick
+        // Check for dailyCost update if the nextTick has covers & is before cover expiry
         if (initialized && nextTick < coverPremium.lastTick) {
           uint256 premiumRate;
           (, , premiumRate) = self._crossingInitializedTick(
@@ -735,6 +734,16 @@ library VirtualPool {
           );
         }
       }
+
+      /**
+       * @dev Un-scale the token value of premiums left
+       * - PERCENTAGE_BASE for premium rate percentage base
+       * - 1 days for duration being in seconds
+       * - RAY for result being in ray
+       */
+      info.premiumsLeft =
+        info.premiumsLeft /
+        (PERCENTAGE_BASE * 1 days * RAY);
     }
   }
 
