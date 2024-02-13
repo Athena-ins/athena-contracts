@@ -15,10 +15,36 @@ import { makeTestHelpers, evidenceGuardianWallet } from "./helpers/protocol";
 import { Signer, Wallet } from "ethers";
 import { Suite, AsyncFunc } from "mocha";
 import { LiquidityManager__factory } from "../typechain";
+import { ProtocolConfig, ProtocolContracts } from "./helpers/deployers";
+import { TestHelper } from "./helpers/protocol";
 // Assertions
 import { almostEqual } from "./helpers/utils/almost-equal";
 
 chai.use(almostEqual);
+
+type ContextSigners = {
+  deployer: Wallet;
+  evidenceGuardian: Wallet;
+  buybackWallet: Wallet;
+  treasuryWallet: Wallet;
+  leverageRiskWallet: Wallet;
+  user: Wallet;
+  user2: Wallet;
+  user3: Wallet;
+};
+
+export type SignerName = keyof ContextSigners;
+
+declare module "mocha" {
+  export interface Context {
+    signers: ContextSigners;
+    contracts: ProtocolContracts;
+    protocolConfig: ProtocolConfig;
+    snapshortId: string; // Used to reset fork
+    helpers: TestHelper;
+    args: any; // Used to set arguments within a test suite
+  }
+}
 
 // Custom hook to run a function before each child test suite
 function beforeEachSuite(fn: AsyncFunc) {
