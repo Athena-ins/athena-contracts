@@ -21,7 +21,7 @@ interface Arguments extends Mocha.Context {
   };
 }
 
-export function liquidityManager() {
+export function SanityTest() {
   context("Liquidity Manager", function () {
     before(async function (this: Arguments) {
       this.args = {

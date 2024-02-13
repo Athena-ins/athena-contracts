@@ -1,5 +1,9 @@
 import { baseContext } from "./context";
 
+// Integration test suites
+import { deployProtocol } from "./integration/deployProtocol.test";
+import { SanityTest } from "./integration/sanity.test";
+
 // Unit test suites
 import { AthenaERC721Tests } from "./contracts/AthenaERC721";
 import { AthenaTokenTests } from "./contracts/AthenaToken";
@@ -12,11 +16,12 @@ import { StakingTests } from "./contracts/Staking";
 import { StrategyManagerTests } from "./contracts/StrategyManager";
 import { VirtualPoolTests } from "./contracts/VirtualPool";
 
-// Integration test suites
-import { deployProtocol } from "./scenarios/deployProtocol.test";
-import { liquidityManager } from "./scenarios/liquidityManager.test";
 
 baseContext("Test Athena Protocol", function () {
+  // Integration tests
+  // deployProtocol();
+  SanityTest();
+
   // Unit tests
   // AthenaERC721Tests();
   // AthenaTokenTests();
