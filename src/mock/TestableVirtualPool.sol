@@ -369,7 +369,14 @@ abstract contract TestableVirtualPool {
     uint64 poolId_,
     uint256 _coveredCapitalToAdd,
     uint256 _coveredCapitalToRemove
-  ) public view returns (uint256) {
+  )
+    public
+    view
+    returns (
+      uint256 /* newPremiumRate */,
+      uint256 /* newSecondsPerTick */
+    )
+  {
     return
       getPool(poolId_).updatedPremiumRate(
         _coveredCapitalToAdd,

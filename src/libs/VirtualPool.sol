@@ -482,17 +482,11 @@ library VirtualPool {
       revert InsufficientCapacity();
     }
 
-    uint256 previousPremiumRate = self.currentPremiumRate();
-    uint256 newPremiumRate = self.updatedPremiumRate(coverAmount_, 0);
+    (uint256 newPremiumRate, uint256 newSecondsPerTick) = self
+      .updatedPremiumRate(coverAmount_, 0);
 
     uint256 durationInSeconds = (premiums_ * YEAR * PERCENTAGE_BASE)
       .rayDiv(newPremiumRate) / coverAmount_;
-
-    uint256 newSecondsPerTick = secondsPerTick(
-      self.slot0.secondsPerTick,
-      previousPremiumRate,
-      newPremiumRate
-    );
 
     if (durationInSeconds < newSecondsPerTick)
       revert DurationTooLow();
@@ -527,13 +521,9 @@ library VirtualPool {
     if (coverPremium.lastTick < currentTick)
       revert CoverAlreadyExpired();
 
-    uint256 previousPremiumRate = self.currentPremiumRate();
-    uint256 newPremiumRate = self.updatedPremiumRate(0, coverAmount_);
-
-    uint256 newSecondsPerTick = secondsPerTick(
-      self.slot0.secondsPerTick,
-      previousPremiumRate,
-      newPremiumRate
+    (, uint256 newSecondsPerTick) = self.updatedPremiumRate(
+      0,
+      coverAmount_
     );
 
     self.slot0.coveredCapital -= coverAmount_;
@@ -683,7 +673,7 @@ library VirtualPool {
         _utilization(slot0.coveredCapital, liquidity)
       );
 
-      // @dev Skip division by premium rate PERCENTAGE_BASE for precision
+      /// @dev Skip division by premium rate PERCENTAGE_BASE for precision
       uint256 beginDailyCost = self
         .coverSize(coverId_)
         .rayMul(coverPremium.beginPremiumRate)
@@ -991,6 +981,8 @@ library VirtualPool {
     info.newLpInfo.beginClaimIndex = endCompensationId;
   }
 
+  // ======= PURE HELPERS ======= //
+
   /**
    * @notice Computes the premium rate of a cover,
    * the premium rate is the APR cost for a cover  ,
@@ -1000,6 +992,8 @@ library VirtualPool {
    * @param utilizationRate_ The utilization rate of the pool
    *
    * @return The premium rate of the cover expressed in rays
+   *
+   * @dev Not pure since reads self but pure for all practical purposes
    */
   function getPremiumRate(
     VPool storage self,
@@ -1035,8 +1029,6 @@ library VirtualPool {
       return formula.r0 + formula.rSlope1 + formula.rSlope2;
     }
   }
-
-  // ======= PURE HELPERS ======= //
 
   /**
    * @notice Computes the liquidity index for a given period
@@ -1117,6 +1109,8 @@ library VirtualPool {
    * @param self The pool
    *
    * @return The current premium rate of the pool
+   *
+   * @dev Not pure since reads self but pure for all practical purposes
    */
   function currentPremiumRate(
     VPool storage self
@@ -1133,21 +1127,33 @@ library VirtualPool {
    * @param coveredCapitalToAdd_ The amount of covered capital to add
    * @param coveredCapitalToRemove_ The amount of covered capital to remove
    *
-   * @return The updated premium rate of the pool
+   * @return newPremiumRate The updated premium rate of the pool
+   * @return newSecondsPerTick The updated seconds per tick of the pool
    */
   function updatedPremiumRate(
     VPool storage self,
     uint256 coveredCapitalToAdd_,
     uint256 coveredCapitalToRemove_
-  ) internal view returns (uint256) {
-    return
-      self.getPremiumRate(
-        _utilization(
-          ((self.slot0.coveredCapital + coveredCapitalToAdd_) -
-            coveredCapitalToRemove_),
-          self.totalLiquidity()
-        )
-      );
+  )
+    internal
+    view
+    returns (uint256 newPremiumRate, uint256 newSecondsPerTick)
+  {
+    uint256 previousPremiumRate = self.currentPremiumRate();
+
+    newPremiumRate = self.getPremiumRate(
+      _utilization(
+        ((self.slot0.coveredCapital + coveredCapitalToAdd_) -
+          coveredCapitalToRemove_),
+        self.totalLiquidity()
+      )
+    );
+
+    newSecondsPerTick = secondsPerTick(
+      self.slot0.secondsPerTick,
+      previousPremiumRate,
+      newPremiumRate
+    );
   }
 
   /**
