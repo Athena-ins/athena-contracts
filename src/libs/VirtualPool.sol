@@ -273,7 +273,7 @@ library VirtualPool {
     uint256 tokenId_,
     uint256 amount_
   ) internal {
-    self._syncLiquidity(amount_, 0);
+    self._syncLiquidity(amount_, 0, true);
 
     // This sets the point from which the position earns rewards & is impacted by claims
     // also overwrites previous LpInfo after a withdrawal
@@ -423,7 +423,7 @@ library VirtualPool {
     self.lpInfos[tokenId_] = info.newLpInfo;
 
     // Update liquidity index
-    self._syncLiquidity(0, amount_);
+    self._syncLiquidity(0, amount_, false);
 
     // Return the user's capital & strategy rewards for withdrawal
     return (info.newUserCapital, info.strategyRewards);
@@ -583,14 +583,17 @@ library VirtualPool {
   function _syncLiquidity(
     VPool storage self,
     uint256 liquidityToAdd_,
-    uint256 liquidityToRemove_
+    uint256 liquidityToRemove_,
+    bool skipLimitCheck_
   ) internal {
     uint256 liquidity = self.totalLiquidity();
     uint256 available = self.availableLiquidity();
     uint256 totalCovered = self.slot0.coveredCapital;
 
-    if (available + liquidityToAdd_ < liquidityToRemove_)
-      revert NotEnoughLiquidityForRemoval();
+    // Skip liquidity check for deposits & payouts
+    if (!skipLimitCheck_)
+      if (available + liquidityToAdd_ < liquidityToRemove_)
+        revert NotEnoughLiquidityForRemoval();
 
     uint256 previousPremiumRate = self.currentPremiumRate();
     uint256 newPremiumRate = self.getPremiumRate(

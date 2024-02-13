@@ -259,12 +259,14 @@ abstract contract TestableVirtualPool {
   function syncLiquidity(
     uint64 poolId_,
     uint256 liquidityToAdd_,
-    uint256 liquidityToRemove_
+    uint256 liquidityToRemove_,
+    bool skipLiquidityCheck_
   ) public {
     return
       getPool(poolId_)._syncLiquidity(
         liquidityToAdd_,
-        liquidityToRemove_
+        liquidityToRemove_,
+        skipLiquidityCheck_
       );
   }
 

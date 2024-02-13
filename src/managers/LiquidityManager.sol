@@ -1075,8 +1075,8 @@ contract LiquidityManager is
     uint256 coverId_,
     uint256 compensationAmount_
   ) external onlyClaimManager {
-    uint64 poolId = covers[coverId_].poolId;
-    VirtualPool.VPool storage poolA = _pools[poolId];
+    uint64 fromPoolId = covers[coverId_].poolId;
+    VirtualPool.VPool storage poolA = _pools[fromPoolId];
     uint256 ratio = compensationAmount_.rayDiv(
       poolA.totalLiquidity()
     );
@@ -1096,7 +1096,7 @@ contract LiquidityManager is
       compensationId
     ];
     // Register data common to all affected pools
-    compensation.fromPoolId = poolId;
+    compensation.fromPoolId = fromPoolId;
     compensation.ratio = ratio;
     compensation.rewardIndexBeforeClaim = rewardIndex;
 
@@ -1104,10 +1104,10 @@ contract LiquidityManager is
       uint64 poolIdB = poolA.overlappedPools[i];
       VirtualPool.VPool storage poolB = _pools[poolIdB];
 
-      (VirtualPool.VPool storage pool0, uint64 poolId1) = poolId <
+      (VirtualPool.VPool storage pool0, uint64 poolId1) = fromPoolId <
         poolIdB
         ? (poolA, poolIdB)
-        : (poolB, poolId);
+        : (poolB, fromPoolId);
 
       // Skip if overlap is 0
       if (pool0.overlaps[poolId1] == 0) continue;
@@ -1125,7 +1125,8 @@ contract LiquidityManager is
         if (amountToRemove == 0) continue;
 
         // Update pool pricing (premium rate & seconds per tick)
-        poolB._syncLiquidity(0, amountToRemove);
+        /// @dev Skip available liquidity lock check as payouts are always possible
+        poolB._syncLiquidity(0, amountToRemove, true);
 
         // Reduce available liquidity,
         // at i = 0 this is the self liquidity of cover's pool
@@ -1135,7 +1136,7 @@ contract LiquidityManager is
           // Check all pool combinations to reduce overlapping capital
           for (uint64 j; j < nbPools; j++) {
             uint64 poolIdC = poolA.overlappedPools[j];
-            if (poolIdC != poolId)
+            if (poolIdC != fromPoolId)
               if (poolIdB <= poolIdC) {
                 poolB.overlaps[poolIdC] -= amountToRemove;
               }
@@ -1152,6 +1153,7 @@ contract LiquidityManager is
 
     address claimant = coverToken.ownerOf(coverId_);
 
+    // New context to avoid stack too deep error
     {
       // Get storage pointer to cover
       Cover storage cover = covers[coverId_];
@@ -1171,7 +1173,7 @@ contract LiquidityManager is
         // Update cover
         try
           this.attemptReopenCover(
-            poolId,
+            fromPoolId,
             coverId_,
             cover.coverAmount,
             premiums
@@ -1179,10 +1181,7 @@ contract LiquidityManager is
         {} catch {
           // If updating the cover fails beacause of not enough liquidity,
           // then close the cover entirely & transfer premiums back to user
-          IERC20(poolA.paymentAsset).safeTransfer(
-            msg.sender,
-            premiums
-          );
+          IERC20(poolA.paymentAsset).safeTransfer(claimant, premiums);
           _expireCover(coverId_);
         }
       }
