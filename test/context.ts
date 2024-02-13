@@ -1,4 +1,5 @@
 import { ethers } from "hardhat";
+import chai from "chai";
 // Functions
 import {
   makeForkSnapshot,
@@ -14,6 +15,10 @@ import { makeTestHelpers, evidenceGuardianWallet } from "./helpers/protocol";
 import { Signer, Wallet } from "ethers";
 import { Suite, AsyncFunc } from "mocha";
 import { LiquidityManager__factory } from "../typechain";
+// Assertions
+import { almostEqual } from "./helpers/utils/almost-equal";
+
+chai.use(almostEqual);
 
 // Custom hook to run a function before each child test suite
 function beforeEachSuite(fn: AsyncFunc) {
