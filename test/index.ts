@@ -16,6 +16,8 @@ import { StakingTests } from "./contracts/Staking";
 import { StrategyManagerTests } from "./contracts/StrategyManager";
 import { VirtualPoolTests } from "./contracts/VirtualPool";
 
+// Scenarios
+import { ScenarioTests } from "./scenarios";
 
 baseContext("Test Athena Protocol", function () {
   // Integration tests
@@ -34,7 +36,6 @@ baseContext("Test Athena Protocol", function () {
   // StrategyManagerTests();
   // VirtualPoolTests();
 
-  // Integration tests
-  // deployProtocol();
-  liquidityManager();
+  // Scenarios
+  ScenarioTests();
 });
