@@ -257,7 +257,10 @@ library VirtualPool {
   function availableLiquidity(
     VPool storage self
   ) internal view returns (uint256) {
-    return self.overlaps[self.poolId] - self.slot0.coveredCapital;
+    /// @dev Since payout can lead to available capital underflow, we return 0
+    if (self.totalLiquidity() <= self.slot0.coveredCapital) return 0;
+
+    return self.totalLiquidity() - self.slot0.coveredCapital;
   }
 
   // ======= LIQUIDITY ======= //
@@ -273,6 +276,7 @@ library VirtualPool {
     uint256 tokenId_,
     uint256 amount_
   ) internal {
+    // Skip liquidity check for deposits
     self._syncLiquidity(amount_, 0, true);
 
     // This sets the point from which the position earns rewards & is impacted by claims
@@ -579,6 +583,9 @@ library VirtualPool {
    * @param self The pool
    * @param liquidityToAdd_ The amount of liquidity to add
    * @param liquidityToRemove_ The amount of liquidity to remove
+   * @param skipLimitCheck_ Whether to skip the available liquidity check
+   *
+   * @dev The skipLimitCheck_ is used for deposits & payouts
    */
   function _syncLiquidity(
     VPool storage self,
