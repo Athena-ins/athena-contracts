@@ -1,17 +1,25 @@
-import { BigNumber } from "ethers";
+import { BigNumber, BigNumberish } from "ethers";
 import chai from "chai";
+
+declare global {
+  export namespace Chai {
+    interface Assertion {
+      almostEqual(expected: BigNumberish): Promise<void>;
+    }
+  }
+}
 
 function almostEqualAssertion(
   this: any,
-  expected: any,
-  actual: any,
+  expected: BigNumber,
+  actual: BigNumber,
   message: string,
 ): any {
   this.assert(
-    expected.plus(BigNumber.from(1)).eq(actual) ||
-      expected.plus(BigNumber.from(2)).eq(actual) ||
-      actual.plus(BigNumber.from(1)).eq(expected) ||
-      actual.plus(BigNumber.from(2)).eq(expected) ||
+    expected.add(BigNumber.from(1)).eq(actual) ||
+      expected.add(BigNumber.from(2)).eq(actual) ||
+      actual.add(BigNumber.from(1)).eq(expected) ||
+      actual.add(BigNumber.from(2)).eq(expected) ||
       expected.eq(actual),
     `${message} expected #{act} to be almost equal #{exp}`,
     `${message} expected #{act} to be different from #{exp}`,
@@ -20,18 +28,16 @@ function almostEqualAssertion(
   );
 }
 
-export function almostEqual() {
-  return function (chai: any, utils: any) {
-    chai.Assertion.overwriteMethod("almostEqual", function (original: any) {
-      return function (this: any, value: any, message: string) {
-        if (utils.flag(this, "BigNumber")) {
-          var expected = BigNumber.from(value);
-          var actual = BigNumber.from(this._obj);
-          almostEqualAssertion.apply(this, [expected, actual, message]);
-        } else {
-          original.apply(this, arguments);
-        }
-      };
-    });
-  };
-}
+chai.use(function (chai, utils) {
+  chai.Assertion.overwriteMethod("almostEqual", function (original: any) {
+    return function (this: any, value: any, message: string) {
+      if (utils.flag(this, "BigNumber")) {
+        var expected = BigNumber.from(value);
+        var actual = BigNumber.from(this._obj);
+        almostEqualAssertion.apply(this, [expected, actual, message]);
+      } else {
+        original.apply(this, arguments);
+      }
+    };
+  });
+});
