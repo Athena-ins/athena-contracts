@@ -4,36 +4,43 @@ import chai from "chai";
 declare global {
   export namespace Chai {
     interface Assertion {
-      almostEqual(expected: BigNumberish): Promise<void>;
+      almostEqual(input: number | string | BigNumber): void;
     }
   }
 }
 
-function almostEqualAssertion(
-  this: any,
-  expected: BigNumber,
-  actual: BigNumber,
-  message: string,
-): any {
-  this.assert(
-    expected.add(BigNumber.from(1)).eq(actual) ||
-      expected.add(BigNumber.from(2)).eq(actual) ||
-      actual.add(BigNumber.from(1)).eq(expected) ||
-      actual.add(BigNumber.from(2)).eq(expected) ||
-      expected.eq(actual),
-    `${message} expected #{act} to be almost equal #{exp}`,
-    `${message} expected #{act} to be different from #{exp}`,
-    expected.toString(),
-    actual.toString(),
-  );
-}
-
 chai.use(function (chai, utils) {
-  chai.Assertion.addMethod("almostEqual", function (input: BigNumberish) {
-    return function (this: any, value: BigNumberish, message: string) {
-      var expected = BigNumber.from(value);
+  chai.Assertion.addMethod(
+    "almostEqual",
+    function (
+      this: Chai.AssertionStatic,
+      input: number | string | BigNumber,
+      message: string,
+    ) {
+      if (
+        (typeof this._obj !== "number" &&
+          typeof this._obj !== "string" &&
+          !BigNumber.isBigNumber(this._obj)) ||
+        (typeof input !== "number" &&
+          typeof input !== "string" &&
+          !BigNumber.isBigNumber(input))
+      ) {
+        throw new Error("almostEqual - Invalid input type");
+      }
+
+      var expected = BigNumber.from(input);
       var actual = BigNumber.from(this._obj);
-      almostEqualAssertion.apply(this, [expected, actual, message]);
-    };
-  });
+      this.assert(
+        expected.add(BigNumber.from(1)).eq(actual) ||
+          expected.add(BigNumber.from(2)).eq(actual) ||
+          actual.add(BigNumber.from(1)).eq(expected) ||
+          actual.add(BigNumber.from(2)).eq(expected) ||
+          expected.eq(actual),
+        `${message} expected #{act} to be almost equal #{exp}`,
+        `${message} expected #{act} to be different from #{exp}`,
+        expected.toString(),
+        actual.toString(),
+      );
+    },
+  );
 });
