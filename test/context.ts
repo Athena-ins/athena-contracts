@@ -18,9 +18,7 @@ import { LiquidityManager__factory } from "../typechain";
 import { ProtocolConfig, ProtocolContracts } from "./helpers/deployers";
 import { TestHelper } from "./helpers/protocol";
 // Assertions
-import { almostEqual } from "./helpers/utils/almost-equal";
-
-chai.use(almostEqual);
+import "./helpers/chai/almostEqual";
 
 type ContextSigners = {
   deployer: Wallet;

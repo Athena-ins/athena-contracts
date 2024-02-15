@@ -29,15 +29,11 @@ function almostEqualAssertion(
 }
 
 chai.use(function (chai, utils) {
-  chai.Assertion.overwriteMethod("almostEqual", function (original: any) {
-    return function (this: any, value: any, message: string) {
-      if (utils.flag(this, "BigNumber")) {
-        var expected = BigNumber.from(value);
-        var actual = BigNumber.from(this._obj);
-        almostEqualAssertion.apply(this, [expected, actual, message]);
-      } else {
-        original.apply(this, arguments);
-      }
+  chai.Assertion.addMethod("almostEqual", function (input: BigNumberish) {
+    return function (this: any, value: BigNumberish, message: string) {
+      var expected = BigNumber.from(value);
+      var actual = BigNumber.from(this._obj);
+      almostEqualAssertion.apply(this, [expected, actual, message]);
     };
   });
 });
