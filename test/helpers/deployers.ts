@@ -160,7 +160,7 @@ export const defaultProtocolConfig: ProtocolConfig = {
   buybackWallet: buybackWallet(),
   treasuryWallet: treasuryWallet(),
   leverageRiskWallet: leverageRiskWallet(),
-  leverageFeePerPool: toRay(1.5),
+  leverageFeePerPool: toRay(1.5, 2), // 1.5% base 100
   poolMarket: [
     toRay(75), // uOptimal_
     toRay(1), // r0_
