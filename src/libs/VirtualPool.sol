@@ -332,6 +332,7 @@ library VirtualPool {
           address(self.dao),
           totalFees
         );
+
         self.dao.accrueRevenue(self.paymentAsset, fees, leverageFee);
       }
     }
@@ -895,6 +896,8 @@ library VirtualPool {
    * - coverRewards The rewards earned from cover premiums
    * - strategyRewards The rewards earned by the strategy
    * - newLpInfo The updated LpInfo of the position
+   *
+   * @dev currentLiquidityIndex is needed to be able to ready up to date position data
    */
   function _getUpdatedPositionInfo(
     VPool storage self,
@@ -910,6 +913,7 @@ library VirtualPool {
     uint256 strategyId = self.strategyId;
     // If strategy compounds then add to capital to compute next new rewards
     bool itCompounds = self.strategyManager.itCompounds(strategyId);
+    uint64 poolId = self.poolId;
 
     uint256 compensationId = info.newLpInfo.beginClaimIndex;
     uint256 endCompensationId = self.compensationIds.length;
@@ -928,19 +932,20 @@ library VirtualPool {
         compensationId
       );
 
-      // Check if the comp is incoming from one of the pools in the position
+      // For each pool in the position
       for (uint256 j; j < nbPools; j++) {
-        uint64 poolId = poolIds_[j];
-        if (poolId != comp.fromPoolId) continue;
+        // Skip if the comp is not incoming from one of the pools in the position
+        if (poolIds_[j] != comp.fromPoolId) continue;
 
+        // We want the liquidity index of this pool at the time of the claim
         uint256 liquidityIndexBeforeClaim = comp
           .liquidityIndexBeforeClaim[poolId];
 
         // Compute the rewards accumulated up to the claim
         info.coverRewards += getCoverRewards(
           info.newUserCapital,
-          liquidityIndexBeforeClaim,
-          info.newLpInfo.beginLiquidityIndex
+          info.newLpInfo.beginLiquidityIndex,
+          liquidityIndexBeforeClaim
         );
         info.strategyRewards += self.strategyManager.computeReward(
           strategyId,
@@ -982,8 +987,8 @@ library VirtualPool {
 
     info.coverRewards += getCoverRewards(
       info.newUserCapital,
-      currentLiquidityIndex_,
-      info.newLpInfo.beginLiquidityIndex
+      info.newLpInfo.beginLiquidityIndex,
+      currentLiquidityIndex_
     );
 
     // Register up to where the position has been updated
@@ -1062,17 +1067,17 @@ library VirtualPool {
   /**
    * @notice Computes the premiums or interests earned by a liquidity position
    * @param userCapital_ The amount of liquidity in the position
-   * @param liquidityIndex_ The end liquidity index
-   * @param beginLiquidityIndex_ The start liquidity index
+   * @param endLiquidityIndex_ The end liquidity index
+   * @param startLiquidityIndex_ The start liquidity index
    */
   function getCoverRewards(
     uint256 userCapital_,
-    uint256 liquidityIndex_,
-    uint256 beginLiquidityIndex_
+    uint256 startLiquidityIndex_,
+    uint256 endLiquidityIndex_
   ) internal pure returns (uint256) {
     return
-      (userCapital_.rayMul(liquidityIndex_) -
-        userCapital_.rayMul(beginLiquidityIndex_)) / 10_000;
+      (userCapital_.rayMul(endLiquidityIndex_) -
+        userCapital_.rayMul(startLiquidityIndex_)) / 10_000;
   }
 
   /**
