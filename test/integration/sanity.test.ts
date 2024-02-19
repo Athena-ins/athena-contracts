@@ -25,7 +25,7 @@ export function SanityTest() {
   context("Liquidity Manager", function () {
     before(async function (this: Arguments) {
       this.args = {
-        nbPools: 1,
+        nbPools: 3,
         daoStakeAmount: toErc20(1000),
         daoLockDuration: 60 * 60 * 24 * 365,
         lpAmount: toUsd(1000),
@@ -110,12 +110,12 @@ export function SanityTest() {
           ),
         ).to.equal(i + 1);
 
-        const position = await this.contracts.LiquidityManager.positions(i);
+        const position = await this.contracts.LiquidityManager.positionInfo(i);
 
-        // expect(position.poolIds.length).to.equal(3);
-        expect(position.poolIds[0]).to.equal(0);
-        // expect(position.poolIds[1]).to.equal(1);
-        // expect(position.poolIds[2]).to.equal(2);
+        expect(position.poolIds.length).to.equal(this.args.nbPools);
+        for (let j = 0; j < this.args.nbPools; j++) {
+          expect(position.poolIds[j]).to.equal(j);
+        }
         expect(position.supplied).to.equal(this.args.lpAmount);
       }
     });
@@ -138,22 +138,21 @@ export function SanityTest() {
             this.signers.deployer.address,
           ),
         ).to.equal(1 + i);
+      }
 
-        await setNextBlockTimestamp({ days: 365 });
+      await setNextBlockTimestamp({ days: 365 });
 
-        const cover = await this.contracts.LiquidityManager.covers(i);
+      for (let i = 0; i < this.args.nbPools; i++) {
+        const cover = await this.contracts.LiquidityManager.coverInfo(i);
 
         expect(cover.poolId).to.equal(i);
         expect(cover.coverAmount).to.equal(this.args.coverAmount);
-        // expect(cover.premiums).to.equal(this.args.coverPremiums);
-        // expect(cover.start.div(100)).to.equal(17047336);
+        expect(cover.premiumsLeft).to.almostEqual(840000000);
         expect(cover.end).to.equal(0);
       }
     });
 
-    // it("has coherent state", async function (this: Arguments) {});
-
-    it.skip("can create claims", async function (this: Arguments) {
+    it("can create claims", async function (this: Arguments) {
       this.timeout(300_000);
       await setNextBlockTimestamp({ days: 365 });
 
@@ -173,7 +172,8 @@ export function SanityTest() {
         expect(claim.coverId).to.equal(i);
       }
     });
-    it.skip("can resolve claims", async function (this: Arguments) {
+
+    it("can resolve claims", async function (this: Arguments) {
       this.timeout(600_000);
       await setNextBlockTimestamp({ days: 15 });
 
@@ -184,23 +184,7 @@ export function SanityTest() {
       }
     });
 
-    // it("has coherent state", async function (this: Arguments) {});
-
     it("can increase LPs", async function (this: Arguments) {
-      const coverInfo = await this.contracts.LiquidityManager.coverInfo(0);
-      console.log("\ncover premiumsLeft: ", coverInfo.premiumsLeft.toString());
-      const positionInfo =
-        await this.contracts.LiquidityManager.positionInfo(0);
-      console.log(
-        "position coverRewards: ",
-        positionInfo.coverRewards.toString(),
-      );
-
-      console.log(
-        "(((((TOTAL))))): ",
-        positionInfo.coverRewards[0].add(coverInfo.premiumsLeft).toString(),
-      );
-
       await setNextBlockTimestamp({ days: 365 });
 
       expect(
@@ -220,18 +204,22 @@ export function SanityTest() {
         ),
       ).to.equal(1);
 
-      const position = await this.contracts.LiquidityManager.positions(0);
+      const position = await this.contracts.LiquidityManager.positionInfo(0);
 
       expect(position.poolIds.length).to.equal(this.args.nbPools);
-
-      // expect(position.supplied).to.equal(
-      //   this.args.lpIncreaseAmount
-      //     .add(this.args.lpAmount)
-      //     .sub(this.args.claimAmount),
-      // );
+      expect(position.newUserCapital).to.equal(
+        this.args.lpIncreaseAmount
+          .add(this.args.lpAmount)
+          .sub(this.args.claimAmount.mul(this.args.nbPools)),
+      );
+      const totalRewards = position.coverRewards.reduce(
+        (acc, reward) => acc.add(reward),
+        BigNumber.from(0),
+      );
+      expect(totalRewards).to.almostEqual(417207);
     });
 
-    it.skip("can increase cover & premiums", async function (this: Arguments) {
+    it("can increase cover & premiums", async function (this: Arguments) {
       expect(
         await this.helpers.updateCover(
           this.signers.deployer,
@@ -249,10 +237,9 @@ export function SanityTest() {
         await this.contracts.AthenaCoverToken.balanceOf(
           this.signers.deployer.address,
         ),
-      ).to.equal(1);
+      ).to.equal(this.args.nbPools);
 
-      const cover = await this.contracts.LiquidityManager.covers(0);
-      // console.log('cover: ', cover);
+      const cover = await this.contracts.LiquidityManager.coverInfo(0);
 
       expect(cover.poolId).to.equal(0);
       expect(cover.coverAmount).to.equal(
@@ -260,19 +247,12 @@ export function SanityTest() {
           .add(this.args.coverAmount)
           .sub(this.args.claimAmount),
       );
-      // expect(cover.premiumsLeft).to.equal(60037622);
-      // expect(cover.start.div(100)).to.equal(17047336);
+      expect(cover.premiumsLeft).to.equal(241061228);
+      expect(cover.start.div(100)).to.equal(17047336);
       expect(cover.end).to.equal(0);
     });
 
-    // it("has coherent state", async function (this: Arguments) {});
-
-    // it("can decrease cover amount", async function (this: Arguments) {});
-    // it("can decrease cover premiums", async function (this: Arguments) {});
-
-    // it("has coherent state", async function (this: Arguments) {});
-
-    it.skip("can close cover", async function (this: Arguments) {
+    it("can close cover", async function (this: Arguments) {
       const uint256Max = BigNumber.from(2).pow(256).sub(1);
       expect(
         await postTxHandler(
@@ -284,7 +264,7 @@ export function SanityTest() {
         await this.contracts.AthenaCoverToken.balanceOf(
           this.signers.deployer.address,
         ),
-      ).to.equal(1);
+      ).to.equal(this.args.nbPools);
 
       const cover = await this.contracts.LiquidityManager.coverInfo(0);
 
@@ -295,11 +275,11 @@ export function SanityTest() {
           .sub(this.args.claimAmount),
       );
       expect(cover.premiumsLeft).to.equal(0);
-      // expect(cover.start.div(100)).to.equal(17047336);
-      // expect(cover.end.div(100)).to.equal(17060296);
+      expect(cover.start.div(100)).to.equal(17047336);
+      expect(cover.end.div(100)).to.equal(18015017);
     });
 
-    it.skip("can commit LPs withdrawal", async function (this: Arguments) {
+    it("can commit LPs withdrawal", async function (this: Arguments) {
       this.timeout(300_000);
       await setNextBlockTimestamp({ days: 10 });
 
@@ -309,11 +289,12 @@ export function SanityTest() {
         ),
       ).to.not.throw;
 
-      const position = await this.contracts.LiquidityManager.positions(0);
-      // expect(position.commitWithdrawalTimestamp.div(100)).to.equal(17060296);
+      const position = await this.contracts.LiquidityManager.positionInfo(0);
+
+      expect(position.commitWithdrawalTimestamp.div(100)).to.equal(18023657);
     });
 
-    it.skip("can withdraw LPs", async function (this: Arguments) {
+    it("can withdraw LPs", async function (this: Arguments) {
       this.timeout(600_000);
       // Wait for unlock delay to pass
       await setNextBlockTimestamp({ days: 15 });
@@ -331,14 +312,17 @@ export function SanityTest() {
         ),
       ).to.not.throw;
 
-      const position = await this.contracts.LiquidityManager.positions(0);
+      const position = await this.contracts.LiquidityManager.positionInfo(0);
 
-      // expect(position.poolIds.length).to.equal(3);
+      expect(position.poolIds.length).to.equal(this.args.nbPools);
       expect(position.poolIds[0]).to.equal(0);
       expect(position.supplied).to.equal(0);
-      // expect(position.commitWithdrawalTimestamp.div(100)).to.equal(17060296);
+      expect(position.newUserCapital).to.equal(0);
+      expect(position.strategyRewards).to.almostEqual(0);
+      for (let i = 0; i < this.args.nbPools; i++) {
+        expect(position.coverRewards[0]).to.equal(0);
+      }
+      expect(position.commitWithdrawalTimestamp).to.equal(0);
     });
-
-    // it("has coherent state", async function (this: Arguments) {});
   });
 }
