@@ -13,19 +13,18 @@ export function VirtualPool__depositToPool() {
     it("should correctly add liquidity to the pool and update its state", async function () {
       // Deposit liquidity to the pool
       expect(
-        await this.contracts.TestableVirtualPool.depositToPool(
+        await this.contracts.LiquidityManager.depositToPool(
           this.args.tokenId,
           this.args.amount,
         ),
       ).to.not.throw;
 
       // Check if the liquidity is correctly added to the pool
-      const liquidity =
-        await this.contracts.TestableVirtualPool.totalLiquidity();
+      const liquidity = await this.contracts.LiquidityManager.totalLiquidity();
       expect(liquidity).to.equal(this.args.expectedTotalLiquidityAfterDeposit);
 
       // Check if the pool's state is updated correctly
-      const lpInfo = await this.contracts.TestableVirtualPool.lpInfos(
+      const lpInfo = await this.contracts.LiquidityManager.lpInfos(
         this.args.tokenId,
       );
       expect(lpInfo.beginLiquidityIndex).to.equal(
@@ -37,7 +36,7 @@ export function VirtualPool__depositToPool() {
     it("should revert if the added liquidity results in not enough liquidity for removal", async function () {
       // Attempt to add liquidity that results in not enough liquidity for removal
       expect(
-        await this.contracts.TestableVirtualPool.depositToPool(
+        await this.contracts.LiquidityManager.depositToPool(
           this.args.tokenId,
           this.args.amountLeadingToLiquidityShortage,
         ),
@@ -46,11 +45,11 @@ export function VirtualPool__depositToPool() {
 
     it("should update the LP info with the current liquidity index and claim index", async function () {
       // Deposit liquidity and verify LP info update
-      await this.contracts.TestableVirtualPool.depositToPool(
+      await this.contracts.LiquidityManager.depositToPool(
         this.args.tokenId,
         this.args.amount,
       );
-      const lpInfo = await this.contracts.TestableVirtualPool.lpInfos(
+      const lpInfo = await this.contracts.LiquidityManager.lpInfos(
         this.args.tokenId,
       );
 
@@ -65,15 +64,15 @@ export function VirtualPool__depositToPool() {
 
     it("should overwrite previous LP info after a withdrawal", async function () {
       // Withdraw and then deposit liquidity to verify LP info overwriting
-      await this.contracts.TestableVirtualPool.withdrawFromPool(
+      await this.contracts.LiquidityManager.withdrawFromPool(
         this.args.tokenId,
         this.args.withdrawAmount,
       );
-      await this.contracts.TestableVirtualPool.depositToPool(
+      await this.contracts.LiquidityManager.depositToPool(
         this.args.tokenId,
         this.args.amount,
       );
-      const lpInfo = await this.contracts.TestableVirtualPool.lpInfos(
+      const lpInfo = await this.contracts.LiquidityManager.lpInfos(
         this.args.tokenId,
       );
 

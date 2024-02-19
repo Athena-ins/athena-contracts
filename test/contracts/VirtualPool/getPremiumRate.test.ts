@@ -14,9 +14,7 @@ export function VirtualPool_getPremiumRate() {
       // Calculate premium rate with utilization rate below optimal utilization
       const utilizationRate = this.args.utilizationRateBelowOptimal;
       const premiumRate =
-        await this.contracts.TestableVirtualPool.getPremiumRate(
-          utilizationRate,
-        );
+        await this.contracts.LiquidityManager.getPremiumRate(utilizationRate);
 
       // The expected premium rate is the base rate plus proportional slope 1 rate
       const expectedPremiumRate =
@@ -33,9 +31,7 @@ export function VirtualPool_getPremiumRate() {
       // Calculate premium rate with utilization rate between optimal and full utilization
       const utilizationRate = this.args.utilizationRateBetweenOptimalAndFull;
       const premiumRate =
-        await this.contracts.TestableVirtualPool.getPremiumRate(
-          utilizationRate,
-        );
+        await this.contracts.LiquidityManager.getPremiumRate(utilizationRate);
 
       // The expected premium rate is base rate plus slope 1 rate plus proportional slope 2 rate
       const expectedPremiumRate =
@@ -55,9 +51,7 @@ export function VirtualPool_getPremiumRate() {
       // Calculate premium rate with utilization rate at full utilization
       const utilizationRate = FULL_UTILIZATION_RATE;
       const premiumRate =
-        await this.contracts.TestableVirtualPool.getPremiumRate(
-          utilizationRate,
-        );
+        await this.contracts.LiquidityManager.getPremiumRate(utilizationRate);
 
       // The expected premium rate is base rate plus slope 1 rate plus slope 2 rate
       const expectedPremiumRate =

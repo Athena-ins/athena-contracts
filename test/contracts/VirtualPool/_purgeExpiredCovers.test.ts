@@ -12,12 +12,12 @@ export function VirtualPool__purgeExpiredCovers() {
 
     it("should not make any changes if there are no remaining covers in the pool", async function () {
       // Setup a scenario where the pool has no remaining covers
-      await this.contracts.TestableVirtualPool.setupNoRemainingCovers();
+      await this.contracts.LiquidityManager.setupNoRemainingCovers();
 
       // Call _purgeExpiredCovers and check that no changes are made
-      const slot0Before = await this.contracts.TestableVirtualPool.slot0();
-      await this.contracts.TestableVirtualPool.purgeExpiredCovers();
-      const slot0After = await this.contracts.TestableVirtualPool.slot0();
+      const slot0Before = await this.contracts.LiquidityManager.slot0();
+      await this.contracts.LiquidityManager.purgeExpiredCovers();
+      const slot0After = await this.contracts.LiquidityManager.slot0();
 
       // Check that slot0 remains unchanged
       expect(slot0After).to.deep.equal(slot0Before);
@@ -25,13 +25,13 @@ export function VirtualPool__purgeExpiredCovers() {
 
     it("should remove expired covers and update the pool's slot0", async function () {
       // Setup a scenario where the pool has remaining covers that are expired
-      await this.contracts.TestableVirtualPool.setupWithExpiredCovers();
+      await this.contracts.LiquidityManager.setupWithExpiredCovers();
 
       // Call _purgeExpiredCovers and verify changes
-      await this.contracts.TestableVirtualPool.purgeExpiredCovers();
+      await this.contracts.LiquidityManager.purgeExpiredCovers();
 
       // Check if the expired covers are removed and slot0 is updated
-      const slot0AfterPurge = await this.contracts.TestableVirtualPool.slot0();
+      const slot0AfterPurge = await this.contracts.LiquidityManager.slot0();
       expect(slot0AfterPurge.remainingCovers).to.equal(
         this.args.expectedRemainingCoversAfterPurge,
       );
@@ -41,12 +41,12 @@ export function VirtualPool__purgeExpiredCovers() {
 
     it("should correctly update the liquidity index after purging expired covers", async function () {
       // Setup a scenario and call _purgeExpiredCovers
-      await this.contracts.TestableVirtualPool.setupWithExpiredCovers();
-      await this.contracts.TestableVirtualPool.purgeExpiredCovers();
+      await this.contracts.LiquidityManager.setupWithExpiredCovers();
+      await this.contracts.LiquidityManager.purgeExpiredCovers();
 
       // Verify the liquidity index is updated
       const liquidityIndexAfterPurge =
-        await this.contracts.TestableVirtualPool.liquidityIndex();
+        await this.contracts.LiquidityManager.liquidityIndex();
       expect(liquidityIndexAfterPurge).to.equal(
         this.args.expectedLiquidityIndexAfterPurge,
       );
@@ -54,9 +54,9 @@ export function VirtualPool__purgeExpiredCovers() {
 
     it("should update the last update timestamp to the current timestamp", async function () {
       // Call _purgeExpiredCovers and check the last update timestamp
-      await this.contracts.TestableVirtualPool.purgeExpiredCovers();
+      await this.contracts.LiquidityManager.purgeExpiredCovers();
       const lastUpdateTimestamp =
-        await this.contracts.TestableVirtualPool.lastUpdateTimestamp();
+        await this.contracts.LiquidityManager.lastUpdateTimestamp();
 
       // Check if the last update timestamp is set to the current timestamp
       expect(lastUpdateTimestamp).to.be.closeTo(

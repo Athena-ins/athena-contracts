@@ -12,7 +12,7 @@ export function VirtualPool_getDailyCost() {
 
     it("should correctly compute the new daily cost of a cover", function () {
       // Compute the new daily cost of a cover based on premium rate changes
-      const newDailyCost = this.contracts.TestableVirtualPool.getDailyCost(
+      const newDailyCost = this.contracts.LiquidityManager.getDailyCost(
         this.args.oldDailyCost,
         this.args.oldPremiumRate,
         this.args.newPremiumRate,
@@ -29,7 +29,7 @@ export function VirtualPool_getDailyCost() {
 
     it("should return the old daily cost if the premium rate remains unchanged", function () {
       // Compute the daily cost of a cover when the premium rate does not change
-      const newDailyCost = this.contracts.TestableVirtualPool.getDailyCost(
+      const newDailyCost = this.contracts.LiquidityManager.getDailyCost(
         this.args.oldDailyCost,
         this.args.oldPremiumRate,
         this.args.oldPremiumRate, // No change in premium rate

@@ -13,7 +13,7 @@ export function VirtualPool__takePoolInterests() {
     it("should correctly take pool interests and update the position's state", async function () {
       // Take pool interests and store the returned values
       const [newUserCapital, coverRewards] =
-        await this.contracts.TestableVirtualPool.takePoolInterests(
+        await this.contracts.LiquidityManager.takePoolInterests(
           this.args.tokenId,
           this.args.account,
           this.args.amount,
@@ -28,7 +28,7 @@ export function VirtualPool__takePoolInterests() {
       expect(coverRewards).to.equal(this.args.expectedCoverRewards);
 
       // Check if the LpInfo of the position is updated correctly
-      const lpInfo = await this.contracts.TestableVirtualPool.lpInfos(
+      const lpInfo = await this.contracts.LiquidityManager.lpInfos(
         this.args.tokenId,
       );
       expect(lpInfo.beginLiquidityIndex).to.equal(
@@ -41,7 +41,7 @@ export function VirtualPool__takePoolInterests() {
 
     it("should pay the cover rewards to the account and send fees to the treasury", async function () {
       // Take pool interests and verify rewards payment and fees
-      await this.contracts.TestableVirtualPool.takePoolInterests(
+      await this.contracts.LiquidityManager.takePoolInterests(
         this.args.tokenId,
         this.args.account,
         this.args.amount,
@@ -54,7 +54,7 @@ export function VirtualPool__takePoolInterests() {
     it("should update the user's capital and strategy rewards in the pool", async function () {
       // Take pool interests and verify the user's capital and strategy rewards update
       const [newUserCapital, strategyRewards] =
-        await this.contracts.TestableVirtualPool.takePoolInterests(
+        await this.contracts.LiquidityManager.takePoolInterests(
           this.args.tokenId,
           this.args.account,
           this.args.amount,

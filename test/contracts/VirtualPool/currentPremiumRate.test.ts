@@ -13,7 +13,7 @@ export function VirtualPool_currentPremiumRate() {
     it("should return the current premium rate based on pool utilization", async function () {
       // Get the current premium rate
       const currentPremiumRate =
-        await this.contracts.TestableVirtualPool.currentPremiumRate();
+        await this.contracts.LiquidityManager.currentPremiumRate();
 
       // Expected premium rate based on utilization
       const expectedPremiumRate = this.args.expectedPremiumRate;

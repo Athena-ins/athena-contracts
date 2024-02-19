@@ -11,9 +11,9 @@ export function VirtualPool_availableLiquidity() {
     });
 
     it("should return the available liquidity of the pool", async function () {
-      // Call availableLiquidity on the TestableVirtualPool contract
+      // Call availableLiquidity on the LiquidityManager contract
       const availableLiquidity =
-        await this.contracts.TestableVirtualPool.availableLiquidity();
+        await this.contracts.LiquidityManager.availableLiquidity();
 
       // The expected available liquidity is the pool's total liquidity minus the covered capital
       const expectedAvailableLiquidity =

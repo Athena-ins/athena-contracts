@@ -11,9 +11,9 @@ export function VirtualPool_totalLiquidity() {
     });
 
     it("should return the total liquidity of the pool", async function () {
-      // Call totalLiquidity on the TestableVirtualPool contract
+      // Call totalLiquidity on the LiquidityManager contract
       const totalLiquidity =
-        await this.contracts.TestableVirtualPool.totalLiquidity();
+        await this.contracts.LiquidityManager.totalLiquidity();
 
       // Compare the result with the expected total liquidity value
       expect(totalLiquidity).to.equal(this.args.expectedTotalLiquidity);

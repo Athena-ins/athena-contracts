@@ -16,7 +16,7 @@ export function VirtualPool__refresh() {
 
       // Call _refresh and store the results
       const { slot0, liquidityIndex } =
-        await this.contracts.TestableVirtualPool.refresh(timestamp);
+        await this.contracts.LiquidityManager.refresh(timestamp);
 
       // Check if the returned slot0 values are as expected
       expect(slot0.tick).to.equal(this.args.expectedSlot0Tick);
@@ -32,7 +32,7 @@ export function VirtualPool__refresh() {
 
       // Call _refresh and store the results
       const { slot0 } =
-        await this.contracts.TestableVirtualPool.refresh(timestamp);
+        await this.contracts.LiquidityManager.refresh(timestamp);
 
       // Check if the slot0 values are updated correctly after crossing initialized ticks
       expect(slot0.tick).to.be.at.least(
@@ -48,7 +48,7 @@ export function VirtualPool__refresh() {
 
       // Call _refresh and store the results
       const { liquidityIndex } =
-        await this.contracts.TestableVirtualPool.refresh(timestamp);
+        await this.contracts.LiquidityManager.refresh(timestamp);
 
       // Check if the liquidity index is updated correctly based on utilization and premium rate
       expect(liquidityIndex).to.equal(

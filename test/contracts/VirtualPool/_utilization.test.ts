@@ -12,7 +12,7 @@ export function VirtualPool__utilization() {
 
     it("should return zero utilization rate if the liquidity is zero", function () {
       // Compute utilization with zero liquidity
-      const rate = this.contracts.TestableVirtualPool.utilization(
+      const rate = this.contracts.LiquidityManager.utilization(
         this.args.coveredCapital,
         0, // Zero liquidity
       );
@@ -23,7 +23,7 @@ export function VirtualPool__utilization() {
 
     it("should return the correct utilization rate when liquidity is available", function () {
       // Compute utilization with non-zero liquidity
-      const rate = this.contracts.TestableVirtualPool.utilization(
+      const rate = this.contracts.LiquidityManager.utilization(
         this.args.coveredCapital,
         this.args.liquidity,
       );
@@ -37,7 +37,7 @@ export function VirtualPool__utilization() {
 
     it("should cap the utilization rate at 100%", function () {
       // Compute utilization with covered capital exceeding liquidity
-      const rate = this.contracts.TestableVirtualPool.utilization(
+      const rate = this.contracts.LiquidityManager.utilization(
         this.args.coveredCapitalExceedingLiquidity,
         this.args.liquidity,
       );

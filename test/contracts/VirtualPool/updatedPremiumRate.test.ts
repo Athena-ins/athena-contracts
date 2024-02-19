@@ -13,7 +13,7 @@ export function VirtualPool_updatedPremiumRate() {
     it("should correctly compute the updated premium rate with added covered capital", function () {
       // Compute the updated premium rate with added covered capital
       const updatedPremiumRate =
-        this.contracts.TestableVirtualPool.updatedPremiumRate(
+        this.contracts.LiquidityManager.updatedPremiumRate(
           this.args.coveredCapitalToAdd,
           0, // No covered capital to remove
         );
@@ -29,7 +29,7 @@ export function VirtualPool_updatedPremiumRate() {
     it("should correctly compute the updated premium rate with removed covered capital", function () {
       // Compute the updated premium rate with removed covered capital
       const updatedPremiumRate =
-        this.contracts.TestableVirtualPool.updatedPremiumRate(
+        this.contracts.LiquidityManager.updatedPremiumRate(
           0, // No covered capital to add
           this.args.coveredCapitalToRemove,
         );
@@ -45,7 +45,7 @@ export function VirtualPool_updatedPremiumRate() {
     it("should increase the premium rate when covered capital is added", function () {
       // Compute the updated premium rate with additional covered capital
       const updatedPremiumRate =
-        this.contracts.TestableVirtualPool.updatedPremiumRate(
+        this.contracts.LiquidityManager.updatedPremiumRate(
           this.args.coveredCapitalToAdd,
           0, // No covered capital to remove
         );
@@ -59,7 +59,7 @@ export function VirtualPool_updatedPremiumRate() {
     it("should decrease the premium rate when covered capital is removed", function () {
       // Compute the updated premium rate with removed covered capital
       const updatedPremiumRate =
-        this.contracts.TestableVirtualPool.updatedPremiumRate(
+        this.contracts.LiquidityManager.updatedPremiumRate(
           0, // No covered capital to add
           this.args.coveredCapitalToRemove,
         );
@@ -71,7 +71,7 @@ export function VirtualPool_updatedPremiumRate() {
     it("should retain the premium rate if covered capital remains unchanged", function () {
       // Compute the updated premium rate with no change in covered capital
       const updatedPremiumRate =
-        this.contracts.TestableVirtualPool.updatedPremiumRate(
+        this.contracts.LiquidityManager.updatedPremiumRate(
           0, // No covered capital to add
           0, // No covered capital to remove
         );

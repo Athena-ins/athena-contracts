@@ -13,7 +13,7 @@ export function VirtualPool__closeCover() {
     it("should revert if the cover has already expired", async function () {
       // Attempt to close an already expired cover
       expect(
-        await this.contracts.TestableVirtualPool.closeCover(
+        await this.contracts.LiquidityManager.closeCover(
           this.args.coverIdExpired,
           this.args.coverAmount,
         ),
@@ -23,13 +23,13 @@ export function VirtualPool__closeCover() {
     it("should successfully close a cover and update the pool's slot0", async function () {
       // Close a valid cover and check successful update of the pool's slot0
       expect(
-        await this.contracts.TestableVirtualPool.closeCover(
+        await this.contracts.LiquidityManager.closeCover(
           this.args.coverId,
           this.args.coverAmount,
         ),
       ).to.not.throw;
       // Check the pool's slot0 for updated values
-      const slot0 = await this.contracts.TestableVirtualPool.slot0();
+      const slot0 = await this.contracts.LiquidityManager.slot0();
       expect(slot0.coveredCapital).to.equal(
         this.args.expectedCoveredCapitalAfterClose,
       );
@@ -43,7 +43,7 @@ export function VirtualPool__closeCover() {
 
     it("should correctly handle cover removal from the tick data structure", async function () {
       // Close a cover and check correct handling of cover removal
-      await this.contracts.TestableVirtualPool.closeCover(
+      await this.contracts.LiquidityManager.closeCover(
         this.args.coverId,
         this.args.coverAmount,
       );
@@ -53,12 +53,12 @@ export function VirtualPool__closeCover() {
 
     it("should correctly update the premium rate and seconds per tick", async function () {
       // Close a cover and verify the new premium rate and seconds per tick calculation
-      await this.contracts.TestableVirtualPool.closeCover(
+      await this.contracts.LiquidityManager.closeCover(
         this.args.coverId,
         this.args.coverAmount,
       );
       const newPremiumRate =
-        await this.contracts.TestableVirtualPool.currentPremiumRate();
+        await this.contracts.LiquidityManager.currentPremiumRate();
       expect(newPremiumRate).to.equal(
         this.args.expectedNewPremiumRateAfterClose,
       );

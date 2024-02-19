@@ -13,17 +13,16 @@ export function VirtualPool__addPremiumPosition() {
     it("should add a premium position for the cover", async function () {
       // Add a premium position for a cover
       expect(
-        await this.contracts.TestableVirtualPool.addPremiumPosition(
+        await this.contracts.LiquidityManager.addPremiumPosition(
           this.args.coverId,
           this.args.beginPremiumRate,
           this.args.lastTick,
         ),
       ).to.not.throw;
       // Check if the premium position is added correctly
-      const coverPremiums =
-        await this.contracts.TestableVirtualPool.coverPremiums(
-          this.args.coverId,
-        );
+      const coverPremiums = await this.contracts.LiquidityManager.coverPremiums(
+        this.args.coverId,
+      );
       expect(coverPremiums.beginPremiumRate).to.equal(
         this.args.beginPremiumRate,
       );
@@ -32,14 +31,14 @@ export function VirtualPool__addPremiumPosition() {
 
     it("should initialize the last tick of the cover if not already initialized", async function () {
       // Add a premium position for a cover where the last tick is not initialized
-      await this.contracts.TestableVirtualPool.addPremiumPosition(
+      await this.contracts.LiquidityManager.addPremiumPosition(
         this.args.coverId,
         this.args.beginPremiumRate,
         this.args.uninitializedLastTick,
       );
       // Check if the last tick is now initialized
       const isInitialized =
-        await this.contracts.TestableVirtualPool.isInitializedTick(
+        await this.contracts.LiquidityManager.isInitializedTick(
           this.args.uninitializedLastTick,
         );
       expect(isInitialized).to.be.true;
@@ -47,13 +46,13 @@ export function VirtualPool__addPremiumPosition() {
 
     it("should increment the number of covers in the tick", async function () {
       // Add a premium position and check the number of covers in the tick
-      await this.contracts.TestableVirtualPool.addPremiumPosition(
+      await this.contracts.LiquidityManager.addPremiumPosition(
         this.args.coverId,
         this.args.beginPremiumRate,
         this.args.lastTick,
       );
       const nbCoversInTick =
-        await this.contracts.TestableVirtualPool.nbCoversInTick(
+        await this.contracts.LiquidityManager.nbCoversInTick(
           this.args.lastTick,
         );
       expect(nbCoversInTick).to.be.greaterThan(this.args.initialNbCoversInTick);
@@ -61,15 +60,14 @@ export function VirtualPool__addPremiumPosition() {
 
     it("should set the cover's premium position data correctly", async function () {
       // Add a premium position for a cover and check its data
-      await this.contracts.TestableVirtualPool.addPremiumPosition(
+      await this.contracts.LiquidityManager.addPremiumPosition(
         this.args.coverId,
         this.args.beginPremiumRate,
         this.args.lastTick,
       );
-      const coverPremium =
-        await this.contracts.TestableVirtualPool.coverPremiums(
-          this.args.coverId,
-        );
+      const coverPremium = await this.contracts.LiquidityManager.coverPremiums(
+        this.args.coverId,
+      );
       expect(coverPremium.beginPremiumRate).to.equal(
         this.args.beginPremiumRate,
       );

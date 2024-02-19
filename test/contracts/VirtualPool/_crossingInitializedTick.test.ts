@@ -18,7 +18,7 @@ export function VirtualPool__crossingInitializedTick() {
 
       // Call _crossingInitializedTick and store the result
       const { mutatedSlot0, utilization, premiumRate } =
-        await this.contracts.TestableVirtualPool.crossingInitializedTick(
+        await this.contracts.LiquidityManager.crossingInitializedTick(
           self,
           slot0,
           tick,

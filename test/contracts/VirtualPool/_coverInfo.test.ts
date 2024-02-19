@@ -15,7 +15,7 @@ export function VirtualPool__coverInfo() {
     it("should revert if the cover has already expired", async function () {
       // Attempt to close an expired cover
       expect(
-        await this.contracts.TestableVirtualPool.closeCover(
+        await this.contracts.LiquidityManager.closeCover(
           this.args.coverIdWithExpiredCover,
           this.args.coverAmount,
         ),
@@ -25,13 +25,13 @@ export function VirtualPool__coverInfo() {
     it("should successfully close a cover and update the pool's slot0", async function () {
       // Close a valid cover
       expect(
-        await this.contracts.TestableVirtualPool.closeCover(
+        await this.contracts.LiquidityManager.closeCover(
           this.args.coverId,
           this.args.coverAmount,
         ),
       ).to.not.throw;
       // Check the pool's slot0 for updated values
-      const slot0 = await this.contracts.TestableVirtualPool.slot0();
+      const slot0 = await this.contracts.LiquidityManager.slot0();
       expect(slot0.coveredCapital).to.equal(
         this.args.expectedCoveredCapitalAfterClose,
       );
@@ -45,7 +45,7 @@ export function VirtualPool__coverInfo() {
 
     it("should remove the cover from the tick data if it's the last cover in the tick", async function () {
       // Close a cover that is the last cover in its tick
-      await this.contracts.TestableVirtualPool.closeCover(
+      await this.contracts.LiquidityManager.closeCover(
         this.args.coverIdLastInTick,
         this.args.coverAmount,
       );
@@ -55,7 +55,7 @@ export function VirtualPool__coverInfo() {
 
     it("should adjust cover premium data if the cover is not the last cover in the tick", async function () {
       // Close a cover that is not the last cover in its tick
-      await this.contracts.TestableVirtualPool.closeCover(
+      await this.contracts.LiquidityManager.closeCover(
         this.args.coverIdNotLastInTick,
         this.args.coverAmount,
       );
@@ -67,7 +67,7 @@ export function VirtualPool__coverInfo() {
 
     it("should return zero values if the cover's last tick is overtaken", async function () {
       // Retrieve cover info for an expired cover
-      const coverInfo = await this.contracts.TestableVirtualPool.coverInfo(
+      const coverInfo = await this.contracts.LiquidityManager.coverInfo(
         this.args.coverIdWithExpiredCover,
       );
       // Check if the returned values are zeros
@@ -77,7 +77,7 @@ export function VirtualPool__coverInfo() {
 
     it("should correctly compute the premium rate and daily cost of a cover", async function () {
       // Retrieve cover info for a valid cover
-      const coverInfo = await this.contracts.TestableVirtualPool.coverInfo(
+      const coverInfo = await this.contracts.LiquidityManager.coverInfo(
         this.args.coverId,
       );
       // Check if the returned values match the expected premium rate and daily cost
@@ -89,7 +89,7 @@ export function VirtualPool__coverInfo() {
 
     it("should correctly calculate the premiums left for a cover", async function () {
       // Retrieve cover info for a valid cover
-      const coverInfo = await this.contracts.TestableVirtualPool.coverInfo(
+      const coverInfo = await this.contracts.LiquidityManager.coverInfo(
         this.args.coverId,
       );
       // Check if the returned premiums left match the expected value

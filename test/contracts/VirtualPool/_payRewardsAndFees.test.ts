@@ -13,7 +13,7 @@ export function VirtualPool__payRewardsAndFees() {
     it("should revert if the rewards are less than the fees and yield bonus", async function () {
       // Attempt to pay rewards when the rewards are insufficient to cover fees and yield bonus
       expect(
-        await this.contracts.TestableVirtualPool.payRewardsAndFees(
+        await this.contracts.LiquidityManager.payRewardsAndFees(
           this.args.insufficientRewards, // Rewards less than fees and yield bonus
           this.args.account,
           this.args.yieldBonus,
@@ -25,7 +25,7 @@ export function VirtualPool__payRewardsAndFees() {
     it("should apply leverage fee only when using leverage", async function () {
       // Pay rewards with leverage and check for leverage fee application
       expect(
-        await this.contracts.TestableVirtualPool.payRewardsAndFees(
+        await this.contracts.LiquidityManager.payRewardsAndFees(
           this.args.rewards,
           this.args.account,
           this.args.yieldBonus,
@@ -38,7 +38,7 @@ export function VirtualPool__payRewardsAndFees() {
 
     it("should transfer net rewards to the position owner", async function () {
       // Pay rewards and verify the net amount is transferred to the position owner
-      await this.contracts.TestableVirtualPool.payRewardsAndFees(
+      await this.contracts.LiquidityManager.payRewardsAndFees(
         this.args.rewards,
         this.args.account, // Position owner
         this.args.yieldBonus,
@@ -49,7 +49,7 @@ export function VirtualPool__payRewardsAndFees() {
 
     it("should pay fees to the treasury and leverage risk wallet", async function () {
       // Pay rewards and verify fees are paid to the treasury and leverage risk wallet
-      await this.contracts.TestableVirtualPool.payRewardsAndFees(
+      await this.contracts.LiquidityManager.payRewardsAndFees(
         this.args.rewards,
         this.args.account,
         this.args.yieldBonus,
@@ -60,7 +60,7 @@ export function VirtualPool__payRewardsAndFees() {
 
     it("should accrue revenue to the DAO for the fees", async function () {
       // Pay rewards and check if the fees are accrued as revenue to the DAO
-      await this.contracts.TestableVirtualPool.payRewardsAndFees(
+      await this.contracts.LiquidityManager.payRewardsAndFees(
         this.args.rewards,
         this.args.daoAccount, // DAO account
         this.args.yieldBonus,

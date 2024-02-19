@@ -13,7 +13,7 @@ export function VirtualPool__withdrawLiquidity() {
     it("should correctly withdraw liquidity and update the pool's state", async function () {
       // Withdraw liquidity and store the returned values
       const [newUserCapital, strategyRewards] =
-        await this.contracts.TestableVirtualPool.withdrawLiquidity(
+        await this.contracts.LiquidityManager.withdrawLiquidity(
           this.args.tokenId,
           this.args.amount,
           this.args.poolIds,
@@ -27,13 +27,13 @@ export function VirtualPool__withdrawLiquidity() {
 
       // Check if the liquidity index of the pool is updated correctly
       const liquidityIndex =
-        await this.contracts.TestableVirtualPool.liquidityIndex();
+        await this.contracts.LiquidityManager.liquidityIndex();
       expect(liquidityIndex).to.equal(this.args.expectedLiquidityIndex);
     });
 
     it("should pay the cover rewards to the DAO's leverage risk wallet", async function () {
       // Withdraw liquidity and verify rewards payment to the DAO's leverage risk wallet
-      await this.contracts.TestableVirtualPool.withdrawLiquidity(
+      await this.contracts.LiquidityManager.withdrawLiquidity(
         this.args.tokenId,
         this.args.amount,
         this.args.poolIds,
@@ -44,7 +44,7 @@ export function VirtualPool__withdrawLiquidity() {
     it("should update the user's capital in the pool", async function () {
       // Withdraw liquidity and verify the user's capital update
       const [newUserCapital, _] =
-        await this.contracts.TestableVirtualPool.withdrawLiquidity(
+        await this.contracts.LiquidityManager.withdrawLiquidity(
           this.args.tokenId,
           this.args.amount,
           this.args.poolIds,

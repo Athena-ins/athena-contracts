@@ -13,7 +13,7 @@ export function VirtualPool__getUpdatedPositionInfo() {
 
     it("should compute the updated position info correctly", async function() {
       // Compute the updated position info
-      const updatedInfo = await this.contracts.TestableVirtualPool.getUpdatedPositionInfo(
+      const updatedInfo = await this.contracts.LiquidityManager.getUpdatedPositionInfo(
         this.args.tokenId,
         this.args.userCapital,
         this.args.poolIds
@@ -35,7 +35,7 @@ export function VirtualPool__getUpdatedPositionInfo() {
     
     it("should account for claims affecting the position's capital", async function() {
       // Compute the updated position info with claims affecting the capital
-      const updatedInfo = await this.contracts.TestableVirtualPool.getUpdatedPositionInfo(
+      const updatedInfo = await this.contracts.LiquidityManager.getUpdatedPositionInfo(
         this.args.tokenId,
         this.args.userCapital,
         this.args.poolIds
@@ -47,7 +47,7 @@ export function VirtualPool__getUpdatedPositionInfo() {
     
     it("should correctly calculate rewards up to the latest claim or update", async function() {
       // Compute the updated position info and verify reward calculation
-      const updatedInfo = await this.contracts.TestableVirtualPool.getUpdatedPositionInfo(
+      const updatedInfo = await this.contracts.LiquidityManager.getUpdatedPositionInfo(
         this.args.tokenId,
         this.args.userCapital,
         this.args.poolIds
@@ -60,14 +60,14 @@ export function VirtualPool__getUpdatedPositionInfo() {
     
     it("should update the LpInfo with the latest indexes", async function() {
       // Compute the updated position info and verify LpInfo updates
-      const updatedInfo = await this.contracts.TestableVirtualPool.getUpdatedPositionInfo(
+      const updatedInfo = await this.contracts.LiquidityManager.getUpdatedPositionInfo(
         this.args.tokenId,
         this.args.userCapital,
         this.args.poolIds
       );
     
       // Check if the LpInfo is updated with the latest liquidity and claim indexes
-      const latestLiquidityIndex = await this.contracts.TestableVirtualPool.liquidityIndex();
+      const latestLiquidityIndex = await this.contracts.LiquidityManager.liquidityIndex();
       const latestClaimIndex = await this.con
     
   });
