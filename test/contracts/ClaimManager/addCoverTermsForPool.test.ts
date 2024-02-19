@@ -3,10 +3,15 @@ import { expect } from "chai";
 import { setNextBlockTimestamp, postTxHandler } from "../../helpers/hardhat";
 import { toUsd, toErc20, makeIdArray } from "../../helpers/protocol";
 // Types
+import { BigNumber } from "ethers";
+
+interface Arguments extends Mocha.Context {
+  args: {};
+}
 
 export function ClaimManager_addCoverTermsForPool() {
-  describe("addCoverTermsForPool Functionality", function () {
-    beforeEach(async function () {
+  describe("addCoverTermsForPool Functionality", function (this: Arguments) {
+    beforeEach(async function (this: Arguments) {
       this.args = {
         nonOwnerAccount: this.signers.user,
         poolId: 0,
@@ -19,7 +24,7 @@ export function ClaimManager_addCoverTermsForPool() {
       };
     });
 
-    it("should revert if called by a non-owner account", async function () {
+    it("should revert if called by a non-owner account", async function (this: Arguments) {
       // Attempt to call addCoverTermsForPool by a non-owner account
       expect(
         await this.contract.addCoverTermsForPool(
@@ -30,7 +35,7 @@ export function ClaimManager_addCoverTermsForPool() {
       ).to.be.revertedWith("Ownable: caller is not the owner");
     });
 
-    it("should successfully update the terms for a new pool", async function () {
+    it("should successfully update the terms for a new pool", async function (this: Arguments) {
       // Call addCoverTermsForPool with new poolId and ipfsAgreementCid
       const tx = await this.contract.addCoverTermsForPool(
         this.args.newPoolId,
@@ -48,7 +53,7 @@ export function ClaimManager_addCoverTermsForPool() {
       expect(storedCid).to.equal(this.args.newIpfsAgreementCid);
     });
 
-    it("should successfully overwrite existing terms for an existing pool", async function () {
+    it("should successfully overwrite existing terms for an existing pool", async function (this: Arguments) {
       // First add a term to be overwritten
       await this.contract.addCoverTermsForPool(
         this.args.existingPoolId,

@@ -3,14 +3,19 @@ import { expect } from "chai";
 import { setNextBlockTimestamp, postTxHandler } from "../../helpers/hardhat";
 import { toUsd, toErc20, makeIdArray } from "../../helpers/protocol";
 // Types
+import { BigNumber } from "ethers";
+
+interface Arguments extends Mocha.Context {
+  args: {};
+}
 
 export function LiquidityManager_updateConfig() {
-  context("updateConfig", function () {
-    before(async function () {
+  context("updateConfig", function (this: Arguments) {
+    before(async function (this: Arguments) {
       this.args = {};
     });
 
-    it("should update the withdraw delay and maximum leverage", async function () {
+    it("should update the withdraw delay and maximum leverage", async function (this: Arguments) {
       // Update the configuration
       expect(
         await this.contracts.LiquidityManager.updateConfig(
@@ -30,7 +35,7 @@ export function LiquidityManager_updateConfig() {
       expect(updatedMaxLeverage).to.equal(this.args.newMaxLeverage);
     });
 
-    it("should only allow the owner to update the configuration", async function () {
+    it("should only allow the owner to update the configuration", async function (this: Arguments) {
       // Attempt to update the configuration by a non-owner
       expect(
         await this.contracts.LiquidityManager.connect(
@@ -39,7 +44,7 @@ export function LiquidityManager_updateConfig() {
       ).to.be.revertedWith("Ownable: caller is not the owner");
     });
 
-    it("should allow changing the withdraw delay independently", async function () {
+    it("should allow changing the withdraw delay independently", async function (this: Arguments) {
       // Update only the withdraw delay
       await this.contracts.LiquidityManager.updateConfig(
         this.args.newWithdrawDelay,
@@ -54,7 +59,7 @@ export function LiquidityManager_updateConfig() {
       expect(updatedWithdrawDelay).to.equal(this.args.newWithdrawDelay);
     });
 
-    it("should allow changing the maximum leverage independently", async function () {
+    it("should allow changing the maximum leverage independently", async function (this: Arguments) {
       // Update only the maximum leverage
       await this.contracts.LiquidityManager.updateConfig(
         this.args.initialWithdrawDelay, // Keep the initial withdraw delay

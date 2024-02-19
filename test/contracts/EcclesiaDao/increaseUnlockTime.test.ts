@@ -3,14 +3,19 @@ import { expect } from "chai";
 import { setNextBlockTimestamp, postTxHandler } from "../../helpers/hardhat";
 import { toUsd, toErc20, makeIdArray } from "../../helpers/protocol";
 // Types
+import { BigNumber } from "ethers";
+
+interface Arguments extends Mocha.Context {
+  args: {};
+}
 
 export function EcclesiaDao_increaseUnlockTime() {
-  context("increaseUnlockTime", function () {
-    before(async function () {
+  context("increaseUnlockTime", function (this: Arguments) {
+    before(async function (this: Arguments) {
       this.args = {};
     });
 
-    it("should revert if the user does not have an existing lock", async function () {
+    it("should revert if the user does not have an existing lock", async function (this: Arguments) {
       // Attempt to increase unlock time for a user without an existing lock
       expect(
         await this.contract.increaseUnlockTime(this.args.newUnlockTime, {
@@ -19,7 +24,7 @@ export function EcclesiaDao_increaseUnlockTime() {
       ).to.be.revertedWith("LockDoesNotExist");
     });
 
-    it("should revert if the user's lock has expired", async function () {
+    it("should revert if the user's lock has expired", async function (this: Arguments) {
       // Attempt to increase unlock time for a user whose lock has expired
       expect(
         await this.contract.increaseUnlockTime(this.args.newUnlockTime, {
@@ -28,7 +33,7 @@ export function EcclesiaDao_increaseUnlockTime() {
       ).to.be.revertedWith("LockExpired");
     });
 
-    it("should revert if the new unlock time is not longer than the current one", async function () {
+    it("should revert if the new unlock time is not longer than the current one", async function (this: Arguments) {
       // Attempt to increase unlock time to a time not longer than the current one
       expect(
         await this.contract.increaseUnlockTime(this.args.currentUnlockTime, {
@@ -37,7 +42,7 @@ export function EcclesiaDao_increaseUnlockTime() {
       ).to.be.revertedWith("CanOnlyExtendLock");
     });
 
-    it("should revert if the new unlock time is longer than the maximum lock duration", async function () {
+    it("should revert if the new unlock time is longer than the maximum lock duration", async function (this: Arguments) {
       // Attempt to increase unlock time beyond the maximum lock duration
       expect(
         await this.contract.increaseUnlockTime(
@@ -49,7 +54,7 @@ export function EcclesiaDao_increaseUnlockTime() {
       ).to.be.revertedWith("LockLongerThanMax");
     });
 
-    it("should successfully increase the unlock time", async function () {
+    it("should successfully increase the unlock time", async function (this: Arguments) {
       // Increase the unlock time for a user with a valid lock
       expect(
         await this.contract.increaseUnlockTime(this.args.newValidUnlockTime, {
@@ -58,7 +63,7 @@ export function EcclesiaDao_increaseUnlockTime() {
       ).to.not.throw;
     });
 
-    it("should correctly update the user's unlock time and mint additional votes", async function () {
+    it("should correctly update the user's unlock time and mint additional votes", async function (this: Arguments) {
       // Increase unlock time and check if the user's unlock time and votes are updated correctly
       await this.contract.increaseUnlockTime(this.args.newValidUnlockTime, {
         from: this.signers.userWithValidLock,

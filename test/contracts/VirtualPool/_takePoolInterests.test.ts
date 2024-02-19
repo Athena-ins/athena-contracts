@@ -3,14 +3,19 @@ import { expect } from "chai";
 import { setNextBlockTimestamp, postTxHandler } from "../../helpers/hardhat";
 import { toUsd, toErc20, makeIdArray } from "../../helpers/protocol";
 // Types
+import { BigNumber } from "ethers";
+
+interface Arguments extends Mocha.Context {
+  args: {};
+}
 
 export function VirtualPool__takePoolInterests() {
   context("_takePoolInterests", function () {
-    before(async function () {
+    before(async function (this: Arguments) {
       this.args = {};
     });
 
-    it("should correctly take pool interests and update the position's state", async function () {
+    it("should correctly take pool interests and update the position's state", async function (this: Arguments) {
       // Take pool interests and store the returned values
       const [newUserCapital, coverRewards] =
         await this.contracts.LiquidityManager.takePoolInterests(
@@ -39,7 +44,7 @@ export function VirtualPool__takePoolInterests() {
       );
     });
 
-    it("should pay the cover rewards to the account and send fees to the treasury", async function () {
+    it("should pay the cover rewards to the account and send fees to the treasury", async function (this: Arguments) {
       // Take pool interests and verify rewards payment and fees
       await this.contracts.LiquidityManager.takePoolInterests(
         this.args.tokenId,
@@ -51,7 +56,7 @@ export function VirtualPool__takePoolInterests() {
       // Add logic to verify that the rewards are paid to the account and fees are sent to the treasury
     });
 
-    it("should update the user's capital and strategy rewards in the pool", async function () {
+    it("should update the user's capital and strategy rewards in the pool", async function (this: Arguments) {
       // Take pool interests and verify the user's capital and strategy rewards update
       const [newUserCapital, strategyRewards] =
         await this.contracts.LiquidityManager.takePoolInterests(

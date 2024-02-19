@@ -3,14 +3,19 @@ import { expect } from "chai";
 import { setNextBlockTimestamp, postTxHandler } from "../../helpers/hardhat";
 import { toUsd, toErc20, makeIdArray } from "../../helpers/protocol";
 // Types
+import { BigNumber } from "ethers";
+
+interface Arguments extends Mocha.Context {
+  args: {};
+}
 
 export function LiquidityManager_covers() {
-  context("covers", function () {
-    before(async function () {
+  context("covers", function (this: Arguments) {
+    before(async function (this: Arguments) {
       this.args = {};
     });
 
-    it("should return the correct cover data for a valid coverId that exists", async function () {
+    it("should return the correct cover data for a valid coverId that exists", async function (this: Arguments) {
       const coverData = await this.contracts.LiquidityManager.covers(
         this.args.validCoverId,
       );
@@ -23,21 +28,21 @@ export function LiquidityManager_covers() {
       expect(coverData.premiumRate).to.be.a("number");
     });
 
-    it("should return default or empty data for a coverId that does not exist", async function () {
+    it("should return default or empty data for a coverId that does not exist", async function (this: Arguments) {
       const coverData = await this.contracts.LiquidityManager.covers(
         this.args.nonExistentCoverId,
       );
       expect(coverData).to.deep.equal({});
     });
 
-    it("should return correct cover data for a coverId at the boundary of existing IDs", async function () {
+    it("should return correct cover data for a coverId at the boundary of existing IDs", async function (this: Arguments) {
       const coverData = await this.contracts.LiquidityManager.covers(
         this.args.boundaryCoverId,
       );
       expect(coverData.coverId).to.equal(this.args.boundaryCoverId);
     });
 
-    it("should ensure that the returned CoverRead struct fields match the underlying Cover struct and corresponding VirtualPool.CoverInfo", async function () {
+    it("should ensure that the returned CoverRead struct fields match the underlying Cover struct and corresponding VirtualPool.CoverInfo", async function (this: Arguments) {
       const coverData = await this.contracts.LiquidityManager.covers(
         this.args.validCoverId,
       );

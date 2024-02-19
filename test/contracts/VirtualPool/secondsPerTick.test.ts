@@ -3,14 +3,19 @@ import { expect } from "chai";
 import { setNextBlockTimestamp, postTxHandler } from "../../helpers/hardhat";
 import { toUsd, toErc20, makeIdArray } from "../../helpers/protocol";
 // Types
+import { BigNumber } from "ethers";
+
+interface Arguments extends Mocha.Context {
+  args: {};
+}
 
 export function VirtualPool_secondsPerTick() {
-  context("secondsPerTick", function () {
-    before(async function () {
+  context("secondsPerTick", function (this: Arguments) {
+    before(async function (this: Arguments) {
       this.args = {};
     });
 
-    it("should correctly compute the new seconds per tick after premium rate change", function () {
+    it("should correctly compute the new seconds per tick after premium rate change", function (this: Arguments) {
       // Compute the new seconds per tick with given old seconds per tick, old premium rate, and new premium rate
       const newSecondsPerTick = this.contracts.LiquidityManager.secondsPerTick(
         this.args.oldSecondsPerTick,
@@ -25,7 +30,7 @@ export function VirtualPool_secondsPerTick() {
       expect(newSecondsPerTick).to.equal(expectedNewSecondsPerTick);
     });
 
-    it("should increase the seconds per tick when the new premium rate is lower than the old rate", function () {
+    it("should increase the seconds per tick when the new premium rate is lower than the old rate", function (this: Arguments) {
       // Compute the new seconds per tick with a lower new premium rate
       const newSecondsPerTick = this.contracts.LiquidityManager.secondsPerTick(
         this.args.oldSecondsPerTick,
@@ -37,7 +42,7 @@ export function VirtualPool_secondsPerTick() {
       expect(newSecondsPerTick).to.be.greaterThan(this.args.oldSecondsPerTick);
     });
 
-    it("should decrease the seconds per tick when the new premium rate is higher than the old rate", function () {
+    it("should decrease the seconds per tick when the new premium rate is higher than the old rate", function (this: Arguments) {
       // Compute the new seconds per tick with a higher new premium rate
       const newSecondsPerTick = this.contracts.LiquidityManager.secondsPerTick(
         this.args.oldSecondsPerTick,
@@ -49,7 +54,7 @@ export function VirtualPool_secondsPerTick() {
       expect(newSecondsPerTick).to.be.lessThan(this.args.oldSecondsPerTick);
     });
 
-    it("should retain the seconds per tick if the premium rate remains unchanged", function () {
+    it("should retain the seconds per tick if the premium rate remains unchanged", function (this: Arguments) {
       // Compute the new seconds per tick with the same premium rate
       const newSecondsPerTick = this.contracts.LiquidityManager.secondsPerTick(
         this.args.oldSecondsPerTick,

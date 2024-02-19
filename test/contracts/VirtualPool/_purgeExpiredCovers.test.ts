@@ -3,14 +3,19 @@ import { expect } from "chai";
 import { setNextBlockTimestamp, postTxHandler } from "../../helpers/hardhat";
 import { toUsd, toErc20, makeIdArray } from "../../helpers/protocol";
 // Types
+import { BigNumber } from "ethers";
+
+interface Arguments extends Mocha.Context {
+  args: {};
+}
 
 export function VirtualPool__purgeExpiredCovers() {
-  context("_purgeExpiredCovers", function () {
-    before(async function () {
+  context("_purgeExpiredCovers", function (this: Arguments) {
+    before(async function (this: Arguments) {
       this.args = {};
     });
 
-    it("should not make any changes if there are no remaining covers in the pool", async function () {
+    it("should not make any changes if there are no remaining covers in the pool", async function (this: Arguments) {
       // Setup a scenario where the pool has no remaining covers
       await this.contracts.LiquidityManager.setupNoRemainingCovers();
 
@@ -23,7 +28,7 @@ export function VirtualPool__purgeExpiredCovers() {
       expect(slot0After).to.deep.equal(slot0Before);
     });
 
-    it("should remove expired covers and update the pool's slot0", async function () {
+    it("should remove expired covers and update the pool's slot0", async function (this: Arguments) {
       // Setup a scenario where the pool has remaining covers that are expired
       await this.contracts.LiquidityManager.setupWithExpiredCovers();
 
@@ -39,7 +44,7 @@ export function VirtualPool__purgeExpiredCovers() {
       // Additional checks can be added for other fields of slot0
     });
 
-    it("should correctly update the liquidity index after purging expired covers", async function () {
+    it("should correctly update the liquidity index after purging expired covers", async function (this: Arguments) {
       // Setup a scenario and call _purgeExpiredCovers
       await this.contracts.LiquidityManager.setupWithExpiredCovers();
       await this.contracts.LiquidityManager.purgeExpiredCovers();
@@ -52,7 +57,7 @@ export function VirtualPool__purgeExpiredCovers() {
       );
     });
 
-    it("should update the last update timestamp to the current timestamp", async function () {
+    it("should update the last update timestamp to the current timestamp", async function (this: Arguments) {
       // Call _purgeExpiredCovers and check the last update timestamp
       await this.contracts.LiquidityManager.purgeExpiredCovers();
       const lastUpdateTimestamp =

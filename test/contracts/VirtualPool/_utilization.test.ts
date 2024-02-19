@@ -3,14 +3,19 @@ import { expect } from "chai";
 import { setNextBlockTimestamp, postTxHandler } from "../../helpers/hardhat";
 import { toUsd, toErc20, makeIdArray } from "../../helpers/protocol";
 // Types
+import { BigNumber } from "ethers";
+
+interface Arguments extends Mocha.Context {
+  args: {};
+}
 
 export function VirtualPool__utilization() {
-  context("_utilization", function () {
-    before(async function () {
+  context("_utilization", function ( ) {
+    before(async function (this: Arguments) {
       this.args = {};
     });
 
-    it("should return zero utilization rate if the liquidity is zero", function () {
+    it("should return zero utilization rate if the liquidity is zero", function (this: Arguments) {
       // Compute utilization with zero liquidity
       const rate = this.contracts.LiquidityManager.utilization(
         this.args.coveredCapital,
@@ -21,7 +26,7 @@ export function VirtualPool__utilization() {
       expect(rate).to.equal(0);
     });
 
-    it("should return the correct utilization rate when liquidity is available", function () {
+    it("should return the correct utilization rate when liquidity is available", function (this: Arguments) {
       // Compute utilization with non-zero liquidity
       const rate = this.contracts.LiquidityManager.utilization(
         this.args.coveredCapital,
@@ -35,7 +40,7 @@ export function VirtualPool__utilization() {
       expect(rate).to.equal(expectedRate);
     });
 
-    it("should cap the utilization rate at 100%", function () {
+    it("should cap the utilization rate at 100%", function (this: Arguments) {
       // Compute utilization with covered capital exceeding liquidity
       const rate = this.contracts.LiquidityManager.utilization(
         this.args.coveredCapitalExceedingLiquidity,

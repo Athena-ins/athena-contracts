@@ -3,14 +3,19 @@ import { expect } from "chai";
 import { setNextBlockTimestamp, postTxHandler } from "../../helpers/hardhat";
 import { toUsd, toErc20, makeIdArray } from "../../helpers/protocol";
 // Types
+import { BigNumber } from "ethers";
+
+interface Arguments extends Mocha.Context {
+  args: {};
+}
 
 export function ClaimManager_getClaimCounterEvidence() {
-  context("getClaimCounterEvidence", function () {
-    before(async function () {
+  context("getClaimCounterEvidence", function (this: Arguments) {
+    before(async function (this: Arguments) {
       this.args = {};
     });
 
-    it("should revert if the claim does not exist", async function () {
+    it("should revert if the claim does not exist", async function (this: Arguments) {
       // Attempt to retrieve counter-evidence for a non-existent claim
       expect(
         await this.contract.getClaimCounterEvidence(
@@ -19,7 +24,7 @@ export function ClaimManager_getClaimCounterEvidence() {
       ).to.be.revertedWith("ClaimDoesNotExist"); // Use the actual error message
     });
 
-    it("should return an empty array for a claim with no counter-evidence", async function () {
+    it("should return an empty array for a claim with no counter-evidence", async function (this: Arguments) {
       // Retrieve counter-evidence for a claim with no counter-evidence submitted
       const counterEvidence = await this.contract.getClaimCounterEvidence(
         this.args.claimIdWithNoCounterEvidence,
@@ -29,7 +34,7 @@ export function ClaimManager_getClaimCounterEvidence() {
       expect(counterEvidence).to.be.empty;
     });
 
-    it("should return all counter-evidence submitted for a claim", async function () {
+    it("should return all counter-evidence submitted for a claim", async function (this: Arguments) {
       // Retrieve counter-evidence for a claim with counter-evidence submitted
       const counterEvidence = await this.contract.getClaimCounterEvidence(
         this.args.claimIdWithCounterEvidence,

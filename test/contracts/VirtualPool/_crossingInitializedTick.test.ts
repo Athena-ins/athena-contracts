@@ -3,14 +3,19 @@ import { expect } from "chai";
 import { setNextBlockTimestamp, postTxHandler } from "../../helpers/hardhat";
 import { toUsd, toErc20, makeIdArray } from "../../helpers/protocol";
 // Types
+import { BigNumber } from "ethers";
+
+interface Arguments extends Mocha.Context {
+  args: {};
+}
 
 export function VirtualPool__crossingInitializedTick() {
-  context("_crossingInitializedTick", function () {
-    before(async function () {
+  context("_crossingInitializedTick", function (this: Arguments) {
+    before(async function (this: Arguments) {
       this.args = {};
     });
 
-    it("should correctly mutate slot0 upon crossing an initialized tick", async function () {
+    it("should correctly mutate slot0 upon crossing an initialized tick", async function (this: Arguments) {
       // Setup a VPool instance and slot0
       let self = setupVPoolInstance(); // Replace with the actual setup method
       let slot0 = setupSlot0Instance(); // Replace with the actual setup method for slot0

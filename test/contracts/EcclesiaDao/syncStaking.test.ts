@@ -3,20 +3,25 @@ import { expect } from "chai";
 import { setNextBlockTimestamp, postTxHandler } from "../../helpers/hardhat";
 import { toUsd, toErc20, makeIdArray } from "../../helpers/protocol";
 // Types
+import { BigNumber } from "ethers";
+
+interface Arguments extends Mocha.Context {
+  args: {};
+}
 
 export function EcclesiaDao_syncStaking() {
-  context("syncStaking", function () {
-    before(async function () {
+  context("syncStaking", function (this: Arguments) {
+    before(async function (this: Arguments) {
       this.args = {};
     });
 
-    it("should successfully sync staking rewards", async function () {
+    it("should successfully sync staking rewards", async function (this: Arguments) {
       // Sync staking rewards
       expect(await this.contract.syncStaking()).to.not.throw;
       // Add logic to verify the staking rewards are updated correctly
     });
 
-    it("should increase the contract's token balance by the staking rewards amount", async function () {
+    it("should increase the contract's token balance by the staking rewards amount", async function (this: Arguments) {
       // Get token balance before syncing
       const balBefore = await this.token.balanceOf(this.contract.address);
 
@@ -32,7 +37,7 @@ export function EcclesiaDao_syncStaking() {
       // Add additional checks as needed
     });
 
-    it("should update the staking index with accrued rewards", async function () {
+    it("should update the staking index with accrued rewards", async function (this: Arguments) {
       // Sync staking rewards and verify the staking index is updated accordingly
       await this.contract.syncStaking();
       // Add logic to check the updated staking index

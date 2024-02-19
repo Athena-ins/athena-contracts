@@ -3,28 +3,33 @@ import { expect } from "chai";
 import { setNextBlockTimestamp, postTxHandler } from "../../helpers/hardhat";
 import { toUsd, toErc20, makeIdArray } from "../../helpers/protocol";
 // Types
+import { BigNumber } from "ethers";
+
+interface Arguments extends Mocha.Context {
+  args: {};
+}
 
 export function EcclesiaDao_withdraw() {
-  context("withdraw", function () {
-    before(async function () {
+  context("withdraw", function (this: Arguments) {
+    before(async function (this: Arguments) {
       this.args = {};
     });
 
-    it("should revert if the lock period is not over and the breaker is not enabled", async function () {
+    it("should revert if the lock period is not over and the breaker is not enabled", async function (this: Arguments) {
       // Attempt to withdraw before the lock period is over without breaker being enabled
       expect(
         await this.contract.withdraw({ from: this.signers.userBeforeLockEnd }),
       ).to.be.revertedWith("LockPeriodNotOver");
     });
 
-    it("should allow withdrawal if the lock period is over", async function () {
+    it("should allow withdrawal if the lock period is over", async function (this: Arguments) {
       // Withdraw after the lock period is over
       expect(
         await this.contract.withdraw({ from: this.signers.userAfterLockEnd }),
       ).to.not.throw;
     });
 
-    it("should revert if the user does not have enough votes to burn", async function () {
+    it("should revert if the user does not have enough votes to burn", async function (this: Arguments) {
       // Attempt to withdraw when the user does not have enough votes
       expect(
         await this.contract.withdraw({
@@ -33,25 +38,25 @@ export function EcclesiaDao_withdraw() {
       ).to.be.revertedWith("NotEnoughVotes");
     });
 
-    it("should burn the corresponding amount of votes", async function () {
+    it("should burn the corresponding amount of votes", async function (this: Arguments) {
       // Withdraw and check if the correct amount of votes is burned
       await this.contract.withdraw({ from: this.signers.userAfterLockEnd });
       // Add logic to verify the correct amount of votes is burned
     });
 
-    it("should transfer the locked ATEN to the user", async function () {
+    it("should transfer the locked ATEN to the user", async function (this: Arguments) {
       // Withdraw and check if the ATEN is transferred to the user
       await this.contract.withdraw({ from: this.signers.userAfterLockEnd });
       // Add logic to verify ATEN is transferred to the user
     });
 
-    it("should update the user's lock information accordingly", async function () {
+    it("should update the user's lock information accordingly", async function (this: Arguments) {
       // Withdraw and check if the user's lock information is updated
       await this.contract.withdraw({ from: this.signers.userAfterLockEnd });
       // Add logic to verify the user's lock information is updated
     });
 
-    it("should emit a Withdraw event with the correct parameters", async function () {
+    it("should emit a Withdraw event with the correct parameters", async function (this: Arguments) {
       // Withdraw and check for the Withdraw event
       const tx = await this.contract.withdraw({
         from: this.signers.userAfterLockEnd,
@@ -63,7 +68,7 @@ export function EcclesiaDao_withdraw() {
       });
     });
 
-    it("should allow withdrawal if the breaker is enabled regardless of the lock period", async function () {
+    it("should allow withdrawal if the breaker is enabled regardless of the lock period", async function (this: Arguments) {
       // Enable breaker and attempt to withdraw before the lock period is over
       await this.contract.setBreaker(true);
       expect(

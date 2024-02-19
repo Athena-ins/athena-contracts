@@ -3,21 +3,26 @@ import { expect } from "chai";
 import { setNextBlockTimestamp, postTxHandler } from "../../helpers/hardhat";
 import { toUsd, toErc20, makeIdArray } from "../../helpers/protocol";
 // Types
+import { BigNumber } from "ethers";
+
+interface Arguments extends Mocha.Context {
+  args: {};
+}
 
 export function EcclesiaDao_increaseLockAmount() {
-  context("increaseLockAmount", function () {
-    before(async function () {
+  context("increaseLockAmount", function (this: Arguments) {
+    before(async function (this: Arguments) {
       this.args = {};
     });
 
-    it("should revert if the amount to increase is zero", async function () {
+    it("should revert if the amount to increase is zero", async function (this: Arguments) {
       // Attempt to increase the lock amount by zero
       expect(
         await this.contract.increaseLockAmount(0, { from: this.signers.user }),
       ).to.be.revertedWith("BadAmount");
     });
 
-    it("should revert if the user does not have an existing lock", async function () {
+    it("should revert if the user does not have an existing lock", async function (this: Arguments) {
       // Attempt to increase lock amount for a user without an existing lock
       expect(
         await this.contract.increaseLockAmount(this.args.amount, {
@@ -26,7 +31,7 @@ export function EcclesiaDao_increaseLockAmount() {
       ).to.be.revertedWith("LockDoesNotExist");
     });
 
-    it("should revert if the user's lock has expired", async function () {
+    it("should revert if the user's lock has expired", async function (this: Arguments) {
       // Attempt to increase lock amount for a user whose lock has expired
       expect(
         await this.contract.increaseLockAmount(this.args.amount, {
@@ -35,7 +40,7 @@ export function EcclesiaDao_increaseLockAmount() {
       ).to.be.revertedWith("LockExpired");
     });
 
-    it("should successfully increase the lock amount", async function () {
+    it("should successfully increase the lock amount", async function (this: Arguments) {
       // Increase the lock amount for a user with a valid lock
       expect(
         await this.contract.increaseLockAmount(this.args.additionalAmount, {
@@ -44,7 +49,7 @@ export function EcclesiaDao_increaseLockAmount() {
       ).to.not.throw;
     });
 
-    it("should correctly update the user's locked balance and votes", async function () {
+    it("should correctly update the user's locked balance and votes", async function (this: Arguments) {
       // Increase lock amount and check if the user's locked balance and votes are updated correctly
       await this.contract.increaseLockAmount(this.args.additionalAmount, {
         from: this.signers.userWithValidLock,
@@ -63,7 +68,7 @@ export function EcclesiaDao_increaseLockAmount() {
       expect(updatedVotes).to.equal(this.args.totalVotes);
     });
 
-    it("should mint additional votes corresponding to the increased amount", async function () {
+    it("should mint additional votes corresponding to the increased amount", async function (this: Arguments) {
       // Increase lock amount and verify additional votes are minted
       await this.contract.increaseLockAmount(this.args.additionalAmount, {
         from: this.signers.userWithValidLock,

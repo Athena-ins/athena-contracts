@@ -3,14 +3,19 @@ import { expect } from "chai";
 import { setNextBlockTimestamp, postTxHandler } from "../../helpers/hardhat";
 import { toUsd, toErc20, makeIdArray } from "../../helpers/protocol";
 // Types
+import { BigNumber } from "ethers";
+
+interface Arguments extends Mocha.Context {
+  args: {};
+}
 
 export function EcclesiaDao_harvest() {
-  context("harvest", function () {
-    before(async function () {
+  context("harvest", function (this: Arguments) {
+    before(async function (this: Arguments) {
       this.args = {};
     });
 
-    it("should revert if the user does not have a lock", async function () {
+    it("should revert if the user does not have a lock", async function (this: Arguments) {
       // Attempt to harvest rewards for a user without a lock
       expect(
         await this.contract.harvest(this.args.tokens, {
@@ -19,7 +24,7 @@ export function EcclesiaDao_harvest() {
       ).to.be.revertedWith("LockDoesNotExist"); // Use appropriate error message
     });
 
-    it("should correctly calculate and transfer staking rewards", async function () {
+    it("should correctly calculate and transfer staking rewards", async function (this: Arguments) {
       // Harvest staking rewards and verify correct calculation and transfer
       await this.contract.harvest(this.args.tokens, {
         from: this.signers.userWithLock,
@@ -27,7 +32,7 @@ export function EcclesiaDao_harvest() {
       // Add logic to check staking rewards calculation and transfer
     });
 
-    it("should correctly calculate and transfer redistributed rewards", async function () {
+    it("should correctly calculate and transfer redistributed rewards", async function (this: Arguments) {
       // Harvest redistributed rewards and verify correct calculation and transfer
       await this.contract.harvest(this.args.tokens, {
         from: this.signers.userWithLock,
@@ -35,7 +40,7 @@ export function EcclesiaDao_harvest() {
       // Add logic to check redistributed rewards calculation and transfer
     });
 
-    it("should update user's staking and redistribution indexes after harvesting", async function () {
+    it("should update user's staking and redistribution indexes after harvesting", async function (this: Arguments) {
       // Harvest rewards and verify the user's indexes are updated
       await this.contract.harvest(this.args.tokens, {
         from: this.signers.userWithLock,
@@ -53,7 +58,7 @@ export function EcclesiaDao_harvest() {
       );
     });
 
-    it("should harvest and transfer revenue for specified tokens", async function () {
+    it("should harvest and transfer revenue for specified tokens", async function (this: Arguments) {
       // Harvest revenue rewards for specified tokens and verify transfer
       await this.contract.harvest(this.args.tokens, {
         from: this.signers.userWithLock,
@@ -61,7 +66,7 @@ export function EcclesiaDao_harvest() {
       // Add logic to check each specified token's revenue harvest and transfer
     });
 
-    it("should update user's revenue index for each harvested token", async function () {
+    it("should update user's revenue index for each harvested token", async function (this: Arguments) {
       // Harvest revenue rewards and verify each token's user revenue index is updated
       await this.contract.harvest(this.args.tokens, {
         from: this.signers.userWithLock,
@@ -81,7 +86,7 @@ export function EcclesiaDao_harvest() {
       }
     });
 
-    it("should not transfer any tokens if there are no rewards to harvest", async function () {
+    it("should not transfer any tokens if there are no rewards to harvest", async function (this: Arguments) {
       // Attempt to harvest when there are no rewards
       expect(
         await this.contract.harvest(this.args.tokens, {

@@ -3,14 +3,19 @@ import { expect } from "chai";
 import { setNextBlockTimestamp, postTxHandler } from "../../helpers/hardhat";
 import { toUsd, toErc20, makeIdArray } from "../../helpers/protocol";
 // Types
+import { BigNumber } from "ethers";
+
+interface Arguments extends Mocha.Context {
+  args: {};
+}
 
 export function ClaimManager_initiateClaim() {
-  context("initiateClaim", function () {
-    before(async function () {
+  context("initiateClaim", function (this: Arguments) {
+    before(async function (this: Arguments) {
       this.args = {};
     });
 
-    it("should revert if called by a non-cover owner", async function () {
+    it("should revert if called by a non-cover owner", async function (this: Arguments) {
       // Attempt to initiate a claim as a non-cover owner
       expect(
         await this.contract.initiateClaim(
@@ -23,7 +28,7 @@ export function ClaimManager_initiateClaim() {
       ).to.be.revertedWith("OnlyCoverOwner");
     });
 
-    it("should revert if the IPFS meta-evidence CID is not authenticated", async function () {
+    it("should revert if the IPFS meta-evidence CID is not authenticated", async function (this: Arguments) {
       // Attempt to initiate a claim with an unauthenticated meta-evidence CID
       expect(
         await this.contract.initiateClaim(
@@ -36,7 +41,7 @@ export function ClaimManager_initiateClaim() {
       ).to.be.revertedWith("InvalidMetaEvidence");
     });
 
-    it("should revert if the claimed amount is zero", async function () {
+    it("should revert if the claimed amount is zero", async function (this: Arguments) {
       // Attempt to initiate a claim with a zero claimed amount
       expect(
         await this.contract.initiateClaim(
@@ -49,7 +54,7 @@ export function ClaimManager_initiateClaim() {
       ).to.be.revertedWith("CannotClaimZero");
     });
 
-    it("should revert if there is not enough ETH for arbitration and collateral", async function () {
+    it("should revert if there is not enough ETH for arbitration and collateral", async function (this: Arguments) {
       // Attempt to initiate a claim with insufficient ETH for arbitration and collateral
       expect(
         await this.contract.initiateClaim(
@@ -62,7 +67,7 @@ export function ClaimManager_initiateClaim() {
       ).to.be.revertedWith("NotEnoughEthForClaim");
     });
 
-    it("should revert if there is a previous claim still ongoing for the cover", async function () {
+    it("should revert if there is a previous claim still ongoing for the cover", async function (this: Arguments) {
       // Attempt to initiate a claim when there is an ongoing claim for the cover
       expect(
         await this.contract.initiateClaim(
@@ -75,7 +80,7 @@ export function ClaimManager_initiateClaim() {
       ).to.be.revertedWith("PreviousClaimStillOngoing");
     });
 
-    it("should successfully initiate a new claim", async function () {
+    it("should successfully initiate a new claim", async function (this: Arguments) {
       // Successfully initiate a new claim
       expect(
         await this.contract.initiateClaim(
@@ -88,7 +93,7 @@ export function ClaimManager_initiateClaim() {
       ).to.not.throw;
     });
 
-    it("should correctly update the claim data in the contract", async function () {
+    it("should correctly update the claim data in the contract", async function (this: Arguments) {
       // Initiate a new claim and check the claim data
       await this.contract.initiateClaim(
         this.args.coverId,
@@ -107,7 +112,7 @@ export function ClaimManager_initiateClaim() {
       // Check other claim data as needed
     });
 
-    it("should emit a ClaimCreated event with correct parameters", async function () {
+    it("should emit a ClaimCreated event with correct parameters", async function (this: Arguments) {
       // Initiate a claim and check for the ClaimCreated event emission
       const tx = await this.contract.initiateClaim(
         this.args.coverId,
@@ -128,7 +133,7 @@ export function ClaimManager_initiateClaim() {
       ]);
     });
 
-    it("should emit a MetaEvidence event with correct parameters", async function () {
+    it("should emit a MetaEvidence event with correct parameters", async function (this: Arguments) {
       // Initiate a claim and check for the MetaEvidence event emission
       const tx = await this.contract.initiateClaim(
         this.args.coverId,

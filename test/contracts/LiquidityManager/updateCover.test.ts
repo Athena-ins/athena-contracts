@@ -3,14 +3,19 @@ import { expect } from "chai";
 import { setNextBlockTimestamp, postTxHandler } from "../../helpers/hardhat";
 import { toUsd, toErc20, makeIdArray } from "../../helpers/protocol";
 // Types
+import { BigNumber } from "ethers";
+
+interface Arguments extends Mocha.Context {
+  args: {};
+}
 
 export function LiquidityManager_updateCover() {
-  context("updateCover", function () {
-    before(async function () {
+  context("updateCover", function (this: Arguments) {
+    before(async function (this: Arguments) {
       this.args = {};
     });
 
-    it("should revert if called by non-cover owner", async function () {
+    it("should revert if called by non-cover owner", async function (this: Arguments) {
       // Attempt to update cover by a non-cover owner
       expect(
         await this.contracts.LiquidityManager.connect(
@@ -25,7 +30,7 @@ export function LiquidityManager_updateCover() {
       ).to.be.revertedWith("OnlyTokenOwner");
     });
 
-    it("should succeed if called by cover owner", async function () {
+    it("should succeed if called by cover owner", async function (this: Arguments) {
       // Update the cover by the cover owner
       expect(
         await this.contracts.LiquidityManager.connect(
@@ -40,7 +45,7 @@ export function LiquidityManager_updateCover() {
       ).to.not.throw;
     });
 
-    it("should purge expired covers from the pool", async function () {
+    it("should purge expired covers from the pool", async function (this: Arguments) {
       // Expire a cover and then attempt to update it
       await this.contracts.LiquidityManager.registerExpiredCover(
         this.args.coverId,
@@ -59,7 +64,7 @@ export function LiquidityManager_updateCover() {
       ).to.not.throw; // Check if the updateCover function purges expired covers
     });
 
-    it("should update the cover and handle premiums correctly", async function () {
+    it("should update the cover and handle premiums correctly", async function (this: Arguments) {
       // Initially register and buy a cover
       await this.contracts.LiquidityManager.registerAndBuyCover(
         this.args.coverId,
@@ -100,7 +105,7 @@ export function LiquidityManager_updateCover() {
       );
     });
 
-    it("should revert if the pool is paused", async function () {
+    it("should revert if the pool is paused", async function (this: Arguments) {
       // Pause the pool
       await this.contracts.TestableVirtualPool.setPoolPause(
         this.args.poolId,
@@ -127,7 +132,7 @@ export function LiquidityManager_updateCover() {
       );
     });
 
-    it("should revert if the cover is already expired", async function () {
+    it("should revert if the cover is already expired", async function (this: Arguments) {
       // Simulate an expired cover
       await this.contracts.LiquidityManager.registerExpiredCover(
         this.args.coverId,
@@ -148,7 +153,7 @@ export function LiquidityManager_updateCover() {
       ).to.be.revertedWith("CoverIsExpired");
     });
 
-    it("should handle the complete removal of premiums correctly", async function () {
+    it("should handle the complete removal of premiums correctly", async function (this: Arguments) {
       // Register a cover and add premiums
       await this.contracts.LiquidityManager.registerAndBuyCover(
         this.args.coverId,

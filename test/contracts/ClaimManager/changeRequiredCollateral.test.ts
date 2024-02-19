@@ -3,10 +3,15 @@ import { expect } from "chai";
 import { setNextBlockTimestamp, postTxHandler } from "../../helpers/hardhat";
 import { toUsd, toErc20, makeIdArray } from "../../helpers/protocol";
 // Types
+import { BigNumber } from "ethers";
+
+interface Arguments extends Mocha.Context {
+  args: {};
+}
 
 export function ClaimManager_changeRequiredCollateral() {
-  context("changeRequiredCollateral", function () {
-    it("should revert if called by a non-owner", async function () {
+  context("changeRequiredCollateral", function (this: Arguments) {
+    it("should revert if called by a non-owner", async function (this: Arguments) {
       // Attempt to call changeRequiredCollateral by a non-owner account
       expect(
         await this.contract
@@ -15,7 +20,7 @@ export function ClaimManager_changeRequiredCollateral() {
       ).to.be.revertedWith("Ownable: caller is not the owner");
     });
 
-    it("should successfully change the required collateral amount when called by the owner", async function () {
+    it("should successfully change the required collateral amount when called by the owner", async function (this: Arguments) {
       // Call changeRequiredCollateral by the owner account
       await this.contract.changeRequiredCollateral(
         this.args.newCollateralAmount,
@@ -28,7 +33,7 @@ export function ClaimManager_changeRequiredCollateral() {
       expect(updatedCollateralAmount).to.equal(this.args.newCollateralAmount);
     });
 
-    it("should emit a CollateralAmountChanged event on successful collateral change", async function () {
+    it("should emit a CollateralAmountChanged event on successful collateral change", async function (this: Arguments) {
       // Call changeRequiredCollateral and get transaction receipt
       const tx = await this.contract.changeRequiredCollateral(
         this.args.newCollateralAmount,

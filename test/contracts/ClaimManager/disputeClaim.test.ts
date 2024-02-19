@@ -3,14 +3,19 @@ import { expect } from "chai";
 import { setNextBlockTimestamp, postTxHandler } from "../../helpers/hardhat";
 import { toUsd, toErc20, makeIdArray } from "../../helpers/protocol";
 // Types
+import { BigNumber } from "ethers";
+
+interface Arguments extends Mocha.Context {
+  args: {};
+}
 
 export function ClaimManager_disputeClaim() {
-  context("disputeClaim", function () {
-    before(async function () {
+  context("disputeClaim", function (this: Arguments) {
+    before(async function (this: Arguments) {
       this.args = {};
     });
 
-    it("should revert if the claim does not exist", async function () {
+    it("should revert if the claim does not exist", async function (this: Arguments) {
       // Attempt to dispute a non-existent claim
       expect(
         await this.contract.disputeClaim(this.args.nonExistentClaimId, {
@@ -19,7 +24,7 @@ export function ClaimManager_disputeClaim() {
       ).to.be.revertedWith("ClaimDoesNotExist"); // Use the actual error message
     });
 
-    it("should revert if the claim status is not 'Initiated'", async function () {
+    it("should revert if the claim status is not 'Initiated'", async function (this: Arguments) {
       // Attempt to dispute a claim not in 'Initiated' status
       expect(
         await this.contract.disputeClaim(this.args.claimIdNotInitiated, {
@@ -28,7 +33,7 @@ export function ClaimManager_disputeClaim() {
       ).to.be.revertedWith("ClaimNotChallengeable");
     });
 
-    it("should revert if the challenge period has expired", async function () {
+    it("should revert if the challenge period has expired", async function (this: Arguments) {
       // Attempt to dispute a claim after challenge period expiration
       expect(
         await this.contract.disputeClaim(this.args.expiredChallengeClaimId, {
@@ -37,7 +42,7 @@ export function ClaimManager_disputeClaim() {
       ).to.be.revertedWith("ClaimNotChallengeable");
     });
 
-    it("should revert if the claim is already disputed", async function () {
+    it("should revert if the claim is already disputed", async function (this: Arguments) {
       // Attempt to dispute an already disputed claim
       expect(
         await this.contract.disputeClaim(this.args.alreadyDisputedClaimId, {
@@ -46,7 +51,7 @@ export function ClaimManager_disputeClaim() {
       ).to.be.revertedWith("ClaimAlreadyChallenged");
     });
 
-    it("should revert if not enough ETH is sent to cover the arbitration cost", async function () {
+    it("should revert if not enough ETH is sent to cover the arbitration cost", async function (this: Arguments) {
       // Attempt to dispute a claim with insufficient ETH for arbitration cost
       expect(
         await this.contract.disputeClaim(this.args.claimId, {
@@ -55,7 +60,7 @@ export function ClaimManager_disputeClaim() {
       ).to.be.revertedWith("MustMatchClaimantDeposit");
     });
 
-    it("should successfully create a dispute in Kleros", async function () {
+    it("should successfully create a dispute in Kleros", async function (this: Arguments) {
       // Successfully create a dispute for a claim
       expect(
         await this.contract.disputeClaim(this.args.claimId, {
@@ -64,7 +69,7 @@ export function ClaimManager_disputeClaim() {
       ).to.emit(this.arbitrator, "DisputeCreation");
     });
 
-    it("should update the claim status to 'Disputed'", async function () {
+    it("should update the claim status to 'Disputed'", async function (this: Arguments) {
       // Dispute a claim and check if its status is updated to 'Disputed'
       await this.contract.disputeClaim(this.args.claimId, {
         value: this.args.disputeStake,
@@ -74,7 +79,7 @@ export function ClaimManager_disputeClaim() {
       expect(updatedClaim.status).to.equal(ClaimStatus.Disputed); // Use the actual enum value
     });
 
-    it("should record the challenger's address in the claim", async function () {
+    it("should record the challenger's address in the claim", async function (this: Arguments) {
       // Dispute a claim and check if the challenger's address is recorded
       await this.contract.disputeClaim(this.args.claimId, {
         value: this.args.disputeStake,
@@ -84,7 +89,7 @@ export function ClaimManager_disputeClaim() {
       expect(updatedClaim.challenger).to.equal(this.signers.challenger.address);
     });
 
-    it("should correctly map the Kleros dispute ID to the claim ID", async function () {
+    it("should correctly map the Kleros dispute ID to the claim ID", async function (this: Arguments) {
       // Dispute a claim and check the mapping of Kleros dispute ID to claim ID
       await this.contract.disputeClaim(this.args.claimId, {
         value: this.args.disputeStake,
@@ -97,7 +102,7 @@ export function ClaimManager_disputeClaim() {
       expect(mappedClaimId).to.equal(this.args.claimId);
     });
 
-    it("should emit a 'Dispute' event with correct parameters", async function () {
+    it("should emit a 'Dispute' event with correct parameters", async function (this: Arguments) {
       // Dispute a claim and check for the 'Dispute' event emission
       const tx = await this.contract.disputeClaim(this.args.claimId, {
         value: this.args.disputeStake,

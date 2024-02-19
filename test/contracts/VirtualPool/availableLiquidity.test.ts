@@ -3,14 +3,19 @@ import { expect } from "chai";
 import { setNextBlockTimestamp, postTxHandler } from "../../helpers/hardhat";
 import { toUsd, toErc20, makeIdArray } from "../../helpers/protocol";
 // Types
+import { BigNumber } from "ethers";
+
+interface Arguments extends Mocha.Context {
+  args: {};
+}
 
 export function VirtualPool_availableLiquidity() {
-  context("availableLiquidity", function () {
-    before(async function () {
+  context("availableLiquidity", function (this: Arguments) {
+    before(async function (this: Arguments) {
       this.args = {};
     });
 
-    it("should return the available liquidity of the pool", async function () {
+    it("should return the available liquidity of the pool", async function (this: Arguments) {
       // Call availableLiquidity on the LiquidityManager contract
       const availableLiquidity =
         await this.contracts.LiquidityManager.availableLiquidity();

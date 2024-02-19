@@ -3,14 +3,19 @@ import { expect } from "chai";
 import { setNextBlockTimestamp, postTxHandler } from "../../helpers/hardhat";
 import { toUsd, toErc20, makeIdArray } from "../../helpers/protocol";
 // Types
+import { BigNumber } from "ethers";
+
+interface Arguments extends Mocha.Context {
+  args: {};
+}
 
 export function LiquidityManager_addLiquidity() {
-  context("addLiquidity", function () {
-    before(async function () {
+  context("addLiquidity", function (this: Arguments) {
+    before(async function (this: Arguments) {
       this.args = {};
     });
 
-    it("should increase the position's liquidity with valid parameters", async function () {
+    it("should increase the position's liquidity with valid parameters", async function (this: Arguments) {
       // Simulate increasing the position's liquidity
       expect(
         await this.contracts.LiquidityManager.connect(
@@ -31,7 +36,7 @@ export function LiquidityManager_addLiquidity() {
       expect(position.supplied).to.equal(this.args.expectedNewSupplied);
     });
 
-    it("should revert if called by non-position owner", async function () {
+    it("should revert if called by non-position owner", async function (this: Arguments) {
       // Attempt to increase position's liquidity by non-owner
       expect(
         await this.contracts.LiquidityManager.connect(
@@ -44,7 +49,7 @@ export function LiquidityManager_addLiquidity() {
       ).to.be.revertedWith("OnlyTokenOwner");
     });
 
-    it("should revert if the position is committed for withdrawal", async function () {
+    it("should revert if the position is committed for withdrawal", async function (this: Arguments) {
       // Assuming position is committed for withdrawal
       expect(
         await this.contracts.LiquidityManager.connect(
@@ -57,7 +62,7 @@ export function LiquidityManager_addLiquidity() {
       ).to.be.revertedWith("CannotIncreaseIfCommittedWithdrawal");
     });
 
-    it("should handle both wrapped and unwrapped token deposits correctly", async function () {
+    it("should handle both wrapped and unwrapped token deposits correctly", async function (this: Arguments) {
       // Increase position with non-wrapped tokens
       await this.contracts.LiquidityManager.connect(
         this.signers.positionOwner,
@@ -77,7 +82,7 @@ export function LiquidityManager_addLiquidity() {
       );
     });
 
-    it("should take interests in all pools before updating the position", async function () {
+    it("should take interests in all pools before updating the position", async function (this: Arguments) {
       // Increase the position's liquidity
       await this.contracts.LiquidityManager.connect(
         this.signers.positionOwner,

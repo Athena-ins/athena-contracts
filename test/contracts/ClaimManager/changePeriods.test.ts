@@ -3,14 +3,19 @@ import { expect } from "chai";
 import { setNextBlockTimestamp, postTxHandler } from "../../helpers/hardhat";
 import { toUsd, toErc20, makeIdArray } from "../../helpers/protocol";
 // Types
+import { BigNumber } from "ethers";
+
+interface Arguments extends Mocha.Context {
+  args: {};
+}
 
 export function ClaimManager_changePeriods() {
-  context("changePeriods", function () {
-    beforeEach(async function () {
+  context("changePeriods", function (this: Arguments) {
+    beforeEach(async function (this: Arguments) {
       // Common setup before each test
     });
 
-    it("should revert if called by a non-owner", async function () {
+    it("should revert if called by a non-owner", async function (this: Arguments) {
       // Attempt to call changeRequiredCollateral by a non-owner account
       expect(
         await await this.contract.changePeriods(
@@ -20,7 +25,7 @@ export function ClaimManager_changePeriods() {
       ).to.be.revertedWith("Ownable: caller is not the owner");
     });
 
-    it("should successfully change the challenge period", async function () {
+    it("should successfully change the challenge period", async function (this: Arguments) {
       // Call changePeriods with new challenge period
       await this.contract.changePeriods(
         this.args.newChallengePeriod,
@@ -34,7 +39,7 @@ export function ClaimManager_changePeriods() {
       expect(updatedChallengePeriod).to.equal(this.args.newChallengePeriod);
     });
 
-    it("should successfully change the overrule period", async function () {
+    it("should successfully change the overrule period", async function (this: Arguments) {
       // Call changePeriods with new overrule period
       await this.contract.changePeriods(
         this.args.challengePeriod,
@@ -48,7 +53,7 @@ export function ClaimManager_changePeriods() {
       expect(updatedOverrulePeriod).to.equal(this.args.newOverrulePeriod);
     });
 
-    it("should emit a PeriodsChanged event on successful period change", async function () {
+    it("should emit a PeriodsChanged event on successful period change", async function (this: Arguments) {
       // Call changePeriods and get transaction receipt
       const tx = await this.contract.changePeriods(
         this.args.newChallengePeriod,

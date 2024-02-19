@@ -3,20 +3,25 @@ import { expect } from "chai";
 import { setNextBlockTimestamp, postTxHandler } from "../../helpers/hardhat";
 import { toUsd, toErc20, makeIdArray } from "../../helpers/protocol";
 // Types
+import { BigNumber } from "ethers";
+
+interface Arguments extends Mocha.Context {
+  args: {};
+}
 
 export function EcclesiaDao_tokenToVotes() {
-  context("tokenToVotes", function () {
-    before(async function () {
+  context("tokenToVotes", function (this: Arguments) {
+    before(async function (this: Arguments) {
       this.args = {};
     });
 
-    it("should return zero votes for zero ATEN amount", async function () {
+    it("should return zero votes for zero ATEN amount", async function (this: Arguments) {
       // Convert zero ATEN to votes
       const votes = await this.contract.tokenToVotes(0, this.args.lockDuration);
       expect(votes).to.equal(0);
     });
 
-    it("should return fewer votes than ATEN for lock duration smaller than EQUILIBRIUM_LOCK", async function () {
+    it("should return fewer votes than ATEN for lock duration smaller than EQUILIBRIUM_LOCK", async function (this: Arguments) {
       // Convert ATEN to votes for a duration smaller than EQUILIBRIUM_LOCK
       const votes = await this.contract.tokenToVotes(
         this.args.atenAmount,
@@ -25,7 +30,7 @@ export function EcclesiaDao_tokenToVotes() {
       expect(votes).to.be.below(this.args.atenAmount);
     });
 
-    it("should return equal votes to ATEN for lock duration equal to EQUILIBRIUM_LOCK", async function () {
+    it("should return equal votes to ATEN for lock duration equal to EQUILIBRIUM_LOCK", async function (this: Arguments) {
       // Convert ATEN to votes for a duration equal to EQUILIBRIUM_LOCK
       const votes = await this.contract.tokenToVotes(
         this.args.atenAmount,
@@ -34,7 +39,7 @@ export function EcclesiaDao_tokenToVotes() {
       expect(votes).to.equal(this.args.atenAmount);
     });
 
-    it("should return more votes than ATEN for lock duration larger than EQUILIBRIUM_LOCK", async function () {
+    it("should return more votes than ATEN for lock duration larger than EQUILIBRIUM_LOCK", async function (this: Arguments) {
       // Convert ATEN to votes for a duration larger than EQUILIBRIUM_LOCK
       const votes = await this.contract.tokenToVotes(
         this.args.atenAmount,
@@ -43,7 +48,7 @@ export function EcclesiaDao_tokenToVotes() {
       expect(votes).to.be.above(this.args.atenAmount);
     });
 
-    it("should correctly apply the weight bias based on lock duration", async function () {
+    it("should correctly apply the weight bias based on lock duration", async function (this: Arguments) {
       // Convert ATEN to votes for different lock durations and check if the bias is correctly applied
       const shortDurationVotes = await this.contract.tokenToVotes(
         this.args.atenAmount,
@@ -57,7 +62,7 @@ export function EcclesiaDao_tokenToVotes() {
       expect(longDurationVotes).to.be.above(shortDurationVotes);
     });
 
-    it("should adhere to the maximum votes cap for extremely long durations", async function () {
+    it("should adhere to the maximum votes cap for extremely long durations", async function (this: Arguments) {
       // Convert ATEN to votes for a duration longer than MAX_LOCK and check if it adheres to the maximum votes cap
       const extremeDurationVotes = await this.contract.tokenToVotes(
         this.args.atenAmount,

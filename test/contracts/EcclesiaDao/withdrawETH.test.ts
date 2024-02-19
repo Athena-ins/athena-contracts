@@ -3,21 +3,26 @@ import { expect } from "chai";
 import { setNextBlockTimestamp, postTxHandler } from "../../helpers/hardhat";
 import { toUsd, toErc20, makeIdArray } from "../../helpers/protocol";
 // Types
+import { BigNumber } from "ethers";
+
+interface Arguments extends Mocha.Context {
+  args: {};
+}
 
 export function EcclesiaDao_withdrawETH() {
-  context("withdrawETH", function () {
-    before(async function () {
+  context("withdrawETH", function (this: Arguments) {
+    before(async function (this: Arguments) {
       this.args = {};
     });
 
-    it("should revert if called by a non-owner", async function () {
+    it("should revert if called by a non-owner", async function (this: Arguments) {
       // Attempt to withdraw ETH by a non-owner
       expect(
         await this.contract.withdrawETH({ from: this.signers.nonOwner }),
       ).to.be.revertedWith("Ownable: caller is not the owner");
     });
 
-    it("should successfully withdraw ETH to the owner's address", async function () {
+    it("should successfully withdraw ETH to the owner's address", async function (this: Arguments) {
       // Get the initial balance of the contract and the owner
       const initialContractBalance = await ethers.provider.getBalance(
         this.contract.address,
@@ -49,7 +54,7 @@ export function EcclesiaDao_withdrawETH() {
       );
     });
 
-    it("should emit no events", async function () {
+    it("should emit no events", async function (this: Arguments) {
       // Withdraw ETH and check that no events are emitted
       const tx = await this.contract.withdrawETH();
       const receipt = await tx.wait();

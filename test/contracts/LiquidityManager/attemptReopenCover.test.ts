@@ -3,14 +3,19 @@ import { expect } from "chai";
 import { setNextBlockTimestamp, postTxHandler } from "../../helpers/hardhat";
 import { toUsd, toErc20, makeIdArray } from "../../helpers/protocol";
 // Types
+import { BigNumber } from "ethers";
+
+interface Arguments extends Mocha.Context {
+  args: {};
+}
 
 export function LiquidityManager_attemptReopenCover() {
-  context("attemptReopenCover", function () {
-    before(async function () {
+  context("attemptReopenCover", function (this: Arguments) {
+    before(async function (this: Arguments) {
       this.args = {};
     });
 
-    it("should succeed in reopening a cover with valid parameters", async function () {
+    it("should succeed in reopening a cover with valid parameters", async function (this: Arguments) {
       // Simulate successful reopening of a cover
       expect(
         await this.contracts.LiquidityManager.attemptReopenCover(
@@ -22,7 +27,7 @@ export function LiquidityManager_attemptReopenCover() {
       ).to.not.throw;
     });
 
-    it("should revert if called by an address other than the LiquidityManager contract", async function () {
+    it("should revert if called by an address other than the LiquidityManager contract", async function (this: Arguments) {
       // Attempt to call the function from an external address
       expect(
         await this.contracts.LiquidityManager.connect(
@@ -36,7 +41,7 @@ export function LiquidityManager_attemptReopenCover() {
       ).to.be.revertedWith("SenderNotLiquidationManager");
     });
 
-    it("should update the cover information correctly after reopening", async function () {
+    it("should update the cover information correctly after reopening", async function (this: Arguments) {
       // Reopen a cover and check the updated cover information
       await this.contracts.LiquidityManager.attemptReopenCover(
         this.args.poolId,

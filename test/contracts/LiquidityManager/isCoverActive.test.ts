@@ -3,14 +3,19 @@ import { expect } from "chai";
 import { setNextBlockTimestamp, postTxHandler } from "../../helpers/hardhat";
 import { toUsd, toErc20, makeIdArray } from "../../helpers/protocol";
 // Types
+import { BigNumber } from "ethers";
+
+interface Arguments extends Mocha.Context {
+  args: {};
+}
 
 export function LiquidityManager_isCoverActive() {
-  context("isCoverActive", function () {
-    before(async function () {
+  context("isCoverActive", function (this: Arguments) {
+    before(async function (this: Arguments) {
       this.args = {};
     });
 
-    it("should return true if a cover is still active", async function () {
+    it("should return true if a cover is still active", async function (this: Arguments) {
       // Register a cover and simulate it being still active
       await this.contracts.LiquidityManager.registerActiveCover(
         this.args.coverId,
@@ -26,7 +31,7 @@ export function LiquidityManager_isCoverActive() {
       expect(isActive).to.be.true;
     });
 
-    it("should return false if a cover has expired", async function () {
+    it("should return false if a cover has expired", async function (this: Arguments) {
       // Register a cover and simulate it being expired
       await this.contracts.LiquidityManager.registerExpiredCover(
         this.args.coverId,
@@ -42,7 +47,7 @@ export function LiquidityManager_isCoverActive() {
       expect(isActive).to.be.false;
     });
 
-    it("should handle multiple covers with different active states correctly", async function () {
+    it("should handle multiple covers with different active states correctly", async function (this: Arguments) {
       // Register multiple covers with different active states
       await this.contracts.LiquidityManager.registerActiveCover(
         this.args.coverId1,
@@ -66,7 +71,7 @@ export function LiquidityManager_isCoverActive() {
       expect(isActive2).to.be.false;
     });
 
-    it("should revert when querying the active state of a non-existent cover", async function () {
+    it("should revert when querying the active state of a non-existent cover", async function (this: Arguments) {
       // Attempt to check the active state of a non-existent cover
       expect(
         await this.contracts.LiquidityManager.isCoverActive(

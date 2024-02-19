@@ -3,14 +3,19 @@ import { expect } from "chai";
 import { setNextBlockTimestamp, postTxHandler } from "../../helpers/hardhat";
 import { toUsd, toErc20, makeIdArray } from "../../helpers/protocol";
 // Types
+import { BigNumber } from "ethers";
+
+interface Arguments extends Mocha.Context {
+  args: {};
+}
 
 export function LiquidityManager_createPool() {
-  context("createPool", function () {
-    before(async function () {
+  context("createPool", function (this: Arguments) {
+    before(async function (this: Arguments) {
       this.args = {};
     });
 
-    it("should create a new pool and initialize its parameters", async function () {
+    it("should create a new pool and initialize its parameters", async function (this: Arguments) {
       // Create a new pool
       expect(
         await this.contracts.LiquidityManager.createPool(
@@ -39,7 +44,7 @@ export function LiquidityManager_createPool() {
       expect(pool.formula.rSlope2).to.equal(this.args.rSlope2);
     });
 
-    it("should register the pool as compatible with specified pools", async function () {
+    it("should register the pool as compatible with specified pools", async function (this: Arguments) {
       // Create a new pool and specify compatible pools
       await this.contracts.LiquidityManager.createPool(
         this.args.paymentAsset,
@@ -66,7 +71,7 @@ export function LiquidityManager_createPool() {
       }
     });
 
-    it("should increment the pool ID for the next pool creation", async function () {
+    it("should increment the pool ID for the next pool creation", async function (this: Arguments) {
       // Create a new pool
       await this.contracts.LiquidityManager.createPool(
         this.args.paymentAsset,
@@ -84,7 +89,7 @@ export function LiquidityManager_createPool() {
       expect(newNextPoolId).to.equal(this.args.nextPoolId + 1);
     });
 
-    it("should only allow the owner to create a new pool", async function () {
+    it("should only allow the owner to create a new pool", async function (this: Arguments) {
       // Attempt to create a new pool by a non-owner
       expect(
         await this.contracts.LiquidityManager.connect(

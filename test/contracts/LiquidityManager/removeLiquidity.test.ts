@@ -3,14 +3,19 @@ import { expect } from "chai";
 import { setNextBlockTimestamp, postTxHandler } from "../../helpers/hardhat";
 import { toUsd, toErc20, makeIdArray } from "../../helpers/protocol";
 // Types
+import { BigNumber } from "ethers";
+
+interface Arguments extends Mocha.Context {
+  args: {};
+}
 
 export function LiquidityManager_removeLiquidity() {
-  context("removeLiquidity", function () {
-    before(async function () {
+  context("removeLiquidity", function (this: Arguments) {
+    before(async function (this: Arguments) {
       this.args = {};
     });
 
-    it("should successfully remove liquidity for a valid positionId with commit delay elapsed", async function () {
+    it("should successfully remove liquidity for a valid positionId with commit delay elapsed", async function (this: Arguments) {
       await this.contracts.LiquidityManager.commitPositionWithdrawal(
         this.args.validPositionId,
       );
@@ -39,7 +44,7 @@ export function LiquidityManager_removeLiquidity() {
       expect(finalSupplied).to.equal(initialSupplied - this.args.validAmount);
     });
 
-    it("should revert when trying to remove liquidity for a position not owned by the caller", async function () {
+    it("should revert when trying to remove liquidity for a position not owned by the caller", async function (this: Arguments) {
       try {
         await this.contracts.LiquidityManager.removeLiquidity(
           this.args.positionIdNotOwned,
@@ -54,7 +59,7 @@ export function LiquidityManager_removeLiquidity() {
       }
     });
 
-    it("should revert when trying to remove liquidity before the commit delay has been reached", async function () {
+    it("should revert when trying to remove liquidity before the commit delay has been reached", async function (this: Arguments) {
       await this.contracts.LiquidityManager.commitPositionWithdrawal(
         this.args.validPositionId,
       );
@@ -73,7 +78,7 @@ export function LiquidityManager_removeLiquidity() {
       }
     });
 
-    it("should revert when trying to remove liquidity for a non-existent positionId", async function () {
+    it("should revert when trying to remove liquidity for a non-existent positionId", async function (this: Arguments) {
       try {
         await this.contracts.LiquidityManager.removeLiquidity(
           this.args.nonExistentPositionId,
@@ -88,7 +93,7 @@ export function LiquidityManager_removeLiquidity() {
       }
     });
 
-    it("should revert when trying to remove an amount greater than the position's supplied capital", async function () {
+    it("should revert when trying to remove an amount greater than the position's supplied capital", async function (this: Arguments) {
       await this.contracts.LiquidityManager.commitPositionWithdrawal(
         this.args.validPositionId,
       );
@@ -115,7 +120,7 @@ export function LiquidityManager_removeLiquidity() {
       }
     });
 
-    it("should handle keepWrapped scenario correctly for keepWrapped set to true", async function () {
+    it("should handle keepWrapped scenario correctly for keepWrapped set to true", async function (this: Arguments) {
       await this.contracts.LiquidityManager.commitPositionWithdrawal(
         this.args.validPositionId,
       );
@@ -132,7 +137,7 @@ export function LiquidityManager_removeLiquidity() {
       // Additional checks related to keepWrapped being true
     });
 
-    it("should handle keepWrapped scenario correctly for keepWrapped set to false", async function () {
+    it("should handle keepWrapped scenario correctly for keepWrapped set to false", async function (this: Arguments) {
       await this.contracts.LiquidityManager.commitPositionWithdrawal(
         this.args.validPositionId,
       );
@@ -149,7 +154,7 @@ export function LiquidityManager_removeLiquidity() {
       // Additional checks related to keepWrapped being false
     });
 
-    it("should reduce the position.supplied by amount after withdrawal", async function () {
+    it("should reduce the position.supplied by amount after withdrawal", async function (this: Arguments) {
       await this.contracts.LiquidityManager.commitPositionWithdrawal(
         this.args.validPositionId,
       );
@@ -177,7 +182,7 @@ export function LiquidityManager_removeLiquidity() {
       expect(finalSupplied).to.equal(initialSupplied - this.args.validAmount);
     });
 
-    it("should reset the commitWithdrawalTimestamp to zero after withdrawal", async function () {
+    it("should reset the commitWithdrawalTimestamp to zero after withdrawal", async function (this: Arguments) {
       await this.contracts.LiquidityManager.commitPositionWithdrawal(
         this.args.validPositionId,
       );
@@ -200,7 +205,7 @@ export function LiquidityManager_removeLiquidity() {
       expect(timestamp).to.equal(0);
     });
 
-    it("should distribute interests earned between commit and withdrawal to the DAO", async function () {
+    it("should distribute interests earned between commit and withdrawal to the DAO", async function (this: Arguments) {
       const initialDaoState = await getDaoState(); // Replace with actual method to get DAO state
 
       await this.contracts.LiquidityManager.commitPositionWithdrawal(
@@ -222,7 +227,7 @@ export function LiquidityManager_removeLiquidity() {
       expect(finalDaoState).to.be.above(initialDaoState);
     });
 
-    it("should handle strategy rewards properly, including when strategyRewards are zero", async function () {
+    it("should handle strategy rewards properly, including when strategyRewards are zero", async function (this: Arguments) {
       await this.contracts.LiquidityManager.commitPositionWithdrawal(
         this.args.validPositionId,
       );
@@ -241,7 +246,7 @@ export function LiquidityManager_removeLiquidity() {
       // Verify handling of strategy rewards
     });
 
-    it("should handle position interests properly, including when they are zero", async function () {
+    it("should handle position interests properly, including when they are zero", async function (this: Arguments) {
       await this.contracts.LiquidityManager.commitPositionWithdrawal(
         this.args.validPositionId,
       );

@@ -3,14 +3,19 @@ import { expect } from "chai";
 import { setNextBlockTimestamp, postTxHandler } from "../../helpers/hardhat";
 import { toUsd, toErc20, makeIdArray } from "../../helpers/protocol";
 // Types
+import { BigNumber } from "ethers";
+
+interface Arguments extends Mocha.Context {
+  args: {};
+}
 
 export function VirtualPool__removeTick() {
-  context("_removeTick", function () {
-    before(async function () {
+  context("_removeTick", function (this: Arguments) {
+    before(async function (this: Arguments) {
       this.args = {};
     });
 
-    it("should successfully remove the specified tick and associated premium data", async function () {
+    it("should successfully remove the specified tick and associated premium data", async function (this: Arguments) {
       // Setup a tick to be removed
       const tickToRemove = this.args.tickToRemove;
       await this.contracts.LiquidityManager.addTickWithCovers(
@@ -38,7 +43,7 @@ export function VirtualPool__removeTick() {
       expect(isTickFlipped).to.be.true;
     });
 
-    it("should return the cover IDs associated with the removed tick", async function () {
+    it("should return the cover IDs associated with the removed tick", async function (this: Arguments) {
       // Setup a tick to be removed
       const tickToRemove = this.args.tickToRemove;
       await this.contracts.LiquidityManager.addTickWithCovers(

@@ -3,14 +3,19 @@ import { expect } from "chai";
 import { setNextBlockTimestamp, postTxHandler } from "../../helpers/hardhat";
 import { toUsd, toErc20, makeIdArray } from "../../helpers/protocol";
 // Types
+import { BigNumber } from "ethers";
+
+interface Arguments extends Mocha.Context {
+  args: {};
+}
 
 export function VirtualPool_getDailyCost() {
-  context("getDailyCost", function () {
-    before(async function () {
+  context("getDailyCost", function (this: Arguments) {
+    before(async function (this: Arguments) {
       this.args = {};
     });
 
-    it("should correctly compute the new daily cost of a cover", function () {
+    it("should correctly compute the new daily cost of a cover", function (this: Arguments) {
       // Compute the new daily cost of a cover based on premium rate changes
       const newDailyCost = this.contracts.LiquidityManager.getDailyCost(
         this.args.oldDailyCost,
@@ -27,7 +32,7 @@ export function VirtualPool_getDailyCost() {
       expect(newDailyCost).to.equal(expectedNewDailyCost);
     });
 
-    it("should return the old daily cost if the premium rate remains unchanged", function () {
+    it("should return the old daily cost if the premium rate remains unchanged", function (this: Arguments) {
       // Compute the daily cost of a cover when the premium rate does not change
       const newDailyCost = this.contracts.LiquidityManager.getDailyCost(
         this.args.oldDailyCost,

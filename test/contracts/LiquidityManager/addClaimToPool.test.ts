@@ -3,14 +3,19 @@ import { expect } from "chai";
 import { setNextBlockTimestamp, postTxHandler } from "../../helpers/hardhat";
 import { toUsd, toErc20, makeIdArray } from "../../helpers/protocol";
 // Types
+import { BigNumber } from "ethers";
+
+interface Arguments extends Mocha.Context {
+  args: {};
+}
 
 export function LiquidityManager_addClaimToPool() {
-  context("addClaimToPool", function () {
-    before(async function () {
+  context("addClaimToPool", function (this: Arguments) {
+    before(async function (this: Arguments) {
       this.args = {};
     });
 
-    it("should increment the number of ongoing claims in the pool for a given cover ID", async function () {
+    it("should increment the number of ongoing claims in the pool for a given cover ID", async function (this: Arguments) {
       // Initially register a cover
       await this.contracts.LiquidityManager.registerCover(
         this.args.coverId,
@@ -34,7 +39,7 @@ export function LiquidityManager_addClaimToPool() {
       );
     });
 
-    it("should only allow the claim manager to add a claim to the pool", async function () {
+    it("should only allow the claim manager to add a claim to the pool", async function (this: Arguments) {
       // Attempt to add a claim to the pool by a non-claim manager
       expect(
         await this.contracts.LiquidityManager.connect(
@@ -43,7 +48,7 @@ export function LiquidityManager_addClaimToPool() {
       ).to.be.revertedWith("OnlyClaimManager");
     });
 
-    it("should not allow adding a claim to a non-existent cover", async function () {
+    it("should not allow adding a claim to a non-existent cover", async function (this: Arguments) {
       // Attempt to add a claim to the pool for a non-existent cover
       expect(
         await this.contracts.LiquidityManager.connect(
@@ -52,7 +57,7 @@ export function LiquidityManager_addClaimToPool() {
       ).to.be.reverted; // Check for appropriate revert condition for non-existent cover
     });
 
-    it("should handle multiple claims for the same cover correctly", async function () {
+    it("should handle multiple claims for the same cover correctly", async function (this: Arguments) {
       // Add multiple claims to the pool for the same cover
       await this.contracts.LiquidityManager.connect(
         this.signers.claimManager,

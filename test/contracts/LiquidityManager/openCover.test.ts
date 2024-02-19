@@ -3,14 +3,19 @@ import { expect } from "chai";
 import { setNextBlockTimestamp, postTxHandler } from "../../helpers/hardhat";
 import { toUsd, toErc20, makeIdArray } from "../../helpers/protocol";
 // Types
+import { BigNumber } from "ethers";
+
+interface Arguments extends Mocha.Context {
+  args: {};
+}
 
 export function LiquidityManager_openCover() {
-  context("openCover", function () {
-    before(async function () {
+  context("openCover", function (this: Arguments) {
+    before(async function (this: Arguments) {
       this.args = {};
     });
 
-    it("should buy a cover and update the pool and cover information correctly", async function () {
+    it("should buy a cover and update the pool and cover information correctly", async function (this: Arguments) {
       // Simulate buying a cover
       expect(
         await this.contracts.LiquidityManager.connect(
@@ -44,7 +49,7 @@ export function LiquidityManager_openCover() {
       expect(ownerOfCover).to.equal(this.signers.user.address);
     });
 
-    it("should revert if the pool is paused", async function () {
+    it("should revert if the pool is paused", async function (this: Arguments) {
       // Pause the pool
       await this.contracts.TestableVirtualPool.setPoolPause(
         this.args.poolId,
@@ -69,7 +74,7 @@ export function LiquidityManager_openCover() {
       );
     });
 
-    it("should revert if there is insufficient liquidity in the pool", async function () {
+    it("should revert if there is insufficient liquidity in the pool", async function (this: Arguments) {
       // Attempt to buy a cover with an amount higher than available liquidity
       expect(
         await this.contracts.LiquidityManager.connect(
@@ -82,7 +87,7 @@ export function LiquidityManager_openCover() {
       ).to.be.revertedWith("InsufficientLiquidityForCover");
     });
 
-    it("should transfer premiums from the user to the contract", async function () {
+    it("should transfer premiums from the user to the contract", async function (this: Arguments) {
       // Buy a cover and check premiums transfer
       await this.contracts.LiquidityManager.connect(
         this.signers.user,

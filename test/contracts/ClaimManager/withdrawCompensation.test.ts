@@ -3,21 +3,26 @@ import { expect } from "chai";
 import { setNextBlockTimestamp, postTxHandler } from "../../helpers/hardhat";
 import { toUsd, toErc20, makeIdArray } from "../../helpers/protocol";
 // Types
+import { BigNumber } from "ethers";
+
+interface Arguments extends Mocha.Context {
+  args: {};
+}
 
 export function ClaimManager_withdrawCompensation() {
-  context("withdrawCompensation", function () {
-    before(async function () {
+  context("withdrawCompensation", function (this: Arguments) {
+    before(async function (this: Arguments) {
       this.args = {};
     });
 
-    it("should revert if the claim does not exist", async function () {
+    it("should revert if the claim does not exist", async function (this: Arguments) {
       // Attempt to withdraw compensation for a non-existent claim
       expect(
         await this.contract.withdrawCompensation(this.args.nonExistentClaimId),
       ).to.be.revertedWith("ClaimDoesNotExist"); // Use the actual error message
     });
 
-    it("should revert if the claim status is not 'Initiated' or 'AcceptedByCourtDecision'", async function () {
+    it("should revert if the claim status is not 'Initiated' or 'AcceptedByCourtDecision'", async function (this: Arguments) {
       // Attempt to withdraw compensation for a claim not in eligible status
       expect(
         await this.contract.withdrawCompensation(
@@ -26,7 +31,7 @@ export function ClaimManager_withdrawCompensation() {
       ).to.be.revertedWith("WrongClaimStatus");
     });
 
-    it("should revert if the challenge period for an 'Initiated' claim has not elapsed", async function () {
+    it("should revert if the challenge period for an 'Initiated' claim has not elapsed", async function (this: Arguments) {
       // Attempt to withdraw compensation for an 'Initiated' claim before the challenge period ends
       expect(
         await this.contract.withdrawCompensation(
@@ -35,7 +40,7 @@ export function ClaimManager_withdrawCompensation() {
       ).to.be.revertedWith("PeriodNotElapsed");
     });
 
-    it("should revert if the overrule period for an 'AcceptedByCourtDecision' claim has not elapsed", async function () {
+    it("should revert if the overrule period for an 'AcceptedByCourtDecision' claim has not elapsed", async function (this: Arguments) {
       // Attempt to withdraw compensation for an 'AcceptedByCourtDecision' claim before the overrule period ends
       expect(
         await this.contract.withdrawCompensation(
@@ -44,7 +49,7 @@ export function ClaimManager_withdrawCompensation() {
       ).to.be.revertedWith("PeriodNotElapsed");
     });
 
-    it("should successfully withdraw compensation for an 'Initiated' claim after the challenge period", async function () {
+    it("should successfully withdraw compensation for an 'Initiated' claim after the challenge period", async function (this: Arguments) {
       // Withdraw compensation for an 'Initiated' claim after the challenge period
       expect(
         await this.contract.withdrawCompensation(
@@ -54,7 +59,7 @@ export function ClaimManager_withdrawCompensation() {
       // Verify the claim status is updated and compensation is paid
     });
 
-    it("should successfully withdraw compensation for an 'AcceptedByCourtDecision' claim after the overrule period", async function () {
+    it("should successfully withdraw compensation for an 'AcceptedByCourtDecision' claim after the overrule period", async function (this: Arguments) {
       // Withdraw compensation for an 'AcceptedByCourtDecision' claim after the overrule period
       expect(
         await this.contract.withdrawCompensation(
@@ -64,7 +69,7 @@ export function ClaimManager_withdrawCompensation() {
       // Verify the claim status is updated and compensation is paid
     });
 
-    it("should update the claim status to 'Compensated' or 'CompensatedAfterDispute' accordingly", async function () {
+    it("should update the claim status to 'Compensated' or 'CompensatedAfterDispute' accordingly", async function (this: Arguments) {
       // Withdraw compensation and check the claim status update
       await this.contract.withdrawCompensation(this.args.eligibleClaimId);
       const updatedClaim = await this.contract.claims(
@@ -79,7 +84,7 @@ export function ClaimManager_withdrawCompensation() {
       );
     });
 
-    it("should send the claim amount to the claimant", async function () {
+    it("should send the claim amount to the claimant", async function (this: Arguments) {
       // Withdraw compensation and verify the claim amount is sent to the claimant
       await this.contract.withdrawCompensation(this.args.eligibleClaimId);
       // Add logic to check if the claimant received the claim amount

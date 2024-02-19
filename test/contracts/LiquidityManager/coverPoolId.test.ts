@@ -3,14 +3,19 @@ import { expect } from "chai";
 import { setNextBlockTimestamp, postTxHandler } from "../../helpers/hardhat";
 import { toUsd, toErc20, makeIdArray } from "../../helpers/protocol";
 // Types
+import { BigNumber } from "ethers";
+
+interface Arguments extends Mocha.Context {
+  args: {};
+}
 
 export function LiquidityManager_coverPoolId() {
-  context("coverPoolId", function () {
-    before(async function () {
+  context("coverPoolId", function (this: Arguments) {
+    before(async function (this: Arguments) {
       this.args = {};
     });
 
-    it("should return the correct pool ID for a given cover ID", async function () {
+    it("should return the correct pool ID for a given cover ID", async function (this: Arguments) {
       // Register a cover with a specific pool ID
       await this.contracts.LiquidityManager.registerCover(
         this.args.coverId,
@@ -26,7 +31,7 @@ export function LiquidityManager_coverPoolId() {
       expect(poolId).to.equal(this.args.poolId);
     });
 
-    it("should revert when querying the pool ID of a non-existent cover", async function () {
+    it("should revert when querying the pool ID of a non-existent cover", async function (this: Arguments) {
       // Attempt to retrieve the pool ID for a non-existent cover
       expect(
         await this.contracts.LiquidityManager.coverPoolId(
@@ -35,7 +40,7 @@ export function LiquidityManager_coverPoolId() {
       ).to.be.reverted; // Check for appropriate revert condition for non-existent cover
     });
 
-    it("should handle multiple covers with different pool IDs correctly", async function () {
+    it("should handle multiple covers with different pool IDs correctly", async function (this: Arguments) {
       // Register multiple covers with different pool IDs
       await this.contracts.LiquidityManager.registerCover(
         this.args.coverId1,
@@ -59,7 +64,7 @@ export function LiquidityManager_coverPoolId() {
       expect(poolId2).to.equal(this.args.poolId2);
     });
 
-    it("should consistently return the same pool ID for the same cover", async function () {
+    it("should consistently return the same pool ID for the same cover", async function (this: Arguments) {
       // Register a cover with a specific pool ID
       await this.contracts.LiquidityManager.registerCover(
         this.args.coverId,

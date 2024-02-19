@@ -3,14 +3,19 @@ import { expect } from "chai";
 import { setNextBlockTimestamp, postTxHandler } from "../../helpers/hardhat";
 import { toUsd, toErc20, makeIdArray } from "../../helpers/protocol";
 // Types
+import { BigNumber } from "ethers";
+
+interface Arguments extends Mocha.Context {
+  args: {};
+}
 
 export function LiquidityManager_removeClaimFromPool() {
-  context("removeClaimFromPool", function () {
-    before(async function () {
+  context("removeClaimFromPool", function (this: Arguments) {
+    before(async function (this: Arguments) {
       this.args = {};
     });
 
-    it("should decrement the number of ongoing claims in the pool for a given cover ID", async function () {
+    it("should decrement the number of ongoing claims in the pool for a given cover ID", async function (this: Arguments) {
       // Initially add a claim to the pool
       await this.contracts.LiquidityManager.connect(
         this.signers.claimManager,
@@ -31,7 +36,7 @@ export function LiquidityManager_removeClaimFromPool() {
       expect(poolInfo.ongoingClaims).to.equal(this.args.initialOngoingClaims); // Assuming initialOngoingClaims was 1
     });
 
-    it("should only allow the claim manager to remove a claim from the pool", async function () {
+    it("should only allow the claim manager to remove a claim from the pool", async function (this: Arguments) {
       // Add a claim to the pool first
       await this.contracts.LiquidityManager.connect(
         this.signers.claimManager,
@@ -45,7 +50,7 @@ export function LiquidityManager_removeClaimFromPool() {
       ).to.be.revertedWith("OnlyClaimManager");
     });
 
-    it("should not allow removing a claim from a non-existent cover", async function () {
+    it("should not allow removing a claim from a non-existent cover", async function (this: Arguments) {
       // Attempt to remove a claim from the pool for a non-existent cover
       expect(
         await this.contracts.LiquidityManager.connect(
@@ -54,7 +59,7 @@ export function LiquidityManager_removeClaimFromPool() {
       ).to.be.reverted; // Check for appropriate revert condition for non-existent cover
     });
 
-    it("should handle the scenario where no claims are left in the pool", async function () {
+    it("should handle the scenario where no claims are left in the pool", async function (this: Arguments) {
       // Remove all claims from the pool
       await this.contracts.LiquidityManager.connect(
         this.signers.claimManager,

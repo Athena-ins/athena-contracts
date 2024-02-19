@@ -3,14 +3,19 @@ import { expect } from "chai";
 import { setNextBlockTimestamp, postTxHandler } from "../../helpers/hardhat";
 import { toUsd, toErc20, makeIdArray } from "../../helpers/protocol";
 // Types
+import { BigNumber } from "ethers";
+
+interface Arguments extends Mocha.Context {
+  args: {};
+}
 
 export function VirtualPool__openCover() {
-  context("_openCover", function () {
-    before(async function () {
+  context("_openCover", function (this: Arguments) {
+    before(async function (this: Arguments) {
       this.args = {};
     });
 
-    it("should revert if available liquidity is less than the cover amount", async function () {
+    it("should revert if available liquidity is less than the cover amount", async function (this: Arguments) {
       // Attempt to buy cover when available liquidity is insufficient
       expect(
         await this.contracts.LiquidityManager.openCover(
@@ -21,7 +26,7 @@ export function VirtualPool__openCover() {
       ).to.be.revertedWith("InsufficientCapacity");
     });
 
-    it("should revert if the calculated duration is too low", async function () {
+    it("should revert if the calculated duration is too low", async function (this: Arguments) {
       // Attempt to buy cover with a duration shorter than the new seconds per tick
       expect(
         await this.contracts.LiquidityManager.openCover(
@@ -32,7 +37,7 @@ export function VirtualPool__openCover() {
       ).to.be.revertedWith("DurationTooLow");
     });
 
-    it("should successfully register a premium position and update the pool's slot0", async function () {
+    it("should successfully register a premium position and update the pool's slot0", async function (this: Arguments) {
       // Buy cover and check successful registration of premium position
       expect(
         await this.contracts.LiquidityManager.openCover(
@@ -48,7 +53,7 @@ export function VirtualPool__openCover() {
       expect(slot0.remainingCovers).to.equal(this.args.expectedRemainingCovers);
     });
 
-    it("should correctly calculate the new premium rate, duration, and update the premium position", async function () {
+    it("should correctly calculate the new premium rate, duration, and update the premium position", async function (this: Arguments) {
       // Buy cover and verify the new premium rate and duration calculation
       await this.contracts.LiquidityManager.openCover(
         this.args.coverId,

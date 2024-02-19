@@ -3,14 +3,19 @@ import { expect } from "chai";
 import { setNextBlockTimestamp, postTxHandler } from "../../helpers/hardhat";
 import { toUsd, toErc20, makeIdArray } from "../../helpers/protocol";
 // Types
+import { BigNumber } from "ethers";
+
+interface Arguments extends Mocha.Context {
+  args: {};
+}
 
 export function VirtualPool__depositToPool() {
-  context("_depositToPool", function () {
-    before(async function () {
+  context("_depositToPool", function (this: Arguments) {
+    before(async function (this: Arguments) {
       this.args = {};
     });
 
-    it("should correctly add liquidity to the pool and update its state", async function () {
+    it("should correctly add liquidity to the pool and update its state", async function (this: Arguments) {
       // Deposit liquidity to the pool
       expect(
         await this.contracts.LiquidityManager.depositToPool(
@@ -33,7 +38,7 @@ export function VirtualPool__depositToPool() {
       expect(lpInfo.beginClaimIndex).to.equal(this.args.expectedClaimIndex);
     });
 
-    it("should revert if the added liquidity results in not enough liquidity for removal", async function () {
+    it("should revert if the added liquidity results in not enough liquidity for removal", async function (this: Arguments) {
       // Attempt to add liquidity that results in not enough liquidity for removal
       expect(
         await this.contracts.LiquidityManager.depositToPool(
@@ -43,7 +48,7 @@ export function VirtualPool__depositToPool() {
       ).to.be.revertedWith("NotEnoughLiquidityForRemoval");
     });
 
-    it("should update the LP info with the current liquidity index and claim index", async function () {
+    it("should update the LP info with the current liquidity index and claim index", async function (this: Arguments) {
       // Deposit liquidity and verify LP info update
       await this.contracts.LiquidityManager.depositToPool(
         this.args.tokenId,
@@ -62,7 +67,7 @@ export function VirtualPool__depositToPool() {
       );
     });
 
-    it("should overwrite previous LP info after a withdrawal", async function () {
+    it("should overwrite previous LP info after a withdrawal", async function (this: Arguments) {
       // Withdraw and then deposit liquidity to verify LP info overwriting
       await this.contracts.LiquidityManager.withdrawFromPool(
         this.args.tokenId,

@@ -3,14 +3,19 @@ import { expect } from "chai";
 import { setNextBlockTimestamp, postTxHandler } from "../../helpers/hardhat";
 import { toUsd, toErc20, makeIdArray } from "../../helpers/protocol";
 // Types
+import { BigNumber } from "ethers";
+
+interface Arguments extends Mocha.Context {
+  args: {};
+}
 
 export function LiquidityManager_openPosition() {
-  context("openPosition", function () {
-    before(async function () {
+  context("openPosition", function (this: Arguments) {
+    before(async function (this: Arguments) {
       this.args = {};
     });
 
-    it("should create a new LP position with valid parameters", async function () {
+    it("should create a new LP position with valid parameters", async function (this: Arguments) {
       // Simulate creating a new LP position
       expect(
         await this.contracts.LiquidityManager.connect(
@@ -38,7 +43,7 @@ export function LiquidityManager_openPosition() {
       expect(ownerOfPosition).to.equal(this.signers.user.address);
     });
 
-    it("should revert if the number of pools exceeds the maximum leverage", async function () {
+    it("should revert if the number of pools exceeds the maximum leverage", async function (this: Arguments) {
       // Attempt to create a position with pool count exceeding max leverage
       const excessPoolIds = new Array(this.args.maxLeverage + 1)
         .fill(0)
@@ -50,7 +55,7 @@ export function LiquidityManager_openPosition() {
       ).to.be.revertedWith("AmountOfPoolsIsAboveMaxLeverage");
     });
 
-    it("should correctly handle wrapped and non-wrapped token deposits", async function () {
+    it("should correctly handle wrapped and non-wrapped token deposits", async function (this: Arguments) {
       // Create a position with non-wrapped tokens
       await this.contracts.LiquidityManager.connect(
         this.signers.user,
@@ -78,7 +83,7 @@ export function LiquidityManager_openPosition() {
       );
     });
 
-    it("should check pool compatibility before creating a position", async function () {
+    it("should check pool compatibility before creating a position", async function (this: Arguments) {
       // Attempt to create a position with incompatible pools
       const incompatiblePools = [this.args.poolId1, this.args.poolId2]; // Assume these pool IDs are incompatible
       expect(
@@ -92,7 +97,7 @@ export function LiquidityManager_openPosition() {
       ).to.be.revertedWith("IncompatiblePools");
     });
 
-    it("should register overlapping capital correctly for leveraged positions", async function () {
+    it("should register overlapping capital correctly for leveraged positions", async function (this: Arguments) {
       // Create a leveraged position
       await this.contracts.LiquidityManager.connect(
         this.signers.user,
@@ -110,7 +115,7 @@ export function LiquidityManager_openPosition() {
       }
     });
 
-    it("should mint a position NFT to the position creator", async function () {
+    it("should mint a position NFT to the position creator", async function (this: Arguments) {
       // Create a new LP position
       await this.contracts.LiquidityManager.connect(
         this.signers.user,
@@ -123,7 +128,7 @@ export function LiquidityManager_openPosition() {
       expect(ownerOfToken).to.equal(this.signers.user.address);
     });
 
-    it("should revert if any pool ID in the array does not exist", async function () {
+    it("should revert if any pool ID in the array does not exist", async function (this: Arguments) {
       // Attempt to create a position with a non-existent pool ID
       const invalidPoolIds = [this.args.nonExistentPoolId].concat(
         this.args.poolIds,
@@ -135,7 +140,7 @@ export function LiquidityManager_openPosition() {
       ).to.be.reverted; // Specific error message depends on contract implementation
     });
 
-    it("should correctly update the reward index for the position", async function () {
+    it("should correctly update the reward index for the position", async function (this: Arguments) {
       // Create a position
       await this.contracts.LiquidityManager.connect(
         this.signers.user,
@@ -150,7 +155,7 @@ export function LiquidityManager_openPosition() {
       expect(rewardIndex).to.equal(this.args.expectedRewardIndex);
     });
 
-    it("should revert if pool IDs are not unique and in ascending order", async function () {
+    it("should revert if pool IDs are not unique and in ascending order", async function (this: Arguments) {
       // Attempt to create a position with non-unique or non-ascending pool IDs
       const unorderedPoolIds = [...this.args.poolIds].sort().reverse(); // Assuming this results in a non-ascending order
       expect(
@@ -160,7 +165,7 @@ export function LiquidityManager_openPosition() {
       ).to.be.revertedWith("PoolIdsMustBeUniqueAndAscending");
     });
 
-    it("should handle positions affected by claims correctly", async function () {
+    it("should handle positions affected by claims correctly", async function (this: Arguments) {
       // Create a position after a claim is created and before compensation
       // Assuming a claim has been created and compensation ID is set accordingly
       await this.contracts.LiquidityManager.connect(

@@ -3,14 +3,19 @@ import { expect } from "chai";
 import { setNextBlockTimestamp, postTxHandler } from "../../helpers/hardhat";
 import { toUsd, toErc20, makeIdArray } from "../../helpers/protocol";
 // Types
+import { BigNumber } from "ethers";
+
+interface Arguments extends Mocha.Context {
+  args: {};
+}
 
 export function VirtualPool_updatedPremiumRate() {
-  context("updatedPremiumRate", function () {
-    before(async function () {
+  context("updatedPremiumRate", function (this: Arguments) {
+    before(async function (this: Arguments) {
       this.args = {};
     });
 
-    it("should correctly compute the updated premium rate with added covered capital", function () {
+    it("should correctly compute the updated premium rate with added covered capital", function (this: Arguments) {
       // Compute the updated premium rate with added covered capital
       const updatedPremiumRate =
         this.contracts.LiquidityManager.updatedPremiumRate(
@@ -26,7 +31,7 @@ export function VirtualPool_updatedPremiumRate() {
       expect(updatedPremiumRate).to.equal(expectedUpdatedPremiumRate);
     });
 
-    it("should correctly compute the updated premium rate with removed covered capital", function () {
+    it("should correctly compute the updated premium rate with removed covered capital", function (this: Arguments) {
       // Compute the updated premium rate with removed covered capital
       const updatedPremiumRate =
         this.contracts.LiquidityManager.updatedPremiumRate(
@@ -42,7 +47,7 @@ export function VirtualPool_updatedPremiumRate() {
       expect(updatedPremiumRate).to.equal(expectedUpdatedPremiumRate);
     });
 
-    it("should increase the premium rate when covered capital is added", function () {
+    it("should increase the premium rate when covered capital is added", function (this: Arguments) {
       // Compute the updated premium rate with additional covered capital
       const updatedPremiumRate =
         this.contracts.LiquidityManager.updatedPremiumRate(
@@ -56,7 +61,7 @@ export function VirtualPool_updatedPremiumRate() {
       );
     });
 
-    it("should decrease the premium rate when covered capital is removed", function () {
+    it("should decrease the premium rate when covered capital is removed", function (this: Arguments) {
       // Compute the updated premium rate with removed covered capital
       const updatedPremiumRate =
         this.contracts.LiquidityManager.updatedPremiumRate(
@@ -68,7 +73,7 @@ export function VirtualPool_updatedPremiumRate() {
       expect(updatedPremiumRate).to.be.lessThan(this.args.currentPremiumRate);
     });
 
-    it("should retain the premium rate if covered capital remains unchanged", function () {
+    it("should retain the premium rate if covered capital remains unchanged", function (this: Arguments) {
       // Compute the updated premium rate with no change in covered capital
       const updatedPremiumRate =
         this.contracts.LiquidityManager.updatedPremiumRate(

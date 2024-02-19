@@ -3,14 +3,19 @@ import { expect } from "chai";
 import { setNextBlockTimestamp, postTxHandler } from "../../helpers/hardhat";
 import { toUsd, toErc20, makeIdArray } from "../../helpers/protocol";
 // Types
+import { BigNumber } from "ethers";
+
+interface Arguments extends Mocha.Context {
+  args: {};
+}
 
 export function LiquidityManager_coverSize() {
-  context("coverSize", function () {
-    before(async function () {
+  context("coverSize", function (this: Arguments) {
+    before(async function (this: Arguments) {
       this.args = {};
     });
 
-    it("should return the correct size of a cover's protection for a given cover ID", async function () {
+    it("should return the correct size of a cover's protection for a given cover ID", async function (this: Arguments) {
       // Register a cover with a specific size of protection
       await this.contracts.LiquidityManager.registerCoverWithAmount(
         this.args.coverId,
@@ -26,7 +31,7 @@ export function LiquidityManager_coverSize() {
       expect(coverSize).to.equal(this.args.coverAmount);
     });
 
-    it("should revert when querying the size of protection for a non-existent cover", async function () {
+    it("should revert when querying the size of protection for a non-existent cover", async function (this: Arguments) {
       // Attempt to retrieve the size of protection for a non-existent cover
       expect(
         await this.contracts.LiquidityManager.coverSize(
@@ -35,7 +40,7 @@ export function LiquidityManager_coverSize() {
       ).to.be.reverted; // Check for appropriate revert condition for non-existent cover
     });
 
-    it("should handle multiple covers with different sizes of protection correctly", async function () {
+    it("should handle multiple covers with different sizes of protection correctly", async function (this: Arguments) {
       // Register multiple covers with different sizes of protection
       await this.contracts.LiquidityManager.registerCoverWithAmount(
         this.args.coverId1,
@@ -59,7 +64,7 @@ export function LiquidityManager_coverSize() {
       expect(coverSize2).to.equal(this.args.coverAmount2);
     });
 
-    it("should consistently return the same size of protection for the same cover", async function () {
+    it("should consistently return the same size of protection for the same cover", async function (this: Arguments) {
       // Register a cover with a specific size of protection
       await this.contracts.LiquidityManager.registerCoverWithAmount(
         this.args.coverId,

@@ -3,21 +3,26 @@ import { expect } from "chai";
 import { setNextBlockTimestamp, postTxHandler } from "../../helpers/hardhat";
 import { toUsd, toErc20, makeIdArray } from "../../helpers/protocol";
 // Types
+import { BigNumber } from "ethers";
+
+interface Arguments extends Mocha.Context {
+  args: {};
+}
 
 export function ClaimManager_getClaimEvidence() {
-  context("getClaimEvidence", function () {
-    before(async function () {
+  context("getClaimEvidence", function (this: Arguments) {
+    before(async function (this: Arguments) {
       this.args = {};
     });
 
-    it("should revert if the claim does not exist", async function () {
+    it("should revert if the claim does not exist", async function (this: Arguments) {
       // Attempt to retrieve evidence for a non-existent claim
       expect(
         await this.contract.getClaimEvidence(this.args.nonExistentClaimId),
       ).to.be.revertedWith("ClaimDoesNotExist"); // Use the actual error message
     });
 
-    it("should return an empty array for a claim with no evidence", async function () {
+    it("should return an empty array for a claim with no evidence", async function (this: Arguments) {
       // Retrieve evidence for a claim with no evidence submitted
       const evidence = await this.contract.getClaimEvidence(
         this.args.claimIdWithNoEvidence,
@@ -27,7 +32,7 @@ export function ClaimManager_getClaimEvidence() {
       expect(evidence).to.be.empty;
     });
 
-    it("should return all evidence submitted for a claim", async function () {
+    it("should return all evidence submitted for a claim", async function (this: Arguments) {
       // Retrieve evidence for a claim with evidence submitted
       const evidence = await this.contract.getClaimEvidence(
         this.args.claimIdWithEvidence,

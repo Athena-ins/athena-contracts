@@ -3,14 +3,19 @@ import { expect } from "chai";
 import { setNextBlockTimestamp, postTxHandler } from "../../helpers/hardhat";
 import { toUsd, toErc20, makeIdArray } from "../../helpers/protocol";
 // Types
+import { BigNumber } from "ethers";
+
+interface Arguments extends Mocha.Context {
+  args: {};
+}
 
 export function LiquidityManager_poolOverlaps() {
-  context("poolOverlaps", function () {
-    before(async function () {
+  context("poolOverlaps", function (this: Arguments) {
+    before(async function (this: Arguments) {
       this.args = {};
     });
 
-    it("should return the amount of liquidity overlap when poolIdA < poolIdB and an overlap exists", async function () {
+    it("should return the amount of liquidity overlap when poolIdA < poolIdB and an overlap exists", async function (this: Arguments) {
       const overlap = await this.contracts.myContract.poolOverlaps(
         this.args.poolIdA,
         this.args.poolIdB,
@@ -19,7 +24,7 @@ export function LiquidityManager_poolOverlaps() {
       expect(overlap).to.be.greaterThan(0);
     });
 
-    it("should return the amount of liquidity overlap when poolIdA > poolIdB and an overlap exists", async function () {
+    it("should return the amount of liquidity overlap when poolIdA > poolIdB and an overlap exists", async function (this: Arguments) {
       const overlap = await this.contracts.myContract.poolOverlaps(
         this.args.poolIdB,
         this.args.poolIdA,
@@ -28,7 +33,7 @@ export function LiquidityManager_poolOverlaps() {
       expect(overlap).to.be.greaterThan(0);
     });
 
-    it("should return the pool's liquidity when poolIdA and poolIdB are equal", async function () {
+    it("should return the pool's liquidity when poolIdA and poolIdB are equal", async function (this: Arguments) {
       const liquidity = await this.contracts.myContract.poolOverlaps(
         this.args.poolIdA,
         this.args.poolIdA,
@@ -36,7 +41,7 @@ export function LiquidityManager_poolOverlaps() {
       expect(liquidity).to.be.a("number");
     });
 
-    it("should return zero when there is no overlap between valid poolIdA and poolIdB", async function () {
+    it("should return zero when there is no overlap between valid poolIdA and poolIdB", async function (this: Arguments) {
       const overlap = await this.contracts.myContract.poolOverlaps(
         this.args.poolIdA,
         this.args.poolIdB,
@@ -44,7 +49,7 @@ export function LiquidityManager_poolOverlaps() {
       expect(overlap).to.equal(0);
     });
 
-    it("should return zero when either poolIdA or poolIdB is invalid/non-existent", async function () {
+    it("should return zero when either poolIdA or poolIdB is invalid/non-existent", async function (this: Arguments) {
       const overlap = await this.contracts.myContract.poolOverlaps(
         this.args.invalidPoolId,
         this.args.validPoolId,
@@ -52,7 +57,7 @@ export function LiquidityManager_poolOverlaps() {
       expect(overlap).to.equal(0);
     });
 
-    it("should return zero when both poolIdA and poolIdB are invalid/non-existent", async function () {
+    it("should return zero when both poolIdA and poolIdB are invalid/non-existent", async function (this: Arguments) {
       const overlap = await this.contracts.myContract.poolOverlaps(
         this.args.invalidPoolIdA,
         this.args.invalidPoolIdB,
@@ -60,7 +65,7 @@ export function LiquidityManager_poolOverlaps() {
       expect(overlap).to.equal(0);
     });
 
-    it("should return the correct amount of liquidity overlap for poolIdA and poolIdB at the boundary of existing pool IDs", async function () {
+    it("should return the correct amount of liquidity overlap for poolIdA and poolIdB at the boundary of existing pool IDs", async function (this: Arguments) {
       const overlap = await this.contracts.myContract.poolOverlaps(
         this.args.boundaryPoolIdA,
         this.args.boundaryPoolIdB,

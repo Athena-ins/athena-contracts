@@ -3,14 +3,19 @@ import { expect } from "chai";
 import { setNextBlockTimestamp, postTxHandler } from "../../helpers/hardhat";
 import { toUsd, toErc20, makeIdArray } from "../../helpers/protocol";
 // Types
+import { BigNumber } from "ethers";
+
+interface Arguments extends Mocha.Context {
+  args: {};
+}
 
 export function ClaimManager_changeMetaEvidenceGuardian() {
-  context("changeMetaEvidenceGuardian", function () {
-    beforeEach(async function () {
+  context("changeMetaEvidenceGuardian", function (this: Arguments) {
+    beforeEach(async function (this: Arguments) {
       // Common setup before each test
     });
 
-    it("should revert if trying to set the meta-evidence guardian to address zero", async function () {
+    it("should revert if trying to set the meta-evidence guardian to address zero", async function (this: Arguments) {
       // Attempt to set the meta-evidence guardian to the zero address
       expect(
         await this.contract.changeMetaEvidenceGuardian(
@@ -19,7 +24,7 @@ export function ClaimManager_changeMetaEvidenceGuardian() {
       ).to.be.revertedWith("GuardianSetToAddressZero");
     });
 
-    it("should allow the owner to change the meta-evidence guardian", async function () {
+    it("should allow the owner to change the meta-evidence guardian", async function (this: Arguments) {
       // Change the meta-evidence guardian by the owner
       expect(
         await this.contract.changeMetaEvidenceGuardian(
@@ -33,7 +38,7 @@ export function ClaimManager_changeMetaEvidenceGuardian() {
       expect(newGuardian).to.equal(this.args.newMetaEvidenceGuardian);
     });
 
-    it("should revert if a non-owner tries to change the meta-evidence guardian", async function () {
+    it("should revert if a non-owner tries to change the meta-evidence guardian", async function (this: Arguments) {
       // Attempt to change the meta-evidence guardian by a non-owner
       expect(
         await this.contract.changeMetaEvidenceGuardian(

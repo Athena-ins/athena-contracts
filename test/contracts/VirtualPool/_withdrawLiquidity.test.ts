@@ -3,14 +3,19 @@ import { expect } from "chai";
 import { setNextBlockTimestamp, postTxHandler } from "../../helpers/hardhat";
 import { toUsd, toErc20, makeIdArray } from "../../helpers/protocol";
 // Types
+import { BigNumber } from "ethers";
+
+interface Arguments extends Mocha.Context {
+  args: {};
+}
 
 export function VirtualPool__withdrawLiquidity() {
-  context("_withdrawLiquidity", function () {
-    before(async function () {
+  context("_withdrawLiquidity", function (this: Arguments) {
+    before(async function (this: Arguments) {
       this.args = {};
     });
 
-    it("should correctly withdraw liquidity and update the pool's state", async function () {
+    it("should correctly withdraw liquidity and update the pool's state", async function (this: Arguments) {
       // Withdraw liquidity and store the returned values
       const [newUserCapital, strategyRewards] =
         await this.contracts.LiquidityManager.withdrawLiquidity(
@@ -31,7 +36,7 @@ export function VirtualPool__withdrawLiquidity() {
       expect(liquidityIndex).to.equal(this.args.expectedLiquidityIndex);
     });
 
-    it("should pay the cover rewards to the DAO's leverage risk wallet", async function () {
+    it("should pay the cover rewards to the DAO's leverage risk wallet", async function (this: Arguments) {
       // Withdraw liquidity and verify rewards payment to the DAO's leverage risk wallet
       await this.contracts.LiquidityManager.withdrawLiquidity(
         this.args.tokenId,
@@ -41,7 +46,7 @@ export function VirtualPool__withdrawLiquidity() {
       // Add logic to verify that the cover rewards are paid to the DAO's leverage risk wallet
     });
 
-    it("should update the user's capital in the pool", async function () {
+    it("should update the user's capital in the pool", async function (this: Arguments) {
       // Withdraw liquidity and verify the user's capital update
       const [newUserCapital, _] =
         await this.contracts.LiquidityManager.withdrawLiquidity(

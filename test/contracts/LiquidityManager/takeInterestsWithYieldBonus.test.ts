@@ -3,14 +3,18 @@ import { expect } from "chai";
 import { setNextBlockTimestamp, postTxHandler } from "../../helpers/hardhat";
 import { toUsd, toErc20, makeIdArray } from "../../helpers/protocol";
 // Types
+import { BigNumber } from "ethers";
+
+interface Arguments extends Mocha.Context {
+  args: {}}
 
 export function LiquidityManager_takeInterestsWithYieldBonus() {
-  context("takeInterestsWithYieldBonus", function () {
-    before(async function () {
+  context("takeInterestsWithYieldBonus", function (this: Arguments) {
+    before(async function (this: Arguments) {
       this.args = {};
     });
 
-    it("should process interests with yield bonus for a valid account and existing position IDs", async function () {
+    it("should process interests with yield bonus for a valid account and existing position IDs", async function (this: Arguments) {
       const initialRewardIndices = await Promise.all(
         this.args.existingPositionIds.map(async (id) => {
           return await this.contracts.LiquidityManager.posRewardIndex(id);
@@ -34,7 +38,7 @@ export function LiquidityManager_takeInterestsWithYieldBonus() {
       }
     });
 
-    it("should handle an empty array of position IDs without error for a valid account and yield bonus", async function () {
+    it("should handle an empty array of position IDs without error for a valid account and yield bonus", async function (this: Arguments) {
       const initialRewardIndex =
         await this.contracts.LiquidityManager.posRewardIndex(samplePositionId); // Assuming a sample position ID is available
 
@@ -50,7 +54,7 @@ export function LiquidityManager_takeInterestsWithYieldBonus() {
       expect(finalRewardIndex).to.equal(initialRewardIndex);
     });
 
-    it("should handle non-existent position IDs without error for a valid account and yield bonus", async function () {
+    it("should handle non-existent position IDs without error for a valid account and yield bonus", async function (this: Arguments) {
       const initialRewardIndex =
         await this.contracts.LiquidityManager.posRewardIndex(samplePositionId); // Assuming a sample position ID is available
 
@@ -87,7 +91,7 @@ export function LiquidityManager_takeInterestsWithYieldBonus() {
         }
     });
 
-    it("should handle an invalid account without changing the reward index", async function () {
+    it("should handle an invalid account without changing the reward index", async function (this: Arguments) {
       const initialRewardIndex =
         await this.contracts.LiquidityManager.posRewardIndex(samplePositionId);
 
@@ -103,7 +107,7 @@ export function LiquidityManager_takeInterestsWithYieldBonus() {
       expect(finalRewardIndex).to.equal(initialRewardIndex);
     });
 
-    it("should handle an extreme yieldBonus value without error", async function () {
+    it("should handle an extreme yieldBonus value without error", async function (this: Arguments) {
       const initialRewardIndex =
         await this.contracts.LiquidityManager.posRewardIndex(samplePositionId);
 
@@ -121,7 +125,7 @@ export function LiquidityManager_takeInterestsWithYieldBonus() {
       // For example, if a zero yield bonus should not change the index: expect(finalRewardIndex).to.equal(initialRewardIndex);
     });
 
-    it("should revert when called by an address other than the farming range", async function () {
+    it("should revert when called by an address other than the farming range", async function (this: Arguments) {
       try {
         await this.contracts.LiquidityManager.connect(
           this.args.nonFarmingRangeAccount,
@@ -138,7 +142,7 @@ export function LiquidityManager_takeInterestsWithYieldBonus() {
       }
     });
 
-    it("should handle duplicate position IDs without error", async function () {
+    it("should handle duplicate position IDs without error", async function (this: Arguments) {
       const initialRewardIndices = await Promise.all(
         this.args.duplicatePositionIds.map(async (id) => {
           return await this.contracts.LiquidityManager.posRewardIndex(id);
@@ -162,7 +166,7 @@ export function LiquidityManager_takeInterestsWithYieldBonus() {
       }
     });
 
-    it("should appropriately affect the positions' state with yield bonus interest calculation", async function () {
+    it("should appropriately affect the positions' state with yield bonus interest calculation", async function (this: Arguments) {
       const initialRewardIndices = await Promise.all(
         this.args.existingPositionIds.map(async (id) => {
           return await this.contracts.LiquidityManager.posRewardIndex(id);

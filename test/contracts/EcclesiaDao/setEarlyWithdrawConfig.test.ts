@@ -3,14 +3,19 @@ import { expect } from "chai";
 import { setNextBlockTimestamp, postTxHandler } from "../../helpers/hardhat";
 import { toUsd, toErc20, makeIdArray } from "../../helpers/protocol";
 // Types
+import { BigNumber } from "ethers";
+
+interface Arguments extends Mocha.Context {
+  args: {};
+}
 
 export function EcclesiaDao_setEarlyWithdrawConfig() {
-  context("setEarlyWithdrawConfig", function () {
-    before(async function () {
+  context("setEarlyWithdrawConfig", function (this: Arguments) {
+    before(async function (this: Arguments) {
       this.args = {};
     });
 
-    it("should revert if called by a non-owner", async function () {
+    it("should revert if called by a non-owner", async function (this: Arguments) {
       // Attempt to set early withdraw configuration by a non-owner
       expect(
         await this.contract.setEarlyWithdrawConfig(
@@ -24,7 +29,7 @@ export function EcclesiaDao_setEarlyWithdrawConfig() {
       ).to.be.revertedWith("Ownable: caller is not the owner");
     });
 
-    it("should revert if the new early withdraw fee per day exceeds the maximum limit", async function () {
+    it("should revert if the new early withdraw fee per day exceeds the maximum limit", async function (this: Arguments) {
       // Attempt to set a fee per day that exceeds the maximum limit
       expect(
         await this.contract.setEarlyWithdrawConfig(
@@ -37,7 +42,7 @@ export function EcclesiaDao_setEarlyWithdrawConfig() {
       ).to.be.revertedWith("FeePerDayTooHigh");
     });
 
-    it("should revert if the sum of fee distribution does not equal 100%", async function () {
+    it("should revert if the sum of fee distribution does not equal 100%", async function (this: Arguments) {
       // Attempt to set a fee distribution that does not sum up to 100%
       expect(
         await this.contract.setEarlyWithdrawConfig(
@@ -50,7 +55,7 @@ export function EcclesiaDao_setEarlyWithdrawConfig() {
       ).to.be.revertedWith("InvalidBps");
     });
 
-    it("should revert if the treasury address is zero and treasury Bps is non-zero", async function () {
+    it("should revert if the treasury address is zero and treasury Bps is non-zero", async function (this: Arguments) {
       // Attempt to set a non-zero treasury Bps with a zero treasury address
       expect(
         await this.contract.setEarlyWithdrawConfig(
@@ -63,7 +68,7 @@ export function EcclesiaDao_setEarlyWithdrawConfig() {
       ).to.be.revertedWith("InvalidTreasuryAddr");
     });
 
-    it("should successfully update the early withdraw configuration", async function () {
+    it("should successfully update the early withdraw configuration", async function (this: Arguments) {
       // Set the new early withdraw configuration
       expect(
         await this.contract.setEarlyWithdrawConfig(
@@ -86,7 +91,7 @@ export function EcclesiaDao_setEarlyWithdrawConfig() {
       expect(config.treasuryWallet).to.equal(this.args.newTreasuryAddr);
     });
 
-    it("should emit a SetEarlyWithdrawConfig event with the correct parameters", async function () {
+    it("should emit a SetEarlyWithdrawConfig event with the correct parameters", async function (this: Arguments) {
       // Set the new early withdraw configuration and check for the event
       const tx = await this.contract.setEarlyWithdrawConfig(
         this.args.newEarlyWithdrawBpsPerDay,

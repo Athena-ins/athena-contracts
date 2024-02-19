@@ -3,14 +3,19 @@ import { expect } from "chai";
 import { setNextBlockTimestamp, postTxHandler } from "../../helpers/hardhat";
 import { toUsd, toErc20, makeIdArray } from "../../helpers/protocol";
 // Types
+import { BigNumber } from "ethers";
+
+interface Arguments extends Mocha.Context {
+  args: {};
+}
 
 export function VirtualPool_getPremiumRate() {
-  context("getPremiumRate", function () {
-    before(async function () {
+  context("getPremiumRate", function (this: Arguments) {
+    before(async function (this: Arguments) {
       this.args = {};
     });
 
-    it("should return the base rate when utilization rate is below optimal utilization", async function () {
+    it("should return the base rate when utilization rate is below optimal utilization", async function (this: Arguments) {
       // Calculate premium rate with utilization rate below optimal utilization
       const utilizationRate = this.args.utilizationRateBelowOptimal;
       const premiumRate =
@@ -27,7 +32,7 @@ export function VirtualPool_getPremiumRate() {
       expect(premiumRate).to.equal(expectedPremiumRate);
     });
 
-    it("should return the increased rate when utilization rate is between optimal utilization and full utilization", async function () {
+    it("should return the increased rate when utilization rate is between optimal utilization and full utilization", async function (this: Arguments) {
       // Calculate premium rate with utilization rate between optimal and full utilization
       const utilizationRate = this.args.utilizationRateBetweenOptimalAndFull;
       const premiumRate =
@@ -47,7 +52,7 @@ export function VirtualPool_getPremiumRate() {
       expect(premiumRate).to.equal(expectedPremiumRate);
     });
 
-    it("should return the capped rate when utilization rate is at full utilization", async function () {
+    it("should return the capped rate when utilization rate is at full utilization", async function (this: Arguments) {
       // Calculate premium rate with utilization rate at full utilization
       const utilizationRate = FULL_UTILIZATION_RATE;
       const premiumRate =

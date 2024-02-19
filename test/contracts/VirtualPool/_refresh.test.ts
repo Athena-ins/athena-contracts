@@ -3,14 +3,19 @@ import { expect } from "chai";
 import { setNextBlockTimestamp, postTxHandler } from "../../helpers/hardhat";
 import { toUsd, toErc20, makeIdArray } from "../../helpers/protocol";
 // Types
+import { BigNumber } from "ethers";
+
+interface Arguments extends Mocha.Context {
+  args: {};
+}
 
 export function VirtualPool__refresh() {
-  context("_refresh", function () {
-    before(async function () {
+  context("_refresh", function (this: Arguments) {
+    before(async function (this: Arguments) {
       this.args = {};
     });
 
-    it("should correctly compute an updated slot0 and liquidity index up to a given timestamp", async function () {
+    it("should correctly compute an updated slot0 and liquidity index up to a given timestamp", async function (this: Arguments) {
       // Setup the timestamp for the refresh
       const timestamp = this.args.timestampForRefresh;
 
@@ -26,7 +31,7 @@ export function VirtualPool__refresh() {
       expect(liquidityIndex).to.equal(this.args.expectedLiquidityIndex);
     });
 
-    it("should handle crossing initialized ticks correctly", async function () {
+    it("should handle crossing initialized ticks correctly", async function (this: Arguments) {
       // Setup the timestamp for the refresh that involves crossing initialized ticks
       const timestamp = this.args.timestampForCrossingInitializedTicks;
 
@@ -42,7 +47,7 @@ export function VirtualPool__refresh() {
       // Additional checks can be implemented to verify other aspects of the slot0 update
     });
 
-    it("should update the liquidity index based on utilization and premium rate", async function () {
+    it("should update the liquidity index based on utilization and premium rate", async function (this: Arguments) {
       // Setup the timestamp for the refresh
       const timestamp = this.args.timestampForLiquidityIndexUpdate;
 

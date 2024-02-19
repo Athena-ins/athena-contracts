@@ -3,14 +3,19 @@ import { expect } from "chai";
 import { setNextBlockTimestamp, postTxHandler } from "../../helpers/hardhat";
 import { toUsd, toErc20, makeIdArray } from "../../helpers/protocol";
 // Types
+import { BigNumber } from "ethers";
+
+interface Arguments extends Mocha.Context {
+  args: {};
+}
 
 export function LiquidityManager_purgeExpiredCoversInPool() {
-  context("purgeExpiredCoversInPool", function () {
-    before(async function () {
+  context("purgeExpiredCoversInPool", function (this: Arguments) {
+    before(async function (this: Arguments) {
       this.args = {};
     });
 
-    it("should not change the pool state when no covers are expired", async function () {
+    it("should not change the pool state when no covers are expired", async function (this: Arguments) {
       // Setup: Initialize a pool with no expired covers
 
       await this.liquidityManager.purgeExpiredCoversInPool(this.args.poolId);
@@ -22,7 +27,7 @@ export function LiquidityManager_purgeExpiredCoversInPool() {
       expect(poolAfterPurge).to.deep.equal(this.args.initialPoolState);
     });
 
-    it("should remove only expired covers from the pool", async function () {
+    it("should remove only expired covers from the pool", async function (this: Arguments) {
       // Setup: Initialize a pool with some expired and some active covers
 
       await this.liquidityManager.purgeExpiredCoversInPool(this.args.poolId);
@@ -35,7 +40,7 @@ export function LiquidityManager_purgeExpiredCoversInPool() {
       );
     });
 
-    it("should remove all covers when all are expired in the pool", async function () {
+    it("should remove all covers when all are expired in the pool", async function (this: Arguments) {
       // Setup: Initialize a pool where all covers are expired
 
       await this.liquidityManager.purgeExpiredCoversInPool(this.args.poolId);
@@ -46,7 +51,7 @@ export function LiquidityManager_purgeExpiredCoversInPool() {
       expect(poolAfterPurge.remainingCovers).to.equal(0);
     });
 
-    it("should correctly update the remainingCovers count in the pool", async function () {
+    it("should correctly update the remainingCovers count in the pool", async function (this: Arguments) {
       // Setup: Initialize a pool with a known number of expired and active covers
 
       await this.liquidityManager.purgeExpiredCoversInPool(this.args.poolId);
@@ -59,7 +64,7 @@ export function LiquidityManager_purgeExpiredCoversInPool() {
       );
     });
 
-    it("should correctly update the coveredCapital in the pool", async function () {
+    it("should correctly update the coveredCapital in the pool", async function (this: Arguments) {
       // Setup: Initialize a pool with a known covered capital including expired covers
 
       await this.liquidityManager.purgeExpiredCoversInPool(this.args.poolId);
@@ -72,7 +77,7 @@ export function LiquidityManager_purgeExpiredCoversInPool() {
       );
     });
 
-    it("should verify that the correct covers are removed from the pool's cover list", async function () {
+    it("should verify that the correct covers are removed from the pool's cover list", async function (this: Arguments) {
       // Setup: Initialize a pool with specific covers, including expired and active ones
 
       await this.liquidityManager.purgeExpiredCoversInPool(this.args.poolId);
@@ -83,7 +88,7 @@ export function LiquidityManager_purgeExpiredCoversInPool() {
       expect(remainingCovers).to.deep.equal(this.args.expectedRemainingCovers);
     });
 
-    it("should handle calls with invalid or non-existent pool IDs", async function () {
+    it("should handle calls with invalid or non-existent pool IDs", async function (this: Arguments) {
       expect(
         await this.liquidityManager.purgeExpiredCoversInPool(
           this.args.invalidPoolId,
@@ -91,7 +96,7 @@ export function LiquidityManager_purgeExpiredCoversInPool() {
       ).to.be.revertedWith("InvalidPoolId");
     });
 
-    it("should not affect pools that have no covers or only active covers", async function () {
+    it("should not affect pools that have no covers or only active covers", async function (this: Arguments) {
       // Setup: Initialize a pool with no covers or only active covers
 
       await this.liquidityManager.purgeExpiredCoversInPool(
@@ -109,7 +114,7 @@ export function LiquidityManager_purgeExpiredCoversInPool() {
       );
     });
 
-    it("should emit appropriate events if any are defined for cover removal or pool updates", async function () {
+    it("should emit appropriate events if any are defined for cover removal or pool updates", async function (this: Arguments) {
       // Setup: Initialize a pool with known expired covers
 
       // Call the function and capture the transaction receipt

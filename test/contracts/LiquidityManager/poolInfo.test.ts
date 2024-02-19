@@ -3,14 +3,19 @@ import { expect } from "chai";
 import { setNextBlockTimestamp, postTxHandler } from "../../helpers/hardhat";
 import { toUsd, toErc20, makeIdArray } from "../../helpers/protocol";
 // Types
+import { BigNumber } from "ethers";
+
+interface Arguments extends Mocha.Context {
+  args: {};
+}
 
 export function LiquidityManager_poolInfo() {
-  context("poolInfo", function () {
-    before(async function () {
+  context("poolInfo", function (this: Arguments) {
+    before(async function (this: Arguments) {
       this.args = {};
     });
 
-    it("should return the correct virtual pool's storage for a given pool ID", async function () {
+    it("should return the correct virtual pool's storage for a given pool ID", async function (this: Arguments) {
       // Retrieve pool info for a specific pool ID
       const poolInfo = await this.contracts.LiquidityManager.poolInfo(
         this.args.poolId,
@@ -39,7 +44,7 @@ export function LiquidityManager_poolInfo() {
       );
     });
 
-    it("should return an empty pool storage if the pool ID does not exist", async function () {
+    it("should return an empty pool storage if the pool ID does not exist", async function (this: Arguments) {
       // Attempt to retrieve pool info for a non-existent pool ID
       const poolInfo = await this.contracts.LiquidityManager.poolInfo(
         this.args.nonExistentPoolId,
@@ -51,7 +56,7 @@ export function LiquidityManager_poolInfo() {
       // Additional checks for other default or empty values
     });
 
-    it("should include the correct overlapped pools in the pool info", async function () {
+    it("should include the correct overlapped pools in the pool info", async function (this: Arguments) {
       // Retrieve pool info and check overlapped pools
       const poolInfo = await this.contracts.LiquidityManager.poolInfo(
         this.args.poolId,
@@ -63,7 +68,7 @@ export function LiquidityManager_poolInfo() {
       );
     });
 
-    it("should correctly reflect the pool's paused status in the pool info", async function () {
+    it("should correctly reflect the pool's paused status in the pool info", async function (this: Arguments) {
       // Retrieve pool info and check the paused status
       const poolInfo = await this.contracts.LiquidityManager.poolInfo(
         this.args.poolId,

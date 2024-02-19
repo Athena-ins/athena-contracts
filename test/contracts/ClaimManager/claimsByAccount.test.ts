@@ -3,14 +3,19 @@ import { expect } from "chai";
 import { setNextBlockTimestamp, postTxHandler } from "../../helpers/hardhat";
 import { toUsd, toErc20, makeIdArray } from "../../helpers/protocol";
 // Types
+import { BigNumber } from "ethers";
+
+interface Arguments extends Mocha.Context {
+  args: {};
+}
 
 export function ClaimManager_claimsByAccount() {
-  context("claimsByAccount", function () {
-    before(async function () {
+  context("claimsByAccount", function (this: Arguments) {
+    before(async function (this: Arguments) {
       this.args = {};
     });
 
-    it("should return an empty array for a user with no covers", async function () {
+    it("should return an empty array for a user with no covers", async function (this: Arguments) {
       // Call claimsByAccount with an account that has no covers
       const claimsInfo = await this.contract.claimsByAccount(
         this.args.accountWithNoCovers,
@@ -20,7 +25,7 @@ export function ClaimManager_claimsByAccount() {
       expect(claimsInfo).to.be.empty;
     });
 
-    it("should return an empty array for a user with covers but no claims", async function () {
+    it("should return an empty array for a user with covers but no claims", async function (this: Arguments) {
       // Call claimsByAccount with an account that has covers but no claims
       const claimsInfo = await this.contract.claimsByAccount(
         this.args.accountWithCoversNoClaims,
@@ -30,7 +35,7 @@ export function ClaimManager_claimsByAccount() {
       expect(claimsInfo).to.be.empty;
     });
 
-    it("should return all claims for a user with multiple covers and claims", async function () {
+    it("should return all claims for a user with multiple covers and claims", async function (this: Arguments) {
       // Call claimsByAccount with an account that has multiple covers and claims
       const claimsInfo = await this.contract.claimsByAccount(
         this.args.accountWithMultipleCoversAndClaims,
@@ -41,7 +46,7 @@ export function ClaimManager_claimsByAccount() {
       expect(claimsInfo).to.deep.equal(this.args.expectedClaimsInfo);
     });
 
-    it("should correctly assemble ClaimView data for each claim", async function () {
+    it("should correctly assemble ClaimView data for each claim", async function (this: Arguments) {
       // Call claimsByAccount with an account that has at least one claim
       const claimsInfo = await this.contract.claimsByAccount(
         this.args.accountWithClaims,

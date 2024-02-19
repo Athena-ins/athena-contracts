@@ -3,13 +3,18 @@ import { expect } from "chai";
 import { setNextBlockTimestamp, postTxHandler } from "../../helpers/hardhat";
 import { toUsd, toErc20, makeIdArray } from "../../helpers/protocol";
 // Types
+import { BigNumber } from "ethers";
+
+interface Arguments extends Mocha.Context {
+  args: {};
+}
 
 export function LiquidityManager_uncommitRemoveLiquidity() {
-  context("uncommitRemoveLiquidity", function () {
-    before(async function () {
+  context("uncommitRemoveLiquidity", function (this: Arguments) {
+    before(async function (this: Arguments) {
       this.args = {};
     });
-    it("should successfully uncommit a committed position owned by the caller", async function () {
+    it("should successfully uncommit a committed position owned by the caller", async function (this: Arguments) {
       // First, commit the position to set the commitWithdrawalTimestamp
       await this.contracts.LiquidityManager.commitRemoveLiquidity(
         this.args.validPositionId,
@@ -33,7 +38,7 @@ export function LiquidityManager_uncommitRemoveLiquidity() {
       expect(uncommittedTimestamp).to.equal(0);
     });
 
-    it("should revert when trying to uncommit a position not owned by the caller", async function () {
+    it("should revert when trying to uncommit a position not owned by the caller", async function (this: Arguments) {
       try {
         await this.contracts.LiquidityManager.uncommitRemoveLiquidity(
           this.args.positionIdNotOwned,
@@ -46,7 +51,7 @@ export function LiquidityManager_uncommitRemoveLiquidity() {
       }
     });
 
-    it("should revert when trying to uncommit a position that is not committed", async function () {
+    it("should revert when trying to uncommit a position that is not committed", async function (this: Arguments) {
       try {
         await this.contracts.LiquidityManager.uncommitRemoveLiquidity(
           this.args.uncommittedPositionId,
@@ -59,7 +64,7 @@ export function LiquidityManager_uncommitRemoveLiquidity() {
       }
     });
 
-    it("should revert when trying to uncommit a non-existent positionId", async function () {
+    it("should revert when trying to uncommit a non-existent positionId", async function (this: Arguments) {
       try {
         await this.contracts.LiquidityManager.uncommitRemoveLiquidity(
           this.args.nonExistentPositionId,
@@ -72,7 +77,7 @@ export function LiquidityManager_uncommitRemoveLiquidity() {
       }
     });
 
-    it("should reset the commitWithdrawalTimestamp to zero after uncommitting", async function () {
+    it("should reset the commitWithdrawalTimestamp to zero after uncommitting", async function (this: Arguments) {
       await this.contracts.LiquidityManager.commitRemoveLiquidity(
         this.args.validPositionId,
       );
@@ -85,7 +90,7 @@ export function LiquidityManager_uncommitRemoveLiquidity() {
       expect(timestamp).to.equal(0);
     });
 
-    it("should redirect interest back to the position owner after uncommitting", async function () {
+    it("should redirect interest back to the position owner after uncommitting", async function (this: Arguments) {
       const initialOwnerReward =
         await this.contracts.LiquidityManager.getOwnerReward(
           this.args.positionOwner,

@@ -3,16 +3,21 @@ import { expect } from "chai";
 import { setNextBlockTimestamp, postTxHandler } from "../../helpers/hardhat";
 import { toUsd, toErc20, makeIdArray } from "../../helpers/protocol";
 // Types
+import { BigNumber } from "ethers";
+
+interface Arguments extends Mocha.Context {
+  args: {};
+}
 
 export function VirtualPool__coverInfo() {
-  context("_coverInfo", function () {
-    before(async function () {
+  context("_coverInfo", function (this: Arguments) {
+    before(async function (this: Arguments) {
       this.args = {};
     });
 
     // Test for _closeCover function
 
-    it("should revert if the cover has already expired", async function () {
+    it("should revert if the cover has already expired", async function (this: Arguments) {
       // Attempt to close an expired cover
       expect(
         await this.contracts.LiquidityManager.closeCover(
@@ -22,7 +27,7 @@ export function VirtualPool__coverInfo() {
       ).to.be.revertedWith("CoverAlreadyExpired");
     });
 
-    it("should successfully close a cover and update the pool's slot0", async function () {
+    it("should successfully close a cover and update the pool's slot0", async function (this: Arguments) {
       // Close a valid cover
       expect(
         await this.contracts.LiquidityManager.closeCover(
@@ -43,7 +48,7 @@ export function VirtualPool__coverInfo() {
       );
     });
 
-    it("should remove the cover from the tick data if it's the last cover in the tick", async function () {
+    it("should remove the cover from the tick data if it's the last cover in the tick", async function (this: Arguments) {
       // Close a cover that is the last cover in its tick
       await this.contracts.LiquidityManager.closeCover(
         this.args.coverIdLastInTick,
@@ -53,7 +58,7 @@ export function VirtualPool__coverInfo() {
       // Note: Additional checks needed to ensure the tick is correctly removed
     });
 
-    it("should adjust cover premium data if the cover is not the last cover in the tick", async function () {
+    it("should adjust cover premium data if the cover is not the last cover in the tick", async function (this: Arguments) {
       // Close a cover that is not the last cover in its tick
       await this.contracts.LiquidityManager.closeCover(
         this.args.coverIdNotLastInTick,
@@ -65,7 +70,7 @@ export function VirtualPool__coverInfo() {
 
     // Test for _coverInfo function
 
-    it("should return zero values if the cover's last tick is overtaken", async function () {
+    it("should return zero values if the cover's last tick is overtaken", async function (this: Arguments) {
       // Retrieve cover info for an expired cover
       const coverInfo = await this.contracts.LiquidityManager.coverInfo(
         this.args.coverIdWithExpiredCover,
@@ -75,7 +80,7 @@ export function VirtualPool__coverInfo() {
       expect(coverInfo.currentDailyCost).to.equal(0);
     });
 
-    it("should correctly compute the premium rate and daily cost of a cover", async function () {
+    it("should correctly compute the premium rate and daily cost of a cover", async function (this: Arguments) {
       // Retrieve cover info for a valid cover
       const coverInfo = await this.contracts.LiquidityManager.coverInfo(
         this.args.coverId,
@@ -87,7 +92,7 @@ export function VirtualPool__coverInfo() {
       );
     });
 
-    it("should correctly calculate the premiums left for a cover", async function () {
+    it("should correctly calculate the premiums left for a cover", async function (this: Arguments) {
       // Retrieve cover info for a valid cover
       const coverInfo = await this.contracts.LiquidityManager.coverInfo(
         this.args.coverId,

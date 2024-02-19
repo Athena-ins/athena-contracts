@@ -3,15 +3,20 @@ import { expect } from "chai";
 import { setNextBlockTimestamp, postTxHandler } from "../../helpers/hardhat";
 import { toUsd, toErc20, makeIdArray } from "../../helpers/protocol";
 // Types
+import { BigNumber } from "ethers";
+
+interface Arguments extends Mocha.Context {
+  args: {};
+}
 
 export function LiquidityManager_payoutClaim() {
-  context("payoutClaim", function () {
-    before(async function () {
+  context("payoutClaim", function (this: Arguments) {
+    before(async function (this: Arguments) {
       this.args = {};
     });
 
-    describe("payoutClaim", function () {
-      it("should revert if called by a non-claim manager", async function () {
+    describe("payoutClaim", function (this: Arguments) {
+      it("should revert if called by a non-claim manager", async function (this: Arguments) {
         // Simulate call by a non-claim manager
         expect(
           await this.contracts.LiquidityManager.connect(
@@ -20,7 +25,7 @@ export function LiquidityManager_payoutClaim() {
         ).to.be.revertedWith("OnlyClaimManager");
       });
 
-      it("should succeed if called by the claim manager", async function () {
+      it("should succeed if called by the claim manager", async function (this: Arguments) {
         // Simulate call by the claim manager
         expect(
           await this.contracts.LiquidityManager.connect(
@@ -29,7 +34,7 @@ export function LiquidityManager_payoutClaim() {
         ).to.not.be.reverted;
       });
 
-      it("should revert if the compensation ratio is above the pool's capacity", async function () {
+      it("should revert if the compensation ratio is above the pool's capacity", async function (this: Arguments) {
         // Setup a scenario where the compensation amount exceeds the pool's capacity
         const poolId = await this.contracts.LiquidityManager.coverPoolId(
           this.args.coverId,
@@ -46,8 +51,8 @@ export function LiquidityManager_payoutClaim() {
         ).to.be.revertedWith("RatioAbovePoolCapacity");
       });
 
-      describe("Compensation Calculation and Distribution", function () {
-        it("should calculate the correct compensation ratio", async function () {
+      describe("Compensation Calculation and Distribution", function (this: Arguments) {
+        it("should calculate the correct compensation ratio", async function (this: Arguments) {
           const poolId = await this.contracts.LiquidityManager.coverPoolId(
             this.args.coverId,
           );
@@ -68,7 +73,7 @@ export function LiquidityManager_payoutClaim() {
           expect(compensation.ratio).to.equal(expectedRatio);
         });
 
-        it("should reduce the liquidity in affected pools correctly", async function () {
+        it("should reduce the liquidity in affected pools correctly", async function (this: Arguments) {
           const poolId = await this.contracts.LiquidityManager.coverPoolId(
             this.args.coverId,
           );
@@ -88,7 +93,7 @@ export function LiquidityManager_payoutClaim() {
           expect(poolInfoAfter.totalLiquidity).to.equal(expectedLiquidityAfter);
         });
 
-        it("should update pool pricing after liquidity change", async function () {
+        it("should update pool pricing after liquidity change", async function (this: Arguments) {
           const poolId = await this.contracts.LiquidityManager.coverPoolId(
             this.args.coverId,
           );
@@ -106,7 +111,7 @@ export function LiquidityManager_payoutClaim() {
           );
         });
 
-        it("should register the compensation ID and its related data correctly", async function () {
+        it("should register the compensation ID and its related data correctly", async function (this: Arguments) {
           await this.contracts.LiquidityManager.connect(
             this.signers.claimManager,
           ).payoutClaim(this.args.coverId, this.args.compensationAmount);
@@ -120,7 +125,7 @@ export function LiquidityManager_payoutClaim() {
           expect(compensation.rewardIndexBeforeClaim).to.exist;
         });
 
-        it("should update the cover amount for non-expired covers", async function () {
+        it("should update the cover amount for non-expired covers", async function (this: Arguments) {
           const coverInfoBefore =
             await this.contracts.TestableVirtualPool.coverPremiums(
               this.args.poolId,
@@ -139,7 +144,7 @@ export function LiquidityManager_payoutClaim() {
           );
         });
 
-        it("should handle failed cover updates due to insufficient liquidity", async function () {
+        it("should handle failed cover updates due to insufficient liquidity", async function (this: Arguments) {
           await this.contracts.TestableVirtualPool.setAvailableLiquidity(
             this.args.poolId,
             0,
@@ -151,7 +156,7 @@ export function LiquidityManager_payoutClaim() {
           ).to.be.revertedWith("InsufficientLiquidityForCover");
         });
 
-        it("should expire the cover if updating it fails", async function () {
+        it("should expire the cover if updating it fails", async function (this: Arguments) {
           await this.contracts.TestableVirtualPool.setAvailableLiquidity(
             this.args.poolId,
             0,
@@ -167,7 +172,7 @@ export function LiquidityManager_payoutClaim() {
         });
       });
 
-      it("should pay out the compensation from the strategy to the claimant", async function () {
+      it("should pay out the compensation from the strategy to the claimant", async function (this: Arguments) {
         const claimantBalanceBefore =
           await this.contracts.TestableVirtualPool.paymentAsset.balanceOf(
             this.signers.claimant.address,
@@ -184,8 +189,8 @@ export function LiquidityManager_payoutClaim() {
         );
       });
 
-      describe("Edge Cases and External Contracts Interaction", function () {
-        it("should handle invalid coverId_ values correctly", async function () {
+      describe("Edge Cases and External Contracts Interaction", function (this: Arguments) {
+        it("should handle invalid coverId_ values correctly", async function (this: Arguments) {
           const invalidCoverId = this.args.nextCoverId.add(1); // Assuming nextCoverId is the last valid coverId
           expect(
             await this.contracts.LiquidityManager.connect(
@@ -194,7 +199,7 @@ export function LiquidityManager_payoutClaim() {
           ).to.be.revertedWith("CoverDoesNotExist"); // Replace with the correct error message
         });
 
-        it("should interact correctly with ERC20 safeTransfer for returning premiums", async function () {
+        it("should interact correctly with ERC20 safeTransfer for returning premiums", async function (this: Arguments) {
           const initialBalance =
             await this.contracts.TestableVirtualPool.paymentAsset.balanceOf(
               this.signers.claimant.address,
@@ -211,7 +216,7 @@ export function LiquidityManager_payoutClaim() {
           ); // Assuming premiumsReturned is the amount of premiums returned
         });
 
-        it("should interact correctly with the strategy manager for payout", async function () {
+        it("should interact correctly with the strategy manager for payout", async function (this: Arguments) {
           const initialStrategyBalance =
             await this.contracts.TestableVirtualPool.paymentAsset.balanceOf(
               this.contracts.StrategyManager.address,

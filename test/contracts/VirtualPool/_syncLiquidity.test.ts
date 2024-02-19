@@ -3,14 +3,19 @@ import { expect } from "chai";
 import { setNextBlockTimestamp, postTxHandler } from "../../helpers/hardhat";
 import { toUsd, toErc20, makeIdArray } from "../../helpers/protocol";
 // Types
+import { BigNumber } from "ethers";
+
+interface Arguments extends Mocha.Context {
+  args: {};
+}
 
 export function VirtualPool__syncLiquidity() {
-  context("_syncLiquidity", function () {
-    before(async function () {
+  context("_syncLiquidity", function (this: Arguments) {
+    before(async function (this: Arguments) {
       this.args = {};
     });
 
-    it("should revert if trying to remove more liquidity than available", async function () {
+    it("should revert if trying to remove more liquidity than available", async function (this: Arguments) {
       // Attempt to sync liquidity with removal greater than available liquidity
       expect(
         await this.contracts.LiquidityManager.syncLiquidity(
@@ -20,7 +25,7 @@ export function VirtualPool__syncLiquidity() {
       ).to.be.revertedWith("NotEnoughLiquidityForRemoval");
     });
 
-    it("should successfully update the pool's slot0 when adding liquidity", async function () {
+    it("should successfully update the pool's slot0 when adding liquidity", async function (this: Arguments) {
       // Sync liquidity with adding liquidity
       expect(
         await this.contracts.LiquidityManager.syncLiquidity(
@@ -35,7 +40,7 @@ export function VirtualPool__syncLiquidity() {
       );
     });
 
-    it("should successfully update the pool's slot0 when removing liquidity", async function () {
+    it("should successfully update the pool's slot0 when removing liquidity", async function (this: Arguments) {
       // Sync liquidity with removing liquidity
       expect(
         await this.contracts.LiquidityManager.syncLiquidity(
@@ -50,7 +55,7 @@ export function VirtualPool__syncLiquidity() {
       );
     });
 
-    it("should correctly calculate the new premium rate after liquidity change", async function () {
+    it("should correctly calculate the new premium rate after liquidity change", async function (this: Arguments) {
       // Sync liquidity and check the new premium rate
       await this.contracts.LiquidityManager.syncLiquidity(
         this.args.liquidityToAdd,
