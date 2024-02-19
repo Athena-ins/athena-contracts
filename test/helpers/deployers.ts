@@ -46,6 +46,8 @@ import {
   // Other
   TestableVirtualPool__factory,
   TestableVirtualPool,
+  TestableLiquidityManager__factory,
+  TestableLiquidityManager,
   TetherToken__factory,
   TetherToken,
   IWETH,
@@ -84,6 +86,13 @@ export async function deployLiquidityManager(
   args: Parameters<LiquidityManager__factory["deploy"]>,
 ): Promise<LiquidityManager> {
   return new LiquidityManager__factory(signer).deploy(...args);
+}
+
+export async function deployTestableLiquidityManager(
+  signer: Signer,
+  args: Parameters<TestableLiquidityManager__factory["deploy"]>,
+): Promise<TestableLiquidityManager> {
+  return new TestableLiquidityManager__factory(signer).deploy(...args);
 }
 
 export async function deployStrategyManager(
@@ -184,7 +193,7 @@ export type ProtocolContracts = {
   EcclesiaDao: EcclesiaDao;
   MockArbitrator: MockArbitrator;
   ClaimManager: ClaimManager;
-  LiquidityManager: LiquidityManager;
+  LiquidityManager: TestableLiquidityManager;
   StrategyManager: StrategyManager;
   FarmingRange: FarmingRange;
   RewardManager: RewardManager;
@@ -207,7 +216,7 @@ export async function deployAllContractsAndInitializeProtocol(
     "ClaimManager",
     "StrategyManager",
     "RewardManager",
-    "LiquidityManager",
+    "TestableLiquidityManager",
     "EcclesiaDao",
     "MockArbitrator",
   ];
@@ -229,10 +238,10 @@ export async function deployAllContractsAndInitializeProtocol(
   const WethToken = IWETH__factory.connect(wethAddress, deployer);
 
   const AthenaCoverToken = await deployAthenaCoverToken(deployer, [
-    deployedAt.LiquidityManager,
+    deployedAt.TestableLiquidityManager,
   ]);
   const AthenaPositionToken = await deployAthenaPositionToken(deployer, [
-    deployedAt.LiquidityManager,
+    deployedAt.TestableLiquidityManager,
   ]);
   const AthenaToken = await deployAthenaToken(deployer, [
     [deployedAt.EcclesiaDao],
@@ -242,7 +251,7 @@ export async function deployAllContractsAndInitializeProtocol(
 
   const ClaimManager = await deployClaimManager(deployer, [
     deployedAt.AthenaCoverToken, // IAthenaCoverToken coverToken_
-    deployedAt.LiquidityManager, // ILiquidityManager liquidityManager_
+    deployedAt.TestableLiquidityManager, // ILiquidityManager liquidityManager_
     deployedAt.MockArbitrator, // IArbitrator arbitrator_
     config.evidenceGuardian.address, // address metaEvidenceGuardian_
     config.leverageRiskWallet.address, // address leverageRiskWallet_
@@ -250,7 +259,7 @@ export async function deployAllContractsAndInitializeProtocol(
     config.nbOfJurors, // uint256 nbOfJurors_
   ]);
   const StrategyManager = await deployStrategyManager(deployer, [
-    deployedAt.LiquidityManager,
+    deployedAt.TestableLiquidityManager,
     deployedAt.EcclesiaDao,
     config.buybackWallet.address,
     toRay(0.1), // payoutDeductibleRate
@@ -259,7 +268,7 @@ export async function deployAllContractsAndInitializeProtocol(
 
   const campaignStartBlock = (await getCurrentBlockNumber()) + 4;
   const RewardManager = await deployRewardManager(deployer, [
-    deployedAt.LiquidityManager,
+    deployedAt.TestableLiquidityManager,
     deployedAt.EcclesiaDao,
     deployedAt.AthenaPositionToken,
     deployedAt.AthenaCoverToken,
@@ -271,7 +280,7 @@ export async function deployAllContractsAndInitializeProtocol(
   deployedAt.Staking = await RewardManager.staking();
   deployedAt.FarmingRange = await RewardManager.farming();
 
-  const LiquidityManager = await deployLiquidityManager(deployer, [
+  const LiquidityManager = await deployTestableLiquidityManager(deployer, [
     deployedAt.AthenaPositionToken,
     deployedAt.AthenaCoverToken,
     deployedAt.Staking,
@@ -288,7 +297,7 @@ export async function deployAllContractsAndInitializeProtocol(
   const EcclesiaDao = await deployEcclesiaDao(deployer, [
     deployedAt.AthenaToken,
     deployedAt.Staking,
-    deployedAt.LiquidityManager,
+    deployedAt.TestableLiquidityManager,
     deployedAt.StrategyManager,
     config.treasuryWallet.address,
     config.leverageRiskWallet.address,
@@ -318,7 +327,7 @@ export async function deployAllContractsAndInitializeProtocol(
     Staking: Staking__factory.connect(deployedAt.Staking, deployer),
     // Mocks or testing contracts
     TestableVirtualPool: TestableVirtualPool__factory.connect(
-      deployedAt.LiquidityManager,
+      deployedAt.TestableLiquidityManager,
       deployer,
     ),
   };
