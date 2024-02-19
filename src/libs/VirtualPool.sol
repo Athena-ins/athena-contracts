@@ -463,6 +463,10 @@ library VirtualPool {
       coverIdIndex: nbCoversInTick
     });
 
+    /**
+     * If the tick at which the cover expires is not initialized then initialize it
+     * this indicates that the tick has covers and is not empty
+     */
     if (!self.tickBitmap.isInitializedTick(lastTick_)) {
       self.tickBitmap.flipTick(lastTick_);
     }
@@ -819,7 +823,7 @@ library VirtualPool {
     VPool storage self,
     uint256 timestamp_
   ) internal view returns (Slot0 memory slot0) {
-    // Make copies in memory to allow for mutations
+    // Make copy in memory to allow for mutations
     slot0 = self.slot0;
 
     uint256 liquidity = self.totalLiquidity();

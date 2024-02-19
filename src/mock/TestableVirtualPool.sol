@@ -3,6 +3,9 @@ pragma solidity 0.8.20;
 
 // Libraries
 import { VirtualPool } from "../libs/VirtualPool.sol";
+import { RayMath } from "../libs/RayMath.sol";
+import { Tick } from "../libs/Tick.sol";
+import { TickBitmap } from "../libs/TickBitmap.sol";
 
 /**
  * @title TestableVirtualPool
@@ -14,6 +17,9 @@ import { VirtualPool } from "../libs/VirtualPool.sol";
  * production environment.
  */
 abstract contract TestableVirtualPool {
+  using RayMath for uint256;
+  using Tick for mapping(uint32 => uint256[]);
+  using TickBitmap for mapping(uint24 => uint256);
   using VirtualPool for VirtualPool.VPool;
 
   /**
@@ -92,6 +98,13 @@ abstract contract TestableVirtualPool {
     uint256 coverId_
   ) public view returns (VirtualPool.CoverPremiums memory) {
     return getPool(poolId_).coverPremiums[coverId_];
+  }
+
+  function isInitializedTick(
+    uint64 poolId_,
+    uint32 lastTick_
+  ) public view returns (bool /* initialized */) {
+    return getPool(poolId_).tickBitmap.isInitializedTick(lastTick_);
   }
 
   // ======= READ METHODS ======= //
