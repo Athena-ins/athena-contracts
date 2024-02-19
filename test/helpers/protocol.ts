@@ -7,7 +7,7 @@ import {
   postTxHandler,
   getCurrentTime,
 } from "./hardhat";
-
+import { defaultProtocolConfig } from "./deployers";
 // Types
 import {
   BigNumber,
@@ -222,10 +222,6 @@ async function getTokens(
   );
 }
 
-// ======================= //
-// === Protocol config === //
-// ======================= //
-
 // ============================ //
 // === Admin action helpers === //
 // ============================ //
@@ -388,34 +384,6 @@ async function updateCover(
   );
 }
 
-// async function updateCover(
-//   contract: LiquidityManager,
-//   tokenHelpers: TokenHelpers,
-//   user: Wallet,
-//   action:
-//     | "increaseCover"
-//     | "decreaseCover"
-//     | "addPremiums"
-//     | "removePremiums"
-//     | "addToCoverRefundStake"
-//     | "withdrawCoverRefundStakedAten",
-//   coverId: BigNumberish,
-//   amount: BigNumberish,
-// ): Promise<ContractReceipt> {
-//   const account = await user.getAddress();
-
-//   if (action === "addPremiums") {
-//     await tokenHelpers.getUsdt(account, amount);
-//     await tokenHelpers.approveUsdt(user, contract.address, amount);
-//   }
-//   if (action === "addToCoverRefundStake") {
-//     await tokenHelpers.getAten(account, amount);
-//     await tokenHelpers.approveAten(user, contract.address, amount);
-//   }
-
-//   return (await contract.connect(user)[action](coverId, amount)).wait();
-// }
-
 // ======== Claims ======== //
 
 async function initiateClaim(
@@ -462,9 +430,62 @@ async function withdrawCompensation(
   );
 }
 
-// ==================== //
-// === View helpers === //
-// ==================== //
+// ===================== //
+// === Setup helpers === //
+// ===================== //
+
+async function createPoolsWithLiquidity(
+  contracts: ProtocolContracts,
+  deployer: Wallet,
+  params: {
+    user: Wallet;
+    nbPools: number;
+    nbLpProviders: number;
+    lpAmount: BigNumberish;
+  },
+) {
+  params = {
+    user: params.user ?? deployer,
+    nbPools: params.nbPools ?? 2,
+    nbLpProviders: params.nbLpProviders ?? 2,
+    lpAmount: params.lpAmount ?? toErc20(1000),
+  };
+
+  await createDaoLock(
+    contracts.EcclesiaDao,
+    contracts.AthenaToken,
+    deployer,
+    deployer,
+    toErc20(1000),
+    60 * 60 * 24 * 365,
+  );
+
+  await Promise.all(
+    makeIdArray(params.nbPools).map((poolId) =>
+      postTxHandler(
+        contracts.LiquidityManager.createPool(
+          contracts.TetherToken.address, // paymentAsset
+          0, // strategyId
+          0, // feeRate
+          ...defaultProtocolConfig.poolMarket,
+          makeIdArray(params.nbPools).filter((id) => id != poolId), // compatiblePools
+        ),
+      ),
+    ),
+  );
+
+  await Promise.all(
+    makeIdArray(params.nbLpProviders).map(() =>
+      openPosition(
+        contracts.LiquidityManager,
+        deployer,
+        params.lpAmount,
+        false,
+        makeIdArray(params.nbPools),
+      ),
+    ),
+  );
+}
 
 // ============================ //
 // === Test context helpers === //
@@ -510,6 +531,7 @@ export type TestHelper = TokenHelpers & {
   updateCover: OmitFirstArg<typeof updateCover>;
   initiateClaim: OmitFirstArg<typeof initiateClaim>;
   withdrawCompensation: OmitFirstArg<typeof withdrawCompensation>;
+  createPoolsWithLiquidity: OmitFirstTwoArgs<typeof createPoolsWithLiquidity>;
 };
 
 export async function makeTestHelpers(
@@ -547,6 +569,8 @@ export async function makeTestHelpers(
     initiateClaim: (...args) => initiateClaim(ClaimManager, ...args),
     withdrawCompensation: (...args) =>
       withdrawCompensation(ClaimManager, ...args),
+    createPoolsWithLiquidity: (...args) =>
+      createPoolsWithLiquidity(contracts, deployer, ...args),
     // tokens
     ...tokenHelpers,
   };
