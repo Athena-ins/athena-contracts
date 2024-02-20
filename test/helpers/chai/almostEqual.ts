@@ -12,11 +12,7 @@ declare global {
 chai.use(function (chai, utils) {
   chai.Assertion.addMethod(
     "almostEqual",
-    function (
-      this: Chai.AssertionStatic,
-      input: number | string | BigNumber,
-      message: string,
-    ) {
+    function (this: Chai.AssertionStatic, input: number | string | BigNumber) {
       if (
         (typeof this._obj !== "number" &&
           typeof this._obj !== "string" &&
@@ -36,8 +32,8 @@ chai.use(function (chai, utils) {
           actual.add(BigNumber.from(1)).eq(expected) ||
           actual.add(BigNumber.from(2)).eq(expected) ||
           expected.eq(actual),
-        `${message} expected #{act} to be almost equal #{exp}`,
-        `${message} expected #{act} to be different from #{exp}`,
+        `expected #{act} to be almost equal #{exp}`,
+        `expected #{act} to be different from #{exp}`,
         expected.toString(),
         actual.toString(),
       );
