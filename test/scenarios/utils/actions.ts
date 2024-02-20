@@ -1,91 +1,32 @@
-import BigNumber from "bignumber.js";
-
+import hre from "hardhat";
+import { expect } from "chai";
 import {
-  calcExpectedReserveDataAfterBorrow,
-  calcExpectedReserveDataAfterDeposit,
-  calcExpectedReserveDataAfterRepay,
-  calcExpectedReserveDataAfterStableRateRebalance,
-  calcExpectedReserveDataAfterSwapRateMode,
-  calcExpectedReserveDataAfterWithdraw,
-  calcExpectedUserDataAfterBorrow,
-  calcExpectedUserDataAfterDeposit,
-  calcExpectedUserDataAfterRepay,
-  calcExpectedUserDataAfterSetUseAsCollateral,
-  calcExpectedUserDataAfterStableRateRebalance,
-  calcExpectedUserDataAfterSwapRateMode,
-  calcExpectedUserDataAfterWithdraw,
+  calcExpectedPoolDataAfterOpenCover,
+  calcExpectedCoverDataAfterOpenCover,
 } from "../../helpers/utils/calculations";
 import {
-  getReserveAddressFromSymbol,
-  getReserveData,
-  getUserData,
-} from "./utils/helpers";
-
-import { convertToCurrencyDecimals } from "../../../helpers/contracts-helpers";
-import {
-  getAToken,
-  getMintableERC20,
-  getStableDebtToken,
-  getVariableDebtToken,
-} from "../../../helpers/contracts-getters";
-import { MAX_UINT_AMOUNT, ONE_YEAR } from "../../../helpers/constants";
-import { SignerWithAddress, TestEnv } from "./make-suite";
-import {
-  advanceTimeAndBlock,
-  DRE,
-  timeLatest,
-  waitForTx,
-} from "../../../helpers/misc-utils";
-
-import { ReserveData, UserReserveData } from "./utils/interfaces";
-import { ContractReceipt } from "ethers";
-import { AToken } from "../../../types/AToken";
-import { RateMode, tEthereumAddress } from "../../../helpers/types";
-
-interface ActionsConfig {
-  skipIntegrityCheck: boolean;
-}
-
-export const configuration: ActionsConfig = <ActionsConfig>{};
-
-interface ActionData {
-  reserve: string;
-  reserveData: ReserveData;
-  userData: UserReserveData;
-  aTokenInstance: AToken;
-}
-
-const getDataBeforeAction = async (
-  reserveSymbol: string,
-  user: tEthereumAddress,
-  testEnv: TestEnv,
-): Promise<ActionData> => {
-  const reserve = await getReserveAddressFromSymbol(reserveSymbol);
-
-  const { reserveData, userData } = await getContractsData(
-    reserve,
-    user,
-    testEnv,
-  );
-  const aTokenInstance = await getAToken(reserveData.aTokenAddress);
-  return {
-    reserve,
-    reserveData,
-    userData,
-    aTokenInstance,
-  };
-};
+  getCurrentTime,
+  postTxHandler,
+  setNextBlockTimestamp,
+  convertToCurrencyDecimals,
+} from "../../helpers/hardhat";
+import { expectEqual } from "../../helpers/chai/almostEqualState";
+// Types
+import { BigNumber, BigNumberish, ContractReceipt, Signer } from "ethers";
+import { TestEnv } from "../../context";
+import { TimeTravelOptions } from "../../helpers/hardhat";
 
 export const getTxCostAndTimestamp = async (tx: ContractReceipt) => {
   if (!tx.blockNumber || !tx.transactionHash || !tx.cumulativeGasUsed) {
     throw new Error("No tx blocknumber");
   }
-  const txTimestamp = new BigNumber(
-    (await DRE.ethers.provider.getBlock(tx.blockNumber)).timestamp,
+  const txTimestamp = BigNumber.from(
+    (await hre.ethers.provider.getBlock(tx.blockNumber)).timestamp,
   );
 
-  const txInfo = await DRE.ethers.provider.getTransaction(tx.transactionHash);
-  const txCost = new BigNumber(tx.cumulativeGasUsed.toString()).multipliedBy(
+  const txInfo = await hre.ethers.provider.getTransaction(tx.transactionHash);
+  if (!txInfo?.gasPrice) throw new Error("No tx info");
+  const txCost = BigNumber.from(tx.cumulativeGasUsed.toString()).mul(
     txInfo.gasPrice.toString(),
   );
 
@@ -93,27 +34,109 @@ export const getTxCostAndTimestamp = async (tx: ContractReceipt) => {
 };
 
 export const getContractsData = async (
-  reserve: string,
-  user: string,
+  poolId: BigNumberish,
+  tokenId: BigNumberish,
+  tokenType: "cover" | "position",
   testEnv: TestEnv,
-  sender?: string,
 ) => {
-  const { pool, helpersContract } = testEnv;
+  const LiquidityManager = testEnv.contracts.LiquidityManager;
 
-  const [userData, reserveData, timestamp] = await Promise.all([
-    getUserData(pool, helpersContract, reserve, user, sender || user),
-    getReserveData(helpersContract, reserve),
-    timeLatest(),
+  const [poolData, tokenData, timestamp] = await Promise.all([
+    LiquidityManager.poolInfo(poolId),
+    tokenType === "cover"
+      ? LiquidityManager.coverInfo(tokenId)
+      : LiquidityManager.positionInfo(tokenId),
+    getCurrentTime(),
   ]);
 
   return {
-    reserveData,
-    userData,
-    timestamp: new BigNumber(timestamp),
+    poolData,
+    tokenData,
+    timestamp: BigNumber.from(timestamp),
   };
 };
 
-export async function openCover() {}
+// ======= ACTIONS ======= //
+
+export async function openCover(
+  poolId: BigNumberish,
+  coverAmount: BigNumberish,
+  premiumsAmount: BigNumberish,
+  user: Signer,
+  testEnv: TestEnv,
+  expectedResult: "success" | string,
+  timeTravel?: TimeTravelOptions,
+) {
+  const { LiquidityManager } = testEnv.contracts;
+
+  const poolInfo = await LiquidityManager.poolInfo(poolId);
+  const [amount, premiums] = await Promise.all([
+    convertToCurrencyDecimals(poolInfo.underlyingAsset, coverAmount),
+    convertToCurrencyDecimals(poolInfo.paymentAsset, premiumsAmount),
+  ]);
+
+  if (expectedResult === "success") {
+    const coverId = await LiquidityManager.nextCoverId();
+
+    const { poolData: poolDataBefore, tokenData: tokenDataBefore } =
+      await getContractsData(poolId, coverId, "cover", testEnv);
+
+    const txResult = await postTxHandler(
+      LiquidityManager.connect(user).openCover(poolId, amount, premiums),
+    );
+    txResult.events;
+    const { txTimestamp } = await getTxCostAndTimestamp(txResult);
+
+    if (timeTravel) {
+      await setNextBlockTimestamp(timeTravel);
+    }
+
+    const { poolData, tokenData, timestamp } = await getContractsData(
+      poolId,
+      coverId,
+      "cover",
+      testEnv,
+    );
+
+    const expectedPoolData = calcExpectedPoolDataAfterOpenCover(
+      amount,
+      premiums,
+      poolDataBefore,
+      tokenDataBefore,
+      txTimestamp,
+      timestamp,
+    );
+
+    const expectedTokenData = calcExpectedCoverDataAfterOpenCover(
+      amount,
+      premiums,
+      poolDataBefore,
+      expectedPoolData,
+      tokenDataBefore,
+      txTimestamp,
+      timestamp,
+    );
+
+    // truffleAssert.eventEmitted(txResult, "CoverOpened", (ev: any) => {
+    //   const { _poolId, _coverId, _amount } = ev;
+    //   return (
+    //     _poolId.eq(poolId) &&
+    //     _coverId.eq(tokenData.coverId) &&
+    //     _amount.eq(amount)
+    //   );
+    // });
+
+    expectEqual(poolData, expectedPoolData);
+    expectEqual(tokenData, expectedTokenData);
+  } else if (expectedResult === "revert") {
+    await expect(
+      LiquidityManager.connect(user).openCover(poolId, amount, premiums),
+      expectedResult,
+    ).to.be.reverted;
+  }
+}
+
+export async function createPool() {}
 export async function updateCover() {}
 export async function openPosition() {}
 export async function addLiquidity() {}
@@ -126,99 +149,3 @@ export async function disputeClaim() {}
 export async function rule() {}
 export async function overrule() {}
 export async function withdrawCompensation() {}
-
-// export const borrow = async (
-//   reserveSymbol: string,
-//   amount: string,
-//   interestRateMode: string,
-//   user: SignerWithAddress,
-//   sendValue: string,
-//   timeTravel: string,
-//   expectedResult: string,
-//   testEnv: TestEnv,
-//   revertMessage?: string,
-// ) => {
-//   const { pool } = testEnv;
-
-//   const reserve = await getReserveAddressFromSymbol(reserveSymbol);
-
-//   const { reserveData: reserveDataBefore, userData: userDataBefore } =
-//     await getContractsData(reserve, onBehalfOf, testEnv, user.address);
-
-//   const amountToBorrow = await convertToCurrencyDecimals(reserve, amount);
-
-//   if (expectedResult === "success") {
-//     const txResult = await waitForTx(
-//       await pool
-//         .connect(user.signer)
-//         .borrow(reserve, amountToBorrow, interestRateMode, "0", onBehalfOf),
-//     );
-
-//     const { txCost, txTimestamp } = await getTxCostAndTimestamp(txResult);
-
-//     if (timeTravel) {
-//       const secondsToTravel = new BigNumber(timeTravel)
-//         .multipliedBy(ONE_YEAR)
-//         .div(365)
-//         .toNumber();
-
-//       await advanceTimeAndBlock(secondsToTravel);
-//     }
-
-//     const {
-//       reserveData: reserveDataAfter,
-//       userData: userDataAfter,
-//       timestamp,
-//     } = await getContractsData(reserve, onBehalfOf, testEnv, user.address);
-
-//     const expectedReserveData = calcExpectedReserveDataAfterBorrow(
-//       amountToBorrow.toString(),
-//       interestRateMode,
-//       reserveDataBefore,
-//       userDataBefore,
-//       txTimestamp,
-//       timestamp,
-//     );
-
-//     const expectedUserData = calcExpectedUserDataAfterBorrow(
-//       amountToBorrow.toString(),
-//       interestRateMode,
-//       reserveDataBefore,
-//       expectedReserveData,
-//       userDataBefore,
-//       txTimestamp,
-//       timestamp,
-//     );
-
-//     expectEqual(reserveDataAfter, expectedReserveData);
-//     expectEqual(userDataAfter, expectedUserData);
-
-//     // truffleAssert.eventEmitted(txResult, "Borrow", (ev: any) => {
-//     //   const {
-//     //     _reserve,
-//     //     _user,
-//     //     _amount,
-//     //     _borrowRateMode,
-//     //     _borrowRate,
-//     //     _originationFee,
-//     //   } = ev;
-//     //   return (
-//     //     _reserve.toLowerCase() === reserve.toLowerCase() &&
-//     //     _user.toLowerCase() === user.toLowerCase() &&
-//     //     new BigNumber(_amount).eq(amountToBorrow) &&
-//     //     new BigNumber(_borrowRateMode).eq(expectedUserData.borrowRateMode) &&
-//     //     new BigNumber(_borrowRate).eq(expectedUserData.borrowRate) &&
-//     //     new BigNumber(_originationFee).eq(
-//     //       expectedUserData.originationFee.minus(userDataBefore.originationFee)
-//     //     )
-//     //   );
-//     // });
-//   } else if (expectedResult === "revert") {
-//     await expect(
-//       pool
-//         .connect(user.signer)
-//         .borrow(reserve, amountToBorrow, interestRateMode, "0", onBehalfOf),
-//       revertMessage,
-//     ).to.be.reverted;
-//   }
-// };
