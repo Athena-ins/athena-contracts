@@ -13,7 +13,11 @@ import {
   deployStrategyManager,
   deployAllContractsAndInitializeProtocol,
 } from "../helpers/deployers";
-import { genContractAddress, getCurrentBlockNumber } from "../helpers/hardhat";
+import {
+  genContractAddress,
+  getCurrentBlockNumber,
+  postTxHandler,
+} from "../helpers/hardhat";
 import { toRay } from "../helpers/protocol";
 // Types
 import { BaseContract } from "ethers";
@@ -146,6 +150,14 @@ export function deployProtocol() {
       // ======= DAO ======= //
 
       it("deploys EcclesiaDao", async function () {
+        // Approve for initial minimal DAO lock
+        await postTxHandler(
+          this.contracts.AthenaToken.connect(this.signers.deployer).approve(
+            this.deployedAt.EcclesiaDao,
+            ethers.utils.parseEther("1"),
+          ),
+        );
+
         await deployEcclesiaDao(this.signers.deployer, [
           this.deployedAt.AthenaToken,
           this.deployedAt.Staking,

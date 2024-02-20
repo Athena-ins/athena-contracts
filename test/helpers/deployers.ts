@@ -3,6 +3,7 @@ import {
   genContractAddress,
   entityProviderChainId,
   getCurrentBlockNumber,
+  postTxHandler,
 } from "./hardhat";
 import {
   toErc20,
@@ -246,6 +247,14 @@ export async function deployAllContractsAndInitializeProtocol(
   const AthenaToken = await deployAthenaToken(deployer, [
     [deployedAt.EcclesiaDao],
   ]);
+
+  // Approve for initial minimal DAO lock
+  await postTxHandler(
+    AthenaToken.connect(deployer).approve(
+      deployedAt.EcclesiaDao,
+      utils.parseEther("1"),
+    ),
+  );
 
   // ======= Managers ======= //
 

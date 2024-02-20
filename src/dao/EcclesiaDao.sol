@@ -171,6 +171,9 @@ contract EcclesiaDao is
 
     treasuryWallet = treasuryWallet_;
     leverageRiskWallet = leverageRiskWallet_;
+
+    // Create minimal lock with 1 ATEN to enable accruing of rewards
+    createLock(1 ether, MAX_LOCK);
   }
 
   // ======= MODIFIERS ======= //
@@ -307,7 +310,7 @@ contract EcclesiaDao is
   function createLock(
     uint256 amount_,
     uint256 unlockTime_
-  ) external nonReentrant {
+  ) public nonReentrant {
     LockedBalance storage lock = locks[msg.sender];
 
     if (amount_ == 0) revert BadAmount();
