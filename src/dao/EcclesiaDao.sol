@@ -50,6 +50,25 @@ contract EcclesiaDao is
 
   // ======= EVENTS ======= //
 
+  event LockCreated(
+    address indexed user,
+    uint256 amount,
+    uint256 unlockTime
+  );
+  event LockIncreased(address indexed user, uint256 amount);
+  event LockDurationIncreased(
+    address indexed user,
+    uint256 unlockTime
+  );
+  event Withdraw(address indexed user, uint256 amount);
+  event EarlyWithdraw(
+    address indexed user,
+    uint256 amount,
+    uint256 timestamp
+  );
+
+  event RevenueAccrued(address indexed token, uint256 amount);
+
   event SetBreaker(bool newBreaker);
   event SetEarlyWithdrawConfig(
     uint256 newEarlyWithdrawBpsPerDay,
@@ -57,12 +76,6 @@ contract EcclesiaDao is
     uint256 newBurnBps,
     uint256 newTreasuryBps,
     address newTreasuryAddr
-  );
-  event Withdraw(address indexed user, uint256 amount);
-  event EarlyWithdraw(
-    address indexed user,
-    uint256 amount,
-    uint256 timestamp
   );
 
   // ======= CONSTANTS ======= //
@@ -309,6 +322,8 @@ contract EcclesiaDao is
     if (votes == 0) revert ConversionToVotesYieldsZero();
 
     _mint(msg.sender, votes);
+
+    emit LockCreated(msg.sender, amount_, unlockTime_);
   }
 
   // ======= UPDATE ======= //
@@ -330,6 +345,8 @@ contract EcclesiaDao is
 
     uint256 votes = tokenToVotes(amount_, _lock.duration);
     _mint(msg.sender, votes);
+
+    emit LockIncreased(msg.sender, amount_);
   }
 
   /**
@@ -358,6 +375,8 @@ contract EcclesiaDao is
     uint256 votes = tokenToVotes(_lock.amount, _lock.duration) -
       previousVotes;
     _mint(msg.sender, votes);
+
+    emit LockDurationIncreased(msg.sender, newUnlockTime_);
   }
 
   // ======= WITHDRAW ======= //
@@ -474,6 +493,7 @@ contract EcclesiaDao is
 
     // transfer remaining back to owner
     atenToken.safeTransfer(msg.sender, amount_ - _penalty);
+
     emit EarlyWithdraw(msg.sender, amount_, block.timestamp);
   }
 
@@ -525,6 +545,8 @@ contract EcclesiaDao is
     uint256 amountPerVoteRay = (amount_ * RAY) / ERC20.totalSupply;
     if (revenueIndex[token_] == 0) revenueTokens.push(token_);
     revenueIndex[token_] += amountPerVoteRay;
+
+    emit RevenueAccrued(token_, amount_);
   }
 
   /**
