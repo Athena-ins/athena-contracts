@@ -1,5 +1,6 @@
 import {
   BaseContract,
+  BigNumberish,
   ContractTransaction,
   Signer,
   Wallet,
@@ -7,6 +8,8 @@ import {
 } from "ethers";
 import hre, { ethers, network } from "hardhat";
 import { HardhatNetworkConfig, HardhatRuntimeEnvironment } from "hardhat/types";
+import { ERC20__factory } from "../../typechain";
+import { BigNumber } from "ethers";
 
 const keccak256 = utils.keccak256;
 type BytesLike = utils.BytesLike;
@@ -14,6 +17,10 @@ type BytesLike = utils.BytesLike;
 // =============== //
 // === Helpers === //
 // =============== //
+
+function getProviderFromHardhat() {
+  return hre.ethers.provider;
+}
 
 export async function postTxHandler(txPromise: Promise<ContractTransaction>) {
   return txPromise
@@ -118,13 +125,15 @@ export async function resetFork() {
   console.log("=> Forked chain reset");
 }
 
-export async function setNextBlockTimestamp(timeToAdd: {
+export type TimeTravelOptions = {
   seconds?: number;
   minutes?: number;
   hours?: number;
   days?: number;
   months?: number;
-}) {
+};
+
+export async function setNextBlockTimestamp(timeToAdd: TimeTravelOptions) {
   const secondsToAdd =
     (timeToAdd.seconds || 0) +
     (timeToAdd.minutes || 0) * 60 +
@@ -207,3 +216,17 @@ export function genCreate2Address(
 
   return `0x${keccak256(toHash).slice(-40)}`;
 }
+
+// ============== //
+// === Tokens === //
+// ============== //
+
+export const convertToCurrencyDecimals = async (
+  tokenAddress: string,
+  amount: BigNumberish,
+) => {
+  const token = ERC20__factory.connect(tokenAddress, getProviderFromHardhat());
+  let decimals = (await token.decimals()).toString();
+
+  return ethers.utils.parseUnits(BigNumber.from(amount).toString(), decimals);
+};
