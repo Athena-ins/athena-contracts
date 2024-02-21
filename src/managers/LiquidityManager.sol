@@ -282,6 +282,9 @@ contract LiquidityManager is
       VirtualPool.VPoolRead({
         poolId: pool.poolId,
         feeRate: pool.feeRate,
+        leverageFeePerPool: pool.leverageFeePerPool,
+        dao: pool.dao,
+        strategyManager: pool.strategyManager,
         formula: pool.formula,
         slot0: pool.slot0,
         strategyId: pool.strategyId,
@@ -290,6 +293,7 @@ contract LiquidityManager is
         wrappedAsset: pool.wrappedAsset,
         isPaused: pool.isPaused,
         overlappedPools: pool.overlappedPools,
+        ongoingClaims: pool.ongoingClaims,
         compensationIds: pool.compensationIds
       });
   }

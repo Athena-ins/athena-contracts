@@ -106,15 +106,19 @@ library VirtualPool {
 
   struct VPoolRead {
     uint64 poolId;
-    uint256 feeRate; //Ray
+    uint256 feeRate; // amount of fees on premiums in RAY
+    uint256 leverageFeePerPool; // amount of fees per pool when using leverage
+    IEcclesiaDao dao;
+    IStrategyManager strategyManager;
     Formula formula;
     Slot0 slot0;
     uint256 strategyId;
-    address paymentAsset;
-    address underlyingAsset;
-    address wrappedAsset;
+    address paymentAsset; // asset used to pay LP premiums
+    address underlyingAsset; // asset required by the strategy
+    address wrappedAsset; // tokenised strategy shares (ex: aTokens)
     bool isPaused;
     uint64[] overlappedPools;
+    uint256 ongoingClaims;
     uint256[] compensationIds;
   }
 
@@ -128,7 +132,7 @@ library VirtualPool {
     Slot0 slot0;
     uint256 strategyId;
     address paymentAsset; // asset used to pay LP premiums
-    address underlyingAsset; // asset required by the strategy
+    address underlyingAsset; // asset covered & used by the strategy
     address wrappedAsset; // tokenised strategy shares (ex: aTokens)
     bool isPaused;
     uint64[] overlappedPools;
