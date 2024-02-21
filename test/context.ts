@@ -33,6 +33,12 @@ type ContextSigners = {
 
 export type SignerName = keyof ContextSigners;
 
+export type TestEnv = {
+  contracts: ProtocolContracts;
+  protocolConfig: ProtocolConfig;
+  helpers: TestHelper;
+};
+
 declare module "mocha" {
   export interface Context {
     signers: ContextSigners;

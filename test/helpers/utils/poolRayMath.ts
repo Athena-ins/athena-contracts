@@ -279,6 +279,15 @@ function utilization(
 }
 
 export const rayMath = {
+  constants: {
+    RAY,
+    halfRAY,
+    YEAR,
+    MAX_SECONDS_PER_TICK,
+    FEE_BASE,
+    PERCENTAGE_BASE,
+    FULL_CAPACITY,
+  },
   Ray,
   getPremiumRate,
   computeLiquidityIndex,
