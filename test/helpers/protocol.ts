@@ -168,7 +168,7 @@ async function transfer<T extends IERC20>(
   return postTxHandler(contract.connect(signer).transfer(...args));
 }
 
-async function approve<T extends IERC20>(
+export async function approve<T extends IERC20>(
   contract: T | TetherToken,
   signer: Wallet,
   ...args: Parameters<IERC20["approve"]>
@@ -192,7 +192,7 @@ async function maxApprove<T extends IERC20>(
   );
 }
 
-async function getTokens(
+export async function getTokens(
   signer: Wallet,
   token: string,
   to: string,
@@ -450,15 +450,6 @@ async function createPoolsWithLiquidity(
     nbLpProviders: params.nbLpProviders ?? 2,
     lpAmount: params.lpAmount ?? toErc20(1000),
   };
-
-  await createDaoLock(
-    contracts.EcclesiaDao,
-    contracts.AthenaToken,
-    deployer,
-    deployer,
-    toErc20(1000),
-    60 * 60 * 24 * 365,
-  );
 
   await Promise.all(
     makeIdArray(params.nbPools).map((poolId) =>
