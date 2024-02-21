@@ -137,7 +137,7 @@ export async function createPool(
 
   const poolId = await LiquidityManager.nextPoolId();
 
-  const { timestamp } = await postTxHandler(
+  const txResult = await postTxHandler(
     LiquidityManager.createPool(
       paymentAsset,
       strategyId,
@@ -149,6 +149,7 @@ export async function createPool(
       compatiblePools,
     ),
   );
+  const { txTimestamp } = await getTxCostAndTimestamp(txResult);
 
   const [poolData, strategyTokens] = await Promise.all([
     LiquidityManager.poolInfo(poolId),
@@ -165,7 +166,7 @@ export async function createPool(
     strategyId,
     paymentAsset,
     strategyTokens,
-    timestamp,
+    txTimestamp,
   );
 
   expectEqual(poolData, expectedPoolData);

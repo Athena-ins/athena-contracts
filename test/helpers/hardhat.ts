@@ -22,22 +22,9 @@ function getProviderFromHardhat() {
   return hre.ethers.provider;
 }
 
-export async function blockTimestamp(blockHash: string) {
-  const block = await hre.ethers.provider.getBlock(blockHash);
-  return block.timestamp;
-}
-
 export async function postTxHandler(txPromise: Promise<ContractTransaction>) {
   return txPromise
     .then((tx) => tx.wait())
-    .then(async (receipt) => {
-      const timestamp = BigNumber.from(await blockTimestamp(receipt.blockHash));
-
-      return {
-        receipt,
-        timestamp,
-      };
-    })
     .catch((err) => {
       throw Error(err.reason || err.name || err.message || err);
     });
