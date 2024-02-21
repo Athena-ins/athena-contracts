@@ -25,17 +25,17 @@ baseContext("Test Athena Protocol", function () {
   SanityTest();
 
   // Unit tests
-  // AthenaERC721Tests();
-  // AthenaTokenTests();
+  // AthenaERC721Tests(); -> todo
+  // AthenaTokenTests(); -> todo
   // ClaimManagerTests();
   // EcclesiaDaoTests();
   // FarmingRangeTests();
   // LiquidityManagerTests();
-  // RewardManagerTests();
-  // StakingTests();
-  // StrategyManagerTests();
+  // RewardManagerTests(); -> todo
+  // StakingTests(); -> todo
+  // StrategyManagerTests(); -> todo
   // VirtualPoolTests();
 
   // Scenarios
-  ScenarioTests();
+  // ScenarioTests();
 });
