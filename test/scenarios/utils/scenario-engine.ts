@@ -1,45 +1,131 @@
-import { Wallet } from "ethers";
-import { Context } from "mocha";
 import {
-  // liquidity
-  openCover,
-  updateCover,
+  getTokens,
+  approveTokens,
+  createPool,
   openPosition,
   addLiquidity,
   commitRemoveLiquidity,
   uncommitRemoveLiquidity,
-  removeLiquidity,
   takeInterests,
-  // claims
+  removeLiquidity,
+  openCover,
+  updateCover,
   initiateClaim,
-  disputeClaim,
-  rule,
-  overrule,
   withdrawCompensation,
-  // staking
-  // farming
-  // dao
+  // disputeClaim,
+  // rule,
+  // overrule,
+  //
+  // need dao, farming, staking, claim
 } from "./actions";
+// Types
 import { SignerName } from "../../context";
+import { TimeTravelOptions } from "../../helpers/hardhat";
 
-export interface Action {
-  name: string;
+type BaseAction = {
   userName: SignerName;
-  args?: any;
   expected: string;
+  timeTravel?: TimeTravelOptions;
   revertMessage?: string;
-}
+};
 
-export interface Story {
+type ActionOpenCover = BaseAction & {
+  name: "openCover";
+  args: {
+    poolId: number;
+    coverAmount: number;
+    premiumAmount: number;
+  };
+};
+type ActionUpdateCover = BaseAction & {
+  name: "updateCover";
+  args: {
+    coverId: number;
+    coverToAdd: number;
+    coverToRemove: number;
+    premiumToAdd: number;
+    premiumToRemove: number;
+  };
+};
+type ActionOpenPosition = BaseAction & {
+  name: "openPosition";
+  args: {
+    amount: number;
+    isWrapped: boolean;
+    poolIds: number[];
+  };
+};
+type ActionAddLiquidity = BaseAction & {
+  name: "addLiquidity";
+  args: {
+    positionId: number;
+    amount: number;
+    isWrapped: boolean;
+  };
+};
+type ActionCommitRemoveLiquidity = BaseAction & {
+  name: "commitRemoveLiquidity";
+  args: {
+    positionId: number;
+  };
+};
+type ActionUncommitRemoveLiquidity = BaseAction & {
+  name: "uncommitRemoveLiquidity";
+  args: {
+    positionId: number;
+  };
+};
+type ActionRemoveLiquidity = BaseAction & {
+  name: "removeLiquidity";
+  args: {
+    positionId: number;
+    amount: number;
+    keepWrapped: boolean;
+  };
+};
+type ActionTakeInterests = BaseAction & {
+  name: "takeInterests";
+  args: {
+    positionId: number;
+  };
+};
+type ActionInitiateClaim = BaseAction & {
+  name: "initiateClaim";
+  args: {
+    coverId: number;
+    amountClaimed: number;
+    ipfsMetaEvidenceCid: string;
+    signature: string;
+  };
+};
+type ActionWithdrawCompensation = BaseAction & {
+  name: "withdrawCompensation";
+  args: {
+    claimId: number;
+  };
+};
+
+export type Action =
+  | ActionOpenCover
+  | ActionUpdateCover
+  | ActionOpenPosition
+  | ActionAddLiquidity
+  | ActionCommitRemoveLiquidity
+  | ActionUncommitRemoveLiquidity
+  | ActionRemoveLiquidity
+  | ActionTakeInterests
+  | ActionInitiateClaim
+  | ActionWithdrawCompensation;
+
+export type Story = {
   description: string;
   actions: Action[];
-}
+};
 
-export interface Scenario {
+export type Scenario = {
   title: string;
-  description: string;
   stories: Story[];
-}
+};
 
 export async function executeStory(story: Story) {
   const title = `Scenario: ${story.description}`;
@@ -47,94 +133,196 @@ export async function executeStory(story: Story) {
   describe(title, async function () {
     for (const action of story.actions) {
       await executeAction(action);
-  }
+    }
   });
 }
 
 async function executeAction(action: Action) {
+  const { name, expected, userName, timeTravel } = action;
 
-  const user = testEnv.signers[userName];
-  if (!user) throw `Cannot find user ${userName} among context signers`;
+  const title = `${userName} should ${name} expecting ${expected}`;
 
-  if (name === "openCover") {
-    const target = poolId;
-    const { amount } = action.args;
-    if (!amount) throw `Invalid amount of ${target} to mint`;
+  it(title, async function () {
+    if (!expected)
+      throw Error(`An expected resut for action ${name} is required`);
 
-    await openCover(user);
-  } else if (name === "updateCover") {
-    const target = poolId;
-    const { amount } = action.args;
-    if (!amount) throw `Invalid amount of ${target} to mint`;
+    const user = this.signers[userName];
+    if (!user)
+      throw Error(`Cannot find user ${userName} among context signers`);
 
-    await updateCover(user);
-  } else if (name === "openPosition") {
-    const target = poolId;
-    const { amount } = action.args;
-    if (!amount) throw `Invalid amount of ${target} to mint`;
+    if (name === "openCover") action.args;
 
-    await openPosition(user);
-  } else if (name === "addLiquidity") {
-    const target = poolId;
-    const { amount } = action.args;
-    if (!amount) throw `Invalid amount of ${target} to mint`;
+    switch (name) {
+      case "openCover":
+        {
+          const { poolId, coverAmount, premiumAmount } = action.args;
 
-    await addLiquidity(user);
-  } else if (name === "commitRemoveLiquidity") {
-    const target = poolId;
-    const { amount } = action.args;
-    if (!amount) throw `Invalid amount of ${target} to mint`;
+          await openCover(
+            this,
+            user,
+            poolId,
+            coverAmount,
+            premiumAmount,
+            expected,
+            timeTravel,
+          );
+        }
+        break;
 
-    await commitRemoveLiquidity(user);
-  } else if (name === "uncommitRemoveLiquidity") {
-    const target = poolId;
-    const { amount } = action.args;
-    if (!amount) throw `Invalid amount of ${target} to mint`;
+      case "updateCover":
+        {
+          const {
+            coverId,
+            coverToAdd,
+            coverToRemove,
+            premiumToAdd,
+            premiumToRemove,
+          } = action.args;
 
-    await uncommitRemoveLiquidity(user);
-  } else if (name === "removeLiquidity") {
-    const target = poolId;
-    const { amount } = action.args;
-    if (!amount) throw `Invalid amount of ${target} to mint`;
+          await updateCover(
+            this,
+            user,
+            coverId,
+            coverToAdd,
+            coverToRemove,
+            premiumToAdd,
+            premiumToRemove,
+            expected,
+            timeTravel,
+          );
+        }
+        break;
 
-    await removeLiquidity(user);
-  } else if (name === "takeInterests") {
-    const target = poolId;
-    const { amount } = action.args;
-    if (!amount) throw `Invalid amount of ${target} to mint`;
+      case "openPosition":
+        {
+          const { amount, isWrapped, poolIds } = action.args;
 
-    await takeInterests(user);
-  } else if (name === "initiateClaim") {
-    const target = poolId;
-    const { amount } = action.args;
-    if (!amount) throw `Invalid amount of ${target} to mint`;
+          await openPosition(
+            this,
+            user,
+            amount,
+            isWrapped,
+            poolIds,
+            expected,
+            timeTravel,
+          );
+        }
+        break;
 
-    await initiateClaim(user);
-  } else if (name === "disputeClaim") {
-    const target = poolId;
-    const { amount } = action.args;
-    if (!amount) throw `Invalid amount of ${target} to mint`;
+      case "addLiquidity":
+        {
+          const { positionId, amount, isWrapped } = action.args;
 
-    await disputeClaim(user);
-  } else if (name === "rule") {
-    const target = poolId;
-    const { amount } = action.args;
-    if (!amount) throw `Invalid amount of ${target} to mint`;
+          await addLiquidity(
+            this,
+            user,
+            positionId,
+            amount,
+            isWrapped,
+            expected,
+            timeTravel,
+          );
+        }
+        break;
 
-    await rule(user);
-  } else if (name === "overrule") {
-    const target = poolId;
-    const { amount } = action.args;
-    if (!amount) throw `Invalid amount of ${target} to mint`;
+      case "commitRemoveLiquidity":
+        {
+          const { positionId } = action.args;
 
-    await overrule(user);
-  } else if (name === "withdrawCompensation") {
-    const target = poolId;
-    const { amount } = action.args;
-    if (!amount) throw `Invalid amount of ${target} to mint`;
+          await commitRemoveLiquidity(
+            this,
+            user,
+            positionId,
+            expected,
+            timeTravel,
+          );
+        }
+        break;
 
-    await withdrawCompensation(user);
-  } else {
-    throw `Invalid action requested: ${name}`;
-  }
-};
+      case "uncommitRemoveLiquidity":
+        {
+          const { positionId } = action.args;
+
+          await uncommitRemoveLiquidity(
+            this,
+            user,
+            positionId,
+            expected,
+            timeTravel,
+          );
+        }
+        break;
+
+      case "removeLiquidity":
+        {
+          const { positionId, amount, keepWrapped } = action.args;
+
+          await removeLiquidity(
+            this,
+            user,
+            positionId,
+            amount,
+            keepWrapped,
+            expected,
+            timeTravel,
+          );
+        }
+        break;
+
+      case "takeInterests":
+        {
+          const { positionId } = action.args;
+
+          await takeInterests(this, user, positionId, expected, timeTravel);
+        }
+        break;
+
+      case "initiateClaim":
+        {
+          const { coverId, amountClaimed, ipfsMetaEvidenceCid, signature } =
+            action.args;
+
+          await initiateClaim(
+            this,
+            user,
+            coverId,
+            amountClaimed,
+            ipfsMetaEvidenceCid,
+            signature,
+            expected,
+            timeTravel,
+          );
+        }
+        break;
+
+      case "withdrawCompensation":
+        {
+          const { claimId } = action.args;
+
+          await withdrawCompensation(this, user, claimId, expected, timeTravel);
+        }
+        break;
+
+      default:
+        throw `Invalid action requested: ${name}`;
+
+      // case "disputeClaim":
+      //   {
+      //     await disputeClaim(this, user);
+      //   }
+      //   break;
+
+      // case "rule":
+      //   {
+      //     await rule(this, user);
+      //   }
+      //   break;
+
+      // case "overrule":
+      //   {
+      //     await overrule(this, user);
+      //   }
+      //   break;
+    }
+  });
+}
