@@ -1,5 +1,5 @@
 // Story engine
-import { executeStory, Scenario } from "./utils/scenario-engine";
+import { executeStory, Scenario } from "./utils/story-engine";
 // Stories
 import { coverStories } from "./stories/covers";
 
