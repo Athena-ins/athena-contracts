@@ -41,20 +41,17 @@ export interface Scenario {
   stories: Story[];
 }
 
-export const executeStory = async (story: Story, testEnv: Context) => {
-  for (const action of story.actions) {
-    await executeAction(action, testEnv);
+export async function executeStory(story: Story) {
+  const title = `Scenario: ${story.description}`;
+
+  describe(title, async function () {
+    for (const action of story.actions) {
+      await executeAction(action);
   }
-};
+  });
+}
 
-const executeAction = async (action: Action, testEnv: Context) => {
-  const { poolId, tokenId, claimId, poolIds } = action.args;
-  const { name, expected, revertMessage, userName } = action;
-
-  if (!name) throw "Action name is missing";
-  if (!poolId && !tokenId && !claimId && !poolIds.length)
-    throw `Invalid target for action ${name}`;
-  if (!expected) throw `An expected resut for action ${name} is required`;
+async function executeAction(action: Action) {
 
   const user = testEnv.signers[userName];
   if (!user) throw `Cannot find user ${userName} among context signers`;
