@@ -366,6 +366,17 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
   }
 
   /**
+   * @notice Get a claim by its ID.
+   * @param claimId_ The claim ID
+   * @return claimInfo The claim's data
+   */
+  function claimInfo(
+    uint256 claimId_
+  ) external view returns (ClaimView memory /* claimInfo */) {
+    return _claimViewData(claimId_);
+  }
+
+  /**
    * @notice Get all or a range of exiting claims.
    * @dev The range is inclusive of the beginIndex and exclusive of the endIndex.
    * @param beginIndex The index of the first claim to return
