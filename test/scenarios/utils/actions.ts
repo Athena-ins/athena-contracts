@@ -386,20 +386,252 @@ export async function addLiquidity(
   }
 }
 
-export async function commitRemoveLiquidity(testEnv: TestEnv) {}
+export async function commitRemoveLiquidity(
+  testEnv: TestEnv,
+  user: Wallet,
+  positionId: BigNumberish,
+  expectedResult: "success" | string,
+  timeTravel?: TimeTravelOptions,
+) {
+  const { LiquidityManager } = testEnv.contracts;
 
-export async function uncommitRemoveLiquidity(testEnv: TestEnv) {}
+  const positionInfo = await LiquidityManager.positionInfo(positionId);
 
-export async function takeInterests(testEnv: TestEnv) {}
+  if (expectedResult === "success") {
+    const txResult = await postTxHandler(
+      LiquidityManager.connect(user).commitRemoveLiquidity(positionId),
+    );
 
-export async function removeLiquidity(testEnv: TestEnv) {}
+    const { txTimestamp } = await getTxCostAndTimestamp(txResult);
+
+    if (timeTravel) {
+      await setNextBlockTimestamp(timeTravel);
+    }
+
+    const { poolData, tokenData, timestamp } = await getContractsData(
+      testEnv,
+      positionInfo.poolIds,
+      positionId,
+      "position",
+    );
+
+    const expectedPoolData = calcExpectedPoolDataAfterCommitRemoveLiquidity(
+      positionInfo,
+      poolData,
+      tokenData,
+      txTimestamp,
+      timestamp,
+    );
+
+    const expectedTokenData =
+      calcExpectedPositionDataAfterCommitRemoveLiquidity(
+        positionInfo,
+        poolData,
+        expectedPoolData,
+        tokenData,
+        txTimestamp,
+        timestamp,
+      );
+
+    poolData.forEach((data, i) => expectEqual(data, expectedPoolData[i]));
+    expectEqual(tokenData, expectedTokenData);
+  } else {
+    await expect(
+      LiquidityManager.commitRemoveLiquidity(positionId),
+      expectedResult,
+    ).to.be.reverted;
+  }
+}
+
+export async function uncommitRemoveLiquidity(
+  testEnv: TestEnv,
+  positionId: BigNumberish,
+  expectedResult: "success" | string,
+  timeTravel?: TimeTravelOptions,
+) {
+  const { LiquidityManager } = testEnv.contracts;
+
+  const positionInfo = await LiquidityManager.positionInfo(positionId);
+
+  if (expectedResult === "success") {
+    const txResult = await postTxHandler(
+      LiquidityManager.connect(user).uncommitRemoveLiquidity(positionId),
+    );
+
+    const { txTimestamp } = await getTxCostAndTimestamp(txResult);
+
+    if (timeTravel) {
+      await setNextBlockTimestamp(timeTravel);
+    }
+
+    const { poolData, tokenData, timestamp } = await getContractsData(
+      testEnv,
+      positionInfo.poolIds,
+      positionId,
+      "position",
+    );
+
+    const expectedPoolData = calcExpectedPoolDataAfterUncommitRemoveLiquidity(
+      positionInfo,
+      poolData,
+      tokenData,
+      txTimestamp,
+      timestamp,
+    );
+
+    const expectedTokenData =
+      calcExpectedPositionDataAfterUncommitRemoveLiquidity(
+        positionInfo,
+        poolData,
+        expectedPoolData,
+        tokenData,
+        txTimestamp,
+        timestamp,
+      );
+
+    poolData.forEach((data, i) => expectEqual(data, expectedPoolData[i]));
+    expectEqual(tokenData, expectedTokenData);
+  } else {
+    await expect(
+      LiquidityManager.uncommitRemoveLiquidity(positionId),
+      expectedResult,
+    ).to.be.reverted;
+  }
+}
+
+export async function takeInterests(
+  testEnv: TestEnv,
+  user: Wallet,
+  positionId: BigNumberish,
+  expectedResult: "success" | string,
+  timeTravel?: TimeTravelOptions,
+) {
+  const { LiquidityManager } = testEnv.contracts;
+
+  const positionInfo = await LiquidityManager.positionInfo(positionId);
+
+  if (expectedResult === "success") {
+    const txResult = await postTxHandler(
+      LiquidityManager.connect(user).takeInterests(positionId),
+    );
+
+    const { txTimestamp } = await getTxCostAndTimestamp(txResult);
+
+    if (timeTravel) {
+      await setNextBlockTimestamp(timeTravel);
+    }
+
+    const { poolData, tokenData, timestamp } = await getContractsData(
+      testEnv,
+      positionInfo.poolIds,
+      positionId,
+      "position",
+    );
+
+    const expectedPoolData = calcExpectedPoolDataAfterTakeInterests(
+      positionInfo,
+      poolData,
+      tokenData,
+      txTimestamp,
+      timestamp,
+    );
+
+    const expectedTokenData = calcExpectedPositionDataAfterTakeInterests(
+      positionInfo,
+      poolData,
+      expectedPoolData,
+      tokenData,
+      txTimestamp,
+      timestamp,
+    );
+
+    poolData.forEach((data, i) => expectEqual(data, expectedPoolData[i]));
+    expectEqual(tokenData, expectedTokenData);
+  } else {
+    await expect(LiquidityManager.takeInterests(positionId), expectedResult).to
+      .be.reverted;
+  }
+}
+
+export async function removeLiquidity(
+  testEnv: TestEnv,
+  user: Wallet,
+  positionId: BigNumberish,
+  amount: BigNumberish,
+  keepWrapped: boolean,
+  expectedResult: "success" | string,
+  timeTravel?: TimeTravelOptions,
+) {
+  const { LiquidityManager } = testEnv.contracts;
+
+  const positionInfoBefore = await LiquidityManager.positionInfo(positionId);
+  const poolInfosBefore = await Promise.all(
+    positionInfoBefore.poolIds.map((poolId) =>
+      LiquidityManager.poolInfo(poolId),
+    ),
+  );
+  const amountToRemove = await convertToCurrencyDecimals(
+    poolInfosBefore[0].underlyingAsset,
+    amount,
+  );
+
+  if (expectedResult === "success") {
+    const txResult = await postTxHandler(
+      LiquidityManager.connect(user).removeLiquidity(
+        positionId,
+        amountToRemove,
+        keepWrapped,
+      ),
+    );
+
+    const { txTimestamp } = await getTxCostAndTimestamp(txResult);
+
+    if (timeTravel) {
+      await setNextBlockTimestamp(timeTravel);
+    }
+
+    const { poolData, tokenData, timestamp } = await getContractsData(
+      testEnv,
+      positionInfoBefore.poolIds,
+      positionId,
+      "position",
+    );
+
+    const expectedPoolData = calcExpectedPoolDataAfterRemoveLiquidity(
+      amountToRemove,
+      keepWrapped,
+      poolInfosBefore,
+      txTimestamp,
+      timestamp,
+    );
+
+    const expectedTokenData = calcExpectedPositionDataAfterRemoveLiquidity(
+      amountToRemove,
+      keepWrapped,
+      poolInfosBefore,
+      positionInfoBefore,
+      expectedPoolData,
+      tokenData,
+      txTimestamp,
+      timestamp,
+    );
+
+    poolData.forEach((data, i) => expectEqual(data, expectedPoolData[i]));
+    expectEqual(tokenData, expectedTokenData);
+  } else {
+    await expect(
+      LiquidityManager.removeLiquidity(positionId, amountToRemove, keepWrapped),
+      expectedResult,
+    ).to.be.reverted;
+  }
+}
 
 export async function openCover(
   testEnv: TestEnv,
+  user: Wallet,
   poolId: BigNumberish,
   coverAmount: BigNumberish,
   premiumsAmount: BigNumberish,
-  user: Wallet,
   expectedResult: "success" | string,
   timeTravel?: TimeTravelOptions,
 ) {
@@ -469,14 +701,242 @@ export async function openCover(
   }
 }
 
-export async function updateCover(testEnv: TestEnv) {}
+export async function updateCover(
+  testEnv: TestEnv,
+  user: Wallet,
+  coverId: BigNumberish,
+  coverToAdd: BigNumberish,
+  coverToRemove: BigNumberish,
+  premiumsToAdd: BigNumberish,
+  premiumsToRemove: BigNumberish,
+  expectedResult: "success" | string,
+  timeTravel?: TimeTravelOptions,
+) {
+  const { LiquidityManager } = testEnv.contracts;
 
-export async function initiateClaim(testEnv: TestEnv) {}
+  const coverInfoBefore = await LiquidityManager.coverInfo(coverId);
+  const poolInfo = await LiquidityManager.poolInfo(coverInfoBefore.poolId);
+  const [
+    coverToAddAmount,
+    coverToRemoveAmount,
+    premiumsToAddAmount,
+    premiumsToRemoveAmount,
+  ] = await Promise.all([
+    convertToCurrencyDecimals(poolInfo.underlyingAsset, coverToAdd),
+    convertToCurrencyDecimals(poolInfo.underlyingAsset, coverToRemove),
+    convertToCurrencyDecimals(poolInfo.paymentAsset, premiumsToAdd),
+    convertToCurrencyDecimals(poolInfo.paymentAsset, premiumsToRemove),
+  ]);
 
-export async function disputeClaim(testEnv: TestEnv) {}
+  if (expectedResult === "success") {
+    const userAddress = await user.getAddress();
+    const paymentToken = ERC20__factory.connect(poolInfo.paymentAsset, user);
+    const balanceBefore = await paymentToken.balanceOf(userAddress);
 
-export async function rule(testEnv: TestEnv) {}
+    const txResult = await postTxHandler(
+      LiquidityManager.connect(user).updateCover(
+        coverId,
+        coverToAddAmount,
+        coverToRemoveAmount,
+        premiumsToAddAmount,
+        premiumsToRemoveAmount,
+      ),
+    );
 
-export async function overrule(testEnv: TestEnv) {}
+    const { txTimestamp } = await getTxCostAndTimestamp(txResult);
 
-export async function withdrawCompensation(testEnv: TestEnv) {}
+    if (timeTravel) {
+      await setNextBlockTimestamp(timeTravel);
+    }
+
+    const { poolData, tokenData, timestamp } = await getContractsData(
+      testEnv,
+      [coverInfoBefore.poolId],
+      coverId,
+      "cover",
+    );
+
+    const expectedPoolData = calcExpectedPoolDataAfterUpdateCover(
+      coverToAddAmount,
+      coverToRemoveAmount,
+      premiumsToAddAmount,
+      premiumsToRemoveAmount,
+      coverInfoBefore,
+      poolData,
+      tokenData,
+      txTimestamp,
+      timestamp,
+    );
+
+    const expectedTokenData = calcExpectedCoverDataAfterUpdateCover(
+      coverToAddAmount,
+      coverToRemoveAmount,
+      premiumsToAddAmount,
+      premiumsToRemoveAmount,
+      coverInfoBefore,
+      poolData,
+      expectedPoolData,
+      tokenData,
+      txTimestamp,
+      timestamp,
+    );
+
+    const balanceAfter = await paymentToken.balanceOf(userAddress);
+
+    expect(balanceAfter).to.almostEqual(balanceBefore.sub(premiumsToAddAmount));
+    expectEqual(poolData, expectedPoolData);
+    expectEqual(tokenData, expectedTokenData);
+  } else if (expectedResult === "revert") {
+    await expect(
+      LiquidityManager.connect(user).updateCover(
+        coverId,
+        coverToAddAmount,
+        coverToRemoveAmount,
+        premiumsToAddAmount,
+        premiumsToRemoveAmount,
+      ),
+      expectedResult,
+    ).to.be.reverted;
+  }
+}
+
+export async function initiateClaim(
+  testEnv: TestEnv,
+  user: Wallet,
+  coverId: BigNumberish,
+  amountClaimed: BigNumberish,
+  ipfsMetaEvidenceCid: string,
+  signature: string,
+  expectedResult: "success" | string,
+  timeTravel?: TimeTravelOptions,
+) {
+  const { LiquidityManager, ClaimManager } = testEnv.contracts;
+
+  const coverInfoBefore = await LiquidityManager.coverInfo(coverId);
+  const poolInfo = await LiquidityManager.poolInfo(coverInfoBefore.poolId);
+  const amountClaimedAmount = await convertToCurrencyDecimals(
+    poolInfo.underlyingAsset,
+    amountClaimed,
+  );
+
+  if (expectedResult === "success") {
+    const txResult = await postTxHandler(
+      ClaimManager.connect(user).initiateClaim(
+        coverId,
+        amountClaimedAmount,
+        ipfsMetaEvidenceCid,
+        signature,
+      ),
+    );
+
+    const { txTimestamp } = await getTxCostAndTimestamp(txResult);
+
+    if (timeTravel) {
+      await setNextBlockTimestamp(timeTravel);
+    }
+
+    const { poolData, tokenData, timestamp } = await getContractsData(
+      testEnv,
+      [coverInfoBefore.poolId],
+      coverId,
+      "cover",
+    );
+
+    const expectedPoolData = calcExpectedPoolDataAfterInitiateClaim(
+      amountClaimedAmount,
+      coverInfoBefore,
+      poolData,
+      tokenData,
+      txTimestamp,
+      timestamp,
+    );
+
+    const expectedTokenData = calcExpectedCoverDataAfterInitiateClaim(
+      amountClaimedAmount,
+      coverInfoBefore,
+      poolData,
+      expectedPoolData,
+      tokenData,
+      txTimestamp,
+      timestamp,
+    );
+
+    expectEqual(poolData, expectedPoolData);
+    expectEqual(tokenData, expectedTokenData);
+  } else if (expectedResult === "revert") {
+    await expect(
+      ClaimManager.connect(user).initiateClaim(
+        coverId,
+        amountClaimedAmount,
+        ipfsMetaEvidenceCid,
+        signature,
+      ),
+      expectedResult,
+    ).to.be.reverted;
+  }
+}
+
+export async function withdrawCompensation(
+  testEnv: TestEnv,
+  user: Wallet,
+  claimId: BigNumberish,
+  expectedResult: "success" | string,
+  timeTravel?: TimeTravelOptions,
+) {
+  const { LiquidityManager, ClaimManager } = testEnv.contracts;
+
+  const claimInfo = await ClaimManager.claimInfo(claimId);
+  const [coverInforBefore, poolInfoBefore] = await Promise.all([
+    LiquidityManager.coverInfo(claimInfo.coverId),
+    LiquidityManager.poolInfo(claimInfo.poolId),
+  ]);
+
+  if (expectedResult === "success") {
+    const txResult = await postTxHandler(
+      ClaimManager.connect(user).withdrawCompensation(claimId),
+    );
+
+    const { txTimestamp } = await getTxCostAndTimestamp(txResult);
+
+    if (timeTravel) {
+      await setNextBlockTimestamp(timeTravel);
+    }
+
+    const { poolData, tokenData, timestamp } = await getContractsData(
+      testEnv,
+      [claimInfo.poolId],
+      claimId,
+      "cover",
+    );
+
+    const expectedPoolData = calcExpectedPoolDataAfterWithdrawCompensation(
+      claimInfoBefore,
+      poolData,
+      tokenData,
+      txTimestamp,
+      timestamp,
+    );
+
+    const expectedTokenData = calcExpectedCoverDataAfterWithdrawCompensation(
+      claimInfoBefore,
+      poolData,
+      expectedPoolData,
+      tokenData,
+      txTimestamp,
+      timestamp,
+    );
+
+    expectEqual(poolData, expectedPoolData);
+    expectEqual(tokenData, expectedTokenData);
+  } else if (expectedResult === "revert") {
+    await expect(
+      ClaimManager.connect(user).withdrawCompensation(claimId),
+      expectedResult,
+    ).to.be.reverted;
+  }
+}
+
+// @bw need calcs in claim manager
+// export async function disputeClaim(testEnv: TestEnv, user: Wallet) {}
+// export async function rule(testEnv: TestEnv, user: Wallet) {}
+// export async function overrule(testEnv: TestEnv, user: Wallet) {}
