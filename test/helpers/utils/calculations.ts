@@ -39,5 +39,26 @@ export function calcExpectedPoolDataAfterCreatePool(
     compensationIds: [],
   };
 }
-export async function calcExpectedPoolDataAfterOpenCover() {}
-export async function calcExpectedCoverDataAfterOpenCover() {}
+
+// export async function calcExpectedPoolDataAfterOpenCover() {}
+// export async function calcExpectedPoolDataAfterOpenPosition() {}
+// export async function calcExpectedPoolDataAfterAddLiquidity() {}
+// export async function calcExpectedPoolDataAfterCommitRemoveLiquidity() {}
+// export async function calcExpectedPoolDataAfterUncommitRemoveLiquidity() {}
+// export async function calcExpectedPoolDataAfterTakeInterests() {}
+// export async function calcExpectedPoolDataAfterRemoveLiquidity() {}
+// export async function calcExpectedPoolDataAfterUpdateCover() {}
+// export async function calcExpectedPoolDataAfterWithdrawCompensation() {}
+// export async function calcExpectedPoolDataAfterInitiateClaim() {}
+
+// export async function calcExpectedCoverDataAfterOpenCover() {}
+// export async function calcExpectedCoverDataAfterUpdateCover() {}
+// export async function calcExpectedCoverDataAfterWithdrawCompensation() {}
+// export async function calcExpectedCoverDataAfterInitiateClaim() {}
+
+// export async function calcExpectedPositionDataAfterOpenPosition() {}
+// export async function calcExpectedPositionDataAfterAddLiquidity() {}
+// export async function calcExpectedPositionDataAfterCommitRemoveLiquidity() {}
+// export async function calcExpectedPositionDataAfterUncommitRemoveLiquidity() {}
+// export async function calcExpectedPositionDataAfterTakeInterests() {}
+// export async function calcExpectedPositionDataAfterRemoveLiquidity() {}
