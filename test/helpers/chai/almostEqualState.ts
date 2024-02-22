@@ -1,58 +1,84 @@
 import chai from "chai";
 import { BigNumber } from "ethers";
-import { LiquidityManager } from "../../../typechain";
+import { LiquidityManager, ClaimManager } from "../../../typechain";
 const { expect } = chai;
+
+export type PoolInfoObject = {
+  poolId: BigNumber;
+  feeRate: BigNumber;
+  formula: {
+    uOptimal: BigNumber;
+    r0: BigNumber;
+    rSlope1: BigNumber;
+    rSlope2: BigNumber;
+  };
+  slot0: {
+    tick: number;
+    secondsPerTick: BigNumber;
+    coveredCapital: BigNumber;
+    remainingCovers: BigNumber;
+    lastUpdateTimestamp: BigNumber;
+    liquidityIndex: BigNumber;
+  };
+  strategyId: BigNumber;
+  paymentAsset: string;
+  underlyingAsset: string;
+  wrappedAsset: string;
+  isPaused: boolean;
+  overlappedPools: BigNumber[];
+  compensationIds: BigNumber[];
+};
+
+export type PositionInfoObject = {
+  supplied: BigNumber;
+  commitWithdrawalTimestamp: BigNumber;
+  rewardIndex: BigNumber;
+  poolIds: BigNumber[];
+  newUserCapital: BigNumber;
+  coverRewards: BigNumber[];
+  strategyRewards: BigNumber;
+};
+
+export type CoverInfoObject = {
+  coverId: BigNumber;
+  poolId: BigNumber;
+  coverAmount: BigNumber;
+  start: BigNumber;
+  end: BigNumber;
+  premiumsLeft: BigNumber;
+  dailyCost: BigNumber;
+  premiumRate: BigNumber;
+};
+
+export type ClaimInfoObject = {
+  claimant: string;
+  coverId: BigNumber;
+  poolId: BigNumber;
+  claimId: BigNumber;
+  disputeId: BigNumber;
+  status: number;
+  createdAt: BigNumber;
+  amount: BigNumber;
+  challenger: string;
+  deposit: BigNumber;
+  evidence: string[];
+  counterEvidence: string[];
+  metaEvidence: string;
+  rulingTimestamp: BigNumber;
+};
 
 type PoolInfo =
   | Awaited<ReturnType<LiquidityManager["poolInfo"]>>
-  | {
-      poolId: BigNumber;
-      feeRate: BigNumber;
-      formula: {
-        uOptimal: BigNumber;
-        r0: BigNumber;
-        rSlope1: BigNumber;
-        rSlope2: BigNumber;
-      };
-      slot0: {
-        tick: number;
-        secondsPerTick: BigNumber;
-        coveredCapital: BigNumber;
-        remainingCovers: BigNumber;
-        lastUpdateTimestamp: BigNumber;
-        liquidityIndex: BigNumber;
-      };
-      strategyId: BigNumber;
-      paymentAsset: string;
-      underlyingAsset: string;
-      wrappedAsset: string;
-      isPaused: boolean;
-      overlappedPools: BigNumber[];
-      compensationIds: BigNumber[];
-    };
+  | PoolInfoObject;
 type PositionInfo =
   | Awaited<ReturnType<LiquidityManager["positionInfo"]>>
-  | {
-      supplied: BigNumber;
-      commitWithdrawalTimestamp: BigNumber;
-      rewardIndex: BigNumber;
-      poolIds: BigNumber[];
-      newUserCapital: BigNumber;
-      coverRewards: BigNumber[];
-      strategyRewards: BigNumber;
-    };
+  | PositionInfoObject;
 type CoverInfo =
   | Awaited<ReturnType<LiquidityManager["coverInfo"]>>
-  | {
-      coverId: BigNumber;
-      poolId: BigNumber;
-      coverAmount: BigNumber;
-      start: BigNumber;
-      end: BigNumber;
-      premiumsLeft: BigNumber;
-      dailyCost: BigNumber;
-      premiumRate: BigNumber;
-    };
+  | CoverInfoObject;
+type ClaimInfo =
+  | Awaited<ReturnType<ClaimManager["claimInfo"]>>
+  | ClaimInfoObject;
 
 declare global {
   export namespace Chai {

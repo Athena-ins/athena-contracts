@@ -1,5 +1,12 @@
 import { rayMath } from "./poolRayMath";
+// Types
 import { BigNumberish, BigNumber } from "ethers";
+import {
+  PoolInfoObject,
+  PositionInfoObject,
+  CoverInfoObject,
+  ClaimInfoObject,
+} from "../chai/almostEqualState";
 
 export function calcExpectedPoolDataAfterCreatePool(
   poolId: BigNumber,
