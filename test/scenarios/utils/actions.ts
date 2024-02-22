@@ -61,7 +61,7 @@ export async function getContractsData(
   tokenId: BigNumberish,
   tokenType: "cover" | "position",
 ) {
-  const LiquidityManager = testEnv.contracts.LiquidityManager;
+  const { LiquidityManager } = testEnv.contracts;
 
   const poolData = await Promise.all(
     poolIds.map((poolId) => LiquidityManager.poolInfo(poolId)),
@@ -88,10 +88,13 @@ export async function getTokens(
   to: Wallet,
   amount: BigNumberish,
 ) {
+  const { TetherToken, AthenaToken } = testEnv.contracts;
+  const { getUsdt, getAten } = testEnv.helpers;
+
   const [tokenAddress, getterFunction] =
     tokenName === "USDT"
-      ? [testEnv.contracts.TetherToken.address, testEnv.helpers.getUsdt]
-      : [testEnv.contracts.AthenaToken.address, testEnv.helpers.getAten];
+      ? [TetherToken.address, getUsdt]
+      : [AthenaToken.address, getAten];
 
   const token = ERC20__factory.connect(tokenAddress, to);
   const toAddress = await to.getAddress();
@@ -115,10 +118,13 @@ export async function approveTokens(
   spender: string,
   amount: BigNumberish,
 ) {
+  const { TetherToken, AthenaToken } = testEnv.contracts;
+  const { approveUsdt, approveAten } = testEnv.helpers;
+
   const [tokenAddress, approveFunction] =
     tokenName === "USDT"
-      ? [testEnv.contracts.TetherToken.address, testEnv.helpers.approveUsdt]
-      : [testEnv.contracts.AthenaToken.address, testEnv.helpers.approveAten];
+      ? [TetherToken.address, approveUsdt]
+      : [AthenaToken.address, approveAten];
 
   const token = ERC20__factory.connect(tokenAddress, from);
   const fromAddress = await from.getAddress();
