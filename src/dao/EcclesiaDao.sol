@@ -173,7 +173,7 @@ contract EcclesiaDao is
     leverageRiskWallet = leverageRiskWallet_;
 
     // Create minimal lock with 1 ATEN to enable accruing of rewards
-    createLock(1 ether, MAX_LOCK);
+    createLock(1 ether, block.timestamp + MAX_LOCK);
   }
 
   // ======= MODIFIERS ======= //
