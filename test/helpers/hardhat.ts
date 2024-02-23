@@ -171,17 +171,23 @@ export async function impersonateAccount(address: string) {
 // ========================== //
 
 export function formatNonce(nonce: number) {
-  if (nonce == 0) nonce = 1;
+  if (nonce == 0) {
+    nonce = 1;
+    console.warn("WARN - Nonce is not 0 indexed!");
+  }
   const hexNonce = nonce.toString(16);
   return hexNonce.length % 2 ? `0${hexNonce}` : hexNonce;
 }
 
 export async function genContractAddress(
-  signer: Wallet,
+  signer: Wallet | string,
   nonceAdd = 0, // to compute futur addresses
-) {
-  const fromUnsigned = signer.address.slice(2);
-  const nonce = await signer.getTransactionCount();
+): Promise<string> {
+  const [fromUnsigned, nonce] =
+    typeof signer === "string"
+      ? [signer, 0]
+      : [signer.address, await signer.getTransactionCount()];
+
   const formatedNonce = formatNonce(nonce + nonceAdd);
 
   let nonceLength = "";
@@ -197,7 +203,7 @@ export async function genContractAddress(
   ).toString(16);
 
   return `0x${keccak256(
-    `0x${totalLength}94${fromUnsigned}${nonceLength}${formatedNonce}`,
+    `0x${totalLength}94${fromUnsigned.slice(2)}${nonceLength}${formatedNonce}`,
   ).slice(-40)}`;
 }
 

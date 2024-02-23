@@ -33,6 +33,7 @@ export function deployProtocol() {
         "StrategyManager",
         "RewardManager",
         "LiquidityManager",
+        "_approve",
         "EcclesiaDao",
         "MockArbitrator",
       ];

@@ -229,10 +229,11 @@ export async function deployAllContractsAndInitializeProtocol(
     "AthenaCoverToken",
     "AthenaPositionToken",
     "AthenaToken",
+    "_approve",
     "ClaimManager",
     "StrategyManager",
+    "LiquidityManager",
     "RewardManager",
-    "TestableLiquidityManager",
     "EcclesiaDao",
     "MockArbitrator",
   ];
@@ -247,6 +248,13 @@ export async function deployAllContractsAndInitializeProtocol(
     ),
   );
 
+  await genContractAddress(deployedAt.RewardManager, 1).then(
+    (address) => (deployedAt.FarmingRange = address),
+  );
+  await genContractAddress(deployedAt.RewardManager, 2).then(
+    (address) => (deployedAt.Staking = address),
+  );
+
   // Add USDT & WETH interface
   const usdtAddress = usdtTokenAddress(chainId);
   const UsdtToken = TetherToken__factory.connect(usdtAddress, deployer);
@@ -254,13 +262,13 @@ export async function deployAllContractsAndInitializeProtocol(
   const WethToken = IWETH__factory.connect(wethAddress, deployer);
 
   const AthenaCoverToken = await deployAthenaCoverToken(deployer, [
-    deployedAt.TestableLiquidityManager,
+    deployedAt.LiquidityManager,
   ]);
   const AthenaPositionToken = await deployAthenaPositionToken(deployer, [
-    deployedAt.TestableLiquidityManager,
+    deployedAt.LiquidityManager,
   ]);
   const AthenaToken = await deployAthenaToken(deployer, [
-    [deployedAt.EcclesiaDao],
+    [deployedAt.EcclesiaDao, deployedAt.Staking],
   ]);
 
   // Approve for initial minimal DAO lock
@@ -275,7 +283,7 @@ export async function deployAllContractsAndInitializeProtocol(
 
   const ClaimManager = await deployClaimManager(deployer, [
     deployedAt.AthenaCoverToken, // IAthenaCoverToken coverToken_
-    deployedAt.TestableLiquidityManager, // ILiquidityManager liquidityManager_
+    deployedAt.LiquidityManager, // ILiquidityManager liquidityManager_
     deployedAt.MockArbitrator, // IArbitrator arbitrator_
     config.evidenceGuardian.address, // address metaEvidenceGuardian_
     config.leverageRiskWallet.address, // address leverageRiskWallet_
@@ -283,26 +291,12 @@ export async function deployAllContractsAndInitializeProtocol(
     config.nbOfJurors, // uint256 nbOfJurors_
   ]);
   const StrategyManager = await deployStrategyManager(deployer, [
-    deployedAt.TestableLiquidityManager,
+    deployedAt.LiquidityManager,
     deployedAt.EcclesiaDao,
     config.buybackWallet.address,
     config.payoutDeductibleRate, // payoutDeductibleRate
     config.performanceFee, // performanceFee
   ]);
-
-  const campaignStartBlock = (await getCurrentBlockNumber()) + 4;
-  const RewardManager = await deployRewardManager(deployer, [
-    deployedAt.TestableLiquidityManager,
-    deployedAt.EcclesiaDao,
-    deployedAt.AthenaPositionToken,
-    deployedAt.AthenaCoverToken,
-    deployedAt.AthenaToken,
-    campaignStartBlock,
-    config.yieldBonuses,
-  ]);
-  // Required for DAO & Liquidity Manager contract
-  deployedAt.Staking = await RewardManager.staking();
-  deployedAt.FarmingRange = await RewardManager.farming();
 
   const LiquidityManager = await deployTestableLiquidityManager(deployer, [
     deployedAt.AthenaPositionToken,
@@ -317,11 +311,23 @@ export async function deployAllContractsAndInitializeProtocol(
     config.leverageFeePerPool,
   ]);
 
+  const campaignStartBlock = (await getCurrentBlockNumber()) + 4;
+  const RewardManager = await deployRewardManager(deployer, [
+    deployedAt.LiquidityManager,
+    deployedAt.EcclesiaDao,
+    deployedAt.AthenaPositionToken,
+    deployedAt.AthenaCoverToken,
+    deployedAt.AthenaToken,
+    campaignStartBlock,
+    config.yieldBonuses,
+  ]);
+
   // ======= DAO ======= //
+
   const EcclesiaDao = await deployEcclesiaDao(deployer, [
     deployedAt.AthenaToken,
     deployedAt.Staking,
-    deployedAt.TestableLiquidityManager,
+    deployedAt.LiquidityManager,
     deployedAt.StrategyManager,
     config.treasuryWallet.address,
     config.leverageRiskWallet.address,
@@ -331,6 +337,10 @@ export async function deployAllContractsAndInitializeProtocol(
   const MockArbitrator = await deployMockArbitrator(deployer, [
     config.arbitrationCollateral,
   ]);
+
+  // Use on chain addresses to check if were correctly precomputed
+  const FarmingRangeAddress = await RewardManager.farming();
+  const StakingAddress = await RewardManager.staking();
 
   const contracts = {
     TetherToken: UsdtToken,
@@ -344,17 +354,23 @@ export async function deployAllContractsAndInitializeProtocol(
     LiquidityManager,
     StrategyManager,
     RewardManager,
-    FarmingRange: FarmingRange__factory.connect(
-      deployedAt.FarmingRange,
-      deployer,
-    ),
-    Staking: Staking__factory.connect(deployedAt.Staking, deployer),
+    FarmingRange: FarmingRange__factory.connect(FarmingRangeAddress, deployer),
+    Staking: Staking__factory.connect(StakingAddress, deployer),
     // Mocks or testing contracts
     TestableVirtualPool: TestableVirtualPool__factory.connect(
-      deployedAt.TestableLiquidityManager,
+      deployedAt.LiquidityManager,
       deployer,
     ),
   };
+
+  // Check predicted deployment addresses
+  for (const [name, contract] of Object.entries(contracts)) {
+    if (
+      deployedAt[name] &&
+      contract.address.toLowerCase() !== deployedAt[name].toLowerCase()
+    )
+      throw Error(`Contract ${name} address mismatch`);
+  }
 
   if (logAddresses) {
     console.log(
