@@ -17,7 +17,7 @@ import { StrategyManagerTests } from "./contracts/StrategyManager";
 import { VirtualPoolTests } from "./contracts/VirtualPool";
 
 // Scenarios
-import { ScenarioTests } from "./scenarios";
+import { ScenarioTests } from "./scenarios/scenario.test";
 
 baseContext("Test Athena Protocol", function () {
   // Integration tests
