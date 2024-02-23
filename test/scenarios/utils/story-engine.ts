@@ -18,9 +18,12 @@ import {
   //
   // need dao, farming, staking, claim
 } from "./actions";
+import { toRay } from "../../helpers/utils/poolRayMath";
 // Types
 import { SignerName } from "../../context";
 import { TimeTravelOptions } from "../../helpers/hardhat";
+import { getTokenAddressBySymbol } from "../../helpers/protocol";
+import { ProtocolContracts } from "../../helpers/deployers";
 
 type BaseAction = {
   userName: SignerName;
@@ -29,6 +32,34 @@ type BaseAction = {
   revertMessage?: string;
 };
 
+type ActionGetTokens = BaseAction & {
+  name: "getTokens";
+  args: {
+    tokenName: "ATEN" | "USDT";
+    amount: number;
+  };
+};
+type ActionApproveTokens = BaseAction & {
+  name: "approveTokens";
+  args: {
+    spender: keyof ProtocolContracts;
+    tokenName: "ATEN" | "USDT";
+    amount: number;
+  };
+};
+type ActionCreatePool = BaseAction & {
+  name: "createPool";
+  args: {
+    paymentAsset: "USDT";
+    strategyId: number;
+    compatiblePools: number[];
+    feeRate?: number;
+    uOptimal?: number;
+    r0?: number;
+    rSlope1?: number;
+    rSlope2?: number;
+  };
+};
 type ActionOpenCover = BaseAction & {
   name: "openCover";
   args: {
@@ -106,6 +137,9 @@ type ActionWithdrawCompensation = BaseAction & {
 };
 
 export type Action =
+  | ActionGetTokens
+  | ActionApproveTokens
+  | ActionCreatePool
   | ActionOpenCover
   | ActionUpdateCover
   | ActionOpenPosition
@@ -153,6 +187,65 @@ async function executeAction(action: Action) {
     if (name === "openCover") action.args;
 
     switch (name) {
+      case "getTokens":
+        {
+          const { tokenName, amount } = action.args;
+
+          await getTokens(this, tokenName, user, amount);
+        }
+        break;
+      case "approveTokens":
+        {
+          const { spender, tokenName, amount } = action.args;
+
+          const spenderAddress = this.contracts[spender].address;
+
+          await approveTokens(this, tokenName, user, spenderAddress, amount);
+        }
+        break;
+      case "createPool":
+        {
+          const { paymentAsset, strategyId, compatiblePools } = action.args;
+
+          getTokenAddressBySymbol(paymentAsset);
+
+          const { poolFormula } = this.protocolConfig;
+
+          const feeRate =
+            action.args.feeRate !== undefined
+              ? toRay(action.args.feeRate)
+              : poolFormula.feeRate;
+          const uOptimal =
+            action.args.uOptimal !== undefined
+              ? toRay(action.args.uOptimal)
+              : poolFormula.uOptimal;
+          const r0 =
+            action.args.r0 !== undefined
+              ? toRay(action.args.r0)
+              : poolFormula.r0;
+          const rSlope1 =
+            action.args.rSlope1 !== undefined
+              ? toRay(action.args.rSlope1)
+              : poolFormula.rSlope1;
+          const rSlope2 =
+            action.args.rSlope2 !== undefined
+              ? toRay(action.args.rSlope2)
+              : poolFormula.rSlope2;
+
+          await createPool(
+            this,
+            paymentAsset,
+            strategyId,
+            feeRate,
+            uOptimal,
+            r0,
+            rSlope1,
+            rSlope2,
+            compatiblePools,
+            expected,
+          );
+        }
+        break;
       case "openCover":
         {
           const { poolId, coverAmount, premiumAmount } = action.args;

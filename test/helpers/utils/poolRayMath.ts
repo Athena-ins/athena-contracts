@@ -9,6 +9,8 @@ type JsRay = BigNumber & {
   r_sub: (b: BigNumberish) => JsRay;
 };
 
+export const toRay = (value: BigNumberish) => BigNumber.from(value).mul(RAY);
+
 function Ray(value: BigNumberish, isRay = true): JsRay {
   const rayMethods = {
     rayMul: function (b: BigNumberish) {
@@ -34,8 +36,6 @@ function Ray(value: BigNumberish, isRay = true): JsRay {
   };
 
   const rayObject = Object.create(BigNumber.prototype, rayMethods);
-
-  const toRay = (value: BigNumberish) => BigNumber.from(value).mul(RAY);
 
   return rayObject.from(isRay ? BigNumber.from(value) : toRay(value));
 }

@@ -109,6 +109,17 @@ export function wethTokenAddress(chainId: number): string {
   throw Error("Unsupported chainId");
 }
 
+export function getTokenAddressBySymbol(symbol: string, chainId = 1): string {
+  switch (symbol) {
+    case "USDT":
+      return usdtTokenAddress(chainId);
+    case "WETH":
+      return wethTokenAddress(chainId);
+    default:
+      throw Error("Unsupported token symbol");
+  }
+}
+
 export function evidenceGuardianWallet() {
   const EVIDENCE_GUARDIAN_PK = process.env.EVIDENCE_GUARDIAN_PK;
   if (!EVIDENCE_GUARDIAN_PK) throw new Error("EVIDENCE_GUARDIAN_PK not set");
