@@ -12,7 +12,6 @@ import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.s
 import { IEcclesiaDao } from "../interfaces/IEcclesiaDao.sol";
 import { IStaking } from "../interfaces/IStaking.sol";
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
-import { IERC20Permit } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
 
 // ======= ERRORS ======= //
 
@@ -34,6 +33,7 @@ error InvalidBps();
 error InvalidTreasuryAddr();
 error UnnecessaryEarlyWithdraw();
 error TransfersNotAllowed();
+error NoParticipantsToCollectRevenue();
 
 /**
  * @title EcclesiaDao
@@ -294,7 +294,6 @@ contract EcclesiaDao is
       // Only usefull when position is created
       // Ok for amount increase since we harvest before
       userLock.userStakingIndex = stakingIndex;
-
       userLock.staking += toStake;
       supplyStaking += toStake;
     }
@@ -517,13 +516,15 @@ contract EcclesiaDao is
     _accrueStaking(stakingRewards);
   }
 
-  function _accrueStaking(uint256 amount_) private nonReentrant {
+  function _accrueStaking(uint256 amount_) private {
+    if (supplyStaking == 0) return;
     // Rewards are distributed per staked token
     uint256 amountPerVoteRay = (amount_ * RAY) / supplyStaking;
     stakingIndex += amountPerVoteRay;
   }
 
-  function _redistribute(uint256 amount_) private nonReentrant {
+  function _redistribute(uint256 amount_) private {
+    if (ERC20.totalSupply == 0) return;
     // Rewards are distributed per vote
     uint256 amountPerVoteRay = (amount_ * RAY) / ERC20.totalSupply;
     redistributeIndex += amountPerVoteRay;
@@ -540,6 +541,9 @@ contract EcclesiaDao is
     uint256 amount_,
     uint256 leverageFee_
   ) external nonReentrant onlyRevenueCollector {
+    if (ERC20.totalSupply == 0)
+      revert NoParticipantsToCollectRevenue();
+
     // Send risk provision to leverage risk wallet
     if (leverageFee_ != 0)
       IERC20(token_).safeTransfer(leverageRiskWallet, leverageFee_);
@@ -556,7 +560,7 @@ contract EcclesiaDao is
    * @notice Harvest rewards from staking & DAO revenue
    * @param tokens_ the tokens to harvest
    */
-  function harvest(address[] memory tokens_) public nonReentrant {
+  function harvest(address[] memory tokens_) public {
     LockedBalance storage userLock = locks[msg.sender];
     uint256 votes = tokenToVotes(userLock.amount, userLock.duration);
 
