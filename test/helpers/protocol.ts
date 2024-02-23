@@ -451,6 +451,8 @@ async function createPoolsWithLiquidity(
     lpAmount: params.lpAmount ?? toErc20(1000),
   };
 
+  const { uOptimal, r0, rSlope1, rSlope2 } = defaultProtocolConfig.poolFormula;
+
   await Promise.all(
     makeIdArray(params.nbPools).map((poolId) =>
       postTxHandler(
@@ -458,7 +460,10 @@ async function createPoolsWithLiquidity(
           contracts.TetherToken.address, // paymentAsset
           0, // strategyId
           0, // feeRate
-          ...defaultProtocolConfig.poolMarket,
+          uOptimal,
+          r0,
+          rSlope1,
+          rSlope2,
           makeIdArray(params.nbPools).filter((id) => id != poolId), // compatiblePools
         ),
       ),

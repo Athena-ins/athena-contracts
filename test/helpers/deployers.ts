@@ -158,8 +158,18 @@ export type ProtocolConfig = {
   treasuryWallet: Wallet;
   leverageRiskWallet: Wallet;
   leverageFeePerPool: BigNumber;
-  poolMarket: [BigNumber, BigNumber, BigNumber, BigNumber];
+  poolFormula: {
+    feeRate: BigNumber;
+    uOptimal: BigNumber;
+    r0: BigNumber;
+    rSlope1: BigNumber;
+    rSlope2: BigNumber;
+  };
   yieldBonuses: { atenAmount: BigNumber; yieldBonus: BigNumber }[];
+  withdrawDelay: number;
+  maxLeverage: number;
+  payoutDeductibleRate: BigNumber;
+  performanceFee: BigNumber;
 };
 
 export const defaultProtocolConfig: ProtocolConfig = {
@@ -171,18 +181,23 @@ export const defaultProtocolConfig: ProtocolConfig = {
   treasuryWallet: treasuryWallet(),
   leverageRiskWallet: leverageRiskWallet(),
   leverageFeePerPool: toRay(1.5, 2), // 1.5% base 100
-  poolMarket: [
-    toRay(75), // uOptimal_
-    toRay(1), // r0_
-    toRay(5), // rSlope1_
-    toRay(10), // rSlope2_
-  ],
+  poolFormula: {
+    feeRate: toRay(0.1), // 10%
+    uOptimal: toRay(75),
+    r0: toRay(1),
+    rSlope1: toRay(5),
+    rSlope2: toRay(10),
+  },
   yieldBonuses: [
     { atenAmount: toErc20(0), yieldBonus: toRay(250, 4) },
     { atenAmount: toErc20(1_000), yieldBonus: toRay(200, 4) },
     { atenAmount: toErc20(100_000), yieldBonus: toRay(150, 4) },
     { atenAmount: toErc20(1_000_000), yieldBonus: toRay(50, 4) },
   ],
+  withdrawDelay: 14 * 24 * 60 * 60, // 14 days
+  maxLeverage: 30, // max pools per position
+  payoutDeductibleRate: toRay(0.1), // 10%
+  performanceFee: toRay(0.5), // 50%
 };
 
 export type ProtocolContracts = {
@@ -271,8 +286,8 @@ export async function deployAllContractsAndInitializeProtocol(
     deployedAt.TestableLiquidityManager,
     deployedAt.EcclesiaDao,
     config.buybackWallet.address,
-    toRay(0.1), // payoutDeductibleRate
-    toRay(0.5), // performanceFee
+    config.payoutDeductibleRate, // payoutDeductibleRate
+    config.performanceFee, // performanceFee
   ]);
 
   const campaignStartBlock = (await getCurrentBlockNumber()) + 4;
@@ -297,8 +312,8 @@ export async function deployAllContractsAndInitializeProtocol(
     deployedAt.EcclesiaDao,
     deployedAt.StrategyManager,
     deployedAt.ClaimManager,
-    14 * 24 * 60 * 60, // @bw need to move all this args to config
-    30,
+    config.withdrawDelay,
+    config.maxLeverage,
     config.leverageFeePerPool,
   ]);
 

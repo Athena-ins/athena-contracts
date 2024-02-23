@@ -54,6 +54,10 @@ export function SanityTest() {
 
       for (let i = 0; i < this.args.nbPools; i++) {
         const poolId = i;
+
+        const { uOptimal, r0, rSlope1, rSlope2 } =
+          this.protocolConfig.poolFormula;
+
         // Create a pool
         expect(
           await postTxHandler(
@@ -61,7 +65,10 @@ export function SanityTest() {
               this.contracts.TetherToken.address, // paymentAsset
               0, // strategyId
               0, // feeRate
-              ...this.protocolConfig.poolMarket,
+              uOptimal,
+              r0,
+              rSlope1,
+              rSlope2,
               makeIdArray(this.args.nbPools).filter((id) => id != poolId), // compatiblePools
             ),
           ),
@@ -78,14 +85,16 @@ export function SanityTest() {
         expect(poolInfo.feeRate).to.equal(0);
         expect(poolInfo.strategyId).to.equal(0);
         expect(poolInfo.formula.uOptimal).to.equal(
-          this.protocolConfig.poolMarket[0],
+          this.protocolConfig.poolFormula.uOptimal,
         );
-        expect(poolInfo.formula.r0).to.equal(this.protocolConfig.poolMarket[1]);
+        expect(poolInfo.formula.r0).to.equal(
+          this.protocolConfig.poolFormula.r0,
+        );
         expect(poolInfo.formula.rSlope1).to.equal(
-          this.protocolConfig.poolMarket[2],
+          this.protocolConfig.poolFormula.rSlope1,
         );
         expect(poolInfo.formula.rSlope2).to.equal(
-          this.protocolConfig.poolMarket[3],
+          this.protocolConfig.poolFormula.rSlope2,
         );
         expect(poolInfo.poolId).to.equal(poolId);
       }

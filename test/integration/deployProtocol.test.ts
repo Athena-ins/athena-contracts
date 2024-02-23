@@ -108,8 +108,8 @@ export function deployProtocol() {
           this.deployedAt.LiquidityManager,
           this.deployedAt.EcclesiaDao,
           this.signers.buybackWallet.address,
-          toRay(0.1), // payoutDeductibleRate
-          toRay(0.5), // performanceFee
+          this.protocolConfig.payoutDeductibleRate,
+          this.protocolConfig.performanceFee,
         ]).then((contract) =>
           postDeployCheck(contract, this.deployedAt.StrategyManager),
         );
@@ -123,7 +123,7 @@ export function deployProtocol() {
           this.deployedAt.AthenaCoverToken,
           this.deployedAt.AthenaToken,
           campaignStartBlock,
-          [],
+          this.protocolConfig.yieldBonuses,
         ]);
         await postDeployCheck(rewardManager, this.deployedAt.RewardManager);
 
@@ -139,8 +139,8 @@ export function deployProtocol() {
           this.deployedAt.EcclesiaDao,
           this.deployedAt.StrategyManager,
           this.deployedAt.ClaimManager,
-          14 * 24 * 60 * 60, // @bw need to take all args from config
-          30,
+          this.protocolConfig.withdrawDelay,
+          this.protocolConfig.maxLeverage,
           this.protocolConfig.leverageFeePerPool,
         ]).then((contract) =>
           postDeployCheck(contract, this.deployedAt.LiquidityManager),
