@@ -1,7 +1,7 @@
 // Story engine
 import { executeStory, Scenario } from "./utils/story-engine";
 // Stories
-import { coverStories } from "./stories/covers";
+import { coverStories } from "./stories/covers.story";
 
 export async function ScenarioTests() {
   context("Scenario Tests", async function () {
