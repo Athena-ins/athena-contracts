@@ -19,12 +19,19 @@ import {
   postTxHandler,
 } from "../helpers/hardhat";
 import { toRay } from "../helpers/protocol";
+import { AthenaToken__factory } from "../../typechain";
 // Types
 import { BaseContract } from "ethers";
 
+interface Arguments extends Omit<Mocha.Context, "contracts"> {
+  args: {
+    deployedAt: { [key: string]: string };
+  };
+}
+
 export function deployProtocol() {
   context("Setup protocol", function () {
-    before(async function () {
+    before(async function (this: Arguments) {
       const deploymentOrder = [
         "AthenaCoverToken",
         "AthenaPositionToken",
@@ -38,15 +45,25 @@ export function deployProtocol() {
         "MockArbitrator",
       ];
 
-      this.deployedAt = await deploymentOrder.reduce(
-        (acc, name, i) =>
+      this.args = {
+        deployedAt: {},
+      };
+
+      await Promise.all(
+        deploymentOrder.map((name, i) =>
           genContractAddress(this.signers.deployer, i).then(
-            async (address) => ({
-              ...(await acc),
-              [name]: address,
-            }),
+            (address: string) => {
+              this.args.deployedAt[name] = address;
+            },
           ),
-        {} as Promise<{ [name: string]: string }>,
+        ),
+      );
+
+      await genContractAddress(this.args.deployedAt.RewardManager, 1).then(
+        (address) => (this.args.deployedAt.FarmingRange = address),
+      );
+      await genContractAddress(this.args.deployedAt.RewardManager, 2).then(
+        (address) => (this.args.deployedAt.Staking = address),
       );
     });
 
@@ -67,131 +84,143 @@ export function deployProtocol() {
     describe("Single contracts", function () {
       // ======= Tokens ======= //
 
-      it("deploys AthenaCoverToken", async function () {
+      it("deploys AthenaCoverToken", async function (this: Arguments) {
         await deployAthenaCoverToken(this.signers.deployer, [
-          this.deployedAt.LiquidityManager,
+          this.args.deployedAt.LiquidityManager,
         ]).then((contract) =>
-          postDeployCheck(contract, this.deployedAt.AthenaCoverToken),
+          postDeployCheck(contract, this.args.deployedAt.AthenaCoverToken),
         );
       });
-      it("deploys AthenaPositionToken", async function () {
+
+      it("deploys AthenaPositionToken", async function (this: Arguments) {
         await deployAthenaPositionToken(this.signers.deployer, [
-          this.deployedAt.LiquidityManager,
+          this.args.deployedAt.LiquidityManager,
         ]).then((contract) =>
-          postDeployCheck(contract, this.deployedAt.AthenaPositionToken),
+          postDeployCheck(contract, this.args.deployedAt.AthenaPositionToken),
         );
       });
-      it("deploys AthenaToken", async function () {
+
+      it("deploys AthenaToken", async function (this: Arguments) {
         await deployAthenaToken(this.signers.deployer, [
-          [this.deployedAt.EcclesiaDao],
+          [this.args.deployedAt.EcclesiaDao, this.args.deployedAt.Staking],
         ]).then((contract) =>
-          postDeployCheck(contract, this.deployedAt.AthenaToken),
+          postDeployCheck(contract, this.args.deployedAt.AthenaToken),
         );
       });
 
       // ======= Managers ======= //
 
-      it("deploys ClaimManager", async function () {
+      it("deploys ClaimManager", async function (this: Arguments) {
         await deployClaimManager(this.signers.deployer, [
-          this.deployedAt.AthenaCoverToken, // IAthenaCoverToken coverToken_
-          this.deployedAt.LiquidityManager, // ILiquidityManager liquidityManager_
-          this.deployedAt.MockArbitrator, // IArbitrator arbitrator_
+          this.args.deployedAt.AthenaCoverToken, // IAthenaCoverToken coverToken_
+          this.args.deployedAt.LiquidityManager, // ILiquidityManager liquidityManager_
+          this.args.deployedAt.MockArbitrator, // IArbitrator arbitrator_
           this.signers.evidenceGuardian.address, // address metaEvidenceGuardian_
           this.signers.leverageRiskWallet.address, // address leverageRiskWallet_
           this.protocolConfig.subcourtId, // uint256 subcourtId_
           this.protocolConfig.nbOfJurors, // uint256 nbOfJurors_
         ]).then((contract) =>
-          postDeployCheck(contract, this.deployedAt.ClaimManager),
+          postDeployCheck(contract, this.args.deployedAt.ClaimManager),
         );
       });
-      it("deploys StrategyManager", async function () {
+
+      it("deploys StrategyManager", async function (this: Arguments) {
         await deployStrategyManager(this.signers.deployer, [
-          this.deployedAt.LiquidityManager,
-          this.deployedAt.EcclesiaDao,
+          this.args.deployedAt.LiquidityManager,
+          this.args.deployedAt.EcclesiaDao,
           this.signers.buybackWallet.address,
           this.protocolConfig.payoutDeductibleRate,
           this.protocolConfig.performanceFee,
         ]).then((contract) =>
-          postDeployCheck(contract, this.deployedAt.StrategyManager),
+          postDeployCheck(contract, this.args.deployedAt.StrategyManager),
         );
       });
-      it("deploys RewardManager", async function () {
+
+      it("deploys RewardManager", async function (this: Arguments) {
         const campaignStartBlock = (await getCurrentBlockNumber()) + 4;
         const rewardManager = await deployRewardManager(this.signers.deployer, [
-          this.deployedAt.LiquidityManager,
-          this.deployedAt.EcclesiaDao,
-          this.deployedAt.AthenaPositionToken,
-          this.deployedAt.AthenaCoverToken,
-          this.deployedAt.AthenaToken,
+          this.args.deployedAt.LiquidityManager,
+          this.args.deployedAt.EcclesiaDao,
+          this.args.deployedAt.AthenaPositionToken,
+          this.args.deployedAt.AthenaCoverToken,
+          this.args.deployedAt.AthenaToken,
           campaignStartBlock,
           this.protocolConfig.yieldBonuses,
         ]);
-        await postDeployCheck(rewardManager, this.deployedAt.RewardManager);
+        await postDeployCheck(
+          rewardManager,
+          this.args.deployedAt.RewardManager,
+        );
 
         // Required for DAO & Liquidity Manager contract
-        this.deployedAt.Staking = await rewardManager.staking();
+        this.args.deployedAt.Staking = await rewardManager.staking();
+        this.args.deployedAt.FarmingRange = await rewardManager.farming();
       });
-      it("deploys LiquidityManager", async function () {
+
+      it("deploys LiquidityManager", async function (this: Arguments) {
         await deployLiquidityManager(this.signers.deployer, [
-          this.deployedAt.AthenaPositionToken,
-          this.deployedAt.AthenaCoverToken,
-          this.deployedAt.Staking,
-          this.deployedAt.FarmingRange,
-          this.deployedAt.EcclesiaDao,
-          this.deployedAt.StrategyManager,
-          this.deployedAt.ClaimManager,
+          this.args.deployedAt.AthenaPositionToken,
+          this.args.deployedAt.AthenaCoverToken,
+          this.args.deployedAt.Staking,
+          this.args.deployedAt.FarmingRange,
+          this.args.deployedAt.EcclesiaDao,
+          this.args.deployedAt.StrategyManager,
+          this.args.deployedAt.ClaimManager,
           this.protocolConfig.withdrawDelay,
           this.protocolConfig.maxLeverage,
           this.protocolConfig.leverageFeePerPool,
         ]).then((contract) =>
-          postDeployCheck(contract, this.deployedAt.LiquidityManager),
+          postDeployCheck(contract, this.args.deployedAt.LiquidityManager),
         );
       });
 
       // ======= DAO ======= //
 
-      it("deploys EcclesiaDao", async function () {
+      it("deploys EcclesiaDao", async function (this: Arguments) {
         // Approve for initial minimal DAO lock
         await postTxHandler(
-          this.contracts.AthenaToken.connect(this.signers.deployer).approve(
-            this.deployedAt.EcclesiaDao,
+          AthenaToken__factory.connect(
+            this.args.deployedAt.AthenaToken,
+            this.signers.deployer,
+          ).approve(
+            this.args.deployedAt.EcclesiaDao,
             ethers.utils.parseEther("1"),
           ),
         );
 
         await deployEcclesiaDao(this.signers.deployer, [
-          this.deployedAt.AthenaToken,
-          this.deployedAt.Staking,
-          this.deployedAt.LiquidityManager,
-          this.deployedAt.StrategyManager,
+          this.args.deployedAt.AthenaToken,
+          this.args.deployedAt.Staking,
+          this.args.deployedAt.LiquidityManager,
+          this.args.deployedAt.StrategyManager,
           this.signers.treasuryWallet.address,
           this.signers.leverageRiskWallet.address,
         ]).then((contract) =>
-          postDeployCheck(contract, this.deployedAt.EcclesiaDao),
+          postDeployCheck(contract, this.args.deployedAt.EcclesiaDao),
         );
       });
 
       // ======= Claims ======= //
 
-      it("deploys MockArbitrator", async function () {
+      it("deploys MockArbitrator", async function (this: Arguments) {
         await deployMockArbitrator(this.signers.deployer, [
           ethers.utils.parseEther("0.05"),
         ]).then((contract) =>
-          postDeployCheck(contract, this.deployedAt.MockArbitrator),
+          postDeployCheck(contract, this.args.deployedAt.MockArbitrator),
         );
       });
-
-      // ======= Whole protocol ======= //
     });
 
+    // ======= Whole protocol ======= //
+
     describe("Protocol", function () {
-      it("deploys the protocol", async function () {
+      it("deploys the protocol", async function (this: Arguments) {
         const contracts = await deployAllContractsAndInitializeProtocol(
           this.signers.deployer,
           this.protocolConfig,
         );
 
-        expect(Object.keys(contracts).length).to.equal(13);
+        expect(Object.keys(contracts).length).to.equal(14);
 
         for (const contract of Object.values(contracts)) {
           expect((await ethers.provider.getCode(contract.address)).length).gt(

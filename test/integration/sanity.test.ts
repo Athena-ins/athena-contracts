@@ -39,15 +39,16 @@ export function SanityTest() {
       };
     });
 
-    it("creates lock in dao", async function (this: Arguments) {
-      expect(
-        await this.helpers.createDaoLock(
-          this.signers.deployer,
-          this.args.daoStakeAmount,
-          this.args.daoLockDuration,
-        ),
-      ).to.not.throw;
-    });
+    // @dev Now lock is created in constructor directly
+    // it.skip("creates lock in dao", async function (this: Arguments) {
+    //   expect(
+    //     await this.helpers.createDaoLock(
+    //       this.signers.deployer,
+    //       this.args.daoStakeAmount,
+    //       this.args.daoLockDuration,
+    //     ),
+    //   ).to.not.throw;
+    // });
 
     it("can create pools", async function (this: Arguments) {
       this.timeout(300_000);
