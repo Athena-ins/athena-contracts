@@ -22,7 +22,7 @@ interface Arguments extends Mocha.Context {
 }
 
 export function SanityTest() {
-  context("Liquidity Manager", function () {
+  context("Athena Sanity Test", function () {
     before(async function (this: Arguments) {
       this.args = {
         nbPools: 3,

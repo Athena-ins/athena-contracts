@@ -251,7 +251,7 @@ async function createDaoLock(
   amount: BigNumberish,
   lockTimeSec: number,
 ): Promise<ContractReceipt> {
-  const [userAccount, unlockTs] = await Promise.all([
+  const [userAccount, unlockTimestamp] = await Promise.all([
     user.getAddress(),
     getCurrentTime().then((ts) => ts + lockTimeSec),
   ]);
@@ -261,7 +261,9 @@ async function createDaoLock(
     postTxHandler(atenContract.connect(user).approve(contract.address, amount)),
   ]);
 
-  return postTxHandler(contract.connect(user).createLock(amount, unlockTs));
+  return postTxHandler(
+    contract.connect(user).createLock(amount, unlockTimestamp),
+  );
 }
 
 // ======== LP Positions ======== //
