@@ -3,6 +3,10 @@ pragma solidity ^0.8.20;
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
+//======== ERRORS ========//
+error BalanceTooLow();
+error AllowanceTooLow();
+
 contract ERC20 is IERC20 {
   //======== STORAGE ========//
 
@@ -24,22 +28,34 @@ contract ERC20 is IERC20 {
 
   //======== FUNCTIONS ========//
 
-  function _mint(address account, uint256 amount) internal {
+  function _mint(
+    address account,
+    uint256 amount
+  ) internal returns (bool) {
     balanceOf[account] += amount;
     totalSupply += amount;
+
     emit IERC20.Transfer(address(0), account, amount);
+    return true;
   }
 
-  function _burn(address account, uint256 amount) internal {
-    balanceOf[account] -= amount;
+  function _burn(
+    address account,
+    uint256 amount
+  ) internal returns (bool) {
+    if (balanceOf[account] < amount) revert BalanceTooLow();
+
     unchecked {
+      balanceOf[account] -= amount;
       totalSupply -= amount;
     }
+
     emit IERC20.Transfer(account, address(0), amount);
+    return true;
   }
 
-  function burn(uint256 amount) external {
-    _burn(msg.sender, amount);
+  function burn(uint256 amount) external returns (bool) {
+    return _burn(msg.sender, amount);
   }
 
   function approve(
@@ -47,6 +63,7 @@ contract ERC20 is IERC20 {
     uint256 amount
   ) external returns (bool) {
     allowance[msg.sender][spender] = amount;
+
     emit IERC20.Approval(msg.sender, spender, amount);
     return true;
   }
@@ -56,8 +73,10 @@ contract ERC20 is IERC20 {
     address to,
     uint256 amount
   ) internal virtual returns (bool) {
-    balanceOf[from] -= amount;
+    if (balanceOf[from] < amount) revert BalanceTooLow();
+
     unchecked {
+      balanceOf[from] -= amount;
       balanceOf[to] += amount;
     }
 
@@ -79,8 +98,12 @@ contract ERC20 is IERC20 {
   ) external returns (bool) {
     uint256 allowed = allowance[from][msg.sender];
 
-    if (allowed != type(uint256).max)
-      allowance[from][msg.sender] = allowed - amount;
+    if (allowed != type(uint256).max) {
+      if (allowed < amount) revert AllowanceTooLow();
+      unchecked {
+        allowance[from][msg.sender] = allowed - amount;
+      }
+    }
 
     return _transfer(from, to, amount);
   }
