@@ -1,7 +1,7 @@
-import { Scenario } from "../utils/story-engine";
+import { Scenario } from "../utils/actionEngine";
 
-export const coverStories: Scenario = {
-  title: "Cover Stories",
+export const coverOpenAndUpdate: Scenario = {
+  title: "open & update covers",
   stories: [
     {
       description: "User a does stuff blabla",
