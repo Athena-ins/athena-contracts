@@ -89,13 +89,11 @@ export class RayInt {
 
   rayMul(b: RayInt | BigNumberish) {
     const rayValue = RayInt.from(this.value);
-    return RayInt.from(rayValue.mul(this._toBn(b)).add(halfRAY).div(RAY));
+    return rayValue.mul(this._toBn(b)).add(halfRAY).div(RAY);
   }
   rayDiv(b: RayInt | BigNumberish) {
     const rayValue = RayInt.from(this.value);
-    return RayInt.from(
-      rayValue.mul(RAY).add(this._toBn(b).div(2)).div(this._toBn(b)),
-    );
+    return rayValue.mul(RAY).add(this._toBn(b).div(2)).div(this._toBn(b));
   }
 
   div(b: RayInt | BigNumberish) {
@@ -127,8 +125,6 @@ export class RayInt {
     return this.value.gte(this._toBn(b));
   }
 }
-
-console.log(": ", RayInt.from(10).rayMul(34));
 
 /**
  * @notice Computes the premium rate of a cover,
@@ -205,15 +201,6 @@ export function computeLiquidityIndex(
     .rayDiv(YEAR)
     .toBigNumber();
 }
-
-console.log(
-  "computeLiquidityIndex: ",
-  computeLiquidityIndex(
-    BigNumber.from(10),
-    BigNumber.from(10),
-    BigNumber.from(10),
-  ),
-);
 
 /**
  * @notice Computes the premiums or interests earned by a liquidity position

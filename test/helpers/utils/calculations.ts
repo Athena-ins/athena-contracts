@@ -1,4 +1,4 @@
-import { rayMath } from "./poolRayMath";
+import { constants } from "./poolRayMath";
 // Types
 import { BigNumberish, BigNumber } from "ethers";
 import {
@@ -33,7 +33,7 @@ export function calcExpectedPoolDataAfterCreatePool(
     },
     slot0: {
       tick: 0,
-      secondsPerTick: rayMath.constants.MAX_SECONDS_PER_TICK,
+      secondsPerTick: constants.MAX_SECONDS_PER_TICK,
       coveredCapital: BigNumber.from(0),
       remainingCovers: BigNumber.from(0),
       lastUpdateTimestamp: timestamp,
