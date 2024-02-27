@@ -1,53 +1,25 @@
-import { BigNumber, BigNumberish } from "ethers";
+import { BigNumber, BigNumberish, utils } from "ethers";
 
-type JsRay = BigNumber & {
-  rayMul: (b: BigNumberish) => JsRay;
-  rayDiv: (b: BigNumberish) => JsRay;
-  r_div: (b: BigNumberish) => JsRay;
-  r_mul: (b: BigNumberish) => JsRay;
-  r_add: (b: BigNumberish) => JsRay;
-  r_sub: (b: BigNumberish) => JsRay;
-};
-
-export const toRay = (value: BigNumberish) => BigNumber.from(value).mul(RAY);
-
-function Ray(value: BigNumberish, isRay = true): JsRay {
-  const rayMethods = {
-    rayMul: function (b: BigNumberish) {
-      return Ray(BigNumber.from(this).mul(b).add(halfRAY).div(RAY));
-    },
-    rayDiv: function (b: BigNumberish) {
-      return Ray(
-        BigNumber.from(this).mul(RAY).add(BigNumber.from(b).div(2)).div(b),
-      );
-    },
-    r_div: function (b: BigNumberish) {
-      return Ray(BigNumber.from(this).div(b));
-    },
-    r_mul: function (b: BigNumberish) {
-      return Ray(BigNumber.from(this).mul(b));
-    },
-    r_add: function (b: BigNumberish) {
-      return Ray(BigNumber.from(this).add(b));
-    },
-    r_sub: function (b: BigNumberish) {
-      return Ray(BigNumber.from(this).sub(b));
-    },
-  };
-
-  const rayObject = Object.create(BigNumber.prototype, rayMethods);
-
-  return rayObject.from(isRay ? BigNumber.from(value) : toRay(value));
-}
+const { parseUnits } = utils;
 
 const RAY = BigNumber.from(10).pow(27); //27 decimal
 const halfRAY = RAY.div(2);
 
-const YEAR = Ray(BigNumber.from(365 * 86400));
-const MAX_SECONDS_PER_TICK = Ray(BigNumber.from(86400));
-const FEE_BASE = Ray(RAY);
-const PERCENTAGE_BASE = Ray(BigNumber.from(100));
-const FULL_CAPACITY = Ray(PERCENTAGE_BASE.mul(RAY));
+const YEAR = BigNumber.from(365 * 86400);
+const MAX_SECONDS_PER_TICK = BigNumber.from(86400);
+const FEE_BASE = RAY;
+const PERCENTAGE_BASE = BigNumber.from(100);
+const FULL_CAPACITY = PERCENTAGE_BASE.mul(RAY);
+
+export const constants = {
+  RAY,
+  halfRAY,
+  YEAR,
+  MAX_SECONDS_PER_TICK,
+  FEE_BASE,
+  PERCENTAGE_BASE,
+  FULL_CAPACITY,
+};
 
 type Formula = {
   uOptimal: BigNumber;
@@ -65,6 +37,99 @@ type PoolData = {
   f: Formula;
 };
 
+export function toRay(amount: BigNumberish, decimals = 0) {
+  // @dev ex: 10_000 = 100% = 4 decimals
+  const base = 27 - decimals;
+  return parseUnits(amount.toString(), base);
+}
+
+export class RayInt {
+  value: BigNumber;
+  readonly _isRayInt: boolean;
+
+  constructor(value: RayInt | BigNumberish, scaleToRay = false, decimals = 0) {
+    this.value = this._toBn(value);
+    if (scaleToRay) this.value = toRay(this.value, decimals);
+
+    this._isRayInt = true;
+
+    Object.freeze(this);
+  }
+
+  private _toBn(value: RayInt | BigNumberish) {
+    if (
+      value instanceof RayInt ||
+      (typeof value === "object" && "value" in value)
+    ) {
+      return (value as RayInt).toBigNumber();
+    } else {
+      return BigNumber.from(value);
+    }
+  }
+
+  static from(value: RayInt | BigNumberish, scaleToRay = false) {
+    return new RayInt(value, scaleToRay);
+  }
+
+  static isRayInt(value: any): value is RayInt {
+    return !!(value && value._isRayInt);
+  }
+
+  toBigNumber() {
+    return this.value;
+  }
+
+  toString() {
+    return this.value.toString();
+  }
+
+  toNumber() {
+    return this.value.toNumber();
+  }
+
+  rayMul(b: RayInt | BigNumberish) {
+    const rayValue = RayInt.from(this.value);
+    return RayInt.from(rayValue.mul(this._toBn(b)).add(halfRAY).div(RAY));
+  }
+  rayDiv(b: RayInt | BigNumberish) {
+    const rayValue = RayInt.from(this.value);
+    return RayInt.from(
+      rayValue.mul(RAY).add(this._toBn(b).div(2)).div(this._toBn(b)),
+    );
+  }
+
+  div(b: RayInt | BigNumberish) {
+    return RayInt.from(this.value.div(this._toBn(b)));
+  }
+  mul(b: RayInt | BigNumberish) {
+    return RayInt.from(this.value.mul(this._toBn(b)));
+  }
+  add(b: RayInt | BigNumberish) {
+    return RayInt.from(this.value.add(this._toBn(b)));
+  }
+  sub(b: RayInt | BigNumberish) {
+    return RayInt.from(this.value.sub(this._toBn(b)));
+  }
+
+  eq(b: RayInt | BigNumberish) {
+    return this.value.eq(this._toBn(b));
+  }
+  lt(b: RayInt | BigNumberish) {
+    return this.value.lt(this._toBn(b));
+  }
+  lte(b: RayInt | BigNumberish) {
+    return this.value.lte(this._toBn(b));
+  }
+  gt(b: RayInt | BigNumberish) {
+    return this.value.gt(this._toBn(b));
+  }
+  gte(b: RayInt | BigNumberish) {
+    return this.value.gte(this._toBn(b));
+  }
+}
+
+console.log(": ", RayInt.from(10).rayMul(34));
+
 /**
  * @notice Computes the premium rate of a cover,
  * the premium rate is the APR cost for a cover  ,
@@ -77,34 +142,35 @@ type PoolData = {
  *
  * @dev Not pure since reads self but pure for all practical purposes
  */
-function getPremiumRate(
+export function getPremiumRate(
   poolData: PoolData,
-  utilizationRate_: BigNumber,
+  utilizationRate_: RayInt | BigNumberish,
 ): BigNumber {
   const formula = {
-    uOptimal: Ray(poolData.f.uOptimal),
-    r0: Ray(poolData.f.r0),
-    rSlope1: Ray(poolData.f.rSlope1),
-    rSlope2: Ray(poolData.f.rSlope2),
+    uOptimal: RayInt.from(poolData.f.uOptimal),
+    r0: RayInt.from(poolData.f.r0),
+    rSlope1: RayInt.from(poolData.f.rSlope1),
+    rSlope2: RayInt.from(poolData.f.rSlope2),
   };
-  const utilizationRate = Ray(utilizationRate_);
+  const utilizationRate = RayInt.from(utilizationRate_);
 
   if (utilizationRate.lt(formula.uOptimal)) {
     // Return base rate + proportional slope 1 rate
-    return formula.r0.r_add(
-      formula.rSlope1.rayMul(utilizationRate.rayDiv(formula.uOptimal)),
-    );
+    return formula.r0
+      .add(formula.rSlope1.rayMul(utilizationRate.rayDiv(formula.uOptimal)))
+      .toBigNumber();
   } else if (utilizationRate.lt(FULL_CAPACITY)) {
     // Return base rate + slope 1 rate + proportional slope 2 rate
     return formula.r0
-      .r_add(formula.rSlope1)
+      .add(formula.rSlope1)
       .add(
         formula.rSlope2.rayMul(
           utilizationRate
-            .r_sub(formula.uOptimal)
-            .rayDiv(FULL_CAPACITY.r_sub(formula.uOptimal)),
+            .sub(formula.uOptimal)
+            .rayDiv(FULL_CAPACITY.sub(formula.uOptimal.toBigNumber())),
         ),
-      );
+      )
+      .toBigNumber();
   } else {
     // Return base rate + slope 1 rate + slope 2 rate
     /**
@@ -113,7 +179,7 @@ function getPremiumRate(
      * cover buyers are not fully covered.
      * This means cover buyers only pay for the effective cover they have.
      */
-    return formula.r0.r_add(formula.rSlope1).r_add(formula.rSlope2);
+    return formula.r0.add(formula.rSlope1).add(formula.rSlope2).toBigNumber();
   }
 }
 
@@ -124,17 +190,30 @@ function getPremiumRate(
  * @param timeSeconds_ The time in seconds
  * @return The liquidity index to add for the given time
  */
-function computeLiquidityIndex(
-  utilizationRate_: BigNumber,
-  premiumRate_: BigNumber,
-  timeSeconds_: BigNumber,
+export function computeLiquidityIndex(
+  utilizationRate_: RayInt | BigNumberish,
+  premiumRate_: RayInt | BigNumberish,
+  timeSeconds_: RayInt | BigNumberish,
 ): BigNumber {
-  const utilizationRate = Ray(utilizationRate_);
-  const premiumRate = Ray(premiumRate_);
-  const timeSeconds = Ray(timeSeconds_);
+  const utilizationRate = RayInt.from(utilizationRate_);
+  const premiumRate = RayInt.from(premiumRate_);
+  const timeSeconds = RayInt.from(timeSeconds_);
 
-  return utilizationRate.rayMul(premiumRate).rayMul(timeSeconds).rayDiv(YEAR);
+  return utilizationRate
+    .rayMul(premiumRate)
+    .rayMul(timeSeconds)
+    .rayDiv(YEAR)
+    .toBigNumber();
 }
+
+console.log(
+  "computeLiquidityIndex: ",
+  computeLiquidityIndex(
+    BigNumber.from(10),
+    BigNumber.from(10),
+    BigNumber.from(10),
+  ),
+);
 
 /**
  * @notice Computes the premiums or interests earned by a liquidity position
@@ -142,19 +221,20 @@ function computeLiquidityIndex(
  * @param liquidityIndex_ The end liquidity index
  * @param beginLiquidityIndex_ The start liquidity index
  */
-function getCoverRewards(
-  userCapital_: BigNumber,
-  liquidityIndex_: BigNumber,
-  beginLiquidityIndex_: BigNumber,
+export function getCoverRewards(
+  userCapital_: RayInt | BigNumberish,
+  liquidityIndex_: RayInt | BigNumberish,
+  beginLiquidityIndex_: RayInt | BigNumberish,
 ): BigNumber {
-  const userCapital = Ray(userCapital_);
-  const liquidityIndex = Ray(liquidityIndex_);
-  const beginLiquidityIndex = Ray(beginLiquidityIndex_);
+  const userCapital = RayInt.from(userCapital_);
+  const liquidityIndex = RayInt.from(liquidityIndex_);
+  const beginLiquidityIndex = RayInt.from(beginLiquidityIndex_);
 
   return userCapital
     .rayMul(liquidityIndex)
-    .r_sub(userCapital.rayMul(beginLiquidityIndex))
-    .r_div(10_000);
+    .sub(userCapital.rayMul(beginLiquidityIndex))
+    .div(10_000)
+    .toBigNumber();
 }
 
 /**
@@ -167,12 +247,15 @@ function getCoverRewards(
  *
  * @return The new daily cost of the cover expressed in tokens/day
  */
-function getDailyCost(
-  oldDailyCost_: BigNumber,
-  oldPremiumRate_: BigNumber,
-  newPremiumRate_: BigNumber,
+export function getDailyCost(
+  oldDailyCost_: RayInt | BigNumberish,
+  oldPremiumRate_: RayInt | BigNumberish,
+  newPremiumRate_: RayInt | BigNumberish,
 ): BigNumber {
-  return oldDailyCost_.mul(newPremiumRate_).div(oldPremiumRate_);
+  return RayInt.from(oldDailyCost_)
+    .mul(newPremiumRate_)
+    .div(oldPremiumRate_)
+    .toBigNumber();
 }
 
 /**
@@ -185,16 +268,19 @@ function getDailyCost(
  *
  * @return The new seconds per tick of the pool
  */
-function secondsPerTick(
-  oldSecondsPerTick_: BigNumber,
-  oldPremiumRate_: BigNumber,
-  newPremiumRate_: BigNumber,
+export function secondsPerTick(
+  oldSecondsPerTick_: RayInt | BigNumberish,
+  oldPremiumRate_: RayInt | BigNumberish,
+  newPremiumRate_: RayInt | BigNumberish,
 ): BigNumber {
-  const oldSecondsPerTick = Ray(oldSecondsPerTick_);
-  const oldPremiumRate = Ray(oldPremiumRate_);
-  const newPremiumRate = Ray(newPremiumRate_);
+  const oldSecondsPerTick = RayInt.from(oldSecondsPerTick_);
+  const oldPremiumRate = RayInt.from(oldPremiumRate_);
+  const newPremiumRate = RayInt.from(newPremiumRate_);
 
-  return oldSecondsPerTick.rayMul(oldPremiumRate).rayDiv(newPremiumRate);
+  return oldSecondsPerTick
+    .rayMul(oldPremiumRate)
+    .rayDiv(newPremiumRate)
+    .toBigNumber();
 }
 
 /**
@@ -205,7 +291,7 @@ function secondsPerTick(
  *
  * @dev Not pure since reads self but pure for all practical purposes
  */
-function currentPremiumRate(poolData: PoolData): BigNumber {
+export function currentPremiumRate(poolData: PoolData): BigNumber {
   const coveredCapital = poolData.slot0.coveredCapital;
   return getPremiumRate(
     poolData,
@@ -221,19 +307,19 @@ function currentPremiumRate(poolData: PoolData): BigNumber {
  *
  * @return The updated premium rate of the pool
  */
-function updatedPremiumRate(
+export function updatedPremiumRate(
   poolData: PoolData,
-  coveredCapitalToAdd_: BigNumber,
-  coveredCapitalToRemove_: BigNumber,
+  coveredCapitalToAdd_: RayInt | BigNumberish,
+  coveredCapitalToRemove_: RayInt | BigNumberish,
 ): [BigNumber, BigNumber] {
   const previousPremiumRate = currentPremiumRate(poolData);
 
   const newPremiumRate = getPremiumRate(
     poolData,
     utilization(
-      Ray(poolData.slot0.coveredCapital)
-        .r_add(coveredCapitalToAdd_)
-        .r_sub(coveredCapitalToRemove_),
+      RayInt.from(poolData.slot0.coveredCapital)
+        .add(coveredCapitalToAdd_)
+        .sub(coveredCapitalToRemove_),
       poolData.totalLiquidity,
     ),
   );
@@ -256,15 +342,15 @@ function updatedPremiumRate(
  *
  * @dev The utilization rate is capped at 100%.
  */
-function utilization(
-  coveredCapital_: BigNumber,
-  liquidity_: BigNumber,
+export function utilization(
+  coveredCapital_: RayInt | BigNumberish,
+  liquidity_: RayInt | BigNumberish,
 ): BigNumber {
-  const coveredCapital = Ray(coveredCapital_);
-  const liquidity = Ray(liquidity_);
+  const coveredCapital = RayInt.from(coveredCapital_);
+  const liquidity = RayInt.from(liquidity_);
 
   // If the pool has no liquidity then the utilization rate is 0
-  if (liquidity_.eq(0)) return BigNumber.from(0);
+  if (liquidity.eq(0)) return BigNumber.from(0);
 
   /**
    * @dev Utilization rate is capped at 100% because in case of overusage the
@@ -275,26 +361,5 @@ function utilization(
   if (liquidity < coveredCapital) return FULL_CAPACITY;
 
   // Get a base PERCENTAGE_BASE percentage
-  return coveredCapital.r_mul(PERCENTAGE_BASE).rayDiv(liquidity);
+  return coveredCapital.mul(PERCENTAGE_BASE).rayDiv(liquidity).toBigNumber();
 }
-
-export const rayMath = {
-  constants: {
-    RAY,
-    halfRAY,
-    YEAR,
-    MAX_SECONDS_PER_TICK,
-    FEE_BASE,
-    PERCENTAGE_BASE,
-    FULL_CAPACITY,
-  },
-  Ray,
-  getPremiumRate,
-  computeLiquidityIndex,
-  getCoverRewards,
-  getDailyCost,
-  secondsPerTick,
-  currentPremiumRate,
-  updatedPremiumRate,
-  utilization,
-};

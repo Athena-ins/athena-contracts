@@ -1,11 +1,10 @@
 import { expect } from "chai";
 // Helpers
 import { setNextBlockTimestamp, postTxHandler } from "../../helpers/hardhat";
-import { toUsd, toRay, toErc20, makeIdArray } from "../../helpers/protocol";
+import { toUsd, toErc20, makeIdArray } from "../../helpers/protocol";
+import { toRay } from "../../helpers/utils/poolRayMath";
 // Types
 import { BigNumber } from "ethers";
-
- 
 
 interface Arguments extends Mocha.Context {
   args: {

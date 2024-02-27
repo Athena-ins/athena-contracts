@@ -18,7 +18,7 @@ import {
   getCurrentBlockNumber,
   postTxHandler,
 } from "../helpers/hardhat";
-import { toRay } from "../helpers/protocol";
+import { toRay } from "../helpers/utils/poolRayMath";
 import { AthenaToken__factory } from "../../typechain";
 // Types
 import { BaseContract } from "ethers";

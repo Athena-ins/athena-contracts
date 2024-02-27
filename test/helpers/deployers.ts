@@ -7,7 +7,6 @@ import {
 } from "./hardhat";
 import {
   toErc20,
-  toRay,
   usdtTokenAddress,
   wethTokenAddress,
   evidenceGuardianWallet,
@@ -15,6 +14,7 @@ import {
   treasuryWallet,
   leverageRiskWallet,
 } from "./protocol";
+import { toRay } from "./utils/poolRayMath";
 // typechain
 import {
   // Dao

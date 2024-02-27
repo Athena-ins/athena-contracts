@@ -58,12 +58,6 @@ export function toErc20(amount: number) {
   return parseUnits(amount.toString(), 18);
 }
 
-export function toRay(amount: number, decimals = 0) {
-  // @dev ex: 10_000 = 100% = 4 decimals
-  const base = 27 - decimals;
-  return parseUnits(amount.toString(), base);
-}
-
 export function makeIdArray(length: number) {
   return [...Array(length).keys()];
 }

@@ -1,6 +1,7 @@
 import { expect } from "chai";
 // Helpers
-import { toRay, toUsd } from "../../helpers/protocol";
+import { toUsd } from "../../helpers/protocol";
+import { toRay } from "../../helpers/utils/poolRayMath";
 // Types
 import { BigNumber } from "ethers";
 
