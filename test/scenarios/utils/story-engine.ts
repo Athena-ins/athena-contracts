@@ -161,17 +161,7 @@ export type Scenario = {
   stories: Story[];
 };
 
-export async function executeStory(story: Story) {
-  const title = `Scenario: ${story.description}`;
-
-  describe(title, async function () {
-    for (const action of story.actions) {
-      await executeAction(action);
-    }
-  });
-}
-
-async function executeAction(action: Action) {
+export async function executeAction(this: Mocha.Context, action: Action) {
   const { name, expected, userName, timeTravel } = action;
 
   const title = `${userName} should ${name} expecting ${expected}`;
