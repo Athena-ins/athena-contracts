@@ -32,6 +32,12 @@ import {
   convertToCurrencyDecimals,
 } from "../../helpers/hardhat";
 import { expectEqual } from "../../helpers/chai/almostEqualState";
+import {
+  poolInfoFormat,
+  positionInfoFormat,
+  coverInfoFormat,
+  claimInfoFormat,
+} from "../../helpers/dataFormat";
 // Types
 import { BigNumber, BigNumberish, ContractReceipt, Wallet } from "ethers";
 import { TestEnv } from "../../context";
@@ -64,12 +70,18 @@ export async function getContractsData(
   const { LiquidityManager } = testEnv.contracts;
 
   const poolData = await Promise.all(
-    poolIds.map((poolId) => LiquidityManager.poolInfo(poolId)),
+    poolIds.map((poolId) =>
+      LiquidityManager.poolInfo(poolId).then((data) => poolInfoFormat(data)),
+    ),
   );
   const [tokenData, timestamp] = await Promise.all([
     tokenType === "cover"
-      ? LiquidityManager.coverInfo(tokenId)
-      : LiquidityManager.positionInfo(tokenId),
+      ? LiquidityManager.coverInfo(tokenId).then((data) =>
+          coverInfoFormat(data),
+        )
+      : LiquidityManager.positionInfo(tokenId).then((data) =>
+          positionInfoFormat(data),
+        ),
     getCurrentTime(),
   ]);
 
@@ -172,7 +184,7 @@ export async function createPool(
     const { txTimestamp } = await getTxCostAndTimestamp(txResult);
 
     const [poolData, strategyTokens] = await Promise.all([
-      LiquidityManager.poolInfo(poolId),
+      LiquidityManager.poolInfo(poolId).then((data) => poolInfoFormat(data)),
       StrategyManager.assets(strategyId),
     ]);
 
@@ -219,7 +231,9 @@ export async function openPosition(
   const { LiquidityManager } = testEnv.contracts;
 
   const poolDataBefore = await Promise.all(
-    poolIds.map((poolId) => LiquidityManager.poolInfo(poolId)),
+    poolIds.map((poolId) =>
+      LiquidityManager.poolInfo(poolId).then((data) => poolInfoFormat(data)),
+    ),
   );
 
   const depositToken = isWrapped
@@ -229,7 +243,9 @@ export async function openPosition(
     LiquidityManager.nextPositionId(),
     convertToCurrencyDecimals(depositToken, amount),
   ]);
-  const tokenDataBefore = await LiquidityManager.positionInfo(positionId);
+  const tokenDataBefore = await LiquidityManager.positionInfo(positionId).then(
+    (data) => positionInfoFormat(data),
+  );
 
   if (expectedResult === "success") {
     const userAddress = await user.getAddress();
@@ -304,9 +320,13 @@ export async function addLiquidity(
 ) {
   const { LiquidityManager } = testEnv.contracts;
 
-  const tokenDataBefore = await LiquidityManager.positionInfo(positionId);
+  const tokenDataBefore = await LiquidityManager.positionInfo(positionId).then(
+    (data) => positionInfoFormat(data),
+  );
   const poolDataBefore = await Promise.all(
-    tokenDataBefore.poolIds.map((poolId) => LiquidityManager.poolInfo(poolId)),
+    tokenDataBefore.poolIds.map((poolId) =>
+      LiquidityManager.poolInfo(poolId).then((data) => poolInfoFormat(data)),
+    ),
   );
 
   const depositToken = isWrapped
@@ -406,9 +426,13 @@ export async function commitRemoveLiquidity(
 ) {
   const { LiquidityManager } = testEnv.contracts;
 
-  const tokenDataBefore = await LiquidityManager.positionInfo(positionId);
+  const tokenDataBefore = await LiquidityManager.positionInfo(positionId).then(
+    (data) => positionInfoFormat(data),
+  );
   const poolDataBefore = await Promise.all(
-    tokenDataBefore.poolIds.map((poolId) => LiquidityManager.poolInfo(poolId)),
+    tokenDataBefore.poolIds.map((poolId) =>
+      LiquidityManager.poolInfo(poolId).then((data) => poolInfoFormat(data)),
+    ),
   );
 
   if (expectedResult === "success") {
@@ -467,9 +491,13 @@ export async function uncommitRemoveLiquidity(
 ) {
   const { LiquidityManager } = testEnv.contracts;
 
-  const tokenDataBefore = await LiquidityManager.positionInfo(positionId);
+  const tokenDataBefore = await LiquidityManager.positionInfo(positionId).then(
+    (data) => positionInfoFormat(data),
+  );
   const poolDataBefore = await Promise.all(
-    tokenDataBefore.poolIds.map((poolId) => LiquidityManager.poolInfo(poolId)),
+    tokenDataBefore.poolIds.map((poolId) =>
+      LiquidityManager.poolInfo(poolId).then((data) => poolInfoFormat(data)),
+    ),
   );
 
   if (expectedResult === "success") {
@@ -528,9 +556,13 @@ export async function takeInterests(
 ) {
   const { LiquidityManager } = testEnv.contracts;
 
-  const tokenDataBefore = await LiquidityManager.positionInfo(positionId);
+  const tokenDataBefore = await LiquidityManager.positionInfo(positionId).then(
+    (data) => positionInfoFormat(data),
+  );
   const poolDataBefore = await Promise.all(
-    tokenDataBefore.poolIds.map((poolId) => LiquidityManager.poolInfo(poolId)),
+    tokenDataBefore.poolIds.map((poolId) =>
+      LiquidityManager.poolInfo(poolId).then((data) => poolInfoFormat(data)),
+    ),
   );
 
   if (expectedResult === "success") {
@@ -588,9 +620,13 @@ export async function removeLiquidity(
 ) {
   const { LiquidityManager } = testEnv.contracts;
 
-  const tokenDataBefore = await LiquidityManager.positionInfo(positionId);
+  const tokenDataBefore = await LiquidityManager.positionInfo(positionId).then(
+    (data) => positionInfoFormat(data),
+  );
   const poolDataBefore = await Promise.all(
-    tokenDataBefore.poolIds.map((poolId) => LiquidityManager.poolInfo(poolId)),
+    tokenDataBefore.poolIds.map((poolId) =>
+      LiquidityManager.poolInfo(poolId).then((data) => poolInfoFormat(data)),
+    ),
   );
   const amountToRemove = await convertToCurrencyDecimals(
     poolDataBefore[0].underlyingAsset,
@@ -662,7 +698,9 @@ export async function openCover(
 ) {
   const { LiquidityManager } = testEnv.contracts;
 
-  const poolDataBefore = await LiquidityManager.poolInfo(poolId);
+  const poolDataBefore = await LiquidityManager.poolInfo(poolId).then((data) =>
+    poolInfoFormat(data),
+  );
   const [amount, premiums] = await Promise.all([
     convertToCurrencyDecimals(poolDataBefore.underlyingAsset, coverAmount),
     convertToCurrencyDecimals(poolDataBefore.paymentAsset, premiumsAmount),
@@ -670,7 +708,9 @@ export async function openCover(
 
   if (expectedResult === "success") {
     const coverId = await LiquidityManager.nextCoverId();
-    const tokenDataBefore = await LiquidityManager.coverInfo(coverId);
+    const tokenDataBefore = await LiquidityManager.coverInfo(coverId).then(
+      (data) => coverInfoFormat(data),
+    );
     const userAddress = await user.getAddress();
     const paymentToken = ERC20__factory.connect(
       poolDataBefore.paymentAsset,
@@ -739,10 +779,12 @@ export async function updateCover(
 ) {
   const { LiquidityManager } = testEnv.contracts;
 
-  const tokenDataBefore = await LiquidityManager.coverInfo(coverId);
+  const tokenDataBefore = await LiquidityManager.coverInfo(coverId).then(
+    (data) => coverInfoFormat(data),
+  );
   const poolDataBefore = await LiquidityManager.poolInfo(
     tokenDataBefore.poolId,
-  );
+  ).then((data) => poolInfoFormat(data));
 
   const [
     coverToAddAmount,
@@ -844,10 +886,12 @@ export async function initiateClaim(
 ) {
   const { LiquidityManager, ClaimManager } = testEnv.contracts;
 
-  const tokenDataBefore = await LiquidityManager.coverInfo(coverId);
+  const tokenDataBefore = await LiquidityManager.coverInfo(coverId).then(
+    (data) => coverInfoFormat(data),
+  );
   const poolDataBefore = await LiquidityManager.poolInfo(
     tokenDataBefore.poolId,
-  );
+  ).then((data) => poolInfoFormat(data));
   const amountClaimedAmount = await convertToCurrencyDecimals(
     poolDataBefore.underlyingAsset,
     amountClaimed,
@@ -920,10 +964,16 @@ export async function withdrawCompensation(
 ) {
   const { LiquidityManager, ClaimManager } = testEnv.contracts;
 
-  const claimInfoBefore = await ClaimManager.claimInfo(claimId);
+  const claimInfoBefore = await ClaimManager.claimInfo(claimId).then((data) =>
+    claimInfoFormat(data),
+  );
   const [tokenDataBefore, poolDataBefore] = await Promise.all([
-    LiquidityManager.coverInfo(claimInfoBefore.coverId),
-    LiquidityManager.poolInfo(claimInfoBefore.poolId),
+    LiquidityManager.coverInfo(claimInfoBefore.coverId).then((data) =>
+      coverInfoFormat(data),
+    ),
+    LiquidityManager.poolInfo(claimInfoBefore.poolId).then((data) =>
+      poolInfoFormat(data),
+    ),
   ]);
 
   if (expectedResult === "success") {

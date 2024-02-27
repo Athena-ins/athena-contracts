@@ -1,5 +1,5 @@
 // Story engine
-import { executeAction, Scenario } from "./utils/actionEngine";
+import { executeAction } from "./utils/actionEngine";
 // Stories
 import { coverOpenAndUpdate } from "./scenarios/covers.scenario";
 
