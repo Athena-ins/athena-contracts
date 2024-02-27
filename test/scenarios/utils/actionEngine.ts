@@ -20,136 +20,8 @@ import {
 } from "./actions";
 import { toRay } from "../../helpers/utils/poolRayMath";
 // Types
-import { SignerName } from "../../context";
-import { TimeTravelOptions } from "../../helpers/hardhat";
+import { Action } from "./actionTypes";
 import { getTokenAddressBySymbol } from "../../helpers/protocol";
-import { ProtocolContracts } from "../../helpers/deployers";
-
-type BaseAction = {
-  userName: SignerName;
-  expected: string;
-  timeTravel?: TimeTravelOptions;
-  revertMessage?: string;
-};
-
-type ActionGetTokens = BaseAction & {
-  name: "getTokens";
-  args: {
-    tokenName: "ATEN" | "USDT";
-    amount: number;
-  };
-};
-type ActionApproveTokens = BaseAction & {
-  name: "approveTokens";
-  args: {
-    spender: keyof ProtocolContracts;
-    tokenName: "ATEN" | "USDT";
-    amount: number;
-  };
-};
-type ActionCreatePool = BaseAction & {
-  name: "createPool";
-  args: {
-    paymentAsset: "USDT";
-    strategyId: number;
-    compatiblePools: number[];
-    feeRate?: number;
-    uOptimal?: number;
-    r0?: number;
-    rSlope1?: number;
-    rSlope2?: number;
-  };
-};
-type ActionOpenCover = BaseAction & {
-  name: "openCover";
-  args: {
-    poolId: number;
-    coverAmount: number;
-    premiumAmount: number;
-  };
-};
-type ActionUpdateCover = BaseAction & {
-  name: "updateCover";
-  args: {
-    coverId: number;
-    coverToAdd: number;
-    coverToRemove: number;
-    premiumToAdd: number;
-    premiumToRemove: number;
-  };
-};
-type ActionOpenPosition = BaseAction & {
-  name: "openPosition";
-  args: {
-    amount: number;
-    isWrapped: boolean;
-    poolIds: number[];
-  };
-};
-type ActionAddLiquidity = BaseAction & {
-  name: "addLiquidity";
-  args: {
-    positionId: number;
-    amount: number;
-    isWrapped: boolean;
-  };
-};
-type ActionCommitRemoveLiquidity = BaseAction & {
-  name: "commitRemoveLiquidity";
-  args: {
-    positionId: number;
-  };
-};
-type ActionUncommitRemoveLiquidity = BaseAction & {
-  name: "uncommitRemoveLiquidity";
-  args: {
-    positionId: number;
-  };
-};
-type ActionRemoveLiquidity = BaseAction & {
-  name: "removeLiquidity";
-  args: {
-    positionId: number;
-    amount: number;
-    keepWrapped: boolean;
-  };
-};
-type ActionTakeInterests = BaseAction & {
-  name: "takeInterests";
-  args: {
-    positionId: number;
-  };
-};
-type ActionInitiateClaim = BaseAction & {
-  name: "initiateClaim";
-  args: {
-    coverId: number;
-    amountClaimed: number;
-    ipfsMetaEvidenceCid: string;
-    signature: string;
-  };
-};
-type ActionWithdrawCompensation = BaseAction & {
-  name: "withdrawCompensation";
-  args: {
-    claimId: number;
-  };
-};
-
-export type Action =
-  | ActionGetTokens
-  | ActionApproveTokens
-  | ActionCreatePool
-  | ActionOpenCover
-  | ActionUpdateCover
-  | ActionOpenPosition
-  | ActionAddLiquidity
-  | ActionCommitRemoveLiquidity
-  | ActionUncommitRemoveLiquidity
-  | ActionRemoveLiquidity
-  | ActionTakeInterests
-  | ActionInitiateClaim
-  | ActionWithdrawCompensation;
 
 export type Story = {
   description: string;
@@ -162,250 +34,241 @@ export type Scenario = {
 };
 
 export async function executeAction(this: Mocha.Context, action: Action) {
-  const { name, expected, userName, timeTravel } = action;
+  const { name, expected, userName, timeTravel, revertMessage, args } = action;
+  const user = this.signers[userName];
 
-  const title = `${userName} should ${name} expecting ${expected}`;
+  if (!expected) {
+    throw Error(`An expected resut for action ${name} is required`);
+  }
+  if (!user) {
+    throw Error(`Cannot find user ${userName} among context signers`);
+  }
 
-  it(title, async function () {
-    if (!expected)
-      throw Error(`An expected resut for action ${name} is required`);
+  switch (name) {
+    case "getTokens":
+      {
+        const { tokenName, amount } = args;
 
-    const user = this.signers[userName];
-    if (!user)
-      throw Error(`Cannot find user ${userName} among context signers`);
+        await getTokens(this, tokenName, user, amount);
+      }
+      break;
+    case "approveTokens":
+      {
+        const { spender, tokenName, amount } = args;
 
-    if (name === "openCover") action.args;
+        const spenderAddress = this.contracts[spender].address;
 
-    switch (name) {
-      case "getTokens":
-        {
-          const { tokenName, amount } = action.args;
+        await approveTokens(this, tokenName, user, spenderAddress, amount);
+      }
+      break;
+    case "createPool":
+      {
+        const { paymentAsset, strategyId, compatiblePools } = args;
 
-          await getTokens(this, tokenName, user, amount);
-        }
-        break;
-      case "approveTokens":
-        {
-          const { spender, tokenName, amount } = action.args;
+        getTokenAddressBySymbol(paymentAsset);
 
-          const spenderAddress = this.contracts[spender].address;
+        const { poolFormula } = this.protocolConfig;
 
-          await approveTokens(this, tokenName, user, spenderAddress, amount);
-        }
-        break;
-      case "createPool":
-        {
-          const { paymentAsset, strategyId, compatiblePools } = action.args;
+        const feeRate =
+          args.feeRate !== undefined
+            ? toRay(args.feeRate)
+            : poolFormula.feeRate;
+        const uOptimal =
+          args.uOptimal !== undefined
+            ? toRay(args.uOptimal)
+            : poolFormula.uOptimal;
+        const r0 = args.r0 !== undefined ? toRay(args.r0) : poolFormula.r0;
+        const rSlope1 =
+          args.rSlope1 !== undefined
+            ? toRay(args.rSlope1)
+            : poolFormula.rSlope1;
+        const rSlope2 =
+          args.rSlope2 !== undefined
+            ? toRay(args.rSlope2)
+            : poolFormula.rSlope2;
 
-          getTokenAddressBySymbol(paymentAsset);
+        await createPool(
+          this,
+          paymentAsset,
+          strategyId,
+          feeRate,
+          uOptimal,
+          r0,
+          rSlope1,
+          rSlope2,
+          compatiblePools,
+          expected,
+        );
+      }
+      break;
+    case "openCover":
+      {
+        const { poolId, coverAmount, premiumAmount } = args;
 
-          const { poolFormula } = this.protocolConfig;
+        await openCover(
+          this,
+          user,
+          poolId,
+          coverAmount,
+          premiumAmount,
+          expected,
+          timeTravel,
+        );
+      }
+      break;
 
-          const feeRate =
-            action.args.feeRate !== undefined
-              ? toRay(action.args.feeRate)
-              : poolFormula.feeRate;
-          const uOptimal =
-            action.args.uOptimal !== undefined
-              ? toRay(action.args.uOptimal)
-              : poolFormula.uOptimal;
-          const r0 =
-            action.args.r0 !== undefined
-              ? toRay(action.args.r0)
-              : poolFormula.r0;
-          const rSlope1 =
-            action.args.rSlope1 !== undefined
-              ? toRay(action.args.rSlope1)
-              : poolFormula.rSlope1;
-          const rSlope2 =
-            action.args.rSlope2 !== undefined
-              ? toRay(action.args.rSlope2)
-              : poolFormula.rSlope2;
+    case "updateCover":
+      {
+        const {
+          coverId,
+          coverToAdd,
+          coverToRemove,
+          premiumToAdd,
+          premiumToRemove,
+        } = args;
 
-          await createPool(
-            this,
-            paymentAsset,
-            strategyId,
-            feeRate,
-            uOptimal,
-            r0,
-            rSlope1,
-            rSlope2,
-            compatiblePools,
-            expected,
-          );
-        }
-        break;
-      case "openCover":
-        {
-          const { poolId, coverAmount, premiumAmount } = action.args;
+        await updateCover(
+          this,
+          user,
+          coverId,
+          coverToAdd,
+          coverToRemove,
+          premiumToAdd,
+          premiumToRemove,
+          expected,
+          timeTravel,
+        );
+      }
+      break;
 
-          await openCover(
-            this,
-            user,
-            poolId,
-            coverAmount,
-            premiumAmount,
-            expected,
-            timeTravel,
-          );
-        }
-        break;
+    case "openPosition":
+      {
+        const { amount, isWrapped, poolIds } = args;
 
-      case "updateCover":
-        {
-          const {
-            coverId,
-            coverToAdd,
-            coverToRemove,
-            premiumToAdd,
-            premiumToRemove,
-          } = action.args;
+        await openPosition(
+          this,
+          user,
+          amount,
+          isWrapped,
+          poolIds,
+          expected,
+          timeTravel,
+        );
+      }
+      break;
 
-          await updateCover(
-            this,
-            user,
-            coverId,
-            coverToAdd,
-            coverToRemove,
-            premiumToAdd,
-            premiumToRemove,
-            expected,
-            timeTravel,
-          );
-        }
-        break;
+    case "addLiquidity":
+      {
+        const { positionId, amount, isWrapped } = args;
 
-      case "openPosition":
-        {
-          const { amount, isWrapped, poolIds } = action.args;
+        await addLiquidity(
+          this,
+          user,
+          positionId,
+          amount,
+          isWrapped,
+          expected,
+          timeTravel,
+        );
+      }
+      break;
 
-          await openPosition(
-            this,
-            user,
-            amount,
-            isWrapped,
-            poolIds,
-            expected,
-            timeTravel,
-          );
-        }
-        break;
+    case "commitRemoveLiquidity":
+      {
+        const { positionId } = args;
 
-      case "addLiquidity":
-        {
-          const { positionId, amount, isWrapped } = action.args;
+        await commitRemoveLiquidity(
+          this,
+          user,
+          positionId,
+          expected,
+          timeTravel,
+        );
+      }
+      break;
 
-          await addLiquidity(
-            this,
-            user,
-            positionId,
-            amount,
-            isWrapped,
-            expected,
-            timeTravel,
-          );
-        }
-        break;
+    case "uncommitRemoveLiquidity":
+      {
+        const { positionId } = args;
 
-      case "commitRemoveLiquidity":
-        {
-          const { positionId } = action.args;
+        await uncommitRemoveLiquidity(
+          this,
+          user,
+          positionId,
+          expected,
+          timeTravel,
+        );
+      }
+      break;
 
-          await commitRemoveLiquidity(
-            this,
-            user,
-            positionId,
-            expected,
-            timeTravel,
-          );
-        }
-        break;
+    case "removeLiquidity":
+      {
+        const { positionId, amount, keepWrapped } = args;
 
-      case "uncommitRemoveLiquidity":
-        {
-          const { positionId } = action.args;
+        await removeLiquidity(
+          this,
+          user,
+          positionId,
+          amount,
+          keepWrapped,
+          expected,
+          timeTravel,
+        );
+      }
+      break;
 
-          await uncommitRemoveLiquidity(
-            this,
-            user,
-            positionId,
-            expected,
-            timeTravel,
-          );
-        }
-        break;
+    case "takeInterests":
+      {
+        const { positionId } = args;
 
-      case "removeLiquidity":
-        {
-          const { positionId, amount, keepWrapped } = action.args;
+        await takeInterests(this, user, positionId, expected, timeTravel);
+      }
+      break;
 
-          await removeLiquidity(
-            this,
-            user,
-            positionId,
-            amount,
-            keepWrapped,
-            expected,
-            timeTravel,
-          );
-        }
-        break;
+    case "initiateClaim":
+      {
+        const { coverId, amountClaimed, ipfsMetaEvidenceCid, signature } = args;
 
-      case "takeInterests":
-        {
-          const { positionId } = action.args;
+        await initiateClaim(
+          this,
+          user,
+          coverId,
+          amountClaimed,
+          ipfsMetaEvidenceCid,
+          signature,
+          expected,
+          timeTravel,
+        );
+      }
+      break;
 
-          await takeInterests(this, user, positionId, expected, timeTravel);
-        }
-        break;
+    case "withdrawCompensation":
+      {
+        const { claimId } = args;
 
-      case "initiateClaim":
-        {
-          const { coverId, amountClaimed, ipfsMetaEvidenceCid, signature } =
-            action.args;
+        await withdrawCompensation(this, user, claimId, expected, timeTravel);
+      }
+      break;
 
-          await initiateClaim(
-            this,
-            user,
-            coverId,
-            amountClaimed,
-            ipfsMetaEvidenceCid,
-            signature,
-            expected,
-            timeTravel,
-          );
-        }
-        break;
+    default:
+      throw `Invalid action requested: ${name}`;
 
-      case "withdrawCompensation":
-        {
-          const { claimId } = action.args;
+    // case "disputeClaim":
+    //   {
+    //     await disputeClaim(this, user);
+    //   }
+    //   break;
 
-          await withdrawCompensation(this, user, claimId, expected, timeTravel);
-        }
-        break;
+    // case "rule":
+    //   {
+    //     await rule(this, user);
+    //   }
+    //   break;
 
-      default:
-        throw `Invalid action requested: ${name}`;
-
-      // case "disputeClaim":
-      //   {
-      //     await disputeClaim(this, user);
-      //   }
-      //   break;
-
-      // case "rule":
-      //   {
-      //     await rule(this, user);
-      //   }
-      //   break;
-
-      // case "overrule":
-      //   {
-      //     await overrule(this, user);
-      //   }
-      //   break;
-    }
-  });
+    // case "overrule":
+    //   {
+    //     await overrule(this, user);
+    //   }
+    //   break;
+  }
 }
