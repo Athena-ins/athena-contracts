@@ -158,6 +158,7 @@ contract Staking is IStaking, ERC20, Ownable {
       depositAmount_
     );
 
+    // @bw need to get balance of user, not all DAO staking
     _updateAccountYieldBonus(
       userInfo[msg.sender].shares,
       _currentBalance

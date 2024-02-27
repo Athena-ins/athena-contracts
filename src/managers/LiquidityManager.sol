@@ -278,6 +278,19 @@ contract LiquidityManager is
   ) external view returns (VirtualPool.VPoolRead memory) {
     VirtualPool.VPool storage pool = _pools[poolId_];
 
+    uint256 nbOverlappedPools = pool.overlappedPools.length;
+    uint256[] memory overlappedCapital = new uint256[](
+      nbOverlappedPools
+    );
+    for (uint256 i; i < nbOverlappedPools; i++) {
+      overlappedCapital[i] = poolOverlaps(
+        pool.poolId,
+        pool.overlappedPools[i]
+      );
+    }
+
+    uint256 totalLiquidity = pool.totalLiquidity();
+
     return
       VirtualPool.VPoolRead({
         poolId: pool.poolId,
@@ -294,7 +307,14 @@ contract LiquidityManager is
         isPaused: pool.isPaused,
         overlappedPools: pool.overlappedPools,
         ongoingClaims: pool.ongoingClaims,
-        compensationIds: pool.compensationIds
+        compensationIds: pool.compensationIds,
+        overlappedCapital: overlappedCapital,
+        utilizationRate: VirtualPool._utilization(
+          pool.slot0.coveredCapital,
+          totalLiquidity
+        ),
+        totalLiquidity: totalLiquidity,
+        availableLiquidity: pool.availableLiquidity()
       });
   }
 
@@ -310,7 +330,7 @@ contract LiquidityManager is
   function poolOverlaps(
     uint64 poolIdA_,
     uint64 poolIdB_
-  ) external view returns (uint256) {
+  ) public view returns (uint256) {
     return
       poolIdA_ < poolIdB_
         ? _pools[poolIdA_].overlaps[poolIdB_]

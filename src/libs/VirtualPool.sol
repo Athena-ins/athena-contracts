@@ -120,6 +120,10 @@ library VirtualPool {
     uint64[] overlappedPools;
     uint256 ongoingClaims;
     uint256[] compensationIds;
+    uint256[] overlappedCapital;
+    uint256 utilizationRate;
+    uint256 totalLiquidity;
+    uint256 availableLiquidity;
   }
 
   struct VPool {
@@ -635,8 +639,10 @@ library VirtualPool {
       Slot0 memory slot0 = self._refresh(block.timestamp);
 
       uint32 observedTick = self.slot0.tick;
-      bool isInitialized;
+
+      // For all the ticks between the slot0 tick & the refreshed tick
       while (observedTick < slot0.tick) {
+        bool isInitialized;
         (observedTick, isInitialized) = self.tickBitmap.nextTick(
           observedTick
         );
@@ -657,6 +663,7 @@ library VirtualPool {
     }
 
     // Update update timestamp in any case
+    // @bw not sure about this
     self.slot0.lastUpdateTimestamp = block.timestamp;
   }
 
