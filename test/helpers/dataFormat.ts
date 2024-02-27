@@ -33,6 +33,10 @@ export function poolInfoFormat(
     isPaused: data.isPaused,
     overlappedPools: data.overlappedPools.map((val) => val.toNumber()),
     compensationIds: data.compensationIds.map((val) => val.toNumber()),
+    overlappedCapital: data.overlappedCapital,
+    utilizationRate: data.utilizationRate,
+    totalLiquidity: data.totalLiquidity,
+    availableLiquidity: data.availableLiquidity,
   };
 }
 

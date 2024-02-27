@@ -4,7 +4,7 @@ import { LiquidityManager, ClaimManager } from "../../../typechain";
 const { expect } = chai;
 
 export type PoolInfoObject = {
-  poolId: BigNumber;
+  poolId: number;
   feeRate: BigNumber;
   formula: {
     uOptimal: BigNumber;
@@ -14,37 +14,41 @@ export type PoolInfoObject = {
   };
   slot0: {
     tick: number;
-    secondsPerTick: BigNumber;
+    secondsPerTick: number;
     coveredCapital: BigNumber;
     remainingCovers: BigNumber;
-    lastUpdateTimestamp: BigNumber;
+    lastUpdateTimestamp: number;
     liquidityIndex: BigNumber;
   };
-  strategyId: BigNumber;
+  strategyId: number;
   paymentAsset: string;
   underlyingAsset: string;
   wrappedAsset: string;
   isPaused: boolean;
-  overlappedPools: BigNumber[];
-  compensationIds: BigNumber[];
+  overlappedPools: number[];
+  compensationIds: number[];
+  overlappedCapital: BigNumber[];
+  utilizationRate: BigNumber;
+  totalLiquidity: BigNumber;
+  availableLiquidity: BigNumber;
 };
 
 export type PositionInfoObject = {
   supplied: BigNumber;
-  commitWithdrawalTimestamp: BigNumber;
+  commitWithdrawalTimestamp: number;
   rewardIndex: BigNumber;
-  poolIds: BigNumber[];
+  poolIds: number[];
   newUserCapital: BigNumber;
   coverRewards: BigNumber[];
   strategyRewards: BigNumber;
 };
 
 export type CoverInfoObject = {
-  coverId: BigNumber;
-  poolId: BigNumber;
+  coverId: number;
+  poolId: number;
   coverAmount: BigNumber;
-  start: BigNumber;
-  end: BigNumber;
+  start: number;
+  end: number;
   premiumsLeft: BigNumber;
   dailyCost: BigNumber;
   premiumRate: BigNumber;
@@ -52,19 +56,19 @@ export type CoverInfoObject = {
 
 export type ClaimInfoObject = {
   claimant: string;
-  coverId: BigNumber;
-  poolId: BigNumber;
-  claimId: BigNumber;
-  disputeId: BigNumber;
+  coverId: number;
+  poolId: number;
+  claimId: number;
+  disputeId: number;
   status: number;
-  createdAt: BigNumber;
+  createdAt: number;
   amount: BigNumber;
   challenger: string;
   deposit: BigNumber;
   evidence: string[];
   counterEvidence: string[];
   metaEvidence: string;
-  rulingTimestamp: BigNumber;
+  rulingTimestamp: number;
 };
 
 type PoolInfo =
