@@ -37,6 +37,7 @@ type ContextSigners = {
 export type SignerName = keyof ContextSigners;
 
 export type TestEnv = {
+  signers: ContextSigners;
   contracts: ProtocolContracts;
   protocolConfig: ProtocolConfig;
   helpers: TestHelper;

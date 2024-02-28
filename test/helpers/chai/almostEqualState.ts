@@ -174,7 +174,7 @@ chai.use(function (chai, utils) {
           if (actualArray.length === 0) return;
 
           for (let i = 0; i < actualArray.length; i++) {
-            checkKey(key, actual[key][i], expected[key][i]);
+            checkKey(`${key}[${i}]`, actual[key][i], expected[key][i]);
           }
         } else if (
           typeof actual[key] === "object" &&
@@ -187,7 +187,7 @@ chai.use(function (chai, utils) {
 
           for (let i = 0; i < actualKeys.length; i++) {
             checkKey(
-              key,
+              `${key}.${actualKeys[i]}`,
               actual[key][actualKeys[i]],
               expected[key][expectedKeys[i]],
             );

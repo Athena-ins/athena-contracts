@@ -19,7 +19,7 @@ export const coverOpenAndUpdate: Scenario = {
         },
         // get tokens for pos
         {
-          userName: "user",
+          userName: "user0",
           name: "getTokens",
           args: {
             tokenName: "USDT",
@@ -29,7 +29,7 @@ export const coverOpenAndUpdate: Scenario = {
         },
         // approve tokens for pos
         {
-          userName: "user",
+          userName: "user0",
           name: "approveTokens",
           args: {
             spender: "LiquidityManager",
@@ -40,7 +40,7 @@ export const coverOpenAndUpdate: Scenario = {
         },
         // open position
         {
-          userName: "user",
+          userName: "user0",
           name: "openPosition",
           args: {
             amount: 10_000,
@@ -51,7 +51,7 @@ export const coverOpenAndUpdate: Scenario = {
         },
         // get tokens for cover
         {
-          userName: "user2",
+          userName: "user1",
           name: "getTokens",
           args: {
             tokenName: "USDT",
@@ -61,7 +61,7 @@ export const coverOpenAndUpdate: Scenario = {
         },
         // approve tokens for cover
         {
-          userName: "user2",
+          userName: "user1",
           name: "approveTokens",
           args: {
             spender: "LiquidityManager",
@@ -72,7 +72,7 @@ export const coverOpenAndUpdate: Scenario = {
         },
         // open cover
         {
-          userName: "user2",
+          userName: "user1",
           name: "openCover",
           args: {
             poolId: 0,

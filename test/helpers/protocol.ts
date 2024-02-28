@@ -115,7 +115,7 @@ export function wethTokenAddress(chainId: number): string {
 }
 
 export function getTokenAddressBySymbol(
-  this: Mocha.Context,
+  contracts: ProtocolContracts,
   symbol: string,
   chainId = 1,
 ): string {
@@ -125,7 +125,7 @@ export function getTokenAddressBySymbol(
     case "WETH":
       return wethTokenAddress(chainId);
     case "ATEN":
-      this.contracts.AthenaToken.address;
+      contracts.AthenaToken.address;
     default:
       throw Error("Unsupported token symbol");
   }
@@ -239,7 +239,7 @@ export async function getTokens(
       parseEther("500"), // uint amountInMax,
       [wethAddress, token], // address[] calldata path,
       to, // address to,
-      2000000000, // uint deadline
+      9999999999, // uint deadline
     ),
   );
 }

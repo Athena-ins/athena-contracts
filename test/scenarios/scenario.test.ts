@@ -11,8 +11,10 @@ export async function ScenarioTests() {
       describe(scenario.title, async function () {
         for (const story of scenario.stories) {
           it(story.description, async function () {
-            this.retries(2);
+            // this.retries(2);
+
             for (const action of story.actions) {
+              // Attach test environment to action execution
               await executeAction.call(this, action);
             }
           });
