@@ -23,7 +23,7 @@ export function calcExpectedPoolDataAfterCreatePool(
   timestamp: BigNumber,
 ): PoolInfoObject {
   return {
-    poolId,
+    poolId: poolId.toNumber(),
     feeRate,
     formula: {
       uOptimal,
@@ -33,19 +33,23 @@ export function calcExpectedPoolDataAfterCreatePool(
     },
     slot0: {
       tick: 0,
-      secondsPerTick: constants.MAX_SECONDS_PER_TICK,
+      secondsPerTick: constants.MAX_SECONDS_PER_TICK.toNumber(),
       coveredCapital: BigNumber.from(0),
       remainingCovers: BigNumber.from(0),
-      lastUpdateTimestamp: timestamp,
+      lastUpdateTimestamp: timestamp.toNumber(),
       liquidityIndex: BigNumber.from(0),
     },
-    strategyId: BigNumber.from(strategyId),
+    strategyId: strategyId,
     paymentAsset: paymentAsset.toLowerCase(),
     underlyingAsset: strategyTokens.underlying.toLowerCase(),
     wrappedAsset: strategyTokens.wrapped.toLowerCase(),
     isPaused: false,
-    overlappedPools: [],
+    overlappedPools: [poolId.toNumber()],
     compensationIds: [],
+    overlappedCapital: [BigNumber.from(0)],
+    utilizationRate: BigNumber.from(0),
+    totalLiquidity: BigNumber.from(0),
+    availableLiquidity: BigNumber.from(0),
   };
 }
 
@@ -185,7 +189,7 @@ export function calcExpectedPositionDataAfterOpenPosition(
 export function calcExpectedPositionDataAfterAddLiquidity(
   amountToAdd: BigNumber,
   isWrapped: boolean,
-  poolIds: BigNumber[],
+  poolIds: number[],
   poolDataBefore: PoolInfoObject[],
   expectedPoolData: PoolInfoObject[],
   tokenDataBefore: PositionInfoObject,
