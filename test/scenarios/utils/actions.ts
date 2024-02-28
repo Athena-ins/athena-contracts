@@ -111,16 +111,16 @@ export async function getTokens(
   const token = ERC20__factory.connect(tokenAddress, to);
   const toAddress = await to.getAddress();
 
-  const [balanceBefore, approveAmount] = await Promise.all([
+  const [balanceBefore, weiAmount] = await Promise.all([
     token.balanceOf(toAddress),
     convertToCurrencyDecimals(tokenAddress, amount),
   ]);
 
-  await getterFunction(toAddress, approveAmount);
+  await getterFunction(toAddress, weiAmount);
 
   const balanceAfter = await token.balanceOf(toAddress);
 
-  expect(balanceAfter).to.equal(balanceBefore.add(amount));
+  expect(balanceAfter).to.equal(balanceBefore.add(weiAmount));
 }
 
 export async function approveTokens(
@@ -141,15 +141,12 @@ export async function approveTokens(
   const token = ERC20__factory.connect(tokenAddress, from);
   const fromAddress = await from.getAddress();
 
-  const [allowanceBefore, approveAmount] = await Promise.all([
-    token.allowance(fromAddress, spender),
-    convertToCurrencyDecimals(tokenAddress, amount),
-  ]);
+  const weiAmount = await convertToCurrencyDecimals(tokenAddress, amount);
 
-  await approveFunction(from, spender, approveAmount);
+  await approveFunction(from, spender, weiAmount);
 
   const allowanceAfter = await token.allowance(fromAddress, spender);
-  expect(allowanceAfter).to.equal(allowanceBefore.add(amount));
+  expect(allowanceAfter).to.equal(weiAmount);
 }
 
 export async function createPool(
