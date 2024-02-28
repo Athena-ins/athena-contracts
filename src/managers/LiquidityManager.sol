@@ -417,164 +417,6 @@ contract LiquidityManager is
     }
   }
 
-  /**
-   * @notice Removes all expired covers from a pool
-   * @param poolId_ The ID of the pool
-   */
-  function purgeExpiredCoversInPool(uint64 poolId_) external {
-    // Clean pool from expired covers
-    _pools[poolId_]._purgeExpiredCovers();
-  }
-
-  /// ======= COVER HELPERS ======= ///
-
-  /**
-   * @notice Expires a cover & freezes its farming rewards
-   * @param coverId_ The ID of the cover
-   */
-  function _expireCover(uint256 coverId_) internal {
-    covers[coverId_].end = block.timestamp;
-
-    // This will freeze the farming rewards of the cover
-    farming.freezeExpiredCoverRewards(coverId_);
-  }
-
-  /// ======= BUY COVER ======= ///
-
-  /**
-   * @notice Buys a cover
-   * @param poolId_ The ID of the pool
-   * @param coverAmount_ The amount of cover to buy
-   * @param premiums_ The amount of premiums to pay
-   */
-  function openCover(
-    uint64 poolId_,
-    uint256 coverAmount_,
-    uint256 premiums_
-  ) external {
-    // Get storage pointer to pool
-    VirtualPool.VPool storage pool = _pools[poolId_];
-
-    // Clean pool from expired covers
-    pool._purgeExpiredCovers();
-
-    // Check if pool is currently paused
-    if (pool.isPaused) revert PoolIsPaused();
-    // Check if pool has enough liquidity
-    if (pool.availableLiquidity() < coverAmount_)
-      revert InsufficientLiquidityForCover();
-
-    // Transfer premiums from user
-    IERC20(pool.paymentAsset).safeTransferFrom(
-      msg.sender,
-      address(this),
-      premiums_
-    );
-
-    // Save new cover ID and update for next
-    uint256 coverId = nextCoverId;
-    nextCoverId++;
-
-    // Create cover
-    covers[coverId] = Cover({
-      poolId: poolId_,
-      coverAmount: coverAmount_,
-      start: block.timestamp,
-      end: 0
-    });
-
-    // Create cover in pool
-    pool._registerCover(coverId, coverAmount_, premiums_);
-
-    // Mint cover NFT
-    coverToken.mint(msg.sender, coverId);
-  }
-
-  /// ======= UPDATE COVER ======= ///
-
-  /**
-   * @notice Updates or closes a cover
-   * @param coverId_ The ID of the cover
-   * @param coverToAdd_ The amount of cover to add
-   * @param coverToRemove_ The amount of cover to remove
-   * @param premiumsToAdd_ The amount of premiums to add
-   * @param premiumsToRemove_ The amount of premiums to remove
-   *
-   * @dev If premiumsToRemove_ is max uint256 then withdraw premiums
-   * & closes the cover
-   */
-  function updateCover(
-    uint256 coverId_,
-    uint256 coverToAdd_,
-    uint256 coverToRemove_,
-    uint256 premiumsToAdd_,
-    uint256 premiumsToRemove_
-  ) external onlyCoverOwner(coverId_) {
-    // Get storage pointer to cover
-    Cover storage cover = covers[coverId_];
-    // Get storage pointer to pool
-    VirtualPool.VPool storage pool = _pools[cover.poolId];
-
-    // Clean pool from expired covers
-    pool._purgeExpiredCovers();
-
-    // Check if pool is currently paused
-    if (pool.isPaused) revert PoolIsPaused();
-    // Check if cover is expired
-    if (cover.end != 0) revert CoverIsExpired();
-
-    // Get the amount of premiums left
-    uint256 premiums = pool._computeCoverInfo(coverId_).premiumsLeft;
-
-    // Close the existing cover
-    pool._closeCover(coverId_, cover.coverAmount);
-
-    // Only allow one operation on cover amount change
-    if (0 < coverToAdd_) {
-      /**
-       * Check if pool has enough liquidity,
-       * we closed cover at this point so check for total
-       * */
-      if (pool.availableLiquidity() < cover.coverAmount + coverToAdd_)
-        revert InsufficientLiquidityForCover();
-
-      cover.coverAmount += coverToAdd_;
-    } else if (0 < coverToRemove_) {
-      // User is allowed to set the cover amount to 0 to pause the cover
-      cover.coverAmount -= coverToRemove_;
-    }
-
-    // Only allow one operation on premiums amount change
-    if (0 < premiumsToRemove_) {
-      if (premiumsToRemove_ == type(uint256).max) {
-        // If premiumsToRemove_ is max uint256, then remove all premiums
-        premiumsToRemove_ = premiums;
-      } else if (premiums < premiumsToRemove_) {
-        // Else check if there is enough premiums left
-        revert NotEnoughPremiums();
-      }
-
-      premiums -= premiumsToRemove_;
-      IERC20(pool.paymentAsset).safeTransfer(msg.sender, premiums);
-    } else if (0 < premiumsToAdd_) {
-      // Transfer premiums from user
-      IERC20(pool.paymentAsset).safeTransferFrom(
-        msg.sender,
-        address(this),
-        premiumsToAdd_
-      );
-      premiums += premiumsToAdd_;
-    }
-
-    if (premiums == 0) {
-      // If there is no premiums left then expire the cover
-      _expireCover(coverId_);
-    } else {
-      // Update cover
-      pool._registerCover(coverId_, cover.coverAmount, premiums);
-    }
-  }
-
   /// ======= MAKE LP POSITION ======= ///
 
   /**
@@ -923,6 +765,164 @@ contract LiquidityManager is
           0 // No yield bonus
         );
       }
+    }
+  }
+
+  /// ======= COVER HELPERS ======= ///
+
+  /**
+   * @notice Removes all expired covers from a pool
+   * @param poolId_ The ID of the pool
+   */
+  function purgeExpiredCoversInPool(uint64 poolId_) external {
+    // Clean pool from expired covers
+    _pools[poolId_]._purgeExpiredCovers();
+  }
+
+  /**
+   * @notice Expires a cover & freezes its farming rewards
+   * @param coverId_ The ID of the cover
+   */
+  function _expireCover(uint256 coverId_) internal {
+    covers[coverId_].end = block.timestamp;
+
+    // This will freeze the farming rewards of the cover
+    farming.freezeExpiredCoverRewards(coverId_);
+  }
+
+  /// ======= BUY COVER ======= ///
+
+  /**
+   * @notice Buys a cover
+   * @param poolId_ The ID of the pool
+   * @param coverAmount_ The amount of cover to buy
+   * @param premiums_ The amount of premiums to pay
+   */
+  function openCover(
+    uint64 poolId_,
+    uint256 coverAmount_,
+    uint256 premiums_
+  ) external {
+    // Get storage pointer to pool
+    VirtualPool.VPool storage pool = _pools[poolId_];
+
+    // Clean pool from expired covers
+    pool._purgeExpiredCovers();
+
+    // Check if pool is currently paused
+    if (pool.isPaused) revert PoolIsPaused();
+    // Check if pool has enough liquidity
+    if (pool.availableLiquidity() < coverAmount_)
+      revert InsufficientLiquidityForCover();
+
+    // Transfer premiums from user
+    IERC20(pool.paymentAsset).safeTransferFrom(
+      msg.sender,
+      address(this),
+      premiums_
+    );
+
+    // Save new cover ID and update for next
+    uint256 coverId = nextCoverId;
+    nextCoverId++;
+
+    // Create cover
+    covers[coverId] = Cover({
+      poolId: poolId_,
+      coverAmount: coverAmount_,
+      start: block.timestamp,
+      end: 0
+    });
+
+    // Create cover in pool
+    pool._registerCover(coverId, coverAmount_, premiums_);
+
+    // Mint cover NFT
+    coverToken.mint(msg.sender, coverId);
+  }
+
+  /// ======= UPDATE COVER ======= ///
+
+  /**
+   * @notice Updates or closes a cover
+   * @param coverId_ The ID of the cover
+   * @param coverToAdd_ The amount of cover to add
+   * @param coverToRemove_ The amount of cover to remove
+   * @param premiumsToAdd_ The amount of premiums to add
+   * @param premiumsToRemove_ The amount of premiums to remove
+   *
+   * @dev If premiumsToRemove_ is max uint256 then withdraw premiums
+   * & closes the cover
+   */
+  function updateCover(
+    uint256 coverId_,
+    uint256 coverToAdd_,
+    uint256 coverToRemove_,
+    uint256 premiumsToAdd_,
+    uint256 premiumsToRemove_
+  ) external onlyCoverOwner(coverId_) {
+    // Get storage pointer to cover
+    Cover storage cover = covers[coverId_];
+    // Get storage pointer to pool
+    VirtualPool.VPool storage pool = _pools[cover.poolId];
+
+    // Clean pool from expired covers
+    pool._purgeExpiredCovers();
+
+    // Check if pool is currently paused
+    if (pool.isPaused) revert PoolIsPaused();
+    // Check if cover is expired
+    if (cover.end != 0) revert CoverIsExpired();
+
+    // Get the amount of premiums left
+    uint256 premiums = pool._computeCoverInfo(coverId_).premiumsLeft;
+
+    // Close the existing cover
+    pool._closeCover(coverId_, cover.coverAmount);
+
+    // Only allow one operation on cover amount change
+    if (0 < coverToAdd_) {
+      /**
+       * Check if pool has enough liquidity,
+       * we closed cover at this point so check for total
+       * */
+      if (pool.availableLiquidity() < cover.coverAmount + coverToAdd_)
+        revert InsufficientLiquidityForCover();
+
+      cover.coverAmount += coverToAdd_;
+    } else if (0 < coverToRemove_) {
+      // User is allowed to set the cover amount to 0 to pause the cover
+      cover.coverAmount -= coverToRemove_;
+    }
+
+    // Only allow one operation on premiums amount change
+    if (0 < premiumsToRemove_) {
+      if (premiumsToRemove_ == type(uint256).max) {
+        // If premiumsToRemove_ is max uint256, then remove all premiums
+        premiumsToRemove_ = premiums;
+      } else if (premiums < premiumsToRemove_) {
+        // Else check if there is enough premiums left
+        revert NotEnoughPremiums();
+      }
+
+      premiums -= premiumsToRemove_;
+      IERC20(pool.paymentAsset).safeTransfer(msg.sender, premiums);
+    } else if (0 < premiumsToAdd_) {
+      // Transfer premiums from user
+      IERC20(pool.paymentAsset).safeTransferFrom(
+        msg.sender,
+        address(this),
+        premiumsToAdd_
+      );
+      premiums += premiumsToAdd_;
+    }
+
+    if (premiums == 0) {
+      // If there is no premiums left then expire the cover
+      _expireCover(coverId_);
+    } else {
+      // Update cover
+      pool._registerCover(coverId_, cover.coverAmount, premiums);
     }
   }
 
