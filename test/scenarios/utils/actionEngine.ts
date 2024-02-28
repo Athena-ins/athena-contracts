@@ -21,7 +21,6 @@ import {
 import { toRay } from "../../helpers/utils/poolRayMath";
 // Types
 import { Action } from "./actionTypes";
-import { getTokenAddressBySymbol } from "../../helpers/protocol";
 
 export type Story = {
   description: string;
@@ -37,8 +36,6 @@ export async function executeAction(this: Mocha.Context, action: Action) {
   const { name, expected, userName, timeTravel, revertMessage, args } = action;
   const signer = this.signers[userName];
 
-  const getTokenAddress = getTokenAddressBySymbol.bind(this);
-
   if (!expected) {
     throw Error(`An expected resut for action ${name} is required`);
   }
@@ -46,15 +43,14 @@ export async function executeAction(this: Mocha.Context, action: Action) {
     throw Error(`Cannot find signer ${userName} among context signers`);
   }
 
-  console.log("name: ", name);
+  console.log(`=> Expect ${userName} to ${name} with ${expected}:`.cyan);
+
   switch (name) {
     case "getTokens":
       {
         const { tokenName, amount } = args;
 
-        const assetAddress = getTokenAddress(tokenName);
-
-        await getTokens(this, assetAddress, signer, amount);
+        await getTokens(this, tokenName, signer, amount);
       }
       break;
     case "approveTokens":
@@ -62,16 +58,13 @@ export async function executeAction(this: Mocha.Context, action: Action) {
         const { spender, tokenName, amount } = args;
 
         const spenderAddress = this.contracts[spender].address;
-        const assetAddress = getTokenAddress(tokenName);
 
-        await approveTokens(this, assetAddress, signer, spenderAddress, amount);
+        await approveTokens(this, tokenName, signer, spenderAddress, amount);
       }
       break;
     case "createPool":
       {
         const { paymentAsset, strategyId, compatiblePools } = args;
-
-        const assetAddress = getTokenAddress(paymentAsset);
         const { poolFormula } = this.protocolConfig;
 
         const feeRate =
@@ -95,7 +88,7 @@ export async function executeAction(this: Mocha.Context, action: Action) {
         await createPool(
           this,
           signer,
-          assetAddress,
+          paymentAsset,
           strategyId,
           feeRate,
           uOptimal,

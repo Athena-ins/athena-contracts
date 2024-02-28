@@ -38,6 +38,7 @@ import {
   coverInfoFormat,
   claimInfoFormat,
 } from "../../helpers/dataFormat";
+import { getTokenAddressBySymbol } from "../../helpers/protocol";
 // Types
 import { BigNumber, BigNumberish, ContractReceipt, Wallet } from "ethers";
 import { TestEnv } from "../../context";
@@ -119,7 +120,6 @@ export async function getTokens(
   await getterFunction(toAddress, weiAmount);
 
   const balanceAfter = await token.balanceOf(toAddress);
-
   expect(balanceAfter).to.equal(balanceBefore.add(weiAmount));
 }
 
@@ -164,12 +164,14 @@ export async function createPool(
 ) {
   const { LiquidityManager, StrategyManager } = testEnv.contracts;
 
+  const assetAddress = getTokenAddressBySymbol(testEnv.contracts, paymentAsset);
+
   const poolId = await LiquidityManager.nextPoolId();
 
   if (expectedResult === "success") {
     const txResult = await postTxHandler(
       LiquidityManager.connect(signer).createPool(
-        paymentAsset,
+        assetAddress,
         strategyId,
         feeRate,
         uOptimal,
@@ -194,7 +196,7 @@ export async function createPool(
       rSlope1,
       rSlope2,
       strategyId,
-      paymentAsset,
+      assetAddress,
       strategyTokens,
       txTimestamp,
     );
@@ -203,7 +205,7 @@ export async function createPool(
   } else {
     await expect(
       LiquidityManager.createPool(
-        paymentAsset,
+        assetAddress,
         strategyId,
         feeRate,
         uOptimal,
