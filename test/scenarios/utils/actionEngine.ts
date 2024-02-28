@@ -37,6 +37,8 @@ export async function executeAction(this: Mocha.Context, action: Action) {
   const { name, expected, userName, timeTravel, revertMessage, args } = action;
   const user = this.signers[userName];
 
+  const getTokenAddress = getTokenAddressBySymbol.bind(this);
+
   if (!expected) {
     throw Error(`An expected resut for action ${name} is required`);
   }
@@ -49,7 +51,9 @@ export async function executeAction(this: Mocha.Context, action: Action) {
       {
         const { tokenName, amount } = args;
 
-        await getTokens(this, tokenName, user, amount);
+        const assetAddress = getTokenAddress(tokenName);
+
+        await getTokens(this, assetAddress, user, amount);
       }
       break;
     case "approveTokens":
@@ -57,16 +61,16 @@ export async function executeAction(this: Mocha.Context, action: Action) {
         const { spender, tokenName, amount } = args;
 
         const spenderAddress = this.contracts[spender].address;
+        const assetAddress = getTokenAddress(tokenName);
 
-        await approveTokens(this, tokenName, user, spenderAddress, amount);
+        await approveTokens(this, assetAddress, user, spenderAddress, amount);
       }
       break;
     case "createPool":
       {
         const { paymentAsset, strategyId, compatiblePools } = args;
 
-        getTokenAddressBySymbol(paymentAsset);
-
+        const assetAddress = getTokenAddress(paymentAsset);
         const { poolFormula } = this.protocolConfig;
 
         const feeRate =
@@ -89,7 +93,7 @@ export async function executeAction(this: Mocha.Context, action: Action) {
 
         await createPool(
           this,
-          paymentAsset,
+          assetAddress,
           strategyId,
           feeRate,
           uOptimal,

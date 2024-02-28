@@ -103,12 +103,18 @@ export function wethTokenAddress(chainId: number): string {
   throw Error("Unsupported chainId");
 }
 
-export function getTokenAddressBySymbol(symbol: string, chainId = 1): string {
+export function getTokenAddressBySymbol(
+  this: Mocha.Context,
+  symbol: string,
+  chainId = 1,
+): string {
   switch (symbol) {
     case "USDT":
       return usdtTokenAddress(chainId);
     case "WETH":
       return wethTokenAddress(chainId);
+    case "ATEN":
+      this.contracts.AthenaToken.address;
     default:
       throw Error("Unsupported token symbol");
   }
