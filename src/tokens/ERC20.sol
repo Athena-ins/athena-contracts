@@ -12,7 +12,7 @@ contract ERC20 is IERC20 {
 
   string public name;
   string public symbol;
-  uint8 public immutable decimals = 18;
+  uint8 public decimals = 18;
 
   uint256 public totalSupply;
   mapping(address _account => uint256 _amount) public balanceOf;

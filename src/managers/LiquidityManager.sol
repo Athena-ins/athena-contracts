@@ -277,6 +277,7 @@ contract LiquidityManager is
     uint64 poolId_
   ) external view returns (VirtualPool.VPoolRead memory) {
     VirtualPool.VPool storage pool = _pools[poolId_];
+    VirtualPool.Slot0 memory slot0 = pool._refresh(block.timestamp);
 
     uint256 nbOverlappedPools = pool.overlappedPools.length;
     uint256[] memory overlappedCapital = new uint256[](
@@ -299,7 +300,7 @@ contract LiquidityManager is
         dao: pool.dao,
         strategyManager: pool.strategyManager,
         formula: pool.formula,
-        slot0: pool.slot0,
+        slot0: slot0,
         strategyId: pool.strategyId,
         paymentAsset: pool.paymentAsset,
         underlyingAsset: pool.underlyingAsset,
@@ -310,7 +311,7 @@ contract LiquidityManager is
         compensationIds: pool.compensationIds,
         overlappedCapital: overlappedCapital,
         utilizationRate: VirtualPool._utilization(
-          pool.slot0.coveredCapital,
+          slot0.coveredCapital,
           totalLiquidity
         ),
         totalLiquidity: totalLiquidity,
