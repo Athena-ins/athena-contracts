@@ -96,7 +96,7 @@ export async function getContractsData(
 
 export async function getTokens(
   testEnv: TestEnv,
-  tokenName: "USDT" | "ATEN",
+  tokenName: string,
   to: Wallet,
   amount: BigNumberish,
 ) {
@@ -125,7 +125,7 @@ export async function getTokens(
 
 export async function approveTokens(
   testEnv: TestEnv,
-  tokenName: "USDT" | "ATEN",
+  tokenName: string,
   from: Wallet,
   spender: string,
   amount: BigNumberish,
@@ -154,6 +154,7 @@ export async function approveTokens(
 
 export async function createPool(
   testEnv: TestEnv,
+  signer: Wallet,
   paymentAsset: string, // address paymentAsset
   strategyId: number, // uint256 strategyId
   feeRate: BigNumber, // uint256 feeRate
@@ -170,7 +171,7 @@ export async function createPool(
 
   if (expectedResult === "success") {
     const txResult = await postTxHandler(
-      LiquidityManager.createPool(
+      LiquidityManager.connect(signer).createPool(
         paymentAsset,
         strategyId,
         feeRate,

@@ -27,8 +27,11 @@ type ContextSigners = {
   treasuryWallet: Wallet;
   leverageRiskWallet: Wallet;
   user: Wallet;
+  user0: Wallet;
+  user1: Wallet;
   user2: Wallet;
   user3: Wallet;
+  user4: Wallet;
 };
 
 export type SignerName = keyof ContextSigners;
@@ -77,8 +80,11 @@ export function baseContext(description: string, hooks: () => void): void {
           leverageRiskWallet: signers[4] as Signer as Wallet,
           //
           user: signers[nbSpecialAccounts] as Signer as Wallet,
-          user2: signers[nbSpecialAccounts + 1] as Signer as Wallet,
-          user3: signers[nbSpecialAccounts + 2] as Signer as Wallet,
+          user0: signers[nbSpecialAccounts] as Signer as Wallet,
+          user1: signers[nbSpecialAccounts + 1] as Signer as Wallet,
+          user2: signers[nbSpecialAccounts + 2] as Signer as Wallet,
+          user3: signers[nbSpecialAccounts + 3] as Signer as Wallet,
+          user4: signers[nbSpecialAccounts + 4] as Signer as Wallet,
         };
 
         this.protocolConfig = defaultProtocolConfig;

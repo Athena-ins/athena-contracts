@@ -35,17 +35,18 @@ export type Scenario = {
 
 export async function executeAction(this: Mocha.Context, action: Action) {
   const { name, expected, userName, timeTravel, revertMessage, args } = action;
-  const user = this.signers[userName];
+  const signer = this.signers[userName];
 
   const getTokenAddress = getTokenAddressBySymbol.bind(this);
 
   if (!expected) {
     throw Error(`An expected resut for action ${name} is required`);
   }
-  if (!user) {
-    throw Error(`Cannot find user ${userName} among context signers`);
+  if (!signer) {
+    throw Error(`Cannot find signer ${userName} among context signers`);
   }
 
+  console.log("name: ", name);
   switch (name) {
     case "getTokens":
       {
@@ -53,7 +54,7 @@ export async function executeAction(this: Mocha.Context, action: Action) {
 
         const assetAddress = getTokenAddress(tokenName);
 
-        await getTokens(this, assetAddress, user, amount);
+        await getTokens(this, assetAddress, signer, amount);
       }
       break;
     case "approveTokens":
@@ -63,7 +64,7 @@ export async function executeAction(this: Mocha.Context, action: Action) {
         const spenderAddress = this.contracts[spender].address;
         const assetAddress = getTokenAddress(tokenName);
 
-        await approveTokens(this, assetAddress, user, spenderAddress, amount);
+        await approveTokens(this, assetAddress, signer, spenderAddress, amount);
       }
       break;
     case "createPool":
@@ -93,6 +94,7 @@ export async function executeAction(this: Mocha.Context, action: Action) {
 
         await createPool(
           this,
+          signer,
           assetAddress,
           strategyId,
           feeRate,
@@ -111,7 +113,7 @@ export async function executeAction(this: Mocha.Context, action: Action) {
 
         await openCover(
           this,
-          user,
+          signer,
           poolId,
           coverAmount,
           premiumAmount,
@@ -133,7 +135,7 @@ export async function executeAction(this: Mocha.Context, action: Action) {
 
         await updateCover(
           this,
-          user,
+          signer,
           coverId,
           coverToAdd,
           coverToRemove,
@@ -151,7 +153,7 @@ export async function executeAction(this: Mocha.Context, action: Action) {
 
         await openPosition(
           this,
-          user,
+          signer,
           amount,
           isWrapped,
           poolIds,
@@ -167,7 +169,7 @@ export async function executeAction(this: Mocha.Context, action: Action) {
 
         await addLiquidity(
           this,
-          user,
+          signer,
           positionId,
           amount,
           isWrapped,
@@ -183,7 +185,7 @@ export async function executeAction(this: Mocha.Context, action: Action) {
 
         await commitRemoveLiquidity(
           this,
-          user,
+          signer,
           positionId,
           expected,
           timeTravel,
@@ -197,7 +199,7 @@ export async function executeAction(this: Mocha.Context, action: Action) {
 
         await uncommitRemoveLiquidity(
           this,
-          user,
+          signer,
           positionId,
           expected,
           timeTravel,
@@ -211,7 +213,7 @@ export async function executeAction(this: Mocha.Context, action: Action) {
 
         await removeLiquidity(
           this,
-          user,
+          signer,
           positionId,
           amount,
           keepWrapped,
@@ -225,7 +227,7 @@ export async function executeAction(this: Mocha.Context, action: Action) {
       {
         const { positionId } = args;
 
-        await takeInterests(this, user, positionId, expected, timeTravel);
+        await takeInterests(this, signer, positionId, expected, timeTravel);
       }
       break;
 
@@ -235,7 +237,7 @@ export async function executeAction(this: Mocha.Context, action: Action) {
 
         await initiateClaim(
           this,
-          user,
+          signer,
           coverId,
           amountClaimed,
           ipfsMetaEvidenceCid,
@@ -250,7 +252,7 @@ export async function executeAction(this: Mocha.Context, action: Action) {
       {
         const { claimId } = args;
 
-        await withdrawCompensation(this, user, claimId, expected, timeTravel);
+        await withdrawCompensation(this, signer, claimId, expected, timeTravel);
       }
       break;
 
@@ -259,19 +261,19 @@ export async function executeAction(this: Mocha.Context, action: Action) {
 
     // case "disputeClaim":
     //   {
-    //     await disputeClaim(this, user);
+    //     await disputeClaim(this, signer);
     //   }
     //   break;
 
     // case "rule":
     //   {
-    //     await rule(this, user);
+    //     await rule(this, signer);
     //   }
     //   break;
 
     // case "overrule":
     //   {
-    //     await overrule(this, user);
+    //     await overrule(this, signer);
     //   }
     //   break;
   }
