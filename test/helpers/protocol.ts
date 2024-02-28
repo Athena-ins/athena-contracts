@@ -63,43 +63,54 @@ export function makeIdArray(length: number) {
 }
 
 export function aaveLendingPoolProviderV2Address(chainId: number): string {
-  if (chainId === 1) return "0xb53c1a33016b2dc2ff3653530bff1848a515c8c5";
-  if (chainId === 5) return "0x5E52dEc931FFb32f609681B8438A51c675cc232d";
+  if (chainId === 1)
+    return "0xb53c1a33016b2dc2ff3653530bff1848a515c8c5".toLowerCase();
+  if (chainId === 5)
+    return "0x5E52dEc931FFb32f609681B8438A51c675cc232d".toLowerCase();
   throw Error("Unsupported chainId");
 }
 
 export function aaveLendingPoolV2Address(chainId: number): string {
-  if (chainId === 1) return "0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9";
-  if (chainId === 5) return "0x4bd5643ac6f66a5237e18bfa7d47cf22f1c9f210";
+  if (chainId === 1)
+    return "0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9".toLowerCase();
+  if (chainId === 5)
+    return "0x4bd5643ac6f66a5237e18bfa7d47cf22f1c9f210".toLowerCase();
   throw Error("Unsupported chainId");
 }
 
 export function uniswapV2Factory(chainId: number): string {
-  if (chainId === 1) return "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f";
-  // if (chainId === 5) return "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f";
+  if (chainId === 1)
+    return "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f".toLowerCase();
+  // if (chainId === 5) return "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f".toLowerCase();
   throw Error("Unsupported chainId");
 }
 
 export function uniswapV2Router(chainId: number): string {
-  if (chainId === 1) return "0x7a250d5630b4cf539739df2c5dacb4c659f2488d";
-  // if (chainId === 5) return "0x7a250d5630b4cf539739df2c5dacb4c659f2488d";
+  if (chainId === 1)
+    return "0x7a250d5630b4cf539739df2c5dacb4c659f2488d".toLowerCase();
+  // if (chainId === 5) return "0x7a250d5630b4cf539739df2c5dacb4c659f2488d".toLowerCase();
   throw Error("Unsupported chainId");
 }
 
 export function usdtTokenAddress(chainId: number): string {
-  if (chainId === 1) return "0xdac17f958d2ee523a2206206994597c13d831ec7";
-  if (chainId === 5) return "0x65E2fe35C30eC218b46266F89847c63c2eDa7Dc7";
+  if (chainId === 1)
+    return "0xdac17f958d2ee523a2206206994597c13d831ec7".toLowerCase();
+  if (chainId === 5)
+    return "0x65E2fe35C30eC218b46266F89847c63c2eDa7Dc7".toLowerCase();
   throw Error("Unsupported chainId");
 }
 
 export function klerosCourtAddress(chainId: number): string {
-  if (chainId === 1) return "0x988b3a538b618c7a603e1c11ab82cd16dbe28069";
+  if (chainId === 1)
+    return "0x988b3a538b618c7a603e1c11ab82cd16dbe28069".toLowerCase();
   throw Error("Unsupported chainId");
 }
 
 export function wethTokenAddress(chainId: number): string {
-  if (chainId === 1) return "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
-  if (chainId === 5) return "0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6";
+  if (chainId === 1)
+    return "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2".toLowerCase();
+  if (chainId === 5)
+    return "0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6".toLowerCase();
   throw Error("Unsupported chainId");
 }
 
