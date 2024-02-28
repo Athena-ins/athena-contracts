@@ -11,7 +11,9 @@ import { HardhatUserConfig } from "hardhat/config";
 import { HardhatNetworkUserConfig } from "hardhat/types";
 //
 import dotenv from "dotenv";
+import colors from "colors";
 dotenv.config();
+colors.enable();
 
 const { parseEther, id } = utils;
 
