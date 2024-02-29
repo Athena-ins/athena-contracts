@@ -33,6 +33,7 @@ export function calcExpectedPoolDataAfterCreatePool(
   strategyId: number,
   paymentAsset: string,
   strategyTokens: { underlying: string; wrapped: string },
+  strategyRewardIndex: BigNumber,
   timestamp: BigNumber,
 ): PoolInfoObject {
   return {
@@ -63,6 +64,7 @@ export function calcExpectedPoolDataAfterCreatePool(
     utilizationRate: BigNumber.from(0),
     totalLiquidity: BigNumber.from(0),
     availableLiquidity: BigNumber.from(0),
+    strategyRewardIndex,
   };
 }
 
@@ -130,14 +132,14 @@ export function calcExpectedPoolDataAfterOpenPosition(
 export function calcExpectedPoolDataAfterAddLiquidity(
   amountToAdd: BigNumber,
   isWrapped: boolean,
-  poolIds: BigNumber[],
+  poolIds: number[],
   poolDataBefore: PoolInfoObject[],
   txTimestamp: BigNumber,
   timestamp: BigNumber,
 ): PoolInfoObject[] {
-  const expected = structuredClone(poolDataBefore);
+  const expect = { ...poolDataBefore };
 
-  return expected;
+  return expect;
 }
 
 export function calcExpectedPoolDataAfterCommitRemoveLiquidity(
@@ -145,9 +147,9 @@ export function calcExpectedPoolDataAfterCommitRemoveLiquidity(
   txTimestamp: BigNumber,
   timestamp: BigNumber,
 ): PoolInfoObject[] {
-  const expected = structuredClone(poolDataBefore);
+  const expect = { ...poolDataBefore };
 
-  return expected;
+  return expect;
 }
 
 export function calcExpectedPoolDataAfterUncommitRemoveLiquidity(
@@ -155,9 +157,9 @@ export function calcExpectedPoolDataAfterUncommitRemoveLiquidity(
   txTimestamp: BigNumber,
   timestamp: BigNumber,
 ): PoolInfoObject[] {
-  const expected = structuredClone(poolDataBefore);
+  const expect = { ...poolDataBefore };
 
-  return expected;
+  return expect;
 }
 
 export function calcExpectedPoolDataAfterTakeInterests(
@@ -165,9 +167,9 @@ export function calcExpectedPoolDataAfterTakeInterests(
   txTimestamp: BigNumber,
   timestamp: BigNumber,
 ): PoolInfoObject[] {
-  const expected = structuredClone(poolDataBefore);
+  const expect = { ...poolDataBefore };
 
-  return expected;
+  return expect;
 }
 
 export function calcExpectedPoolDataAfterRemoveLiquidity(
@@ -177,9 +179,9 @@ export function calcExpectedPoolDataAfterRemoveLiquidity(
   txTimestamp: BigNumber,
   timestamp: BigNumber,
 ): PoolInfoObject[] {
-  const expected = structuredClone(poolDataBefore);
+  const expect = { ...poolDataBefore };
 
-  return expected;
+  return expect;
 }
 
 export function calcExpectedPoolDataAfterOpenCover(
@@ -189,9 +191,9 @@ export function calcExpectedPoolDataAfterOpenCover(
   txTimestamp: BigNumber,
   timestamp: BigNumber,
 ): PoolInfoObject {
-  const expected = { ...poolDataBefore };
+  const expect = { ...poolDataBefore };
 
-  return expected;
+  return expect;
 }
 
 export function calcExpectedPoolDataAfterUpdateCover(
@@ -203,9 +205,9 @@ export function calcExpectedPoolDataAfterUpdateCover(
   txTimestamp: BigNumber,
   timestamp: BigNumber,
 ): PoolInfoObject {
-  const expected = { ...poolDataBefore };
+  const expect = { ...poolDataBefore };
 
-  return expected;
+  return expect;
 }
 
 export function calcExpectedPoolDataAfterInitiateClaim(
@@ -214,9 +216,9 @@ export function calcExpectedPoolDataAfterInitiateClaim(
   txTimestamp: BigNumber,
   timestamp: BigNumber,
 ): PoolInfoObject {
-  const expected = { ...poolDataBefore };
+  const expect = { ...poolDataBefore };
 
-  return expected;
+  return expect;
 }
 
 export function calcExpectedPoolDataAfterWithdrawCompensation(
@@ -225,9 +227,9 @@ export function calcExpectedPoolDataAfterWithdrawCompensation(
   txTimestamp: BigNumber,
   timestamp: BigNumber,
 ): PoolInfoObject {
-  const expected = { ...poolDataBefore };
+  const expect = { ...poolDataBefore };
 
-  return expected;
+  return expect;
 }
 
 // ========= POSITIONS ========= //
@@ -279,9 +281,9 @@ export function calcExpectedPositionDataAfterAddLiquidity(
   txTimestamp: BigNumber,
   timestamp: BigNumber,
 ): PositionInfoObject {
-  const expected = { ...tokenDataBefore };
+  const expect = { ...tokenDataBefore };
 
-  return expected;
+  return expect;
 }
 
 export function calcExpectedPositionDataAfterTakeInterests(
@@ -291,9 +293,9 @@ export function calcExpectedPositionDataAfterTakeInterests(
   txTimestamp: BigNumber,
   timestamp: BigNumber,
 ): PositionInfoObject {
-  const expected = { ...tokenDataBefore };
+  const expect = { ...tokenDataBefore };
 
-  return expected;
+  return expect;
 }
 
 export function calcExpectedPositionDataAfterCommitRemoveLiquidity(
@@ -303,9 +305,9 @@ export function calcExpectedPositionDataAfterCommitRemoveLiquidity(
   txTimestamp: BigNumber,
   timestamp: BigNumber,
 ): PositionInfoObject {
-  const expected = { ...tokenDataBefore };
+  const expect = { ...tokenDataBefore };
 
-  return expected;
+  return expect;
 }
 
 export function calcExpectedPositionDataAfterUncommitRemoveLiquidity(
@@ -315,9 +317,9 @@ export function calcExpectedPositionDataAfterUncommitRemoveLiquidity(
   txTimestamp: BigNumber,
   timestamp: BigNumber,
 ): PositionInfoObject {
-  const expected = { ...tokenDataBefore };
+  const expect = { ...tokenDataBefore };
 
-  return expected;
+  return expect;
 }
 
 export function calcExpectedPositionDataAfterRemoveLiquidity(
@@ -329,9 +331,9 @@ export function calcExpectedPositionDataAfterRemoveLiquidity(
   txTimestamp: BigNumber,
   timestamp: BigNumber,
 ): PositionInfoObject {
-  const expected = { ...tokenDataBefore };
+  const expect = { ...tokenDataBefore };
 
-  return expected;
+  return expect;
 }
 
 // ========= COVERS ========= //
@@ -345,9 +347,9 @@ export function calcExpectedCoverDataAfterOpenCover(
   txTimestamp: BigNumber,
   timestamp: BigNumber,
 ): CoverInfoObject {
-  const expected = { ...tokenDataBefore };
+  const expect = { ...tokenDataBefore };
 
-  return expected;
+  return expect;
 }
 
 export function calcExpectedCoverDataAfterUpdateCover(
@@ -361,9 +363,9 @@ export function calcExpectedCoverDataAfterUpdateCover(
   txTimestamp: BigNumber,
   timestamp: BigNumber,
 ): CoverInfoObject {
-  const expected = { ...tokenDataBefore };
+  const expect = { ...tokenDataBefore };
 
-  return expected;
+  return expect;
 }
 
 export function calcExpectedCoverDataAfterInitiateClaim(
@@ -374,9 +376,9 @@ export function calcExpectedCoverDataAfterInitiateClaim(
   txTimestamp: BigNumber,
   timestamp: BigNumber,
 ): CoverInfoObject {
-  const expected = { ...tokenDataBefore };
+  const expect = { ...tokenDataBefore };
 
-  return expected;
+  return expect;
 }
 
 export function calcExpectedCoverDataAfterWithdrawCompensation(
@@ -387,7 +389,7 @@ export function calcExpectedCoverDataAfterWithdrawCompensation(
   txTimestamp: BigNumber,
   timestamp: BigNumber,
 ): CoverInfoObject {
-  const expected = { ...tokenDataBefore };
+  const expect = { ...tokenDataBefore };
 
-  return expected;
+  return expect;
 }

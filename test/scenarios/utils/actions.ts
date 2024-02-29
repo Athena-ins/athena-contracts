@@ -183,9 +183,10 @@ export async function createPool(
     );
     const { txTimestamp } = await getTxCostAndTimestamp(txResult);
 
-    const [poolData, strategyTokens] = await Promise.all([
+    const [poolData, strategyTokens, strategyRewardIndex] = await Promise.all([
       LiquidityManager.poolInfo(poolId).then((data) => poolInfoFormat(data)),
       StrategyManager.assets(strategyId),
+      StrategyManager.getRewardIndex(strategyId),
     ]);
 
     const expectedPoolData = calcExpectedPoolDataAfterCreatePool(
@@ -198,6 +199,7 @@ export async function createPool(
       strategyId,
       assetAddress,
       strategyTokens,
+      strategyRewardIndex,
       txTimestamp,
     );
 
@@ -243,9 +245,6 @@ export async function openPosition(
     LiquidityManager.nextPositionId(),
     convertToCurrencyDecimals(depositToken, amount),
   ]);
-  const tokenDataBefore = await LiquidityManager.positionInfo(positionId).then(
-    (data) => positionInfoFormat(data),
-  );
 
   if (expectedResult === "success") {
     const userAddress = await user.getAddress();
@@ -259,6 +258,10 @@ export async function openPosition(
         poolIds,
       ),
     );
+
+    const tokenDataBefore = await LiquidityManager.positionInfo(
+      positionId,
+    ).then((data) => positionInfoFormat(data));
 
     const { txTimestamp } = await getTxCostAndTimestamp(txResult);
 
@@ -277,6 +280,7 @@ export async function openPosition(
       isWrapped,
       poolIds,
       poolDataBefore,
+      poolDataAfter[0].strategyRewardIndex,
       txTimestamp,
       timestamp,
     );

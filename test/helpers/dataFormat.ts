@@ -37,6 +37,7 @@ export function poolInfoFormat(
     utilizationRate: data.utilizationRate,
     totalLiquidity: data.totalLiquidity,
     availableLiquidity: data.availableLiquidity,
+    strategyRewardIndex: data.strategyRewardIndex,
   };
 }
 
