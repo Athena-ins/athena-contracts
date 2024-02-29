@@ -20,7 +20,7 @@ import { IAthenaCoverToken } from "../interfaces/IAthenaCoverToken.sol";
 import { IEcclesiaDao } from "../interfaces/IEcclesiaDao.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-// import { console } from "hardhat/console.sol";
+import { console } from "hardhat/console.sol";
 
 // ======= ERRORS ======= //
 
@@ -180,6 +180,10 @@ contract LiquidityManager is
     uint256[] memory coverRewards = new uint256[](nbPools);
     VirtualPool.UpdatedPositionInfo memory info;
 
+    // All pools have same strategy since they are compatible
+    uint256 latestStrategyRewardIndex = strategyManager
+      .getRewardIndex(_pools[position.poolIds[0]].strategyId);
+
     for (uint256 i; i < nbPools; i++) {
       VirtualPool.VPool storage pool = _pools[position.poolIds[i]];
 
@@ -188,11 +192,14 @@ contract LiquidityManager is
         .liquidityIndex;
 
       info = pool._getUpdatedPositionInfo(
-        currentLiquidityIndex,
-        positionId_,
-        position.supplied,
-        position.strategyRewardIndex,
-        position.poolIds
+        position.poolIds,
+        VirtualPool.UpdatePositionParams({
+          tokenId: positionId_,
+          currentLiquidityIndex: currentLiquidityIndex,
+          userCapital: position.supplied,
+          strategyRewardIndex: position.strategyRewardIndex,
+          latestStrategyRewardIndex: latestStrategyRewardIndex
+        })
       );
       coverRewards[i] = info.coverRewards;
     }
@@ -201,7 +208,7 @@ contract LiquidityManager is
       PositionRead({
         supplied: position.supplied,
         commitWithdrawalTimestamp: position.commitWithdrawalTimestamp,
-        strategyRewardIndex: position.strategyRewardIndex,
+        strategyRewardIndex: latestStrategyRewardIndex,
         poolIds: position.poolIds,
         newUserCapital: info.newUserCapital,
         coverRewards: coverRewards,
@@ -578,6 +585,9 @@ contract LiquidityManager is
     if (position.commitWithdrawalTimestamp != 0)
       revert CannotTakeInterestsIfCommittedWithdrawal();
 
+    // All pools have same strategy since they are compatible
+    uint256 latestStrategyRewardIndex = strategyManager
+      .getRewardIndex(_pools[position.poolIds[0]].strategyId);
     address posOwner = positionToken.ownerOf(positionId_);
 
     uint256 newUserCapital;
@@ -596,6 +606,7 @@ contract LiquidityManager is
         coverRewardsBeneficiary_,
         position.supplied,
         position.strategyRewardIndex,
+        latestStrategyRewardIndex,
         yieldBonus_,
         position.poolIds
       );
@@ -614,11 +625,9 @@ contract LiquidityManager is
     );
 
     // Save index up to which the position has received strategy rewards
-    _positions[positionId_].strategyRewardIndex = strategyManager
-      .getRewardIndex(strategyId);
-
+    position.strategyRewardIndex = latestStrategyRewardIndex;
     // Update the position capital to reflect potential reduction due to claims
-    _positions[positionId_].supplied = newUserCapital;
+    position.supplied = newUserCapital;
   }
 
   /**
@@ -728,6 +737,9 @@ contract LiquidityManager is
       position.commitWithdrawalTimestamp + withdrawDelay
     ) revert WithdrawCommitDelayNotReached();
 
+    // All pools have same strategy since they are compatible
+    uint256 latestStrategyRewardIndex = strategyManager
+      .getRewardIndex(_pools[position.poolIds[0]].strategyId);
     address account = positionToken.ownerOf(positionId_);
 
     // Remove capital from pool & compute capital after claims & strategy rewards
@@ -739,6 +751,7 @@ contract LiquidityManager is
         position.supplied,
         amount_,
         position.strategyRewardIndex,
+        latestStrategyRewardIndex,
         position.poolIds
       );
 
@@ -747,6 +760,7 @@ contract LiquidityManager is
     position.supplied = capital - amount_;
     // Reset the position's commitWithdrawalTimestamp
     position.commitWithdrawalTimestamp = 0;
+    position.strategyRewardIndex = latestStrategyRewardIndex;
 
     // All pools have same strategy since they are compatible
     if (amount_ != 0 || strategyRewards != 0) {
@@ -1008,6 +1022,7 @@ contract LiquidityManager is
     uint256 supplied_,
     uint256 amount_,
     uint256 strategyRewardIndex_,
+    uint256 latestStrategyRewardIndex_,
     uint64[] storage poolIds_
   ) internal returns (uint256 capital, uint256 rewards) {
     uint256 nbPoolIds = poolIds_.length;
@@ -1026,6 +1041,7 @@ contract LiquidityManager is
           supplied_,
           amount_,
           strategyRewardIndex_,
+          latestStrategyRewardIndex_,
           poolIds_
         );
 

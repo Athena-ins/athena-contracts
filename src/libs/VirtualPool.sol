@@ -12,7 +12,7 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol"
 import { IEcclesiaDao } from "../interfaces/IEcclesiaDao.sol";
 import { IStrategyManager } from "../interfaces/IStrategyManager.sol";
 
-// import { console } from "hardhat/console.sol";
+import { console } from "hardhat/console.sol";
 
 // ======= ERRORS ======= //
 
@@ -93,6 +93,14 @@ library VirtualPool {
     uint256 ratio;
     uint256 strategyRewardIndexBeforeClaim;
     mapping(uint64 _poolId => uint256 _amount) liquidityIndexBeforeClaim;
+  }
+
+  struct UpdatePositionParams {
+    uint256 currentLiquidityIndex;
+    uint256 tokenId;
+    uint256 userCapital;
+    uint256 strategyRewardIndex;
+    uint256 latestStrategyRewardIndex;
   }
 
   struct UpdatedPositionInfo {
@@ -369,16 +377,20 @@ library VirtualPool {
     address account_,
     uint256 supplied_,
     uint256 strategyRewardIndex_,
+    uint256 latestStrategyRewardIndex_,
     uint256 yieldBonus_,
     uint64[] storage poolIds_
   ) internal returns (uint256, uint256) {
     // Get the updated position info
     UpdatedPositionInfo memory info = self._getUpdatedPositionInfo(
-      self.slot0.liquidityIndex,
-      tokenId_,
-      supplied_,
-      strategyRewardIndex_,
-      poolIds_
+      poolIds_,
+      UpdatePositionParams({
+        currentLiquidityIndex: self.slot0.liquidityIndex,
+        tokenId: tokenId_,
+        userCapital: supplied_,
+        strategyRewardIndex: strategyRewardIndex_,
+        latestStrategyRewardIndex: latestStrategyRewardIndex_
+      })
     );
 
     // Pay cover rewards and send fees to treasury
@@ -414,15 +426,19 @@ library VirtualPool {
     uint256 supplied_,
     uint256 amount_,
     uint256 strategyRewardIndex_,
+    uint256 latestStrategyRewardIndex_,
     uint64[] storage poolIds_
   ) internal returns (uint256, uint256) {
     // Get the updated position info
     UpdatedPositionInfo memory info = self._getUpdatedPositionInfo(
-      self.slot0.liquidityIndex,
-      tokenId_,
-      supplied_,
-      strategyRewardIndex_,
-      poolIds_
+      poolIds_,
+      UpdatePositionParams({
+        currentLiquidityIndex: self.slot0.liquidityIndex,
+        tokenId: tokenId_,
+        userCapital: supplied_,
+        strategyRewardIndex: strategyRewardIndex_,
+        latestStrategyRewardIndex: latestStrategyRewardIndex_
+      })
     );
 
     // Pool rewards after commit are paid in favor of the DAO's leverage risk wallet
@@ -902,10 +918,13 @@ library VirtualPool {
    * @dev Used for takeInterest, withdrawLiquidity and rewardsOf
    *
    * @param self The pool
-   * @param currentLiquidityIndex_ The current liquidity index
-   * @param tokenId_ The LP position token ID
-   * @param userCapital_ The amount of liquidity in the position
    * @param poolIds_ The pool IDs of the position
+   * @param params The update position parameters
+   * - currentLiquidityIndex_ The current liquidity index
+   * - tokenId_ The LP position token ID
+   * - userCapital_ The user's capital
+   * - strategyRewardIndex_ The strategy reward index
+   * - latestStrategyRewardIndex_ The latest strategy reward index
    *
    * @return info Updated information about the position:
    * - newUserCapital The user's capital after claims
@@ -917,14 +936,11 @@ library VirtualPool {
    */
   function _getUpdatedPositionInfo(
     VPool storage self,
-    uint256 currentLiquidityIndex_,
-    uint256 tokenId_,
-    uint256 userCapital_,
-    uint256 strategyRewardIndex_,
-    uint64[] storage poolIds_
+    uint64[] storage poolIds_,
+    UpdatePositionParams memory params
   ) internal view returns (UpdatedPositionInfo memory info) {
-    info.newLpInfo = self.lpInfos[tokenId_];
-    info.newUserCapital = userCapital_;
+    info.newLpInfo = self.lpInfos[params.tokenId];
+    info.newUserCapital = params.userCapital;
 
     uint256 strategyId = self.strategyId;
     // If strategy compounds then add to capital to compute next new rewards
@@ -934,6 +950,9 @@ library VirtualPool {
     uint256 compensationId = info.newLpInfo.beginClaimIndex;
     uint256 endCompensationId = self.compensationIds.length;
     uint256 nbPools = poolIds_.length;
+
+    // This index is not bubbled up in info because it is updated by the LiquidityManager
+    uint256 upToStrategyRewardIndex = params.strategyRewardIndex;
 
     /**
      * Parse each claim that may affect capital due to overlap in order to
@@ -968,12 +987,12 @@ library VirtualPool {
           itCompounds
             ? info.newUserCapital + info.strategyRewards
             : info.newUserCapital,
-          strategyRewardIndex_,
+          params.strategyRewardIndex,
           comp.strategyRewardIndexBeforeClaim
         );
 
         // Register up to where the rewards have been accumulated
-        strategyRewardIndex_ = comp.strategyRewardIndexBeforeClaim;
+        upToStrategyRewardIndex = comp.strategyRewardIndexBeforeClaim;
         info
           .newLpInfo
           .beginLiquidityIndex = liquidityIndexBeforeClaim;
@@ -988,27 +1007,24 @@ library VirtualPool {
      * Finally add the rewards from the last claim or update to the current block
      * & register latest reward & claim indexes
      */
-    uint256 latestRewardIndex = self.strategyManager.getRewardIndex(
-      strategyId
-    );
 
     info.strategyRewards += self.strategyManager.computeReward(
       strategyId,
       itCompounds
         ? info.newUserCapital + info.strategyRewards
         : info.newUserCapital,
-      strategyRewardIndex_,
-      latestRewardIndex
+      upToStrategyRewardIndex,
+      params.latestStrategyRewardIndex
     );
 
     info.coverRewards += getCoverRewards(
       info.newUserCapital,
       info.newLpInfo.beginLiquidityIndex,
-      currentLiquidityIndex_
+      params.currentLiquidityIndex
     );
 
     // Register up to where the position has been updated
-    info.newLpInfo.beginLiquidityIndex = currentLiquidityIndex_;
+    info.newLpInfo.beginLiquidityIndex = params.currentLiquidityIndex;
     info.newLpInfo.beginClaimIndex = endCompensationId;
   }
 
