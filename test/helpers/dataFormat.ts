@@ -46,7 +46,7 @@ export function positionInfoFormat(
   return {
     supplied: data.supplied,
     commitWithdrawalTimestamp: data.commitWithdrawalTimestamp.toNumber(),
-    rewardIndex: data.rewardIndex,
+    strategyRewardIndex: data.strategyRewardIndex,
     poolIds: data.poolIds.map((val) => val.toNumber()),
     newUserCapital: data.newUserCapital,
     coverRewards: data.coverRewards,

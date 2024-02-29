@@ -31,10 +31,10 @@ type Formula = {
 type PoolData = {
   slot0: {
     coveredCapital: BigNumber;
-    secondsPerTick: BigNumber;
+    secondsPerTick: number;
   };
   totalLiquidity: BigNumber;
-  f: Formula;
+  formula: Formula;
 };
 
 export function toRay(amount: BigNumberish, decimals = 0) {
@@ -143,10 +143,10 @@ export function getPremiumRate(
   utilizationRate_: RayInt | BigNumberish,
 ): BigNumber {
   const formula = {
-    uOptimal: RayInt.from(poolData.f.uOptimal),
-    r0: RayInt.from(poolData.f.r0),
-    rSlope1: RayInt.from(poolData.f.rSlope1),
-    rSlope2: RayInt.from(poolData.f.rSlope2),
+    uOptimal: RayInt.from(poolData.formula.uOptimal),
+    r0: RayInt.from(poolData.formula.r0),
+    rSlope1: RayInt.from(poolData.formula.rSlope1),
+    rSlope2: RayInt.from(poolData.formula.rSlope2),
   };
   const utilizationRate = RayInt.from(utilizationRate_);
 
@@ -349,4 +349,24 @@ export function utilization(
 
   // Get a base PERCENTAGE_BASE percentage
   return coveredCapital.mul(PERCENTAGE_BASE).rayDiv(liquidity).toBigNumber();
+}
+
+/**
+ * @notice Computes rewards given their amount of underlying & start and end reward indexes
+ * @param strategyId_ The ID of the strategy
+ * @param amount_ The amount of underlying tokens
+ * @param startRewardIndex_ The reward index at the time of deposit
+ * @param endRewardIndex_ The reward index at the time of withdrawal
+ * @return uint256 The amount of rewards in underlying tokens
+ */
+export function computeReward(
+  amount: BigNumber,
+  startRewardIndex: BigNumber,
+  endRewardIndex: BigNumber,
+) {
+  return RayInt.from(amount)
+    .rayMul(endRewardIndex)
+    .rayDiv(startRewardIndex)
+    .sub(amount)
+    .toBigNumber();
 }

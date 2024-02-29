@@ -31,12 +31,13 @@ export type PoolInfoObject = {
   utilizationRate: BigNumber;
   totalLiquidity: BigNumber;
   availableLiquidity: BigNumber;
+  strategyRewardIndex: BigNumber;
 };
 
 export type PositionInfoObject = {
   supplied: BigNumber;
   commitWithdrawalTimestamp: number;
-  rewardIndex: BigNumber;
+  strategyRewardIndex: BigNumber;
   poolIds: number[];
   newUserCapital: BigNumber;
   coverRewards: BigNumber[];
@@ -92,6 +93,60 @@ declare global {
   }
 }
 
+function checkKey(
+  this: Chai.AssertionStatic & {
+    _obj: PoolInfo | PositionInfo | CoverInfo;
+  },
+  key: any,
+  actualKey: any,
+  expectedKey: any,
+) {
+  expect(
+    actualKey != undefined,
+    `Property ${key} is undefined in the actual data`,
+  );
+  expect(
+    expectedKey != undefined,
+    `Property ${key} is undefined in the expected data`,
+  );
+
+  if (expectedKey == null || actualKey == null) {
+    console.log(
+      "Found a undefined value for Key ",
+      key,
+      " value ",
+      expectedKey,
+      actualKey,
+    );
+  }
+
+  if (BigNumber.isBigNumber(actualKey)) {
+    this.assert(
+      actualKey.eq(expectedKey) ||
+        actualKey.add(1).eq(expectedKey) ||
+        actualKey.eq(expectedKey.add(1)) ||
+        actualKey.add(2).eq(expectedKey) ||
+        actualKey.eq(expectedKey.add(2)) ||
+        actualKey.add(3).eq(expectedKey) ||
+        actualKey.eq(expectedKey.add(3)),
+      `expected #{act} to be almost equal or equal #{exp} for property ${key}`,
+      `expected #{act} to be almost equal or equal #{exp} for property ${key}`,
+      expectedKey,
+      actualKey,
+    );
+  } else {
+    this.assert(
+      actualKey !== null &&
+        expectedKey !== null &&
+        actualKey.toString() === expectedKey.toString(),
+      `expected #{act} to be equal #{exp} for property ${key}`,
+      `expected #{act} to be equal #{exp} for property ${key}`,
+      expectedKey,
+      actualKey,
+    );
+  }
+}
+
 chai.use(function (chai, utils) {
   chai.Assertion.addMethod(
     "almostEqualState",
@@ -103,57 +158,16 @@ chai.use(function (chai, utils) {
     ) {
       const assert = this.assert;
 
-      function checkKey(key: any, actualKey: any, expectedKey: any) {
-        expect(
-          actualKey != undefined,
-          `Property ${key} is undefined in the actual data`,
-        );
-        expect(
-          expectedKey != undefined,
-          `Property ${key} is undefined in the expected data`,
-        );
-
-        if (expectedKey == null || actualKey == null) {
-          console.log(
-            "Found a undefined value for Key ",
-            key,
-            " value ",
-            expectedKey,
-            actualKey,
-          );
-        }
-
-        if (BigNumber.isBigNumber(actualKey)) {
-          assert(
-            actualKey.eq(expectedKey) ||
-              actualKey.add(1).eq(expectedKey) ||
-              actualKey.eq(expectedKey.add(1)) ||
-              actualKey.add(2).eq(expectedKey) ||
-              actualKey.eq(expectedKey.add(2)) ||
-              actualKey.add(3).eq(expectedKey) ||
-              actualKey.eq(expectedKey.add(3)),
-            `expected #{act} to be almost equal or equal #{exp} for property ${key}`,
-            `expected #{act} to be almost equal or equal #{exp} for property ${key}`,
-            expectedKey,
-            actualKey,
-          );
-        } else {
-          assert(
-            actualKey !== null &&
-              expectedKey !== null &&
-              actualKey.toString() === expectedKey.toString(),
-            `expected #{act} to be equal #{exp} for property ${key}`,
-            `expected #{act} to be equal #{exp} for property ${key}`,
-            expectedKey,
-            actualKey,
-          );
-        }
-      }
-
       const expected = input as any;
       const actual = this._obj;
       const keys = Object.keys(actual);
 
+      let inputType = "PoolInfo";
+      if (expected.hasOwnProperty("dailyCost")) inputType = "CoverInfo";
+      if (expected.hasOwnProperty("supplied")) inputType = "PositionInfo";
+      if (expected.hasOwnProperty("claimant")) inputType = "ClaimInfo";
+
+      this;
       for (const key of keys) {
         // if (
         //   key === "feeRate" ||
@@ -174,7 +188,11 @@ chai.use(function (chai, utils) {
           if (actualArray.length === 0) return;
 
           for (let i = 0; i < actualArray.length; i++) {
-            checkKey(`${key}[${i}]`, actual[key][i], expected[key][i]);
+            checkKey.bind(this)(
+              `${inputType}.${key}[${i}]`,
+              actual[key][i],
+              expected[key][i],
+            );
           }
         } else if (
           typeof actual[key] === "object" &&
@@ -186,8 +204,8 @@ chai.use(function (chai, utils) {
           const expectedKeys: any[] = Object.keys(expected[key]);
 
           for (let i = 0; i < actualKeys.length; i++) {
-            checkKey(
-              `${key}.${actualKeys[i]}`,
+            checkKey.bind(this)(
+              `${inputType}.${key}.${actualKeys[i]}`,
               actual[key][actualKeys[i]],
               expected[key][expectedKeys[i]],
             );
@@ -195,7 +213,11 @@ chai.use(function (chai, utils) {
         } else {
           // Else run a simple check
 
-          checkKey(key, actual[key], expected[key]);
+          checkKey.bind(this)(
+            `${inputType}.${key}`,
+            actual[key],
+            expected[key],
+          );
         }
       }
     },
