@@ -1,6 +1,19 @@
-import { constants } from "./poolRayMath";
+import {
+  constants,
+  toRay,
+  RayInt,
+  getPremiumRate,
+  computeLiquidityIndex,
+  getCoverRewards,
+  getDailyCost,
+  secondsPerTick,
+  currentPremiumRate,
+  updatedPremiumRate,
+  utilization,
+  computeReward,
+} from "./poolRayMath";
 // Types
-import { BigNumberish, BigNumber } from "ethers";
+import { BigNumber } from "ethers";
 import {
   PoolInfoObject,
   PositionInfoObject,
@@ -58,12 +71,60 @@ export function calcExpectedPoolDataAfterOpenPosition(
   isWrapped: boolean,
   poolIds: number[],
   poolDataBefore: PoolInfoObject[],
+  strategyRewardIndex: BigNumber,
   txTimestamp: BigNumber,
   timestamp: BigNumber,
 ): PoolInfoObject[] {
-  const expected = structuredClone(poolDataBefore);
+  const expectedArray: PoolInfoObject[] = [];
 
-  return expected;
+  for (const pool of poolDataBefore) {
+    const expect = { ...pool };
+
+    expect.strategyRewardIndex = strategyRewardIndex;
+
+    expect.totalLiquidity = expect.totalLiquidity.add(positionAmount);
+    expect.availableLiquidity = expect.availableLiquidity.add(positionAmount);
+    expect.utilizationRate = utilization(
+      pool.slot0.coveredCapital,
+      expect.totalLiquidity,
+    );
+
+    expect.overlappedPools = [
+      ...expect.overlappedPools,
+      ...poolIds.filter((id) => !pool.overlappedPools.includes(id)),
+    ];
+
+    expect.overlappedCapital = expect.overlappedPools.map((id, i) => {
+      const existingCapital = pool.overlappedCapital[i];
+      return poolIds.includes(id)
+        ? existingCapital.add(positionAmount)
+        : existingCapital;
+    });
+
+    expect.slot0.lastUpdateTimestamp = timestamp.toNumber();
+
+    // These value may be unpredictably changed due to covers expiring during time travel
+    const timeElapsed = timestamp.sub(txTimestamp);
+    const oldPremiumRate = getPremiumRate(pool, pool.utilizationRate);
+    const newPremiumRate = getPremiumRate(pool, expect.utilizationRate);
+    expect.slot0.secondsPerTick = secondsPerTick(
+      pool.slot0.secondsPerTick,
+      oldPremiumRate,
+      newPremiumRate,
+    ).toNumber();
+    expect.slot0.tick = Math.floor(
+      timeElapsed.toNumber() / expect.slot0.secondsPerTick,
+    );
+    expect.slot0.liquidityIndex = computeLiquidityIndex(
+      expect.utilizationRate,
+      newPremiumRate,
+      timeElapsed,
+    );
+
+    expectedArray.push(expect);
+  }
+
+  return expectedArray;
 }
 
 export function calcExpectedPoolDataAfterAddLiquidity(
@@ -181,9 +242,31 @@ export function calcExpectedPositionDataAfterOpenPosition(
   txTimestamp: BigNumber,
   timestamp: BigNumber,
 ): PositionInfoObject {
-  const expected = { ...tokenDataBefore };
+  const expect: any = {};
 
-  return expected;
+  expect.supplied = positionAmount;
+  expect.commitWithdrawalTimestamp = 0;
+  expect.poolIds = poolIds;
+  expect.newUserCapital = expect.supplied;
+
+  expect.coverRewards = [];
+  for (const pool of poolDataBefore) {
+    const coverRewards = getCoverRewards(
+      expect.newUserCapital,
+      pool.slot0.liquidityIndex,
+      expectedPoolData[0].slot0.liquidityIndex,
+    );
+    expect.coverRewards.push(coverRewards);
+  }
+
+  expect.strategyRewardIndex = expectedPoolData[0].strategyRewardIndex;
+  expect.strategyRewards = computeReward(
+    expect.newUserCapital,
+    tokenDataBefore.strategyRewardIndex,
+    expectedPoolData[0].strategyRewardIndex,
+  );
+
+  return expect satisfies PositionInfoObject;
 }
 
 export function calcExpectedPositionDataAfterAddLiquidity(
