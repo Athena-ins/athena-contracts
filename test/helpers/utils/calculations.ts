@@ -12,6 +12,7 @@ import {
   utilization,
   computeReward,
 } from "./poolRayMath";
+import { deepCopy } from "../miscUtils";
 // Types
 import { BigNumber } from "ethers";
 import {
@@ -80,7 +81,7 @@ export function calcExpectedPoolDataAfterOpenPosition(
   const expectedArray: PoolInfoObject[] = [];
 
   for (const pool of poolDataBefore) {
-    const expect = { ...pool };
+    const expect = deepCopy(pool);
 
     expect.strategyRewardIndex = strategyRewardIndex;
 
@@ -137,7 +138,7 @@ export function calcExpectedPoolDataAfterAddLiquidity(
   txTimestamp: BigNumber,
   timestamp: BigNumber,
 ): PoolInfoObject[] {
-  const expect = { ...poolDataBefore };
+  const expect = deepCopy(poolDataBefore);
 
   return expect;
 }
@@ -147,7 +148,7 @@ export function calcExpectedPoolDataAfterCommitRemoveLiquidity(
   txTimestamp: BigNumber,
   timestamp: BigNumber,
 ): PoolInfoObject[] {
-  const expect = { ...poolDataBefore };
+  const expect = deepCopy(poolDataBefore);
 
   return expect;
 }
@@ -157,7 +158,7 @@ export function calcExpectedPoolDataAfterUncommitRemoveLiquidity(
   txTimestamp: BigNumber,
   timestamp: BigNumber,
 ): PoolInfoObject[] {
-  const expect = { ...poolDataBefore };
+  const expect = deepCopy(poolDataBefore);
 
   return expect;
 }
@@ -167,7 +168,7 @@ export function calcExpectedPoolDataAfterTakeInterests(
   txTimestamp: BigNumber,
   timestamp: BigNumber,
 ): PoolInfoObject[] {
-  const expect = { ...poolDataBefore };
+  const expect = deepCopy(poolDataBefore);
 
   return expect;
 }
@@ -179,7 +180,7 @@ export function calcExpectedPoolDataAfterRemoveLiquidity(
   txTimestamp: BigNumber,
   timestamp: BigNumber,
 ): PoolInfoObject[] {
-  const expect = { ...poolDataBefore };
+  const expect = deepCopy(poolDataBefore);
 
   return expect;
 }
@@ -191,7 +192,7 @@ export function calcExpectedPoolDataAfterOpenCover(
   txTimestamp: BigNumber,
   timestamp: BigNumber,
 ): PoolInfoObject {
-  const expect = { ...poolDataBefore };
+  const expect = deepCopy(poolDataBefore);
 
   return expect;
 }
@@ -205,7 +206,7 @@ export function calcExpectedPoolDataAfterUpdateCover(
   txTimestamp: BigNumber,
   timestamp: BigNumber,
 ): PoolInfoObject {
-  const expect = { ...poolDataBefore };
+  const expect = deepCopy(poolDataBefore);
 
   return expect;
 }
@@ -216,7 +217,7 @@ export function calcExpectedPoolDataAfterInitiateClaim(
   txTimestamp: BigNumber,
   timestamp: BigNumber,
 ): PoolInfoObject {
-  const expect = { ...poolDataBefore };
+  const expect = deepCopy(poolDataBefore);
 
   return expect;
 }
@@ -227,7 +228,7 @@ export function calcExpectedPoolDataAfterWithdrawCompensation(
   txTimestamp: BigNumber,
   timestamp: BigNumber,
 ): PoolInfoObject {
-  const expect = { ...poolDataBefore };
+  const expect = deepCopy(poolDataBefore);
 
   return expect;
 }
@@ -281,7 +282,7 @@ export function calcExpectedPositionDataAfterAddLiquidity(
   txTimestamp: BigNumber,
   timestamp: BigNumber,
 ): PositionInfoObject {
-  const expect = { ...tokenDataBefore };
+  const expect = deepCopy(tokenDataBefore);
 
   return expect;
 }
@@ -293,7 +294,7 @@ export function calcExpectedPositionDataAfterTakeInterests(
   txTimestamp: BigNumber,
   timestamp: BigNumber,
 ): PositionInfoObject {
-  const expect = { ...tokenDataBefore };
+  const expect = deepCopy(tokenDataBefore);
 
   return expect;
 }
@@ -305,7 +306,7 @@ export function calcExpectedPositionDataAfterCommitRemoveLiquidity(
   txTimestamp: BigNumber,
   timestamp: BigNumber,
 ): PositionInfoObject {
-  const expect = { ...tokenDataBefore };
+  const expect = deepCopy(tokenDataBefore);
 
   return expect;
 }
@@ -317,7 +318,7 @@ export function calcExpectedPositionDataAfterUncommitRemoveLiquidity(
   txTimestamp: BigNumber,
   timestamp: BigNumber,
 ): PositionInfoObject {
-  const expect = { ...tokenDataBefore };
+  const expect = deepCopy(tokenDataBefore);
 
   return expect;
 }
@@ -331,7 +332,7 @@ export function calcExpectedPositionDataAfterRemoveLiquidity(
   txTimestamp: BigNumber,
   timestamp: BigNumber,
 ): PositionInfoObject {
-  const expect = { ...tokenDataBefore };
+  const expect = deepCopy(tokenDataBefore);
 
   return expect;
 }
@@ -347,7 +348,7 @@ export function calcExpectedCoverDataAfterOpenCover(
   txTimestamp: BigNumber,
   timestamp: BigNumber,
 ): CoverInfoObject {
-  const expect = { ...tokenDataBefore };
+  const expect = deepCopy(tokenDataBefore);
 
   return expect;
 }
@@ -363,7 +364,7 @@ export function calcExpectedCoverDataAfterUpdateCover(
   txTimestamp: BigNumber,
   timestamp: BigNumber,
 ): CoverInfoObject {
-  const expect = { ...tokenDataBefore };
+  const expect = deepCopy(tokenDataBefore);
 
   return expect;
 }
@@ -376,7 +377,7 @@ export function calcExpectedCoverDataAfterInitiateClaim(
   txTimestamp: BigNumber,
   timestamp: BigNumber,
 ): CoverInfoObject {
-  const expect = { ...tokenDataBefore };
+  const expect = deepCopy(tokenDataBefore);
 
   return expect;
 }
@@ -389,7 +390,7 @@ export function calcExpectedCoverDataAfterWithdrawCompensation(
   txTimestamp: BigNumber,
   timestamp: BigNumber,
 ): CoverInfoObject {
-  const expect = { ...tokenDataBefore };
+  const expect = deepCopy(tokenDataBefore);
 
   return expect;
 }

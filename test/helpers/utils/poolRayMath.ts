@@ -280,6 +280,7 @@ export function secondsPerTick(
  */
 export function currentPremiumRate(poolData: PoolData): BigNumber {
   const coveredCapital = poolData.slot0.coveredCapital;
+
   return getPremiumRate(
     poolData,
     utilization(coveredCapital, poolData.totalLiquidity),
@@ -298,7 +299,7 @@ export function updatedPremiumRate(
   poolData: PoolData,
   coveredCapitalToAdd_: RayInt | BigNumberish,
   coveredCapitalToRemove_: RayInt | BigNumberish,
-): [BigNumber, BigNumber] {
+): { newPremiumRate: BigNumber; newSecondsPerTick: BigNumber } {
   const previousPremiumRate = currentPremiumRate(poolData);
 
   const newPremiumRate = getPremiumRate(
@@ -317,7 +318,7 @@ export function updatedPremiumRate(
     newPremiumRate,
   );
 
-  return [newPremiumRate, newSecondsPerTick];
+  return { newPremiumRate, newSecondsPerTick };
 }
 
 /**
