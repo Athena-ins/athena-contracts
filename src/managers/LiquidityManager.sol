@@ -191,7 +191,7 @@ contract LiquidityManager is
         currentLiquidityIndex,
         positionId_,
         position.supplied,
-        position.rewardIndex,
+        position.strategyRewardIndex,
         position.poolIds
       );
       coverRewards[i] = info.coverRewards;
@@ -201,7 +201,7 @@ contract LiquidityManager is
       PositionRead({
         supplied: position.supplied,
         commitWithdrawalTimestamp: position.commitWithdrawalTimestamp,
-        rewardIndex: position.rewardIndex,
+        strategyRewardIndex: position.strategyRewardIndex,
         poolIds: position.poolIds,
         newUserCapital: info.newUserCapital,
         coverRewards: coverRewards,
@@ -315,7 +315,10 @@ contract LiquidityManager is
           totalLiquidity
         ),
         totalLiquidity: totalLiquidity,
-        availableLiquidity: pool.availableLiquidity()
+        availableLiquidity: pool.availableLiquidity(),
+        strategyRewardIndex: strategyManager.getRewardIndex(
+          pool.strategyId
+        )
       });
   }
 
@@ -481,7 +484,7 @@ contract LiquidityManager is
       commitWithdrawalTimestamp: 0,
       poolIds: poolIds,
       // Save index from which the position will start accruing strategy rewards
-      rewardIndex: strategyManager.getRewardIndex(strategyId)
+      strategyRewardIndex: strategyManager.getRewardIndex(strategyId)
     });
 
     // Mint position NFT
@@ -592,7 +595,7 @@ contract LiquidityManager is
         positionId_,
         coverRewardsBeneficiary_,
         position.supplied,
-        position.rewardIndex,
+        position.strategyRewardIndex,
         yieldBonus_,
         position.poolIds
       );
@@ -611,7 +614,7 @@ contract LiquidityManager is
     );
 
     // Save index up to which the position has received strategy rewards
-    _positions[positionId_].rewardIndex = strategyManager
+    _positions[positionId_].strategyRewardIndex = strategyManager
       .getRewardIndex(strategyId);
 
     // Update the position capital to reflect potential reduction due to claims
@@ -735,7 +738,7 @@ contract LiquidityManager is
         positionId_,
         position.supplied,
         amount_,
-        position.rewardIndex,
+        position.strategyRewardIndex,
         position.poolIds
       );
 
@@ -1004,7 +1007,7 @@ contract LiquidityManager is
     uint256 positionId_,
     uint256 supplied_,
     uint256 amount_,
-    uint256 rewardIndex_,
+    uint256 strategyRewardIndex_,
     uint64[] storage poolIds_
   ) internal returns (uint256 capital, uint256 rewards) {
     uint256 nbPoolIds = poolIds_.length;
@@ -1022,7 +1025,7 @@ contract LiquidityManager is
           positionId_,
           supplied_,
           amount_,
-          rewardIndex_,
+          strategyRewardIndex_,
           poolIds_
         );
 
@@ -1110,7 +1113,9 @@ contract LiquidityManager is
 
     // All pools have same strategy since they are compatible
     uint256 strategyId = _pools[poolA.overlappedPools[0]].strategyId;
-    uint256 rewardIndex = strategyManager.getRewardIndex(strategyId);
+    uint256 strategyRewardIndex = strategyManager.getRewardIndex(
+      strategyId
+    );
 
     uint256 nbPools = poolA.overlappedPools.length;
 
@@ -1123,7 +1128,7 @@ contract LiquidityManager is
     // Register data common to all affected pools
     compensation.fromPoolId = fromPoolId;
     compensation.ratio = ratio;
-    compensation.rewardIndexBeforeClaim = rewardIndex;
+    compensation.strategyRewardIndexBeforeClaim = strategyRewardIndex;
 
     for (uint256 i; i < nbPools; i++) {
       uint64 poolIdB = poolA.overlappedPools[i];

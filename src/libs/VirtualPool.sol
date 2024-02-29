@@ -12,7 +12,7 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol"
 import { IEcclesiaDao } from "../interfaces/IEcclesiaDao.sol";
 import { IStrategyManager } from "../interfaces/IStrategyManager.sol";
 
-import { console } from "hardhat/console.sol";
+// import { console } from "hardhat/console.sol";
 
 // ======= ERRORS ======= //
 
@@ -91,7 +91,7 @@ library VirtualPool {
   struct Compensation {
     uint64 fromPoolId;
     uint256 ratio;
-    uint256 rewardIndexBeforeClaim;
+    uint256 strategyRewardIndexBeforeClaim;
     mapping(uint64 _poolId => uint256 _amount) liquidityIndexBeforeClaim;
   }
 
@@ -124,6 +124,7 @@ library VirtualPool {
     uint256 utilizationRate;
     uint256 totalLiquidity;
     uint256 availableLiquidity;
+    uint256 strategyRewardIndex;
   }
 
   struct VPool {
@@ -367,7 +368,7 @@ library VirtualPool {
     uint256 tokenId_,
     address account_,
     uint256 supplied_,
-    uint256 rewardIndex_,
+    uint256 strategyRewardIndex_,
     uint256 yieldBonus_,
     uint64[] storage poolIds_
   ) internal returns (uint256, uint256) {
@@ -376,7 +377,7 @@ library VirtualPool {
       self.slot0.liquidityIndex,
       tokenId_,
       supplied_,
-      rewardIndex_,
+      strategyRewardIndex_,
       poolIds_
     );
 
@@ -412,7 +413,7 @@ library VirtualPool {
     uint256 tokenId_,
     uint256 supplied_,
     uint256 amount_,
-    uint256 rewardIndex_,
+    uint256 strategyRewardIndex_,
     uint64[] storage poolIds_
   ) internal returns (uint256, uint256) {
     // Get the updated position info
@@ -420,7 +421,7 @@ library VirtualPool {
       self.slot0.liquidityIndex,
       tokenId_,
       supplied_,
-      rewardIndex_,
+      strategyRewardIndex_,
       poolIds_
     );
 
@@ -919,7 +920,7 @@ library VirtualPool {
     uint256 currentLiquidityIndex_,
     uint256 tokenId_,
     uint256 userCapital_,
-    uint256 rewardIndex_,
+    uint256 strategyRewardIndex_,
     uint64[] storage poolIds_
   ) internal view returns (UpdatedPositionInfo memory info) {
     info.newLpInfo = self.lpInfos[tokenId_];
@@ -967,12 +968,12 @@ library VirtualPool {
           itCompounds
             ? info.newUserCapital + info.strategyRewards
             : info.newUserCapital,
-          rewardIndex_,
-          comp.rewardIndexBeforeClaim
+          strategyRewardIndex_,
+          comp.strategyRewardIndexBeforeClaim
         );
 
         // Register up to where the rewards have been accumulated
-        rewardIndex_ = comp.rewardIndexBeforeClaim;
+        strategyRewardIndex_ = comp.strategyRewardIndexBeforeClaim;
         info
           .newLpInfo
           .beginLiquidityIndex = liquidityIndexBeforeClaim;
@@ -996,7 +997,7 @@ library VirtualPool {
       itCompounds
         ? info.newUserCapital + info.strategyRewards
         : info.newUserCapital,
-      rewardIndex_,
+      strategyRewardIndex_,
       latestRewardIndex
     );
 
