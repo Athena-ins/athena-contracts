@@ -45,10 +45,10 @@ import {
   AthenaToken__factory,
   AthenaToken,
   // Other
-  TestableVirtualPool__factory,
-  TestableVirtualPool,
-  TestableLiquidityManager__factory,
-  TestableLiquidityManager,
+  // TestableVirtualPool__factory,
+  // TestableVirtualPool,
+  // TestableLiquidityManager__factory,
+  // TestableLiquidityManager,
   TetherToken__factory,
   TetherToken,
   IWETH,
@@ -89,12 +89,12 @@ export async function deployLiquidityManager(
   return new LiquidityManager__factory(signer).deploy(...args);
 }
 
-export async function deployTestableLiquidityManager(
-  signer: Signer,
-  args: Parameters<TestableLiquidityManager__factory["deploy"]>,
-): Promise<TestableLiquidityManager> {
-  return new TestableLiquidityManager__factory(signer).deploy(...args);
-}
+// export async function deployTestableLiquidityManager(
+//   signer: Signer,
+//   args: Parameters<TestableLiquidityManager__factory["deploy"]>,
+// ): Promise<TestableLiquidityManager> {
+//   return new TestableLiquidityManager__factory(signer).deploy(...args);
+// }
 
 export async function deployStrategyManager(
   signer: Signer,
@@ -209,12 +209,12 @@ export type ProtocolContracts = {
   EcclesiaDao: EcclesiaDao;
   MockArbitrator: MockArbitrator;
   ClaimManager: ClaimManager;
-  LiquidityManager: TestableLiquidityManager;
+  LiquidityManager: LiquidityManager;
   StrategyManager: StrategyManager;
   FarmingRange: FarmingRange;
   RewardManager: RewardManager;
   Staking: Staking;
-  TestableVirtualPool: TestableVirtualPool;
+  // TestableVirtualPool: TestableVirtualPool;
 };
 
 export async function deployAllContractsAndInitializeProtocol(
@@ -298,7 +298,7 @@ export async function deployAllContractsAndInitializeProtocol(
     config.performanceFee, // performanceFee
   ]);
 
-  const LiquidityManager = await deployTestableLiquidityManager(deployer, [
+  const LiquidityManager = await deployLiquidityManager(deployer, [
     deployedAt.AthenaPositionToken,
     deployedAt.AthenaCoverToken,
     deployedAt.Staking,
@@ -357,10 +357,10 @@ export async function deployAllContractsAndInitializeProtocol(
     FarmingRange: FarmingRange__factory.connect(FarmingRangeAddress, deployer),
     Staking: Staking__factory.connect(StakingAddress, deployer),
     // Mocks or testing contracts
-    TestableVirtualPool: TestableVirtualPool__factory.connect(
-      deployedAt.LiquidityManager,
-      deployer,
-    ),
+    // TestableVirtualPool: TestableVirtualPool__factory.connect(
+    //   deployedAt.LiquidityManager,
+    //   deployer,
+    // ),
   };
 
   // Check predicted deployment addresses
