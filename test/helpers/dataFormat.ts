@@ -4,7 +4,7 @@ import {
   PositionInfoObject,
   CoverInfoObject,
   ClaimInfoObject,
-} from "./chai/almostEqualState";
+} from "./types";
 
 export function poolInfoFormat(
   data: Awaited<ReturnType<LiquidityManager["poolInfo"]>>,

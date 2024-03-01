@@ -11,6 +11,7 @@ import {
   updatedPremiumRate,
   utilization,
   computeReward,
+  currentDailyCost,
 } from "./poolRayMath";
 import { deepCopy } from "../miscUtils";
 // Types
@@ -20,9 +21,7 @@ import {
   PositionInfoObject,
   CoverInfoObject,
   ClaimInfoObject,
-} from "../chai/almostEqualState";
-
-// 000xxxxxxxxxxxxxxxxxx
+} from "../types";
 
 // ========= POOLS ========= //
 
