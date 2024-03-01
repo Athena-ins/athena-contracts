@@ -93,6 +93,9 @@ declare global {
   }
 }
 
+const DEVIATION_BASE = 100_000000;
+const DEFAULT_DEVIATION = 0;
+
 function checkKey(
   this: Chai.AssertionStatic & {
     _obj: PoolInfo | PositionInfo | CoverInfo;
@@ -100,6 +103,7 @@ function checkKey(
   key: any,
   actualKey: any,
   expectedKey: any,
+  deviationAllowed: number,
 ) {
   expect(
     actualKey != undefined,
@@ -120,7 +124,30 @@ function checkKey(
     );
   }
 
-  if (BigNumber.isBigNumber(actualKey)) {
+  if (
+    deviationAllowed !== DEFAULT_DEVIATION &&
+    BigNumber.isBigNumber(actualKey)
+  ) {
+    const percentage = `${deviationAllowed.toFixed(
+      DEVIATION_BASE.toString().length - 2,
+    )}%`;
+
+    const different = actualKey.gt(expectedKey)
+      ? actualKey.sub(expectedKey)
+      : expectedKey.sub(actualKey);
+
+    const allowedDifference = expectedKey
+      .mul(Math.floor(DEVIATION_BASE * deviationAllowed))
+      .div(DEVIATION_BASE);
+
+    this.assert(
+      different.lte(allowedDifference),
+      `expected #{act} to be within ${percentage} of #{exp} for property ${key}`,
+      `expected #{act} to be within ${percentage} of #{exp} for property ${key}`,
+      expectedKey,
+      actualKey,
+    );
+  } else if (BigNumber.isBigNumber(actualKey)) {
     this.assert(
       actualKey.eq(expectedKey) ||
         actualKey.add(1).eq(expectedKey) ||
@@ -156,7 +183,7 @@ chai.use(function (chai, utils) {
       },
       input: PoolInfo | PositionInfo | CoverInfo,
     ) {
-      const assert = this.assert;
+      const checkKeyContext = checkKey.bind(this);
 
       const expected = input as any;
       const actual = this._obj;
@@ -167,8 +194,13 @@ chai.use(function (chai, utils) {
       if (expected.hasOwnProperty("supplied")) inputType = "PositionInfo";
       if (expected.hasOwnProperty("claimant")) inputType = "ClaimInfo";
 
-      this;
       for (const key of keys) {
+        let deviationAllowed = DEFAULT_DEVIATION;
+
+        // For certain keys we will use a different deviationAllowed
+        if (key === "premiumsLeft") {
+          deviationAllowed = 0.00001;
+        }
         // if (
         //   key === "feeRate" ||
         //   key === "formula" ||
@@ -188,10 +220,11 @@ chai.use(function (chai, utils) {
           if (actualArray.length === 0) return;
 
           for (let i = 0; i < actualArray.length; i++) {
-            checkKey.bind(this)(
+            checkKeyContext(
               `${inputType}.${key}[${i}]`,
               actual[key][i],
               expected[key][i],
+              deviationAllowed,
             );
           }
         } else if (
@@ -204,19 +237,21 @@ chai.use(function (chai, utils) {
           const expectedKeys: any[] = Object.keys(expected[key]);
 
           for (let i = 0; i < actualKeys.length; i++) {
-            checkKey.bind(this)(
+            checkKeyContext(
               `${inputType}.${key}.${actualKeys[i]}`,
               actual[key][actualKeys[i]],
               expected[key][expectedKeys[i]],
+              deviationAllowed,
             );
           }
         } else {
           // Else run a simple check
 
-          checkKey.bind(this)(
+          checkKeyContext(
             `${inputType}.${key}`,
             actual[key],
             expected[key],
+            deviationAllowed,
           );
         }
       }

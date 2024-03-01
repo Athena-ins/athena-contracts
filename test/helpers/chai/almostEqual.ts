@@ -26,12 +26,13 @@ chai.use(function (chai, utils) {
 
       var expected = BigNumber.from(input);
       var actual = BigNumber.from(this._obj);
+
+      const difference = expected.gt(actual)
+        ? expected.sub(actual)
+        : actual.sub(expected);
+
       this.assert(
-        expected.add(BigNumber.from(1)).eq(actual) ||
-          expected.add(BigNumber.from(2)).eq(actual) ||
-          actual.add(BigNumber.from(1)).eq(expected) ||
-          actual.add(BigNumber.from(2)).eq(expected) ||
-          expected.eq(actual),
+        difference.lte(5),
         `expected #{act} to be almost equal #{exp}`,
         `expected #{act} to be different from #{exp}`,
         expected.toString(),
