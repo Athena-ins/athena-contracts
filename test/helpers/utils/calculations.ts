@@ -142,9 +142,51 @@ export function calcExpectedPoolDataAfterAddLiquidity(
   txTimestamp: BigNumber,
   timestamp: BigNumber,
 ): PoolInfoObject[] {
-  const expect = deepCopy(poolDataBefore);
+  const expectedArray: PoolInfoObject[] = [];
 
-  return expect;
+  for (const pool of poolDataBefore) {
+    const expect = deepCopy(pool);
+
+    expect.strategyRewardIndex = strategyRewardIndex;
+
+    expect.totalLiquidity = pool.totalLiquidity.add(amountToAdd);
+    expect.availableLiquidity = pool.availableLiquidity.add(amountToAdd);
+    expect.utilizationRate = utilization(
+      pool.slot0.coveredCapital,
+      expect.totalLiquidity,
+    );
+
+    expect.overlappedCapital = pool.overlappedPools.map((id, i) => {
+      const existingCapital = pool.overlappedCapital[i];
+      return poolIds.includes(id)
+        ? existingCapital.add(amountToAdd)
+        : existingCapital;
+    });
+
+    expect.slot0.lastUpdateTimestamp = txTimestamp.toNumber();
+
+    // These value may be unpredictably changed due to covers expiring during time travel
+    const timeElapsed = txTimestamp.sub(pool.slot0.lastUpdateTimestamp);
+    const oldPremiumRate = getPremiumRate(pool, pool.utilizationRate);
+    const newPremiumRate = getPremiumRate(expect, expect.utilizationRate);
+
+    expect.slot0.secondsPerTick = secondsPerTick(
+      pool.slot0.secondsPerTick,
+      oldPremiumRate,
+      newPremiumRate,
+    ).toNumber();
+    expect.slot0.tick = Math.floor(
+      timeElapsed.toNumber() / expect.slot0.secondsPerTick,
+    );
+
+    expect.slot0.liquidityIndex = pool.slot0.liquidityIndex.add(
+      computeLiquidityIndex(pool.utilizationRate, oldPremiumRate, timeElapsed),
+    );
+
+    expectedArray.push(expect);
+  }
+
+  return expectedArray;
 }
 
 export function calcExpectedPoolDataAfterCommitRemoveLiquidity(
@@ -401,12 +443,24 @@ export function calcExpectedCoverDataAfterOpenCover(
   expect.start = timestamp.toNumber();
   expect.end = 0;
 
+  const { newPremiumRate: beginPremiumRate } = updatedPremiumRate(
+    poolDataBefore,
+    amount,
+    BigNumber.from(0),
+  );
+
   expect.premiumRate = getPremiumRate(
     expectedPoolData,
     expectedPoolData.utilizationRate,
   );
-  //   expect.premiumsLeft =
-  // expect.dailyCost =
+  expect.dailyCost = currentDailyCost(
+    amount,
+    beginPremiumRate,
+    expect.premiumRate,
+  );
+  expect.premiumsLeft = premiums.sub(
+    expect.dailyCost.mul(timestamp.sub(txTimestamp)).div(26 * 60 * 60),
+  );
 
   return expect;
 }
