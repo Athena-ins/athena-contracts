@@ -23,6 +23,8 @@ import {
   ClaimInfoObject,
 } from "../types";
 
+// @bw should not make copies of the previous data but rebuild explicitely the expected data
+
 // ========= POOLS ========= //
 
 export function calcExpectedPoolDataAfterCreatePool(
@@ -72,7 +74,6 @@ export function calcExpectedPoolDataAfterCreatePool(
 
 export function calcExpectedPoolDataAfterOpenPosition(
   positionAmount: BigNumber,
-  isWrapped: boolean,
   poolIds: number[],
   poolDataBefore: PoolInfoObject[],
   strategyRewardIndex: BigNumber,
@@ -86,26 +87,26 @@ export function calcExpectedPoolDataAfterOpenPosition(
 
     expect.strategyRewardIndex = strategyRewardIndex;
 
-    expect.totalLiquidity = expect.totalLiquidity.add(positionAmount);
-    expect.availableLiquidity = expect.availableLiquidity.add(positionAmount);
+    expect.totalLiquidity = pool.totalLiquidity.add(positionAmount);
+    expect.availableLiquidity = pool.availableLiquidity.add(positionAmount);
     expect.utilizationRate = utilization(
       pool.slot0.coveredCapital,
       expect.totalLiquidity,
     );
 
     expect.overlappedPools = [
-      ...expect.overlappedPools,
+      ...pool.overlappedPools,
       ...poolIds.filter((id) => !pool.overlappedPools.includes(id)),
     ];
 
     expect.overlappedCapital = expect.overlappedPools.map((id, i) => {
-      const existingCapital = pool.overlappedCapital[i];
+      const existingCapital = pool.overlappedCapital?.[i] || BigNumber.from(0);
       return poolIds.includes(id)
         ? existingCapital.add(positionAmount)
         : existingCapital;
     });
 
-    expect.slot0.lastUpdateTimestamp = timestamp.toNumber();
+    expect.slot0.lastUpdateTimestamp = txTimestamp.toNumber();
 
     // These value may be unpredictably changed due to covers expiring during time travel
     const timeElapsed = timestamp.sub(txTimestamp);
@@ -119,10 +120,12 @@ export function calcExpectedPoolDataAfterOpenPosition(
     expect.slot0.tick = Math.floor(
       timeElapsed.toNumber() / expect.slot0.secondsPerTick,
     );
-    expect.slot0.liquidityIndex = computeLiquidityIndex(
+    expect.slot0.liquidityIndex = pool.slot0.liquidityIndex.add(
+      computeLiquidityIndex(
       expect.utilizationRate,
       newPremiumRate,
       timeElapsed,
+      ),
     );
 
     expectedArray.push(expect);
@@ -133,9 +136,9 @@ export function calcExpectedPoolDataAfterOpenPosition(
 
 export function calcExpectedPoolDataAfterAddLiquidity(
   amountToAdd: BigNumber,
-  isWrapped: boolean,
   poolIds: number[],
   poolDataBefore: PoolInfoObject[],
+  strategyRewardIndex: BigNumber,
   txTimestamp: BigNumber,
   timestamp: BigNumber,
 ): PoolInfoObject[] {
@@ -149,9 +152,14 @@ export function calcExpectedPoolDataAfterCommitRemoveLiquidity(
   txTimestamp: BigNumber,
   timestamp: BigNumber,
 ): PoolInfoObject[] {
-  const expect = deepCopy(poolDataBefore);
+  const expectedArray = [];
 
-  return expect;
+  for (const pool of poolDataBefore) {
+    const expect = deepCopy(pool);
+    expectedArray.push(expect);
+  }
+
+  return expectedArray;
 }
 
 export function calcExpectedPoolDataAfterUncommitRemoveLiquidity(
@@ -159,9 +167,14 @@ export function calcExpectedPoolDataAfterUncommitRemoveLiquidity(
   txTimestamp: BigNumber,
   timestamp: BigNumber,
 ): PoolInfoObject[] {
-  const expect = deepCopy(poolDataBefore);
+  const expectedArray = [];
 
-  return expect;
+  for (const pool of poolDataBefore) {
+    const expect = deepCopy(pool);
+    expectedArray.push(expect);
+  }
+
+  return expectedArray;
 }
 
 export function calcExpectedPoolDataAfterTakeInterests(
@@ -169,9 +182,14 @@ export function calcExpectedPoolDataAfterTakeInterests(
   txTimestamp: BigNumber,
   timestamp: BigNumber,
 ): PoolInfoObject[] {
-  const expect = deepCopy(poolDataBefore);
+  const expectedArray = [];
 
-  return expect;
+  for (const pool of poolDataBefore) {
+    const expect = deepCopy(pool);
+    expectedArray.push(expect);
+  }
+
+  return expectedArray;
 }
 
 export function calcExpectedPoolDataAfterRemoveLiquidity(
@@ -197,12 +215,12 @@ export function calcExpectedPoolDataAfterOpenCover(
   const expect = deepCopy(poolDataBefore);
 
   expect.strategyRewardIndex = strategyRewardIndex;
-  expect.slot0.lastUpdateTimestamp = timestamp.toNumber();
+  expect.slot0.lastUpdateTimestamp = txTimestamp.toNumber();
 
   // These value may be unpredictably changed due to covers expiring during time travel
-  expect.availableLiquidity = expect.availableLiquidity.sub(amount);
-  expect.slot0.coveredCapital = expect.slot0.coveredCapital.add(amount);
-  expect.slot0.remainingCovers = expect.slot0.remainingCovers.add(1);
+  expect.availableLiquidity = poolDataBefore.availableLiquidity.sub(amount);
+  expect.slot0.coveredCapital = poolDataBefore.slot0.coveredCapital.add(amount);
+  expect.slot0.remainingCovers = poolDataBefore.slot0.remainingCovers.add(1);
   expect.utilizationRate = utilization(
     expect.slot0.coveredCapital,
     expect.totalLiquidity,
@@ -213,16 +231,15 @@ export function calcExpectedPoolDataAfterOpenCover(
     amount,
     BigNumber.from(0),
   );
+
   expect.slot0.secondsPerTick = newSecondsPerTick.toNumber();
 
   const timeElapsed = timestamp.sub(txTimestamp);
   expect.slot0.tick = Math.floor(
     timeElapsed.toNumber() / expect.slot0.secondsPerTick,
   );
-  expect.slot0.liquidityIndex = computeLiquidityIndex(
-    expect.utilizationRate,
-    newPremiumRate,
-    timeElapsed,
+  expect.slot0.liquidityIndex = poolDataBefore.slot0.liquidityIndex.add(
+    computeLiquidityIndex(expect.utilizationRate, newPremiumRate, timeElapsed),
   );
 
   return expect;
@@ -268,7 +285,6 @@ export function calcExpectedPoolDataAfterWithdrawCompensation(
 
 export function calcExpectedPositionDataAfterOpenPosition(
   positionAmount: BigNumber,
-  isWrapped: boolean,
   poolIds: number[],
   poolDataBefore: PoolInfoObject[],
   expectedPoolData: PoolInfoObject[],
@@ -305,7 +321,6 @@ export function calcExpectedPositionDataAfterOpenPosition(
 
 export function calcExpectedPositionDataAfterAddLiquidity(
   amountToAdd: BigNumber,
-  isWrapped: boolean,
   poolIds: number[],
   poolDataBefore: PoolInfoObject[],
   expectedPoolData: PoolInfoObject[],

@@ -311,7 +311,6 @@ export async function openPosition(
 
     const expectedPoolData = calcExpectedPoolDataAfterOpenPosition(
       positionAmount,
-      isWrapped,
       poolIds,
       poolDataBefore,
       poolDataAfter[0].strategyRewardIndex,
@@ -321,7 +320,6 @@ export async function openPosition(
 
     const expectedTokenData = calcExpectedPositionDataAfterOpenPosition(
       positionAmount,
-      isWrapped,
       poolIds,
       poolDataBefore,
       expectedPoolData,
@@ -404,16 +402,15 @@ export async function addLiquidity(
 
     const expectedPoolData = calcExpectedPoolDataAfterAddLiquidity(
       amountToAdd,
-      isWrapped,
       tokenDataBefore.poolIds,
       poolDataBefore,
+      poolDataAfter[0].strategyRewardIndex,
       txTimestamp,
       timestamp,
     );
 
     const expectedTokenData = calcExpectedPositionDataAfterAddLiquidity(
       amountToAdd,
-      isWrapped,
       tokenDataBefore.poolIds,
       poolDataBefore,
       expectedPoolData,
