@@ -370,9 +370,37 @@ export function calcExpectedPositionDataAfterAddLiquidity(
   txTimestamp: BigNumber,
   timestamp: BigNumber,
 ): PositionInfoObject {
-  const expect = deepCopy(tokenDataBefore);
+  const expect: any = {};
 
-  return expect;
+  expect.supplied = tokenDataBefore.supplied.add(amountToAdd);
+  expect.commitWithdrawalTimestamp = 0;
+  expect.poolIds = poolIds;
+  expect.newUserCapital = expect.supplied;
+
+  expect.coverRewards = [];
+  for (const pool of poolDataBefore) {
+    // adding liquidity takes profits
+    const coverRewards = txTimestamp.eq(timestamp)
+      ? BigNumber.from(0)
+      : getCoverRewards(
+          expect.newUserCapital,
+          pool.slot0.liquidityIndex,
+          expectedPoolData[0].slot0.liquidityIndex,
+        );
+    expect.coverRewards.push(coverRewards);
+  }
+
+  expect.strategyRewardIndex = expectedPoolData[0].strategyRewardIndex;
+  // adding liquidity takes profits
+  expect.strategyRewards = txTimestamp.eq(timestamp)
+    ? BigNumber.from(0)
+    : computeReward(
+        expect.newUserCapital,
+        tokenDataBefore.strategyRewardIndex,
+        expectedPoolData[0].strategyRewardIndex,
+      );
+
+  return expect satisfies PositionInfoObject;
 }
 
 export function calcExpectedPositionDataAfterTakeInterests(
