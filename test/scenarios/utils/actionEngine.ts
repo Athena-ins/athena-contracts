@@ -18,6 +18,7 @@ import {
   //
   // need dao, farming, staking, claim
 } from "./actions";
+import { getTestingCidAndSig } from "../../helpers/protocol";
 import { toRay } from "../../helpers/utils/poolRayMath";
 // Types
 import { Action } from "./actionTypes";
@@ -228,13 +229,16 @@ export async function executeAction(this: Mocha.Context, action: Action) {
       {
         const { coverId, amountClaimed, ipfsMetaEvidenceCid, signature } = args;
 
+        const { ipfsCid, cidSignature } =
+          await getTestingCidAndSig(ipfsMetaEvidenceCid);
+
         await initiateClaim(
           this,
           signer,
           coverId,
           amountClaimed,
-          ipfsMetaEvidenceCid,
-          signature,
+          ipfsCid ?? ipfsMetaEvidenceCid,
+          cidSignature ?? signature,
           expected,
           timeTravel,
         );

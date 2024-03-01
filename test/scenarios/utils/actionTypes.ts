@@ -103,8 +103,8 @@ type ActionInitiateClaim = BaseAction & {
   args: {
     coverId: number;
     amountClaimed: number;
-    ipfsMetaEvidenceCid: string;
-    signature: string;
+    ipfsMetaEvidenceCid?: string;
+    signature?: string;
   };
 };
 type ActionWithdrawCompensation = BaseAction & {

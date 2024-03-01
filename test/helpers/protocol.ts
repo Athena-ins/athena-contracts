@@ -410,6 +410,18 @@ async function updateCover(
 
 // ======== Claims ======== //
 
+export async function getTestingCidAndSig(
+  cid?: string,
+): Promise<{ ipfsCid: string; cidSignature: string }> {
+  const ipfsCid = cid || "Qma00000000000000000000000000000000000000_test";
+  const hash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(ipfsCid));
+  const cidSignature = await evidenceGuardianWallet().signMessage(
+    ethers.utils.arrayify(hash),
+  );
+
+  return { ipfsCid, cidSignature };
+}
+
 async function initiateClaim(
   contract: ClaimManager,
   user: Wallet,
@@ -424,18 +436,13 @@ async function initiateClaim(
 
   const valueForTx = arbitrationCost.add(collateralAmount);
 
-  const ipfsCid = "QmaRxRRcQXFRzjrr4hgBydu6QetaFr687kfd9EjtoLaSyq";
-
-  const hash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(ipfsCid));
-  const signature = await evidenceGuardianWallet().signMessage(
-    ethers.utils.arrayify(hash),
-  );
+  const { ipfsCid, cidSignature } = await getTestingCidAndSig();
 
   // Create the claim
   return postTxHandler(
     contract
       .connect(user)
-      .initiateClaim(coverId, amountClaimed, ipfsCid, signature, {
+      .initiateClaim(coverId, amountClaimed, ipfsCid, cidSignature, {
         value: valueForTx,
       }),
   );
