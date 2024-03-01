@@ -55,7 +55,7 @@ export const coverOpenAndUpdate: Scenario = {
           name: "getTokens",
           args: {
             tokenName: "USDT",
-            amount: 20,
+            amount: 2000,
           },
           expected: "success",
         },
@@ -66,7 +66,7 @@ export const coverOpenAndUpdate: Scenario = {
           args: {
             spender: "LiquidityManager",
             tokenName: "USDT",
-            amount: 20,
+            amount: 2000,
           },
           expected: "success",
         },
@@ -76,8 +76,8 @@ export const coverOpenAndUpdate: Scenario = {
           name: "openCover",
           args: {
             poolId: 0,
-            coverAmount: 100,
-            premiumAmount: 20,
+            coverAmount: 5000,
+            premiumAmount: 2000,
           },
           expected: "success",
         },
@@ -88,7 +88,7 @@ export const coverOpenAndUpdate: Scenario = {
           args: {
             positionId: 0,
             isWrapped: false,
-            amount: 1500,
+            amount: 5000,
           },
         },
         {
@@ -108,7 +108,7 @@ export const coverOpenAndUpdate: Scenario = {
           expected: "success",
           args: {
             positionId: 0,
-            amount: 500,
+            amount: 3000,
             keepWrapped: false,
           },
         },

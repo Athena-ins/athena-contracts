@@ -44,16 +44,17 @@ export function toRay(amount: BigNumberish, decimals = 0) {
 }
 
 export class RayInt {
-  value: BigNumber;
-  readonly _isRayInt: boolean;
+  value: string;
 
   constructor(value: RayInt | BigNumberish, scaleToRay = false, decimals = 0) {
-    this.value = this._toBn(value);
-    if (scaleToRay) this.value = toRay(this.value, decimals);
-
-    this._isRayInt = true;
+    this.value = this._toBn(value).toString();
+    if (scaleToRay) this.value = toRay(this.value, decimals).toString();
 
     Object.freeze(this);
+  }
+
+  private _value() {
+    return BigNumber.from(this.value);
   }
 
   private _toBn(value: RayInt | BigNumberish) {
@@ -67,62 +68,68 @@ export class RayInt {
     }
   }
 
+  private _isRayInt(value: any): boolean {
+    return true;
+  }
+
   static from(value: RayInt | BigNumberish, scaleToRay = false) {
     return new RayInt(value, scaleToRay);
   }
 
   static isRayInt(value: any): value is RayInt {
-    return !!(value && value._isRayInt);
+    return !!(value && value._isRayInt && value._isRayInt());
   }
 
   toBigNumber() {
-    return this.value;
+    return this._value();
   }
 
   toString() {
-    return this.value.toString();
+    return this._value().toString();
   }
 
   toNumber() {
-    return this.value.toNumber();
+    return this._value().toNumber();
   }
 
   rayMul(b: RayInt | BigNumberish) {
-    const rayValue = RayInt.from(this.value);
+    const rayValue = RayInt.from(this._value());
     return rayValue.mul(this._toBn(b)).add(halfRAY).div(RAY);
   }
+
   rayDiv(b: RayInt | BigNumberish) {
-    const rayValue = RayInt.from(this.value);
-    return rayValue.mul(RAY).add(this._toBn(b).div(2)).div(this._toBn(b));
+    const rayValue = RayInt.from(this._value());
+    const numerator = rayValue.mul(RAY).add(this._toBn(b).div(2));
+    return numerator.div(this._toBn(b));
   }
 
   div(b: RayInt | BigNumberish) {
-    return RayInt.from(this.value.div(this._toBn(b)));
+    return RayInt.from(this._value().div(this._toBn(b)));
   }
   mul(b: RayInt | BigNumberish) {
-    return RayInt.from(this.value.mul(this._toBn(b)));
+    return RayInt.from(this._value().mul(this._toBn(b)));
   }
   add(b: RayInt | BigNumberish) {
-    return RayInt.from(this.value.add(this._toBn(b)));
+    return RayInt.from(this._value().add(this._toBn(b)));
   }
   sub(b: RayInt | BigNumberish) {
-    return RayInt.from(this.value.sub(this._toBn(b)));
+    return RayInt.from(this._value().sub(this._toBn(b)));
   }
 
   eq(b: RayInt | BigNumberish) {
-    return this.value.eq(this._toBn(b));
+    return this._value().eq(this._toBn(b));
   }
   lt(b: RayInt | BigNumberish) {
-    return this.value.lt(this._toBn(b));
+    return this._value().lt(this._toBn(b));
   }
   lte(b: RayInt | BigNumberish) {
-    return this.value.lte(this._toBn(b));
+    return this._value().lte(this._toBn(b));
   }
   gt(b: RayInt | BigNumberish) {
-    return this.value.gt(this._toBn(b));
+    return this._value().gt(this._toBn(b));
   }
   gte(b: RayInt | BigNumberish) {
-    return this.value.gte(this._toBn(b));
+    return this._value().gte(this._toBn(b));
   }
 }
 
@@ -142,13 +149,14 @@ export function getPremiumRate(
   poolData: PoolData,
   utilizationRate_: RayInt | BigNumberish,
 ): BigNumber {
+  const utilizationRate = RayInt.from(utilizationRate_);
+
   const formula = {
     uOptimal: RayInt.from(poolData.formula.uOptimal),
     r0: RayInt.from(poolData.formula.r0),
     rSlope1: RayInt.from(poolData.formula.rSlope1),
     rSlope2: RayInt.from(poolData.formula.rSlope2),
   };
-  const utilizationRate = RayInt.from(utilizationRate_);
 
   if (utilizationRate.lt(formula.uOptimal)) {
     // Return base rate + proportional slope 1 rate
@@ -210,30 +218,31 @@ export function computeLiquidityIndex(
  */
 export function getCoverRewards(
   userCapital_: RayInt | BigNumberish,
-  liquidityIndex_: RayInt | BigNumberish,
-  beginLiquidityIndex_: RayInt | BigNumberish,
+  startLiquidityIndex_: RayInt | BigNumberish,
+  endLiquidityIndex_: RayInt | BigNumberish,
 ): BigNumber {
   const userCapital = RayInt.from(userCapital_);
-  const liquidityIndex = RayInt.from(liquidityIndex_);
-  const beginLiquidityIndex = RayInt.from(beginLiquidityIndex_);
+  const startLiquidityIndex = RayInt.from(startLiquidityIndex_);
+  const endLiquidityIndex = RayInt.from(endLiquidityIndex_);
 
   return userCapital
-    .rayMul(liquidityIndex)
-    .sub(userCapital.rayMul(beginLiquidityIndex))
+    .rayMul(endLiquidityIndex)
+    .sub(userCapital.rayMul(startLiquidityIndex))
     .div(10_000)
     .toBigNumber();
 }
 
-// uint256 beginDailyCost = self
-// .coverSize(coverId_)
-// .rayMul(coverPremium.beginPremiumRate)
-// .rayDiv(365);
+export function currentDailyCost(
+  coverSize: RayInt | BigNumberish,
+  beginPremiumRate: RayInt | BigNumberish,
+  currentPremiumRate: RayInt | BigNumberish,
+) {
+  const beginDailyCost = RayInt.from(coverSize)
+    .rayMul(beginPremiumRate)
+    .rayDiv(365);
 
-// info.currentDailyCost = getDailyCost(
-// beginDailyCost,
-// coverPremium.beginPremiumRate,
-// info.premiumRate
-// );
+  return getDailyCost(beginDailyCost, beginPremiumRate, currentPremiumRate);
+}
 
 /**
  * @notice Computes the new daily cost of a cover,
@@ -357,7 +366,7 @@ export function utilization(
    * cover buyers are not fully covered.
    * This means cover buyers only pay for the effective cover they have.
    */
-  if (liquidity < coveredCapital) return FULL_CAPACITY;
+  if (liquidity.lt(coveredCapital)) return FULL_CAPACITY;
 
   // Get a base PERCENTAGE_BASE percentage
   return coveredCapital.mul(PERCENTAGE_BASE).rayDiv(liquidity).toBigNumber();
