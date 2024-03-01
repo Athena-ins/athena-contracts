@@ -680,7 +680,6 @@ library VirtualPool {
     }
 
     // Update update timestamp in any case
-    // @bw not sure about this
     self.slot0.lastUpdateTimestamp = block.timestamp;
   }
 

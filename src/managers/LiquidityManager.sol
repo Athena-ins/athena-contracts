@@ -284,7 +284,12 @@ contract LiquidityManager is
     uint64 poolId_
   ) external view returns (VirtualPool.VPoolRead memory) {
     VirtualPool.VPool storage pool = _pools[poolId_];
+
+    uint256 lastOnchainRefresh = pool.slot0.lastUpdateTimestamp;
     VirtualPool.Slot0 memory slot0 = pool._refresh(block.timestamp);
+
+    // Rewrite the last update timestamp to know when the pool was last updated onchain
+    slot0.lastUpdateTimestamp = lastOnchainRefresh;
 
     uint256 nbOverlappedPools = pool.overlappedPools.length;
     uint256[] memory overlappedCapital = new uint256[](
@@ -970,6 +975,9 @@ contract LiquidityManager is
       // Remove expired covers
       pool0._purgeExpiredCovers();
 
+      // Update premium rate, seconds per tick & LP position info
+      pool0._depositToPool(positionId_, amount_);
+
       // Add liquidity to the pools available liquidity
       pool0.overlaps[poolId0] += amount_;
 
@@ -1000,9 +1008,6 @@ contract LiquidityManager is
 
         pool0.overlaps[poolId1] += amount_;
       }
-
-      // Update premium rate, seconds per tick & LP position info
-      pool0._depositToPool(positionId_, amount_);
     }
   }
 
