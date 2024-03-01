@@ -712,9 +712,7 @@ export async function openCover(
 
   if (expectedResult === "success") {
     const coverId = await LiquidityManager.nextCoverId();
-    const tokenDataBefore = await LiquidityManager.coverInfo(coverId).then(
-      (data) => coverInfoFormat(data),
-    );
+
     const userAddress = await user.getAddress();
     const paymentToken = ERC20__factory.connect(
       poolDataBefore.paymentAsset,
@@ -725,6 +723,10 @@ export async function openCover(
 
     const txResult = await postTxHandler(
       LiquidityManager.connect(user).openCover(poolId, amount, premiums),
+    );
+
+    const tokenDataBefore = await LiquidityManager.coverInfo(coverId).then(
+      (data) => coverInfoFormat(data),
     );
 
     const { txTimestamp } = await getTxCostAndTimestamp(txResult);
@@ -743,6 +745,7 @@ export async function openCover(
       amount,
       premiums,
       poolDataBefore,
+      poolDataAfter.strategyRewardIndex,
       txTimestamp,
       timestamp,
     );

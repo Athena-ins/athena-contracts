@@ -22,6 +22,8 @@ import {
   ClaimInfoObject,
 } from "../chai/almostEqualState";
 
+// 000xxxxxxxxxxxxxxxxxx
+
 // ========= POOLS ========= //
 
 export function calcExpectedPoolDataAfterCreatePool(
@@ -189,10 +191,40 @@ export function calcExpectedPoolDataAfterOpenCover(
   amount: BigNumber,
   premiums: BigNumber,
   poolDataBefore: PoolInfoObject,
+  strategyRewardIndex: BigNumber,
   txTimestamp: BigNumber,
   timestamp: BigNumber,
 ): PoolInfoObject {
   const expect = deepCopy(poolDataBefore);
+
+  expect.strategyRewardIndex = strategyRewardIndex;
+  expect.slot0.lastUpdateTimestamp = timestamp.toNumber();
+
+  // These value may be unpredictably changed due to covers expiring during time travel
+  expect.availableLiquidity = expect.availableLiquidity.sub(amount);
+  expect.slot0.coveredCapital = expect.slot0.coveredCapital.add(amount);
+  expect.slot0.remainingCovers = expect.slot0.remainingCovers.add(1);
+  expect.utilizationRate = utilization(
+    expect.slot0.coveredCapital,
+    expect.totalLiquidity,
+  );
+
+  const { newPremiumRate, newSecondsPerTick } = updatedPremiumRate(
+    poolDataBefore,
+    amount,
+    BigNumber.from(0),
+  );
+  expect.slot0.secondsPerTick = newSecondsPerTick.toNumber();
+
+  const timeElapsed = timestamp.sub(txTimestamp);
+  expect.slot0.tick = Math.floor(
+    timeElapsed.toNumber() / expect.slot0.secondsPerTick,
+  );
+  expect.slot0.liquidityIndex = computeLiquidityIndex(
+    expect.utilizationRate,
+    newPremiumRate,
+    timeElapsed,
+  );
 
   return expect;
 }
@@ -349,6 +381,18 @@ export function calcExpectedCoverDataAfterOpenCover(
   timestamp: BigNumber,
 ): CoverInfoObject {
   const expect = deepCopy(tokenDataBefore);
+
+  expect.coverAmount = amount;
+  expect.poolId = expectedPoolData.poolId;
+  expect.start = timestamp.toNumber();
+  expect.end = 0;
+
+  expect.premiumRate = getPremiumRate(
+    expectedPoolData,
+    expectedPoolData.utilizationRate,
+  );
+  //   expect.premiumsLeft =
+  // expect.dailyCost =
 
   return expect;
 }

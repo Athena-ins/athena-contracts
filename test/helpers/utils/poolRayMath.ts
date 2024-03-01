@@ -224,6 +224,17 @@ export function getCoverRewards(
     .toBigNumber();
 }
 
+// uint256 beginDailyCost = self
+// .coverSize(coverId_)
+// .rayMul(coverPremium.beginPremiumRate)
+// .rayDiv(365);
+
+// info.currentDailyCost = getDailyCost(
+// beginDailyCost,
+// coverPremium.beginPremiumRate,
+// info.premiumRate
+// );
+
 /**
  * @notice Computes the new daily cost of a cover,
  * the emmission rate is the daily cost of a cover  .
