@@ -470,10 +470,42 @@ export function calcExpectedPositionDataAfterCommitRemoveLiquidity(
   poolDataBefore: PoolInfoObject[],
   expectedPoolData: PoolInfoObject[],
   tokenDataBefore: PositionInfoObject,
+  newStartStrategyIndex: BigNumber,
+  newStartLiquidityIndexes: BigNumber[],
   txTimestamp: BigNumber,
   timestamp: BigNumber,
 ): PositionInfoObject {
-  const expect = deepCopy(tokenDataBefore);
+  const expect = {} as PositionInfoObject;
+
+  expect.supplied = tokenDataBefore.supplied;
+  expect.commitWithdrawalTimestamp = txTimestamp.toNumber();
+  expect.poolIds = tokenDataBefore.poolIds;
+  expect.newUserCapital = expect.supplied;
+  expect.strategyRewardIndex = expectedPoolData[0].strategyRewardIndex;
+
+  expect.coverRewards = [];
+  for (const [i, pool] of poolDataBefore.entries()) {
+    const startLiquidityIndex = newStartLiquidityIndexes[i];
+    const expectedLiquidityIndex = expectedPoolData[i].slot0.liquidityIndex;
+    // commiting takes profits
+    const coverRewards = txTimestamp.eq(timestamp)
+      ? BigNumber.from(0)
+      : getCoverRewards(
+          expect.newUserCapital,
+          startLiquidityIndex,
+          expectedLiquidityIndex,
+        );
+    expect.coverRewards.push(coverRewards);
+  }
+
+  // commiting takes profits
+  expect.strategyRewards = txTimestamp.eq(timestamp)
+    ? BigNumber.from(0)
+    : computeReward(
+        expect.newUserCapital,
+        newStartStrategyIndex,
+        expectedPoolData[0].strategyRewardIndex,
+      );
 
   return expect;
 }

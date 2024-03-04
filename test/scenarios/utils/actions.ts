@@ -461,7 +461,7 @@ export async function commitRemoveLiquidity(
   expectedResult: "success" | string,
   timeTravel?: TimeTravelOptions,
 ) {
-  const { LiquidityManager } = testEnv.contracts;
+  const { LiquidityManager, StrategyManager } = testEnv.contracts;
 
   const tokenDataBefore = await LiquidityManager.positionInfo(positionId).then(
     (data) => positionInfoFormat(data),
@@ -476,6 +476,17 @@ export async function commitRemoveLiquidity(
     const txResult = await postTxHandler(
       LiquidityManager.connect(user).commitRemoveLiquidity(positionId),
     );
+
+    // Since we took profits we need the new liquidity index
+    const [newStartStrategyIndex, ...newStartLiquidityIndexes] =
+      await Promise.all([
+        StrategyManager.getRewardIndex(poolDataBefore[0].strategyId),
+        ...tokenDataBefore.poolIds.map((poolId) =>
+          LiquidityManager.poolInfo(poolId).then(
+            (data) => data.slot0.liquidityIndex,
+          ),
+        ),
+      ]);
 
     const { txTimestamp } = await getTxCostAndTimestamp(txResult);
 
@@ -496,6 +507,7 @@ export async function commitRemoveLiquidity(
 
     const expectedPoolData = calcExpectedPoolDataAfterCommitRemoveLiquidity(
       poolDataBefore,
+      poolDataAfter[0].strategyRewardIndex,
       txTimestamp,
       timestamp,
     );
@@ -505,6 +517,8 @@ export async function commitRemoveLiquidity(
         poolDataBefore,
         expectedPoolData,
         tokenDataBefore,
+        newStartStrategyIndex,
+        newStartLiquidityIndexes,
         txTimestamp,
         timestamp,
       );
