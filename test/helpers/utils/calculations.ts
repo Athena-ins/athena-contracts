@@ -191,6 +191,7 @@ export function calcExpectedPoolDataAfterAddLiquidity(
 
 export function calcExpectedPoolDataAfterCommitRemoveLiquidity(
   poolDataBefore: PoolInfoObject[],
+  strategyRewardIndex: BigNumber,
   txTimestamp: BigNumber,
   timestamp: BigNumber,
 ): PoolInfoObject[] {
@@ -198,6 +199,22 @@ export function calcExpectedPoolDataAfterCommitRemoveLiquidity(
 
   for (const pool of poolDataBefore) {
     const expect = deepCopy(pool);
+
+    expect.strategyRewardIndex = strategyRewardIndex;
+    expect.slot0.lastUpdateTimestamp = txTimestamp.toNumber();
+
+    // These value may be unpredictably changed due to covers expiring during time travel
+    const timeElapsed = timestamp.sub(pool.slot0.lastUpdateTimestamp);
+    const oldPremiumRate = getPremiumRate(pool, pool.utilizationRate);
+
+    expect.slot0.tick = Math.floor(
+      timeElapsed.toNumber() / expect.slot0.secondsPerTick,
+    );
+
+    expect.slot0.liquidityIndex = pool.slot0.liquidityIndex.add(
+      computeLiquidityIndex(pool.utilizationRate, oldPremiumRate, timeElapsed),
+    );
+
     expectedArray.push(expect);
   }
 
@@ -206,6 +223,7 @@ export function calcExpectedPoolDataAfterCommitRemoveLiquidity(
 
 export function calcExpectedPoolDataAfterUncommitRemoveLiquidity(
   poolDataBefore: PoolInfoObject[],
+  strategyRewardIndex: BigNumber,
   txTimestamp: BigNumber,
   timestamp: BigNumber,
 ): PoolInfoObject[] {
@@ -213,6 +231,22 @@ export function calcExpectedPoolDataAfterUncommitRemoveLiquidity(
 
   for (const pool of poolDataBefore) {
     const expect = deepCopy(pool);
+
+    expect.strategyRewardIndex = strategyRewardIndex;
+    expect.slot0.lastUpdateTimestamp = txTimestamp.toNumber();
+
+    // These value may be unpredictably changed due to covers expiring during time travel
+    const timeElapsed = timestamp.sub(pool.slot0.lastUpdateTimestamp);
+    const oldPremiumRate = getPremiumRate(pool, pool.utilizationRate);
+
+    expect.slot0.tick = Math.floor(
+      timeElapsed.toNumber() / expect.slot0.secondsPerTick,
+    );
+
+    expect.slot0.liquidityIndex = pool.slot0.liquidityIndex.add(
+      computeLiquidityIndex(pool.utilizationRate, oldPremiumRate, timeElapsed),
+    );
+
     expectedArray.push(expect);
   }
 
@@ -221,6 +255,7 @@ export function calcExpectedPoolDataAfterUncommitRemoveLiquidity(
 
 export function calcExpectedPoolDataAfterTakeInterests(
   poolDataBefore: PoolInfoObject[],
+  strategyRewardIndex: BigNumber,
   txTimestamp: BigNumber,
   timestamp: BigNumber,
 ): PoolInfoObject[] {
@@ -228,6 +263,22 @@ export function calcExpectedPoolDataAfterTakeInterests(
 
   for (const pool of poolDataBefore) {
     const expect = deepCopy(pool);
+
+    expect.strategyRewardIndex = strategyRewardIndex;
+    expect.slot0.lastUpdateTimestamp = txTimestamp.toNumber();
+
+    // These value may be unpredictably changed due to covers expiring during time travel
+    const timeElapsed = timestamp.sub(pool.slot0.lastUpdateTimestamp);
+    const oldPremiumRate = getPremiumRate(pool, pool.utilizationRate);
+
+    expect.slot0.tick = Math.floor(
+      timeElapsed.toNumber() / expect.slot0.secondsPerTick,
+    );
+
+    expect.slot0.liquidityIndex = pool.slot0.liquidityIndex.add(
+      computeLiquidityIndex(pool.utilizationRate, oldPremiumRate, timeElapsed),
+    );
+
     expectedArray.push(expect);
   }
 
