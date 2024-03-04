@@ -44,7 +44,7 @@ export async function executeAction(this: Mocha.Context, action: Action) {
     throw Error(`Cannot find signer ${userName} among context signers`);
   }
 
-  console.log(`=> Expect ${userName} to ${name} with ${expected}:`.cyan);
+  console.log(`=> Expect ${userName} to ${name} with ${expected}`.cyan);
 
   switch (name) {
     case "getTokens":

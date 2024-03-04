@@ -60,14 +60,20 @@ function checkKey(
       .mul(Math.floor(DEVIATION_BASE * deviationAllowed))
       .div(DEVIATION_BASE);
 
+    const actualString = actualKey.toString();
+    const expectedString = expectedKey.toString();
+
     this.assert(
       different.lte(allowedDifference),
-      `expected #{act} to be within ${percentage} of #{exp} for property ${key}`,
-      `expected #{act} to be within ${percentage} of #{exp} for property ${key}`,
+      `expected ${actualString} to be within ${percentage} of ${expectedString} for property ${key}`,
+      `expected ${actualString} to be within ${percentage} of ${expectedString} for property ${key}`,
       expectedKey,
       actualKey,
     );
   } else if (BigNumber.isBigNumber(actualKey)) {
+    const actualString = actualKey.toString();
+    const expectedString = expectedKey.toString();
+
     this.assert(
       actualKey.eq(expectedKey) ||
         actualKey.add(1).eq(expectedKey) ||
@@ -76,8 +82,8 @@ function checkKey(
         actualKey.eq(expectedKey.add(2)) ||
         actualKey.add(3).eq(expectedKey) ||
         actualKey.eq(expectedKey.add(3)),
-      `expected #{act} to be almost equal or equal #{exp} for property ${key}`,
-      `expected #{act} to be almost equal or equal #{exp} for property ${key}`,
+      `expected ${actualString} to be almost equal or equal ${expectedString} for property ${key}`,
+      `expected ${actualString} to be almost equal or equal ${expectedString} for property ${key}`,
       expectedKey,
       actualKey,
     );
