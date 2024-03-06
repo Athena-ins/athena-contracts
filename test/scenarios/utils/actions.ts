@@ -55,9 +55,8 @@ export const getTxCostAndTimestamp = async (tx: ContractReceipt) => {
   if (!tx.blockNumber || !tx.transactionHash || !tx.cumulativeGasUsed) {
     throw new Error("No tx blocknumber");
   }
-  const txTimestamp = BigNumber.from(
-    (await hre.ethers.provider.getBlock(tx.blockNumber)).timestamp,
-  );
+  const txTimestamp = (await hre.ethers.provider.getBlock(tx.blockNumber))
+    .timestamp;
 
   const txInfo = await hre.ethers.provider.getTransaction(tx.transactionHash);
   if (!txInfo?.gasPrice) throw new Error("No tx info");
@@ -71,7 +70,7 @@ export const getTxCostAndTimestamp = async (tx: ContractReceipt) => {
 type ContractsDataState = {
   poolData: PoolInfo[];
   tokenData: PositionInfo | CoverInfo;
-  timestamp: BigNumber;
+  timestamp: number;
 };
 
 export async function getContractsData(
@@ -123,7 +122,7 @@ export async function getContractsData(
   return {
     poolData,
     tokenData,
-    timestamp: BigNumber.from(timestamp),
+    timestamp,
   };
 }
 
