@@ -210,6 +210,21 @@ export function computeLiquidityIndex(
     .toBigNumber();
 }
 
+export function computeTimeFromLiquidityIndex(
+  utilizationRate_: RayInt | BigNumberish,
+  premiumRate_: RayInt | BigNumberish,
+  liquidityIndex_: RayInt | BigNumberish,
+): number {
+  const liquidityIndex = RayInt.from(liquidityIndex_);
+  const utilizationRate = RayInt.from(utilizationRate_);
+  const premiumRate = RayInt.from(premiumRate_);
+
+  return liquidityIndex
+    .rayMul(YEAR)
+    .rayDiv(utilizationRate.rayMul(premiumRate))
+    .toNumber();
+}
+
 /**
  * @notice Computes the premiums or interests earned by a liquidity position
  * @param userCapital_ The amount of liquidity in the position

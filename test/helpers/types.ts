@@ -16,6 +16,7 @@ export type PoolInfoObject = {
     coveredCapital: BigNumber;
     remainingCovers: BigNumber;
     lastUpdateTimestamp: number;
+    liquidityIndexLead: BigNumber;
     liquidityIndex: BigNumber;
   };
   strategyId: number;
