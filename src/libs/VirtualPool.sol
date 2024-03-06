@@ -137,7 +137,7 @@ library VirtualPool {
     uint256 totalLiquidity;
     uint256 availableLiquidity;
     uint256 strategyRewardIndex;
-    uint256 updatableUpTo;
+    uint256 lastOnchainUpdateTimestamp;
   }
 
   struct VPool {

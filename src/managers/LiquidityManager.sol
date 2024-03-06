@@ -285,12 +285,11 @@ contract LiquidityManager is
   ) external view returns (VirtualPool.VPoolRead memory) {
     VirtualPool.VPool storage pool = _pools[poolId_];
 
-    uint256 lastUpdateTimestamp = pool.slot0.lastUpdateTimestamp;
+    // Save the last update timestamp to know when the pool was last updated onchain
+    uint256 lastOnchainUpdateTimestamp = pool
+      .slot0
+      .lastUpdateTimestamp;
     VirtualPool.Slot0 memory slot0 = pool._refresh(block.timestamp);
-
-    uint256 updatableUpTo = slot0.lastUpdateTimestamp;
-    // Rewrite the last update timestamp to know when the pool was last updated onchain
-    slot0.lastUpdateTimestamp = lastUpdateTimestamp;
 
     uint256 nbOverlappedPools = pool.overlappedPools.length;
     uint256[] memory overlappedCapital = new uint256[](
