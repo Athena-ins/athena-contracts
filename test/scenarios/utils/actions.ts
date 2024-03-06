@@ -575,6 +575,7 @@ export async function uncommitRemoveLiquidity(
 
     const expectedPoolData = calcExpectedPoolDataAfterUncommitRemoveLiquidity(
       poolDataBefore,
+      poolDataAfter[0].strategyRewardIndex,
       txTimestamp,
       timestamp,
     );
@@ -640,6 +641,7 @@ export async function takeInterests(
 
     const expectedPoolData = calcExpectedPoolDataAfterTakeInterests(
       poolDataBefore,
+      poolDataAfter[0].strategyRewardIndex,
       txTimestamp,
       timestamp,
     );
@@ -712,8 +714,10 @@ export async function removeLiquidity(
 
     const expectedPoolData = calcExpectedPoolDataAfterRemoveLiquidity(
       amountToRemove,
+      tokenDataBefore.poolIds,
       keepWrapped,
       poolDataBefore,
+      poolDataAfter[0].strategyRewardIndex,
       txTimestamp,
       timestamp,
     );
