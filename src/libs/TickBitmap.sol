@@ -40,11 +40,10 @@ library TickBitmap {
     return (self[wordPos] & mask) != 0;
   }
 
-  /// @notice Returns the next initialized tick contained in the same word (or adjacent word) as the tick that is either
-  /// to the left (less than or equal to) or right (greater than) of the given tick
+  /// @notice Returns the next initialized tick contained in the same word (or adjacent word)
+  /// as the tick that is to the right (greater than) of the given tick
   /// @param self The mapping in which to compute the next initialized tick
   /// @param tick The starting tick
-  /// previous name: nextInitializedTickInTheRightWithinOneWord
   function nextTick(
     mapping(uint24 => uint256) storage self,
     uint32 tick
@@ -57,7 +56,7 @@ library TickBitmap {
 
     // if there are no initialized ticks to the left of the current tick, return leftmost in the word
     initialized = masked != 0;
-    // overflow/underflow is possible, but prevented externally by limiting both tickSpacing and tick
+    // overflow/underflow is possible, but prevented externally by limiting tick
     next = initialized
       ? (tick +
         1 +

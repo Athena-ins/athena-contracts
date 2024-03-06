@@ -866,8 +866,11 @@ library VirtualPool {
     // The remaining time in seconds to run through to sync up to the timestamp
     uint256 remaining = timestamp_ - slot0.lastUpdateTimestamp;
     uint256 premiumRate = self.getPremiumRate(utilization);
-    // We do not compute changes for periods below the size of one tick
-    uint256 ignoredDuration;
+    /**
+     * We do not compute changes for periods below the size of one tick
+     * This value will be changed if we enter the while loop
+     */
+    uint256 ignoredDuration = remaining;
     uint256 liquidityIndexUpdateLength;
 
     while (slot0.secondsPerTick < remaining) {
@@ -875,7 +878,7 @@ library VirtualPool {
         .tickBitmap
         .nextTick(slot0.tick);
 
-      // Amount of time contained in the next segment to be evaluated
+      // Amount of time contained in the next tick segment
       uint256 secondsToNextTick = slot0.secondsPerTick *
         (nextTick - slot0.tick);
 
@@ -886,9 +889,11 @@ library VirtualPool {
             ._crossingInitializedTick(slot0, nextTick);
         }
 
-        // Remove parsed tick size from remaining time to current timestamp
+        // We set ignored to 0 in case remaining is exactly the size to next tick
+        ignoredDuration = 0;
         liquidityIndexUpdateLength = secondsToNextTick;
         slot0.tick = nextTick;
+        // Remove parsed tick size from remaining time to current timestamp
         remaining -= secondsToNextTick;
       } else {
         /**
