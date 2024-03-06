@@ -67,8 +67,12 @@ library VirtualPool {
     uint256 secondsPerTick; // The distance in seconds between ticks
     uint256 coveredCapital;
     uint256 remainingCovers;
+    // The last timestamp at which the current tick changed
     uint256 lastUpdateTimestamp;
-    uint256 liquidityIndex; // This index grows with the premiums paid
+    // The index tracking how much premiums have been consumed in favor of LP
+    uint256 liquidityIndex;
+    // The amount of liquidity index that is in the current unfinished tick
+    uint256 liquidityIndexLead;
   }
 
   struct LpInfo {
@@ -133,6 +137,7 @@ library VirtualPool {
     uint256 totalLiquidity;
     uint256 availableLiquidity;
     uint256 strategyRewardIndex;
+    uint256 updatableUpTo;
   }
 
   struct VPool {
@@ -649,10 +654,13 @@ library VirtualPool {
 
   /**
    * @notice Removes expired covers from the pool and updates the pool's slot0.
+   * Required before any operation that requires the slot0 to be up to date.
+   * This includes all position and cover operations.
    * @param self The pool
    */
   function _purgeExpiredCovers(VPool storage self) internal {
-    if (0 < self.slot0.remainingCovers) {
+    if (self.slot0.remainingCovers == 0) return;
+
       Slot0 memory slot0 = self._refresh(block.timestamp);
 
       uint32 observedTick = self.slot0.tick;
@@ -677,10 +685,6 @@ library VirtualPool {
       }
 
       self.slot0 = slot0;
-    }
-
-    // Update update timestamp in any case
-    self.slot0.lastUpdateTimestamp = block.timestamp;
   }
 
   // ======= VIEW HELPERS ======= //
@@ -862,56 +866,60 @@ library VirtualPool {
     // The remaining time in seconds to run through to sync up to the timestamp
     uint256 remaining = timestamp_ - slot0.lastUpdateTimestamp;
     uint256 premiumRate = self.getPremiumRate(utilization);
-    uint32 currentTick = slot0.tick;
+    // We do not compute changes for periods below the size of one tick
+    uint256 ignoredDuration;
+    uint256 liquidityIndexUpdateLength;
 
-    while (0 < remaining) {
+    while (slot0.secondsPerTick < remaining) {
       (uint32 nextTick, bool isInitialized) = self
         .tickBitmap
-        .nextTick(currentTick);
+        .nextTick(slot0.tick);
 
-      // Tick size in seconds
-      uint256 tickSize = slot0.secondsPerTick *
-        (nextTick - currentTick);
+      // Amount of time contained in the next segment to be evaluated
+      uint256 secondsToNextTick = slot0.secondsPerTick *
+        (nextTick - slot0.tick);
 
-      if (tickSize <= remaining) {
-        currentTick = nextTick;
-
+      if (secondsToNextTick <= remaining) {
+        // If the tick has covers then expire them & update pool metrics
         if (isInitialized) {
-          // If the tick has covers then expire then upon crossing the tick & update liquidity
-          // Save the updated slot0
           (slot0, utilization, premiumRate) = self
             ._crossingInitializedTick(slot0, nextTick);
         }
 
-        slot0.liquidityIndex += computeLiquidityIndex(
-          utilization,
-          premiumRate,
-          tickSize
-        );
-
         // Remove parsed tick size from remaining time to current timestamp
-        remaining -= tickSize;
+        liquidityIndexUpdateLength = secondsToNextTick;
+        slot0.tick = nextTick;
+        remaining -= secondsToNextTick;
       } else {
-        currentTick += uint32(remaining / slot0.secondsPerTick);
+        /**
+         * If the remaining time is not enough to reach the nextTick we still
+         * update the current tick & liquidity index to the timestamp.
+         */
+        ignoredDuration = remaining % slot0.secondsPerTick;
+        liquidityIndexUpdateLength = remaining - ignoredDuration;
+        slot0.tick += uint32(remaining / slot0.secondsPerTick);
+        // @dev This means the loop is finished after the liquidity index update
+        remaining = ignoredDuration;
+      }
 
         slot0.liquidityIndex += computeLiquidityIndex(
           utilization,
           premiumRate,
-          remaining
-        );
-
-        break; // remaining is 0
-      }
+        liquidityIndexUpdateLength
+      );
     }
 
-    // Update current tick & last update timestamp
-    slot0.tick = currentTick;
-    slot0.lastUpdateTimestamp = timestamp_;
+    slot0.lastUpdateTimestamp = timestamp_ - ignoredDuration;
+    slot0.liquidityIndexLead = computeLiquidityIndex(
+      utilization,
+      premiumRate,
+      ignoredDuration
+    );
   }
 
   /**
    * @notice Computes the state changes of an LP position,
-   * it aggregates the fees earned by the position   and
+   * it aggregates the fees earned by the position and
    * computes the losses incurred by the claims in this pool.
    *
    * @dev Used for takeInterest, withdrawLiquidity and rewardsOf
@@ -930,8 +938,6 @@ library VirtualPool {
    * - coverRewards The rewards earned from cover premiums
    * - strategyRewards The rewards earned by the strategy
    * - newLpInfo The updated LpInfo of the position
-   *
-   * @dev currentLiquidityIndex is needed to be able to ready up to date position data
    */
   function _getUpdatedPositionInfo(
     VPool storage self,
