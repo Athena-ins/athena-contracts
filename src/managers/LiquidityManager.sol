@@ -929,7 +929,10 @@ contract LiquidityManager is
       }
 
       premiums -= premiumsToRemove_;
-      IERC20(pool.paymentAsset).safeTransfer(msg.sender, premiums);
+      IERC20(pool.paymentAsset).safeTransfer(
+        msg.sender,
+        premiumsToRemove_
+      );
     } else if (0 < premiumsToAdd_) {
       // Transfer premiums from user
       IERC20(pool.paymentAsset).safeTransferFrom(
