@@ -716,10 +716,10 @@ contract LiquidityManager is
     if (position.commitWithdrawalTimestamp == 0)
       revert PositionNotCommited();
 
+    position.commitWithdrawalTimestamp = 0;
+
     // Pool rewards after commit are paid in favor of the DAO's leverage risk wallet
     _takeInterests(positionId_, address(ecclesiaDao), 0);
-
-    position.commitWithdrawalTimestamp = 0;
   }
 
   /**
