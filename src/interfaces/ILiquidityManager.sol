@@ -1,6 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.20;
 
+// libraries
+import { VirtualPool } from "../libs/VirtualPool.sol";
+// interfaces
+import { IEcclesiaDao } from "../interfaces/IEcclesiaDao.sol";
+import { IStrategyManager } from "../interfaces/IStrategyManager.sol";
+
 interface ILiquidityManager {
   // ======= STRUCTS ======= //
 
@@ -42,6 +48,30 @@ interface ILiquidityManager {
   struct PoolOverlap {
     uint64 poolId;
     uint256 amount;
+  }
+
+  struct VPoolRead {
+    uint64 poolId;
+    uint256 feeRate; // amount of fees on premiums in RAY
+    uint256 leverageFeePerPool; // amount of fees per pool when using leverage
+    IEcclesiaDao dao;
+    IStrategyManager strategyManager;
+    VirtualPool.Formula formula;
+    VirtualPool.Slot0 slot0;
+    uint256 strategyId;
+    address paymentAsset; // asset used to pay LP premiums
+    address underlyingAsset; // asset required by the strategy
+    address wrappedAsset; // tokenised strategy shares (ex: aTokens)
+    bool isPaused;
+    uint64[] overlappedPools;
+    uint256 ongoingClaims;
+    uint256[] compensationIds;
+    uint256[] overlappedCapital;
+    uint256 utilizationRate;
+    uint256 totalLiquidity;
+    uint256 availableLiquidity;
+    uint256 strategyRewardIndex;
+    uint256 lastOnchainUpdateTimestamp;
   }
 
   function positions(

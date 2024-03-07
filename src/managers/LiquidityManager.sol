@@ -282,7 +282,7 @@ contract LiquidityManager is
    */
   function poolInfo(
     uint64 poolId_
-  ) external view returns (VirtualPool.VPoolRead memory) {
+  ) external view returns (VPoolRead memory) {
     VirtualPool.VPool storage pool = _pools[poolId_];
 
     // Save the last update timestamp to know when the pool was last updated onchain
@@ -305,7 +305,7 @@ contract LiquidityManager is
     uint256 totalLiquidity = pool.totalLiquidity();
 
     return
-      VirtualPool.VPoolRead({
+      VPoolRead({
         poolId: pool.poolId,
         feeRate: pool.feeRate,
         leverageFeePerPool: pool.leverageFeePerPool,
