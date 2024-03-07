@@ -115,12 +115,13 @@ export function calcExpectedPoolDataAfterOpenPosition(
     const oldPremiumRate = getPremiumRate(pool, pool.utilizationRate);
     const newPremiumRate = getPremiumRate(pool, expect.utilizationRate);
 
+    expect.slot0.tick =
+      pool.slot0.tick + Math.floor(timeElapsed / expect.slot0.secondsPerTick);
     expect.slot0.secondsPerTick = secondsPerTick(
       pool.slot0.secondsPerTick,
       oldPremiumRate,
       newPremiumRate,
     ).toNumber();
-    expect.slot0.tick = Math.floor(timeElapsed / expect.slot0.secondsPerTick);
     expect.slot0.liquidityIndex = pool.slot0.liquidityIndex.add(
       computeLiquidityIndex(
       expect.utilizationRate,
@@ -137,7 +138,7 @@ export function calcExpectedPoolDataAfterOpenPosition(
     if (expect.slot0.tick === pool.slot0.tick) {
       expect.slot0.lastUpdateTimestamp = pool.slot0.lastUpdateTimestamp;
     } else {
-      expect.slot0.lastUpdateTimestamp = txTimestamp - ignoredDuration;
+      expect.slot0.lastUpdateTimestamp = timestamp - ignoredDuration;
     }
 
     expectedArray.push(expect);
@@ -182,12 +183,13 @@ export function calcExpectedPoolDataAfterAddLiquidity(
     const oldPremiumRate = getPremiumRate(pool, pool.utilizationRate);
     const newPremiumRate = getPremiumRate(pool, expect.utilizationRate);
 
+    expect.slot0.tick =
+      pool.slot0.tick + Math.floor(timeElapsed / expect.slot0.secondsPerTick);
     expect.slot0.secondsPerTick = secondsPerTick(
       pool.slot0.secondsPerTick,
       oldPremiumRate,
       newPremiumRate,
     ).toNumber();
-    expect.slot0.tick = Math.floor(timeElapsed / expect.slot0.secondsPerTick);
     expect.slot0.liquidityIndex = pool.slot0.liquidityIndex.add(
       computeLiquidityIndex(
         expect.utilizationRate,
@@ -204,7 +206,7 @@ export function calcExpectedPoolDataAfterAddLiquidity(
     if (expect.slot0.tick === pool.slot0.tick) {
       expect.slot0.lastUpdateTimestamp = pool.slot0.lastUpdateTimestamp;
     } else {
-      expect.slot0.lastUpdateTimestamp = txTimestamp - ignoredDuration;
+      expect.slot0.lastUpdateTimestamp = timestamp - ignoredDuration;
     }
 
     expectedArray.push(expect);
@@ -233,12 +235,13 @@ export function calcExpectedPoolDataAfterCommitRemoveLiquidity(
     const oldPremiumRate = getPremiumRate(pool, pool.utilizationRate);
     const newPremiumRate = getPremiumRate(pool, expect.utilizationRate);
 
+    expect.slot0.tick =
+      pool.slot0.tick + Math.floor(timeElapsed / expect.slot0.secondsPerTick);
     expect.slot0.secondsPerTick = secondsPerTick(
       pool.slot0.secondsPerTick,
       oldPremiumRate,
       newPremiumRate,
     ).toNumber();
-    expect.slot0.tick = Math.floor(timeElapsed / expect.slot0.secondsPerTick);
     expect.slot0.liquidityIndex = pool.slot0.liquidityIndex.add(
       computeLiquidityIndex(
         expect.utilizationRate,
@@ -284,12 +287,13 @@ export function calcExpectedPoolDataAfterUncommitRemoveLiquidity(
     const oldPremiumRate = getPremiumRate(pool, pool.utilizationRate);
     const newPremiumRate = getPremiumRate(pool, expect.utilizationRate);
 
+    expect.slot0.tick =
+      pool.slot0.tick + Math.floor(timeElapsed / expect.slot0.secondsPerTick);
     expect.slot0.secondsPerTick = secondsPerTick(
       pool.slot0.secondsPerTick,
       oldPremiumRate,
       newPremiumRate,
     ).toNumber();
-    expect.slot0.tick = Math.floor(timeElapsed / expect.slot0.secondsPerTick);
     expect.slot0.liquidityIndex = pool.slot0.liquidityIndex.add(
       computeLiquidityIndex(
         expect.utilizationRate,
@@ -306,7 +310,7 @@ export function calcExpectedPoolDataAfterUncommitRemoveLiquidity(
     if (expect.slot0.tick === pool.slot0.tick) {
       expect.slot0.lastUpdateTimestamp = pool.slot0.lastUpdateTimestamp;
     } else {
-      expect.slot0.lastUpdateTimestamp = txTimestamp - ignoredDuration;
+      expect.slot0.lastUpdateTimestamp = timestamp - ignoredDuration;
     }
 
     expectedArray.push(expect);
@@ -335,12 +339,13 @@ export function calcExpectedPoolDataAfterTakeInterests(
     const oldPremiumRate = getPremiumRate(pool, pool.utilizationRate);
     const newPremiumRate = getPremiumRate(pool, expect.utilizationRate);
 
+    expect.slot0.tick =
+      pool.slot0.tick + Math.floor(timeElapsed / expect.slot0.secondsPerTick);
     expect.slot0.secondsPerTick = secondsPerTick(
       pool.slot0.secondsPerTick,
       oldPremiumRate,
       newPremiumRate,
     ).toNumber();
-    expect.slot0.tick = Math.floor(timeElapsed / expect.slot0.secondsPerTick);
     expect.slot0.liquidityIndex = pool.slot0.liquidityIndex.add(
       computeLiquidityIndex(
         expect.utilizationRate,
@@ -357,7 +362,7 @@ export function calcExpectedPoolDataAfterTakeInterests(
     if (expect.slot0.tick === pool.slot0.tick) {
       expect.slot0.lastUpdateTimestamp = pool.slot0.lastUpdateTimestamp;
     } else {
-      expect.slot0.lastUpdateTimestamp = txTimestamp - ignoredDuration;
+      expect.slot0.lastUpdateTimestamp = timestamp - ignoredDuration;
     }
 
     expectedArray.push(expect);
@@ -401,6 +406,13 @@ export function calcExpectedPoolDataAfterOpenCover(
     expect.totalLiquidity,
   );
 
+  const timeElapsed = timestamp - poolDataBefore.slot0.lastUpdateTimestamp;
+  const ignoredDuration = timeElapsed % expect.slot0.secondsPerTick;
+
+  expect.slot0.tick =
+    poolDataBefore.slot0.tick +
+    Math.floor(timeElapsed / expect.slot0.secondsPerTick);
+
   const { newPremiumRate, newSecondsPerTick } = updatedPremiumRate(
     poolDataBefore,
     amount,
@@ -409,10 +421,6 @@ export function calcExpectedPoolDataAfterOpenCover(
 
   expect.slot0.secondsPerTick = newSecondsPerTick.toNumber();
 
-  const timeElapsed = timestamp - poolDataBefore.slot0.lastUpdateTimestamp;
-  const ignoredDuration = timeElapsed % expect.slot0.secondsPerTick;
-
-  expect.slot0.tick = Math.floor(timeElapsed / expect.slot0.secondsPerTick);
   expect.slot0.liquidityIndex = poolDataBefore.slot0.liquidityIndex.add(
     computeLiquidityIndex(
       expect.utilizationRate,
@@ -429,7 +437,7 @@ export function calcExpectedPoolDataAfterOpenCover(
   if (expect.slot0.tick === poolDataBefore.slot0.tick) {
     expect.slot0.lastUpdateTimestamp = poolDataBefore.slot0.lastUpdateTimestamp;
   } else {
-    expect.slot0.lastUpdateTimestamp = txTimestamp - ignoredDuration;
+    expect.slot0.lastUpdateTimestamp = timestamp - ignoredDuration;
   }
 
   return expect;
