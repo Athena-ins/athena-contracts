@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: BUSL-1.1
 // solhint-disable not-rely-on-time
 pragma solidity 0.8.20;
 
