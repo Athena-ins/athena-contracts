@@ -10,6 +10,7 @@ const MAX_SECONDS_PER_TICK = BigNumber.from(86400);
 const FEE_BASE = RAY;
 const PERCENTAGE_BASE = BigNumber.from(100);
 const FULL_CAPACITY = PERCENTAGE_BASE.mul(RAY);
+const MAX_UINT256 = BigNumber.from(2).pow(256).sub(1);
 
 export const constants = {
   RAY,
@@ -19,6 +20,7 @@ export const constants = {
   FEE_BASE,
   PERCENTAGE_BASE,
   FULL_CAPACITY,
+  MAX_UINT256,
 };
 
 type Formula = {

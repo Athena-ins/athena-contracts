@@ -504,11 +504,70 @@ export function calcExpectedPoolDataAfterUpdateCover(
   coverToRemoveAmount: BigNumber,
   premiumsToAddAmount: BigNumber,
   premiumsToRemoveAmount: BigNumber,
+  tokenDataBefore: CoverInfoObject,
   poolDataBefore: PoolInfoObject,
+  strategyRewardIndex: BigNumber,
   txTimestamp: number,
   timestamp: number,
 ): PoolInfoObject {
   const expect = deepCopy(poolDataBefore);
+
+  expect.strategyRewardIndex = strategyRewardIndex;
+
+  // These value may be unpredictably changed due to covers expiring during time travel
+  expect.availableLiquidity = poolDataBefore.availableLiquidity
+    .sub(coverToAddAmount)
+    .add(coverToRemoveAmount);
+  expect.slot0.coveredCapital = poolDataBefore.slot0.coveredCapital
+    .add(coverToAddAmount)
+    .sub(coverToRemoveAmount);
+  expect.slot0.remainingCovers = poolDataBefore.slot0.remainingCovers;
+
+  if (
+    premiumsToRemoveAmount.eq(constants.MAX_UINT256) ||
+    tokenDataBefore.premiumsLeft.eq(premiumsToRemoveAmount)
+  ) {
+    expect.slot0.remainingCovers = expect.slot0.remainingCovers.sub(1);
+  }
+
+  expect.utilizationRate = utilization(
+    expect.slot0.coveredCapital,
+    expect.totalLiquidity,
+  );
+
+  const timeElapsed = timestamp - poolDataBefore.slot0.lastUpdateTimestamp;
+  const ignoredDuration = timeElapsed % expect.slot0.secondsPerTick;
+
+  expect.slot0.tick =
+    poolDataBefore.slot0.tick +
+    Math.floor(timeElapsed / expect.slot0.secondsPerTick);
+
+  const { newPremiumRate, newSecondsPerTick } = updatedPremiumRate(
+    poolDataBefore,
+    coverToAddAmount,
+    coverToRemoveAmount,
+  );
+
+  expect.slot0.secondsPerTick = newSecondsPerTick.toNumber();
+
+  expect.slot0.liquidityIndex = poolDataBefore.slot0.liquidityIndex.add(
+    computeLiquidityIndex(
+      expect.utilizationRate,
+      newPremiumRate,
+      timeElapsed - ignoredDuration,
+    ),
+  );
+  expect.slot0.liquidityIndexLead = computeLiquidityIndex(
+    expect.utilizationRate,
+    newPremiumRate,
+    ignoredDuration,
+  );
+
+  if (expect.slot0.tick === poolDataBefore.slot0.tick) {
+    expect.slot0.lastUpdateTimestamp = poolDataBefore.slot0.lastUpdateTimestamp;
+  } else {
+    expect.slot0.lastUpdateTimestamp = timestamp - ignoredDuration;
+  }
 
   return expect;
 }
@@ -546,7 +605,7 @@ export function calcExpectedPositionDataAfterOpenPosition(
   txTimestamp: number,
   timestamp: number,
 ): PositionInfoObject {
-  const expect: any = {};
+  const expect = {} as PositionInfoObject;
 
   expect.supplied = positionAmount;
   expect.commitWithdrawalTimestamp = 0;
@@ -554,11 +613,11 @@ export function calcExpectedPositionDataAfterOpenPosition(
   expect.newUserCapital = expect.supplied;
 
   expect.coverRewards = [];
-  for (const pool of poolDataBefore) {
+  for (const [i, pool] of poolDataBefore.entries()) {
     const coverRewards = getCoverRewards(
       expect.newUserCapital,
       pool.slot0.liquidityIndex,
-      expectedPoolData[0].slot0.liquidityIndex,
+      expectedPoolData[i].slot0.liquidityIndex,
     );
     expect.coverRewards.push(coverRewards);
   }
@@ -570,7 +629,7 @@ export function calcExpectedPositionDataAfterOpenPosition(
     expectedPoolData[0].strategyRewardIndex,
   );
 
-  return expect satisfies PositionInfoObject;
+  return expect;
 }
 
 export function calcExpectedPositionDataAfterAddLiquidity(
@@ -799,7 +858,7 @@ export function calcExpectedCoverDataAfterOpenCover(
     expect.premiumRate,
   );
   expect.premiumsLeft = premiums.sub(
-    expect.dailyCost.mul(timestamp - txTimestamp).div(26 * 60 * 60),
+    expect.dailyCost.mul(timestamp - txTimestamp).div(24 * 60 * 60),
   );
 
   return expect;
@@ -817,6 +876,41 @@ export function calcExpectedCoverDataAfterUpdateCover(
   timestamp: number,
 ): CoverInfoObject {
   const expect = deepCopy(tokenDataBefore);
+
+  expect.coverAmount = tokenDataBefore.coverAmount
+    .add(coverToAddAmount)
+    .sub(coverToRemoveAmount);
+  expect.poolId = expectedPoolData.poolId;
+  expect.start = tokenDataBefore.start;
+  expect.end = 0;
+
+  if (
+    premiumsToRemoveAmount.eq(constants.MAX_UINT256) ||
+    tokenDataBefore.premiumsLeft.eq(premiumsToRemoveAmount)
+  ) {
+    expect.end = txTimestamp;
+  }
+
+  const { newPremiumRate: beginPremiumRate } = updatedPremiumRate(
+    poolDataBefore,
+    coverToAddAmount,
+    coverToRemoveAmount,
+  );
+
+  expect.premiumRate = getPremiumRate(
+    expectedPoolData,
+    expectedPoolData.utilizationRate,
+  );
+  expect.dailyCost = currentDailyCost(
+    expect.coverAmount,
+    beginPremiumRate,
+    expect.premiumRate,
+  );
+
+  expect.premiumsLeft = tokenDataBefore.premiumsLeft
+    .sub(premiumsToRemoveAmount)
+    .add(premiumsToAddAmount)
+    .sub(expect.dailyCost.mul(timestamp - txTimestamp).div(24 * 60 * 60));
 
   return expect;
 }

@@ -11,6 +11,8 @@ export async function ScenarioTests() {
       describe(scenario.title, async function () {
         for (const story of scenario.stories) {
           it(story.description, async function () {
+            // Multiples actions can require a longer timeout
+            this.timeout(60_000);
             // this.retries(2);
 
             for (const action of story.actions) {

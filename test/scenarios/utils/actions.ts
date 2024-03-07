@@ -539,7 +539,7 @@ export async function uncommitRemoveLiquidity(
   expectedResult: "success" | string,
   timeTravel?: TimeTravelOptions,
 ) {
-  const { LiquidityManager } = testEnv.contracts;
+  const { LiquidityManager, StrategyManager } = testEnv.contracts;
 
   const tokenDataBefore = await LiquidityManager.positionInfo(positionId).then(
     (data) => positionInfoFormat(data),
@@ -554,6 +554,17 @@ export async function uncommitRemoveLiquidity(
     const txResult = await postTxHandler(
       LiquidityManager.connect(user).uncommitRemoveLiquidity(positionId),
     );
+
+    // Since we took profits we need the new liquidity index
+    const [newStartStrategyIndex, ...newStartLiquidityIndexes] =
+      await Promise.all([
+        StrategyManager.getRewardIndex(poolDataBefore[0].strategyId),
+        ...tokenDataBefore.poolIds.map((poolId) =>
+          LiquidityManager.poolInfo(poolId).then(
+            (data) => data.slot0.liquidityIndex,
+          ),
+        ),
+      ]);
 
     const { txTimestamp } = await getTxCostAndTimestamp(txResult);
 
@@ -584,6 +595,8 @@ export async function uncommitRemoveLiquidity(
         poolDataBefore,
         expectedPoolData,
         tokenDataBefore,
+        newStartStrategyIndex,
+        newStartLiquidityIndexes,
         txTimestamp,
         timestamp,
       );
@@ -895,7 +908,9 @@ export async function updateCover(
       coverToRemoveAmount,
       premiumsToAddAmount,
       premiumsToRemoveAmount,
+      tokenDataBefore,
       poolDataBefore,
+      poolDataAfter.strategyRewardIndex,
       txTimestamp,
       timestamp,
     );
@@ -914,7 +929,9 @@ export async function updateCover(
 
     const balanceAfter = await paymentToken.balanceOf(userAddress);
 
-    expect(balanceAfter).to.almostEqual(balanceBefore.sub(premiumsToAddAmount));
+    expect(balanceAfter).to.almostEqual(
+      balanceBefore.add(premiumsToRemoveAmount).sub(premiumsToAddAmount),
+    );
     expectEqual(poolDataAfter, expectedPoolData);
     expectEqual(tokenDataAfter, expectedTokenData);
   } else if (expectedResult === "revert") {
