@@ -70,6 +70,7 @@ export function calcExpectedPoolDataAfterCreatePool(
     totalLiquidity: BigNumber.from(0),
     availableLiquidity: BigNumber.from(0),
     strategyRewardIndex,
+    lastOnchainUpdateTimestamp: txTimestamp,
   };
 }
 
