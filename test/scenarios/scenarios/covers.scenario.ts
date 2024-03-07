@@ -159,6 +159,14 @@ export const coverOpenAndUpdate: Scenario = {
             claimId: 0,
           },
         },
+        {
+          userName: "user0",
+          name: "takeInterests",
+          expected: "success",
+          args: {
+            positionId: 0,
+          },
+        },
       ],
     },
   ],

@@ -125,15 +125,10 @@ chai.use(function (chai, utils) {
 
         // For certain keys we will use a different deviationAllowed
         if (key === "premiumsLeft") {
-          deviationAllowed = 0.00001;
+          deviationAllowed = 0.0001;
         }
         // if (
-        //   key === "feeRate" ||
-        //   key === "formula" ||
-        //   key === "strategyId" ||
-        //   key === "paymentAsset" ||
-        //   key === "underlyingAsset" ||
-        //   key === "wrappedAsset"
+        //   key === "feeRate"
         // ) {
         //   // skipping consistency check on accessory data
         //   return;

@@ -105,6 +105,7 @@ type ActionInitiateClaim = BaseAction & {
     amountClaimed: number;
     ipfsMetaEvidenceCid?: string;
     signature?: string;
+    valueSent?: string;
   };
 };
 type ActionWithdrawCompensation = BaseAction & {

@@ -955,6 +955,7 @@ export async function initiateClaim(
   amountClaimed: BigNumberish,
   ipfsMetaEvidenceCid: string,
   signature: string,
+  valueSent: BigNumberish | undefined,
   expectedResult: "success" | string,
   timeTravel?: TimeTravelOptions,
 ) {
@@ -971,6 +972,15 @@ export async function initiateClaim(
     amountClaimed,
   );
 
+  const messageValue: BigNumberish =
+    valueSent ||
+    (await Promise.all([
+      ClaimManager.collateralAmount(),
+      ClaimManager.arbitrationCost(),
+    ]).then((prices) =>
+      prices.reduce((acc, el) => acc.add(el), BigNumber.from(0)),
+    ));
+
   if (expectedResult === "success") {
     const txResult = await postTxHandler(
       ClaimManager.connect(user).initiateClaim(
@@ -978,6 +988,9 @@ export async function initiateClaim(
         amountClaimedAmount,
         ipfsMetaEvidenceCid,
         signature,
+        {
+          value: messageValue,
+        },
       ),
     );
 

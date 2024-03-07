@@ -227,7 +227,7 @@ export async function executeAction(this: Mocha.Context, action: Action) {
 
     case "initiateClaim":
       {
-        const { coverId, amountClaimed, ipfsMetaEvidenceCid, signature } = args;
+        const { coverId, amountClaimed, ipfsMetaEvidenceCid, signature, valueSent } = args;
 
         const { ipfsCid, cidSignature } =
           await getTestingCidAndSig(ipfsMetaEvidenceCid);
@@ -239,6 +239,7 @@ export async function executeAction(this: Mocha.Context, action: Action) {
           amountClaimed,
           ipfsCid ?? ipfsMetaEvidenceCid,
           cidSignature ?? signature,
+          valueSent,
           expected,
           timeTravel,
         );
