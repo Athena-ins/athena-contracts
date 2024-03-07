@@ -331,7 +331,7 @@ contract LiquidityManager is
         strategyRewardIndex: strategyManager.getRewardIndex(
           pool.strategyId
         ),
-        updatableUpTo: updatableUpTo
+        lastOnchainUpdateTimestamp: lastOnchainUpdateTimestamp
       });
   }
 
@@ -1059,7 +1059,7 @@ contract LiquidityManager is
       // then start index is i to reduce required number of loops
       for (uint256 j = i; j < nbPoolIds; j++) {
         uint64 poolId1 = poolIds_[j];
-        pool0.overlaps[poolId1] -= newUserCapital;
+        pool0.overlaps[poolId1] -= amount_;
       }
     }
   }
