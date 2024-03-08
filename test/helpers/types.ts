@@ -32,6 +32,7 @@ export type PoolInfoObject = {
   availableLiquidity: BigNumber;
   strategyRewardIndex: BigNumber;
   lastOnchainUpdateTimestamp: number;
+  ongoingClaims: number;
 };
 
 export type PositionInfoObject = {

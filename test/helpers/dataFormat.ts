@@ -40,6 +40,7 @@ export function poolInfoFormat(
     availableLiquidity: data.availableLiquidity,
     strategyRewardIndex: data.strategyRewardIndex,
     lastOnchainUpdateTimestamp: data.lastOnchainUpdateTimestamp.toNumber(),
+    ongoingClaims: data.ongoingClaims.toNumber(),
   };
 }
 

@@ -1014,6 +1014,7 @@ export async function initiateClaim(
     const expectedPoolData = calcExpectedPoolDataAfterInitiateClaim(
       amountClaimedAmount,
       poolDataBefore,
+      poolDataAfter.strategyRewardIndex,
       txTimestamp,
       timestamp,
     );
