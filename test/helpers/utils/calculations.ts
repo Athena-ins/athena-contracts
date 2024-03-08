@@ -576,10 +576,49 @@ export function calcExpectedPoolDataAfterUpdateCover(
 export function calcExpectedPoolDataAfterInitiateClaim(
   amountClaimedAmount: BigNumber,
   poolDataBefore: PoolInfoObject,
+  strategyRewardIndex: BigNumber,
   txTimestamp: number,
   timestamp: number,
 ): PoolInfoObject {
-  const expect = deepCopy(poolDataBefore);
+  const pool = poolDataBefore;
+
+  const expect = deepCopy(pool);
+
+  expect.ongoingClaims = pool.ongoingClaims++;
+  expect.strategyRewardIndex = strategyRewardIndex;
+
+  // These value may be unpredictably changed due to covers expiring during time travel
+  const timeElapsed = timestamp - pool.slot0.lastUpdateTimestamp;
+  const ignoredDuration = timeElapsed % expect.slot0.secondsPerTick;
+
+  const oldPremiumRate = getPremiumRate(pool, pool.utilizationRate);
+  const newPremiumRate = getPremiumRate(pool, expect.utilizationRate);
+
+  expect.slot0.tick =
+    pool.slot0.tick + Math.floor(timeElapsed / expect.slot0.secondsPerTick);
+  expect.slot0.secondsPerTick = secondsPerTick(
+    pool.slot0.secondsPerTick,
+    oldPremiumRate,
+    newPremiumRate,
+  ).toNumber();
+  expect.slot0.liquidityIndex = pool.slot0.liquidityIndex.add(
+    computeLiquidityIndex(
+      expect.utilizationRate,
+      newPremiumRate,
+      timeElapsed - ignoredDuration,
+    ),
+  );
+  expect.slot0.liquidityIndexLead = computeLiquidityIndex(
+    expect.utilizationRate,
+    newPremiumRate,
+    ignoredDuration,
+  );
+
+  if (expect.slot0.tick === pool.slot0.tick) {
+    expect.slot0.lastUpdateTimestamp = pool.slot0.lastUpdateTimestamp;
+  } else {
+    expect.slot0.lastUpdateTimestamp = timestamp - ignoredDuration;
+  }
 
   return expect;
 }
@@ -650,7 +689,7 @@ export function calcExpectedPositionDataAfterAddLiquidity(
   expect.newUserCapital = expect.supplied;
 
   expect.coverRewards = [];
-  for (const pool of poolDataBefore) {
+  for (const [i, pool] of poolDataBefore.entries()) {
     // adding liquidity takes profits
     const coverRewards =
       txTimestamp === timestamp
@@ -658,7 +697,7 @@ export function calcExpectedPositionDataAfterAddLiquidity(
       : getCoverRewards(
           expect.newUserCapital,
           pool.slot0.liquidityIndex,
-          expectedPoolData[0].slot0.liquidityIndex,
+            expectedPoolData[i].slot0.liquidityIndex,
         );
     expect.coverRewards.push(coverRewards);
   }
