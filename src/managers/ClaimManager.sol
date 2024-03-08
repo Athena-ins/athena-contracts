@@ -599,6 +599,7 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
     claim.amount = amountClaimed_;
     claim.createdAt = block.timestamp;
     claim.deposit = msg.value;
+    claim.status = ClaimStatus.Initiated;
 
     // Emit Athena claim creation event
     emit ClaimCreated(msg.sender, coverId_, claimId);

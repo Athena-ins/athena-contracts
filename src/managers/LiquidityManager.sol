@@ -41,6 +41,7 @@ error CannotIncreaseIfCommittedWithdrawal();
 error PositionNotCommited();
 error SenderNotLiquidationManager();
 error PoolHasOnGoingClaims();
+error CoverAmountIsZero();
 
 contract LiquidityManager is
   ILiquidityManager,
@@ -1112,6 +1113,8 @@ contract LiquidityManager is
       revert SenderNotLiquidationManager();
     } // this function should be called only by this contract
 
+    if (newCoverAmount_ == 0) revert CoverAmountIsZero();
+
     _pools[poolId_]._registerCover(
       coverId_,
       newCoverAmount_,
@@ -1130,6 +1133,7 @@ contract LiquidityManager is
   ) external onlyClaimManager {
     uint64 fromPoolId = covers[coverId_].poolId;
     VirtualPool.VPool storage poolA = _pools[fromPoolId];
+
     uint256 ratio = compensationAmount_.rayDiv(
       poolA.totalLiquidity()
     );
