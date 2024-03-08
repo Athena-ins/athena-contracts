@@ -835,9 +835,6 @@ contract LiquidityManager is
 
     // Check if pool is currently paused
     if (pool.isPaused) revert PoolIsPaused();
-    // Check if pool has enough liquidity
-    if (pool.availableLiquidity() < coverAmount_)
-      revert InsufficientLiquidityForCover();
 
     // Transfer premiums from user
     IERC20(pool.paymentAsset).safeTransferFrom(
@@ -1168,7 +1165,7 @@ contract LiquidityManager is
         ? (poolA, poolIdB)
         : (poolB, fromPoolId);
 
-      // Skip if overlap is 0
+      // Skip if overlap is 0 because the pools no longer share liquidity
       if (pool0.overlaps[poolId1] == 0) continue;
       // Update pool state & remove expired covers
       poolB._purgeExpiredCovers();
@@ -1190,7 +1187,8 @@ contract LiquidityManager is
         // Reduce available liquidity,
         // at i = 0 this is the self liquidity of cover's pool
         pool0.overlaps[poolId1] -= amountToRemove;
-        // Only remove deps liquidity if the pool of the cover
+
+        // Only remove liquidity in indirectly dependant pools other than the cover's pool
         if (i != 0) {
           // Check all pool combinations to reduce overlapping capital
           for (uint64 j; j < nbPools; j++) {

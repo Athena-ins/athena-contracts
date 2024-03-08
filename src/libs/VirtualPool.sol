@@ -132,7 +132,7 @@ library VirtualPool {
     uint64[] overlappedPools;
     uint256 ongoingClaims;
     uint256[] compensationIds;
-    /// @dev poolId 0 -> poolId 0 points to a pool's available liquidity
+    /// @dev poolId 0 -> poolId 0 points to a pool's own liquidity
     /// @dev liquidity overlap is always registered in the lower poolId
     // Maps poolId 0 -> poolId 1 -> overlapping capital
     mapping(uint64 _poolId => uint256 _amount) overlaps;
