@@ -125,8 +125,8 @@ export function calcExpectedPoolDataAfterOpenPosition(
     ).toNumber();
     expect.slot0.liquidityIndex = pool.slot0.liquidityIndex.add(
       computeLiquidityIndex(
-      expect.utilizationRate,
-      newPremiumRate,
+        expect.utilizationRate,
+        newPremiumRate,
         timeElapsed - ignoredDuration,
       ),
     );
@@ -625,11 +625,72 @@ export function calcExpectedPoolDataAfterInitiateClaim(
 
 export function calcExpectedPoolDataAfterWithdrawCompensation(
   claimAmount: BigNumber,
+  claimId: number,
   poolDataBefore: PoolInfoObject,
+  tokenDataBefore: CoverInfoObject,
+  strategyRewardIndex: BigNumber,
   txTimestamp: number,
   timestamp: number,
 ): PoolInfoObject {
+  const pool = poolDataBefore;
   const expect = deepCopy(poolDataBefore);
+
+  expect.strategyRewardIndex = strategyRewardIndex;
+
+  expect.ongoingClaims = pool.ongoingClaims--;
+  expect.compensationIds = [...pool.compensationIds, claimId];
+
+  if (
+    claimAmount.eq(tokenDataBefore.coverAmount) ||
+    expect.availableLiquidity.lt(claimAmount)
+  ) {
+    expect.slot0.remainingCovers = pool.slot0.remainingCovers.sub(1);
+    expect.slot0.coveredCapital = pool.slot0.coveredCapital.sub(
+      tokenDataBefore.coverAmount.sub(claimAmount),
+    );
+  }
+
+  expect.totalLiquidity = pool.totalLiquidity.sub(claimAmount);
+  expect.slot0.coveredCapital = pool.slot0.coveredCapital.sub(claimAmount);
+
+  expect.utilizationRate = utilization(
+    expect.slot0.coveredCapital,
+    expect.totalLiquidity,
+  );
+
+  expect.overlappedCapital = pool.overlappedCapital.map((capital) =>
+    capital.sub(claimAmount),
+  );
+
+  // These value may be unpredictably changed due to covers expiring during time travel
+  const timeElapsed = timestamp - pool.slot0.lastUpdateTimestamp;
+  const ignoredDuration = timeElapsed % expect.slot0.secondsPerTick;
+
+  const oldPremiumRate = getPremiumRate(pool, pool.utilizationRate);
+  const newPremiumRate = getPremiumRate(pool, expect.utilizationRate);
+
+  expect.slot0.tick =
+    pool.slot0.tick + Math.floor(timeElapsed / expect.slot0.secondsPerTick);
+  expect.slot0.secondsPerTick = secondsPerTick(
+    pool.slot0.secondsPerTick,
+    oldPremiumRate,
+    newPremiumRate,
+  ).toNumber();
+
+  expect.slot0.liquidityIndex = pool.slot0.liquidityIndex.add(
+    computeLiquidityIndex(
+      expect.utilizationRate,
+      newPremiumRate,
+      timeElapsed - ignoredDuration,
+    ),
+  );
+  expect.slot0.liquidityIndexLead = computeLiquidityIndex(
+    expect.utilizationRate,
+    newPremiumRate,
+    ignoredDuration,
+  );
+
+  expect.slot0.lastUpdateTimestamp = timestamp - ignoredDuration;
 
   return expect;
 }
@@ -693,12 +754,12 @@ export function calcExpectedPositionDataAfterAddLiquidity(
     // adding liquidity takes profits
     const coverRewards =
       txTimestamp === timestamp
-      ? BigNumber.from(0)
-      : getCoverRewards(
-          expect.newUserCapital,
-          pool.slot0.liquidityIndex,
+        ? BigNumber.from(0)
+        : getCoverRewards(
+            expect.newUserCapital,
+            pool.slot0.liquidityIndex,
             expectedPoolData[i].slot0.liquidityIndex,
-        );
+          );
     expect.coverRewards.push(coverRewards);
   }
 
@@ -706,12 +767,12 @@ export function calcExpectedPositionDataAfterAddLiquidity(
   // adding liquidity takes profits
   expect.strategyRewards =
     txTimestamp === timestamp
-    ? BigNumber.from(0)
-    : computeReward(
-        expect.newUserCapital,
-        tokenDataBefore.strategyRewardIndex,
-        expectedPoolData[0].strategyRewardIndex,
-      );
+      ? BigNumber.from(0)
+      : computeReward(
+          expect.newUserCapital,
+          tokenDataBefore.strategyRewardIndex,
+          expectedPoolData[0].strategyRewardIndex,
+        );
 
   return expect;
 }
@@ -723,7 +784,37 @@ export function calcExpectedPositionDataAfterTakeInterests(
   txTimestamp: number,
   timestamp: number,
 ): PositionInfoObject {
-  const expect = deepCopy(tokenDataBefore);
+  const expect = {} as PositionInfoObject;
+
+  expect.supplied = tokenDataBefore.supplied;
+  expect.commitWithdrawalTimestamp = 0;
+  expect.poolIds = tokenDataBefore.poolIds;
+  expect.newUserCapital = expect.supplied;
+
+  expect.coverRewards = [];
+  for (const [i, pool] of poolDataBefore.entries()) {
+    // adding liquidity takes profits
+    const coverRewards =
+      txTimestamp === timestamp
+        ? BigNumber.from(0)
+        : getCoverRewards(
+            expect.newUserCapital,
+            pool.slot0.liquidityIndex,
+            expectedPoolData[i].slot0.liquidityIndex,
+          );
+    expect.coverRewards.push(coverRewards);
+  }
+
+  expect.strategyRewardIndex = expectedPoolData[0].strategyRewardIndex;
+  // adding liquidity takes profits
+  expect.strategyRewards =
+    txTimestamp === timestamp
+      ? BigNumber.from(0)
+      : computeReward(
+          expect.newUserCapital,
+          tokenDataBefore.strategyRewardIndex,
+          expectedPoolData[0].strategyRewardIndex,
+        );
 
   return expect;
 }
@@ -752,24 +843,24 @@ export function calcExpectedPositionDataAfterCommitRemoveLiquidity(
     // commiting takes profits
     const coverRewards =
       txTimestamp === timestamp
-      ? BigNumber.from(0)
-      : getCoverRewards(
-          expect.newUserCapital,
-          startLiquidityIndex,
-          expectedLiquidityIndex,
-        );
+        ? BigNumber.from(0)
+        : getCoverRewards(
+            expect.newUserCapital,
+            startLiquidityIndex,
+            expectedLiquidityIndex,
+          );
     expect.coverRewards.push(coverRewards);
   }
 
   // commiting takes profits
   expect.strategyRewards =
     txTimestamp === timestamp
-    ? BigNumber.from(0)
-    : computeReward(
-        expect.newUserCapital,
-        newStartStrategyIndex,
-        expectedPoolData[0].strategyRewardIndex,
-      );
+      ? BigNumber.from(0)
+      : computeReward(
+          expect.newUserCapital,
+          newStartStrategyIndex,
+          expectedPoolData[0].strategyRewardIndex,
+        );
 
   return expect;
 }
@@ -963,9 +1054,31 @@ export function calcExpectedCoverDataAfterInitiateClaim(
   txTimestamp: number,
   timestamp: number,
 ): CoverInfoObject {
-  const expect = deepCopy(tokenDataBefore);
+  const coverId = tokenDataBefore.coverId;
+  const coverAmount = tokenDataBefore.coverAmount;
+  const poolId = tokenDataBefore.poolId;
+  const start = tokenDataBefore.start;
+  const end = tokenDataBefore.end;
 
-  return expect;
+  const premiumRate = getPremiumRate(
+    expectedPoolData,
+    expectedPoolData.utilizationRate,
+  );
+  const dailyCost = tokenDataBefore.dailyCost;
+  const premiumsLeft = tokenDataBefore.premiumsLeft.sub(
+    dailyCost.mul(timestamp - txTimestamp).div(24 * 60 * 60),
+  );
+
+  return {
+    coverId,
+    coverAmount,
+    poolId,
+    start,
+    end,
+    premiumRate,
+    dailyCost,
+    premiumsLeft,
+  };
 }
 
 export function calcExpectedCoverDataAfterWithdrawCompensation(
@@ -976,7 +1089,51 @@ export function calcExpectedCoverDataAfterWithdrawCompensation(
   txTimestamp: number,
   timestamp: number,
 ): CoverInfoObject {
-  const expect = deepCopy(tokenDataBefore);
+  const claimAmount = claimInfoBefore.amount;
 
-  return expect;
+  const coverId = tokenDataBefore.coverId;
+  const coverAmount = tokenDataBefore.coverAmount.sub(claimAmount);
+  const poolId = tokenDataBefore.poolId;
+  const start = tokenDataBefore.start;
+
+  const shouldCloseCover =
+    claimAmount.eq(tokenDataBefore.coverAmount) ||
+    poolDataBefore.availableLiquidity.lt(claimAmount);
+
+  const { newPremiumRate: beginPremiumRate } = updatedPremiumRate(
+    poolDataBefore,
+    0,
+    shouldCloseCover ? tokenDataBefore.coverAmount : claimAmount,
+  );
+
+  const premiumRate = getPremiumRate(
+    expectedPoolData,
+    expectedPoolData.utilizationRate,
+  );
+
+  let dailyCost = currentDailyCost(coverAmount, beginPremiumRate, premiumRate);
+  let premiumsLeft = tokenDataBefore.premiumsLeft.sub(
+    dailyCost.mul(timestamp - txTimestamp).div(24 * 60 * 60),
+  );
+  let end = tokenDataBefore.end;
+
+  if (
+    claimAmount.eq(tokenDataBefore.coverAmount) ||
+    poolDataBefore.availableLiquidity.lt(claimAmount)
+  ) {
+    dailyCost = BigNumber.from(0);
+    premiumsLeft = BigNumber.from(0);
+    end = txTimestamp;
+  }
+
+  return {
+    coverId,
+    coverAmount,
+    poolId,
+    start,
+    end,
+    premiumRate,
+    dailyCost,
+    premiumsLeft,
+  };
 }
