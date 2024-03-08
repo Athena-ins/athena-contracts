@@ -40,9 +40,10 @@ import {
 } from "../../helpers/dataFormat";
 import {
   PoolInfo,
-  PositionInfo,
-  CoverInfo,
+  PositionInfoObject,
+  CoverInfoObject,
   ClaimInfo,
+  PoolInfoObject,
 } from "../../helpers/types";
 import { getTokenAddressBySymbol } from "../../helpers/protocol";
 // Types
@@ -68,8 +69,8 @@ export const getTxCostAndTimestamp = async (tx: ContractReceipt) => {
 };
 
 type ContractsDataState = {
-  poolData: PoolInfo[];
-  tokenData: PositionInfo | CoverInfo;
+  poolData: PoolInfoObject[];
+  tokenData: PositionInfoObject | CoverInfoObject;
   timestamp: number;
 };
 
@@ -80,7 +81,7 @@ export async function getContractsData(
   tokenType: "position",
 ): Promise<
   ContractsDataState & {
-    tokenData: PositionInfo;
+    tokenData: PositionInfoObject;
   }
 >;
 
@@ -91,7 +92,7 @@ export async function getContractsData(
   tokenType: "cover",
 ): Promise<
   ContractsDataState & {
-    tokenData: CoverInfo;
+    tokenData: CoverInfoObject;
   }
 >;
 
@@ -1046,7 +1047,7 @@ export async function initiateClaim(
 export async function withdrawCompensation(
   testEnv: TestEnv,
   user: Wallet,
-  claimId: BigNumberish,
+  claimId: number,
   expectedResult: "success" | string,
   timeTravel?: TimeTravelOptions,
 ) {
@@ -1055,14 +1056,16 @@ export async function withdrawCompensation(
   const claimInfoBefore = await ClaimManager.claimInfo(claimId).then((data) =>
     claimInfoFormat(data),
   );
-  const [tokenDataBefore, poolDataBefore] = await Promise.all([
-    LiquidityManager.coverInfo(claimInfoBefore.coverId).then((data) =>
-      coverInfoFormat(data),
-    ),
-    LiquidityManager.poolInfo(claimInfoBefore.poolId).then((data) =>
-      poolInfoFormat(data),
-    ),
-  ]);
+
+  const {
+    poolData: [poolDataBefore],
+    tokenData: tokenDataBefore,
+  } = await getContractsData(
+    testEnv,
+    [claimInfoBefore.poolId],
+    claimInfoBefore.coverId,
+    "cover",
+  );
 
   if (expectedResult === "success") {
     const txResult = await postTxHandler(
@@ -1088,7 +1091,10 @@ export async function withdrawCompensation(
 
     const expectedPoolData = calcExpectedPoolDataAfterWithdrawCompensation(
       claimInfoBefore.amount,
+      claimId,
       poolDataBefore,
+      tokenDataBefore,
+      poolDataAfter.strategyRewardIndex,
       txTimestamp,
       timestamp,
     );

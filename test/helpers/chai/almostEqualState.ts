@@ -127,12 +127,11 @@ chai.use(function (chai, utils) {
         if (key === "premiumsLeft") {
           deviationAllowed = 0.0001;
         }
-        // if (
-        //   key === "feeRate"
-        // ) {
-        //   // skipping consistency check on accessory data
-        //   return;
-        // }
+
+        if (key === "lastOnchainUpdateTimestamp") {
+          // skipping consistency check on accessory data
+          return;
+        }
 
         if (Array.isArray(actual[key])) {
           // For arrays we will check every item

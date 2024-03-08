@@ -108,7 +108,7 @@ export const coverOpenAndUpdate: Scenario = {
           expected: "success",
           args: {
             positionId: 0,
-            amount: 3000,
+            amount: 2000,
             keepWrapped: false,
           },
         },
@@ -134,8 +134,8 @@ export const coverOpenAndUpdate: Scenario = {
           expected: "success",
           args: {
             coverId: 0,
-            coverToAdd: 120,
-            coverToRemove: 0,
+            coverToAdd: 0,
+            coverToRemove: 1000,
             premiumToAdd: 0,
             premiumToRemove: 10,
           },
@@ -146,7 +146,7 @@ export const coverOpenAndUpdate: Scenario = {
           expected: "success",
           args: {
             coverId: 0,
-            amountClaimed: 100,
+            amountClaimed: 1000,
           },
           timeTravel: { days: 15 },
         },
