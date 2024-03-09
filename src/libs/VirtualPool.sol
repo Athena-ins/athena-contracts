@@ -637,30 +637,30 @@ library VirtualPool {
   function _purgeExpiredCovers(VPool storage self) internal {
     if (self.slot0.remainingCovers == 0) return;
 
-      Slot0 memory slot0 = self._refresh(block.timestamp);
+    Slot0 memory slot0 = self._refresh(block.timestamp);
 
-      uint32 observedTick = self.slot0.tick;
+    uint32 observedTick = self.slot0.tick;
 
-      // For all the ticks between the slot0 tick & the refreshed tick
-      while (observedTick < slot0.tick) {
-        bool isInitialized;
-        (observedTick, isInitialized) = self.tickBitmap.nextTick(
+    // For all the ticks between the slot0 tick & the refreshed tick
+    while (observedTick < slot0.tick) {
+      bool isInitialized;
+      (observedTick, isInitialized) = self.tickBitmap.nextTick(
+        observedTick
+      );
+
+      if (isInitialized && observedTick <= slot0.tick) {
+        uint256[] memory expiredCoverIds = self._removeTick(
           observedTick
         );
 
-        if (isInitialized && observedTick <= slot0.tick) {
-          uint256[] memory expiredCoverIds = self._removeTick(
-            observedTick
-          );
-
-          uint256 nbCovers = expiredCoverIds.length;
-          for (uint256 i; i < nbCovers; i++) {
-            self.expireCover(expiredCoverIds[i]);
-          }
+        uint256 nbCovers = expiredCoverIds.length;
+        for (uint256 i; i < nbCovers; i++) {
+          self.expireCover(expiredCoverIds[i]);
         }
       }
+    }
 
-      self.slot0 = slot0;
+    self.slot0 = slot0;
   }
 
   // ======= VIEW HELPERS ======= //
@@ -679,6 +679,7 @@ library VirtualPool {
     VPool storage self,
     uint256 coverId_
   ) internal view returns (CoverInfo memory info) {
+    // @bw on write fns this refresh is redundant since we purge expired covers before
     // For reads we sync the slot0 to the current timestamp to have latests data
     Slot0 memory slot0 = self._refresh(block.timestamp);
     CoverPremiums storage coverPremium = self.coverPremiums[coverId_];
@@ -707,8 +708,6 @@ library VirtualPool {
         info.premiumRate
       );
 
-      // Daily cost will be mutated
-      uint256 dailyCost = info.currentDailyCost;
       uint32 currentTick = slot0.tick;
 
       // As long as the tick at which the cover expires is not overtaken
@@ -728,7 +727,7 @@ library VirtualPool {
             slot0.secondsPerTick;
 
           /// @dev Skip division by 1 days for precision
-          info.premiumsLeft += duration * dailyCost;
+          info.premiumsLeft += duration * info.currentDailyCost;
 
           currentTick = nextMaxTick;
         }
@@ -741,7 +740,7 @@ library VirtualPool {
             nextTick
           );
 
-          dailyCost = getDailyCost(
+          info.currentDailyCost = getDailyCost(
             beginDailyCost,
             coverPremium.beginPremiumRate,
             premiumRate
@@ -750,14 +749,17 @@ library VirtualPool {
       }
 
       /**
-       * @dev Un-scale the token value of premiums left
+       * @dev Un-scale the token value of premiums left & daily cost
        * - PERCENTAGE_BASE for premium rate percentage base
-       * - 1 days for duration being in seconds
        * - RAY for result being in ray
+       * - 1 days for duration being in seconds (only for premiums left)
        */
       info.premiumsLeft =
         info.premiumsLeft /
         (PERCENTAGE_BASE * 1 days * RAY);
+      info.currentDailyCost =
+        info.currentDailyCost /
+        (PERCENTAGE_BASE * RAY);
     }
   }
 
@@ -883,9 +885,9 @@ library VirtualPool {
         remaining = ignoredDuration;
       }
 
-        slot0.liquidityIndex += computeLiquidityIndex(
-          utilization,
-          premiumRate,
+      slot0.liquidityIndex += computeLiquidityIndex(
+        utilization,
+        premiumRate,
         liquidityIndexUpdateLength
       );
     }

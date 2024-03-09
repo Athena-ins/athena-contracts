@@ -256,7 +256,8 @@ export function currentDailyCost(
 ) {
   const beginDailyCost = RayInt.from(coverSize)
     .rayMul(beginPremiumRate)
-    .rayDiv(365);
+    .rayDiv(365)
+    .div(RAY.mul(PERCENTAGE_BASE));
 
   return getDailyCost(beginDailyCost, beginPremiumRate, currentPremiumRate);
 }
