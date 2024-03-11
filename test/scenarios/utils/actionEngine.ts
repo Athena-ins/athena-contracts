@@ -98,6 +98,7 @@ export async function executeAction(this: Mocha.Context, action: Action) {
           rSlope2,
           compatiblePools,
           expected,
+          revertMessage,
         );
       }
       break;
@@ -112,6 +113,7 @@ export async function executeAction(this: Mocha.Context, action: Action) {
           coverAmount,
           premiumAmount,
           expected,
+          revertMessage,
           timeTravel,
         );
       }
@@ -136,6 +138,7 @@ export async function executeAction(this: Mocha.Context, action: Action) {
           premiumToAdd,
           premiumToRemove,
           expected,
+          revertMessage,
           timeTravel,
         );
       }
@@ -152,6 +155,7 @@ export async function executeAction(this: Mocha.Context, action: Action) {
           isWrapped,
           poolIds,
           expected,
+          revertMessage,
           timeTravel,
         );
       }
@@ -168,6 +172,7 @@ export async function executeAction(this: Mocha.Context, action: Action) {
           amount,
           isWrapped,
           expected,
+          revertMessage,
           timeTravel,
         );
       }
@@ -182,6 +187,7 @@ export async function executeAction(this: Mocha.Context, action: Action) {
           signer,
           positionId,
           expected,
+          revertMessage,
           timeTravel,
         );
       }
@@ -196,6 +202,7 @@ export async function executeAction(this: Mocha.Context, action: Action) {
           signer,
           positionId,
           expected,
+          revertMessage,
           timeTravel,
         );
       }
@@ -212,6 +219,7 @@ export async function executeAction(this: Mocha.Context, action: Action) {
           amount,
           keepWrapped,
           expected,
+          revertMessage,
           timeTravel,
         );
       }
@@ -221,13 +229,26 @@ export async function executeAction(this: Mocha.Context, action: Action) {
       {
         const { positionId } = args;
 
-        await takeInterests(this, signer, positionId, expected, timeTravel);
+        await takeInterests(
+          this,
+          signer,
+          positionId,
+          expected,
+          revertMessage,
+          timeTravel,
+        );
       }
       break;
 
     case "initiateClaim":
       {
-        const { coverId, amountClaimed, ipfsMetaEvidenceCid, signature, valueSent } = args;
+        const {
+          coverId,
+          amountClaimed,
+          ipfsMetaEvidenceCid,
+          signature,
+          valueSent,
+        } = args;
 
         const { ipfsCid, cidSignature } =
           await getTestingCidAndSig(ipfsMetaEvidenceCid);
@@ -241,6 +262,7 @@ export async function executeAction(this: Mocha.Context, action: Action) {
           cidSignature ?? signature,
           valueSent,
           expected,
+          revertMessage,
           timeTravel,
         );
       }
@@ -249,7 +271,14 @@ export async function executeAction(this: Mocha.Context, action: Action) {
     case "withdrawCompensation":
       {
         const { claimId } = args;
-
+        await withdrawCompensation(
+          this,
+          signer,
+          claimId,
+          expected,
+          revertMessage,
+          timeTravel,
+        );
         await withdrawCompensation(this, signer, claimId, expected, timeTravel);
       }
       break;

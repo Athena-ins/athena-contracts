@@ -5,9 +5,9 @@ import { TimeTravelOptions } from "../../helpers/hardhat";
 
 type BaseAction = {
   userName: SignerName;
-  expected: string;
-  timeTravel?: TimeTravelOptions;
+  expected: "revert" | "success";
   revertMessage?: string;
+  timeTravel?: TimeTravelOptions;
 };
 
 type ActionGetTokens = BaseAction & {

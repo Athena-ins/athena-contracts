@@ -194,7 +194,8 @@ export async function createPool(
   rSlope1: BigNumber, // uint256 rSlope1
   rSlope2: BigNumber, // uint256 rSlope2
   compatiblePools: number[], // uint64[] compatiblePools
-  expectedResult: "success" | string,
+  expectedResult: "success" | "revert",
+  revertMessage?: string,
 ) {
   const { LiquidityManager, StrategyManager } = testEnv.contracts;
 
@@ -250,18 +251,19 @@ export async function createPool(
         rSlope2,
         compatiblePools,
       ),
-      expectedResult,
-    ).to.be.reverted;
+    ).to.revertTransactionWith(revertMessage);
   }
 }
 
 export async function openPosition(
   testEnv: TestEnv,
   user: Wallet,
+  depositToken: string,
   amount: BigNumberish,
   isWrapped: boolean,
   poolIds: number[],
-  expectedResult: "success" | string,
+  expectedResult: "success" | "revert",
+  revertMessage?: string,
   timeTravel?: TimeTravelOptions,
 ) {
   const { LiquidityManager } = testEnv.contracts;
@@ -340,8 +342,7 @@ export async function openPosition(
         isWrapped,
         poolIds,
       ),
-      expectedResult,
-    ).to.be.reverted;
+    ).to.revertTransactionWith(revertMessage);
   }
 }
 
@@ -351,7 +352,8 @@ export async function addLiquidity(
   positionId: BigNumberish,
   amount: BigNumberish,
   isWrapped: boolean,
-  expectedResult: "success" | string,
+  expectedResult: "success" | "revert",
+  revertMessage?: string,
   timeTravel?: TimeTravelOptions,
 ) {
   const { LiquidityManager } = testEnv.contracts;
@@ -449,8 +451,7 @@ export async function addLiquidity(
         amountToAdd,
         isWrapped,
       ),
-      expectedResult,
-    ).to.be.reverted;
+    ).to.revertTransactionWith(revertMessage);
   }
 }
 
@@ -458,7 +459,8 @@ export async function commitRemoveLiquidity(
   testEnv: TestEnv,
   user: Wallet,
   positionId: BigNumberish,
-  expectedResult: "success" | string,
+  expectedResult: "success" | "revert",
+  revertMessage?: string,
   timeTravel?: TimeTravelOptions,
 ) {
   const { LiquidityManager, StrategyManager } = testEnv.contracts;
@@ -528,8 +530,7 @@ export async function commitRemoveLiquidity(
   } else {
     await expect(
       LiquidityManager.commitRemoveLiquidity(positionId),
-      expectedResult,
-    ).to.be.reverted;
+    ).to.revertTransactionWith(revertMessage);
   }
 }
 
@@ -537,7 +538,8 @@ export async function uncommitRemoveLiquidity(
   testEnv: TestEnv,
   user: Wallet,
   positionId: BigNumberish,
-  expectedResult: "success" | string,
+  expectedResult: "success" | "revert",
+  revertMessage?: string,
   timeTravel?: TimeTravelOptions,
 ) {
   const { LiquidityManager, StrategyManager } = testEnv.contracts;
@@ -607,8 +609,7 @@ export async function uncommitRemoveLiquidity(
   } else {
     await expect(
       LiquidityManager.uncommitRemoveLiquidity(positionId),
-      expectedResult,
-    ).to.be.reverted;
+    ).to.revertTransactionWith(revertMessage);
   }
 }
 
@@ -616,7 +617,8 @@ export async function takeInterests(
   testEnv: TestEnv,
   user: Wallet,
   positionId: BigNumberish,
-  expectedResult: "success" | string,
+  expectedResult: "success" | "revert",
+  revertMessage?: string,
   timeTravel?: TimeTravelOptions,
 ) {
   const { LiquidityManager } = testEnv.contracts;
@@ -670,8 +672,9 @@ export async function takeInterests(
     poolDataAfter.forEach((data, i) => expectEqual(data, expectedPoolData[i]));
     expectEqual(tokenDataAfter, expectedTokenData);
   } else {
-    await expect(LiquidityManager.takeInterests(positionId), expectedResult).to
-      .be.reverted;
+    await expect(
+      LiquidityManager.takeInterests(positionId),
+    ).to.revertTransactionWith(revertMessage);
   }
 }
 
@@ -681,7 +684,8 @@ export async function removeLiquidity(
   positionId: BigNumberish,
   amount: BigNumberish,
   keepWrapped: boolean,
-  expectedResult: "success" | string,
+  expectedResult: "success" | "revert",
+  revertMessage?: string,
   timeTravel?: TimeTravelOptions,
 ) {
   const { LiquidityManager } = testEnv.contracts;
@@ -750,8 +754,7 @@ export async function removeLiquidity(
   } else {
     await expect(
       LiquidityManager.removeLiquidity(positionId, amountToRemove, keepWrapped),
-      expectedResult,
-    ).to.be.reverted;
+    ).to.revertTransactionWith(revertMessage);
   }
 }
 
@@ -761,7 +764,8 @@ export async function openCover(
   poolId: BigNumberish,
   coverAmount: BigNumberish,
   premiumsAmount: BigNumberish,
-  expectedResult: "success" | string,
+  expectedResult: "success" | "revert",
+  revertMessage?: string,
   timeTravel?: TimeTravelOptions,
 ) {
   const { LiquidityManager } = testEnv.contracts;
@@ -832,8 +836,7 @@ export async function openCover(
   } else if (expectedResult === "revert") {
     await expect(
       LiquidityManager.connect(user).openCover(poolId, amount, premiums),
-      expectedResult,
-    ).to.be.reverted;
+    ).to.revertTransactionWith(revertMessage);
   }
 }
 
@@ -845,7 +848,8 @@ export async function updateCover(
   coverToRemove: BigNumberish,
   premiumsToAdd: BigNumberish,
   premiumsToRemove: BigNumberish,
-  expectedResult: "success" | string,
+  expectedResult: "success" | "revert",
+  revertMessage?: string,
   timeTravel?: TimeTravelOptions,
 ) {
   const { LiquidityManager } = testEnv.contracts;
@@ -944,8 +948,7 @@ export async function updateCover(
         premiumsToAddAmount,
         premiumsToRemoveAmount,
       ),
-      expectedResult,
-    ).to.be.reverted;
+    ).to.revertTransactionWith(revertMessage);
   }
 }
 
@@ -957,7 +960,8 @@ export async function initiateClaim(
   ipfsMetaEvidenceCid: string,
   signature: string,
   valueSent: BigNumberish | undefined,
-  expectedResult: "success" | string,
+  expectedResult: "success" | "revert",
+  revertMessage?: string,
   timeTravel?: TimeTravelOptions,
 ) {
   const { LiquidityManager, ClaimManager } = testEnv.contracts;
@@ -1038,9 +1042,11 @@ export async function initiateClaim(
         amountClaimedAmount,
         ipfsMetaEvidenceCid,
         signature,
+        {
+          value: messageValue,
+        },
       ),
-      expectedResult,
-    ).to.be.reverted;
+    ).to.revertTransactionWith(revertMessage);
   }
 }
 
@@ -1048,10 +1054,11 @@ export async function withdrawCompensation(
   testEnv: TestEnv,
   user: Wallet,
   claimId: number,
-  expectedResult: "success" | string,
+  expectedResult: "success" | "revert",
+  revertMessage?: string,
   timeTravel?: TimeTravelOptions,
 ) {
-  const { LiquidityManager, ClaimManager } = testEnv.contracts;
+  const { ClaimManager } = testEnv.contracts;
 
   const claimInfoBefore = await ClaimManager.claimInfo(claimId).then((data) =>
     claimInfoFormat(data),
@@ -1113,8 +1120,7 @@ export async function withdrawCompensation(
   } else if (expectedResult === "revert") {
     await expect(
       ClaimManager.connect(user).withdrawCompensation(claimId),
-      expectedResult,
-    ).to.be.reverted;
+    ).to.revertTransactionWith(revertMessage);
   }
 }
 
