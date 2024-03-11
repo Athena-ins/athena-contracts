@@ -3,6 +3,9 @@ import { SignerName } from "../../context";
 import { ProtocolContracts } from "../../helpers/deployers";
 import { TimeTravelOptions } from "../../helpers/hardhat";
 
+type PoolTokenSymbols = "USDT" | "aUSDT";
+type TokensSymbols = "ATEN" | PoolTokenSymbols;
+
 type BaseAction = {
   userName: SignerName;
   expected: "revert" | "success";
@@ -13,7 +16,7 @@ type BaseAction = {
 type ActionGetTokens = BaseAction & {
   name: "getTokens";
   args: {
-    tokenName: "ATEN" | "USDT";
+    tokenSymbol: TokensSymbols;
     amount: number;
   };
 };
@@ -21,14 +24,14 @@ type ActionApproveTokens = BaseAction & {
   name: "approveTokens";
   args: {
     spender: keyof ProtocolContracts;
-    tokenName: "ATEN" | "USDT";
+    tokenSymbol: TokensSymbols;
     amount: number;
   };
 };
 type ActionCreatePool = BaseAction & {
   name: "createPool";
   args: {
-    paymentAsset: "USDT";
+    paymentAssetSymbol: PoolTokenSymbols;
     strategyId: number;
     compatiblePools: number[];
     feeRate?: number;
@@ -42,7 +45,9 @@ type ActionOpenCover = BaseAction & {
   name: "openCover";
   args: {
     poolId: number;
+    coverTokenSymbol: PoolTokenSymbols;
     coverAmount: number;
+    premiumTokenSymbol: PoolTokenSymbols;
     premiumAmount: number;
   };
 };
@@ -50,8 +55,10 @@ type ActionUpdateCover = BaseAction & {
   name: "updateCover";
   args: {
     coverId: number;
+    coverTokenSymbol: PoolTokenSymbols;
     coverToAdd: number;
     coverToRemove: number;
+    premiumTokenSymbol: PoolTokenSymbols;
     premiumToAdd: number;
     premiumToRemove: number;
   };
@@ -59,6 +66,7 @@ type ActionUpdateCover = BaseAction & {
 type ActionOpenPosition = BaseAction & {
   name: "openPosition";
   args: {
+    tokenSymbol: TokensSymbols;
     amount: number;
     isWrapped: boolean;
     poolIds: number[];
@@ -67,6 +75,7 @@ type ActionOpenPosition = BaseAction & {
 type ActionAddLiquidity = BaseAction & {
   name: "addLiquidity";
   args: {
+    tokenSymbol: TokensSymbols;
     positionId: number;
     amount: number;
     isWrapped: boolean;
@@ -88,6 +97,7 @@ type ActionRemoveLiquidity = BaseAction & {
   name: "removeLiquidity";
   args: {
     positionId: number;
+    tokenSymbol: TokensSymbols;
     amount: number;
     keepWrapped: boolean;
   };
@@ -102,6 +112,7 @@ type ActionInitiateClaim = BaseAction & {
   name: "initiateClaim";
   args: {
     coverId: number;
+    tokenSymbol: TokensSymbols;
     amountClaimed: number;
     ipfsMetaEvidenceCid?: string;
     signature?: string;

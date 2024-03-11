@@ -18,7 +18,10 @@ import {
   //
   // need dao, farming, staking, claim
 } from "./actions";
-import { getTestingCidAndSig } from "../../helpers/protocol";
+import {
+  getTestingCidAndSig,
+  getTokenAddressBySymbol,
+} from "../../helpers/protocol";
 import { toRay } from "../../helpers/utils/poolRayMath";
 // Types
 import { Action } from "./actionTypes";
@@ -49,24 +52,29 @@ export async function executeAction(this: Mocha.Context, action: Action) {
   switch (name) {
     case "getTokens":
       {
-        const { tokenName, amount } = args;
+        const { tokenSymbol, amount } = args;
 
-        await getTokens(this, tokenName, signer, amount);
+        await getTokens(this, tokenSymbol, signer, amount);
       }
       break;
     case "approveTokens":
       {
-        const { spender, tokenName, amount } = args;
+        const { spender, tokenSymbol, amount } = args;
 
         const spenderAddress = this.contracts[spender].address;
 
-        await approveTokens(this, tokenName, signer, spenderAddress, amount);
+        await approveTokens(this, tokenSymbol, signer, spenderAddress, amount);
       }
       break;
     case "createPool":
       {
-        const { paymentAsset, strategyId, compatiblePools } = args;
+        const { paymentAssetSymbol, strategyId, compatiblePools } = args;
         const { poolFormula } = this.protocolConfig;
+
+        const paymentAsset = getTokenAddressBySymbol(
+          this.contracts,
+          paymentAssetSymbol,
+        );
 
         const feeRate =
           args.feeRate !== undefined
@@ -104,13 +112,31 @@ export async function executeAction(this: Mocha.Context, action: Action) {
       break;
     case "openCover":
       {
-        const { poolId, coverAmount, premiumAmount } = args;
+        const {
+          poolId,
+          coverTokenSymbol,
+          coverAmount,
+          premiumTokenSymbol,
+          premiumAmount,
+        } = args;
+
+        const coverToken = getTokenAddressBySymbol(
+          this.contracts,
+          coverTokenSymbol,
+        );
+
+        const premiumToken = getTokenAddressBySymbol(
+          this.contracts,
+          premiumTokenSymbol,
+        );
 
         await openCover(
           this,
           signer,
           poolId,
+          coverToken,
           coverAmount,
+          premiumToken,
           premiumAmount,
           expected,
           revertMessage,
@@ -123,18 +149,32 @@ export async function executeAction(this: Mocha.Context, action: Action) {
       {
         const {
           coverId,
+          coverTokenSymbol,
           coverToAdd,
           coverToRemove,
+          premiumTokenSymbol,
           premiumToAdd,
           premiumToRemove,
         } = args;
+
+        const coverToken = getTokenAddressBySymbol(
+          this.contracts,
+          coverTokenSymbol,
+        );
+
+        const premiumToken = getTokenAddressBySymbol(
+          this.contracts,
+          premiumTokenSymbol,
+        );
 
         await updateCover(
           this,
           signer,
           coverId,
+          coverToken,
           coverToAdd,
           coverToRemove,
+          premiumToken,
           premiumToAdd,
           premiumToRemove,
           expected,
@@ -146,11 +186,17 @@ export async function executeAction(this: Mocha.Context, action: Action) {
 
     case "openPosition":
       {
-        const { amount, isWrapped, poolIds } = args;
+        const { amount, tokenSymbol, isWrapped, poolIds } = args;
+
+        const depositToken = getTokenAddressBySymbol(
+          this.contracts,
+          tokenSymbol,
+        );
 
         await openPosition(
           this,
           signer,
+          depositToken,
           amount,
           isWrapped,
           poolIds,
@@ -163,12 +209,18 @@ export async function executeAction(this: Mocha.Context, action: Action) {
 
     case "addLiquidity":
       {
-        const { positionId, amount, isWrapped } = args;
+        const { positionId, tokenSymbol, amount, isWrapped } = args;
+
+        const depositToken = getTokenAddressBySymbol(
+          this.contracts,
+          tokenSymbol,
+        );
 
         await addLiquidity(
           this,
           signer,
           positionId,
+          depositToken,
           amount,
           isWrapped,
           expected,
@@ -210,12 +262,18 @@ export async function executeAction(this: Mocha.Context, action: Action) {
 
     case "removeLiquidity":
       {
-        const { positionId, amount, keepWrapped } = args;
+        const { positionId, tokenSymbol, amount, keepWrapped } = args;
+
+        const withdrawnToken = getTokenAddressBySymbol(
+          this.contracts,
+          tokenSymbol,
+        );
 
         await removeLiquidity(
           this,
           signer,
           positionId,
+          withdrawnToken,
           amount,
           keepWrapped,
           expected,
@@ -244,6 +302,7 @@ export async function executeAction(this: Mocha.Context, action: Action) {
       {
         const {
           coverId,
+          tokenSymbol,
           amountClaimed,
           ipfsMetaEvidenceCid,
           signature,
@@ -253,10 +312,16 @@ export async function executeAction(this: Mocha.Context, action: Action) {
         const { ipfsCid, cidSignature } =
           await getTestingCidAndSig(ipfsMetaEvidenceCid);
 
+        const tokenClaimed = getTokenAddressBySymbol(
+          this.contracts,
+          tokenSymbol,
+        );
+
         await initiateClaim(
           this,
           signer,
           coverId,
+          tokenClaimed,
           amountClaimed,
           ipfsCid ?? ipfsMetaEvidenceCid,
           cidSignature ?? signature,
@@ -271,6 +336,7 @@ export async function executeAction(this: Mocha.Context, action: Action) {
     case "withdrawCompensation":
       {
         const { claimId } = args;
+
         await withdrawCompensation(
           this,
           signer,
@@ -279,7 +345,6 @@ export async function executeAction(this: Mocha.Context, action: Action) {
           revertMessage,
           timeTravel,
         );
-        await withdrawCompensation(this, signer, claimId, expected, timeTravel);
       }
       break;
 
