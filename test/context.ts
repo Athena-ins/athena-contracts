@@ -19,6 +19,7 @@ import { ProtocolConfig, ProtocolContracts } from "./helpers/deployers";
 import { TestHelper } from "./helpers/protocol";
 // Assertions
 import "./helpers/chai/almostEqual";
+import "./helpers/chai/revertTransactionWith";
 
 type ContextSigners = {
   deployer: Wallet;
