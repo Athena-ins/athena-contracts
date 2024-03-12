@@ -15,9 +15,9 @@ import { ILiquidityManager } from "../interfaces/ILiquidityManager.sol";
 import { IStrategyManager } from "../interfaces/IStrategyManager.sol";
 import { IStaking } from "../interfaces/IStaking.sol";
 import { IFarmingRange } from "../interfaces/IFarmingRange.sol";
+import { IEcclesiaDao } from "../interfaces/IEcclesiaDao.sol";
 import { IAthenaPositionToken } from "../interfaces/IAthenaPositionToken.sol";
 import { IAthenaCoverToken } from "../interfaces/IAthenaCoverToken.sol";
-import { IEcclesiaDao } from "../interfaces/IEcclesiaDao.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import { console } from "hardhat/console.sol";
@@ -42,6 +42,7 @@ error PositionNotCommited();
 error SenderNotLiquidationManager();
 error PoolHasOnGoingClaims();
 error CoverAmountIsZero();
+error CoverAmountMustBeGreaterThanZero();
 
 contract LiquidityManager is
   ILiquidityManager,
@@ -425,10 +426,10 @@ contract LiquidityManager is
     );
 
     // Add compatible pools
-    // @dev Registered both ways for safety
     uint256 nbPools = compatiblePools_.length;
     for (uint256 i; i < nbPools; i++) {
       uint64 compatiblePoolId = compatiblePools_[i];
+      // @dev Registered both ways for simplicity
       arePoolCompatible[poolId][compatiblePoolId] = true;
       arePoolCompatible[compatiblePoolId][poolId] = true;
     }
@@ -912,8 +913,13 @@ contract LiquidityManager is
 
       cover.coverAmount += coverToAdd_;
     } else if (0 < coverToRemove_) {
-      // User is allowed to set the cover amount to 0 to pause the cover
+      if (cover.coverAmount <= coverToRemove_)
+        revert CoverAmountMustBeGreaterThanZero();
+
+      // Unckecked is ok because we checked that coverToRemove_ < cover.coverAmount
+      unchecked {
       cover.coverAmount -= coverToRemove_;
+      }
     }
 
     // Only allow one operation on premiums amount change
@@ -999,13 +1005,16 @@ contract LiquidityManager is
         if (poolId1 <= poolId0)
           revert PoolIdsMustBeUniqueAndAscending();
 
+        if (poolId0 != poolId1) {
         // Check if pool is compatible
         if (!arePoolCompatible[poolId0][poolId1])
           revert IncompatiblePools(poolId0, poolId1);
 
-        if (poolId0 != poolId1 && pool0.overlaps[poolId1] == 0) {
+          // Register overlap in both pools
+          if (pool0.overlaps[poolId1] == 0) {
           pool0.overlappedPools.push(poolId1);
           pool1.overlappedPools.push(poolId0);
+          }
         }
 
         pool0.overlaps[poolId1] += amount_;

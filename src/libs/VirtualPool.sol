@@ -531,10 +531,11 @@ library VirtualPool {
     uint256 coverAmount_
   ) internal {
     CoverPremiums memory coverPremium = self.coverPremiums[coverId_];
-    uint32 currentTick = self.slot0.tick;
 
-    if (coverPremium.lastTick < currentTick)
-      revert CoverAlreadyExpired();
+    // @bw normally is already checked before in liq man
+    // uint32 currentTick = self.slot0.tick;
+    // if (coverPremium.lastTick < currentTick)
+    //   revert CoverAlreadyExpired();
 
     (, uint256 newSecondsPerTick) = self.updatedPremiumRate(
       0,
@@ -635,6 +636,7 @@ library VirtualPool {
    * @param self The pool
    */
   function _purgeExpiredCovers(VPool storage self) internal {
+    // @bw we may want to keep the ticks rolling even if there is no usage, it seems this won't block premiums
     if (self.slot0.remainingCovers == 0) return;
 
     Slot0 memory slot0 = self._refresh(block.timestamp);
