@@ -1,4 +1,5 @@
 import {
+  waitFor,
   getTokens,
   approveTokens,
   createPool,
@@ -48,6 +49,12 @@ export async function executeAction(this: Mocha.Context, action: Action) {
   }
 
   switch (name) {
+    case "wait":
+      {
+        await waitFor(timeTravel);
+      }
+      break;
+
     case "getTokens":
       {
         const { tokenSymbol, amount } = args;

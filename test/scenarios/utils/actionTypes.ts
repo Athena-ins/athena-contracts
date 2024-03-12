@@ -13,6 +13,15 @@ type BaseAction = {
   timeTravel?: TimeTravelOptions;
 };
 
+type ActionWait = BaseAction & {
+  userName: "deployer";
+  name: "wait";
+  timeTravel: TimeTravelOptions;
+  expected: "success";
+  revertMessage?: undefined;
+  args: {};
+};
+
 type ActionGetTokens = BaseAction & {
   name: "getTokens";
   args: {
@@ -127,6 +136,7 @@ type ActionWithdrawCompensation = BaseAction & {
 };
 
 export type Action =
+  | ActionWait
   | ActionGetTokens
   | ActionApproveTokens
   | ActionCreatePool

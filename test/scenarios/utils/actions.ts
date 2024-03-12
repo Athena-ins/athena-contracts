@@ -135,6 +135,12 @@ export async function getContractsData(
 
 // ======= ACTIONS ======= //
 
+export async function waitFor(timeTravel: TimeTravelOptions) {
+  if (timeTravel) {
+    await setNextBlockTimestamp(timeTravel);
+  }
+}
+
 export async function getTokens(
   testEnv: TestEnv,
   tokenSymbol: string,
