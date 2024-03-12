@@ -14,16 +14,20 @@ export async function getCustomError(
     }
 
     if (err.reason?.includes("reverted with custom error")) {
-      return err.reason.slice(
-        err.reason.indexOf("reverted with custom error") + 28,
-        err.reason.length - 3,
-      );
+      const start = err.reason.indexOf("reverted with custom error") + 28;
+      const hasEndParenthesis = err.reason.indexOf("(", start);
+      const end =
+        hasEndParenthesis !== "-1" ? hasEndParenthesis : err.reason.length - 3;
+
+      return err.reason.slice(start, end);
     }
 
     const stringError = JSON.stringify(err);
     if (stringError.includes("reverted with custom error")) {
       const start = stringError.indexOf("reverted with custom error") + 28;
-      return stringError.slice(start, stringError.indexOf("(", start));
+      const end = stringError.indexOf("(", start);
+
+      return stringError.slice(start, end);
     }
 
     if (allowRevertWithoutReason) {
@@ -46,8 +50,11 @@ chai.use(function (chai, utils) {
   chai.Assertion.addMethod(
     "revertTransactionWith",
     async function (this: Chai.AssertionStatic, input: string | undefined) {
-      if (!this._obj.then || typeof input !== "string") {
-        throw new Error("almostEqual - Invalid input type");
+      if (
+        !this._obj.then ||
+        (typeof input !== "string" && typeof input !== "undefined")
+      ) {
+        throw new Error("revertTransactionWith - Invalid input type");
       }
 
       // If the input is equal to undefined or "" then expect revert without a reason
