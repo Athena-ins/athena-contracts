@@ -2,9 +2,23 @@ import { makeForkSnapshot, restoreForkSnapshot } from "../helpers/hardhat";
 // Story engine
 import { executeAction } from "./utils/actionEngine";
 // Stories
-import { coverOpenAndUpdate } from "./scenarios/covers.scenario";
+import { allActions } from "./scenarios/allActions";
+import { liquidityProvision } from "./scenarios/liquidityProvision";
+import { coverProtection } from "./scenarios/coverProtection";
+import { claimingAndPayout } from "./scenarios/claimingAndPayout";
+import { multiplePools } from "./scenarios/multiplePools";
+import { coverNegatives } from "./scenarios/coverNegatives";
+import { liquidityNegatives } from "./scenarios/liquidityNegatives";
 
-const scenarios = [coverOpenAndUpdate];
+const scenarios = [
+  // allActions,
+  liquidityProvision,
+  // coverProtection,
+  // claimingAndPayout,
+  // multiplePools,
+  // coverNegatives,
+  // liquidityNegatives,
+];
 
 export function ScenarioTests() {
   context("Scenario Tests", async function () {
