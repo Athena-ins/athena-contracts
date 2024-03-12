@@ -11,7 +11,7 @@ export const coverOpenAndUpdate: Scenario = {
           userName: "deployer",
           name: "createPool",
           args: {
-            paymentAsset: "USDT",
+            paymentAssetSymbol: "USDT",
             strategyId: 0,
             compatiblePools: [],
           },
@@ -22,7 +22,7 @@ export const coverOpenAndUpdate: Scenario = {
           userName: "user0",
           name: "getTokens",
           args: {
-            tokenName: "USDT",
+            tokenSymbol: "USDT",
             amount: 10_000,
           },
           expected: "success",
@@ -33,7 +33,7 @@ export const coverOpenAndUpdate: Scenario = {
           name: "approveTokens",
           args: {
             spender: "LiquidityManager",
-            tokenName: "USDT",
+            tokenSymbol: "USDT",
             amount: 10_000,
           },
           expected: "success",
@@ -44,6 +44,7 @@ export const coverOpenAndUpdate: Scenario = {
           name: "openPosition",
           args: {
             amount: 5000,
+            tokenSymbol: "USDT",
             isWrapped: false,
             poolIds: [0],
           },
@@ -54,7 +55,7 @@ export const coverOpenAndUpdate: Scenario = {
           userName: "user1",
           name: "getTokens",
           args: {
-            tokenName: "USDT",
+            tokenSymbol: "USDT",
             amount: 2000,
           },
           expected: "success",
@@ -65,7 +66,7 @@ export const coverOpenAndUpdate: Scenario = {
           name: "approveTokens",
           args: {
             spender: "LiquidityManager",
-            tokenName: "USDT",
+            tokenSymbol: "USDT",
             amount: 2000,
           },
           expected: "success",
@@ -76,7 +77,9 @@ export const coverOpenAndUpdate: Scenario = {
           name: "openCover",
           args: {
             poolId: 0,
-            coverAmount: 5000,
+            coverTokenSymbol: "USDT",
+            coverAmount: 50000,
+            premiumTokenSymbol: "USDT",
             premiumAmount: 2000,
           },
           expected: "success",
@@ -88,6 +91,7 @@ export const coverOpenAndUpdate: Scenario = {
           args: {
             positionId: 0,
             isWrapped: false,
+            tokenSymbol: "USDT",
             amount: 5000,
           },
         },
@@ -108,6 +112,7 @@ export const coverOpenAndUpdate: Scenario = {
           expected: "success",
           args: {
             positionId: 0,
+            tokenSymbol: "USDT",
             amount: 2000,
             keepWrapped: false,
           },
@@ -134,10 +139,20 @@ export const coverOpenAndUpdate: Scenario = {
           expected: "success",
           args: {
             coverId: 0,
+            coverTokenSymbol: "USDT",
             coverToAdd: 0,
             coverToRemove: 1000,
+            premiumTokenSymbol: "USDT",
             premiumToAdd: 0,
             premiumToRemove: 10,
+          },
+        },
+        {
+          userName: "user0",
+          name: "takeInterests",
+          expected: "success",
+          args: {
+            positionId: 0,
           },
         },
         {
@@ -146,6 +161,7 @@ export const coverOpenAndUpdate: Scenario = {
           expected: "success",
           args: {
             coverId: 0,
+            tokenSymbol: "USDT",
             amountClaimed: 1000,
           },
           timeTravel: { days: 15 },
@@ -157,14 +173,6 @@ export const coverOpenAndUpdate: Scenario = {
           expected: "success",
           args: {
             claimId: 0,
-          },
-        },
-        {
-          userName: "user0",
-          name: "takeInterests",
-          expected: "success",
-          args: {
-            positionId: 0,
           },
         },
       ],

@@ -100,6 +100,12 @@ export function usdtTokenAddress(chainId: number): string {
   throw Error("Unsupported chainId");
 }
 
+export function usdcTokenAddress(chainId: number): string {
+  if (chainId === 1)
+    return "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48".toLowerCase();
+  throw Error("Unsupported chainId");
+}
+
 export function klerosCourtAddress(chainId: number): string {
   if (chainId === 1)
     return "0x988b3a538b618c7a603e1c11ab82cd16dbe28069".toLowerCase();
@@ -122,6 +128,8 @@ export function getTokenAddressBySymbol(
   switch (symbol) {
     case "USDT":
       return usdtTokenAddress(chainId);
+    case "USDC":
+      return usdcTokenAddress(chainId);
     case "WETH":
       return wethTokenAddress(chainId);
     case "ATEN":
