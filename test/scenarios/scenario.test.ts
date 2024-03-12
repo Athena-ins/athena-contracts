@@ -1,3 +1,4 @@
+import { makeForkSnapshot, restoreForkSnapshot } from "../helpers/hardhat";
 // Story engine
 import { executeAction } from "./utils/actionEngine";
 // Stories
@@ -5,10 +6,14 @@ import { coverOpenAndUpdate } from "./scenarios/covers.scenario";
 
 const scenarios = [coverOpenAndUpdate];
 
-export async function ScenarioTests() {
+export function ScenarioTests() {
   context("Scenario Tests", async function () {
     for (const scenario of scenarios) {
       describe(scenario.title, async function () {
+        before(async function () {
+          this.snapshortId = await makeForkSnapshot();
+        });
+
         for (const story of scenario.stories) {
           it(story.description, async function () {
             // Multiples actions can require a longer timeout
@@ -21,6 +26,10 @@ export async function ScenarioTests() {
             }
           });
         }
+
+        after(async function () {
+          await restoreForkSnapshot(this.snapshortId);
+        });
       });
     }
   });
