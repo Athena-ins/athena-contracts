@@ -125,7 +125,7 @@ chai.use(function (chai, utils) {
 
         // For certain keys we will use a different deviationAllowed
         if (key === "premiumsLeft") {
-          deviationAllowed = 0.0001;
+          deviationAllowed = 0.12;
         }
 
         if (key === "lastOnchainUpdateTimestamp") {

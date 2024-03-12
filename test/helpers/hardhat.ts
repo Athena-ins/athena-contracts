@@ -238,5 +238,5 @@ export async function convertToCurrencyDecimals(
   const token = ERC20__factory.connect(tokenAddress, getProviderFromHardhat());
   let decimals = (await token.decimals()).toString();
 
-  return ethers.utils.parseUnits(BigNumber.from(amount).toString(), decimals);
+  return ethers.utils.parseUnits(amount.toString(), decimals);
 }
