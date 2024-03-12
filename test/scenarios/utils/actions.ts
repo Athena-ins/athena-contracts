@@ -239,7 +239,7 @@ export async function createPool(
     expectEqual(poolData, expectedPoolData);
   } else {
     await expect(
-      LiquidityManager.createPool(
+      LiquidityManager.connect(signer).createPool(
         paymentAsset,
         strategyId,
         feeRate,
@@ -522,7 +522,7 @@ export async function commitRemoveLiquidity(
     expectEqual(tokenDataAfter, expectedTokenData);
   } else {
     await expect(
-      LiquidityManager.commitRemoveLiquidity(positionId),
+      LiquidityManager.connect(user).commitRemoveLiquidity(positionId),
     ).to.revertTransactionWith(revertMessage);
   }
 }
@@ -601,7 +601,7 @@ export async function uncommitRemoveLiquidity(
     expectEqual(tokenDataAfter, expectedTokenData);
   } else {
     await expect(
-      LiquidityManager.uncommitRemoveLiquidity(positionId),
+      LiquidityManager.connect(user).uncommitRemoveLiquidity(positionId),
     ).to.revertTransactionWith(revertMessage);
   }
 }
@@ -666,7 +666,7 @@ export async function takeInterests(
     expectEqual(tokenDataAfter, expectedTokenData);
   } else {
     await expect(
-      LiquidityManager.takeInterests(positionId),
+      LiquidityManager.connect(user).takeInterests(positionId),
     ).to.revertTransactionWith(revertMessage);
   }
 }
@@ -748,7 +748,11 @@ export async function removeLiquidity(
     expectEqual(tokenDataAfter, expectedTokenData);
   } else {
     await expect(
-      LiquidityManager.removeLiquidity(positionId, amountToRemove, keepWrapped),
+      LiquidityManager.connect(user).removeLiquidity(
+        positionId,
+        amountToRemove,
+        keepWrapped,
+      ),
     ).to.revertTransactionWith(revertMessage);
   }
 }
