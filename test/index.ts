@@ -1,3 +1,9 @@
+// Custom assertions
+import "./helpers/chai/almostEqual";
+import "./helpers/chai/revertTransactionWith";
+// BigInt fix
+import "./helpers/utils/bigIntString";
+
 import { baseContext } from "./context";
 
 // Integration test suites
