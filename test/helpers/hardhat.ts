@@ -12,6 +12,7 @@ import { ERC20__factory } from "../../typechain";
 import { BigNumber } from "ethers";
 
 const keccak256 = utils.keccak256;
+const { MaxUint256 } = ethers.constants;
 type BytesLike = utils.BytesLike;
 
 // =============== //
@@ -227,12 +228,15 @@ export function genCreate2Address(
 // === Tokens === //
 // ============== //
 
-export const convertToCurrencyDecimals = async (
+// @dev allow usage of special term "max" for max uint256 value
+export async function convertToCurrencyDecimals(
   tokenAddress: string,
-  amount: BigNumberish,
-) => {
+  amount: BigNumberish | "maxUint",
+): Promise<BigNumber> {
+  if (amount === "maxUint") return MaxUint256;
+
   const token = ERC20__factory.connect(tokenAddress, getProviderFromHardhat());
   let decimals = (await token.decimals()).toString();
 
   return ethers.utils.parseUnits(BigNumber.from(amount).toString(), decimals);
-};
+}

@@ -515,6 +515,10 @@ export function calcExpectedPoolDataAfterUpdateCover(
 
   expect.strategyRewardIndex = strategyRewardIndex;
 
+  // If we remove all premiums we are closing cover
+  if (premiumsToRemoveAmount.eq(constants.MAX_UINT256))
+    coverToRemoveAmount = tokenDataBefore.coverAmount;
+
   // These value may be unpredictably changed due to covers expiring during time travel
   expect.availableLiquidity = poolDataBefore.availableLiquidity
     .sub(coverToAddAmount)
@@ -1020,28 +1024,32 @@ export function calcExpectedCoverDataAfterUpdateCover(
     tokenDataBefore.premiumsLeft.eq(premiumsToRemoveAmount)
   ) {
     expect.end = txTimestamp;
+
+    expect.premiumRate = BigNumber.from(0);
+    expect.dailyCost = BigNumber.from(0);
+    expect.premiumsLeft = BigNumber.from(0);
+  } else {
+    const { newPremiumRate: beginPremiumRate } = updatedPremiumRate(
+      poolDataBefore,
+      coverToAddAmount,
+      coverToRemoveAmount,
+    );
+
+    expect.premiumRate = getPremiumRate(
+      expectedPoolData,
+      expectedPoolData.utilizationRate,
+    );
+    expect.dailyCost = currentDailyCost(
+      expect.coverAmount,
+      beginPremiumRate,
+      expect.premiumRate,
+    );
+
+    expect.premiumsLeft = tokenDataBefore.premiumsLeft
+      .sub(premiumsToRemoveAmount)
+      .add(premiumsToAddAmount)
+      .sub(expect.dailyCost.mul(timestamp - txTimestamp).div(24 * 60 * 60));
   }
-
-  const { newPremiumRate: beginPremiumRate } = updatedPremiumRate(
-    poolDataBefore,
-    coverToAddAmount,
-    coverToRemoveAmount,
-  );
-
-  expect.premiumRate = getPremiumRate(
-    expectedPoolData,
-    expectedPoolData.utilizationRate,
-  );
-  expect.dailyCost = currentDailyCost(
-    expect.coverAmount,
-    beginPremiumRate,
-    expect.premiumRate,
-  );
-
-  expect.premiumsLeft = tokenDataBefore.premiumsLeft
-    .sub(premiumsToRemoveAmount)
-    .add(premiumsToAddAmount)
-    .sub(expect.dailyCost.mul(timestamp - txTimestamp).div(24 * 60 * 60));
 
   return expect;
 }

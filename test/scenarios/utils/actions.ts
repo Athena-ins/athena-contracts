@@ -47,7 +47,13 @@ import {
 } from "../../helpers/types";
 import { getTokenAddressBySymbol } from "../../helpers/protocol";
 // Types
-import { BigNumber, BigNumberish, ContractReceipt, Wallet } from "ethers";
+import {
+  BigNumber,
+  BigNumberish,
+  ContractReceipt,
+  Wallet,
+  constants,
+} from "ethers";
 import { TestEnv } from "../../context";
 import { TimeTravelOptions } from "../../helpers/hardhat";
 import { ERC20__factory } from "../../../typechain";
@@ -937,10 +943,16 @@ export async function updateCover(
     );
 
     const balanceAfter = await paymentToken.balanceOf(userAddress);
+    if (premiumsToRemoveAmount.eq(constants.MaxUint256)) {
+      expect(balanceAfter).to.almostEqual(
+        balanceBefore.add(tokenDataBefore.premiumsLeft),
+      );
+    } else {
+      expect(balanceAfter).to.almostEqual(
+        balanceBefore.add(premiumsToRemoveAmount).sub(premiumsToAddAmount),
+      );
+    }
 
-    expect(balanceAfter).to.almostEqual(
-      balanceBefore.add(premiumsToRemoveAmount).sub(premiumsToAddAmount),
-    );
     expectEqual(poolDataAfter, expectedPoolData);
     expectEqual(tokenDataAfter, expectedTokenData);
   } else if (expectedResult === "revert") {

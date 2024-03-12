@@ -3,7 +3,7 @@ import { SignerName } from "../../context";
 import { ProtocolContracts } from "../../helpers/deployers";
 import { TimeTravelOptions } from "../../helpers/hardhat";
 
-type PoolTokenSymbols = "USDT" | "aUSDT";
+type PoolTokenSymbols = "USDT" | "aUSDT" | "USDC" | "aUSDC";
 type TokensSymbols = "ATEN" | PoolTokenSymbols;
 
 type BaseAction = {
@@ -60,7 +60,7 @@ type ActionUpdateCover = BaseAction & {
     coverToRemove: number;
     premiumTokenSymbol: PoolTokenSymbols;
     premiumToAdd: number;
-    premiumToRemove: number;
+    premiumToRemove: number | "maxUint";
   };
 };
 type ActionOpenPosition = BaseAction & {
