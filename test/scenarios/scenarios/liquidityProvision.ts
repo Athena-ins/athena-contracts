@@ -1,0 +1,442 @@
+import { Scenario } from "../utils/actionEngine";
+
+export const liquidityProvision: Scenario = {
+  title: "make and manage liquidity positions",
+  stories: [
+    {
+      description: "deployer creates pools 0, 1 and 2",
+      actions: [
+        // create pool
+        {
+          userName: "deployer",
+          name: "createPool",
+          args: {
+            paymentAssetSymbol: "USDT",
+            strategyId: 0,
+            compatiblePools: [1],
+          },
+          expected: "success",
+        },
+        // create pool
+        {
+          userName: "deployer",
+          name: "createPool",
+          args: {
+            paymentAssetSymbol: "USDT",
+            strategyId: 0,
+            compatiblePools: [0],
+          },
+          expected: "success",
+        },
+        // create pool
+        {
+          userName: "deployer",
+          name: "createPool",
+          args: {
+            paymentAssetSymbol: "USDT",
+            strategyId: 0,
+            compatiblePools: [],
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "user0 gets 3_000 USDT and approves liquidity manager",
+      actions: [
+        // get tokens for pos
+        {
+          userName: "user0",
+          name: "getTokens",
+          args: {
+            tokenSymbol: "USDT",
+            amount: 3_000,
+          },
+          expected: "success",
+        },
+        // approve tokens for pos
+        {
+          userName: "user0",
+          name: "approveTokens",
+          args: {
+            spender: "LiquidityManager",
+            tokenSymbol: "USDT",
+            amount: 3_000,
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description:
+        "user0 creates position 0 with 3_000 USDT using pool 0 and 1",
+      actions: [
+        // open position
+        {
+          userName: "user0",
+          name: "openPosition",
+          args: {
+            amount: 3_000,
+            tokenSymbol: "USDT",
+            isWrapped: false,
+            poolIds: [0, 1],
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "user1 gets 9_000 USDT and approves liquidity manager",
+      actions: [
+        // get tokens for pos
+        {
+          userName: "user1",
+          name: "getTokens",
+          args: {
+            tokenSymbol: "USDT",
+            amount: 9_000,
+          },
+          expected: "success",
+        },
+        // approve tokens for pos
+        {
+          userName: "user1",
+          name: "approveTokens",
+          args: {
+            spender: "LiquidityManager",
+            tokenSymbol: "USDT",
+            amount: 9_000,
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "user1 creates position 1 with 5_000 USDT using pool 1",
+      actions: [
+        // open position
+        {
+          userName: "user1",
+          name: "openPosition",
+          args: {
+            amount: 5_000,
+            tokenSymbol: "USDT",
+            isWrapped: false,
+            poolIds: [1],
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "user2 gets 12_000 USDT and approves liquidity manager",
+      actions: [
+        // get tokens for pos
+        {
+          userName: "user2",
+          name: "getTokens",
+          args: {
+            tokenSymbol: "USDT",
+            amount: 12_000,
+          },
+          expected: "success",
+        },
+        // approve tokens for pos
+        {
+          userName: "user2",
+          name: "approveTokens",
+          args: {
+            spender: "LiquidityManager",
+            tokenSymbol: "USDT",
+            amount: 12_000,
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "user2 creates position 2 with 4_000 USDT using pool 2",
+      actions: [
+        // open position
+        {
+          userName: "user2",
+          name: "openPosition",
+          args: {
+            amount: 4_000,
+            tokenSymbol: "USDT",
+            isWrapped: false,
+            poolIds: [2],
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description:
+        "user3 gets 3_000 USDT and approves liquidity manager to creates a cover in pool 1",
+      actions: [
+        // get tokens for cover
+        {
+          userName: "user3",
+          name: "getTokens",
+          args: {
+            tokenSymbol: "USDT",
+            amount: 3_000,
+          },
+          expected: "success",
+        },
+        // approve tokens for cover
+        {
+          userName: "user3",
+          name: "approveTokens",
+          args: {
+            spender: "LiquidityManager",
+            tokenSymbol: "USDT",
+            amount: 3_000,
+          },
+          expected: "success",
+        },
+        // open cover
+        {
+          userName: "user3",
+          name: "openCover",
+          args: {
+            poolId: 1,
+            coverTokenSymbol: "USDT",
+            coverAmount: 8_000,
+            premiumTokenSymbol: "USDT",
+            premiumAmount: 3_000,
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "user0 commit to withdraw liquidity from position 0",
+      actions: [
+        // commit to withdraw
+        {
+          userName: "user0",
+          name: "commitRemoveLiquidity",
+          args: {
+            positionId: 0,
+          },
+          expected: "success",
+          timeTravel: {
+            days: 16,
+          },
+        },
+      ],
+    },
+    {
+      description:
+        "user0 withdrawal from position 0 reverts because liquidity is unavailable",
+      actions: [
+        {
+          userName: "user0",
+          name: "removeLiquidity",
+          args: {
+            positionId: 0,
+            tokenSymbol: "USDT",
+            amount: 1,
+            keepWrapped: false,
+          },
+          expected: "revert",
+          revertMessage: "NotEnoughLiquidityForRemoval",
+        },
+      ],
+    },
+    {
+      description: "user1 adds 4_000 USDT to its position 1",
+      actions: [
+        {
+          userName: "user1",
+          name: "addLiquidity",
+          args: {
+            positionId: 1,
+            isWrapped: false,
+            tokenSymbol: "USDT",
+            amount: 4_000,
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "user0 can now withdraw all liquidity from its position 0",
+      actions: [
+        {
+          userName: "user0",
+          name: "removeLiquidity",
+          args: {
+            positionId: 0,
+            tokenSymbol: "USDT",
+            amount: 3_000,
+            keepWrapped: false,
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "user3 removes all premiums from cover 0 to close it",
+      actions: [
+        {
+          userName: "user3",
+          name: "updateCover",
+          args: {
+            coverId: 0,
+            coverTokenSymbol: "USDT",
+            coverToAdd: 0,
+            coverToRemove: 0,
+            premiumTokenSymbol: "USDT",
+            premiumToAdd: 0,
+            premiumToRemove: "maxUint",
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "user1 commits to withdraw liquidity from position 1",
+      actions: [
+        // commit to withdraw
+        {
+          userName: "user1",
+          name: "commitRemoveLiquidity",
+          args: {
+            positionId: 1,
+          },
+          expected: "success",
+          timeTravel: {
+            days: 16,
+          },
+        },
+      ],
+    },
+    {
+      description: "user1 can now withdraw all liquidity from its position 1",
+      actions: [
+        {
+          userName: "user1",
+          name: "removeLiquidity",
+          args: {
+            positionId: 1,
+            tokenSymbol: "USDT",
+            amount: 5_000,
+            keepWrapped: false,
+          },
+          expected: "success",
+        },
+      ],
+    },
+    /**
+     * User2 and take interests, commit, uncommit, remove liquidity
+     */
+    {
+      description: "user2 takes interests from its position 2",
+      actions: [
+        {
+          userName: "user2",
+          name: "takeInterests",
+          args: {
+            positionId: 2,
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "user2 commits to withdraw liquidity from position 2",
+      actions: [
+        // commit to withdraw
+        {
+          userName: "user2",
+          name: "commitRemoveLiquidity",
+          args: {
+            positionId: 2,
+          },
+          expected: "success",
+          timeTravel: {
+            days: 16,
+          },
+        },
+      ],
+    },
+    {
+      description:
+        "user2 takes interests reverts because position 2 is commited to withdraw",
+      actions: [
+        {
+          userName: "user2",
+          name: "takeInterests",
+          args: {
+            positionId: 2,
+          },
+          expected: "revert",
+          revertMessage: "CannotTakeInterestsIfCommittedWithdrawal",
+        },
+      ],
+    },
+    {
+      description: "user2 uncommits to withdraw liquidity from position 2",
+      actions: [
+        {
+          userName: "user2",
+          name: "uncommitRemoveLiquidity",
+          args: {
+            positionId: 2,
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "user2 can now takes interests again from its position 2",
+      actions: [
+        {
+          userName: "user2",
+          name: "takeInterests",
+          args: {
+            positionId: 2,
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "user2 commits to withdraw liquidity from position 2",
+      actions: [
+        // commit to withdraw
+        {
+          userName: "user2",
+          name: "commitRemoveLiquidity",
+          args: {
+            positionId: 2,
+          },
+          expected: "success",
+          timeTravel: {
+            days: 16,
+          },
+        },
+      ],
+    },
+    {
+      description:
+        "user2 can withdraw all liquidity from its position 2 since there is no cover",
+      actions: [
+        {
+          userName: "user2",
+          name: "removeLiquidity",
+          args: {
+            positionId: 2,
+            tokenSymbol: "USDT",
+            amount: 4_000,
+            keepWrapped: false,
+          },
+          expected: "success",
+        },
+      ],
+    },
+  ],
+};
