@@ -71,8 +71,6 @@ library VirtualPool {
     uint256 lastUpdateTimestamp;
     // The index tracking how much premiums have been consumed in favor of LP
     uint256 liquidityIndex;
-    // The amount of liquidity index that is in the current unfinished tick
-    uint256 liquidityIndexLead;
   }
 
   struct LpInfo {
@@ -700,33 +698,33 @@ library VirtualPool {
   ) internal view returns (CoverInfo memory info) {
     CoverPremiums storage coverPremium = self.coverPremiums[coverId_];
 
-      /**
-       * If the cover's last tick is overtaken then it's expired & no premiums are left.
-       * Return default 0 values in the returned struct.
-       */
+    /**
+     * If the cover's last tick is overtaken then it's expired & no premiums are left.
+     * Return default 0 values in the returned struct.
+     */
     if (coverPremium.lastTick < slot0_.tick) return info;
 
-      info.premiumRate = self.getPremiumRate(
+    info.premiumRate = self.getPremiumRate(
       _utilization(slot0_.coveredCapital, self.totalLiquidity())
-      );
+    );
 
-      /// @dev Skip division by premium rate PERCENTAGE_BASE for precision
-      uint256 beginDailyCost = self
-        .coverSize(coverId_)
-        .rayMul(coverPremium.beginPremiumRate)
-        .rayDiv(365);
+    /// @dev Skip division by premium rate PERCENTAGE_BASE for precision
+    uint256 beginDailyCost = self
+      .coverSize(coverId_)
+      .rayMul(coverPremium.beginPremiumRate)
+      .rayDiv(365);
     info.dailyCost = getDailyCost(
-        beginDailyCost,
-        coverPremium.beginPremiumRate,
-        info.premiumRate
-      );
+      beginDailyCost,
+      coverPremium.beginPremiumRate,
+      info.premiumRate
+    );
 
     uint256 nbTicksLeft = coverPremium.lastTick - slot0_.tick;
     // Duration in seconds between currentTick & minNextTick
     uint256 duration = nbTicksLeft * slot0_.secondsPerTick;
 
     /// @dev Unscale amount by PERCENTAGE_BASE & RAY
-      info.premiumsLeft =
+    info.premiumsLeft =
       (duration * info.dailyCost) /
       (1 days * PERCENTAGE_BASE * RAY);
     /// @dev Unscale amount by PERCENTAGE_BASE & RAY
@@ -863,11 +861,6 @@ library VirtualPool {
     }
 
     slot0.lastUpdateTimestamp = timestamp_ - ignoredDuration;
-    slot0.liquidityIndexLead = computeLiquidityIndex(
-      utilization,
-      premiumRate,
-      ignoredDuration
-    );
   }
 
   /**

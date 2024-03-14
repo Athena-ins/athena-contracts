@@ -24,7 +24,6 @@ export function poolInfoFormat(
       coveredCapital: data.slot0.coveredCapital,
       remainingCovers: data.slot0.remainingCovers,
       lastUpdateTimestamp: data.slot0.lastUpdateTimestamp.toNumber(),
-      liquidityIndexLead: data.slot0.liquidityIndexLead,
       liquidityIndex: data.slot0.liquidityIndex,
     },
     strategyId: data.strategyId.toNumber(),
@@ -41,6 +40,8 @@ export function poolInfoFormat(
     strategyRewardIndex: data.strategyRewardIndex,
     lastOnchainUpdateTimestamp: data.lastOnchainUpdateTimestamp.toNumber(),
     ongoingClaims: data.ongoingClaims.toNumber(),
+    premiumRate: data.premiumRate,
+    liquidityIndexLead: data.liquidityIndexLead,
   };
 }
 

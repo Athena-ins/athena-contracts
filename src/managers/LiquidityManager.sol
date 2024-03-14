@@ -308,6 +308,18 @@ contract LiquidityManager is
     }
 
     uint256 totalLiquidity = pool.totalLiquidity();
+    uint256 utilization = VirtualPool._utilization(
+      slot0.coveredCapital,
+      totalLiquidity
+    );
+    uint256 premiumRate = pool.getPremiumRate(utilization);
+
+    uint256 liquidityIndexLead = VirtualPool.computeLiquidityIndex(
+      utilization,
+      premiumRate,
+      // This is the ignoredDuration in the _refresh function
+      block.timestamp - slot0.lastUpdateTimestamp
+    );
 
     return
       VPoolRead({
@@ -327,16 +339,15 @@ contract LiquidityManager is
         ongoingClaims: pool.ongoingClaims,
         compensationIds: pool.compensationIds,
         overlappedCapital: overlappedCapital,
-        utilizationRate: VirtualPool._utilization(
-          slot0.coveredCapital,
-          totalLiquidity
-        ),
+        utilizationRate: utilization,
         totalLiquidity: totalLiquidity,
         availableLiquidity: pool.availableLiquidity(),
         strategyRewardIndex: strategyManager.getRewardIndex(
           pool.strategyId
         ),
-        lastOnchainUpdateTimestamp: lastOnchainUpdateTimestamp
+        lastOnchainUpdateTimestamp: lastOnchainUpdateTimestamp,
+        premiumRate: premiumRate,
+        liquidityIndexLead: liquidityIndexLead
       });
   }
 

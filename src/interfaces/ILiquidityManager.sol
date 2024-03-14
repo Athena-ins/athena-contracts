@@ -71,6 +71,9 @@ interface ILiquidityManager {
     uint256 availableLiquidity;
     uint256 strategyRewardIndex;
     uint256 lastOnchainUpdateTimestamp;
+    uint256 premiumRate;
+    // The amount of liquidity index that is in the current unfinished tick
+    uint256 liquidityIndexLead;
   }
 
   function positions(
