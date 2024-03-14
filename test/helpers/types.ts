@@ -50,7 +50,7 @@ export type CoverInfoObject = {
   coverId: number;
   poolId: number;
   coverAmount: BigNumber;
-  end: number;
+  isActive: boolean;
   premiumsLeft: BigNumber;
   dailyCost: BigNumber;
   premiumRate: BigNumber;

@@ -66,7 +66,7 @@ export function coverInfoFormat(
     coverId: data.coverId.toNumber(),
     poolId: data.poolId.toNumber(),
     coverAmount: data.coverAmount,
-    end: data.end.toNumber(),
+    isActive: data.isActive,
     premiumsLeft: data.premiumsLeft,
     dailyCost: data.dailyCost,
     premiumRate: data.premiumRate,

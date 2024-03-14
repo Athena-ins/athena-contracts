@@ -1000,7 +1000,7 @@ export function calcExpectedCoverDataAfterOpenCover(
 
   expect.coverAmount = amount;
   expect.poolId = expectedPoolData.poolId;
-  expect.end = 0;
+  expect.isActive = true;
 
   const { newPremiumRate: beginPremiumRate } = updatedPremiumRate(
     poolDataBefore,
@@ -1046,6 +1046,10 @@ export function calcExpectedCoverDataAfterOpenCover(
     .sub(premiumsLostToTickRounding)
     .sub(premiumsSpent);
 
+  if (expect.premiumsLeft.eq(0)) {
+    expect.isActive = false;
+  }
+
   return expect;
 }
 
@@ -1066,13 +1070,13 @@ export function calcExpectedCoverDataAfterUpdateCover(
     .add(coverToAddAmount)
     .sub(coverToRemoveAmount);
   expect.poolId = expectedPoolData.poolId;
-  expect.end = 0;
+  expect.isActive = true;
 
   if (
     premiumsToRemoveAmount.eq(constants.MAX_UINT256) ||
     tokenDataBefore.premiumsLeft.eq(premiumsToRemoveAmount)
   ) {
-    expect.end = txTimestamp;
+    expect.isActive = false;
 
     expect.premiumRate = BigNumber.from(0);
     expect.dailyCost = BigNumber.from(0);
@@ -1131,7 +1135,6 @@ export function calcExpectedCoverDataAfterInitiateClaim(
   const coverId = tokenDataBefore.coverId;
   const coverAmount = tokenDataBefore.coverAmount;
   const poolId = tokenDataBefore.poolId;
-  const end = tokenDataBefore.end;
   const lastTick = tokenDataBefore.lastTick;
 
   const premiumRate = getPremiumRate(
@@ -1142,12 +1145,13 @@ export function calcExpectedCoverDataAfterInitiateClaim(
   const premiumsLeft = tokenDataBefore.premiumsLeft.sub(
     dailyCost.mul(timestamp - txTimestamp).div(24 * 60 * 60),
   );
+  const isActive = premiumsLeft.gt(0);
 
   return {
     coverId,
     coverAmount,
     poolId,
-    end,
+    isActive,
     lastTick,
     premiumRate,
     dailyCost,
@@ -1189,7 +1193,7 @@ export function calcExpectedCoverDataAfterWithdrawCompensation(
   let premiumsLeft = tokenDataBefore.premiumsLeft.sub(
     dailyCost.mul(timestamp - txTimestamp).div(24 * 60 * 60),
   );
-  let end = tokenDataBefore.end;
+  let isActive = true;
 
   if (
     claimAmount.eq(tokenDataBefore.coverAmount) ||
@@ -1197,14 +1201,14 @@ export function calcExpectedCoverDataAfterWithdrawCompensation(
   ) {
     dailyCost = BigNumber.from(0);
     premiumsLeft = BigNumber.from(0);
-    end = txTimestamp;
+    isActive = false;
   }
 
   return {
     coverId,
     coverAmount,
     poolId,
-    end,
+    isActive,
     lastTick,
     premiumRate,
     dailyCost,
