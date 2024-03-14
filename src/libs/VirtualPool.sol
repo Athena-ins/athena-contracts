@@ -78,9 +78,14 @@ library VirtualPool {
     uint256 beginClaimIndex;
   }
 
-  struct CoverPremiums {
+  struct Cover {
+    uint256 coverAmount;
     uint256 beginPremiumRate;
-    uint32 lastTick; // Last last tick for which the cover is active
+    /**
+     * If cover is active: last last tick for which the cover is valid
+     * If cover is expired: tick at which the cover was expired minus 1
+     */
+    uint32 lastTick;
     uint224 coverIdIndex; // The index of the coverId in its last tick
   }
 
@@ -139,13 +144,11 @@ library VirtualPool {
     // Maps a tick to the list of cover IDs
     mapping(uint32 _tick => uint256[] _coverIds) ticks;
     // Maps a cover ID to the premium position of the cover
-    mapping(uint256 _coverId => CoverPremiums) coverPremiums;
+    mapping(uint256 _coverId => Cover) covers;
     // Function pointers to access child contract data
     function(uint256)
       view
       returns (Compensation storage) getCompensation;
-    function(uint256) view returns (uint256) coverSize;
-    function(uint256) expireCover;
   }
 
   // ======= VIRTUAL CONSTRUCTOR ======= //
@@ -168,8 +171,6 @@ library VirtualPool {
     function(uint256)
       view
       returns (Compensation storage) getCompensation;
-    function(uint256) view returns (uint256) coverSize;
-    function(uint256) expireCover;
   }
 
   /**
@@ -211,8 +212,6 @@ library VirtualPool {
 
     self.overlappedPools.push(params.poolId);
 
-    self.coverSize = params.coverSize;
-    self.expireCover = params.expireCover;
     self.getCompensation = params.getCompensation;
   }
 
@@ -453,6 +452,7 @@ library VirtualPool {
   function _addPremiumPosition(
     VPool storage self,
     uint256 coverId_,
+    uint256 coverAmount_,
     uint256 beginPremiumRate_,
     uint32 lastTick_
   ) internal {
@@ -461,7 +461,8 @@ library VirtualPool {
       lastTick_
     );
 
-    self.coverPremiums[coverId_] = CoverPremiums({
+    self.covers[coverId_] = Cover({
+      coverAmount: coverAmount_,
       beginPremiumRate: beginPremiumRate_,
       lastTick: lastTick_,
       coverIdIndex: nbCoversInTick
@@ -509,7 +510,12 @@ library VirtualPool {
     uint32 lastTick = self.slot0.tick +
       uint32(durationInSeconds / newSecondsPerTick);
 
-    self._addPremiumPosition(coverId_, newPremiumRate, lastTick);
+    self._addPremiumPosition(
+      coverId_,
+      coverAmount_,
+      newPremiumRate,
+      lastTick
+    );
 
     self.slot0.remainingCovers++;
     self.slot0.coveredCapital += coverAmount_;
@@ -529,7 +535,26 @@ library VirtualPool {
     uint256 coverId_,
     uint256 coverAmount_
   ) internal {
-    CoverPremiums memory coverPremium = self.coverPremiums[coverId_];
+    Cover memory cover = self.covers[coverId_];
+
+    // If there are more than 1 cover in the tick then remove the cover from the tick
+    if (1 < self.ticks.nbCoversInTick(cover.lastTick)) {
+      uint256 coverIdToReplace = self.ticks.getLastCoverIdInTick(
+        cover.lastTick
+      );
+
+      if (coverId_ != coverIdToReplace) {
+        self.covers[coverIdToReplace].coverIdIndex = self
+          .covers[coverId_]
+          .coverIdIndex;
+      }
+
+      self.ticks.removeCoverId(cover.coverIdIndex, cover.lastTick);
+    } else {
+      // If it is the only cover in the tick then purge the entire tick
+      /// @dev cover will may be be in transitory close state so do not expire it
+      self._removeTick(cover.lastTick);
+    }
 
     (, uint256 newSecondsPerTick) = self.updatedPremiumRate(
       0,
@@ -540,29 +565,7 @@ library VirtualPool {
     self.slot0.coveredCapital -= coverAmount_;
     self.slot0.secondsPerTick = newSecondsPerTick;
 
-    // If there are more than 1 cover in the tick then remove the cover from the tick
-    if (1 < self.ticks.nbCoversInTick(coverPremium.lastTick)) {
-      uint256 coverIdToReplace = self.ticks.getLastCoverIdInTick(
-        coverPremium.lastTick
-      );
-
-      if (coverId_ != coverIdToReplace) {
-        self.coverPremiums[coverIdToReplace].coverIdIndex = self
-          .coverPremiums[coverId_]
-          .coverIdIndex;
-      }
-
-      delete self.coverPremiums[coverId_];
-
-      self.ticks.removeCoverId(
-        coverPremium.coverIdIndex,
-        coverPremium.lastTick
-      );
-    } else {
-      // If it is the only cover in the tick then purge the entire tick
-      /// @dev cover will may be be in transitory close state so do not expire it
-      self._removeTick(coverPremium.lastTick, false);
-    }
+    self.covers[coverId_].lastTick = self.slot0.tick - 1;
   }
 
   // ======= INTERNAL POOL HELPERS ======= //
@@ -572,20 +575,7 @@ library VirtualPool {
    * @param self The pool
    * @param tick_ The tick to remove
    */
-  function _removeTick(
-    VPool storage self,
-    uint32 tick_,
-    bool shouldExpireCovers_
-  ) internal {
-    uint256 nbCovers = self.ticks[tick_].length;
-
-    for (uint256 i; i < nbCovers; i++) {
-      uint256 coverId = self.ticks[tick_][i];
-
-      delete self.coverPremiums[coverId];
-      if (shouldExpireCovers_) self.expireCover(coverId);
-    }
-
+  function _removeTick(VPool storage self, uint32 tick_) internal {
     self.ticks.clear(tick_);
     self.tickBitmap.flipTick(tick_);
   }
@@ -654,13 +644,20 @@ library VirtualPool {
       // If the next available tick is greater then the current tick then we break
       if (self.slot0.tick < nextTick) break;
       // If the tick contains covers we need to expire them
-      if (isInitialized) self._removeTick(startTick, true);
+      if (isInitialized) self._removeTick(startTick);
 
       startTick = nextTick;
     }
   }
 
   // ======= VIEW HELPERS ======= //
+
+  function _isCoverActive(
+    VPool storage self,
+    uint256 coverId_
+  ) internal view returns (bool) {
+    return self.slot0.tick <= self.covers[coverId_].lastTick;
+  }
 
   function _computeRefreshedCoverInfo(
     VPool storage self,
@@ -696,30 +693,30 @@ library VirtualPool {
     uint256 coverId_,
     Slot0 memory slot0_
   ) internal view returns (CoverInfo memory info) {
-    CoverPremiums storage coverPremium = self.coverPremiums[coverId_];
+    Cover storage cover = self.covers[coverId_];
 
     /**
      * If the cover's last tick is overtaken then it's expired & no premiums are left.
      * Return default 0 values in the returned struct.
      */
-    if (coverPremium.lastTick < slot0_.tick) return info;
+    if (cover.lastTick < slot0_.tick) return info;
 
     info.premiumRate = self.getPremiumRate(
       _utilization(slot0_.coveredCapital, self.totalLiquidity())
     );
 
     /// @dev Skip division by premium rate PERCENTAGE_BASE for precision
-    uint256 beginDailyCost = self
-      .coverSize(coverId_)
-      .rayMul(coverPremium.beginPremiumRate)
+    uint256 beginDailyCost = cover
+      .coverAmount
+      .rayMul(cover.beginPremiumRate)
       .rayDiv(365);
     info.dailyCost = getDailyCost(
       beginDailyCost,
-      coverPremium.beginPremiumRate,
+      cover.beginPremiumRate,
       info.premiumRate
     );
 
-    uint256 nbTicksLeft = coverPremium.lastTick - slot0_.tick;
+    uint256 nbTicksLeft = cover.lastTick - slot0_.tick;
     // Duration in seconds between currentTick & minNextTick
     uint256 duration = nbTicksLeft * slot0_.secondsPerTick;
 
@@ -763,7 +760,7 @@ library VirtualPool {
     uint256 nbCovers = coverIds.length;
     for (uint256 i; i < nbCovers; i++) {
       // Add all the size of all covers in the tick
-      coveredCapitalToRemove += self.coverSize(coverIds[i]);
+      coveredCapitalToRemove += self.covers[coverIds[i]].coverAmount;
     }
 
     uint256 previousPremiumRate = self.currentPremiumRate();

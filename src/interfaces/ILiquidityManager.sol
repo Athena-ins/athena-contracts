@@ -14,17 +14,11 @@ interface ILiquidityManager {
     uint256 coverId;
     uint64 poolId;
     uint256 coverAmount;
-    uint256 end;
+    bool isActive;
     uint256 premiumsLeft;
     uint256 dailyCost;
     uint256 premiumRate;
     uint32 lastTick; // Last last tick for which the cover is active
-  }
-
-  struct Cover {
-    uint64 poolId;
-    uint256 coverAmount;
-    uint256 end;
   }
 
   struct PositionRead {

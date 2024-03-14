@@ -74,9 +74,8 @@ contract LiquidityManager is
 
   /// The ID of the next cover to be minted
   uint256 public nextCoverId;
-  /// User cover data
-  /// @dev left public to read cover initital cover data
-  mapping(uint256 _id => Cover) public covers;
+  /// Maps a cover ID to the ID of the pool storing the cover data
+  mapping(uint256 _id => uint64 _poolId) public coverToPool;
 
   /// The ID of the next token that will be minted.
   uint256 public nextPositionId;
@@ -226,34 +225,25 @@ contract LiquidityManager is
   function coverInfo(
     uint256 coverId_
   ) external view returns (CoverRead memory) {
-    Cover storage cover = covers[coverId_];
+    uint64 poolId = coverToPool[coverId_];
+    VirtualPool.VPool storage pool = _pools[poolId];
 
-    VirtualPool.CoverInfo memory info = _pools[cover.poolId]
+    VirtualPool.CoverInfo memory info = pool
       ._computeRefreshedCoverInfo(coverId_);
-    uint32 lastTick = _pools[cover.poolId]
-      .coverPremiums[coverId_]
-      .lastTick;
+    uint32 lastTick = pool.covers[coverId_].lastTick;
+    uint256 coverAmount = pool.covers[coverId_].coverAmount;
 
     return
       CoverRead({
         coverId: coverId_,
-        poolId: cover.poolId,
-        coverAmount: cover.coverAmount,
-        end: cover.end,
+        poolId: poolId,
+        coverAmount: coverAmount,
         premiumsLeft: info.premiumsLeft,
         dailyCost: info.dailyCost,
         premiumRate: info.premiumRate,
+        isActive: pool._isCoverActive(coverId_),
         lastTick: lastTick
       });
-  }
-
-  /**
-   * @notice Returns the size of a cover's protection
-   * @param coverId_ The ID of the cover
-   * @return The size of the cover's protection
-   */
-  function coverSize(uint256 coverId_) public view returns (uint256) {
-    return covers[coverId_].coverAmount;
   }
 
   /**
@@ -264,7 +254,7 @@ contract LiquidityManager is
   function coverPoolId(
     uint256 coverId_
   ) external view returns (uint64) {
-    return covers[coverId_].poolId;
+    return coverToPool[coverId_];
   }
 
   /**
@@ -275,9 +265,7 @@ contract LiquidityManager is
   function isCoverActive(
     uint256 coverId_
   ) external view returns (bool) {
-    VirtualPool.VPool storage pool = _pools[covers[coverId_].poolId];
-    // Check if the last tick of the cover was overtaken by the pool
-    return pool.slot0.tick < pool.coverPremiums[coverId_].lastTick;
+    return _pools[coverToPool[coverId_]]._isCoverActive(coverId_);
   }
 
   /**
@@ -433,8 +421,6 @@ contract LiquidityManager is
         r0: r0_, //Ray
         rSlope1: rSlope1_, //Ray
         rSlope2: rSlope2_, //Ray
-        coverSize: coverSize,
-        expireCover: _expireCover,
         getCompensation: _getCompensation
       })
     );
@@ -818,17 +804,6 @@ contract LiquidityManager is
     _pools[poolId_]._purgeExpiredCovers();
   }
 
-  /**
-   * @notice Expires a cover & freezes its farming rewards
-   * @param coverId_ The ID of the cover
-   */
-  function _expireCover(uint256 coverId_) internal {
-    covers[coverId_].end = block.timestamp;
-
-    // This will freeze the farming rewards of the cover
-    farming.freezeExpiredCoverRewards(coverId_);
-  }
-
   /// ======= BUY COVER ======= ///
 
   /**
@@ -862,12 +837,8 @@ contract LiquidityManager is
     uint256 coverId = nextCoverId;
     nextCoverId++;
 
-    // Create cover
-    covers[coverId] = Cover({
-      poolId: poolId_,
-      coverAmount: coverAmount_,
-      end: 0
-    });
+    // Map cover to pool for data access
+    coverToPool[coverId] = poolId_;
 
     // Create cover in pool
     pool._registerCover(coverId, coverAmount_, premiums_);
@@ -896,10 +867,8 @@ contract LiquidityManager is
     uint256 premiumsToAdd_,
     uint256 premiumsToRemove_
   ) external onlyCoverOwner(coverId_) {
-    // Get storage pointer to cover
-    Cover storage cover = covers[coverId_];
     // Get storage pointer to pool
-    VirtualPool.VPool storage pool = _pools[cover.poolId];
+    VirtualPool.VPool storage pool = _pools[coverToPool[coverId_]];
 
     // Clean pool from expired covers
     pool._purgeExpiredCovers();
@@ -907,7 +876,7 @@ contract LiquidityManager is
     // Check if pool is currently paused
     if (pool.isPaused) revert PoolIsPaused();
     // Check if cover is expired
-    uint32 lastTick = pool.coverPremiums[coverId_].lastTick;
+    uint32 lastTick = pool.covers[coverId_].lastTick;
     if (lastTick < pool.slot0.tick) revert CoverIsExpired();
 
     // Get the amount of premiums left
@@ -915,8 +884,9 @@ contract LiquidityManager is
       ._computeCurrentCoverInfo(coverId_)
       .premiumsLeft;
 
+    uint256 coverAmount = pool.covers[coverId_].coverAmount;
     // Close the existing cover
-    pool._closeCover(coverId_, cover.coverAmount);
+    pool._closeCover(coverId_, coverAmount);
 
     // Only allow one operation on cover amount change
     if (0 < coverToAdd_) {
@@ -924,17 +894,17 @@ contract LiquidityManager is
        * Check if pool has enough liquidity,
        * we closed cover at this point so check for total
        * */
-      if (pool.availableLiquidity() < cover.coverAmount + coverToAdd_)
+      if (pool.availableLiquidity() < coverAmount + coverToAdd_)
         revert InsufficientLiquidityForCover();
 
-      cover.coverAmount += coverToAdd_;
+      coverAmount += coverToAdd_;
     } else if (0 < coverToRemove_) {
-      if (cover.coverAmount <= coverToRemove_)
+      if (coverAmount <= coverToRemove_)
         revert CoverAmountMustBeGreaterThanZero();
 
-      // Unckecked is ok because we checked that coverToRemove_ < cover.coverAmount
+      // Unckecked is ok because we checked that coverToRemove_ < coverAmount
       unchecked {
-      cover.coverAmount -= coverToRemove_;
+        coverAmount -= coverToRemove_;
       }
     }
 
@@ -963,12 +933,12 @@ contract LiquidityManager is
       premiums += premiumsToAdd_;
     }
 
-    if (premiums == 0) {
-      // If there is no premiums left then expire the cover
-      _expireCover(coverId_);
-    } else {
+    if (premiums != 0) {
       // Update cover
-      pool._registerCover(coverId_, cover.coverAmount, premiums);
+      pool._registerCover(coverId_, coverAmount, premiums);
+    } else {
+      // This will freeze the farming rewards of the cover
+      farming.freezeExpiredCoverRewards(coverId_);
     }
   }
 
@@ -1101,7 +1071,7 @@ contract LiquidityManager is
   function addClaimToPool(
     uint256 coverId_
   ) external onlyClaimManager {
-    _pools[covers[coverId_].poolId].ongoingClaims++;
+    _pools[coverToPool[coverId_]].ongoingClaims++;
   }
 
   /**
@@ -1113,7 +1083,7 @@ contract LiquidityManager is
   function removeClaimFromPool(
     uint256 coverId_
   ) external onlyClaimManager {
-    _pools[covers[coverId_].poolId].ongoingClaims--;
+    _pools[coverToPool[coverId_]].ongoingClaims--;
   }
 
   /**
@@ -1153,7 +1123,7 @@ contract LiquidityManager is
     uint256 coverId_,
     uint256 compensationAmount_
   ) external onlyClaimManager {
-    uint64 fromPoolId = covers[coverId_].poolId;
+    uint64 fromPoolId = coverToPool[coverId_];
     VirtualPool.VPool storage poolA = _pools[fromPoolId];
 
     uint256 ratio = compensationAmount_.rayDiv(
@@ -1237,34 +1207,32 @@ contract LiquidityManager is
 
     // New context to avoid stack too deep error
     {
-      // Get storage pointer to cover
-      Cover storage cover = covers[coverId_];
-
       // If the cover isn't expired, then reduce the cover amount
-      if (cover.end == 0) {
+      if (poolA._isCoverActive(coverId_)) {
+        uint256 coverAmount = poolA.covers[coverId_].coverAmount;
+
         // Get the amount of premiums left
         uint256 premiums = poolA
           ._computeCurrentCoverInfo(coverId_)
           .premiumsLeft;
         // Close the existing cover
-        poolA._closeCover(coverId_, cover.coverAmount);
+        poolA._closeCover(coverId_, coverAmount);
 
         // Reduce the cover amount by the compensation amount
-        cover.coverAmount -= compensationAmount_;
+        coverAmount -= compensationAmount_;
 
         // Update cover
         try
           this.attemptReopenCover(
             fromPoolId,
             coverId_,
-            cover.coverAmount,
+            coverAmount,
             premiums
           )
         {} catch {
           // If updating the cover fails beacause of not enough liquidity,
           // then close the cover entirely & transfer premiums back to user
           IERC20(poolA.paymentAsset).safeTransfer(claimant, premiums);
-          _expireCover(coverId_);
         }
       }
     }
