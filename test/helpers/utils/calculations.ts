@@ -1048,6 +1048,7 @@ export function calcExpectedCoverDataAfterOpenCover(
 
   if (expect.premiumsLeft.eq(0)) {
     expect.isActive = false;
+    expect.lastTick = expectedPoolData.slot0.tick - 1;
   }
 
   return expect;
@@ -1081,7 +1082,7 @@ export function calcExpectedCoverDataAfterUpdateCover(
     expect.premiumRate = BigNumber.from(0);
     expect.dailyCost = BigNumber.from(0);
     expect.premiumsLeft = BigNumber.from(0);
-    expect.lastTick = 0;
+    expect.lastTick = poolDataBefore.slot0.tick - 1;
   } else {
     const { newPremiumRate: beginPremiumRate } = updatedPremiumRate(
       poolDataBefore,
