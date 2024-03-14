@@ -230,6 +230,7 @@ contract LiquidityManager is
 
     VirtualPool.CoverInfo memory info = pool
       ._computeRefreshedCoverInfo(coverId_);
+
     uint32 lastTick = pool.covers[coverId_].lastTick;
     uint256 coverAmount = pool.covers[coverId_].coverAmount;
 
@@ -241,7 +242,7 @@ contract LiquidityManager is
         premiumsLeft: info.premiumsLeft,
         dailyCost: info.dailyCost,
         premiumRate: info.premiumRate,
-        isActive: pool._isCoverActive(coverId_),
+        isActive: info.isActive,
         lastTick: lastTick
       });
   }
@@ -876,8 +877,7 @@ contract LiquidityManager is
     // Check if pool is currently paused
     if (pool.isPaused) revert PoolIsPaused();
     // Check if cover is expired
-    uint32 lastTick = pool.covers[coverId_].lastTick;
-    if (lastTick < pool.slot0.tick) revert CoverIsExpired();
+    if (!pool._isCoverActive(coverId_)) revert CoverIsExpired();
 
     // Get the amount of premiums left
     uint256 premiums = pool
@@ -885,18 +885,12 @@ contract LiquidityManager is
       .premiumsLeft;
 
     uint256 coverAmount = pool.covers[coverId_].coverAmount;
+
     // Close the existing cover
-    pool._closeCover(coverId_, coverAmount);
+    pool._closeCover(coverId_);
 
     // Only allow one operation on cover amount change
     if (0 < coverToAdd_) {
-      /**
-       * Check if pool has enough liquidity,
-       * we closed cover at this point so check for total
-       * */
-      if (pool.availableLiquidity() < coverAmount + coverToAdd_)
-        revert InsufficientLiquidityForCover();
-
       coverAmount += coverToAdd_;
     } else if (0 < coverToRemove_) {
       if (coverAmount <= coverToRemove_)
@@ -1209,24 +1203,24 @@ contract LiquidityManager is
     {
       // If the cover isn't expired, then reduce the cover amount
       if (poolA._isCoverActive(coverId_)) {
-        uint256 coverAmount = poolA.covers[coverId_].coverAmount;
-
         // Get the amount of premiums left
         uint256 premiums = poolA
           ._computeCurrentCoverInfo(coverId_)
           .premiumsLeft;
-        // Close the existing cover
-        poolA._closeCover(coverId_, coverAmount);
 
         // Reduce the cover amount by the compensation amount
-        coverAmount -= compensationAmount_;
+        uint256 newCoverAmount = poolA.covers[coverId_].coverAmount -
+          compensationAmount_;
+
+        // Close the existing cover
+        poolA._closeCover(coverId_);
 
         // Update cover
         try
           this.attemptReopenCover(
             fromPoolId,
             coverId_,
-            coverAmount,
+            newCoverAmount,
             premiums
           )
         {} catch {

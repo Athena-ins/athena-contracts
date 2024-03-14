@@ -93,6 +93,7 @@ library VirtualPool {
     uint256 premiumsLeft;
     uint256 dailyCost;
     uint256 premiumRate;
+    bool isActive;
   }
 
   struct Compensation {
@@ -493,9 +494,11 @@ library VirtualPool {
     // @bw could compute amount of time lost to rounding and conseqentially the amount of premiums lost, then register them to be able to harvest them / redistrib them
     uint256 available = self.availableLiquidity();
 
-    if (available < coverAmount_) {
-      revert InsufficientCapacity();
-    }
+    /**
+     * Check if pool has enough liquidity, when updating a cover
+     * we closed the previous cover at this point so check for total
+     * */
+    if (available < coverAmount_) revert InsufficientCapacity();
 
     (uint256 newPremiumRate, uint256 newSecondsPerTick) = self
       .updatedPremiumRate(coverAmount_, 0);
@@ -528,12 +531,10 @@ library VirtualPool {
    * @notice Closes a cover and updates the pool's slot0.
    * @param self The pool
    * @param coverId_ The cover ID
-   * @param coverAmount_ The amount of cover to close
    */
   function _closeCover(
     VPool storage self,
-    uint256 coverId_,
-    uint256 coverAmount_
+    uint256 coverId_
   ) internal {
     Cover memory cover = self.covers[coverId_];
 
@@ -558,11 +559,11 @@ library VirtualPool {
 
     (, uint256 newSecondsPerTick) = self.updatedPremiumRate(
       0,
-      coverAmount_
+      cover.coverAmount
     );
 
     self.slot0.remainingCovers--;
-    self.slot0.coveredCapital -= coverAmount_;
+    self.slot0.coveredCapital -= cover.coverAmount;
     self.slot0.secondsPerTick = newSecondsPerTick;
 
     self.covers[coverId_].lastTick = self.slot0.tick - 1;
@@ -578,6 +579,8 @@ library VirtualPool {
   function _removeTick(VPool storage self, uint32 tick_) internal {
     self.ticks.clear(tick_);
     self.tickBitmap.flipTick(tick_);
+
+    emit TickExpired(self.poolId, self.ticks[tick_]);
   }
 
   /**
@@ -697,9 +700,11 @@ library VirtualPool {
 
     /**
      * If the cover's last tick is overtaken then it's expired & no premiums are left.
-     * Return default 0 values in the returned struct.
+     * Return default 0 / false values in the returned struct.
      */
     if (cover.lastTick < slot0_.tick) return info;
+
+    info.isActive = true;
 
     info.premiumRate = self.getPremiumRate(
       _utilization(slot0_.coveredCapital, self.totalLiquidity())
