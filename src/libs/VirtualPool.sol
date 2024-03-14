@@ -491,6 +491,7 @@ library VirtualPool {
     uint256 coverAmount_,
     uint256 premiums_
   ) internal {
+    // @bw could compute amount of time lost to rounding and conseqentially the amount of premiums lost, then register them to be able to harvest them / redistrib them
     uint256 available = self.availableLiquidity();
 
     if (available < coverAmount_) {
@@ -512,9 +513,9 @@ library VirtualPool {
 
     self._addPremiumPosition(coverId_, newPremiumRate, lastTick);
 
+    self.slot0.remainingCovers++;
     self.slot0.coveredCapital += coverAmount_;
     self.slot0.secondsPerTick = newSecondsPerTick;
-    self.slot0.remainingCovers++;
   }
 
   /// -------- CLOSE -------- ///
@@ -532,20 +533,16 @@ library VirtualPool {
   ) internal {
     CoverPremiums memory coverPremium = self.coverPremiums[coverId_];
 
-    // @bw normally is already checked before in liq man
-    // uint32 currentTick = self.slot0.tick;
-    // if (coverPremium.lastTick < currentTick)
-    //   revert CoverAlreadyExpired();
-
     (, uint256 newSecondsPerTick) = self.updatedPremiumRate(
       0,
       coverAmount_
     );
 
+    self.slot0.remainingCovers--;
     self.slot0.coveredCapital -= coverAmount_;
     self.slot0.secondsPerTick = newSecondsPerTick;
-    self.slot0.remainingCovers--;
 
+    // If there are more than 1 cover in the tick then remove the cover from the tick
     if (1 < self.ticks.nbCoversInTick(coverPremium.lastTick)) {
       uint256 coverIdToReplace = self.ticks.getLastCoverIdInTick(
         coverPremium.lastTick
@@ -564,7 +561,9 @@ library VirtualPool {
         coverPremium.lastTick
       );
     } else {
-      self._removeTick(coverPremium.lastTick);
+      // If it is the only cover in the tick then purge the entire tick
+      /// @dev cover will may be be in transitory close state so do not expire it
+      self._removeTick(coverPremium.lastTick, false);
     }
   }
 
@@ -577,12 +576,16 @@ library VirtualPool {
    */
   function _removeTick(
     VPool storage self,
-    uint32 tick_
-  ) internal returns (uint256[] memory coverIds) {
-    coverIds = self.ticks[tick_];
+    uint32 tick_,
+    bool shouldExpireCovers_
+  ) internal {
+    uint256 nbCovers = self.ticks[tick_].length;
 
-    for (uint256 i; i < coverIds.length; i++) {
-      delete self.coverPremiums[coverIds[i]];
+    for (uint256 i; i < nbCovers; i++) {
+      uint256 coverId = self.ticks[tick_][i];
+
+      delete self.coverPremiums[coverId];
+      if (shouldExpireCovers_) self.expireCover(coverId);
     }
 
     self.ticks.clear(tick_);
@@ -636,36 +639,49 @@ library VirtualPool {
    * @param self The pool
    */
   function _purgeExpiredCovers(VPool storage self) internal {
-    // @bw we may want to keep the ticks rolling even if there is no usage, it seems this won't block premiums
+    // Save the current tick before updating the slot0
+    uint32 startTick = self.slot0.tick;
+
+    self.slot0 = self._refresh(block.timestamp);
+
+    // If there are no cover there is no use looking for expired ones
     if (self.slot0.remainingCovers == 0) return;
 
-    Slot0 memory slot0 = self._refresh(block.timestamp);
-
-    uint32 observedTick = self.slot0.tick;
-
     // For all the ticks between the slot0 tick & the refreshed tick
-    while (observedTick < slot0.tick) {
-      bool isInitialized;
-      (observedTick, isInitialized) = self.tickBitmap.nextTick(
-        observedTick
-      );
+    while (startTick < self.slot0.tick) {
+      (uint32 nextTick, bool isInitialized) = self
+        .tickBitmap
+        .nextTick(startTick);
 
-      if (isInitialized && observedTick <= slot0.tick) {
-        uint256[] memory expiredCoverIds = self._removeTick(
-          observedTick
-        );
+      // If the next available tick is greater then the current tick then we break
+      if (self.slot0.tick < nextTick) break;
+      // If the tick contains covers we need to expire them
+      if (isInitialized) self._removeTick(startTick, true);
 
-        uint256 nbCovers = expiredCoverIds.length;
-        for (uint256 i; i < nbCovers; i++) {
-          self.expireCover(expiredCoverIds[i]);
-        }
-      }
+      startTick = nextTick;
     }
-
-    self.slot0 = slot0;
   }
 
   // ======= VIEW HELPERS ======= //
+
+  function _computeRefreshedCoverInfo(
+    VPool storage self,
+    uint256 coverId_
+  ) internal view returns (CoverInfo memory info) {
+    return
+      self._computeCoverInfo(
+        coverId_,
+        // For reads we sync the slot0 to the current timestamp to have latests data
+        self._refresh(block.timestamp)
+      );
+  }
+
+  function _computeCurrentCoverInfo(
+    VPool storage self,
+    uint256 coverId_
+  ) internal view returns (CoverInfo memory info) {
+    return self._computeCoverInfo(coverId_, self.slot0);
+  }
 
   /**
    * @notice Computes the premium rate & daily cost of a cover,
@@ -679,23 +695,19 @@ library VirtualPool {
    */
   function _computeCoverInfo(
     VPool storage self,
-    uint256 coverId_
+    uint256 coverId_,
+    Slot0 memory slot0_
   ) internal view returns (CoverInfo memory info) {
-    // @bw on write fns this refresh is redundant since we purge expired covers before
-    // For reads we sync the slot0 to the current timestamp to have latests data
-    Slot0 memory slot0 = self._refresh(block.timestamp);
     CoverPremiums storage coverPremium = self.coverPremiums[coverId_];
 
-    if (coverPremium.lastTick < slot0.tick) {
       /**
        * If the cover's last tick is overtaken then it's expired & no premiums are left.
        * Return default 0 values in the returned struct.
        */
-    } else {
-      uint256 liquidity = self.totalLiquidity();
+    if (coverPremium.lastTick < slot0_.tick) return info;
 
       info.premiumRate = self.getPremiumRate(
-        _utilization(slot0.coveredCapital, liquidity)
+      _utilization(slot0_.coveredCapital, self.totalLiquidity())
       );
 
       /// @dev Skip division by premium rate PERCENTAGE_BASE for precision
@@ -703,66 +715,22 @@ library VirtualPool {
         .coverSize(coverId_)
         .rayMul(coverPremium.beginPremiumRate)
         .rayDiv(365);
-
-      info.currentDailyCost = getDailyCost(
+    info.dailyCost = getDailyCost(
         beginDailyCost,
         coverPremium.beginPremiumRate,
         info.premiumRate
       );
 
-      uint32 currentTick = slot0.tick;
+    uint256 nbTicksLeft = coverPremium.lastTick - slot0_.tick;
+    // Duration in seconds between currentTick & minNextTick
+    uint256 duration = nbTicksLeft * slot0_.secondsPerTick;
 
-      // As long as the tick at which the cover expires is not overtaken
-      while (currentTick < coverPremium.lastTick) {
-        (uint32 nextTick, bool initialized) = self
-          .tickBitmap
-          .nextTick(currentTick);
-
-        // New context to avoid stack too deep error
-        {
-          uint32 nextMaxTick = nextTick < coverPremium.lastTick
-            ? nextTick
-            : coverPremium.lastTick;
-
-          // Duration in seconds between currentTick & nextMaxTick
-          uint256 duration = (nextMaxTick - currentTick) *
-            slot0.secondsPerTick;
-
-          /// @dev Skip division by 1 days for precision
-          info.premiumsLeft += duration * info.currentDailyCost;
-
-          currentTick = nextMaxTick;
-        }
-
-        // Check for dailyCost update if the nextTick has covers & is before cover expiry
-        if (initialized && nextTick < coverPremium.lastTick) {
-          uint256 premiumRate;
-          (, , premiumRate) = self._crossingInitializedTick(
-            slot0,
-            nextTick
-          );
-
-          info.currentDailyCost = getDailyCost(
-            beginDailyCost,
-            coverPremium.beginPremiumRate,
-            premiumRate
-          );
-        }
-      }
-
-      /**
-       * @dev Un-scale the token value of premiums left & daily cost
-       * - PERCENTAGE_BASE for premium rate percentage base
-       * - RAY for result being in ray
-       * - 1 days for duration being in seconds (only for premiums left)
-       */
+    /// @dev Unscale amount by PERCENTAGE_BASE & RAY
       info.premiumsLeft =
-        info.premiumsLeft /
-        (PERCENTAGE_BASE * 1 days * RAY);
-      info.currentDailyCost =
-        info.currentDailyCost /
-        (PERCENTAGE_BASE * RAY);
-    }
+      (duration * info.dailyCost) /
+      (1 days * PERCENTAGE_BASE * RAY);
+    /// @dev Unscale amount by PERCENTAGE_BASE & RAY
+    info.dailyCost = info.dailyCost / (PERCENTAGE_BASE * RAY);
   }
 
   /**

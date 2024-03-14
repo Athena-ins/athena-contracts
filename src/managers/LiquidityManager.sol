@@ -229,7 +229,7 @@ contract LiquidityManager is
     Cover storage cover = covers[coverId_];
 
     VirtualPool.CoverInfo memory info = _pools[cover.poolId]
-      ._computeCoverInfo(coverId_);
+      ._computeRefreshedCoverInfo(coverId_);
     uint32 lastTick = _pools[cover.poolId]
       .coverPremiums[coverId_]
       .lastTick;
@@ -896,10 +896,13 @@ contract LiquidityManager is
     // Check if pool is currently paused
     if (pool.isPaused) revert PoolIsPaused();
     // Check if cover is expired
-    if (cover.end != 0) revert CoverIsExpired();
+    uint32 lastTick = pool.coverPremiums[coverId_].lastTick;
+    if (lastTick < pool.slot0.tick) revert CoverIsExpired();
 
     // Get the amount of premiums left
-    uint256 premiums = pool._computeCoverInfo(coverId_).premiumsLeft;
+    uint256 premiums = pool
+      ._computeCurrentCoverInfo(coverId_)
+      .premiumsLeft;
 
     // Close the existing cover
     pool._closeCover(coverId_, cover.coverAmount);
@@ -1230,7 +1233,7 @@ contract LiquidityManager is
       if (cover.end == 0) {
         // Get the amount of premiums left
         uint256 premiums = poolA
-          ._computeCoverInfo(coverId_)
+          ._computeCurrentCoverInfo(coverId_)
           .premiumsLeft;
         // Close the existing cover
         poolA._closeCover(coverId_, cover.coverAmount);
