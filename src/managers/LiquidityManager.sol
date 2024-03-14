@@ -230,17 +230,20 @@ contract LiquidityManager is
 
     VirtualPool.CoverInfo memory info = _pools[cover.poolId]
       ._computeCoverInfo(coverId_);
+    uint32 lastTick = _pools[cover.poolId]
+      .coverPremiums[coverId_]
+      .lastTick;
 
     return
       CoverRead({
         coverId: coverId_,
         poolId: cover.poolId,
         coverAmount: cover.coverAmount,
-        start: cover.start,
         end: cover.end,
         premiumsLeft: info.premiumsLeft,
-        dailyCost: info.currentDailyCost,
-        premiumRate: info.premiumRate
+        dailyCost: info.dailyCost,
+        premiumRate: info.premiumRate,
+        lastTick: lastTick
       });
   }
 
@@ -852,7 +855,6 @@ contract LiquidityManager is
     covers[coverId] = Cover({
       poolId: poolId_,
       coverAmount: coverAmount_,
-      start: block.timestamp,
       end: 0
     });
 

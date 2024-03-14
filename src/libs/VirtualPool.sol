@@ -18,7 +18,7 @@ import { console } from "hardhat/console.sol";
 
 error ZeroAddressAsset();
 error CoverAlreadyExpired();
-error DurationTooLow();
+error DurationBelowOneTick();
 error InsufficientCapacity();
 error NotEnoughLiquidityForRemoval();
 
@@ -82,13 +82,13 @@ library VirtualPool {
 
   struct CoverPremiums {
     uint256 beginPremiumRate;
-    uint32 lastTick; // The tick at which the cover will expire
-    uint224 coverIdIndex; // CoverId index in its initalization tick's cover array
+    uint32 lastTick; // Last last tick for which the cover is active
+    uint224 coverIdIndex; // The index of the coverId in its last tick
   }
 
   struct CoverInfo {
     uint256 premiumsLeft;
-    uint256 currentDailyCost;
+    uint256 dailyCost;
     uint256 premiumRate;
   }
 
@@ -504,7 +504,7 @@ library VirtualPool {
       .rayDiv(newPremiumRate) / coverAmount_;
 
     if (durationInSeconds < newSecondsPerTick)
-      revert DurationTooLow();
+      revert DurationBelowOneTick();
 
     // @dev The user can loose up to almost 1 tick of cover due to the division
     uint32 lastTick = self.slot0.tick +

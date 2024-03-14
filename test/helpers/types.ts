@@ -49,11 +49,11 @@ export type CoverInfoObject = {
   coverId: number;
   poolId: number;
   coverAmount: BigNumber;
-  start: number;
   end: number;
   premiumsLeft: BigNumber;
   dailyCost: BigNumber;
   premiumRate: BigNumber;
+  lastTick: number;
 };
 
 export type ClaimInfoObject = {

@@ -65,11 +65,11 @@ export function coverInfoFormat(
     coverId: data.coverId.toNumber(),
     poolId: data.poolId.toNumber(),
     coverAmount: data.coverAmount,
-    start: data.start.toNumber(),
     end: data.end.toNumber(),
     premiumsLeft: data.premiumsLeft,
     dailyCost: data.dailyCost,
     premiumRate: data.premiumRate,
+    lastTick: data.lastTick,
   };
 }
 
