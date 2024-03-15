@@ -532,6 +532,8 @@ export const liquidityProvision: Scenario = {
           name: "wait",
           timeTravel: {
             days: 1,
+            hours: 1.5, // 1 tick + 1 sec
+            seconds: 1,
           },
           expected: "success",
           args: {},

@@ -359,7 +359,12 @@ library VirtualPool {
     uint256 latestStrategyRewardIndex_,
     uint256 yieldBonus_,
     uint64[] storage poolIds_
-  ) internal returns (uint256, uint256) {
+  )
+    internal
+    returns (uint256 /*newUserCapital*/, uint256 /*coverRewards*/)
+  {
+    if (supplied_ == 0) return (0, 0);
+
     // Get the updated position info
     UpdatedPositionInfo memory info = self._getUpdatedPositionInfo(
       poolIds_,
@@ -655,14 +660,22 @@ library VirtualPool {
     // If there are no cover there is no use looking for expired ones
     if (self.slot0.remainingCovers == 0) return;
 
+    // The start tick may not have been purged since it was not overtaken
+    if (
+      startTick < self.slot0.tick &&
+      self.tickBitmap.isInitializedTick(startTick)
+    ) {
+      self._removeTick(startTick);
+    }
+
     // For all the ticks between the slot0 tick & the refreshed tick
     while (startTick < self.slot0.tick) {
       (uint32 nextTick, bool isInitialized) = self
         .tickBitmap
         .nextTick(startTick);
 
-      // If the next available tick is greater then the current tick then we break
-      if (self.slot0.tick < nextTick) break;
+      // Only clear ticks that are before the current tick
+      if (self.slot0.tick <= nextTick) break;
       // If the tick contains covers we need to expire them
       if (isInitialized) self._removeTick(startTick);
 
@@ -822,64 +835,80 @@ library VirtualPool {
     // Make copy in memory to allow for mutations
     slot0 = self.slot0;
 
-    uint256 liquidity = self.totalLiquidity();
-    uint256 utilization = _utilization(
-      slot0.coveredCapital,
-      liquidity
-    );
-
     // The remaining time in seconds to run through to sync up to the timestamp
     uint256 remaining = timestamp_ - slot0.lastUpdateTimestamp;
-    uint256 premiumRate = self.getPremiumRate(utilization);
-    /**
-     * We do not compute changes for periods below the size of one tick
-     * This value will be changed if we enter the while loop
-     */
-    uint256 ignoredDuration = remaining;
-    uint256 liquidityIndexUpdateLength;
 
-    while (slot0.secondsPerTick < remaining) {
-      (uint32 nextTick, bool isInitialized) = self
-        .tickBitmap
-        .nextTick(slot0.tick);
+    // If the remaining time is less than the tick spacing then return the slot0
+    if (remaining < slot0.secondsPerTick) return slot0;
+
+    // Default to ignore remaining time in case we do not enter loop
+    uint256 secondsSinceTickStart;
+    uint256 secondsParsed;
+    uint256 utilization;
+    uint256 premiumRate;
+
+    while (slot0.secondsPerTick <= remaining) {
+      uint32 nextTick;
+      bool isInitialized;
+
+      if (self.tickBitmap.isInitializedTick(slot0.tick)) {
+        // Check current tick
+        (nextTick, isInitialized) = (slot0.tick, true);
+      } else {
+        // Else search for the next tick
+        (nextTick, isInitialized) = self.tickBitmap.nextTick(
+          slot0.tick
+        );
+      }
 
       // Amount of time contained in the next tick segment
-      uint256 secondsToNextTick = slot0.secondsPerTick *
-        (nextTick - slot0.tick);
+      /// @dev Add one to check if we can reach end of the tick to purge it
+      uint256 secondsToNextTickEnd = slot0.secondsPerTick *
+        (1 + nextTick - slot0.tick);
 
-      if (secondsToNextTick <= remaining) {
+      console.log("slot0.tick: ", slot0.tick);
+      console.log("nextTick: ", nextTick);
+      console.log("secondsToNextTickEnd: ", secondsToNextTickEnd);
+      console.log("remaining: ", remaining);
+
+      if (secondsToNextTickEnd <= remaining) {
         // If the tick has covers then expire them & update pool metrics
         if (isInitialized) {
           (slot0, utilization, premiumRate) = self
             ._crossingInitializedTick(slot0, nextTick);
         }
+        // @bw could opti here by searching for next initialized untill remaining < secondsToNextTickEnd and computing whole liq index gain for several tick segments untill either we need to perform the rounding (the else) or update urate & prate
 
-        // We set ignored to 0 in case remaining is exactly the size to next tick
-        ignoredDuration = 0;
-        liquidityIndexUpdateLength = secondsToNextTick;
-        slot0.tick = nextTick;
         // Remove parsed tick size from remaining time to current timestamp
-        remaining -= secondsToNextTick;
+        remaining -= secondsToNextTickEnd;
+        secondsParsed = secondsToNextTickEnd;
+        slot0.tick = nextTick + 1;
       } else {
-        /**
-         * If the remaining time is not enough to reach the nextTick we still
-         * update the current tick & liquidity index to the timestamp.
-         */
-        ignoredDuration = remaining % slot0.secondsPerTick;
-        liquidityIndexUpdateLength = remaining - ignoredDuration;
-        slot0.tick += uint32(remaining / slot0.secondsPerTick);
-        // @dev This means the loop is finished after the liquidity index update
-        remaining = ignoredDuration;
+        uint256 liquidity = self.totalLiquidity();
+        utilization = _utilization(slot0.coveredCapital, liquidity);
+        premiumRate = self.getPremiumRate(utilization);
+
+        // Time bewteen start of the new tick and the current timestamp
+        secondsSinceTickStart = remaining % slot0.secondsPerTick;
+        // Ignore interests of current uncompleted tick
+        secondsParsed = remaining - secondsSinceTickStart;
+        slot0.tick += uint32(secondsParsed / slot0.secondsPerTick);
+        // Exit loop after the liquidity index update
+        remaining = 0;
       }
+
+      // Add 1 since we have entered the range for the new tick
+      // slot0.tick += uint32(secondsParsed / slot0.secondsPerTick) + 1;
 
       slot0.liquidityIndex += computeLiquidityIndex(
         utilization,
         premiumRate,
-        liquidityIndexUpdateLength
+        secondsParsed
       );
     }
 
-    slot0.lastUpdateTimestamp = timestamp_ - ignoredDuration;
+    // Remove ignored duration so the update aligns with current tick start
+    slot0.lastUpdateTimestamp = timestamp_ - secondsSinceTickStart;
   }
 
   /**
