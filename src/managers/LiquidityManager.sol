@@ -49,6 +49,8 @@ contract LiquidityManager is
   ReentrancyGuard,
   Ownable
 {
+  // ======= LIBS ======= //
+
   using SafeERC20 for IERC20;
   using RayMath for uint256;
   using VirtualPool for VirtualPool.VPool;
@@ -471,7 +473,8 @@ contract LiquidityManager is
     _addOverlappingCapitalAfterCheck(
       poolIds,
       positionId,
-      amountUnderlying
+      amountUnderlying,
+      true // Purge pools
     );
 
     // Push funds to strategy manager
@@ -546,7 +549,8 @@ contract LiquidityManager is
     _addOverlappingCapitalAfterCheck(
       position.poolIds,
       positionId_,
-      amountUnderlying
+      amountUnderlying,
+      false // Pools purged when taking interests
     );
 
     // Push funds to strategy manager
@@ -943,13 +947,15 @@ contract LiquidityManager is
    * @param poolIds_ The IDs of the pools to add liquidity to
    * @param positionId_ The ID of the position
    * @param amount_ The amount of liquidity to add
+   * @param purgePools If it should purge expired covers
    *
    * @dev PoolIds are checked at creation to ensure they are unique and ascending
    */
   function _addOverlappingCapitalAfterCheck(
     uint64[] memory poolIds_,
     uint256 positionId_,
-    uint256 amount_
+    uint256 amount_,
+    bool purgePools
   ) internal {
     uint256 nbPoolIds = poolIds_.length;
 
@@ -961,7 +967,8 @@ contract LiquidityManager is
       if (pool0.isPaused) revert PoolIsPaused();
 
       // Remove expired covers
-      pool0._purgeExpiredCovers();
+      /// @dev Skip the purge when adding liquidity since it has been done
+      if (purgePools) pool0._purgeExpiredCovers();
 
       // Update premium rate, seconds per tick & LP position info
       pool0._depositToPool(positionId_, amount_);
