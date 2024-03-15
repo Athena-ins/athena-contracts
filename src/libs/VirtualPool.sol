@@ -38,11 +38,16 @@ error NotEnoughLiquidityForRemoval();
  * Utilization Rate (ray %) -> Premium Rate (ray %) -> Daily Cost (token/day)
  */
 library VirtualPool {
+  // ======= LIBS ======= //
   using VirtualPool for VPool;
   using RayMath for uint256;
   using SafeERC20 for IERC20;
   using Tick for mapping(uint32 => uint256[]);
   using TickBitmap for mapping(uint24 => uint256);
+
+  // ======= EVENTS ======= //
+
+  event TickExpired(uint64 indexed poolId, uint256[] coverIds);
 
   // ======= CONSTANTS ======= //
 
