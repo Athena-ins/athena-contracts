@@ -19,6 +19,8 @@ import { ILendingPool } from "../interfaces/ILendingPool.sol";
 
 import { console } from "hardhat/console.sol";
 
+// @bw implement LP whitelist for v0
+
 //======== ERRORS ========//
 
 // Not a valid strategy
@@ -201,6 +203,9 @@ contract StrategyManager is IStrategyManager, Ownable {
    * @param amount_ The amount of tokens to accrue
    */
   function _accrueToDao(address token_, uint256 amount_) private {
+    // Since we remove 1 for rounding errors
+    if (amount_ <= 1) return;
+
     // Withdraw the revenue from the strategy to the DAO contract
     aaveLendingPool.withdraw(
       token_,
@@ -255,9 +260,14 @@ contract StrategyManager is IStrategyManager, Ownable {
       amountRewardsUnderlying_;
 
     // If the strategy has performance fees then compute the DAO share
-    if (performanceFee != 0 && amountRewardsUnderlying_ != 0) {
-      uint256 daoShare = (amountRewardsUnderlying_ *
-        (performanceFee - yieldBonus_)) / RayMath.RAY;
+    if (
+      performanceFee != 0 &&
+      amountRewardsUnderlying_ != 0 &&
+      yieldBonus_ < performanceFee
+    ) {
+      uint256 daoShare = ((amountRewardsUnderlying_ *
+        performanceFee) - (amountRewardsUnderlying_ * yieldBonus_)) /
+        RayMath.RAY;
 
       if (daoShare != 0) {
         // Deduct the daoShare from the amount to withdraw
@@ -265,6 +275,9 @@ contract StrategyManager is IStrategyManager, Ownable {
         _accrueToDao(usdt, daoShare);
       }
     }
+
+    // Since we remove 1 for rounding errors
+    if (amountToWithdraw <= 1) return;
 
     // @dev No need to approve aToken since they are burned in pool
     // @dev Remove 1 for rounding errors
@@ -316,6 +329,9 @@ contract StrategyManager is IStrategyManager, Ownable {
       }
     }
 
+    // Since we remove 1 for rounding errors
+    if (amountToWithdraw <= 1) return;
+
     // @dev Remove 1 for rounding errors
     IERC20(ausdt).safeTransfer(account_, amountToWithdraw - 1);
   }
@@ -342,8 +358,12 @@ contract StrategyManager is IStrategyManager, Ownable {
 
     // @dev No need to approve aToken since they are burned in pool
     // @dev Remove 1 for rounding errors
-    uint256 amountToPayout = (amountUnderlying_ - deductible) - 1;
-    aaveLendingPool.withdraw(usdt, amountToPayout, account_);
+    uint256 amountToPayout = (amountUnderlying_ - deductible);
+
+    // Since we remove 1 for rounding errors
+    if (amountToPayout <= 1) return;
+
+    aaveLendingPool.withdraw(usdt, amountToPayout - 1, account_);
   }
 
   //======== ADMIN ========//
