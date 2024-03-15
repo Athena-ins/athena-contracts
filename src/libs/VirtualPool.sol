@@ -633,7 +633,24 @@ library VirtualPool {
     // Save the current tick before updating the slot0
     uint32 startTick = self.slot0.tick;
 
+    console.log(
+      "xself.slot0.remainingCovers: ",
+      self.slot0.remainingCovers
+    );
+    console.log(
+      "xself.slot0.coveredCapital: ",
+      self.slot0.coveredCapital
+    );
     self.slot0 = self._refresh(block.timestamp);
+
+    console.log(
+      "zself.slot0.remainingCovers: ",
+      self.slot0.remainingCovers
+    );
+    console.log(
+      "zself.slot0.coveredCapital: ",
+      self.slot0.coveredCapital
+    );
 
     // If there are no cover there is no use looking for expired ones
     if (self.slot0.remainingCovers == 0) return;

@@ -22,6 +22,8 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol"
 
 import { console } from "hardhat/console.sol";
 
+// @bw changing all ids to uint64 could save some gas
+
 // ======= ERRORS ======= //
 
 error OnlyTokenOwner();
@@ -872,26 +874,41 @@ contract LiquidityManager is
     uint256 premiumsToAdd_,
     uint256 premiumsToRemove_
   ) external onlyCoverOwner(coverId_) {
+    console.log("(((updateCover))): ");
     // Get storage pointer to pool
     VirtualPool.VPool storage pool = _pools[coverToPool[coverId_]];
+    console.log("pool.slot0.tick: ", pool.slot0.tick);
 
     // Clean pool from expired covers
     pool._purgeExpiredCovers();
+    console.log("pool.slot0.tick: ", pool.slot0.tick);
 
+    console.log("lastTick: ", pool.covers[coverId_].lastTick);
     // Check if pool is currently paused
     if (pool.isPaused) revert PoolIsPaused();
     // Check if cover is expired
     if (!pool._isCoverActive(coverId_)) revert CoverIsExpired();
+    console.log(
+      "pool._isCoverActive(coverId_): ",
+      pool._isCoverActive(coverId_)
+    );
+    console.log("coverId_: ", coverId_);
 
     // Get the amount of premiums left
     uint256 premiums = pool
       ._computeCurrentCoverInfo(coverId_)
       .premiumsLeft;
+    console.log("premiums: ", premiums);
 
     uint256 coverAmount = pool.covers[coverId_].coverAmount;
+    console.log(
+      "pool.covers[coverId_].lastTick: ",
+      pool.covers[coverId_].lastTick
+    );
 
     // Close the existing cover
     pool._closeCover(coverId_);
+    console.log("_closeCover: ");
 
     // Only allow one operation on cover amount change
     if (0 < coverToAdd_) {
@@ -935,6 +952,7 @@ contract LiquidityManager is
       // Update cover
       pool._registerCover(coverId_, coverAmount, premiums);
     } else {
+      console.log("freezeExpiredCoverRewards: ");
       // This will freeze the farming rewards of the cover
       farming.freezeExpiredCoverRewards(coverId_);
     }

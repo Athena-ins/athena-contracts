@@ -638,6 +638,8 @@ contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {
     uint256 campaignID = coverIdToCampaignId[_tokenId];
     address account = campaignTokenDeposits[campaignID][_tokenId];
 
+    // @bw remove onlyLiquidityManager & check if expired instead (after refresh pools)
+
     // If the account is address 0then the cover is not deposited in a campaign
     if (account != address(0)) {
       _updateCampaign(campaignID);
