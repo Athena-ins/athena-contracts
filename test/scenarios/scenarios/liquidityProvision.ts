@@ -438,5 +438,131 @@ export const liquidityProvision: Scenario = {
         },
       ],
     },
+    {
+      description:
+        "user2 can add 2_000 USDT to its position 2 after having withdrawn all liquidity",
+      actions: [
+        {
+          userName: "user2",
+          name: "addLiquidity",
+          args: {
+            positionId: 2,
+            isWrapped: false,
+            tokenSymbol: "USDT",
+            amount: 2_000,
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "user3 creates cover 1 in pool 2",
+      actions: [
+        // approve tokens for cover
+        {
+          userName: "user3",
+          name: "approveTokens",
+          args: {
+            spender: "LiquidityManager",
+            tokenSymbol: "USDT",
+            amount: 320,
+          },
+          expected: "success",
+        },
+        // open cover
+        {
+          userName: "user3",
+          name: "openCover",
+          args: {
+            poolId: 2,
+            coverTokenSymbol: "USDT",
+            coverAmount: 2_000,
+            premiumTokenSymbol: "USDT",
+            premiumAmount: 320,
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description:
+        "user2 commits to withdraw liquidity from position 2 long before removing it",
+      actions: [
+        {
+          userName: "user2",
+          name: "commitRemoveLiquidity",
+          args: {
+            positionId: 2,
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "user2 cannot empty position 2 before cover 1 expires",
+      actions: [
+        {
+          userName: "deployer",
+          name: "wait",
+          timeTravel: {
+            days: 364,
+          },
+          expected: "success",
+          args: {},
+        },
+        {
+          userName: "user2",
+          name: "removeLiquidity",
+          args: {
+            positionId: 2,
+            tokenSymbol: "USDT",
+            amount: 4_000,
+            keepWrapped: false,
+          },
+          expected: "revert",
+          revertMessage: "NotEnoughLiquidityForRemoval",
+        },
+      ],
+    },
+    {
+      description: "user2 can empty position 2 after cover 1",
+      actions: [
+        {
+          userName: "deployer",
+          name: "wait",
+          timeTravel: {
+            days: 1,
+          },
+          expected: "success",
+          args: {},
+        },
+        {
+          userName: "user3",
+          name: "updateCover",
+          args: {
+            coverId: 1,
+            coverTokenSymbol: "USDT",
+            coverToAdd: 0,
+            coverToRemove: 0,
+            premiumTokenSymbol: "USDT",
+            premiumToAdd: 0,
+            premiumToRemove: 0,
+          },
+          expected: "revert",
+          revertMessage: "CoverIsExpired",
+        },
+        {
+          userName: "user2",
+          name: "removeLiquidity",
+          args: {
+            positionId: 2,
+            tokenSymbol: "USDT",
+            amount: 4_000,
+            keepWrapped: false,
+          },
+          expected: "success",
+        },
+      ],
+    },
   ],
 };

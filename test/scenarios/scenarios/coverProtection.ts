@@ -104,6 +104,25 @@ export const coverProtection: Scenario = {
       ],
     },
     {
+      description: "user1 creates cover reverted because he lacks the funds",
+      actions: [
+        // open cover
+        {
+          userName: "user1",
+          name: "openCover",
+          args: {
+            poolId: 0,
+            coverTokenSymbol: "USDT",
+            coverAmount: 8_000,
+            premiumTokenSymbol: "USDT",
+            premiumAmount: 2_001,
+          },
+          expected: "revert",
+          revertMessage: "FailedInnerCall",
+        },
+      ],
+    },
+    {
       description:
         "user1 creates cover 0 of 8_000 USDT with 1_000 USDT in premiums in pool 0",
       actions: [
@@ -376,6 +395,157 @@ export const coverProtection: Scenario = {
             coverToRemove: 0,
             premiumTokenSymbol: "USDT",
             premiumToAdd: 100,
+            premiumToRemove: 0,
+          },
+          expected: "revert",
+          revertMessage: "CoverIsExpired",
+        },
+      ],
+    },
+    {
+      description: "user3 gets 2_000 USDT and approves liquidity manager",
+      actions: [
+        // get tokens for cover
+        {
+          userName: "user3",
+          name: "getTokens",
+          args: {
+            tokenSymbol: "USDT",
+            amount: 2_000,
+          },
+          expected: "success",
+        },
+        // approve tokens for cover
+        {
+          userName: "user3",
+          name: "approveTokens",
+          args: {
+            spender: "LiquidityManager",
+            tokenSymbol: "USDT",
+            amount: 2_000,
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description:
+        "user3 creates cover 2 of 6_000 USDT with 1_000 USDT in premiums in pool 0",
+      actions: [
+        // open cover
+        {
+          userName: "user3",
+          name: "openCover",
+          args: {
+            poolId: 0,
+            coverTokenSymbol: "USDT",
+            coverAmount: 6_000,
+            premiumTokenSymbol: "USDT",
+            premiumAmount: 1_000,
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description:
+        "user3 creates cover 3 of 2_000 USDT with 1_000 USDT in premiums in pool 0",
+      actions: [
+        // open cover
+        {
+          userName: "user3",
+          name: "openCover",
+          args: {
+            poolId: 0,
+            coverTokenSymbol: "USDT",
+            coverAmount: 2_000,
+            premiumTokenSymbol: "USDT",
+            premiumAmount: 1_000,
+          },
+          expected: "success",
+          timeTravel: {
+            days: 5,
+          },
+        },
+      ],
+    },
+    {
+      description: "user3 updates cover 2 adding 2_000 USDT in cover amount",
+      actions: [
+        // update cover
+        {
+          userName: "user3",
+          name: "updateCover",
+          args: {
+            coverId: 2,
+            coverTokenSymbol: "USDT",
+            coverToAdd: 2_000,
+            coverToRemove: 0,
+            premiumTokenSymbol: "USDT",
+            premiumToAdd: 0,
+            premiumToRemove: 0,
+          },
+          expected: "success",
+          timeTravel: {
+            days: 5,
+          },
+        },
+      ],
+    },
+    {
+      description: "user3 updates cover 3 removing 800 USDT in premiums",
+      actions: [
+        // update cover
+        {
+          userName: "user3",
+          name: "updateCover",
+          args: {
+            coverId: 3,
+            coverTokenSymbol: "USDT",
+            coverToAdd: 0,
+            coverToRemove: 0,
+            premiumTokenSymbol: "USDT",
+            premiumToAdd: 0,
+            premiumToRemove: 800,
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "user3 closes cover 2 by removing all premiums",
+      actions: [
+        // update cover
+        {
+          userName: "user3",
+          name: "updateCover",
+          args: {
+            coverId: 2,
+            coverTokenSymbol: "USDT",
+            coverToAdd: 0,
+            coverToRemove: 0,
+            premiumTokenSymbol: "USDT",
+            premiumToAdd: 0,
+            premiumToRemove: "maxUint",
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description:
+        "user3 fails to update cover 2 after all premiums were removed",
+      actions: [
+        {
+          userName: "user3",
+          name: "updateCover",
+          args: {
+            coverId: 2,
+            coverTokenSymbol: "USDT",
+            coverToAdd: 0,
+            coverToRemove: 0,
+            premiumTokenSymbol: "USDT",
+            premiumToAdd: 1,
             premiumToRemove: 0,
           },
           expected: "revert",
