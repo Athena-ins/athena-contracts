@@ -14,62 +14,101 @@ declare global {
 }
 
 const DEVIATION_BASE = 100_000000;
-const DEFAULT_DEVIATION = 0;
 
 function checkKey(
   this: Chai.AssertionStatic & {
     _obj: PoolInfo | PositionInfo | CoverInfo;
   },
-  key: any,
+  key: string,
+  path: any,
   actualKey: any,
   expectedKey: any,
-  deviationAllowed: number,
 ) {
   expect(
     actualKey != undefined,
-    `Property ${key} is undefined in the actual data`,
+    `Property ${path} is undefined in the actual data`,
   );
   expect(
     expectedKey != undefined,
-    `Property ${key} is undefined in the expected data`,
+    `Property ${path} is undefined in the expected data`,
   );
 
   if (expectedKey == null || actualKey == null) {
     console.log(
       "Found a undefined value for Key ",
-      key,
+      path,
       " value ",
       expectedKey,
       actualKey,
     );
   }
 
+  let deviationAllowed = 0;
+  let deviationType: "percentage" | "absolute" | undefined;
+  // For certain keys we will use a difference deviationAllowed
+  if (key === "premiumsLeft") {
+    deviationAllowed = 0.12;
+    deviationType = "percentage";
+  }
+  if (key === "lastUpdateTimestamp") {
+    deviationAllowed = 30;
+    deviationType = "absolute";
+  }
+
   if (
-    deviationAllowed !== DEFAULT_DEVIATION &&
-    BigNumber.isBigNumber(actualKey)
-  ) {
-    const percentage = `${deviationAllowed.toFixed(
-      DEVIATION_BASE.toString().length - 2,
-    )}%`;
+    deviationAllowed !== 0 &&
+    Math.floor(DEVIATION_BASE * deviationAllowed) === 0
+  )
+    throw Error("Allowed deviation is too small");
 
-    const different = actualKey.gt(expectedKey)
-      ? actualKey.sub(expectedKey)
-      : expectedKey.sub(actualKey);
+  if (deviationAllowed !== 0) {
+    const diff =
+      deviationType === "absolute"
+        ? deviationAllowed
+        : `${deviationAllowed.toFixed(DEVIATION_BASE.toString().length - 2)}%`;
 
-    const allowedDifference = expectedKey
-      .mul(Math.floor(DEVIATION_BASE * deviationAllowed))
-      .div(DEVIATION_BASE);
+    if (BigNumber.isBigNumber(actualKey)) {
+      const difference = actualKey.gt(expectedKey)
+        ? actualKey.sub(expectedKey)
+        : expectedKey.sub(actualKey);
 
-    const actualString = actualKey.toString();
-    const expectedString = expectedKey.toString();
+      const allowedDifference =
+        deviationType === "absolute"
+          ? deviationAllowed
+          : expectedKey
+              .mul(Math.floor(DEVIATION_BASE * deviationAllowed))
+              .div(DEVIATION_BASE);
 
-    this.assert(
-      different.lte(allowedDifference),
-      `expected ${actualString} to be within ${percentage} of ${expectedString} for property ${key}`,
-      `expected ${actualString} to be within ${percentage} of ${expectedString} for property ${key}`,
-      expectedKey,
-      actualKey,
-    );
+      const actualString = actualKey.toString();
+      const expectedString = expectedKey.toString();
+
+      this.assert(
+        difference.lte(allowedDifference),
+        `expected ${actualString} to be within ${diff} of ${expectedString} for property ${path}`,
+        `expected ${actualString} to be within ${diff} of ${expectedString} for property ${path}`,
+        expectedKey,
+        actualKey,
+      );
+    } else {
+      const difference =
+        expectedKey < actualKey
+          ? actualKey - expectedKey
+          : expectedKey - actualKey;
+
+      const allowedDifference =
+        deviationType === "absolute"
+          ? deviationAllowed
+          : (expectedKey * Math.floor(DEVIATION_BASE * deviationAllowed)) /
+            DEVIATION_BASE;
+
+      this.assert(
+        difference <= allowedDifference,
+        `expected #{act} to be within ${diff} of #{exp} for property ${path}`,
+        `expected #{act} to be within ${diff} of #{exp} for property ${path}`,
+        expectedKey,
+        actualKey,
+      );
+    }
   } else if (BigNumber.isBigNumber(actualKey)) {
     const actualString = actualKey.toString();
     const expectedString = expectedKey.toString();
@@ -82,8 +121,8 @@ function checkKey(
         actualKey.eq(expectedKey.add(2)) ||
         actualKey.add(3).eq(expectedKey) ||
         actualKey.eq(expectedKey.add(3)),
-      `expected ${actualString} to be almost equal or equal ${expectedString} for property ${key}`,
-      `expected ${actualString} to be almost equal or equal ${expectedString} for property ${key}`,
+      `expected ${actualString} to be almost equal or equal ${expectedString} for property ${path}`,
+      `expected ${actualString} to be almost equal or equal ${expectedString} for property ${path}`,
       expectedKey,
       actualKey,
     );
@@ -92,8 +131,8 @@ function checkKey(
       actualKey !== null &&
         expectedKey !== null &&
         actualKey.toString() === expectedKey.toString(),
-      `expected #{act} to be equal #{exp} for property ${key}`,
-      `expected #{act} to be equal #{exp} for property ${key}`,
+      `expected #{act} to be equal #{exp} for property ${path}`,
+      `expected #{act} to be equal #{exp} for property ${path}`,
       expectedKey,
       actualKey,
     );
@@ -121,17 +160,10 @@ chai.use(function (chai, utils) {
       if (expected.hasOwnProperty("claimant")) inputType = "ClaimInfo";
 
       for (const key of keys) {
-        let deviationAllowed = DEFAULT_DEVIATION;
-
-        // For certain keys we will use a different deviationAllowed
-        if (key === "premiumsLeft") {
-          deviationAllowed = 0.12;
-        }
-
-        if (key === "lastOnchainUpdateTimestamp") {
-          // skipping consistency check on accessory data
-          return;
-        }
+        // if (key === "lastUpdateTimestamp") {
+        //   // skipping consistency check on accessory data
+        //   return;
+        // }
 
         if (Array.isArray(actual[key])) {
           // For arrays we will check every item
@@ -141,10 +173,10 @@ chai.use(function (chai, utils) {
 
           for (let i = 0; i < actualArray.length; i++) {
             checkKeyContext(
+              key,
               `${inputType}.${key}[${i}]`,
               actual[key][i],
               expected[key][i],
-              deviationAllowed,
             );
           }
         } else if (
@@ -158,20 +190,20 @@ chai.use(function (chai, utils) {
 
           for (let i = 0; i < actualKeys.length; i++) {
             checkKeyContext(
+              actualKeys[i],
               `${inputType}.${key}.${actualKeys[i]}`,
               actual[key][actualKeys[i]],
               expected[key][expectedKeys[i]],
-              deviationAllowed,
             );
           }
         } else {
           // Else run a simple check
 
           checkKeyContext(
+            key,
             `${inputType}.${key}`,
             actual[key],
             expected[key],
-            deviationAllowed,
           );
         }
       }
