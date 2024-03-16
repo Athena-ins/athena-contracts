@@ -173,7 +173,7 @@ export const liquidityProvision: Scenario = {
     },
     {
       description:
-        "user3 gets 3_000 USDT and approves liquidity manager to creates a cover in pool 1",
+        "user3 creates cover 0 in pool 1 for 8_000 USDT with 3_000 USDT premiums after getting funds",
       actions: [
         // get tokens for cover
         {
@@ -516,7 +516,7 @@ export const liquidityProvision: Scenario = {
           args: {
             positionId: 2,
             tokenSymbol: "USDT",
-            amount: 4_000,
+            amount: 2_000,
             keepWrapped: false,
           },
           expected: "revert",
@@ -559,7 +559,7 @@ export const liquidityProvision: Scenario = {
           args: {
             positionId: 2,
             tokenSymbol: "USDT",
-            amount: 4_000,
+            amount: 2_000,
             keepWrapped: false,
           },
           expected: "success",

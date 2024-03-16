@@ -126,13 +126,6 @@ export function calcExpectedPoolDataAfterOpenPosition(
     expect.slot0.tick =
       pool.slot0.tick + Math.floor(timeElapsed / expect.slot0.secondsPerTick);
 
-    expect.slot0.liquidityIndex = pool.slot0.liquidityIndex.add(
-      computeLiquidityIndex(
-        expect.utilizationRate,
-        newPremiumRate,
-        timeElapsed - ignoredDuration,
-      ),
-    );
     expect.premiumRate = getPremiumRate(pool, expect.utilizationRate);
     expect.liquidityIndexLead = computeLiquidityIndex(
       expect.utilizationRate,
@@ -144,6 +137,14 @@ export function calcExpectedPoolDataAfterOpenPosition(
       expect.slot0.lastUpdateTimestamp = pool.slot0.lastUpdateTimestamp;
     } else {
       expect.slot0.lastUpdateTimestamp = timestamp - ignoredDuration;
+
+      expect.slot0.liquidityIndex = pool.slot0.liquidityIndex.add(
+        computeLiquidityIndex(
+          expect.utilizationRate,
+          newPremiumRate,
+          timeElapsed - ignoredDuration,
+        ),
+      );
     }
 
     expectedArray.push(expect);
@@ -197,13 +198,6 @@ export function calcExpectedPoolDataAfterAddLiquidity(
     expect.slot0.tick =
       pool.slot0.tick + Math.floor(timeElapsed / expect.slot0.secondsPerTick);
 
-    expect.slot0.liquidityIndex = pool.slot0.liquidityIndex.add(
-      computeLiquidityIndex(
-        expect.utilizationRate,
-        newPremiumRate,
-        timeElapsed - ignoredDuration,
-      ),
-    );
     expect.premiumRate = getPremiumRate(pool, expect.utilizationRate);
     expect.liquidityIndexLead = computeLiquidityIndex(
       expect.utilizationRate,
@@ -215,6 +209,14 @@ export function calcExpectedPoolDataAfterAddLiquidity(
       expect.slot0.lastUpdateTimestamp = pool.slot0.lastUpdateTimestamp;
     } else {
       expect.slot0.lastUpdateTimestamp = timestamp - ignoredDuration;
+
+      expect.slot0.liquidityIndex = pool.slot0.liquidityIndex.add(
+        computeLiquidityIndex(
+          expect.utilizationRate,
+          newPremiumRate,
+          timeElapsed - ignoredDuration,
+        ),
+      );
     }
 
     expectedArray.push(expect);
@@ -252,13 +254,6 @@ export function calcExpectedPoolDataAfterCommitRemoveLiquidity(
     expect.slot0.tick =
       pool.slot0.tick + Math.floor(timeElapsed / expect.slot0.secondsPerTick);
 
-    expect.slot0.liquidityIndex = pool.slot0.liquidityIndex.add(
-      computeLiquidityIndex(
-        expect.utilizationRate,
-        newPremiumRate,
-        timeElapsed - ignoredDuration,
-      ),
-    );
     expect.premiumRate = getPremiumRate(pool, expect.utilizationRate);
     expect.liquidityIndexLead = computeLiquidityIndex(
       expect.utilizationRate,
@@ -270,6 +265,14 @@ export function calcExpectedPoolDataAfterCommitRemoveLiquidity(
       expect.slot0.lastUpdateTimestamp = pool.slot0.lastUpdateTimestamp;
     } else {
       expect.slot0.lastUpdateTimestamp = timestamp - ignoredDuration;
+
+      expect.slot0.liquidityIndex = pool.slot0.liquidityIndex.add(
+        computeLiquidityIndex(
+          expect.utilizationRate,
+          newPremiumRate,
+          timeElapsed - ignoredDuration,
+        ),
+      );
     }
 
     expectedArray.push(expect);
@@ -307,13 +310,6 @@ export function calcExpectedPoolDataAfterUncommitRemoveLiquidity(
     expect.slot0.tick =
       pool.slot0.tick + Math.floor(timeElapsed / expect.slot0.secondsPerTick);
 
-    expect.slot0.liquidityIndex = pool.slot0.liquidityIndex.add(
-      computeLiquidityIndex(
-        expect.utilizationRate,
-        newPremiumRate,
-        timeElapsed - ignoredDuration,
-      ),
-    );
     expect.premiumRate = getPremiumRate(pool, expect.utilizationRate);
     expect.liquidityIndexLead = computeLiquidityIndex(
       expect.utilizationRate,
@@ -325,6 +321,14 @@ export function calcExpectedPoolDataAfterUncommitRemoveLiquidity(
       expect.slot0.lastUpdateTimestamp = pool.slot0.lastUpdateTimestamp;
     } else {
       expect.slot0.lastUpdateTimestamp = timestamp - ignoredDuration;
+
+      expect.slot0.liquidityIndex = pool.slot0.liquidityIndex.add(
+        computeLiquidityIndex(
+          expect.utilizationRate,
+          newPremiumRate,
+          timeElapsed - ignoredDuration,
+        ),
+      );
     }
 
     expectedArray.push(expect);
@@ -362,13 +366,6 @@ export function calcExpectedPoolDataAfterTakeInterests(
     expect.slot0.tick =
       pool.slot0.tick + Math.floor(timeElapsed / expect.slot0.secondsPerTick);
 
-    expect.slot0.liquidityIndex = pool.slot0.liquidityIndex.add(
-      computeLiquidityIndex(
-        expect.utilizationRate,
-        newPremiumRate,
-        timeElapsed - ignoredDuration,
-      ),
-    );
     expect.premiumRate = getPremiumRate(pool, expect.utilizationRate);
     expect.liquidityIndexLead = computeLiquidityIndex(
       expect.utilizationRate,
@@ -380,6 +377,14 @@ export function calcExpectedPoolDataAfterTakeInterests(
       expect.slot0.lastUpdateTimestamp = pool.slot0.lastUpdateTimestamp;
     } else {
       expect.slot0.lastUpdateTimestamp = timestamp - ignoredDuration;
+
+      expect.slot0.liquidityIndex = pool.slot0.liquidityIndex.add(
+        computeLiquidityIndex(
+          expect.utilizationRate,
+          newPremiumRate,
+          timeElapsed - ignoredDuration,
+        ),
+      );
     }
 
     expectedArray.push(expect);
@@ -434,13 +439,6 @@ export function calcExpectedPoolDataAfterRemoveLiquidity(
     expect.slot0.tick =
       pool.slot0.tick + Math.floor(timeElapsed / expect.slot0.secondsPerTick);
 
-    expect.slot0.liquidityIndex = pool.slot0.liquidityIndex.add(
-      computeLiquidityIndex(
-        expect.utilizationRate,
-        newPremiumRate,
-        timeElapsed - ignoredDuration,
-      ),
-    );
     expect.premiumRate = getPremiumRate(pool, expect.utilizationRate);
     expect.liquidityIndexLead = computeLiquidityIndex(
       expect.utilizationRate,
@@ -452,6 +450,14 @@ export function calcExpectedPoolDataAfterRemoveLiquidity(
       expect.slot0.lastUpdateTimestamp = pool.slot0.lastUpdateTimestamp;
     } else {
       expect.slot0.lastUpdateTimestamp = timestamp - ignoredDuration;
+
+      expect.slot0.liquidityIndex = pool.slot0.liquidityIndex.add(
+        computeLiquidityIndex(
+          expect.utilizationRate,
+          newPremiumRate,
+          timeElapsed - ignoredDuration,
+        ),
+      );
     }
 
     expectedArray.push(expect);

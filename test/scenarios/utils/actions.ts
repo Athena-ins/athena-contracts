@@ -479,8 +479,6 @@ export async function commitRemoveLiquidity(
       ),
     );
 
-    console.log("poolDataBefore: ", poolDataBefore[0].slot0);
-
     const txResult = await postTxHandler(
       LiquidityManager.connect(user).commitRemoveLiquidity(positionId),
     );
@@ -882,23 +880,14 @@ export async function updateCover(
     convertToCurrencyDecimals(premiumToken, premiumsToAdd),
     convertToCurrencyDecimals(premiumToken, premiumsToRemove),
   ]);
-  const tokenDataBefore = await LiquidityManager.coverInfo(coverId).then(
-    (data) => coverInfoFormat(data),
-  );
-  console.log("premiumsLeft: ", tokenDataBefore.premiumsLeft);
-  console.log("lastTick: ", tokenDataBefore.lastTick);
-  const poolDataBefore = await LiquidityManager.poolInfo(
-    tokenDataBefore.poolId,
-  ).then((data) => poolInfoFormat(data));
-  console.log("poolDataBefore: ", poolDataBefore.slot0);
 
   if (expectedResult === "success") {
-    // const tokenDataBefore = await LiquidityManager.coverInfo(coverId).then(
-    //   (data) => coverInfoFormat(data),
-    // );
-    // const poolDataBefore = await LiquidityManager.poolInfo(
-    //   tokenDataBefore.poolId,
-    // ).then((data) => poolInfoFormat(data));
+    const tokenDataBefore = await LiquidityManager.coverInfo(coverId).then(
+      (data) => coverInfoFormat(data),
+    );
+    const poolDataBefore = await LiquidityManager.poolInfo(
+      tokenDataBefore.poolId,
+    ).then((data) => poolInfoFormat(data));
 
     const userAddress = await user.getAddress();
     const paymentToken = ERC20__factory.connect(
