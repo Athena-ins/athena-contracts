@@ -643,38 +643,17 @@ library VirtualPool {
     // Save the current tick before updating the slot0
     uint32 startTick = self.slot0.tick;
 
-    console.log(
-      "xself.slot0.remainingCovers: ",
-      self.slot0.remainingCovers
-    );
-    console.log(
-      "xself.slot0.coveredCapital: ",
-      self.slot0.coveredCapital
-    );
     self.slot0 = self._refresh(block.timestamp);
-
-    console.log(
-      "zself.slot0.remainingCovers: ",
-      self.slot0.remainingCovers
-    );
-    console.log(
-      "zself.slot0.coveredCapital: ",
-      self.slot0.coveredCapital
-    );
 
     // If there are no cover there is no use looking for expired ones
     if (self.slot0.remainingCovers == 0) return;
 
-    // The start tick may not have been purged since it was not overtaken
-    if (
-      startTick < self.slot0.tick &&
-      self.tickBitmap.isInitializedTick(startTick)
-    ) {
-      self._removeTick(startTick);
-    }
-
     // For all the ticks between the slot0 tick & the refreshed tick
     while (startTick < self.slot0.tick) {
+      // The start tick may not have been purged since it was not overtaken
+      if (self.tickBitmap.isInitializedTick(startTick))
+        self._removeTick(startTick);
+
       (uint32 nextTick, bool isInitialized) = self
         .tickBitmap
         .nextTick(startTick);
@@ -682,7 +661,7 @@ library VirtualPool {
       // Only clear ticks that are before the current tick
       if (self.slot0.tick <= nextTick) break;
       // If the tick contains covers we need to expire them
-      if (isInitialized) self._removeTick(startTick);
+      if (isInitialized) self._removeTick(nextTick);
 
       startTick = nextTick;
     }
@@ -847,12 +826,20 @@ library VirtualPool {
     if (remaining < slot0.secondsPerTick) return slot0;
 
     // Default to ignore remaining time in case we do not enter loop
-    uint256 secondsSinceTickStart;
+    uint256 secondsSinceTickStart = remaining;
     uint256 secondsParsed;
-    uint256 utilization;
-    uint256 premiumRate;
 
+    uint256 liquidity = self.totalLiquidity();
+    uint256 utilization = _utilization(
+      slot0.coveredCapital,
+      liquidity
+    );
+    uint256 premiumRate = self.getPremiumRate(utilization);
+
+    // @bw could opti here by searching for next initialized tick to compute the liquidity index with same premium & utilization in one go parsing multiple 256 value bitmaps. This should exit when remaining < secondsToNextTickEnd before finishing with the partial tick operation.
     while (slot0.secondsPerTick <= remaining) {
+      secondsSinceTickStart = 0;
+
       uint32 nextTick;
       bool isInitialized;
 
@@ -871,28 +858,18 @@ library VirtualPool {
       uint256 secondsToNextTickEnd = slot0.secondsPerTick *
         (1 + nextTick - slot0.tick);
 
-      console.log("slot0.tick: ", slot0.tick);
-      console.log("nextTick: ", nextTick);
-      console.log("secondsToNextTickEnd: ", secondsToNextTickEnd);
-      console.log("remaining: ", remaining);
-
       if (secondsToNextTickEnd <= remaining) {
         // If the tick has covers then expire them & update pool metrics
         if (isInitialized) {
           (slot0, utilization, premiumRate) = self
             ._crossingInitializedTick(slot0, nextTick);
         }
-        // @bw could opti here by searching for next initialized untill remaining < secondsToNextTickEnd and computing whole liq index gain for several tick segments untill either we need to perform the rounding (the else) or update urate & prate
 
         // Remove parsed tick size from remaining time to current timestamp
         remaining -= secondsToNextTickEnd;
         secondsParsed = secondsToNextTickEnd;
         slot0.tick = nextTick + 1;
       } else {
-        uint256 liquidity = self.totalLiquidity();
-        utilization = _utilization(slot0.coveredCapital, liquidity);
-        premiumRate = self.getPremiumRate(utilization);
-
         // Time bewteen start of the new tick and the current timestamp
         secondsSinceTickStart = remaining % slot0.secondsPerTick;
         // Ignore interests of current uncompleted tick
@@ -901,9 +878,6 @@ library VirtualPool {
         // Exit loop after the liquidity index update
         remaining = 0;
       }
-
-      // Add 1 since we have entered the range for the new tick
-      // slot0.tick += uint32(secondsParsed / slot0.secondsPerTick) + 1;
 
       slot0.liquidityIndex += computeLiquidityIndex(
         utilization,

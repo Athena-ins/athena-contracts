@@ -84,7 +84,7 @@ contract LiquidityManager is
   /// The ID of the next token that will be minted.
   uint256 public nextPositionId;
   /// User LP data
-  mapping(uint256 _id => Position) private _positions;
+  mapping(uint256 _id => Position) public _positions;
 
   /// The ID of the next claim to be
   uint256 public nextCompensationId;
@@ -874,41 +874,26 @@ contract LiquidityManager is
     uint256 premiumsToAdd_,
     uint256 premiumsToRemove_
   ) external onlyCoverOwner(coverId_) {
-    console.log("(((updateCover))): ");
     // Get storage pointer to pool
     VirtualPool.VPool storage pool = _pools[coverToPool[coverId_]];
-    console.log("pool.slot0.tick: ", pool.slot0.tick);
 
     // Clean pool from expired covers
     pool._purgeExpiredCovers();
-    console.log("pool.slot0.tick: ", pool.slot0.tick);
 
-    console.log("lastTick: ", pool.covers[coverId_].lastTick);
     // Check if pool is currently paused
     if (pool.isPaused) revert PoolIsPaused();
     // Check if cover is expired
     if (!pool._isCoverActive(coverId_)) revert CoverIsExpired();
-    console.log(
-      "pool._isCoverActive(coverId_): ",
-      pool._isCoverActive(coverId_)
-    );
-    console.log("coverId_: ", coverId_);
 
     // Get the amount of premiums left
     uint256 premiums = pool
       ._computeCurrentCoverInfo(coverId_)
       .premiumsLeft;
-    console.log("premiums: ", premiums);
 
     uint256 coverAmount = pool.covers[coverId_].coverAmount;
-    console.log(
-      "pool.covers[coverId_].lastTick: ",
-      pool.covers[coverId_].lastTick
-    );
 
     // Close the existing cover
     pool._closeCover(coverId_);
-    console.log("_closeCover: ");
 
     // Only allow one operation on cover amount change
     if (0 < coverToAdd_) {
@@ -952,7 +937,6 @@ contract LiquidityManager is
       // Update cover
       pool._registerCover(coverId_, coverAmount, premiums);
     } else {
-      console.log("freezeExpiredCoverRewards: ");
       // This will freeze the farming rewards of the cover
       farming.freezeExpiredCoverRewards(coverId_);
     }
@@ -1011,14 +995,14 @@ contract LiquidityManager is
           revert PoolIdsMustBeUniqueAndAscending();
 
         if (poolId0 != poolId1) {
-        // Check if pool is compatible
-        if (!arePoolCompatible[poolId0][poolId1])
-          revert IncompatiblePools(poolId0, poolId1);
+          // Check if pool is compatible
+          if (!arePoolCompatible[poolId0][poolId1])
+            revert IncompatiblePools(poolId0, poolId1);
 
           // Register overlap in both pools
           if (pool0.overlaps[poolId1] == 0) {
-          pool0.overlappedPools.push(poolId1);
-          pool1.overlappedPools.push(poolId0);
+            pool0.overlappedPools.push(poolId1);
+            pool1.overlappedPools.push(poolId0);
           }
         }
 
