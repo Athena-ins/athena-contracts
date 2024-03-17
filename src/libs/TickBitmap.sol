@@ -41,7 +41,7 @@ library TickBitmap {
   }
 
   /// @notice Returns the next initialized tick contained in the same word (or adjacent word)
-  /// as the tick that is to the right (greater than) of the given tick
+  /// as the tick that is to the left (greater than) of the given tick
   /// @param self The mapping in which to compute the next initialized tick
   /// @param tick The starting tick
   function nextTick(

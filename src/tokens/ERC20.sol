@@ -12,7 +12,7 @@ contract ERC20 is IERC20 {
 
   string public name;
   string public symbol;
-  uint8 public decimals = 18;
+  uint8 public _decimals = 18;
 
   uint256 public totalSupply;
   mapping(address _account => uint256 _amount) public balanceOf;
@@ -27,6 +27,10 @@ contract ERC20 is IERC20 {
   }
 
   //======== FUNCTIONS ========//
+
+  function decimals() external view returns (uint8) {
+    return _decimals;
+  }
 
   function _mint(
     address account,
