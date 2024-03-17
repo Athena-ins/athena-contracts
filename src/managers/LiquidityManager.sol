@@ -76,13 +76,9 @@ contract LiquidityManager is
   // Maps pool0 -> pool1 -> areCompatible for LP leverage
   mapping(uint64 => mapping(uint64 => bool)) public arePoolCompatible;
 
-  /// The ID of the next cover to be minted
-  uint256 public nextCoverId;
   /// Maps a cover ID to the ID of the pool storing the cover data
   mapping(uint256 _id => uint64 _poolId) public coverToPool;
 
-  /// The ID of the next token that will be minted.
-  uint256 public nextPositionId;
   /// User LP data
   mapping(uint256 _id => Position) public _positions;
 
@@ -461,9 +457,8 @@ contract LiquidityManager is
     if (maxLeverage < poolIds.length)
       revert AmountOfPoolsIsAboveMaxLeverage();
 
-    // Save new position positionId and update for next
-    uint256 positionId = nextPositionId;
-    nextPositionId++;
+    // Mint position NFT
+    uint256 positionId = positionToken.mint(msg.sender);
 
     // All pools share the same strategy so we can use the first pool ID
     uint256 strategyId = _pools[poolIds[0]].strategyId;
@@ -507,9 +502,6 @@ contract LiquidityManager is
       // Save index from which the position will start accruing strategy rewards
       strategyRewardIndex: strategyManager.getRewardIndex(strategyId)
     });
-
-    // Mint position NFT
-    positionToken.mint(msg.sender, positionId);
   }
 
   /// ======= UPDATE LP POSITION ======= ///
@@ -840,18 +832,14 @@ contract LiquidityManager is
       premiums_
     );
 
-    // Save new cover ID and update for next
-    uint256 coverId = nextCoverId;
-    nextCoverId++;
+    // Mint cover NFT
+    uint256 coverId = coverToken.mint(msg.sender);
 
     // Map cover to pool for data access
     coverToPool[coverId] = poolId_;
 
     // Create cover in pool
     pool._registerCover(coverId, coverAmount_, premiums_);
-
-    // Mint cover NFT
-    coverToken.mint(msg.sender, coverId);
   }
 
   /// ======= UPDATE COVER ======= ///
@@ -1135,8 +1123,7 @@ contract LiquidityManager is
     // The ration cannot be over 100% of the pool's liquidity (1 RAY)
     if (RayMath.RAY < ratio) revert RatioAbovePoolCapacity();
 
-    // All pools have same strategy since they are compatible
-    uint256 strategyId = _pools[poolA.overlappedPools[0]].strategyId;
+    uint256 strategyId = poolA.strategyId;
     uint256 strategyRewardIndex = strategyManager.getRewardIndex(
       strategyId
     );

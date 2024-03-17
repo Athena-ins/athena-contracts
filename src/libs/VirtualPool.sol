@@ -563,7 +563,7 @@ library VirtualPool {
       self.ticks.removeCoverId(cover.coverIdIndex, cover.lastTick);
     } else {
       // If it is the only cover in the tick then purge the entire tick
-      /// @dev cover will may be be in transitory close state so do not expire it
+      /// @dev cover may be be in transitory close state for update so we don't clear it from pool state
       self._removeTick(cover.lastTick);
     }
 
@@ -582,7 +582,7 @@ library VirtualPool {
   // ======= INTERNAL POOL HELPERS ======= //
 
   /**
-   * @notice Wipes a tick and the premium data of covers within it.
+   * @notice Removes covers in a tick flips its state to uninitialized
    * @param self The pool
    * @param tick_ The tick to remove
    */
@@ -721,7 +721,7 @@ library VirtualPool {
     info.isActive = true;
 
     info.premiumRate = self.getPremiumRate(
-      _utilization(slot0_.coveredCapital, self.totalLiquidity())
+      self._utilizationForCoveredCapital(slot0_.coveredCapital)
     );
 
     /// @dev Skip division by premium rate PERCENTAGE_BASE for precision
@@ -773,7 +773,6 @@ library VirtualPool {
     )
   {
     uint256[] memory coverIds = self.ticks[tick_];
-    uint256 liquidity = self.totalLiquidity();
 
     uint256 coveredCapitalToRemove;
     uint256 nbCovers = coverIds.length;
@@ -784,9 +783,8 @@ library VirtualPool {
 
     uint256 previousPremiumRate = self.currentPremiumRate();
 
-    utilization = _utilization(
-      slot0_.coveredCapital - coveredCapitalToRemove,
-      liquidity
+    utilization = self._utilizationForCoveredCapital(
+      slot0_.coveredCapital - coveredCapitalToRemove
     );
 
     premiumRate = self.getPremiumRate(utilization);
@@ -829,10 +827,8 @@ library VirtualPool {
     uint256 secondsSinceTickStart = remaining;
     uint256 secondsParsed;
 
-    uint256 liquidity = self.totalLiquidity();
-    uint256 utilization = _utilization(
-      slot0.coveredCapital,
-      liquidity
+    uint256 utilization = self._utilizationForCoveredCapital(
+      slot0.coveredCapital
     );
     uint256 premiumRate = self.getPremiumRate(utilization);
 
@@ -1129,6 +1125,13 @@ library VirtualPool {
       );
   }
 
+  function _utilizationForCoveredCapital(
+    VPool storage self,
+    uint256 coveredCapital_
+  ) internal view returns (uint256) {
+    return _utilization(coveredCapital_, self.totalLiquidity());
+  }
+
   /**
    * @notice Computes the current premium rate of the pool based on utilization.
    * @param self The pool
@@ -1142,7 +1145,7 @@ library VirtualPool {
   ) internal view returns (uint256) {
     return
       self.getPremiumRate(
-        _utilization(self.slot0.coveredCapital, self.totalLiquidity())
+        self._utilizationForCoveredCapital(self.slot0.coveredCapital)
       );
   }
 
@@ -1167,10 +1170,9 @@ library VirtualPool {
     uint256 previousPremiumRate = self.currentPremiumRate();
 
     newPremiumRate = self.getPremiumRate(
-      _utilization(
+      self._utilizationForCoveredCapital(
         ((self.slot0.coveredCapital + coveredCapitalToAdd_) -
-          coveredCapitalToRemove_),
-        self.totalLiquidity()
+          coveredCapitalToRemove_)
       )
     );
 

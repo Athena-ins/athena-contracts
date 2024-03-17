@@ -28,6 +28,9 @@ contract AthenaCoverToken is
   ILiquidityManager public liquidityManager;
   string public baseDataURI;
 
+  /// The ID of the next cover to be minted
+  uint256 public nextCoverId;
+
   // ======= CONSTRUCTOR ======= //
 
   constructor(
@@ -65,9 +68,12 @@ contract AthenaCoverToken is
   /// ======= ERC-721 FUNCTIONS ======= ///
 
   function mint(
-    address to,
-    uint256 coverId // equivalent to tokenId
-  ) external onlyLiquidityManager {
+    address to
+  ) external onlyLiquidityManager returns (uint256 coverId) {
+    // Save new cover ID and update for next
+    coverId = nextCoverId;
+    nextCoverId++;
+
     _mint(to, coverId);
   }
 

@@ -28,6 +28,9 @@ contract AthenaPositionToken is
   ILiquidityManager public liquidityManager;
   string public baseDataURI;
 
+  /// The ID of the next token that will be minted.
+  uint256 public nextPositionId;
+
   // ======= CONSTRUCTOR ======= //
 
   constructor(
@@ -68,9 +71,11 @@ contract AthenaPositionToken is
   /// ======= ERC-721 FUNCTIONS ======= ///
 
   function mint(
-    address to,
-    uint256 positionId
-  ) external onlyLiquidityManager {
+    address to
+  ) external onlyLiquidityManager returns (uint256 positionId) {
+    positionId = nextPositionId;
+    nextPositionId++;
+
     _mint(to, positionId);
   }
 
