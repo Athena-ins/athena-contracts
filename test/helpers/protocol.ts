@@ -388,7 +388,7 @@ async function updateCover(
 ): Promise<ContractReceipt> {
   const [userAccount, poolId] = await Promise.all([
     user.getAddress(),
-    contract.covers(coverId).then((cover) => cover.poolId),
+    contract.coverInfo(coverId).then((cover) => cover.poolId),
   ]);
 
   if (BigNumber.from(premiumsToAdd).gt(0)) {

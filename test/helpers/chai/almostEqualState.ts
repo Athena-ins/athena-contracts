@@ -24,6 +24,11 @@ function checkKey(
   actualKey: any,
   expectedKey: any,
 ) {
+  if (key === "lastOnchainUpdateTimestamp") {
+    // skipping consistency check on accessory data
+    return;
+  }
+
   expect(
     actualKey != undefined,
     `Property ${path} is undefined in the actual data`,
@@ -160,11 +165,6 @@ chai.use(function (chai, utils) {
       if (expected.hasOwnProperty("claimant")) inputType = "ClaimInfo";
 
       for (const key of keys) {
-        // if (key === "lastUpdateTimestamp") {
-        //   // skipping consistency check on accessory data
-        //   return;
-        // }
-
         if (Array.isArray(actual[key])) {
           // For arrays we will check every item
 

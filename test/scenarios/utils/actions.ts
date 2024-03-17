@@ -275,10 +275,10 @@ export async function openPosition(
   revertMessage?: string,
   timeTravel?: TimeTravelOptions,
 ) {
-  const { LiquidityManager } = testEnv.contracts;
+  const { LiquidityManager, AthenaPositionToken } = testEnv.contracts;
 
   const [positionId, positionAmount] = await Promise.all([
-    LiquidityManager.nextPositionId(),
+    AthenaPositionToken.nextPositionId(),
     convertToCurrencyDecimals(depositToken, amount),
   ]);
 
@@ -780,7 +780,7 @@ export async function openCover(
   revertMessage?: string,
   timeTravel?: TimeTravelOptions,
 ) {
-  const { LiquidityManager } = testEnv.contracts;
+  const { LiquidityManager, AthenaCoverToken } = testEnv.contracts;
 
   const [amount, premiums] = await Promise.all([
     convertToCurrencyDecimals(coverToken, coverAmount),
@@ -792,7 +792,7 @@ export async function openCover(
       (data) => poolInfoFormat(data),
     );
 
-    const coverId = await LiquidityManager.nextCoverId();
+    const coverId = await AthenaCoverToken.nextCoverId();
 
     const userAddress = await user.getAddress();
     const paymentToken = ERC20__factory.connect(
@@ -1146,8 +1146,3 @@ export async function withdrawCompensation(
     ).to.revertTransactionWith(revertMessage);
   }
 }
-
-// @bw need calcs in claim manager
-// export async function disputeClaim(testEnv: TestEnv, user: Wallet) {}
-// export async function rule(testEnv: TestEnv, user: Wallet) {}
-// export async function overrule(testEnv: TestEnv, user: Wallet) {}

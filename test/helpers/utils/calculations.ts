@@ -615,7 +615,7 @@ export function calcExpectedPoolDataAfterInitiateClaim(
 
   const expect = deepCopy(pool);
 
-  expect.ongoingClaims = pool.ongoingClaims++;
+  expect.ongoingClaims++;
   expect.strategyRewardIndex = strategyRewardIndex;
 
   // These value may be unpredictably changed due to covers expiring during time travel
@@ -671,7 +671,7 @@ export function calcExpectedPoolDataAfterWithdrawCompensation(
 
   expect.strategyRewardIndex = strategyRewardIndex;
 
-  expect.ongoingClaims = pool.ongoingClaims--;
+  expect.ongoingClaims--;
   expect.compensationIds = [...pool.compensationIds, claimId];
 
   if (
@@ -1179,7 +1179,6 @@ export function calcExpectedCoverDataAfterWithdrawCompensation(
   const coverId = tokenDataBefore.coverId;
   const coverAmount = tokenDataBefore.coverAmount.sub(claimAmount);
   const poolId = tokenDataBefore.poolId;
-  const lastTick = tokenDataBefore.lastTick;
 
   const shouldCloseCover =
     claimAmount.eq(tokenDataBefore.coverAmount) ||
@@ -1209,6 +1208,44 @@ export function calcExpectedCoverDataAfterWithdrawCompensation(
     dailyCost = BigNumber.from(0);
     premiumsLeft = BigNumber.from(0);
     isActive = false;
+  }
+
+  let lastTick = poolDataBefore.slot0.tick - 1;
+
+  if (!shouldCloseCover) {
+    const { newPremiumRate: beginPremiumRate } = updatedPremiumRate(
+      expectedPoolData,
+      0,
+      0,
+    );
+
+    const premiumRate = getPremiumRate(
+      expectedPoolData,
+      expectedPoolData.utilizationRate,
+    );
+    const dailyCost = currentDailyCost(
+      coverAmount,
+      beginPremiumRate,
+      premiumRate,
+    );
+
+    const timeElapsed =
+      (expectedPoolData.slot0.tick - poolDataBefore.slot0.tick) *
+      expectedPoolData.slot0.secondsPerTick;
+    const premiumsSpent = dailyCost.mul(timeElapsed).div(24 * 60 * 60);
+
+    const premiumsLeft = tokenDataBefore.premiumsLeft.sub(premiumsSpent);
+
+    const durationInSeconds = RayInt.from(
+      premiumsLeft.mul(constants.YEAR).mul(constants.PERCENTAGE_BASE),
+    )
+      .rayDiv(premiumRate)
+      .div(coverAmount)
+      .toNumber();
+
+    lastTick =
+      poolDataBefore.slot0.tick +
+      Math.floor(durationInSeconds / expectedPoolData.slot0.secondsPerTick);
   }
 
   return {
