@@ -8,6 +8,7 @@ import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 // Libraries
 import { RayMath } from "../libs/RayMath.sol";
 import { VirtualPool } from "../libs/VirtualPool.sol";
+import { PoolMath } from "../libs/PoolMath.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 // Interfaces
@@ -297,13 +298,16 @@ contract LiquidityManager is
     }
 
     uint256 totalLiquidity = pool.totalLiquidity();
-    uint256 utilization = VirtualPool._utilization(
+    uint256 utilization = PoolMath._utilization(
       slot0.coveredCapital,
       totalLiquidity
     );
-    uint256 premiumRate = pool.getPremiumRate(utilization);
+    uint256 premiumRate = PoolMath.getPremiumRate(
+      pool.formula,
+      utilization
+    );
 
-    uint256 liquidityIndexLead = VirtualPool.computeLiquidityIndex(
+    uint256 liquidityIndexLead = PoolMath.computeLiquidityIndex(
       utilization,
       premiumRate,
       // This is the ignoredDuration in the _refresh function

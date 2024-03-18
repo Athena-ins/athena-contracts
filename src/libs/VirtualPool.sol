@@ -5,6 +5,7 @@ pragma solidity 0.8.20;
 import { RayMath } from "../libs/RayMath.sol";
 import { Tick } from "../libs/Tick.sol";
 import { TickBitmap } from "../libs/TickBitmap.sol";
+import { PoolMath } from "../libs/PoolMath.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 // Interfaces
@@ -59,13 +60,6 @@ library VirtualPool {
   uint256 constant FULL_CAPACITY = PERCENTAGE_BASE * RAY;
 
   // ======= STRUCTS ======= //
-
-  struct Formula {
-    uint256 uOptimal;
-    uint256 r0;
-    uint256 rSlope1;
-    uint256 rSlope2;
-  }
 
   struct Slot0 {
     uint32 tick; // The last tick at which the pool's liquidity was updated
@@ -125,13 +119,26 @@ library VirtualPool {
 
   // ======= VIRTUAL STORAGE ======= //
 
+  function getPool(
+    uint64 poolId
+  ) internal pure returns (VPool storage pool) {
+    // Specifies a random position from a hash of a string
+    bytes32 storagePosition = bytes32(
+      uint256(keccak256("diamond.storage.VPool")) + poolId
+    );
+    // Set the position of our struct in contract storage
+    assembly {
+      pool.slot := storagePosition
+    }
+  }
+
   struct VPool {
     uint64 poolId;
     uint256 feeRate; // amount of fees on premiums in RAY
     uint256 leverageFeePerPool; // amount of fees per pool when using leverage
     IEcclesiaDao dao;
     IStrategyManager strategyManager;
-    Formula formula;
+    PoolMath.Formula formula;
     Slot0 slot0;
     uint256 strategyId;
     address paymentAsset; // asset used to pay LP premiums
@@ -205,7 +212,7 @@ library VirtualPool {
     self.feeRate = params.feeRate;
     self.leverageFeePerPool = params.leverageFeePerPool;
 
-    self.formula = Formula({
+    self.formula = PoolMath.Formula({
       uOptimal: params.uOptimal,
       r0: params.r0,
       rSlope1: params.rSlope1,
@@ -510,8 +517,17 @@ library VirtualPool {
      * */
     if (available < coverAmount_) revert InsufficientCapacity();
 
-    (uint256 newPremiumRate, uint256 newSecondsPerTick) = self
-      .updatedPremiumRate(coverAmount_, 0);
+    uint256 liquidity = self.totalLiquidity();
+
+    (uint256 newPremiumRate, uint256 newSecondsPerTick, ) = PoolMath
+      .updatePoolMarket(
+        self.formula,
+        self.slot0.secondsPerTick,
+        liquidity,
+        self.slot0.coveredCapital,
+        liquidity,
+        self.slot0.coveredCapital + coverAmount_
+      );
 
     uint256 durationInSeconds = (premiums_ * YEAR * PERCENTAGE_BASE)
       .rayDiv(newPremiumRate) / coverAmount_;
@@ -567,14 +583,19 @@ library VirtualPool {
       self._removeTick(cover.lastTick);
     }
 
-    (, uint256 newSecondsPerTick) = self.updatedPremiumRate(
-      0,
-      cover.coverAmount
+    uint256 liquidity = self.totalLiquidity();
+
+    (, self.slot0.secondsPerTick, ) = PoolMath.updatePoolMarket(
+      self.formula,
+      self.slot0.secondsPerTick,
+      liquidity,
+      self.slot0.coveredCapital,
+      liquidity,
+      self.slot0.coveredCapital - cover.coverAmount
     );
 
     self.slot0.remainingCovers--;
     self.slot0.coveredCapital -= cover.coverAmount;
-    self.slot0.secondsPerTick = newSecondsPerTick;
 
     self.covers[coverId_].lastTick = self.slot0.tick - 1;
   }
@@ -611,25 +632,23 @@ library VirtualPool {
   ) internal {
     uint256 liquidity = self.totalLiquidity();
     uint256 available = self.availableLiquidity();
-    uint256 totalCovered = self.slot0.coveredCapital;
 
     // Skip liquidity check for deposits & payouts
     if (!skipLimitCheck_)
       if (available + liquidityToAdd_ < liquidityToRemove_)
         revert NotEnoughLiquidityForRemoval();
 
-    uint256 previousPremiumRate = self.currentPremiumRate();
-    uint256 newPremiumRate = self.getPremiumRate(
-      _utilization(
-        totalCovered,
-        (liquidity + liquidityToAdd_) - liquidityToRemove_
-      )
-    );
+    // uint256 totalCovered = self.slot0.coveredCapital;
+    uint256 newTotalLiquidity = (liquidity + liquidityToAdd_) -
+      liquidityToRemove_;
 
-    self.slot0.secondsPerTick = secondsPerTick(
+    (, self.slot0.secondsPerTick, ) = PoolMath.updatePoolMarket(
+      self.formula,
       self.slot0.secondsPerTick,
-      previousPremiumRate,
-      newPremiumRate
+      liquidity,
+      self.slot0.coveredCapital,
+      newTotalLiquidity,
+      self.slot0.coveredCapital
     );
   }
 
@@ -720,8 +739,12 @@ library VirtualPool {
 
     info.isActive = true;
 
-    info.premiumRate = self.getPremiumRate(
-      self._utilizationForCoveredCapital(slot0_.coveredCapital)
+    info.premiumRate = PoolMath.getPremiumRate(
+      self.formula,
+      PoolMath._utilization(
+        slot0_.coveredCapital,
+        self.totalLiquidity()
+      )
     );
 
     /// @dev Skip division by premium rate PERCENTAGE_BASE for precision
@@ -729,7 +752,7 @@ library VirtualPool {
       .coverAmount
       .rayMul(cover.beginPremiumRate)
       .rayDiv(365);
-    info.dailyCost = getDailyCost(
+    info.dailyCost = PoolMath.getDailyCost(
       beginDailyCost,
       cover.beginPremiumRate,
       info.premiumRate
@@ -775,28 +798,32 @@ library VirtualPool {
     uint256[] memory coverIds = self.ticks[tick_];
 
     uint256 coveredCapitalToRemove;
+
     uint256 nbCovers = coverIds.length;
     for (uint256 i; i < nbCovers; i++) {
       // Add all the size of all covers in the tick
       coveredCapitalToRemove += self.covers[coverIds[i]].coverAmount;
     }
 
-    uint256 previousPremiumRate = self.currentPremiumRate();
+    {
+      uint256 liquidity = self.totalLiquidity();
+      uint256 newCoveredCapital = slot0_.coveredCapital -
+        coveredCapitalToRemove;
 
-    utilization = self._utilizationForCoveredCapital(
-      slot0_.coveredCapital - coveredCapitalToRemove
-    );
-
-    premiumRate = self.getPremiumRate(utilization);
+      (premiumRate, slot0_.secondsPerTick, utilization) = PoolMath
+        .updatePoolMarket(
+          self.formula,
+          self.slot0.secondsPerTick,
+          liquidity,
+          self.slot0.coveredCapital,
+          liquidity,
+          newCoveredCapital
+        );
+    }
 
     // These are the mutated values
     slot0_.coveredCapital -= coveredCapitalToRemove;
     slot0_.remainingCovers -= nbCovers;
-    slot0_.secondsPerTick = secondsPerTick(
-      slot0_.secondsPerTick,
-      previousPremiumRate,
-      premiumRate
-    );
 
     return (slot0_, utilization, premiumRate);
   }
@@ -823,14 +850,18 @@ library VirtualPool {
     // If the remaining time is less than the tick spacing then return the slot0
     if (remaining < slot0.secondsPerTick) return slot0;
 
+    uint256 utilization = PoolMath._utilization(
+      slot0.coveredCapital,
+      self.totalLiquidity()
+    );
+    uint256 premiumRate = PoolMath.getPremiumRate(
+      self.formula,
+      utilization
+    );
+
     // Default to ignore remaining time in case we do not enter loop
     uint256 secondsSinceTickStart = remaining;
     uint256 secondsParsed;
-
-    uint256 utilization = self._utilizationForCoveredCapital(
-      slot0.coveredCapital
-    );
-    uint256 premiumRate = self.getPremiumRate(utilization);
 
     // @bw could opti here by searching for next initialized tick to compute the liquidity index with same premium & utilization in one go parsing multiple 256 value bitmaps. This should exit when remaining < secondsToNextTickEnd before finishing with the partial tick operation.
     while (slot0.secondsPerTick <= remaining) {
@@ -875,7 +906,7 @@ library VirtualPool {
         remaining = 0;
       }
 
-      slot0.liquidityIndex += computeLiquidityIndex(
+      slot0.liquidityIndex += PoolMath.computeLiquidityIndex(
         utilization,
         premiumRate,
         secondsParsed
@@ -951,7 +982,7 @@ library VirtualPool {
           .liquidityIndexBeforeClaim[poolId];
 
         // Compute the rewards accumulated up to the claim
-        info.coverRewards += getCoverRewards(
+        info.coverRewards += PoolMath.getCoverRewards(
           info.newUserCapital,
           info.newLpInfo.beginLiquidityIndex,
           liquidityIndexBeforeClaim
@@ -991,7 +1022,7 @@ library VirtualPool {
       params.latestStrategyRewardIndex
     );
 
-    info.coverRewards += getCoverRewards(
+    info.coverRewards += PoolMath.getCoverRewards(
       info.newUserCapital,
       info.newLpInfo.beginLiquidityIndex,
       params.currentLiquidityIndex
@@ -1002,212 +1033,212 @@ library VirtualPool {
     info.newLpInfo.beginClaimIndex = endCompensationId;
   }
 
-  // ======= PURE HELPERS ======= //
+  // // ======= PURE HELPERS ======= //
 
-  /**
-   * @notice Computes the premium rate of a cover,
-   * the premium rate is the APR cost for a cover  ,
-   * these are paid by cover buyer on their cover amount.
-   *
-   * @param self The pool
-   * @param utilizationRate_ The utilization rate of the pool
-   *
-   * @return The premium rate of the cover expressed in rays
-   *
-   * @dev Not pure since reads self but pure for all practical purposes
-   */
-  function getPremiumRate(
-    VPool storage self,
-    uint256 utilizationRate_
-  ) internal view returns (uint256 /* premiumRate */) {
-    Formula storage formula = self.formula;
+  // /**
+  //  * @notice Computes the premium rate of a cover,
+  //  * the premium rate is the APR cost for a cover  ,
+  //  * these are paid by cover buyer on their cover amount.
+  //  *
+  //  * @param self The pool
+  //  * @param utilizationRate_ The utilization rate of the pool
+  //  *
+  //  * @return The premium rate of the cover expressed in rays
+  //  *
+  //  * @dev Not pure since reads self but pure for all practical purposes
+  //  */
+  // function getPremiumRate(
+  //   VPool storage self,
+  //   uint256 utilizationRate_
+  // ) internal view returns (uint256 /* premiumRate */) {
+  //   Formula storage formula = self.formula;
 
-    if (utilizationRate_ < formula.uOptimal) {
-      // Return base rate + proportional slope 1 rate
-      return
-        formula.r0 +
-        formula.rSlope1.rayMul(
-          utilizationRate_.rayDiv(formula.uOptimal)
-        );
-    } else if (utilizationRate_ < FULL_CAPACITY) {
-      // Return base rate + slope 1 rate + proportional slope 2 rate
-      return
-        formula.r0 +
-        formula.rSlope1 +
-        formula.rSlope2.rayMul(
-          (utilizationRate_ - formula.uOptimal).rayDiv(
-            FULL_CAPACITY - formula.uOptimal
-          )
-        );
-    } else {
-      // Return base rate + slope 1 rate + slope 2 rate
-      /**
-       * @dev Premium rate is capped because in case of overusage the
-       * liquidity providers are exposed to the same risk as 100% usage but
-       * cover buyers are not fully covered.
-       * This means cover buyers only pay for the effective cover they have.
-       */
-      return formula.r0 + formula.rSlope1 + formula.rSlope2;
-    }
-  }
+  //   if (utilizationRate_ < formula.uOptimal) {
+  //     // Return base rate + proportional slope 1 rate
+  //     return
+  //       formula.r0 +
+  //       formula.rSlope1.rayMul(
+  //         utilizationRate_.rayDiv(formula.uOptimal)
+  //       );
+  //   } else if (utilizationRate_ < FULL_CAPACITY) {
+  //     // Return base rate + slope 1 rate + proportional slope 2 rate
+  //     return
+  //       formula.r0 +
+  //       formula.rSlope1 +
+  //       formula.rSlope2.rayMul(
+  //         (utilizationRate_ - formula.uOptimal).rayDiv(
+  //           FULL_CAPACITY - formula.uOptimal
+  //         )
+  //       );
+  //   } else {
+  //     // Return base rate + slope 1 rate + slope 2 rate
+  //     /**
+  //      * @dev Premium rate is capped because in case of overusage the
+  //      * liquidity providers are exposed to the same risk as 100% usage but
+  //      * cover buyers are not fully covered.
+  //      * This means cover buyers only pay for the effective cover they have.
+  //      */
+  //     return formula.r0 + formula.rSlope1 + formula.rSlope2;
+  //   }
+  // }
 
-  /**
-   * @notice Computes the liquidity index for a given period
-   * @param utilizationRate_ The utilization rate
-   * @param premiumRate_ The premium rate
-   * @param timeSeconds_ The time in seconds
-   * @return The liquidity index to add for the given time
-   */
-  function computeLiquidityIndex(
-    uint256 utilizationRate_,
-    uint256 premiumRate_,
-    uint256 timeSeconds_
-  ) internal pure returns (uint /* liquidityIndex */) {
-    return
-      utilizationRate_
-        .rayMul(premiumRate_)
-        .rayMul(timeSeconds_)
-        .rayDiv(YEAR);
-  }
+  // /**
+  //  * @notice Computes the liquidity index for a given period
+  //  * @param utilizationRate_ The utilization rate
+  //  * @param premiumRate_ The premium rate
+  //  * @param timeSeconds_ The time in seconds
+  //  * @return The liquidity index to add for the given time
+  //  */
+  // function computeLiquidityIndex(
+  //   uint256 utilizationRate_,
+  //   uint256 premiumRate_,
+  //   uint256 timeSeconds_
+  // ) internal pure returns (uint /* liquidityIndex */) {
+  //   return
+  //     utilizationRate_
+  //       .rayMul(premiumRate_)
+  //       .rayMul(timeSeconds_)
+  //       .rayDiv(YEAR);
+  // }
 
-  /**
-   * @notice Computes the premiums or interests earned by a liquidity position
-   * @param userCapital_ The amount of liquidity in the position
-   * @param endLiquidityIndex_ The end liquidity index
-   * @param startLiquidityIndex_ The start liquidity index
-   */
-  function getCoverRewards(
-    uint256 userCapital_,
-    uint256 startLiquidityIndex_,
-    uint256 endLiquidityIndex_
-  ) internal pure returns (uint256) {
-    return
-      (userCapital_.rayMul(endLiquidityIndex_) -
-        userCapital_.rayMul(startLiquidityIndex_)) / 10_000;
-  }
+  // /**
+  //  * @notice Computes the premiums or interests earned by a liquidity position
+  //  * @param userCapital_ The amount of liquidity in the position
+  //  * @param endLiquidityIndex_ The end liquidity index
+  //  * @param startLiquidityIndex_ The start liquidity index
+  //  */
+  // function getCoverRewards(
+  //   uint256 userCapital_,
+  //   uint256 startLiquidityIndex_,
+  //   uint256 endLiquidityIndex_
+  // ) internal pure returns (uint256) {
+  //   return
+  //     (userCapital_.rayMul(endLiquidityIndex_) -
+  //       userCapital_.rayMul(startLiquidityIndex_)) / 10_000;
+  // }
 
-  /**
-   * @notice Computes the new daily cost of a cover,
-   * the emmission rate is the daily cost of a cover  .
-   *
-   * @param oldDailyCost_ The daily cost of the cover before the change
-   * @param oldPremiumRate_ The premium rate of the cover before the change
-   * @param newPremiumRate_ The premium rate of the cover after the change
-   *
-   * @return The new daily cost of the cover expressed in tokens/day
-   */
-  function getDailyCost(
-    uint256 oldDailyCost_,
-    uint256 oldPremiumRate_,
-    uint256 newPremiumRate_
-  ) internal pure returns (uint256) {
-    return (oldDailyCost_ * newPremiumRate_) / oldPremiumRate_;
-  }
+  // /**
+  //  * @notice Computes the new daily cost of a cover,
+  //  * the emmission rate is the daily cost of a cover  .
+  //  *
+  //  * @param oldDailyCost_ The daily cost of the cover before the change
+  //  * @param oldPremiumRate_ The premium rate of the cover before the change
+  //  * @param newPremiumRate_ The premium rate of the cover after the change
+  //  *
+  //  * @return The new daily cost of the cover expressed in tokens/day
+  //  */
+  // function getDailyCost(
+  //   uint256 oldDailyCost_,
+  //   uint256 oldPremiumRate_,
+  //   uint256 newPremiumRate_
+  // ) internal pure returns (uint256) {
+  //   return (oldDailyCost_ * newPremiumRate_) / oldPremiumRate_;
+  // }
 
-  /**
-   * @notice Computes the new seconds per tick of a pool,
-   * the seconds per tick is the time between two ticks  .
-   *
-   * @param oldSecondsPerTick_ The seconds per tick before the change
-   * @param oldPremiumRate_ The premium rate before the change
-   * @param newPremiumRate_ The premium rate after the change
-   *
-   * @return The new seconds per tick of the pool
-   */
-  function secondsPerTick(
-    uint256 oldSecondsPerTick_,
-    uint256 oldPremiumRate_,
-    uint256 newPremiumRate_
-  ) internal pure returns (uint256) {
-    return
-      oldSecondsPerTick_.rayMul(oldPremiumRate_).rayDiv(
-        newPremiumRate_
-      );
-  }
+  // /**
+  //  * @notice Computes the new seconds per tick of a pool,
+  //  * the seconds per tick is the time between two ticks  .
+  //  *
+  //  * @param oldSecondsPerTick_ The seconds per tick before the change
+  //  * @param oldPremiumRate_ The premium rate before the change
+  //  * @param newPremiumRate_ The premium rate after the change
+  //  *
+  //  * @return The new seconds per tick of the pool
+  //  */
+  // function secondsPerTick(
+  //   uint256 oldSecondsPerTick_,
+  //   uint256 oldPremiumRate_,
+  //   uint256 newPremiumRate_
+  // ) internal pure returns (uint256) {
+  //   return
+  //     oldSecondsPerTick_.rayMul(oldPremiumRate_).rayDiv(
+  //       newPremiumRate_
+  //     );
+  // }
 
-  function _utilizationForCoveredCapital(
-    VPool storage self,
-    uint256 coveredCapital_
-  ) internal view returns (uint256) {
-    return _utilization(coveredCapital_, self.totalLiquidity());
-  }
+  // function _utilizationForCoveredCapital(
+  //   VPool storage self,
+  //   uint256 coveredCapital_
+  // ) internal view returns (uint256) {
+  //   return _utilization(coveredCapital_, self.totalLiquidity());
+  // }
 
-  /**
-   * @notice Computes the current premium rate of the pool based on utilization.
-   * @param self The pool
-   *
-   * @return The current premium rate of the pool
-   *
-   * @dev Not pure since reads self but pure for all practical purposes
-   */
-  function currentPremiumRate(
-    VPool storage self
-  ) internal view returns (uint256) {
-    return
-      self.getPremiumRate(
-        self._utilizationForCoveredCapital(self.slot0.coveredCapital)
-      );
-  }
+  // /**
+  //  * @notice Computes the current premium rate of the pool based on utilization.
+  //  * @param self The pool
+  //  *
+  //  * @return The current premium rate of the pool
+  //  *
+  //  * @dev Not pure since reads self but pure for all practical purposes
+  //  */
+  // function currentPremiumRate(
+  //   VPool storage self
+  // ) internal view returns (uint256) {
+  //   return
+  //     self.getPremiumRate(
+  //       self._utilizationForCoveredCapital(self.slot0.coveredCapital)
+  //     );
+  // }
 
-  /**
-   * @notice Computes the updated premium rate of the pool based on utilization.
-   * @param self The pool
-   * @param coveredCapitalToAdd_ The amount of covered capital to add
-   * @param coveredCapitalToRemove_ The amount of covered capital to remove
-   *
-   * @return newPremiumRate The updated premium rate of the pool
-   * @return newSecondsPerTick The updated seconds per tick of the pool
-   */
-  function updatedPremiumRate(
-    VPool storage self,
-    uint256 coveredCapitalToAdd_,
-    uint256 coveredCapitalToRemove_
-  )
-    internal
-    view
-    returns (uint256 newPremiumRate, uint256 newSecondsPerTick)
-  {
-    uint256 previousPremiumRate = self.currentPremiumRate();
+  // /**
+  //  * @notice Computes the updated premium rate of the pool based on utilization.
+  //  * @param self The pool
+  //  * @param coveredCapitalToAdd_ The amount of covered capital to add
+  //  * @param coveredCapitalToRemove_ The amount of covered capital to remove
+  //  *
+  //  * @return newPremiumRate The updated premium rate of the pool
+  //  * @return newSecondsPerTick The updated seconds per tick of the pool
+  //  */
+  // function updatedPremiumRate(
+  //   VPool storage self,
+  //   uint256 coveredCapitalToAdd_,
+  //   uint256 coveredCapitalToRemove_
+  // )
+  //   internal
+  //   view
+  //   returns (uint256 newPremiumRate, uint256 newSecondsPerTick)
+  // {
+  //   uint256 previousPremiumRate = self.currentPremiumRate();
 
-    newPremiumRate = self.getPremiumRate(
-      self._utilizationForCoveredCapital(
-        ((self.slot0.coveredCapital + coveredCapitalToAdd_) -
-          coveredCapitalToRemove_)
-      )
-    );
+  //   newPremiumRate = self.getPremiumRate(
+  //     self._utilizationForCoveredCapital(
+  //       ((self.slot0.coveredCapital + coveredCapitalToAdd_) -
+  //         coveredCapitalToRemove_)
+  //     )
+  //   );
 
-    newSecondsPerTick = secondsPerTick(
-      self.slot0.secondsPerTick,
-      previousPremiumRate,
-      newPremiumRate
-    );
-  }
+  //   newSecondsPerTick = secondsPerTick(
+  //     self.slot0.secondsPerTick,
+  //     previousPremiumRate,
+  //     newPremiumRate
+  //   );
+  // }
 
-  /**
-   * @notice Computes the percentage of the pool's liquidity used for covers.
-   * @param coveredCapital_ The amount of covered capital
-   * @param liquidity_ The total amount liquidity
-   *
-   * @return rate The utilization rate of the pool
-   *
-   * @dev The utilization rate is capped at 100%.
-   */
-  function _utilization(
-    uint256 coveredCapital_,
-    uint256 liquidity_
-  ) internal pure returns (uint256 /* rate */) {
-    // If the pool has no liquidity then the utilization rate is 0
-    if (liquidity_ == 0) return 0;
+  // /**
+  //  * @notice Computes the percentage of the pool's liquidity used for covers.
+  //  * @param coveredCapital_ The amount of covered capital
+  //  * @param liquidity_ The total amount liquidity
+  //  *
+  //  * @return rate The utilization rate of the pool
+  //  *
+  //  * @dev The utilization rate is capped at 100%.
+  //  */
+  // function _utilization(
+  //   uint256 coveredCapital_,
+  //   uint256 liquidity_
+  // ) internal pure returns (uint256 /* rate */) {
+  //   // If the pool has no liquidity then the utilization rate is 0
+  //   if (liquidity_ == 0) return 0;
 
-    /**
-     * @dev Utilization rate is capped at 100% because in case of overusage the
-     * liquidity providers are exposed to the same risk as 100% usage but
-     * cover buyers are not fully covered.
-     * This means cover buyers only pay for the effective cover they have.
-     */
-    if (liquidity_ < coveredCapital_) return FULL_CAPACITY;
+  //   /**
+  //    * @dev Utilization rate is capped at 100% because in case of overusage the
+  //    * liquidity providers are exposed to the same risk as 100% usage but
+  //    * cover buyers are not fully covered.
+  //    * This means cover buyers only pay for the effective cover they have.
+  //    */
+  //   if (liquidity_ < coveredCapital_) return FULL_CAPACITY;
 
-    // Get a base PERCENTAGE_BASE percentage
-    return (coveredCapital_ * PERCENTAGE_BASE).rayDiv(liquidity_);
-  }
+  //   // Get a base PERCENTAGE_BASE percentage
+  //   return (coveredCapital_ * PERCENTAGE_BASE).rayDiv(liquidity_);
+  // }
 }

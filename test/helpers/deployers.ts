@@ -44,6 +44,9 @@ import {
   AthenaPositionToken,
   AthenaToken__factory,
   AthenaToken,
+  // Libs
+  PoolMath__factory,
+  PoolMath,
   // Other
   // TestableVirtualPool__factory,
   // TestableVirtualPool,
@@ -60,6 +63,13 @@ import { BigNumber, Wallet, Signer } from "ethers";
 // ================================= //
 // === Deploy contract functions === //
 // ================================= //
+
+export async function deployPoolMath(
+  signer: Signer,
+  args: Parameters<PoolMath__factory["deploy"]>,
+): Promise<PoolMath> {
+  return new PoolMath__factory(signer).deploy(...args);
+}
 
 export async function deployMockArbitrator(
   signer: Signer,
@@ -85,8 +95,14 @@ export async function deployClaimManager(
 export async function deployLiquidityManager(
   signer: Signer,
   args: Parameters<LiquidityManager__factory["deploy"]>,
+  libAddresses: { PoolMath: string },
 ): Promise<LiquidityManager> {
-  return new LiquidityManager__factory(signer).deploy(...args);
+  return new LiquidityManager__factory(
+    {
+      ["src/libs/PoolMath.sol:PoolMath"]: libAddresses.PoolMath,
+    },
+    signer,
+  ).deploy(...args);
 }
 
 // export async function deployTestableLiquidityManager(
@@ -230,6 +246,7 @@ export async function deployAllContractsAndInitializeProtocol(
     "AthenaPositionToken",
     "AthenaToken",
     "_approve",
+    "PoolMath",
     "ClaimManager",
     "StrategyManager",
     "LiquidityManager",
@@ -279,6 +296,10 @@ export async function deployAllContractsAndInitializeProtocol(
     ),
   );
 
+  // ======= Libs ======= //
+
+  const PoolMath = await deployPoolMath(deployer, []);
+
   // ======= Managers ======= //
 
   const ClaimManager = await deployClaimManager(deployer, [
@@ -298,18 +319,24 @@ export async function deployAllContractsAndInitializeProtocol(
     config.performanceFee, // performanceFee
   ]);
 
-  const LiquidityManager = await deployLiquidityManager(deployer, [
-    deployedAt.AthenaPositionToken,
-    deployedAt.AthenaCoverToken,
-    deployedAt.Staking,
-    deployedAt.FarmingRange,
-    deployedAt.EcclesiaDao,
-    deployedAt.StrategyManager,
-    deployedAt.ClaimManager,
-    config.withdrawDelay,
-    config.maxLeverage,
-    config.leverageFeePerPool,
-  ]);
+  const LiquidityManager = await deployLiquidityManager(
+    deployer,
+    [
+      deployedAt.AthenaPositionToken,
+      deployedAt.AthenaCoverToken,
+      deployedAt.Staking,
+      deployedAt.FarmingRange,
+      deployedAt.EcclesiaDao,
+      deployedAt.StrategyManager,
+      deployedAt.ClaimManager,
+      config.withdrawDelay,
+      config.maxLeverage,
+      config.leverageFeePerPool,
+    ],
+    {
+      PoolMath: PoolMath.address,
+    },
+  );
 
   const campaignStartBlock = (await getCurrentBlockNumber()) + 4;
   const RewardManager = await deployRewardManager(deployer, [

@@ -3,6 +3,7 @@ pragma solidity 0.8.20;
 
 // libraries
 import { VirtualPool } from "../libs/VirtualPool.sol";
+import { PoolMath } from "../libs/PoolMath.sol";
 // interfaces
 import { IEcclesiaDao } from "../interfaces/IEcclesiaDao.sol";
 import { IStrategyManager } from "../interfaces/IStrategyManager.sol";
@@ -49,7 +50,7 @@ interface ILiquidityManager {
     uint256 leverageFeePerPool; // amount of fees per pool when using leverage
     IEcclesiaDao dao;
     IStrategyManager strategyManager;
-    VirtualPool.Formula formula;
+    PoolMath.Formula formula;
     VirtualPool.Slot0 slot0;
     uint256 strategyId;
     address paymentAsset; // asset used to pay LP premiums
