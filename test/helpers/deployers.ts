@@ -47,6 +47,8 @@ import {
   // Libs
   PoolMath__factory,
   PoolMath,
+  VirtualPool__factory,
+  VirtualPool,
   // Other
   // TestableVirtualPool__factory,
   // TestableVirtualPool,
@@ -69,6 +71,19 @@ export async function deployPoolMath(
   args: Parameters<PoolMath__factory["deploy"]>,
 ): Promise<PoolMath> {
   return new PoolMath__factory(signer).deploy(...args);
+}
+
+export async function deployVirtualPool(
+  signer: Signer,
+  args: Parameters<VirtualPool__factory["deploy"]>,
+  libAddresses: { PoolMath: string },
+): Promise<VirtualPool> {
+  return new VirtualPool__factory(
+    {
+      ["src/libs/PoolMath.sol:PoolMath"]: libAddresses.PoolMath,
+    },
+    signer,
+  ).deploy(...args);
 }
 
 export async function deployMockArbitrator(
@@ -95,11 +110,12 @@ export async function deployClaimManager(
 export async function deployLiquidityManager(
   signer: Signer,
   args: Parameters<LiquidityManager__factory["deploy"]>,
-  libAddresses: { PoolMath: string },
+  libAddresses: { PoolMath: string; VirtualPool: string },
 ): Promise<LiquidityManager> {
   return new LiquidityManager__factory(
     {
       ["src/libs/PoolMath.sol:PoolMath"]: libAddresses.PoolMath,
+      ["src/libs/VirtualPool.sol:VirtualPool"]: libAddresses.VirtualPool,
     },
     signer,
   ).deploy(...args);
@@ -247,6 +263,7 @@ export async function deployAllContractsAndInitializeProtocol(
     "AthenaToken",
     "_approve",
     "PoolMath",
+    "VirtualPool",
     "ClaimManager",
     "StrategyManager",
     "LiquidityManager",
@@ -299,6 +316,9 @@ export async function deployAllContractsAndInitializeProtocol(
   // ======= Libs ======= //
 
   const PoolMath = await deployPoolMath(deployer, []);
+  const VirtualPool = await deployVirtualPool(deployer, [], {
+    PoolMath: PoolMath.address,
+  });
 
   // ======= Managers ======= //
 
@@ -335,6 +355,7 @@ export async function deployAllContractsAndInitializeProtocol(
     ],
     {
       PoolMath: PoolMath.address,
+      VirtualPool: VirtualPool.address,
     },
   );
 
