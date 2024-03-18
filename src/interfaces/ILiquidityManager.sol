@@ -72,13 +72,20 @@ interface ILiquidityManager {
     uint256 liquidityIndexLead;
   }
 
+  function strategyManager() external view returns (IStrategyManager);
+
   function positions(
     uint256 tokenId_
   ) external view returns (Position memory);
 
-  function coverPoolId(
+  function coverToPool(
     uint256 tokenId_
   ) external view returns (uint64);
+
+  function poolOverlaps(
+    uint64 poolIdA_,
+    uint64 poolIdB_
+  ) external view returns (uint256);
 
   function coverInfo(
     uint256 tokenId_

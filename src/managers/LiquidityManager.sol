@@ -8,8 +8,8 @@ import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 // Libraries
 import { RayMath } from "../libs/RayMath.sol";
 import { VirtualPool } from "../libs/VirtualPool.sol";
-import { PoolMath } from "../libs/PoolMath.sol";
 import { DataTypes } from "../libs/DataTypes.sol";
+import { AthenaDataProvider } from "../misc/AthenaDataProvider.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 // Interfaces
@@ -177,56 +177,7 @@ contract LiquidityManager is
     uint256 positionId_
   ) external view returns (PositionRead memory) {
     Position storage position = _positions[positionId_];
-
-    uint256[] memory coverRewards = new uint256[](
-      position.poolIds.length
-    );
-    VirtualPool.UpdatedPositionInfo memory info;
-
-    DataTypes.VPool storage pool = VirtualPool.getPool(
-      position.poolIds[0]
-    );
-
-    // All pools have same strategy since they are compatible
-    uint256 latestStrategyRewardIndex = strategyManager
-      .getRewardIndex(pool.strategyId);
-
-    for (uint256 i; i < position.poolIds.length; i++) {
-      uint256 currentLiquidityIndex = VirtualPool
-        ._refresh(position.poolIds[i], block.timestamp)
-        .liquidityIndex;
-
-      info = VirtualPool._getUpdatedPositionInfo(
-        position.poolIds[i],
-        position.poolIds,
-        VirtualPool.UpdatePositionParams({
-          tokenId: positionId_,
-          currentLiquidityIndex: currentLiquidityIndex,
-          userCapital: position.supplied,
-          strategyRewardIndex: position.strategyRewardIndex,
-          latestStrategyRewardIndex: latestStrategyRewardIndex,
-          strategyId: pool.strategyId,
-          itCompounds: pool.strategyManager.itCompounds(
-            pool.strategyId
-          ),
-          endCompensationId: pool.compensationIds.length,
-          nbPools: position.poolIds.length
-        })
-      );
-
-      coverRewards[i] = info.coverRewards;
-    }
-
-    return
-      PositionRead({
-        supplied: position.supplied,
-        commitWithdrawalTimestamp: position.commitWithdrawalTimestamp,
-        strategyRewardIndex: latestStrategyRewardIndex,
-        poolIds: position.poolIds,
-        newUserCapital: info.newUserCapital,
-        coverRewards: coverRewards,
-        strategyRewards: info.strategyRewards
-      });
+    return AthenaDataProvider.positionInfo(position, positionId_);
   }
 
   /**
@@ -237,37 +188,18 @@ contract LiquidityManager is
   function coverInfo(
     uint256 coverId_
   ) external view returns (CoverRead memory) {
-    uint64 poolId = coverToPool[coverId_];
-    DataTypes.VPool storage pool = VirtualPool.getPool(poolId);
-
-    VirtualPool.CoverInfo memory info = VirtualPool
-      ._computeRefreshedCoverInfo(poolId, coverId_);
-
-    uint32 lastTick = pool.covers[coverId_].lastTick;
-    uint256 coverAmount = pool.covers[coverId_].coverAmount;
-
-    return
-      CoverRead({
-        coverId: coverId_,
-        poolId: poolId,
-        coverAmount: coverAmount,
-        premiumsLeft: info.premiumsLeft,
-        dailyCost: info.dailyCost,
-        premiumRate: info.premiumRate,
-        isActive: info.isActive,
-        lastTick: lastTick
-      });
+    return AthenaDataProvider.coverInfo(coverId_);
   }
 
   /**
-   * @notice Returns the pool ID of a cover
-   * @param coverId_ The ID of the cover
-   * @return The pool ID of the cover
+   * @notice Returns the virtual pool's storage
+   * @param poolId_ The ID of the pool
+   * @return The virtual pool's storage
    */
-  function coverPoolId(
-    uint256 coverId_
-  ) external view returns (uint64) {
-    return coverToPool[coverId_];
+  function poolInfo(
+    uint64 poolId_
+  ) external view returns (VPoolRead memory) {
+    return AthenaDataProvider.poolInfo(poolId_);
   }
 
   /**
@@ -280,84 +212,6 @@ contract LiquidityManager is
   ) public view returns (bool) {
     return
       VirtualPool._isCoverActive(coverToPool[coverId_], coverId_);
-  }
-
-  /**
-   * @notice Returns the virtual pool's storage
-   * @param poolId_ The ID of the pool
-   * @return The virtual pool's storage
-   */
-  function poolInfo(
-    uint64 poolId_
-  ) external view returns (VPoolRead memory) {
-    DataTypes.VPool storage pool = VirtualPool.getPool(poolId_);
-
-    // Save the last update timestamp to know when the pool was last updated onchain
-    uint256 lastOnchainUpdateTimestamp = pool
-      .slot0
-      .lastUpdateTimestamp;
-
-    DataTypes.Slot0 memory slot0 = VirtualPool._refresh(
-      poolId_,
-      block.timestamp
-    );
-
-    uint256 nbOverlappedPools = pool.overlappedPools.length;
-    uint256[] memory overlappedCapital = new uint256[](
-      nbOverlappedPools
-    );
-    for (uint256 i; i < nbOverlappedPools; i++) {
-      overlappedCapital[i] = poolOverlaps(
-        pool.poolId,
-        pool.overlappedPools[i]
-      );
-    }
-
-    uint256 totalLiquidity = VirtualPool.totalLiquidity(poolId_);
-    uint256 utilization = PoolMath._utilization(
-      slot0.coveredCapital,
-      totalLiquidity
-    );
-    uint256 premiumRate = PoolMath.getPremiumRate(
-      pool.formula,
-      utilization
-    );
-
-    uint256 liquidityIndexLead = PoolMath.computeLiquidityIndex(
-      utilization,
-      premiumRate,
-      // This is the ignoredDuration in the _refresh function
-      block.timestamp - slot0.lastUpdateTimestamp
-    );
-
-    return
-      VPoolRead({
-        poolId: pool.poolId,
-        feeRate: pool.feeRate,
-        leverageFeePerPool: pool.leverageFeePerPool,
-        dao: pool.dao,
-        strategyManager: pool.strategyManager,
-        formula: pool.formula,
-        slot0: slot0,
-        strategyId: pool.strategyId,
-        paymentAsset: pool.paymentAsset,
-        underlyingAsset: pool.underlyingAsset,
-        wrappedAsset: pool.wrappedAsset,
-        isPaused: pool.isPaused,
-        overlappedPools: pool.overlappedPools,
-        ongoingClaims: pool.ongoingClaims,
-        compensationIds: pool.compensationIds,
-        overlappedCapital: overlappedCapital,
-        utilizationRate: utilization,
-        totalLiquidity: totalLiquidity,
-        availableLiquidity: VirtualPool.availableLiquidity(poolId_),
-        strategyRewardIndex: strategyManager.getRewardIndex(
-          pool.strategyId
-        ),
-        lastOnchainUpdateTimestamp: lastOnchainUpdateTimestamp,
-        premiumRate: premiumRate,
-        liquidityIndexLead: liquidityIndexLead
-      });
   }
 
   /**
