@@ -49,6 +49,8 @@ import {
   PoolMath,
   VirtualPool__factory,
   VirtualPool,
+  AthenaDataProvider__factory,
+  AthenaDataProvider,
   // Other
   // TestableVirtualPool__factory,
   // TestableVirtualPool,
@@ -86,6 +88,20 @@ export async function deployVirtualPool(
   ).deploy(...args);
 }
 
+export async function deployAthenaDataProvider(
+  signer: Signer,
+  args: Parameters<AthenaDataProvider__factory["deploy"]>,
+  libAddresses: { PoolMath: string; VirtualPool: string },
+): Promise<AthenaDataProvider> {
+  return new AthenaDataProvider__factory(
+    {
+      ["src/libs/PoolMath.sol:PoolMath"]: libAddresses.PoolMath,
+      ["src/libs/VirtualPool.sol:VirtualPool"]: libAddresses.VirtualPool,
+    },
+    signer,
+  ).deploy(...args);
+}
+
 export async function deployMockArbitrator(
   signer: Signer,
   args: Parameters<MockArbitrator__factory["deploy"]>,
@@ -110,12 +126,16 @@ export async function deployClaimManager(
 export async function deployLiquidityManager(
   signer: Signer,
   args: Parameters<LiquidityManager__factory["deploy"]>,
-  libAddresses: { PoolMath: string; VirtualPool: string },
+  libAddresses: {
+    VirtualPool: string;
+    AthenaDataProvider: string;
+  },
 ): Promise<LiquidityManager> {
   return new LiquidityManager__factory(
     {
-      ["src/libs/PoolMath.sol:PoolMath"]: libAddresses.PoolMath,
       ["src/libs/VirtualPool.sol:VirtualPool"]: libAddresses.VirtualPool,
+      ["src/misc/AthenaDataProvider.sol:AthenaDataProvider"]:
+        libAddresses.AthenaDataProvider,
     },
     signer,
   ).deploy(...args);
@@ -264,6 +284,7 @@ export async function deployAllContractsAndInitializeProtocol(
     "_approve",
     "PoolMath",
     "VirtualPool",
+    "AthenaDataProvider",
     "ClaimManager",
     "StrategyManager",
     "LiquidityManager",
@@ -319,6 +340,10 @@ export async function deployAllContractsAndInitializeProtocol(
   const VirtualPool = await deployVirtualPool(deployer, [], {
     PoolMath: PoolMath.address,
   });
+  const AthenaDataProvider = await deployAthenaDataProvider(deployer, [], {
+    PoolMath: PoolMath.address,
+    VirtualPool: VirtualPool.address,
+  });
 
   // ======= Managers ======= //
 
@@ -354,8 +379,8 @@ export async function deployAllContractsAndInitializeProtocol(
       config.leverageFeePerPool,
     ],
     {
-      PoolMath: PoolMath.address,
       VirtualPool: VirtualPool.address,
+      AthenaDataProvider: AthenaDataProvider.address,
     },
   );
 
