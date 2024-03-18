@@ -6,6 +6,7 @@ import { RayMath } from "../libs/RayMath.sol";
 import { Tick } from "../libs/Tick.sol";
 import { TickBitmap } from "../libs/TickBitmap.sol";
 import { PoolMath } from "../libs/PoolMath.sol";
+import { DataTypes } from "../libs/DataTypes.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 // Interfaces
@@ -40,7 +41,8 @@ error NotEnoughLiquidityForRemoval();
  */
 library VirtualPool {
   // ======= LIBS ======= //
-  using VirtualPool for VPool;
+  using VirtualPool for DataTypes.VPool;
+  using VirtualPool for DataTypes.VPool;
   using RayMath for uint256;
   using SafeERC20 for IERC20;
   using Tick for mapping(uint32 => uint256[]);
@@ -52,6 +54,8 @@ library VirtualPool {
 
   // ======= CONSTANTS ======= //
 
+  bytes32 private constant POOL_SLOT_HASH =
+    keccak256("diamond.storage.VPool");
   uint256 constant YEAR = 365 days;
   uint256 constant RAY = RayMath.RAY;
   uint256 constant MAX_SECONDS_PER_TICK = 1 days;
@@ -61,45 +65,11 @@ library VirtualPool {
 
   // ======= STRUCTS ======= //
 
-  struct Slot0 {
-    uint32 tick; // The last tick at which the pool's liquidity was updated
-    uint256 secondsPerTick; // The distance in seconds between ticks
-    uint256 coveredCapital;
-    uint256 remainingCovers;
-    // The last timestamp at which the current tick changed
-    uint256 lastUpdateTimestamp;
-    // The index tracking how much premiums have been consumed in favor of LP
-    uint256 liquidityIndex;
-  }
-
-  struct LpInfo {
-    uint256 beginLiquidityIndex;
-    uint256 beginClaimIndex;
-  }
-
-  struct Cover {
-    uint256 coverAmount;
-    uint256 beginPremiumRate;
-    /**
-     * If cover is active: last last tick for which the cover is valid
-     * If cover is expired: tick at which the cover was expired minus 1
-     */
-    uint32 lastTick;
-    uint224 coverIdIndex; // The index of the coverId in its last tick
-  }
-
   struct CoverInfo {
     uint256 premiumsLeft;
     uint256 dailyCost;
     uint256 premiumRate;
     bool isActive;
-  }
-
-  struct Compensation {
-    uint64 fromPoolId;
-    uint256 ratio;
-    uint256 strategyRewardIndexBeforeClaim;
-    mapping(uint64 _poolId => uint256 _amount) liquidityIndexBeforeClaim;
   }
 
   struct UpdatePositionParams {
@@ -108,63 +78,41 @@ library VirtualPool {
     uint256 userCapital;
     uint256 strategyRewardIndex;
     uint256 latestStrategyRewardIndex;
+    uint256 strategyId;
+    bool itCompounds;
+    uint256 endCompensationId;
+    uint256 nbPools;
   }
 
   struct UpdatedPositionInfo {
     uint256 newUserCapital;
     uint256 coverRewards;
     uint256 strategyRewards;
-    LpInfo newLpInfo;
+    DataTypes.LpInfo newLpInfo;
   }
 
-  // ======= VIRTUAL STORAGE ======= //
+  // ======= VIRTUAL STORAGE GET ======= //
 
+  /**
+   * @notice Returns the storage slot position of a pool
+   * @param poolId_ The pool ID
+   * @return pool The storage slot position of the pool
+   */
   function getPool(
-    uint64 poolId
-  ) internal pure returns (VPool storage pool) {
-    // Specifies a random position from a hash of a string
-    bytes32 storagePosition = bytes32(
-      uint256(keccak256("diamond.storage.VPool")) + poolId
+    uint64 poolId_
+  ) internal pure returns (DataTypes.VPool storage pool) {
+    // Generate a random storage storage slot position based on the pool ID
+    bytes32 storagePosition = keccak256(
+      abi.encodePacked(POOL_SLOT_HASH, poolId_)
     );
+
     // Set the position of our struct in contract storage
     assembly {
       pool.slot := storagePosition
     }
   }
 
-  struct VPool {
-    uint64 poolId;
-    uint256 feeRate; // amount of fees on premiums in RAY
-    uint256 leverageFeePerPool; // amount of fees per pool when using leverage
-    IEcclesiaDao dao;
-    IStrategyManager strategyManager;
-    PoolMath.Formula formula;
-    Slot0 slot0;
-    uint256 strategyId;
-    address paymentAsset; // asset used to pay LP premiums
-    address underlyingAsset; // asset covered & used by the strategy
-    address wrappedAsset; // tokenised strategy shares (ex: aTokens)
-    bool isPaused;
-    uint64[] overlappedPools;
-    uint256 ongoingClaims;
-    uint256[] compensationIds;
-    /// @dev poolId 0 -> poolId 0 points to a pool's own liquidity
-    /// @dev liquidity overlap is always registered in the lower poolId
-    // Maps poolId 0 -> poolId 1 -> overlapping capital
-    mapping(uint64 _poolId => uint256 _amount) overlaps;
-    mapping(uint256 _positionId => LpInfo) lpInfos;
-    mapping(uint24 _wordPos => uint256 _bitmap) tickBitmap;
-    // Maps a tick to the list of cover IDs
-    mapping(uint32 _tick => uint256[] _coverIds) ticks;
-    // Maps a cover ID to the premium position of the cover
-    mapping(uint256 _coverId => Cover) covers;
-    // Function pointers to access child contract data
-    function(uint256)
-      view
-      returns (Compensation storage) getCompensation;
-  }
-
-  // ======= VIRTUAL CONSTRUCTOR ======= //
+  // ======= VIRTUAL STORAGE INIT ======= //
 
   struct VPoolConstructorParams {
     uint64 poolId;
@@ -180,21 +128,15 @@ library VirtualPool {
     uint256 r0; //Ray
     uint256 rSlope1; //Ray
     uint256 rSlope2; //Ray
-    // Function pointer to child contract data
-    function(uint256)
-      view
-      returns (Compensation storage) getCompensation;
   }
 
   /**
    * @notice Initializes a virtual pool & populates its storage
-   * @param self The pool
    * @param params The pool's constructor parameters
    */
   function _vPoolConstructor(
-    VPool storage self,
     VPoolConstructorParams memory params
-  ) internal {
+  ) external {
     if (
       params.underlyingAsset == address(0) ||
       params.paymentAsset == address(0)
@@ -202,17 +144,19 @@ library VirtualPool {
       revert ZeroAddressAsset();
     }
 
-    self.poolId = params.poolId;
-    self.dao = params.dao;
-    self.strategyManager = params.strategyManager;
-    self.paymentAsset = params.paymentAsset;
-    self.strategyId = params.strategyId;
-    self.underlyingAsset = params.underlyingAsset;
-    self.wrappedAsset = params.wrappedAsset;
-    self.feeRate = params.feeRate;
-    self.leverageFeePerPool = params.leverageFeePerPool;
+    DataTypes.VPool storage pool = VirtualPool.getPool(params.poolId);
 
-    self.formula = PoolMath.Formula({
+    pool.poolId = params.poolId;
+    pool.dao = params.dao;
+    pool.strategyManager = params.strategyManager;
+    pool.paymentAsset = params.paymentAsset;
+    pool.strategyId = params.strategyId;
+    pool.underlyingAsset = params.underlyingAsset;
+    pool.wrappedAsset = params.wrappedAsset;
+    pool.feeRate = params.feeRate;
+    pool.leverageFeePerPool = params.leverageFeePerPool;
+
+    pool.formula = PoolMath.Formula({
       uOptimal: params.uOptimal,
       r0: params.r0,
       rSlope1: params.rSlope1,
@@ -220,12 +164,10 @@ library VirtualPool {
     });
 
     /// @dev the initial tick spacing is its maximum value 86400 seconds
-    self.slot0.secondsPerTick = MAX_SECONDS_PER_TICK;
-    self.slot0.lastUpdateTimestamp = block.timestamp;
+    pool.slot0.secondsPerTick = MAX_SECONDS_PER_TICK;
+    pool.slot0.lastUpdateTimestamp = block.timestamp;
 
-    self.overlappedPools.push(params.poolId);
-
-    self.getCompensation = params.getCompensation;
+    pool.overlappedPools.push(params.poolId);
   }
 
   // ======= EVENTS ======= //
@@ -246,601 +188,51 @@ library VirtualPool {
     uint256 fee
   );
 
-  // ======= READ METHODS ======= //
+  // ================================= //
+  // ======= LIQUIDITY METHODS ======= //
+  // ================================= //
 
   /**
    * @notice Returns the total liquidity of the pool
-   * @param self The pool
+   * @param poolId_ The pool ID
    */
   function totalLiquidity(
-    VPool storage self
-  ) internal view returns (uint256) {
-    return self.overlaps[self.poolId];
+    uint64 poolId_
+  ) public view returns (uint256) {
+    return getPool(poolId_).overlaps[poolId_];
   }
 
   /**
    * @notice Returns the available liquidity of the pool
-   * @param self The pool
+   * @param poolId_ The pool ID
    */
   function availableLiquidity(
-    VPool storage self
-  ) internal view returns (uint256) {
+    uint64 poolId_
+  ) public view returns (uint256) {
+    DataTypes.VPool storage self = getPool(poolId_);
+
     /// @dev Since payout can lead to available capital underflow, we return 0
-    if (self.totalLiquidity() <= self.slot0.coveredCapital) return 0;
+    if (totalLiquidity(poolId_) <= self.slot0.coveredCapital)
+      return 0;
 
-    return self.totalLiquidity() - self.slot0.coveredCapital;
-  }
-
-  // ======= LIQUIDITY ======= //
-
-  /**
-   * @notice Adds liquidity info to the pool and updates the pool's state.
-   * @param self The pool
-   * @param tokenId_ The LP position token ID
-   * @param amount_ The amount of liquidity to deposit
-   */
-  function _depositToPool(
-    VPool storage self,
-    uint256 tokenId_,
-    uint256 amount_
-  ) internal {
-    // Skip liquidity check for deposits
-    self._syncLiquidity(amount_, 0, true);
-
-    // This sets the point from which the position earns rewards & is impacted by claims
-    // also overwrites previous LpInfo after a withdrawal
-    self.lpInfos[tokenId_] = LpInfo({
-      beginLiquidityIndex: self.slot0.liquidityIndex,
-      beginClaimIndex: self.compensationIds.length
-    });
-  }
-
-  /**
-   * @notice Pays the rewards and fees to the position owner and the DAO.
-   * @param self The pool
-   * @param rewards_ The rewards to pay
-   * @param account_ The account to pay the rewards to
-   * @param yieldBonus_ The yield bonus to apply to the rewards
-   * @param nbPools_ The number of pools in the position
-   */
-  function _payRewardsAndFees(
-    VPool storage self,
-    uint256 rewards_,
-    address account_,
-    uint256 yieldBonus_,
-    uint256 nbPools_
-  ) internal {
-    if (0 < rewards_) {
-      uint256 fees = ((rewards_ *
-        self.feeRate *
-        (FEE_BASE - yieldBonus_)) / FEE_BASE) / FEE_BASE;
-
-      uint256 leverageFee;
-      if (1 < nbPools_) {
-        // The risk fee is only applied when using leverage
-        leverageFee =
-          (rewards_ * (self.leverageFeePerPool * nbPools_)) /
-          FEE_BASE;
-      } else if (account_ == address(self.dao)) {
-        // Take profits for the DAO accumulate the net in the leverage risk wallet
-        leverageFee = rewards_ - fees;
-      }
-
-      uint256 totalFees = fees + leverageFee;
-      uint256 net = rewards_ - totalFees;
-
-      // Pay position owner
-      if (net != 0) {
-        IERC20(self.paymentAsset).safeTransfer(account_, net);
-      }
-
-      // Pay treasury & leverage risk wallet
-      if (totalFees != 0) {
-        IERC20(self.paymentAsset).safeTransfer(
-          address(self.dao),
-          totalFees
-        );
-
-        self.dao.accrueRevenue(self.paymentAsset, fees, leverageFee);
-      }
-    }
-  }
-
-  /// -------- TAKE INTERESTS -------- ///
-
-  /**
-   * @notice Takes the interests of a position and updates the pool's state.
-   * @param self The pool
-   * @param tokenId_ The LP position token ID
-   * @param account_ The account to pay the rewards to
-   * @param supplied_ The amount of liquidity to take interest on
-   * @param yieldBonus_ The yield bonus to apply to the rewards
-   * @param poolIds_ The pool IDs of the position
-   *
-   * @return newUserCapital The user's capital after claims
-   * @return coverRewards The rewards earned from cover premiums
-   *
-   * @dev Need to update user capital & payout strategy rewards upon calling this function
-   */
-  function _takePoolInterests(
-    VPool storage self,
-    uint256 tokenId_,
-    address account_,
-    uint256 supplied_,
-    uint256 strategyRewardIndex_,
-    uint256 latestStrategyRewardIndex_,
-    uint256 yieldBonus_,
-    uint64[] storage poolIds_
-  )
-    internal
-    returns (uint256 /*newUserCapital*/, uint256 /*coverRewards*/)
-  {
-    if (supplied_ == 0) return (0, 0);
-
-    // Get the updated position info
-    UpdatedPositionInfo memory info = self._getUpdatedPositionInfo(
-      poolIds_,
-      UpdatePositionParams({
-        currentLiquidityIndex: self.slot0.liquidityIndex,
-        tokenId: tokenId_,
-        userCapital: supplied_,
-        strategyRewardIndex: strategyRewardIndex_,
-        latestStrategyRewardIndex: latestStrategyRewardIndex_
-      })
-    );
-
-    // Pay cover rewards and send fees to treasury
-    self._payRewardsAndFees(
-      info.coverRewards,
-      account_,
-      yieldBonus_,
-      poolIds_.length
-    );
-
-    // Update lp info to reflect the new state of the position
-    self.lpInfos[tokenId_] = info.newLpInfo;
-
-    // Return the user's capital & strategy rewards for withdrawal
-    return (info.newUserCapital, info.strategyRewards);
-  }
-
-  /// -------- WITHDRAW -------- ///
-
-  /**
-   * @notice Withdraws liquidity from the pool and updates the pool's state.
-   * @param self The pool
-   * @param tokenId_ The LP position token ID
-   * @param supplied_ The amount of liquidity to withdraw
-   * @param poolIds_ The pool IDs of the position
-   *
-   * @return newUserCapital The user's capital after claims
-   * @return strategyRewards The rewards earned by the strategy
-   */
-  function _withdrawLiquidity(
-    VPool storage self,
-    uint256 tokenId_,
-    uint256 supplied_,
-    uint256 amount_,
-    uint256 strategyRewardIndex_,
-    uint256 latestStrategyRewardIndex_,
-    uint64[] storage poolIds_
-  ) internal returns (uint256, uint256) {
-    // Get the updated position info
-    UpdatedPositionInfo memory info = self._getUpdatedPositionInfo(
-      poolIds_,
-      UpdatePositionParams({
-        currentLiquidityIndex: self.slot0.liquidityIndex,
-        tokenId: tokenId_,
-        userCapital: supplied_,
-        strategyRewardIndex: strategyRewardIndex_,
-        latestStrategyRewardIndex: latestStrategyRewardIndex_
-      })
-    );
-
-    // Pool rewards after commit are paid in favor of the DAO's leverage risk wallet
-    self._payRewardsAndFees(
-      info.coverRewards,
-      address(self.dao),
-      0, // No yield bonus for the DAO
-      poolIds_.length
-    );
-
-    // Update lp info to reflect the new state of the position
-    self.lpInfos[tokenId_] = info.newLpInfo;
-
-    // Update liquidity index
-    self._syncLiquidity(0, amount_, false);
-
-    // Return the user's capital & strategy rewards for withdrawal
-    return (info.newUserCapital, info.strategyRewards);
-  }
-
-  // ======= COVERS ======= //
-
-  /// -------- BUY -------- ///
-
-  /**
-   * @notice Registers a premium position for a cover,
-   * it also initializes the last tick (expiration tick) of the cover is needed.
-   * @param self The pool
-   * @param coverId_ The cover ID
-   * @param beginPremiumRate_ The premium rate at the beginning of the cover
-   * @param lastTick_ The last tick of the cover
-   */
-  function _addPremiumPosition(
-    VPool storage self,
-    uint256 coverId_,
-    uint256 coverAmount_,
-    uint256 beginPremiumRate_,
-    uint32 lastTick_
-  ) internal {
-    uint224 nbCoversInTick = self.ticks.addCoverId(
-      coverId_,
-      lastTick_
-    );
-
-    self.covers[coverId_] = Cover({
-      coverAmount: coverAmount_,
-      beginPremiumRate: beginPremiumRate_,
-      lastTick: lastTick_,
-      coverIdIndex: nbCoversInTick
-    });
-
-    /**
-     * If the tick at which the cover expires is not initialized then initialize it
-     * this indicates that the tick has covers and is not empty
-     */
-    if (!self.tickBitmap.isInitializedTick(lastTick_)) {
-      self.tickBitmap.flipTick(lastTick_);
-    }
-  }
-
-  /**
-   * @notice Registers a premium position of a cover and updates the pool's slot0.
-   * @param self The pool
-   * @param coverId_ The cover ID
-   * @param coverAmount_ The amount of cover to buy
-   * @param premiums_ The amount of premiums deposited
-   */
-  function _registerCover(
-    VPool storage self,
-    uint256 coverId_,
-    uint256 coverAmount_,
-    uint256 premiums_
-  ) internal {
-    // @bw could compute amount of time lost to rounding and conseqentially the amount of premiums lost, then register them to be able to harvest them / redistrib them
-    uint256 available = self.availableLiquidity();
-
-    /**
-     * Check if pool has enough liquidity, when updating a cover
-     * we closed the previous cover at this point so check for total
-     * */
-    if (available < coverAmount_) revert InsufficientCapacity();
-
-    uint256 liquidity = self.totalLiquidity();
-
-    (uint256 newPremiumRate, uint256 newSecondsPerTick, ) = PoolMath
-      .updatePoolMarket(
-        self.formula,
-        self.slot0.secondsPerTick,
-        liquidity,
-        self.slot0.coveredCapital,
-        liquidity,
-        self.slot0.coveredCapital + coverAmount_
-      );
-
-    uint256 durationInSeconds = (premiums_ * YEAR * PERCENTAGE_BASE)
-      .rayDiv(newPremiumRate) / coverAmount_;
-
-    if (durationInSeconds < newSecondsPerTick)
-      revert DurationBelowOneTick();
-
-    // @dev The user can loose up to almost 1 tick of cover due to the division
-    uint32 lastTick = self.slot0.tick +
-      uint32(durationInSeconds / newSecondsPerTick);
-
-    self._addPremiumPosition(
-      coverId_,
-      coverAmount_,
-      newPremiumRate,
-      lastTick
-    );
-
-    self.slot0.remainingCovers++;
-    self.slot0.coveredCapital += coverAmount_;
-    self.slot0.secondsPerTick = newSecondsPerTick;
-  }
-
-  /// -------- CLOSE -------- ///
-
-  /**
-   * @notice Closes a cover and updates the pool's slot0.
-   * @param self The pool
-   * @param coverId_ The cover ID
-   */
-  function _closeCover(
-    VPool storage self,
-    uint256 coverId_
-  ) internal {
-    Cover memory cover = self.covers[coverId_];
-
-    // If there are more than 1 cover in the tick then remove the cover from the tick
-    if (1 < self.ticks.nbCoversInTick(cover.lastTick)) {
-      uint256 coverIdToReplace = self.ticks.getLastCoverIdInTick(
-        cover.lastTick
-      );
-
-      if (coverId_ != coverIdToReplace) {
-        self.covers[coverIdToReplace].coverIdIndex = self
-          .covers[coverId_]
-          .coverIdIndex;
-      }
-
-      self.ticks.removeCoverId(cover.coverIdIndex, cover.lastTick);
-    } else {
-      // If it is the only cover in the tick then purge the entire tick
-      /// @dev cover may be be in transitory close state for update so we don't clear it from pool state
-      self._removeTick(cover.lastTick);
-    }
-
-    uint256 liquidity = self.totalLiquidity();
-
-    (, self.slot0.secondsPerTick, ) = PoolMath.updatePoolMarket(
-      self.formula,
-      self.slot0.secondsPerTick,
-      liquidity,
-      self.slot0.coveredCapital,
-      liquidity,
-      self.slot0.coveredCapital - cover.coverAmount
-    );
-
-    self.slot0.remainingCovers--;
-    self.slot0.coveredCapital -= cover.coverAmount;
-
-    self.covers[coverId_].lastTick = self.slot0.tick - 1;
-  }
-
-  // ======= INTERNAL POOL HELPERS ======= //
-
-  /**
-   * @notice Removes covers in a tick flips its state to uninitialized
-   * @param self The pool
-   * @param tick_ The tick to remove
-   */
-  function _removeTick(VPool storage self, uint32 tick_) internal {
-    self.ticks.clear(tick_);
-    self.tickBitmap.flipTick(tick_);
-
-    emit TickExpired(self.poolId, self.ticks[tick_]);
-  }
-
-  /**
-   * @notice Updates the pool's slot0 when the available liquidity changes.
-   *
-   * @param self The pool
-   * @param liquidityToAdd_ The amount of liquidity to add
-   * @param liquidityToRemove_ The amount of liquidity to remove
-   * @param skipLimitCheck_ Whether to skip the available liquidity check
-   *
-   * @dev The skipLimitCheck_ is used for deposits & payouts
-   */
-  function _syncLiquidity(
-    VPool storage self,
-    uint256 liquidityToAdd_,
-    uint256 liquidityToRemove_,
-    bool skipLimitCheck_
-  ) internal {
-    uint256 liquidity = self.totalLiquidity();
-    uint256 available = self.availableLiquidity();
-
-    // Skip liquidity check for deposits & payouts
-    if (!skipLimitCheck_)
-      if (available + liquidityToAdd_ < liquidityToRemove_)
-        revert NotEnoughLiquidityForRemoval();
-
-    // uint256 totalCovered = self.slot0.coveredCapital;
-    uint256 newTotalLiquidity = (liquidity + liquidityToAdd_) -
-      liquidityToRemove_;
-
-    (, self.slot0.secondsPerTick, ) = PoolMath.updatePoolMarket(
-      self.formula,
-      self.slot0.secondsPerTick,
-      liquidity,
-      self.slot0.coveredCapital,
-      newTotalLiquidity,
-      self.slot0.coveredCapital
-    );
-  }
-
-  /**
-   * @notice Removes expired covers from the pool and updates the pool's slot0.
-   * Required before any operation that requires the slot0 to be up to date.
-   * This includes all position and cover operations.
-   * @param self The pool
-   */
-  function _purgeExpiredCovers(VPool storage self) internal {
-    // Save the current tick before updating the slot0
-    uint32 startTick = self.slot0.tick;
-
-    self.slot0 = self._refresh(block.timestamp);
-
-    // If there are no cover there is no use looking for expired ones
-    if (self.slot0.remainingCovers == 0) return;
-
-    // For all the ticks between the slot0 tick & the refreshed tick
-    while (startTick < self.slot0.tick) {
-      // The start tick may not have been purged since it was not overtaken
-      if (self.tickBitmap.isInitializedTick(startTick))
-        self._removeTick(startTick);
-
-      (uint32 nextTick, bool isInitialized) = self
-        .tickBitmap
-        .nextTick(startTick);
-
-      // Only clear ticks that are before the current tick
-      if (self.slot0.tick <= nextTick) break;
-      // If the tick contains covers we need to expire them
-      if (isInitialized) self._removeTick(nextTick);
-
-      startTick = nextTick;
-    }
-  }
-
-  // ======= VIEW HELPERS ======= //
-
-  function _isCoverActive(
-    VPool storage self,
-    uint256 coverId_
-  ) internal view returns (bool) {
-    return self.slot0.tick <= self.covers[coverId_].lastTick;
-  }
-
-  function _computeRefreshedCoverInfo(
-    VPool storage self,
-    uint256 coverId_
-  ) internal view returns (CoverInfo memory info) {
-    return
-      self._computeCoverInfo(
-        coverId_,
-        // For reads we sync the slot0 to the current timestamp to have latests data
-        self._refresh(block.timestamp)
-      );
-  }
-
-  function _computeCurrentCoverInfo(
-    VPool storage self,
-    uint256 coverId_
-  ) internal view returns (CoverInfo memory info) {
-    return self._computeCoverInfo(coverId_, self.slot0);
-  }
-
-  /**
-   * @notice Computes the premium rate & daily cost of a cover,
-   * this parses the pool's ticks to compute how much premiums are left and
-   * what is the daily cost of keeping the cover openened.
-   *
-   * @param self The pool
-   * @param coverId_ The cover ID
-   *
-   * @return info A struct containing the cover's premium rate & the cover's daily cost
-   */
-  function _computeCoverInfo(
-    VPool storage self,
-    uint256 coverId_,
-    Slot0 memory slot0_
-  ) internal view returns (CoverInfo memory info) {
-    Cover storage cover = self.covers[coverId_];
-
-    /**
-     * If the cover's last tick is overtaken then it's expired & no premiums are left.
-     * Return default 0 / false values in the returned struct.
-     */
-    if (cover.lastTick < slot0_.tick) return info;
-
-    info.isActive = true;
-
-    info.premiumRate = PoolMath.getPremiumRate(
-      self.formula,
-      PoolMath._utilization(
-        slot0_.coveredCapital,
-        self.totalLiquidity()
-      )
-    );
-
-    /// @dev Skip division by premium rate PERCENTAGE_BASE for precision
-    uint256 beginDailyCost = cover
-      .coverAmount
-      .rayMul(cover.beginPremiumRate)
-      .rayDiv(365);
-    info.dailyCost = PoolMath.getDailyCost(
-      beginDailyCost,
-      cover.beginPremiumRate,
-      info.premiumRate
-    );
-
-    uint256 nbTicksLeft = cover.lastTick - slot0_.tick;
-    // Duration in seconds between currentTick & minNextTick
-    uint256 duration = nbTicksLeft * slot0_.secondsPerTick;
-
-    /// @dev Unscale amount by PERCENTAGE_BASE & RAY
-    info.premiumsLeft =
-      (duration * info.dailyCost) /
-      (1 days * PERCENTAGE_BASE * RAY);
-    /// @dev Unscale amount by PERCENTAGE_BASE & RAY
-    info.dailyCost = info.dailyCost / (PERCENTAGE_BASE * RAY);
-  }
-
-  /**
-   * @notice Mutates a slot0 to reflect states changes upon crossing an initialized tick.
-   * The covers crossed tick are expired and the pool's liquidity is updated.
-   *
-   * @dev It must be mutative so it can be used by read & write fns.
-   *
-   * @param self The pool
-   * @param slot0_ The slot0 to mutate
-   * @param tick_ The tick to cross
-   *
-   * @return The mutated slot0
-   */
-  function _crossingInitializedTick(
-    VPool storage self,
-    Slot0 memory slot0_,
-    uint32 tick_
-  )
-    internal
-    view
-    returns (
-      Slot0 memory /* slot0_ */,
-      uint256 utilization,
-      uint256 premiumRate
-    )
-  {
-    uint256[] memory coverIds = self.ticks[tick_];
-
-    uint256 coveredCapitalToRemove;
-
-    uint256 nbCovers = coverIds.length;
-    for (uint256 i; i < nbCovers; i++) {
-      // Add all the size of all covers in the tick
-      coveredCapitalToRemove += self.covers[coverIds[i]].coverAmount;
-    }
-
-    {
-      uint256 liquidity = self.totalLiquidity();
-      uint256 newCoveredCapital = slot0_.coveredCapital -
-        coveredCapitalToRemove;
-
-      (premiumRate, slot0_.secondsPerTick, utilization) = PoolMath
-        .updatePoolMarket(
-          self.formula,
-          self.slot0.secondsPerTick,
-          liquidity,
-          self.slot0.coveredCapital,
-          liquidity,
-          newCoveredCapital
-        );
-    }
-
-    // These are the mutated values
-    slot0_.coveredCapital -= coveredCapitalToRemove;
-    slot0_.remainingCovers -= nbCovers;
-
-    return (slot0_, utilization, premiumRate);
+    return totalLiquidity(poolId_) - self.slot0.coveredCapital;
   }
 
   /**
    * @notice Computes an updated slot0 & liquidity index up to a timestamp.
    * These changes are virtual an not reflected in storage in this function.
    *
-   * @param self The pool
+   * @param poolId_ The pool ID
    * @param timestamp_ The timestamp to update the slot0 & liquidity index to
    *
    * @return slot0 The updated slot0
    */
   function _refresh(
-    VPool storage self,
+    uint64 poolId_,
     uint256 timestamp_
-  ) internal view returns (Slot0 memory slot0) {
+  ) public view returns (DataTypes.Slot0 memory slot0) {
+    DataTypes.VPool storage self = VirtualPool.getPool(poolId_);
+
     // Make copy in memory to allow for mutations
     slot0 = self.slot0;
 
@@ -852,7 +244,7 @@ library VirtualPool {
 
     uint256 utilization = PoolMath._utilization(
       slot0.coveredCapital,
-      self.totalLiquidity()
+      totalLiquidity(self.poolId)
     );
     uint256 premiumRate = PoolMath.getPremiumRate(
       self.formula,
@@ -918,13 +310,509 @@ library VirtualPool {
   }
 
   /**
+   * @notice Updates the pool's slot0 when the available liquidity changes.
+   *
+   * @param poolId_ The pool ID
+   * @param liquidityToAdd_ The amount of liquidity to add
+   * @param liquidityToRemove_ The amount of liquidity to remove
+   * @param skipLimitCheck_ Whether to skip the available liquidity check
+   *
+   * @dev The skipLimitCheck_ is used for deposits & payouts
+   */
+  function _syncLiquidity(
+    uint64 poolId_,
+    uint256 liquidityToAdd_,
+    uint256 liquidityToRemove_,
+    bool skipLimitCheck_
+  ) public {
+    DataTypes.VPool storage self = VirtualPool.getPool(poolId_);
+
+    uint256 liquidity = totalLiquidity(self.poolId);
+    uint256 available = availableLiquidity(self.poolId);
+
+    // Skip liquidity check for deposits & payouts
+    if (!skipLimitCheck_)
+      if (available + liquidityToAdd_ < liquidityToRemove_)
+        revert NotEnoughLiquidityForRemoval();
+
+    // uint256 totalCovered = self.slot0.coveredCapital;
+    uint256 newTotalLiquidity = (liquidity + liquidityToAdd_) -
+      liquidityToRemove_;
+
+    (, self.slot0.secondsPerTick, ) = PoolMath.updatePoolMarket(
+      self.formula,
+      self.slot0.secondsPerTick,
+      liquidity,
+      self.slot0.coveredCapital,
+      newTotalLiquidity,
+      self.slot0.coveredCapital
+    );
+  }
+
+  // =================================== //
+  // ======= COVERS & LP METHODS ======= //
+  // =================================== //
+
+  // ======= LIQUIDITY POSITIONS ======= //
+
+  /**
+   * @notice Adds liquidity info to the pool and updates the pool's state.
+   * @param poolId_ The pool ID
+   * @param tokenId_ The LP position token ID
+   * @param amount_ The amount of liquidity to deposit
+   */
+  function _depositToPool(
+    uint64 poolId_,
+    uint256 tokenId_,
+    uint256 amount_
+  ) external {
+    DataTypes.VPool storage self = VirtualPool.getPool(poolId_);
+
+    // Skip liquidity check for deposits
+    _syncLiquidity(poolId_, amount_, 0, true);
+
+    // This sets the point from which the position earns rewards & is impacted by claims
+    // also overwrites previous LpInfo after a withdrawal
+    self.lpInfos[tokenId_] = DataTypes.LpInfo({
+      beginLiquidityIndex: self.slot0.liquidityIndex,
+      beginClaimIndex: self.compensationIds.length
+    });
+  }
+
+  /**
+   * @notice Pays the rewards and fees to the position owner and the DAO.
+   * @param self The pool
+   * @param rewards_ The rewards to pay
+   * @param account_ The account to pay the rewards to
+   * @param yieldBonus_ The yield bonus to apply to the rewards
+   * @param nbPools_ The number of pools in the position
+   */
+  function _payRewardsAndFees(
+    DataTypes.VPool storage self,
+    uint256 rewards_,
+    address account_,
+    uint256 yieldBonus_,
+    uint256 nbPools_
+  ) internal {
+    if (0 < rewards_) {
+      uint256 fees = ((rewards_ *
+        self.feeRate *
+        (FEE_BASE - yieldBonus_)) / FEE_BASE) / FEE_BASE;
+
+      uint256 leverageFee;
+      if (1 < nbPools_) {
+        // The risk fee is only applied when using leverage
+        leverageFee =
+          (rewards_ * (self.leverageFeePerPool * nbPools_)) /
+          FEE_BASE;
+      } else if (account_ == address(self.dao)) {
+        // Take profits for the DAO accumulate the net in the leverage risk wallet
+        leverageFee = rewards_ - fees;
+      }
+
+      uint256 totalFees = fees + leverageFee;
+      uint256 net = rewards_ - totalFees;
+
+      // Pay position owner
+      if (net != 0) {
+        IERC20(self.paymentAsset).safeTransfer(account_, net);
+      }
+
+      // Pay treasury & leverage risk wallet
+      if (totalFees != 0) {
+        IERC20(self.paymentAsset).safeTransfer(
+          address(self.dao),
+          totalFees
+        );
+
+        self.dao.accrueRevenue(self.paymentAsset, fees, leverageFee);
+      }
+    }
+  }
+
+  /// -------- TAKE INTERESTS -------- ///
+
+  /**
+   * @notice Takes the interests of a position and updates the pool's state.
+   * @param poolId_ The pool ID
+   * @param tokenId_ The LP position token ID
+   * @param account_ The account to pay the rewards to
+   * @param supplied_ The amount of liquidity to take interest on
+   * @param yieldBonus_ The yield bonus to apply to the rewards
+   * @param poolIds_ The pool IDs of the position
+   *
+   * @return newUserCapital The user's capital after claims
+   * @return coverRewards The rewards earned from cover premiums
+   *
+   * @dev Need to update user capital & payout strategy rewards upon calling this function
+   */
+  function _takePoolInterests(
+    uint64 poolId_,
+    uint256 tokenId_,
+    address account_,
+    uint256 supplied_,
+    uint256 strategyRewardIndex_,
+    uint256 latestStrategyRewardIndex_,
+    uint256 yieldBonus_,
+    uint64[] storage poolIds_
+  )
+    external
+    returns (uint256 /*newUserCapital*/, uint256 /*coverRewards*/)
+  {
+    if (supplied_ == 0) return (0, 0);
+
+    DataTypes.VPool storage self = VirtualPool.getPool(poolId_);
+
+    // Get the updated position info
+    UpdatedPositionInfo memory info = _getUpdatedPositionInfo(
+      poolId_,
+      poolIds_,
+      UpdatePositionParams({
+        currentLiquidityIndex: self.slot0.liquidityIndex,
+        tokenId: tokenId_,
+        userCapital: supplied_,
+        strategyRewardIndex: strategyRewardIndex_,
+        latestStrategyRewardIndex: latestStrategyRewardIndex_,
+        strategyId: self.strategyId,
+        itCompounds: self.strategyManager.itCompounds(
+          self.strategyId
+        ),
+        endCompensationId: self.compensationIds.length,
+        nbPools: poolIds_.length
+      })
+    );
+
+    // Pay cover rewards and send fees to treasury
+    self._payRewardsAndFees(
+      info.coverRewards,
+      account_,
+      yieldBonus_,
+      poolIds_.length
+    );
+
+    // Update lp info to reflect the new state of the position
+    self.lpInfos[tokenId_] = info.newLpInfo;
+
+    // Return the user's capital & strategy rewards for withdrawal
+    return (info.newUserCapital, info.strategyRewards);
+  }
+
+  /// -------- WITHDRAW -------- ///
+
+  /**
+   * @notice Withdraws liquidity from the pool and updates the pool's state.
+   * @param poolId_ The pool ID
+   * @param tokenId_ The LP position token ID
+   * @param supplied_ The amount of liquidity to withdraw
+   * @param poolIds_ The pool IDs of the position
+   *
+   * @return newUserCapital The user's capital after claims
+   * @return strategyRewards The rewards earned by the strategy
+   */
+  function _withdrawLiquidity(
+    uint64 poolId_,
+    uint256 tokenId_,
+    uint256 supplied_,
+    uint256 amount_,
+    uint256 strategyRewardIndex_,
+    uint256 latestStrategyRewardIndex_,
+    uint64[] storage poolIds_
+  ) external returns (uint256, uint256) {
+    DataTypes.VPool storage self = VirtualPool.getPool(poolId_);
+
+    // Get the updated position info
+    UpdatedPositionInfo memory info = _getUpdatedPositionInfo(
+      poolId_,
+      poolIds_,
+      UpdatePositionParams({
+        currentLiquidityIndex: self.slot0.liquidityIndex,
+        tokenId: tokenId_,
+        userCapital: supplied_,
+        strategyRewardIndex: strategyRewardIndex_,
+        latestStrategyRewardIndex: latestStrategyRewardIndex_,
+        strategyId: self.strategyId,
+        itCompounds: self.strategyManager.itCompounds(
+          self.strategyId
+        ),
+        endCompensationId: self.compensationIds.length,
+        nbPools: poolIds_.length
+      })
+    );
+
+    // Pool rewards after commit are paid in favor of the DAO's leverage risk wallet
+    self._payRewardsAndFees(
+      info.coverRewards,
+      address(self.dao),
+      0, // No yield bonus for the DAO
+      poolIds_.length
+    );
+
+    // Update lp info to reflect the new state of the position
+    self.lpInfos[tokenId_] = info.newLpInfo;
+
+    // Update liquidity index
+    _syncLiquidity(poolId_, 0, amount_, false);
+
+    // Return the user's capital & strategy rewards for withdrawal
+    return (info.newUserCapital, info.strategyRewards);
+  }
+
+  // ======= COVERS ======= //
+
+  /// -------- BUY -------- ///
+
+  /**
+   * @notice Registers a premium position for a cover,
+   * it also initializes the last tick (expiration tick) of the cover is needed.
+   * @param self The pool
+   * @param coverId_ The cover ID
+   * @param beginPremiumRate_ The premium rate at the beginning of the cover
+   * @param lastTick_ The last tick of the cover
+   */
+  function _addPremiumPosition(
+    DataTypes.VPool storage self,
+    uint256 coverId_,
+    uint256 coverAmount_,
+    uint256 beginPremiumRate_,
+    uint32 lastTick_
+  ) internal {
+    uint224 nbCoversInTick = self.ticks.addCoverId(
+      coverId_,
+      lastTick_
+    );
+
+    self.covers[coverId_] = DataTypes.Cover({
+      coverAmount: coverAmount_,
+      beginPremiumRate: beginPremiumRate_,
+      lastTick: lastTick_,
+      coverIdIndex: nbCoversInTick
+    });
+
+    /**
+     * If the tick at which the cover expires is not initialized then initialize it
+     * this indicates that the tick has covers and is not empty
+     */
+    if (!self.tickBitmap.isInitializedTick(lastTick_)) {
+      self.tickBitmap.flipTick(lastTick_);
+    }
+  }
+
+  /**
+   * @notice Registers a premium position of a cover and updates the pool's slot0.
+   * @param poolId_ The pool ID
+   * @param coverId_ The cover ID
+   * @param coverAmount_ The amount of cover to buy
+   * @param premiums_ The amount of premiums deposited
+   */
+  function _registerCover(
+    uint64 poolId_,
+    uint256 coverId_,
+    uint256 coverAmount_,
+    uint256 premiums_
+  ) external {
+    DataTypes.VPool storage self = VirtualPool.getPool(poolId_);
+
+    // @bw could compute amount of time lost to rounding and conseqentially the amount of premiums lost, then register them to be able to harvest them / redistrib them
+    uint256 available = availableLiquidity(self.poolId);
+
+    /**
+     * Check if pool has enough liquidity, when updating a cover
+     * we closed the previous cover at this point so check for total
+     * */
+    if (available < coverAmount_) revert InsufficientCapacity();
+
+    uint256 liquidity = totalLiquidity(self.poolId);
+
+    (uint256 newPremiumRate, uint256 newSecondsPerTick, ) = PoolMath
+      .updatePoolMarket(
+        self.formula,
+        self.slot0.secondsPerTick,
+        liquidity,
+        self.slot0.coveredCapital,
+        liquidity,
+        self.slot0.coveredCapital + coverAmount_
+      );
+
+    uint256 durationInSeconds = (premiums_ * YEAR * PERCENTAGE_BASE)
+      .rayDiv(newPremiumRate) / coverAmount_;
+
+    if (durationInSeconds < newSecondsPerTick)
+      revert DurationBelowOneTick();
+
+    // @dev The user can loose up to almost 1 tick of cover due to the division
+    uint32 lastTick = self.slot0.tick +
+      uint32(durationInSeconds / newSecondsPerTick);
+
+    self._addPremiumPosition(
+      coverId_,
+      coverAmount_,
+      newPremiumRate,
+      lastTick
+    );
+
+    self.slot0.remainingCovers++;
+    self.slot0.coveredCapital += coverAmount_;
+    self.slot0.secondsPerTick = newSecondsPerTick;
+  }
+
+  /// -------- CLOSE -------- ///
+
+  /**
+   * @notice Closes a cover and updates the pool's slot0.
+   * @param poolId_ The pool ID
+   * @param coverId_ The cover ID
+   */
+  function _closeCover(uint64 poolId_, uint256 coverId_) external {
+    DataTypes.VPool storage self = VirtualPool.getPool(poolId_);
+
+    DataTypes.Cover memory cover = self.covers[coverId_];
+
+    // If there are more than 1 cover in the tick then remove the cover from the tick
+    if (1 < self.ticks.nbCoversInTick(cover.lastTick)) {
+      uint256 coverIdToReplace = self.ticks.getLastCoverIdInTick(
+        cover.lastTick
+      );
+
+      if (coverId_ != coverIdToReplace) {
+        self.covers[coverIdToReplace].coverIdIndex = self
+          .covers[coverId_]
+          .coverIdIndex;
+      }
+
+      self.ticks.removeCoverId(cover.coverIdIndex, cover.lastTick);
+    } else {
+      // If it is the only cover in the tick then purge the entire tick
+      /// @dev cover may be be in transitory close state for update so we don't clear it from pool state
+      self._removeTick(cover.lastTick);
+    }
+
+    uint256 liquidity = totalLiquidity(self.poolId);
+
+    (, self.slot0.secondsPerTick, ) = PoolMath.updatePoolMarket(
+      self.formula,
+      self.slot0.secondsPerTick,
+      liquidity,
+      self.slot0.coveredCapital,
+      liquidity,
+      self.slot0.coveredCapital - cover.coverAmount
+    );
+
+    self.slot0.remainingCovers--;
+    self.slot0.coveredCapital -= cover.coverAmount;
+
+    self.covers[coverId_].lastTick = self.slot0.tick - 1;
+  }
+
+  // ======= INTERNAL POOL HELPERS ======= //
+
+  /**
+   * @notice Removes covers in a tick flips its state to uninitialized
+   * @param self The pool
+   * @param tick_ The tick to remove
+   */
+  function _removeTick(
+    DataTypes.VPool storage self,
+    uint32 tick_
+  ) internal {
+    self.ticks.clear(tick_);
+    self.tickBitmap.flipTick(tick_);
+
+    emit TickExpired(self.poolId, self.ticks[tick_]);
+  }
+
+  /**
+   * @notice Removes expired covers from the pool and updates the pool's slot0.
+   * Required before any operation that requires the slot0 to be up to date.
+   * This includes all position and cover operations.
+   * @param poolId_ The pool ID
+   */
+  function _purgeExpiredCovers(uint64 poolId_) external {
+    DataTypes.VPool storage self = VirtualPool.getPool(poolId_);
+
+    // Save the current tick before updating the slot0
+    uint32 startTick = self.slot0.tick;
+
+    self.slot0 = _refresh(poolId_, block.timestamp);
+
+    // If there are no cover there is no use looking for expired ones
+    if (self.slot0.remainingCovers == 0) return;
+
+    // @bw this maybe can be skipped entirely since we'll never read those ticks again
+    // For all the ticks between the slot0 tick & the refreshed tick
+    while (startTick < self.slot0.tick) {
+      // The start tick may not have been purged since it was not overtaken
+      if (self.tickBitmap.isInitializedTick(startTick))
+        self._removeTick(startTick);
+
+      (uint32 nextTick, bool isInitialized) = self
+        .tickBitmap
+        .nextTick(startTick);
+
+      // Only clear ticks that are before the current tick
+      if (self.slot0.tick <= nextTick) break;
+      // If the tick contains covers we need to expire them
+      if (isInitialized) self._removeTick(nextTick);
+
+      startTick = nextTick;
+    }
+  }
+
+  // ======= VIEW HELPERS ======= //
+
+  function _isCoverActive(
+    uint64 poolId_,
+    uint256 coverId_
+  ) external view returns (bool) {
+    DataTypes.VPool storage self = VirtualPool.getPool(poolId_);
+
+    return self.slot0.tick <= self.covers[coverId_].lastTick;
+  }
+
+  function computePositionRewards(
+    DataTypes.VPool storage self,
+    UpdatedPositionInfo memory info,
+    uint256 coverRewards,
+    uint256 strategyRewards,
+    uint256 strategyId,
+    bool itCompounds,
+    uint256 liquidityIndexBeforeClaim,
+    uint256 strategyRewardIndex,
+    uint256 strategyRewardIndexBeforeClaim
+  )
+    internal
+    view
+    returns (
+      uint256 /* coverRewards */,
+      uint256 /* strategyRewards */
+    )
+  {
+    coverRewards += PoolMath.getCoverRewards(
+      info.newUserCapital,
+      info.newLpInfo.beginLiquidityIndex,
+      liquidityIndexBeforeClaim
+    );
+
+    strategyRewards += self.strategyManager.computeReward(
+      strategyId,
+      // If strategy compounds then add to capital to compute next new rewards
+      itCompounds
+        ? info.newUserCapital + info.strategyRewards
+        : info.newUserCapital,
+      strategyRewardIndex,
+      strategyRewardIndexBeforeClaim
+    );
+
+    return (coverRewards, strategyRewards);
+  }
+
+  /**
    * @notice Computes the state changes of an LP position,
    * it aggregates the fees earned by the position and
    * computes the losses incurred by the claims in this pool.
    *
    * @dev Used for takeInterest, withdrawLiquidity and rewardsOf
    *
-   * @param self The pool
+   * @param poolId_ The pool ID
    * @param poolIds_ The pool IDs of the position
    * @param params The update position parameters
    * - currentLiquidityIndex_ The current liquidity index
@@ -940,24 +828,18 @@ library VirtualPool {
    * - newLpInfo The updated LpInfo of the position
    */
   function _getUpdatedPositionInfo(
-    VPool storage self,
+    uint64 poolId_,
     uint64[] storage poolIds_,
     UpdatePositionParams memory params
-  ) internal view returns (UpdatedPositionInfo memory info) {
+  ) public view returns (UpdatedPositionInfo memory info) {
+    DataTypes.VPool storage self = VirtualPool.getPool(poolId_);
+
     info.newLpInfo = self.lpInfos[params.tokenId];
     info.newUserCapital = params.userCapital;
 
-    uint256 strategyId = self.strategyId;
-    // If strategy compounds then add to capital to compute next new rewards
-    bool itCompounds = self.strategyManager.itCompounds(strategyId);
-    uint64 poolId = self.poolId;
-
-    uint256 compensationId = info.newLpInfo.beginClaimIndex;
-    uint256 endCompensationId = self.compensationIds.length;
-    uint256 nbPools = poolIds_.length;
-
     // This index is not bubbled up in info because it is updated by the LiquidityManager
     uint256 upToStrategyRewardIndex = params.strategyRewardIndex;
+    uint256 compensationId = info.newLpInfo.beginClaimIndex;
 
     /**
      * Parse each claim that may affect capital due to overlap in order to
@@ -965,36 +847,48 @@ library VirtualPool {
      */
     for (
       compensationId;
-      compensationId < endCompensationId;
+      compensationId < params.endCompensationId;
       compensationId++
     ) {
-      Compensation storage comp = self.getCompensation(
+      DataTypes.Compensation storage comp = self.getCompensation(
         compensationId
       );
 
       // For each pool in the position
-      for (uint256 j; j < nbPools; j++) {
+      for (uint256 j; j < params.nbPools; j++) {
         // Skip if the comp is not incoming from one of the pools in the position
         if (poolIds_[j] != comp.fromPoolId) continue;
 
         // We want the liquidity index of this pool at the time of the claim
         uint256 liquidityIndexBeforeClaim = comp
-          .liquidityIndexBeforeClaim[poolId];
+          .liquidityIndexBeforeClaim[self.poolId];
+
+        (info.coverRewards, info.strategyRewards) = self
+          .computePositionRewards(
+            info,
+            info.coverRewards,
+            info.strategyRewards,
+            params.strategyId,
+            params.itCompounds,
+            liquidityIndexBeforeClaim,
+            params.strategyRewardIndex,
+            comp.strategyRewardIndexBeforeClaim
+          );
 
         // Compute the rewards accumulated up to the claim
-        info.coverRewards += PoolMath.getCoverRewards(
-          info.newUserCapital,
-          info.newLpInfo.beginLiquidityIndex,
-          liquidityIndexBeforeClaim
-        );
-        info.strategyRewards += self.strategyManager.computeReward(
-          strategyId,
-          itCompounds
-            ? info.newUserCapital + info.strategyRewards
-            : info.newUserCapital,
-          params.strategyRewardIndex,
-          comp.strategyRewardIndexBeforeClaim
-        );
+        // info.strategyRewards += self.strategyManager.computeReward(
+        //   strategyId,
+        //   itCompounds
+        //     ? info.newUserCapital + info.strategyRewards
+        //     : info.newUserCapital,
+        //   params.strategyRewardIndex,
+        //   comp.strategyRewardIndexBeforeClaim
+        // );
+        // info.coverRewards += PoolMath.getCoverRewards(
+        //   info.newUserCapital,
+        //   info.newLpInfo.beginLiquidityIndex,
+        //   liquidityIndexBeforeClaim
+        // );
 
         // Register up to where the rewards have been accumulated
         upToStrategyRewardIndex = comp.strategyRewardIndexBeforeClaim;
@@ -1013,27 +907,176 @@ library VirtualPool {
      * & register latest reward & claim indexes
      */
 
-    info.strategyRewards += self.strategyManager.computeReward(
-      strategyId,
-      itCompounds
-        ? info.newUserCapital + info.strategyRewards
-        : info.newUserCapital,
-      upToStrategyRewardIndex,
-      params.latestStrategyRewardIndex
-    );
+    // info.strategyRewards += self.strategyManager.computeReward(
+    //   strategyId,
+    //   itCompounds
+    //     ? info.newUserCapital + info.strategyRewards
+    //     : info.newUserCapital,
+    //   upToStrategyRewardIndex,
+    //   params.latestStrategyRewardIndex
+    // );
 
-    info.coverRewards += PoolMath.getCoverRewards(
-      info.newUserCapital,
-      info.newLpInfo.beginLiquidityIndex,
-      params.currentLiquidityIndex
-    );
+    // info.coverRewards += PoolMath.getCoverRewards(
+    //   info.newUserCapital,
+    //   info.newLpInfo.beginLiquidityIndex,
+    //   params.currentLiquidityIndex
+    // );
+
+    (info.coverRewards, info.strategyRewards) = self
+      .computePositionRewards(
+        info,
+        info.coverRewards,
+        info.strategyRewards,
+        params.strategyId,
+        params.itCompounds,
+        params.currentLiquidityIndex,
+        upToStrategyRewardIndex,
+        params.latestStrategyRewardIndex
+      );
 
     // Register up to where the position has been updated
     info.newLpInfo.beginLiquidityIndex = params.currentLiquidityIndex;
-    info.newLpInfo.beginClaimIndex = endCompensationId;
+    info.newLpInfo.beginClaimIndex = params.endCompensationId;
   }
 
-  // // ======= PURE HELPERS ======= //
+  function _computeRefreshedCoverInfo(
+    uint64 poolId_,
+    uint256 coverId_
+  ) external view returns (CoverInfo memory info) {
+    DataTypes.VPool storage self = VirtualPool.getPool(poolId_);
+
+    return
+      self._computeCoverInfo(
+        coverId_,
+        // For reads we sync the slot0 to the current timestamp to have latests data
+        _refresh(poolId_, block.timestamp)
+      );
+  }
+
+  function _computeCurrentCoverInfo(
+    uint64 poolId_,
+    uint256 coverId_
+  ) external view returns (CoverInfo memory info) {
+    DataTypes.VPool storage self = VirtualPool.getPool(poolId_);
+
+    return self._computeCoverInfo(coverId_, self.slot0);
+  }
+
+  /**
+   * @notice Computes the premium rate & daily cost of a cover,
+   * this parses the pool's ticks to compute how much premiums are left and
+   * what is the daily cost of keeping the cover openened.
+   *
+   * @param self The pool
+   * @param coverId_ The cover ID
+   *
+   * @return info A struct containing the cover's premium rate & the cover's daily cost
+   */
+  function _computeCoverInfo(
+    DataTypes.VPool storage self,
+    uint256 coverId_,
+    DataTypes.Slot0 memory slot0_
+  ) internal view returns (CoverInfo memory info) {
+    DataTypes.Cover storage cover = self.covers[coverId_];
+
+    /**
+     * If the cover's last tick is overtaken then it's expired & no premiums are left.
+     * Return default 0 / false values in the returned struct.
+     */
+    if (cover.lastTick < slot0_.tick) return info;
+
+    info.isActive = true;
+
+    info.premiumRate = PoolMath.getPremiumRate(
+      self.formula,
+      PoolMath._utilization(
+        slot0_.coveredCapital,
+        totalLiquidity(self.poolId)
+      )
+    );
+
+    /// @dev Skip division by premium rate PERCENTAGE_BASE for precision
+    uint256 beginDailyCost = cover
+      .coverAmount
+      .rayMul(cover.beginPremiumRate)
+      .rayDiv(365);
+    info.dailyCost = PoolMath.getDailyCost(
+      beginDailyCost,
+      cover.beginPremiumRate,
+      info.premiumRate
+    );
+
+    uint256 nbTicksLeft = cover.lastTick - slot0_.tick;
+    // Duration in seconds between currentTick & minNextTick
+    uint256 duration = nbTicksLeft * slot0_.secondsPerTick;
+
+    /// @dev Unscale amount by PERCENTAGE_BASE & RAY
+    info.premiumsLeft =
+      (duration * info.dailyCost) /
+      (1 days * PERCENTAGE_BASE * RAY);
+    /// @dev Unscale amount by PERCENTAGE_BASE & RAY
+    info.dailyCost = info.dailyCost / (PERCENTAGE_BASE * RAY);
+  }
+
+  /**
+   * @notice Mutates a slot0 to reflect states changes upon crossing an initialized tick.
+   * The covers crossed tick are expired and the pool's liquidity is updated.
+   *
+   * @dev It must be mutative so it can be used by read & write fns.
+   *
+   * @param self The pool
+   * @param slot0_ The slot0 to mutate
+   * @param tick_ The tick to cross
+   *
+   * @return The mutated slot0
+   */
+  function _crossingInitializedTick(
+    DataTypes.VPool storage self,
+    DataTypes.Slot0 memory slot0_,
+    uint32 tick_
+  )
+    internal
+    view
+    returns (
+      DataTypes.Slot0 memory /* slot0_ */,
+      uint256 utilization,
+      uint256 premiumRate
+    )
+  {
+    uint256[] memory coverIds = self.ticks[tick_];
+
+    uint256 coveredCapitalToRemove;
+
+    uint256 nbCovers = coverIds.length;
+    for (uint256 i; i < nbCovers; i++) {
+      // Add all the size of all covers in the tick
+      coveredCapitalToRemove += self.covers[coverIds[i]].coverAmount;
+    }
+
+    {
+      uint256 liquidity = totalLiquidity(self.poolId);
+      uint256 newCoveredCapital = slot0_.coveredCapital -
+        coveredCapitalToRemove;
+
+      (premiumRate, slot0_.secondsPerTick, utilization) = PoolMath
+        .updatePoolMarket(
+          self.formula,
+          self.slot0.secondsPerTick,
+          liquidity,
+          self.slot0.coveredCapital,
+          liquidity,
+          newCoveredCapital
+        );
+    }
+
+    // These are the mutated values
+    slot0_.coveredCapital -= coveredCapitalToRemove;
+    slot0_.remainingCovers -= nbCovers;
+
+    return (slot0_, utilization, premiumRate);
+  }
+
+  // ======= PURE HELPERS ======= //
 
   // /**
   //  * @notice Computes the premium rate of a cover,
@@ -1048,9 +1091,9 @@ library VirtualPool {
   //  * @dev Not pure since reads self but pure for all practical purposes
   //  */
   // function getPremiumRate(
-  //   VPool storage self,
+  //    uint64 poolId_,
   //   uint256 utilizationRate_
-  // ) internal view returns (uint256 /* premiumRate */) {
+  // ) external view returns (uint256 /* premiumRate */) {
   //   Formula storage formula = self.formula;
 
   //   if (utilizationRate_ < formula.uOptimal) {
@@ -1093,7 +1136,7 @@ library VirtualPool {
   //   uint256 utilizationRate_,
   //   uint256 premiumRate_,
   //   uint256 timeSeconds_
-  // ) internal pure returns (uint /* liquidityIndex */) {
+  // ) external pure returns (uint /* liquidityIndex */) {
   //   return
   //     utilizationRate_
   //       .rayMul(premiumRate_)
@@ -1111,7 +1154,7 @@ library VirtualPool {
   //   uint256 userCapital_,
   //   uint256 startLiquidityIndex_,
   //   uint256 endLiquidityIndex_
-  // ) internal pure returns (uint256) {
+  // ) external pure returns (uint256) {
   //   return
   //     (userCapital_.rayMul(endLiquidityIndex_) -
   //       userCapital_.rayMul(startLiquidityIndex_)) / 10_000;
@@ -1131,7 +1174,7 @@ library VirtualPool {
   //   uint256 oldDailyCost_,
   //   uint256 oldPremiumRate_,
   //   uint256 newPremiumRate_
-  // ) internal pure returns (uint256) {
+  // ) external pure returns (uint256) {
   //   return (oldDailyCost_ * newPremiumRate_) / oldPremiumRate_;
   // }
 
@@ -1149,7 +1192,7 @@ library VirtualPool {
   //   uint256 oldSecondsPerTick_,
   //   uint256 oldPremiumRate_,
   //   uint256 newPremiumRate_
-  // ) internal pure returns (uint256) {
+  // ) external pure returns (uint256) {
   //   return
   //     oldSecondsPerTick_.rayMul(oldPremiumRate_).rayDiv(
   //       newPremiumRate_
@@ -1157,10 +1200,10 @@ library VirtualPool {
   // }
 
   // function _utilizationForCoveredCapital(
-  //   VPool storage self,
+  //    uint64 poolId_,
   //   uint256 coveredCapital_
-  // ) internal view returns (uint256) {
-  //   return _utilization(coveredCapital_, self.totalLiquidity());
+  // ) external view returns (uint256) {
+  //   return _utilization(coveredCapital_,  totalLiquidity(self.poolId));
   // }
 
   // /**
@@ -1172,8 +1215,8 @@ library VirtualPool {
   //  * @dev Not pure since reads self but pure for all practical purposes
   //  */
   // function currentPremiumRate(
-  //   VPool storage self
-  // ) internal view returns (uint256) {
+  //   DataTypes.VPool storage self
+  // ) external view returns (uint256) {
   //   return
   //     self.getPremiumRate(
   //       self._utilizationForCoveredCapital(self.slot0.coveredCapital)
@@ -1190,11 +1233,11 @@ library VirtualPool {
   //  * @return newSecondsPerTick The updated seconds per tick of the pool
   //  */
   // function updatedPremiumRate(
-  //   VPool storage self,
+  //    uint64 poolId_,
   //   uint256 coveredCapitalToAdd_,
   //   uint256 coveredCapitalToRemove_
   // )
-  //   internal
+  //   external
   //   view
   //   returns (uint256 newPremiumRate, uint256 newSecondsPerTick)
   // {
@@ -1226,7 +1269,7 @@ library VirtualPool {
   // function _utilization(
   //   uint256 coveredCapital_,
   //   uint256 liquidity_
-  // ) internal pure returns (uint256 /* rate */) {
+  // ) external pure returns (uint256 /* rate */) {
   //   // If the pool has no liquidity then the utilization rate is 0
   //   if (liquidity_ == 0) return 0;
 

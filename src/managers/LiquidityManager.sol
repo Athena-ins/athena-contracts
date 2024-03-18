@@ -9,6 +9,7 @@ import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { RayMath } from "../libs/RayMath.sol";
 import { VirtualPool } from "../libs/VirtualPool.sol";
 import { PoolMath } from "../libs/PoolMath.sol";
+import { DataTypes } from "../libs/DataTypes.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 // Interfaces
@@ -56,7 +57,7 @@ contract LiquidityManager is
 
   using SafeERC20 for IERC20;
   using RayMath for uint256;
-  using VirtualPool for VirtualPool.VPool;
+  using VirtualPool for DataTypes.VPool;
 
   // ======= STORAGE ======= //
 
@@ -85,13 +86,13 @@ contract LiquidityManager is
 
   /// The ID of the next claim to be
   uint256 public nextCompensationId;
-  mapping(uint256 _id => VirtualPool.Compensation)
+  mapping(uint256 _id => DataTypes.Compensation)
     public _compensations;
 
   /// The token ID position data
   uint64 public nextPoolId;
   /// Maps a pool ID to the virtualized pool's storage
-  mapping(uint64 _id => VirtualPool.VPool) internal _pools;
+  mapping(uint64 _id => DataTypes.VPool) internal _pools;
 
   // ======= CONSTRUCTOR ======= //
 
@@ -177,32 +178,42 @@ contract LiquidityManager is
   ) external view returns (PositionRead memory) {
     Position storage position = _positions[positionId_];
 
-    uint256 nbPools = position.poolIds.length;
-
-    uint256[] memory coverRewards = new uint256[](nbPools);
+    uint256[] memory coverRewards = new uint256[](
+      position.poolIds.length
+    );
     VirtualPool.UpdatedPositionInfo memory info;
+
+    DataTypes.VPool storage pool = VirtualPool.getPool(
+      position.poolIds[0]
+    );
 
     // All pools have same strategy since they are compatible
     uint256 latestStrategyRewardIndex = strategyManager
-      .getRewardIndex(_pools[position.poolIds[0]].strategyId);
+      .getRewardIndex(pool.strategyId);
 
-    for (uint256 i; i < nbPools; i++) {
-      VirtualPool.VPool storage pool = _pools[position.poolIds[i]];
-
-      uint256 currentLiquidityIndex = pool
-        ._refresh(block.timestamp)
+    for (uint256 i; i < position.poolIds.length; i++) {
+      uint256 currentLiquidityIndex = VirtualPool
+        ._refresh(position.poolIds[i], block.timestamp)
         .liquidityIndex;
 
-      info = pool._getUpdatedPositionInfo(
+      info = VirtualPool._getUpdatedPositionInfo(
+        position.poolIds[i],
         position.poolIds,
         VirtualPool.UpdatePositionParams({
           tokenId: positionId_,
           currentLiquidityIndex: currentLiquidityIndex,
           userCapital: position.supplied,
           strategyRewardIndex: position.strategyRewardIndex,
-          latestStrategyRewardIndex: latestStrategyRewardIndex
+          latestStrategyRewardIndex: latestStrategyRewardIndex,
+          strategyId: pool.strategyId,
+          itCompounds: pool.strategyManager.itCompounds(
+            pool.strategyId
+          ),
+          endCompensationId: pool.compensationIds.length,
+          nbPools: position.poolIds.length
         })
       );
+
       coverRewards[i] = info.coverRewards;
     }
 
@@ -227,10 +238,10 @@ contract LiquidityManager is
     uint256 coverId_
   ) external view returns (CoverRead memory) {
     uint64 poolId = coverToPool[coverId_];
-    VirtualPool.VPool storage pool = _pools[poolId];
+    DataTypes.VPool storage pool = VirtualPool.getPool(poolId);
 
-    VirtualPool.CoverInfo memory info = pool
-      ._computeRefreshedCoverInfo(coverId_);
+    VirtualPool.CoverInfo memory info = VirtualPool
+      ._computeRefreshedCoverInfo(poolId, coverId_);
 
     uint32 lastTick = pool.covers[coverId_].lastTick;
     uint256 coverAmount = pool.covers[coverId_].coverAmount;
@@ -266,8 +277,9 @@ contract LiquidityManager is
    */
   function isCoverActive(
     uint256 coverId_
-  ) external view returns (bool) {
-    return _pools[coverToPool[coverId_]]._isCoverActive(coverId_);
+  ) public view returns (bool) {
+    return
+      VirtualPool._isCoverActive(coverToPool[coverId_], coverId_);
   }
 
   /**
@@ -278,13 +290,17 @@ contract LiquidityManager is
   function poolInfo(
     uint64 poolId_
   ) external view returns (VPoolRead memory) {
-    VirtualPool.VPool storage pool = _pools[poolId_];
+    DataTypes.VPool storage pool = VirtualPool.getPool(poolId_);
 
     // Save the last update timestamp to know when the pool was last updated onchain
     uint256 lastOnchainUpdateTimestamp = pool
       .slot0
       .lastUpdateTimestamp;
-    VirtualPool.Slot0 memory slot0 = pool._refresh(block.timestamp);
+
+    DataTypes.Slot0 memory slot0 = VirtualPool._refresh(
+      poolId_,
+      block.timestamp
+    );
 
     uint256 nbOverlappedPools = pool.overlappedPools.length;
     uint256[] memory overlappedCapital = new uint256[](
@@ -297,7 +313,7 @@ contract LiquidityManager is
       );
     }
 
-    uint256 totalLiquidity = pool.totalLiquidity();
+    uint256 totalLiquidity = VirtualPool.totalLiquidity(poolId_);
     uint256 utilization = PoolMath._utilization(
       slot0.coveredCapital,
       totalLiquidity
@@ -334,7 +350,7 @@ contract LiquidityManager is
         overlappedCapital: overlappedCapital,
         utilizationRate: utilization,
         totalLiquidity: totalLiquidity,
-        availableLiquidity: pool.availableLiquidity(),
+        availableLiquidity: VirtualPool.availableLiquidity(poolId_),
         strategyRewardIndex: strategyManager.getRewardIndex(
           pool.strategyId
         ),
@@ -359,8 +375,8 @@ contract LiquidityManager is
   ) public view returns (uint256) {
     return
       poolIdA_ < poolIdB_
-        ? _pools[poolIdA_].overlaps[poolIdB_]
-        : _pools[poolIdB_].overlaps[poolIdA_];
+        ? VirtualPool.getPool(poolIdA_).overlaps[poolIdB_]
+        : VirtualPool.getPool(poolIdB_).overlaps[poolIdA_];
   }
 
   /// ======= INTERNAL VIEWS ======= ///
@@ -372,7 +388,7 @@ contract LiquidityManager is
    */
   function _getCompensation(
     uint256 compensationId_
-  ) internal view returns (VirtualPool.Compensation storage) {
+  ) internal view returns (DataTypes.Compensation storage) {
     return _compensations[compensationId_];
   }
 
@@ -407,10 +423,11 @@ contract LiquidityManager is
       .assets(strategyId_);
 
     // Get storage pointer to pool
-    VirtualPool.VPool storage pool = _pools[poolId];
+    // DataTypes.VPool storage pool = _pools[poolId];
+    // DataTypes.VPool storage pool = VirtualPool.getPool(poolId);
 
     // Create virtual pool
-    pool._vPoolConstructor(
+    VirtualPool._vPoolConstructor(
       // Create virtual pool argument struct
       VirtualPool.VPoolConstructorParams({
         poolId: poolId,
@@ -425,10 +442,12 @@ contract LiquidityManager is
         uOptimal: uOptimal_, //Ray
         r0: r0_, //Ray
         rSlope1: rSlope1_, //Ray
-        rSlope2: rSlope2_, //Ray
-        getCompensation: _getCompensation
+        rSlope2: rSlope2_ //Ray
       })
     );
+
+    // Attach child contract functions to the virtual pool
+    VirtualPool.getPool(poolId).getCompensation = _getCompensation;
 
     // Add compatible pools
     uint256 nbPools = compatiblePools_.length;
@@ -465,7 +484,7 @@ contract LiquidityManager is
     uint256 positionId = positionToken.mint(msg.sender);
 
     // All pools share the same strategy so we can use the first pool ID
-    uint256 strategyId = _pools[poolIds[0]].strategyId;
+    uint256 strategyId = VirtualPool.getPool(poolIds[0]).strategyId;
     uint256 amountUnderlying = isWrapped
       ? strategyManager.wrappedToUnderlying(strategyId, amount)
       : amount;
@@ -480,7 +499,9 @@ contract LiquidityManager is
 
     // Push funds to strategy manager
     if (isWrapped) {
-      address wrappedAsset = _pools[poolIds[0]].wrappedAsset;
+      address wrappedAsset = VirtualPool
+        .getPool(poolIds[0])
+        .wrappedAsset;
       IERC20(wrappedAsset).safeTransferFrom(
         msg.sender,
         address(strategyManager),
@@ -489,7 +510,9 @@ contract LiquidityManager is
 
       strategyManager.depositWrappedToStrategy(strategyId);
     } else {
-      address underlyingAsset = _pools[poolIds[0]].underlyingAsset;
+      address underlyingAsset = VirtualPool
+        .getPool(poolIds[0])
+        .underlyingAsset;
       IERC20(underlyingAsset).safeTransferFrom(
         msg.sender,
         address(strategyManager),
@@ -525,7 +548,9 @@ contract LiquidityManager is
     bool isWrapped
   ) external onlyPositionOwner(positionId_) {
     Position storage position = _positions[positionId_];
-    uint256 strategyId = _pools[position.poolIds[0]].strategyId;
+    uint256 strategyId = VirtualPool
+      .getPool(position.poolIds[0])
+      .strategyId;
 
     // Positions that are commit for withdrawal cannot be increased
     if (position.commitWithdrawalTimestamp != 0)
@@ -553,7 +578,9 @@ contract LiquidityManager is
 
     // Push funds to strategy manager
     if (isWrapped) {
-      address wrappedAsset = _pools[position.poolIds[0]].wrappedAsset;
+      address wrappedAsset = VirtualPool
+        .getPool(position.poolIds[0])
+        .wrappedAsset;
       IERC20(wrappedAsset).safeTransferFrom(
         msg.sender,
         address(strategyManager),
@@ -562,7 +589,8 @@ contract LiquidityManager is
 
       strategyManager.depositWrappedToStrategy(strategyId);
     } else {
-      address underlyingAsset = _pools[position.poolIds[0]]
+      address underlyingAsset = VirtualPool
+        .getPool(position.poolIds[0])
         .underlyingAsset;
       IERC20(underlyingAsset).safeTransferFrom(
         msg.sender,
@@ -598,7 +626,9 @@ contract LiquidityManager is
 
     // All pools have same strategy since they are compatible
     uint256 latestStrategyRewardIndex = strategyManager
-      .getRewardIndex(_pools[position.poolIds[0]].strategyId);
+      .getRewardIndex(
+        VirtualPool.getPool(position.poolIds[0]).strategyId
+      );
     address posOwner = positionToken.ownerOf(positionId_);
 
     uint256 newUserCapital;
@@ -606,25 +636,27 @@ contract LiquidityManager is
 
     uint256 nbPools = position.poolIds.length;
     for (uint256 i; i < nbPools; i++) {
-      VirtualPool.VPool storage pool = _pools[position.poolIds[i]];
-
       // Clean pool from expired covers
-      pool._purgeExpiredCovers();
+      VirtualPool._purgeExpiredCovers(position.poolIds[i]);
 
       // These are the same values at each iteration
-      (newUserCapital, strategyRewards) = pool._takePoolInterests(
-        positionId_,
-        coverRewardsBeneficiary_,
-        position.supplied,
-        position.strategyRewardIndex,
-        latestStrategyRewardIndex,
-        yieldBonus_,
-        position.poolIds
-      );
+      (newUserCapital, strategyRewards) = VirtualPool
+        ._takePoolInterests(
+          position.poolIds[i],
+          positionId_,
+          coverRewardsBeneficiary_,
+          position.supplied,
+          position.strategyRewardIndex,
+          latestStrategyRewardIndex,
+          yieldBonus_,
+          position.poolIds
+        );
     }
 
     // All pools have same strategy since they are compatible
-    uint256 strategyId = _pools[position.poolIds[0]].strategyId;
+    uint256 strategyId = VirtualPool
+      .getPool(position.poolIds[0])
+      .strategyId;
 
     // Withdraw interests from strategy
     strategyManager.withdrawFromStrategy(
@@ -689,7 +721,9 @@ contract LiquidityManager is
     Position storage position = _positions[positionId_];
 
     for (uint256 i; i < position.poolIds.length; i++) {
-      VirtualPool.VPool storage pool = _pools[position.poolIds[i]];
+      DataTypes.VPool storage pool = VirtualPool.getPool(
+        position.poolIds[i]
+      );
       // Cannot commit to withdraw while there are ongoing claims
       if (0 < pool.ongoingClaims) revert PoolHasOnGoingClaims();
     }
@@ -750,7 +784,9 @@ contract LiquidityManager is
 
     // All pools have same strategy since they are compatible
     uint256 latestStrategyRewardIndex = strategyManager
-      .getRewardIndex(_pools[position.poolIds[0]].strategyId);
+      .getRewardIndex(
+        VirtualPool.getPool(position.poolIds[0]).strategyId
+      );
     address account = positionToken.ownerOf(positionId_);
 
     // Remove capital from pool & compute capital after claims & strategy rewards
@@ -775,7 +811,9 @@ contract LiquidityManager is
 
     // All pools have same strategy since they are compatible
     if (amount_ != 0 || strategyRewards != 0) {
-      uint256 strategyId = _pools[position.poolIds[0]].strategyId;
+      uint256 strategyId = VirtualPool
+        .getPool(position.poolIds[0])
+        .strategyId;
       if (keepWrapped_) {
         strategyManager.withdrawWrappedFromStrategy(
           strategyId,
@@ -804,7 +842,7 @@ contract LiquidityManager is
    */
   function purgeExpiredCoversInPool(uint64 poolId_) external {
     // Clean pool from expired covers
-    _pools[poolId_]._purgeExpiredCovers();
+    VirtualPool._purgeExpiredCovers(poolId_);
   }
 
   /// ======= BUY COVER ======= ///
@@ -821,10 +859,10 @@ contract LiquidityManager is
     uint256 premiums_
   ) external {
     // Get storage pointer to pool
-    VirtualPool.VPool storage pool = _pools[poolId_];
+    DataTypes.VPool storage pool = VirtualPool.getPool(poolId_);
 
     // Clean pool from expired covers
-    pool._purgeExpiredCovers();
+    VirtualPool._purgeExpiredCovers(poolId_);
 
     // Check if pool is currently paused
     if (pool.isPaused) revert PoolIsPaused();
@@ -843,7 +881,12 @@ contract LiquidityManager is
     coverToPool[coverId] = poolId_;
 
     // Create cover in pool
-    pool._registerCover(coverId, coverAmount_, premiums_);
+    VirtualPool._registerCover(
+      poolId_,
+      coverId,
+      coverAmount_,
+      premiums_
+    );
   }
 
   /// ======= UPDATE COVER ======= ///
@@ -866,26 +909,28 @@ contract LiquidityManager is
     uint256 premiumsToAdd_,
     uint256 premiumsToRemove_
   ) external onlyCoverOwner(coverId_) {
+    uint64 poolId = coverToPool[coverId_];
+
     // Get storage pointer to pool
-    VirtualPool.VPool storage pool = _pools[coverToPool[coverId_]];
+    DataTypes.VPool storage pool = VirtualPool.getPool(poolId);
 
     // Clean pool from expired covers
-    pool._purgeExpiredCovers();
+    VirtualPool._purgeExpiredCovers(poolId);
 
     // Check if pool is currently paused
     if (pool.isPaused) revert PoolIsPaused();
     // Check if cover is expired
-    if (!pool._isCoverActive(coverId_)) revert CoverIsExpired();
+    if (!isCoverActive(coverId_)) revert CoverIsExpired();
 
     // Get the amount of premiums left
-    uint256 premiums = pool
-      ._computeCurrentCoverInfo(coverId_)
+    uint256 premiums = VirtualPool
+      ._computeCurrentCoverInfo(poolId, coverId_)
       .premiumsLeft;
 
     uint256 coverAmount = pool.covers[coverId_].coverAmount;
 
     // Close the existing cover
-    pool._closeCover(coverId_);
+    VirtualPool._closeCover(poolId, coverId_);
 
     // Only allow one operation on cover amount change
     if (0 < coverToAdd_) {
@@ -927,7 +972,12 @@ contract LiquidityManager is
 
     if (premiums != 0) {
       // Update cover
-      pool._registerCover(coverId_, coverAmount, premiums);
+      VirtualPool._registerCover(
+        poolId,
+        coverId_,
+        coverAmount,
+        premiums
+      );
     } else {
       // This will freeze the farming rewards of the cover
       farming.freezeExpiredCoverRewards(coverId_);
@@ -955,17 +1005,17 @@ contract LiquidityManager is
 
     for (uint256 i; i < nbPoolIds; i++) {
       uint64 poolId0 = poolIds_[i];
-      VirtualPool.VPool storage pool0 = _pools[poolId0];
+      DataTypes.VPool storage pool0 = VirtualPool.getPool(poolId0);
 
       // Check if pool is currently paused
       if (pool0.isPaused) revert PoolIsPaused();
 
       // Remove expired covers
       /// @dev Skip the purge when adding liquidity since it has been done
-      if (purgePools) pool0._purgeExpiredCovers();
+      if (purgePools) VirtualPool._purgeExpiredCovers(poolId0);
 
       // Update premium rate, seconds per tick & LP position info
-      pool0._depositToPool(positionId_, amount_);
+      VirtualPool._depositToPool(poolId0, positionId_, amount_);
 
       // Add liquidity to the pools available liquidity
       pool0.overlaps[poolId0] += amount_;
@@ -979,7 +1029,7 @@ contract LiquidityManager is
        */
       for (uint256 j = i + 1; j < nbPoolIds; j++) {
         uint64 poolId1 = poolIds_[j];
-        VirtualPool.VPool storage pool1 = _pools[poolId1];
+        DataTypes.VPool storage pool1 = VirtualPool.getPool(poolId1);
 
         // Check if pool ID is greater than the previous one
         // This ensures each pool ID is unique & reduces computation cost
@@ -1026,25 +1076,22 @@ contract LiquidityManager is
 
     for (uint256 i; i < nbPoolIds; i++) {
       uint64 poolId0 = poolIds_[i];
-      VirtualPool.VPool storage pool0 = _pools[poolId0];
+      DataTypes.VPool storage pool0 = VirtualPool.getPool(poolId0);
 
       // Need to clean covers to avoid them causing a utilization overflow
-      pool0._purgeExpiredCovers();
+      VirtualPool._purgeExpiredCovers(poolId0);
 
       // Remove liquidity
-      (uint256 newUserCapital, uint256 strategyRewards) = pool0
-        ._withdrawLiquidity(
-          positionId_,
-          supplied_,
-          amount_,
-          strategyRewardIndex_,
-          latestStrategyRewardIndex_,
-          poolIds_
-        );
-
       // The updated user capital & strategy rewards are the same at each iteration
-      capital = newUserCapital;
-      rewards = strategyRewards;
+      (capital, rewards) = VirtualPool._withdrawLiquidity(
+        poolId0,
+        positionId_,
+        supplied_,
+        amount_,
+        strategyRewardIndex_,
+        latestStrategyRewardIndex_,
+        poolIds_
+      );
 
       // Considering the verification that pool IDs are unique & ascending
       // then start index is i to reduce required number of loops
@@ -1066,7 +1113,7 @@ contract LiquidityManager is
   function addClaimToPool(
     uint256 coverId_
   ) external onlyClaimManager {
-    _pools[coverToPool[coverId_]].ongoingClaims++;
+    VirtualPool.getPool(coverToPool[coverId_]).ongoingClaims++;
   }
 
   /**
@@ -1078,7 +1125,7 @@ contract LiquidityManager is
   function removeClaimFromPool(
     uint256 coverId_
   ) external onlyClaimManager {
-    _pools[coverToPool[coverId_]].ongoingClaims--;
+    VirtualPool.getPool(coverToPool[coverId_]).ongoingClaims--;
   }
 
   /**
@@ -1102,7 +1149,8 @@ contract LiquidityManager is
 
     if (newCoverAmount_ == 0) revert CoverAmountIsZero();
 
-    _pools[poolId_]._registerCover(
+    VirtualPool._registerCover(
+      poolId_,
       coverId_,
       newCoverAmount_,
       premiums_
@@ -1119,10 +1167,10 @@ contract LiquidityManager is
     uint256 compensationAmount_
   ) external onlyClaimManager {
     uint64 fromPoolId = coverToPool[coverId_];
-    VirtualPool.VPool storage poolA = _pools[fromPoolId];
+    DataTypes.VPool storage poolA = VirtualPool.getPool(fromPoolId);
 
     uint256 ratio = compensationAmount_.rayDiv(
-      poolA.totalLiquidity()
+      VirtualPool.totalLiquidity(fromPoolId)
     );
     // The ration cannot be over 100% of the pool's liquidity (1 RAY)
     if (RayMath.RAY < ratio) revert RatioAbovePoolCapacity();
@@ -1137,7 +1185,7 @@ contract LiquidityManager is
     // Get compensation ID and its storage pointer
     uint256 compensationId = nextCompensationId;
     nextCompensationId++;
-    VirtualPool.Compensation storage compensation = _compensations[
+    DataTypes.Compensation storage compensation = _compensations[
       compensationId
     ];
     // Register data common to all affected pools
@@ -1147,9 +1195,9 @@ contract LiquidityManager is
 
     for (uint256 i; i < nbPools; i++) {
       uint64 poolIdB = poolA.overlappedPools[i];
-      VirtualPool.VPool storage poolB = _pools[poolIdB];
+      DataTypes.VPool storage poolB = VirtualPool.getPool(poolIdB);
 
-      (VirtualPool.VPool storage pool0, uint64 poolId1) = fromPoolId <
+      (DataTypes.VPool storage pool0, uint64 poolId1) = fromPoolId <
         poolIdB
         ? (poolA, poolIdB)
         : (poolB, fromPoolId);
@@ -1157,7 +1205,7 @@ contract LiquidityManager is
       // Skip if overlap is 0 because the pools no longer share liquidity
       if (pool0.overlaps[poolId1] == 0) continue;
       // Update pool state & remove expired covers
-      poolB._purgeExpiredCovers();
+      VirtualPool._purgeExpiredCovers(poolIdB);
 
       // New context to avoid stack too deep error
       {
@@ -1171,7 +1219,7 @@ contract LiquidityManager is
 
         // Update pool pricing (premium rate & seconds per tick)
         /// @dev Skip available liquidity lock check as payouts are always possible
-        poolB._syncLiquidity(0, amountToRemove, true);
+        VirtualPool._syncLiquidity(poolIdB, 0, amountToRemove, true);
 
         // Reduce available liquidity,
         // at i = 0 this is the self liquidity of cover's pool
@@ -1202,10 +1250,10 @@ contract LiquidityManager is
     // New context to avoid stack too deep error
     {
       // If the cover isn't expired, then reduce the cover amount
-      if (poolA._isCoverActive(coverId_)) {
+      if (isCoverActive(coverId_)) {
         // Get the amount of premiums left
-        uint256 premiums = poolA
-          ._computeCurrentCoverInfo(coverId_)
+        uint256 premiums = VirtualPool
+          ._computeCurrentCoverInfo(fromPoolId, coverId_)
           .premiumsLeft;
 
         // Reduce the cover amount by the compensation amount
@@ -1213,7 +1261,7 @@ contract LiquidityManager is
           compensationAmount_;
 
         // Close the existing cover
-        poolA._closeCover(coverId_);
+        VirtualPool._closeCover(fromPoolId, coverId_);
 
         // Update cover
         try
@@ -1238,6 +1286,12 @@ contract LiquidityManager is
       claimant
     );
   }
+
+  /// ======= HELPERS ======= ///
+
+  function purgeExpiredCoversUpTo() external {}
+
+  function updatePositionUpTo() external {}
 
   /// ======= ADMIN ======= ///
 
