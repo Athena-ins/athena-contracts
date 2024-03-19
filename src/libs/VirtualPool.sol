@@ -227,7 +227,7 @@ library VirtualPool {
    *
    * @return slot0 The updated slot0
    */
-  function _refresh(
+  function _refreshSlot0(
     uint64 poolId_,
     uint256 timestamp_
   ) public view returns (DataTypes.Slot0 memory slot0) {
@@ -720,41 +720,22 @@ library VirtualPool {
     emit TickExpired(self.poolId, self.ticks[tick_]);
   }
 
+  function _purgeExpiredCovers(uint64 poolId_) external {
+    _purgeExpiredCoversUpTo(poolId_, block.timestamp);
+  }
+
   /**
    * @notice Removes expired covers from the pool and updates the pool's slot0.
    * Required before any operation that requires the slot0 to be up to date.
    * This includes all position and cover operations.
    * @param poolId_ The pool ID
    */
-  function _purgeExpiredCovers(uint64 poolId_) external {
+  function _purgeExpiredCoversUpTo(
+    uint64 poolId_,
+    uint256 timestamp_
+  ) public {
     DataTypes.VPool storage self = VirtualPool.getPool(poolId_);
-
-    // Save the current tick before updating the slot0
-    uint32 startTick = self.slot0.tick;
-
-    self.slot0 = _refresh(poolId_, block.timestamp);
-
-    // If there are no cover there is no use looking for expired ones
-    if (self.slot0.remainingCovers == 0) return;
-
-    // @bw this maybe can be skipped entirely since we'll never read those ticks again
-    // For all the ticks between the slot0 tick & the refreshed tick
-    while (startTick < self.slot0.tick) {
-      // The start tick may not have been purged since it was not overtaken
-      if (self.tickBitmap.isInitializedTick(startTick))
-        self._removeTick(startTick);
-
-      (uint32 nextTick, bool isInitialized) = self
-        .tickBitmap
-        .nextTick(startTick);
-
-      // Only clear ticks that are before the current tick
-      if (self.slot0.tick <= nextTick) break;
-      // If the tick contains covers we need to expire them
-      if (isInitialized) self._removeTick(nextTick);
-
-      startTick = nextTick;
-    }
+    self.slot0 = _refreshSlot0(poolId_, timestamp_);
   }
 
   // ======= VIEW HELPERS ======= //
@@ -949,7 +930,7 @@ library VirtualPool {
       self._computeCoverInfo(
         coverId_,
         // For reads we sync the slot0 to the current timestamp to have latests data
-        _refresh(poolId_, block.timestamp)
+        _refreshSlot0(poolId_, block.timestamp)
       );
   }
 

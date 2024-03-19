@@ -34,7 +34,7 @@ library AthenaDataProvider {
 
     for (uint256 i; i < position_.poolIds.length; i++) {
       uint256 currentLiquidityIndex = VirtualPool
-        ._refresh(position_.poolIds[i], block.timestamp)
+        ._refreshSlot0(position_.poolIds[i], block.timestamp)
         .liquidityIndex;
 
       info = VirtualPool._getUpdatedPositionInfo(
@@ -118,7 +118,7 @@ library AthenaDataProvider {
       .slot0
       .lastUpdateTimestamp;
 
-    DataTypes.Slot0 memory slot0 = VirtualPool._refresh(
+    DataTypes.Slot0 memory slot0 = VirtualPool._refreshSlot0(
       poolId_,
       block.timestamp
     );
@@ -145,7 +145,7 @@ library AthenaDataProvider {
     uint256 liquidityIndexLead = PoolMath.computeLiquidityIndex(
       utilization,
       premiumRate,
-      // This is the ignoredDuration in the _refresh function
+      // This is the ignoredDuration in the _refreshSlot0 function
       block.timestamp - slot0.lastUpdateTimestamp
     );
 
