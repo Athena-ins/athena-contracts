@@ -720,17 +720,6 @@ contract LiquidityManager is
     }
   }
 
-  /// ======= COVER HELPERS ======= ///
-
-  /**
-   * @notice Removes all expired covers from a pool
-   * @param poolId_ The ID of the pool
-   */
-  function purgeExpiredCoversInPool(uint64 poolId_) external {
-    // Clean pool from expired covers
-    VirtualPool._purgeExpiredCovers(poolId_);
-  }
-
   /// ======= BUY COVER ======= ///
 
   /**
@@ -1175,7 +1164,15 @@ contract LiquidityManager is
 
   /// ======= HELPERS ======= ///
 
-  function purgeExpiredCoversUpTo() external {}
+  function purgeExpiredCoversUpTo(
+    uint64 poolId_,
+    uint256 timestamp_
+  ) external nonReentrant {
+    if (timestamp_ <= block.timestamp)
+      revert MustPurgeExpiredTokenInTheFuture();
+
+    VirtualPool._purgeExpiredCoversUpTo(poolId_, timestamp_);
+  }
 
   function updatePositionUpTo() external {}
 
