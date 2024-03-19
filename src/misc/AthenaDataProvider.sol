@@ -78,7 +78,7 @@ library AthenaDataProvider {
    */
   function coverInfo(
     uint256 coverId_
-  ) external view returns (ILiquidityManager.CoverRead memory) {
+  ) public view returns (ILiquidityManager.CoverRead memory) {
     uint64 poolId = ILiquidityManager(address(this)).coverToPool(
       coverId_
     );
@@ -110,7 +110,7 @@ library AthenaDataProvider {
    */
   function poolInfo(
     uint64 poolId_
-  ) external view returns (ILiquidityManager.VPoolRead memory) {
+  ) public view returns (ILiquidityManager.VPoolRead memory) {
     DataTypes.VPool storage pool = VirtualPool.getPool(poolId_);
 
     // Save the last update timestamp to know when the pool was last updated onchain
@@ -177,5 +177,35 @@ library AthenaDataProvider {
         premiumRate: premiumRate,
         liquidityIndexLead: liquidityIndexLead
       });
+  }
+
+  function coverInfos(
+    uint256[] calldata coverIds
+  ) external view returns (ILiquidityManager.CoverRead[] memory) {
+    ILiquidityManager.CoverRead[]
+      memory result = new ILiquidityManager.CoverRead[](
+        coverIds.length
+      );
+
+    for (uint256 i; i < coverIds.length; i++) {
+      result[i] = coverInfo(coverIds[i]);
+    }
+
+    return result;
+  }
+
+  function poolInfos(
+    uint256[] calldata poolIds
+  ) external view returns (ILiquidityManager.VPoolRead[] memory) {
+    ILiquidityManager.VPoolRead[]
+      memory result = new ILiquidityManager.VPoolRead[](
+        poolIds.length
+      );
+
+    for (uint256 i; i < poolIds.length; i++) {
+      result[i] = poolInfo(uint64(poolIds[i]));
+    }
+
+    return result;
   }
 }

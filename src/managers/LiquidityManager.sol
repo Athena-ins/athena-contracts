@@ -202,6 +202,38 @@ contract LiquidityManager is
     return AthenaDataProvider.poolInfo(poolId_);
   }
 
+  function positionInfos(
+    uint256[] calldata positionIds
+  ) external view returns (ILiquidityManager.PositionRead[] memory) {
+    ILiquidityManager.PositionRead[]
+      memory result = new ILiquidityManager.PositionRead[](
+        positionIds.length
+      );
+
+    for (uint256 i; i < positionIds.length; i++) {
+      // Parse IDs here since we cannot make an array of storage pointers in memory
+      Position storage position = _positions[positionIds[i]];
+      result[i] = AthenaDataProvider.positionInfo(
+        position,
+        positionIds[i]
+      );
+    }
+
+    return result;
+  }
+
+  function coverInfos(
+    uint256[] calldata coverIds
+  ) external view returns (ILiquidityManager.CoverRead[] memory) {
+    return AthenaDataProvider.coverInfos(coverIds);
+  }
+
+  function poolInfos(
+    uint256[] calldata poolIds
+  ) external view returns (ILiquidityManager.VPoolRead[] memory) {
+    return AthenaDataProvider.poolInfos(poolIds);
+  }
+
   /**
    * @notice Returns if the cover is still active or has expired
    * @param coverId_ The ID of the cover
