@@ -2,14 +2,14 @@
 pragma solidity 0.8.20;
 
 // Contracts
-import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
 // Libraries
+import { AthenaDataProvider } from "../misc/AthenaDataProvider.sol";
 import { RayMath } from "../libs/RayMath.sol";
 import { VirtualPool } from "../libs/VirtualPool.sol";
 import { DataTypes } from "../libs/DataTypes.sol";
-import { AthenaDataProvider } from "../misc/AthenaDataProvider.sol";
+import { ReentrancyGuard } from "../libs/ReentrancyGuard.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 // Interfaces
@@ -47,6 +47,9 @@ error SenderNotLiquidationManager();
 error PoolHasOnGoingClaims();
 error CoverAmountIsZero();
 error CoverAmountMustBeGreaterThanZero();
+error MustPurgeExpiredTokenInTheFuture();
+error InsufficientLiquidityForWithdrawal();
+error OutOfBounds();
 
 contract LiquidityManager is
   ILiquidityManager,
@@ -1174,7 +1177,69 @@ contract LiquidityManager is
     VirtualPool._purgeExpiredCoversUpTo(poolId_, timestamp_);
   }
 
-  function updatePositionUpTo() external {}
+  function updatePositionUpTo(
+    uint256 positionId_,
+    uint256[] calldata endCompensationIndexes_
+  ) external nonReentrant onlyPositionOwner(positionId_) {
+    Position storage position = _positions[positionId_];
+
+    address account = positionToken.ownerOf(positionId_);
+
+    DataTypes.VPool storage pool;
+    VirtualPool.UpdatedPositionInfo memory info;
+    uint256 latestStrategyRewardIndex;
+
+    uint256 nbPools = position.poolIds.length;
+    for (uint256 i; i < nbPools; i++) {
+      // Clean pool from expired covers
+      VirtualPool._purgeExpiredCovers(position.poolIds[i]);
+
+      pool = VirtualPool.getPool(position.poolIds[i]);
+
+      if (
+        endCompensationIndexes_[i] <=
+        pool.lpInfos[positionId_].beginClaimIndex ||
+        pool.compensationIds.length - 1 < endCompensationIndexes_[i]
+      ) revert OutOfBounds();
+
+      {
+        // Get the updated position info
+        (info, latestStrategyRewardIndex) = VirtualPool
+          ._processCompensationsForPosition(
+            position.poolIds[i],
+            position.poolIds,
+            VirtualPool.UpdatePositionParams({
+              currentLiquidityIndex: pool.slot0.liquidityIndex,
+              tokenId: positionId_,
+              userCapital: position.supplied,
+              strategyRewardIndex: position.strategyRewardIndex,
+              latestStrategyRewardIndex: 0, // unused in this context
+              strategyId: pool.strategyId,
+              itCompounds: pool.strategyManager.itCompounds(
+                pool.strategyId
+              ),
+              endCompensationId: endCompensationIndexes_[i],
+              nbPools: nbPools
+            })
+          );
+      }
+
+      // Pay cover rewards and send fees to treasury
+      VirtualPool._payRewardsAndFees(
+        position.poolIds[i],
+        info.coverRewards,
+        account,
+        0,
+        nbPools
+      );
+
+      // Update lp info to reflect the new state of the position
+      pool.lpInfos[positionId_] = info.newLpInfo;
+      // We want to update the position's strategy reward index to the latest compensation
+      if (position.strategyRewardIndex < latestStrategyRewardIndex)
+        position.strategyRewardIndex = latestStrategyRewardIndex;
+    }
+  }
 
   /// ======= ADMIN ======= ///
 
