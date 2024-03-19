@@ -692,7 +692,9 @@ contract LiquidityManager is
       );
 
     // Reduce position of new amount of capital minus the amount withdrawn
-    // @dev Should underflow if the amount is greater than the capital
+    if (capital < amount_)
+      revert InsufficientLiquidityForWithdrawal();
+
     position.supplied = capital - amount_;
     // Reset the position's commitWithdrawalTimestamp
     position.commitWithdrawalTimestamp = 0;

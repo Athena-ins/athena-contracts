@@ -381,19 +381,21 @@ library VirtualPool {
 
   /**
    * @notice Pays the rewards and fees to the position owner and the DAO.
-   * @param self The pool
+   * @param poolId_ The pool ID
    * @param rewards_ The rewards to pay
    * @param account_ The account to pay the rewards to
    * @param yieldBonus_ The yield bonus to apply to the rewards
    * @param nbPools_ The number of pools in the position
    */
   function _payRewardsAndFees(
-    DataTypes.VPool storage self,
+    uint64 poolId_,
     uint256 rewards_,
     address account_,
     uint256 yieldBonus_,
     uint256 nbPools_
-  ) internal {
+  ) public {
+    DataTypes.VPool storage self = VirtualPool.getPool(poolId_);
+
     if (0 < rewards_) {
       uint256 fees = ((rewards_ *
         self.feeRate *
@@ -483,7 +485,8 @@ library VirtualPool {
     );
 
     // Pay cover rewards and send fees to treasury
-    self._payRewardsAndFees(
+    _payRewardsAndFees(
+      poolId_,
       info.coverRewards,
       account_,
       yieldBonus_,
@@ -540,7 +543,8 @@ library VirtualPool {
     );
 
     // Pool rewards after commit are paid in favor of the DAO's leverage risk wallet
-    self._payRewardsAndFees(
+    _payRewardsAndFees(
+      poolId_,
       info.coverRewards,
       address(self.dao),
       0, // No yield bonus for the DAO
@@ -815,11 +819,60 @@ library VirtualPool {
   ) public view returns (UpdatedPositionInfo memory info) {
     DataTypes.VPool storage self = VirtualPool.getPool(poolId_);
 
+    // Make copy of current LP info state for position
     info.newLpInfo = self.lpInfos[params.tokenId];
     info.newUserCapital = params.userCapital;
 
     // This index is not bubbled up in info because it is updated by the LiquidityManager
-    uint256 upToStrategyRewardIndex = params.strategyRewardIndex;
+    // @dev Left unitilized because _processCompensationsForPosition will update it event with no compensations
+    uint256 upToStrategyRewardIndex;
+
+    (
+      info,
+      upToStrategyRewardIndex
+    ) = _processCompensationsForPosition(poolId_, poolIds_, params);
+
+    /**
+     * Finally add the rewards from the last claim or update to the current block
+     * & register latest reward & claim indexes
+     */
+    (info.coverRewards, info.strategyRewards) = self
+      .computePositionRewards(
+        info,
+        info.coverRewards,
+        info.strategyRewards,
+        params.strategyId,
+        params.itCompounds,
+        params.currentLiquidityIndex,
+        upToStrategyRewardIndex,
+        params.latestStrategyRewardIndex
+      );
+
+    // Register up to where the position has been updated
+    // @dev
+    info.newLpInfo.beginLiquidityIndex = params.currentLiquidityIndex;
+    info.newLpInfo.beginClaimIndex = params.endCompensationId;
+  }
+
+  function _processCompensationsForPosition(
+    uint64 poolId_,
+    uint64[] storage poolIds_,
+    UpdatePositionParams memory params
+  )
+    public
+    view
+    returns (
+      UpdatedPositionInfo memory info,
+      uint256 upToStrategyRewardIndex
+    )
+  {
+    DataTypes.VPool storage self = VirtualPool.getPool(poolId_);
+
+    info.newLpInfo = self.lpInfos[params.tokenId];
+    info.newUserCapital = params.userCapital;
+
+    // This index is not bubbled up in info because it is updated by the LiquidityManager
+    upToStrategyRewardIndex = params.strategyRewardIndex;
     uint256 compensationId = info.newLpInfo.beginClaimIndex;
 
     /**
@@ -844,6 +897,7 @@ library VirtualPool {
         uint256 liquidityIndexBeforeClaim = comp
           .liquidityIndexBeforeClaim[self.poolId];
 
+        // Compute the rewards accumulated up to the claim
         (info.coverRewards, info.strategyRewards) = self
           .computePositionRewards(
             info,
@@ -856,67 +910,20 @@ library VirtualPool {
             comp.strategyRewardIndexBeforeClaim
           );
 
-        // Compute the rewards accumulated up to the claim
-        // info.strategyRewards += self.strategyManager.computeReward(
-        //   strategyId,
-        //   itCompounds
-        //     ? info.newUserCapital + info.strategyRewards
-        //     : info.newUserCapital,
-        //   params.strategyRewardIndex,
-        //   comp.strategyRewardIndexBeforeClaim
-        // );
-        // info.coverRewards += PoolMath.getCoverRewards(
-        //   info.newUserCapital,
-        //   info.newLpInfo.beginLiquidityIndex,
-        //   liquidityIndexBeforeClaim
-        // );
-
-        // Register up to where the rewards have been accumulated
-        upToStrategyRewardIndex = comp.strategyRewardIndexBeforeClaim;
         info
           .newLpInfo
           .beginLiquidityIndex = liquidityIndexBeforeClaim;
-        // Reduce capital after the comp & break loop
+        // Reduce capital after the comp
         info.newUserCapital -= info.newUserCapital.rayMul(comp.ratio);
+
+        // Register up to where the rewards have been accumulated
+        upToStrategyRewardIndex = comp.strategyRewardIndexBeforeClaim;
 
         break;
       }
     }
 
-    /**
-     * Finally add the rewards from the last claim or update to the current block
-     * & register latest reward & claim indexes
-     */
-
-    // info.strategyRewards += self.strategyManager.computeReward(
-    //   strategyId,
-    //   itCompounds
-    //     ? info.newUserCapital + info.strategyRewards
-    //     : info.newUserCapital,
-    //   upToStrategyRewardIndex,
-    //   params.latestStrategyRewardIndex
-    // );
-
-    // info.coverRewards += PoolMath.getCoverRewards(
-    //   info.newUserCapital,
-    //   info.newLpInfo.beginLiquidityIndex,
-    //   params.currentLiquidityIndex
-    // );
-
-    (info.coverRewards, info.strategyRewards) = self
-      .computePositionRewards(
-        info,
-        info.coverRewards,
-        info.strategyRewards,
-        params.strategyId,
-        params.itCompounds,
-        params.currentLiquidityIndex,
-        upToStrategyRewardIndex,
-        params.latestStrategyRewardIndex
-      );
-
     // Register up to where the position has been updated
-    info.newLpInfo.beginLiquidityIndex = params.currentLiquidityIndex;
     info.newLpInfo.beginClaimIndex = params.endCompensationId;
   }
 
