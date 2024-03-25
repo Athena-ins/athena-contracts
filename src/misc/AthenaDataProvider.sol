@@ -2,6 +2,7 @@
 pragma solidity 0.8.20;
 
 // interfaces
+import { IStrategyManager } from "../interfaces/IStrategyManager.sol";
 import { ILiquidityManager } from "../interfaces/ILiquidityManager.sol";
 // libraries
 import { VirtualPool } from "../libs/VirtualPool.sol";
@@ -149,6 +150,10 @@ library AthenaDataProvider {
       block.timestamp - slot0.lastUpdateTimestamp
     );
 
+    uint256 strategyRewardRate = IStrategyManager(
+      pool.strategyManager
+    ).getRewardRate(pool.strategyId);
+
     return
       ILiquidityManager.VPoolRead({
         poolId: pool.poolId,
@@ -159,6 +164,7 @@ library AthenaDataProvider {
         formula: pool.formula,
         slot0: slot0,
         strategyId: pool.strategyId,
+        strategyRewardRate: strategyRewardRate,
         paymentAsset: pool.paymentAsset,
         underlyingAsset: pool.underlyingAsset,
         wrappedAsset: pool.wrappedAsset,

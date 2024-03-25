@@ -109,6 +109,19 @@ contract StrategyManager is IStrategyManager, Ownable {
   }
 
   /**
+   * @notice Returns the current reward rate for the strategy
+   * @param strategyId_ The ID of the strategy
+   * @return uint256 The reward rate in RAY
+   *
+   * @dev A reward rate of 1e28 means 100% APR
+   */
+  function getRewardRate(
+    uint256 strategyId_
+  ) public view checkId(strategyId_) returns (uint256) {
+    return aaveLendingPool.getReserveData(usdt).currentLiquidityRate;
+  }
+
+  /**
    * @notice Computes rewards given their amount of underlying & start and end reward indexes
    * @param strategyId_ The ID of the strategy
    * @param amount_ The amount of underlying tokens

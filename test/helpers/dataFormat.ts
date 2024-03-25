@@ -27,6 +27,7 @@ export function poolInfoFormat(
       liquidityIndex: data.slot0.liquidityIndex,
     },
     strategyId: data.strategyId.toNumber(),
+    strategyRewardRate: data.strategyRewardRate,
     paymentAsset: data.paymentAsset.toLowerCase(),
     underlyingAsset: data.underlyingAsset.toLowerCase(),
     wrappedAsset: data.wrappedAsset.toLowerCase(),

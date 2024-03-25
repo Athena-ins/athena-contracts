@@ -54,6 +54,7 @@ interface ILiquidityManager {
     PoolMath.Formula formula;
     DataTypes.Slot0 slot0;
     uint256 strategyId;
+    uint256 strategyRewardRate;
     address paymentAsset; // asset used to pay LP premiums
     address underlyingAsset; // asset required by the strategy
     address wrappedAsset; // tokenised strategy shares (ex: aTokens)

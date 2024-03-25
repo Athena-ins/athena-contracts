@@ -6,6 +6,10 @@ interface IStrategyManager {
     uint256 strategyId
   ) external view returns (uint256);
 
+  function getRewardRate(
+    uint256 strategyId_
+  ) external view returns (uint256);
+
   function underlyingAsset(
     uint256 strategyId_
   ) external view returns (address);

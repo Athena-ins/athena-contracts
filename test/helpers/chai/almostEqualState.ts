@@ -24,7 +24,7 @@ function checkKey(
   actualKey: any,
   expectedKey: any,
 ) {
-  if (key === "lastOnchainUpdateTimestamp") {
+  if (key === "lastOnchainUpdateTimestamp" || key === "strategyRewardRate") {
     // skipping consistency check on accessory data
     return;
   }

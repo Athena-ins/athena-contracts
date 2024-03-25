@@ -58,6 +58,7 @@ export function calcExpectedPoolDataAfterCreatePool(
       liquidityIndex: BigNumber.from(0),
     },
     strategyId: strategyId,
+    strategyRewardRate: BigNumber.from(0),
     paymentAsset: paymentAsset.toLowerCase(),
     underlyingAsset: strategyTokens.underlying.toLowerCase(),
     wrappedAsset: strategyTokens.wrapped.toLowerCase(),

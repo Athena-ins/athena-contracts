@@ -19,6 +19,7 @@ export type PoolInfoObject = {
     liquidityIndex: BigNumber;
   };
   strategyId: number;
+  strategyRewardRate: BigNumber;
   paymentAsset: string;
   underlyingAsset: string;
   wrappedAsset: string;
