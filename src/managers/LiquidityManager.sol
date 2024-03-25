@@ -40,7 +40,7 @@ error InsufficientLiquidityForCover();
 error RatioAbovePoolCapacity();
 error CoverIsExpired();
 error NotEnoughPremiums();
-error CannotTakeInterestsIfCommittedWithdrawal();
+error CannotUpdatePositionIfCommittedWithdrawal();
 error CannotIncreaseIfCommittedWithdrawal();
 error PositionNotCommited();
 error SenderNotLiquidationManager();
@@ -511,7 +511,7 @@ contract LiquidityManager is
 
     // Locks interests to avoid abusively early withdrawal commits
     if (position.commitWithdrawalTimestamp != 0)
-      revert CannotTakeInterestsIfCommittedWithdrawal();
+      revert CannotUpdatePositionIfCommittedWithdrawal();
 
     // All pools have same strategy since they are compatible
     uint256 latestStrategyRewardIndex = strategyManager
@@ -1185,18 +1185,22 @@ contract LiquidityManager is
   ) external nonReentrant onlyPositionOwner(positionId_) {
     Position storage position = _positions[positionId_];
 
+    // Locks interests to avoid abusively early withdrawal commits
+    if (position.commitWithdrawalTimestamp != 0)
+      revert CannotUpdatePositionIfCommittedWithdrawal();
+
     address account = positionToken.ownerOf(positionId_);
 
-    DataTypes.VPool storage pool;
     VirtualPool.UpdatedPositionInfo memory info;
     uint256 latestStrategyRewardIndex;
 
-    uint256 nbPools = position.poolIds.length;
-    for (uint256 i; i < nbPools; i++) {
+    for (uint256 i; i < position.poolIds.length; i++) {
       // Clean pool from expired covers
       VirtualPool._purgeExpiredCovers(position.poolIds[i]);
 
-      pool = VirtualPool.getPool(position.poolIds[i]);
+      DataTypes.VPool storage pool = VirtualPool.getPool(
+        position.poolIds[i]
+      );
 
       if (
         endCompensationIndexes_[i] <=
@@ -1221,7 +1225,7 @@ contract LiquidityManager is
                 pool.strategyId
               ),
               endCompensationId: endCompensationIndexes_[i],
-              nbPools: nbPools
+              nbPools: position.poolIds.length
             })
           );
       }
@@ -1232,7 +1236,7 @@ contract LiquidityManager is
         info.coverRewards,
         account,
         0,
-        nbPools
+        position.poolIds.length
       );
 
       // Update lp info to reflect the new state of the position
