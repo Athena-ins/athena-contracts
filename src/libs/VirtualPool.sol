@@ -413,7 +413,8 @@ library VirtualPool {
       }
 
       uint256 totalFees = fees + leverageFee;
-      uint256 net = rewards_ - totalFees;
+      // With insane leverage then the user could have a total fee rate above 100%
+      uint256 net = rewards_ < totalFees ? 0 : rewards_ - totalFees;
 
       // Pay position owner
       if (net != 0) {
