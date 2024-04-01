@@ -374,7 +374,7 @@ export const liquidityProvision: Scenario = {
             positionId: 2,
           },
           expected: "revert",
-          revertMessage: "CannotTakeInterestsIfCommittedWithdrawal",
+          revertMessage: "CannotUpdatePositionIfCommittedWithdrawal",
         },
       ],
     },

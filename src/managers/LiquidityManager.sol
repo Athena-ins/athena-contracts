@@ -205,6 +205,13 @@ contract LiquidityManager is
     return AthenaDataProvider.poolInfo(poolId_);
   }
 
+  /**
+   * @notice Returns the up to date data of an array of positions
+   * @param positionIds The IDs of the positions
+   * @return The positions data
+   *
+   * @dev Moved to LiquidityManager since cannot pass array of storage pointers in memory
+   */
   function positionInfos(
     uint256[] calldata positionIds
   ) external view returns (ILiquidityManager.PositionRead[] memory) {
