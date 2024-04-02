@@ -865,10 +865,8 @@ contract LiquidityManager is
         coverAmount,
         premiums
       );
-    } else {
-      // This will freeze the farming rewards of the cover
-      farming.freezeExpiredCoverRewards(coverId_);
     }
+    // @dev No need to freeze farming rewards since the cover owner needs to hold the cover to update it
   }
 
   /// ======= LIQUIDITY CHANGES ======= ///
