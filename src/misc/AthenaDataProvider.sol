@@ -59,15 +59,32 @@ library AthenaDataProvider {
       coverRewards[i] = info.coverRewards;
     }
 
+    bool isWrappedAllowed = pool.wrappedAsset != address(0);
+    (
+      uint256 suppliedWrapped,
+      uint256 newUserCapitalWrapped
+    ) = isWrappedAllowed
+        ? (
+          ILiquidityManager(address(this))
+            .strategyManager()
+            .wrappedToUnderlying(pool.strategyId, position_.supplied),
+          ILiquidityManager(address(this))
+            .strategyManager()
+            .wrappedToUnderlying(pool.strategyId, info.newUserCapital)
+        )
+        : (position_.supplied, info.newUserCapital);
+
     return
       ILiquidityManager.PositionRead({
         positionId: positionId_,
         supplied: position_.supplied,
+        suppliedWrapped: suppliedWrapped,
         commitWithdrawalTimestamp: position_
           .commitWithdrawalTimestamp,
         strategyRewardIndex: latestStrategyRewardIndex,
         poolIds: position_.poolIds,
         newUserCapital: info.newUserCapital,
+        newUserCapitalWrapped: newUserCapitalWrapped,
         coverRewards: coverRewards,
         strategyRewards: info.strategyRewards
       });

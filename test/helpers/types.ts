@@ -39,10 +39,12 @@ export type PoolInfoObject = {
 
 export type PositionInfoObject = {
   supplied: BigNumber;
+  suppliedWrapped: BigNumber;
   commitWithdrawalTimestamp: number;
   strategyRewardIndex: BigNumber;
   poolIds: number[];
   newUserCapital: BigNumber;
+  newUserCapitalWrapped: BigNumber;
   coverRewards: BigNumber[];
   strategyRewards: BigNumber;
 };

@@ -51,10 +51,12 @@ export function positionInfoFormat(
 ): PositionInfoObject {
   return {
     supplied: data.supplied,
+    suppliedWrapped: data.supplied,
     commitWithdrawalTimestamp: data.commitWithdrawalTimestamp.toNumber(),
     strategyRewardIndex: data.strategyRewardIndex,
     poolIds: data.poolIds.map((val) => val.toNumber()),
     newUserCapital: data.newUserCapital,
+    newUserCapitalWrapped: data.newUserCapitalWrapped,
     coverRewards: data.coverRewards,
     strategyRewards: data.strategyRewards,
   };
