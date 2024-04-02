@@ -38,6 +38,7 @@ export type PoolInfoObject = {
 };
 
 export type PositionInfoObject = {
+  positionId: number;
   supplied: BigNumber;
   suppliedWrapped: BigNumber;
   commitWithdrawalTimestamp: number;

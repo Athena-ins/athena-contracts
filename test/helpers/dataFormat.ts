@@ -50,6 +50,7 @@ export function positionInfoFormat(
   data: Awaited<ReturnType<LiquidityManager["positionInfo"]>>,
 ): PositionInfoObject {
   return {
+    positionId: data.positionId.toNumber(),
     supplied: data.supplied,
     suppliedWrapped: data.supplied,
     commitWithdrawalTimestamp: data.commitWithdrawalTimestamp.toNumber(),
