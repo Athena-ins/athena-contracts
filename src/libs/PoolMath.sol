@@ -4,6 +4,8 @@ pragma solidity 0.8.20;
 // Libraries
 import { RayMath } from "../libs/RayMath.sol";
 
+// @bw move back into vpool ?
+
 library PoolMath {
   using RayMath for uint256;
 

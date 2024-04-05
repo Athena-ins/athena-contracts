@@ -56,11 +56,21 @@ contract LiquidityManager is
   ReentrancyGuard,
   Ownable
 {
-  // ======= LIBS ======= //
+  // ======= LIBRARIES ======= //
 
   using SafeERC20 for IERC20;
   using RayMath for uint256;
   using VirtualPool for DataTypes.VPool;
+
+  // ======= EVENTS ======= //
+
+  event OpenCover(
+    address indexed user,
+    uint64 indexed poolId,
+    uint256 indexed coverId,
+    uint256 coverAmount,
+    uint256 premiums
+  );
 
   // ======= STORAGE ======= //
 
@@ -769,6 +779,14 @@ contract LiquidityManager is
 
     // Create cover in pool
     VirtualPool._registerCover(
+      poolId_,
+      coverId,
+      coverAmount_,
+      premiums_
+    );
+
+    emit OpenCover(
+      msg.sender,
       poolId_,
       coverId,
       coverAmount_,
