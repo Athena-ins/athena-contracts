@@ -11,9 +11,9 @@ import { coverNegatives } from "./scenarios/coverNegatives";
 import { liquidityNegatives } from "./scenarios/liquidityNegatives";
 
 const scenarios = [
-  // allActions,
+  allActions,
   liquidityProvision,
-  // coverProtection,
+  coverProtection,
   // claimingAndPayout,
   // multiplePools,
   // coverNegatives,

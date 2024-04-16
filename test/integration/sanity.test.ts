@@ -155,10 +155,11 @@ export function SanityTest() {
       for (let i = 0; i < this.args.nbPools; i++) {
         const cover = await this.contracts.LiquidityManager.coverInfo(i);
 
+        expect(cover.coverId).to.equal(i);
         expect(cover.poolId).to.equal(i);
         expect(cover.coverAmount).to.equal(this.args.coverAmount);
+        expect(cover.isActive).to.be.true;
         expect(cover.premiumsLeft).to.almostEqual(840000000);
-        expect(cover.end).to.equal(0);
       }
     });
 
@@ -258,8 +259,6 @@ export function SanityTest() {
           .sub(this.args.claimAmount),
       );
       expect(cover.premiumsLeft).to.equal(241061228);
-      expect(cover.start.div(100)).to.equal(17047336);
-      expect(cover.end).to.equal(0);
     });
 
     it("can close cover", async function (this: Arguments) {
@@ -285,8 +284,6 @@ export function SanityTest() {
           .sub(this.args.claimAmount),
       );
       expect(cover.premiumsLeft).to.equal(0);
-      expect(cover.start.div(100)).to.equal(17047336);
-      expect(cover.end.div(100)).to.equal(18015017);
     });
 
     it("can commit LPs withdrawal", async function (this: Arguments) {
