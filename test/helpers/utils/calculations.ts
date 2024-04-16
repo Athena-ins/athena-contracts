@@ -745,10 +745,16 @@ export function calcExpectedPositionDataAfterOpenPosition(
 ): PositionInfoObject {
   const expect = {} as PositionInfoObject;
 
+  expect.positionId = tokenDataBefore.positionId;
   expect.supplied = positionAmount;
   expect.commitWithdrawalTimestamp = 0;
   expect.poolIds = poolIds;
   expect.newUserCapital = expect.supplied;
+
+  // @bw change with strat man v1
+  expect.suppliedWrapped = expect.supplied;
+  // @bw change with strat man v1
+  expect.newUserCapitalWrapped = expect.newUserCapital;
 
   expect.coverRewards = [];
   for (const [i, pool] of poolDataBefore.entries()) {
@@ -781,10 +787,16 @@ export function calcExpectedPositionDataAfterAddLiquidity(
 ): PositionInfoObject {
   const expect = {} as PositionInfoObject;
 
+  expect.positionId = tokenDataBefore.positionId;
   expect.supplied = tokenDataBefore.supplied.add(amountToAdd);
   expect.commitWithdrawalTimestamp = 0;
   expect.poolIds = poolIds;
   expect.newUserCapital = expect.supplied;
+
+  // @bw change with strat man v1
+  expect.suppliedWrapped = expect.supplied;
+  // @bw change with strat man v1
+  expect.newUserCapitalWrapped = expect.newUserCapital;
 
   expect.coverRewards = [];
   for (const [i, pool] of poolDataBefore.entries()) {
@@ -823,10 +835,16 @@ export function calcExpectedPositionDataAfterTakeInterests(
 ): PositionInfoObject {
   const expect = {} as PositionInfoObject;
 
+  expect.positionId = tokenDataBefore.positionId;
   expect.supplied = tokenDataBefore.supplied;
   expect.commitWithdrawalTimestamp = 0;
   expect.poolIds = tokenDataBefore.poolIds;
   expect.newUserCapital = expect.supplied;
+
+  // @bw change with strat man v1
+  expect.suppliedWrapped = expect.supplied;
+  // @bw change with strat man v1
+  expect.newUserCapitalWrapped = expect.newUserCapital;
 
   expect.coverRewards = [];
   for (const [i, pool] of poolDataBefore.entries()) {
@@ -867,11 +885,17 @@ export function calcExpectedPositionDataAfterCommitRemoveLiquidity(
 ): PositionInfoObject {
   const expect = {} as PositionInfoObject;
 
+  expect.positionId = tokenDataBefore.positionId;
   expect.supplied = tokenDataBefore.supplied;
   expect.commitWithdrawalTimestamp = txTimestamp;
   expect.poolIds = tokenDataBefore.poolIds;
   expect.newUserCapital = expect.supplied;
   expect.strategyRewardIndex = expectedPoolData[0].strategyRewardIndex;
+
+  // @bw change with strat man v1
+  expect.suppliedWrapped = expect.supplied;
+  // @bw change with strat man v1
+  expect.newUserCapitalWrapped = expect.newUserCapital;
 
   expect.coverRewards = [];
   for (const [i, pool] of poolDataBefore.entries()) {
@@ -913,11 +937,17 @@ export function calcExpectedPositionDataAfterUncommitRemoveLiquidity(
 ): PositionInfoObject {
   const expect = {} as PositionInfoObject;
 
+  expect.positionId = tokenDataBefore.positionId;
   expect.supplied = tokenDataBefore.supplied;
   expect.commitWithdrawalTimestamp = 0;
   expect.poolIds = tokenDataBefore.poolIds;
   expect.newUserCapital = expect.supplied;
   expect.strategyRewardIndex = expectedPoolData[0].strategyRewardIndex;
+
+  // @bw change with strat man v1
+  expect.suppliedWrapped = expect.supplied;
+  // @bw change with strat man v1
+  expect.newUserCapitalWrapped = expect.newUserCapital;
 
   expect.coverRewards = [];
   for (const [i, pool] of poolDataBefore.entries()) {
@@ -959,10 +989,16 @@ export function calcExpectedPositionDataAfterRemoveLiquidity(
 ): PositionInfoObject {
   const expect = {} as PositionInfoObject;
 
+  expect.positionId = tokenDataBefore.positionId;
   expect.supplied = tokenDataBefore.supplied.sub(amountToRemove);
   expect.commitWithdrawalTimestamp = 0;
   expect.poolIds = tokenDataBefore.poolIds;
   expect.newUserCapital = expect.supplied;
+
+  // @bw change with strat man v1
+  expect.suppliedWrapped = expect.supplied;
+  // @bw change with strat man v1
+  expect.newUserCapitalWrapped = expect.newUserCapital;
 
   expect.coverRewards = [];
   for (const [i, pool] of poolDataBefore.entries()) {

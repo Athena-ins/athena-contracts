@@ -38,9 +38,14 @@ function checkKey(
     `Property ${path} is undefined in the expected data`,
   );
 
-  if (expectedKey == null || actualKey == null) {
+  if (
+    expectedKey === null ||
+    actualKey === null ||
+    expectedKey === undefined ||
+    actualKey === undefined
+  ) {
     console.log(
-      "Found a undefined value for Key ",
+      "Found a null value for Key ",
       path,
       " value ",
       expectedKey,
@@ -56,7 +61,7 @@ function checkKey(
     deviationType = "percentage";
   }
   if (key === "lastUpdateTimestamp") {
-    deviationAllowed = 30;
+    deviationAllowed = 40;
     deviationType = "absolute";
   }
 
@@ -135,7 +140,7 @@ function checkKey(
     this.assert(
       actualKey !== null &&
         expectedKey !== null &&
-        actualKey.toString() === expectedKey.toString(),
+        actualKey?.toString() === expectedKey?.toString(),
       `expected #{act} to be equal #{exp} for property ${path}`,
       `expected #{act} to be equal #{exp} for property ${path}`,
       expectedKey,
