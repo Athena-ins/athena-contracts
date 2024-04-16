@@ -2,6 +2,8 @@ import { expect } from "chai";
 import hre, { ethers } from "hardhat";
 // Helpers
 import {
+  deploymentOrder,
+  //
   deployMockArbitrator,
   deployAthenaCoverToken,
   deployAthenaPositionToken,
@@ -12,13 +14,15 @@ import {
   deployRewardManager,
   deployStrategyManager,
   deployAllContractsAndInitializeProtocol,
+  deployPoolMath,
+  deployVirtualPool,
+  deployAthenaDataProvider,
 } from "../helpers/deployers";
 import {
   genContractAddress,
   getCurrentBlockNumber,
   postTxHandler,
 } from "../helpers/hardhat";
-import { toRay } from "../helpers/utils/poolRayMath";
 import { AthenaToken__factory } from "../../typechain";
 // Types
 import { BaseContract } from "ethers";
@@ -32,19 +36,6 @@ interface Arguments extends Omit<Mocha.Context, "contracts"> {
 export function deployProtocol() {
   context("Setup protocol", function () {
     before(async function (this: Arguments) {
-      const deploymentOrder = [
-        "AthenaCoverToken",
-        "AthenaPositionToken",
-        "AthenaToken",
-        "ClaimManager",
-        "StrategyManager",
-        "RewardManager",
-        "LiquidityManager",
-        "_approve",
-        "EcclesiaDao",
-        "MockArbitrator",
-      ];
-
       this.args = {
         deployedAt: {},
       };
@@ -108,6 +99,46 @@ export function deployProtocol() {
         );
       });
 
+      // ======= Approve for DAO lock ======= //
+
+      it("approves minimal DAO lock", async function (this: Arguments) {
+        // Approve for initial minimal DAO lock
+        await postTxHandler(
+          AthenaToken__factory.connect(
+            this.args.deployedAt.AthenaToken,
+            this.signers.deployer,
+          ).approve(
+            this.args.deployedAt.EcclesiaDao,
+            ethers.utils.parseEther("1"),
+          ),
+        );
+      });
+
+      // ======= Libs ======= //
+
+      it("deploys PoolMath", async function (this: Arguments) {
+        await deployPoolMath(this.signers.deployer, []).then((contract) =>
+          postDeployCheck(contract, this.args.deployedAt.PoolMath),
+        );
+      });
+
+      it("deploys VirtualPool", async function (this: Arguments) {
+        await deployVirtualPool(this.signers.deployer, [], {
+          PoolMath: this.args.deployedAt.PoolMath,
+        }).then((contract) =>
+          postDeployCheck(contract, this.args.deployedAt.VirtualPool),
+        );
+      });
+
+      it("deploys AthenaDataProvider", async function (this: Arguments) {
+        await deployAthenaDataProvider(this.signers.deployer, [], {
+          PoolMath: this.args.deployedAt.PoolMath,
+          VirtualPool: this.args.deployedAt.VirtualPool,
+        }).then((contract) =>
+          postDeployCheck(contract, this.args.deployedAt.AthenaDataProvider),
+        );
+      });
+
       // ======= Managers ======= //
 
       it("deploys ClaimManager", async function (this: Arguments) {
@@ -136,6 +167,30 @@ export function deployProtocol() {
         );
       });
 
+      it("deploys LiquidityManager", async function (this: Arguments) {
+        await deployLiquidityManager(
+          this.signers.deployer,
+          [
+            this.args.deployedAt.AthenaPositionToken,
+            this.args.deployedAt.AthenaCoverToken,
+            this.args.deployedAt.Staking,
+            this.args.deployedAt.FarmingRange,
+            this.args.deployedAt.EcclesiaDao,
+            this.args.deployedAt.StrategyManager,
+            this.args.deployedAt.ClaimManager,
+            this.protocolConfig.withdrawDelay,
+            this.protocolConfig.maxLeverage,
+            this.protocolConfig.leverageFeePerPool,
+          ],
+          {
+            VirtualPool: this.args.deployedAt.VirtualPool,
+            AthenaDataProvider: this.args.deployedAt.AthenaDataProvider,
+          },
+        ).then((contract) =>
+          postDeployCheck(contract, this.args.deployedAt.LiquidityManager),
+        );
+      });
+
       it("deploys RewardManager", async function (this: Arguments) {
         const campaignStartBlock = (await getCurrentBlockNumber()) + 4;
         const rewardManager = await deployRewardManager(this.signers.deployer, [
@@ -157,37 +212,9 @@ export function deployProtocol() {
         this.args.deployedAt.FarmingRange = await rewardManager.farming();
       });
 
-      it("deploys LiquidityManager", async function (this: Arguments) {
-        await deployLiquidityManager(this.signers.deployer, [
-          this.args.deployedAt.AthenaPositionToken,
-          this.args.deployedAt.AthenaCoverToken,
-          this.args.deployedAt.Staking,
-          this.args.deployedAt.FarmingRange,
-          this.args.deployedAt.EcclesiaDao,
-          this.args.deployedAt.StrategyManager,
-          this.args.deployedAt.ClaimManager,
-          this.protocolConfig.withdrawDelay,
-          this.protocolConfig.maxLeverage,
-          this.protocolConfig.leverageFeePerPool,
-        ]).then((contract) =>
-          postDeployCheck(contract, this.args.deployedAt.LiquidityManager),
-        );
-      });
-
       // ======= DAO ======= //
 
       it("deploys EcclesiaDao", async function (this: Arguments) {
-        // Approve for initial minimal DAO lock
-        await postTxHandler(
-          AthenaToken__factory.connect(
-            this.args.deployedAt.AthenaToken,
-            this.signers.deployer,
-          ).approve(
-            this.args.deployedAt.EcclesiaDao,
-            ethers.utils.parseEther("1"),
-          ),
-        );
-
         await deployEcclesiaDao(this.signers.deployer, [
           this.args.deployedAt.AthenaToken,
           this.args.deployedAt.Staking,
@@ -220,7 +247,7 @@ export function deployProtocol() {
           this.protocolConfig,
         );
 
-        expect(Object.keys(contracts).length).to.equal(14);
+        expect(Object.keys(contracts).length).to.equal(13);
 
         for (const contract of Object.values(contracts)) {
           expect((await ethers.provider.getCode(contract.address)).length).gt(

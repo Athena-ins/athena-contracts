@@ -269,6 +269,22 @@ export type ProtocolContracts = {
   // TestableVirtualPool: TestableVirtualPool;
 };
 
+export const deploymentOrder = [
+  "AthenaCoverToken",
+  "AthenaPositionToken",
+  "AthenaToken",
+  "_approve",
+  "PoolMath",
+  "VirtualPool",
+  "AthenaDataProvider",
+  "ClaimManager",
+  "StrategyManager",
+  "LiquidityManager",
+  "RewardManager",
+  "EcclesiaDao",
+  "MockArbitrator",
+];
+
 export async function deployAllContractsAndInitializeProtocol(
   deployer: Wallet,
   config: ProtocolConfig,
@@ -276,22 +292,6 @@ export async function deployAllContractsAndInitializeProtocol(
 ): Promise<ProtocolContracts> {
   const chainId = await entityProviderChainId(deployer);
   if (!chainId) throw Error("No chainId found for deployment signer");
-
-  const deploymentOrder = [
-    "AthenaCoverToken",
-    "AthenaPositionToken",
-    "AthenaToken",
-    "_approve",
-    "PoolMath",
-    "VirtualPool",
-    "AthenaDataProvider",
-    "ClaimManager",
-    "StrategyManager",
-    "LiquidityManager",
-    "RewardManager",
-    "EcclesiaDao",
-    "MockArbitrator",
-  ];
 
   const deployedAt: { [key: string]: string } = {};
 
