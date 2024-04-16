@@ -64,6 +64,15 @@ contract LiquidityManager is
 
   // ======= EVENTS ======= //
 
+  event PoolCreated();
+
+  event OpenPosition();
+  event AddLiquidity();
+  event CommitWithdrawal();
+  event UncommitWithdrawal();
+  event RemoveLiquidity();
+  event TakeInterests();
+
   event OpenCover(
     address indexed user,
     uint64 indexed poolId,
@@ -71,6 +80,9 @@ contract LiquidityManager is
     uint256 coverAmount,
     uint256 premiums
   );
+
+  event UpdateCover();
+  event CloseCover();
 
   // ======= STORAGE ======= //
 
@@ -1046,10 +1058,12 @@ contract LiquidityManager is
     uint256 newCoverAmount_,
     uint256 premiums_
   ) external {
+    // this function should be called only by this contract
     if (msg.sender != address(this)) {
       revert SenderNotLiquidationManager();
-    } // this function should be called only by this contract
+    }
 
+    // This will trigger the catch part of the try/catch
     if (newCoverAmount_ == 0) revert CoverAmountIsZero();
 
     VirtualPool._registerCover(

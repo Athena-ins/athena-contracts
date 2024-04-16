@@ -10,7 +10,7 @@ import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.s
 import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 // interfaces
-import { IMerkleDistributorStaticTyping } from "./interfaces/IMerkleDistributor.sol";
+import { IMerkleDistributorStaticTyping } from "../interfaces/IMerkleDistributor.sol";
 
 //======== ERRORS ========//
 
