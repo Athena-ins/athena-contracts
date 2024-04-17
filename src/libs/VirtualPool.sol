@@ -785,8 +785,8 @@ library VirtualPool {
     uint256 strategyId,
     bool itCompounds,
     uint256 liquidityIndexBeforeClaim,
-    uint256 strategyRewardIndex,
-    uint256 strategyRewardIndexBeforeClaim
+    uint256 startStrategyRewardIndex,
+    uint256 endStrategyRewardIndex
   )
     internal
     view
@@ -807,8 +807,8 @@ library VirtualPool {
       itCompounds
         ? info.newUserCapital + info.strategyRewards
         : info.newUserCapital,
-      strategyRewardIndex,
-      strategyRewardIndexBeforeClaim
+      startStrategyRewardIndex,
+      endStrategyRewardIndex
     );
 
     return (coverRewards, strategyRewards);
@@ -930,7 +930,7 @@ library VirtualPool {
             params.strategyId,
             params.itCompounds,
             liquidityIndexBeforeClaim,
-            params.strategyRewardIndex,
+            upToStrategyRewardIndex,
             comp.strategyRewardIndexBeforeClaim
           );
 
