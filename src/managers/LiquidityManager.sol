@@ -15,8 +15,6 @@ import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.s
 // Interfaces
 import { ILiquidityManager } from "../interfaces/ILiquidityManager.sol";
 import { IStrategyManager } from "../interfaces/IStrategyManager.sol";
-import { IStaking } from "../interfaces/IStaking.sol";
-import { IFarmingRange } from "../interfaces/IFarmingRange.sol";
 import { IEcclesiaDao } from "../interfaces/IEcclesiaDao.sol";
 import { IAthenaPositionToken } from "../interfaces/IAthenaPositionToken.sol";
 import { IAthenaCoverToken } from "../interfaces/IAthenaCoverToken.sol";
@@ -24,13 +22,11 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol"
 
 import { console } from "hardhat/console.sol";
 
-// @bw changing all ids to uint64 could save some gas
-
 // ======= ERRORS ======= //
 
 error OnlyTokenOwner();
 error OnlyClaimManager();
-error OnlyFarmingRange();
+error OnlyYieldRewarder();
 error PoolIsPaused();
 error PoolIdsMustBeUniqueAndAscending();
 error AmountOfPoolsIsAboveMaxLeverage();
@@ -64,35 +60,41 @@ contract LiquidityManager is
 
   // ======= EVENTS ======= //
 
-  event PoolCreated();
+  /// @notice Emitted when a new pool is created
+  event PoolCreated(uint64 indexed poolId);
 
-  event OpenPosition();
-  event AddLiquidity();
-  event CommitWithdrawal();
-  event UncommitWithdrawal();
-  event RemoveLiquidity();
-  event TakeInterests();
-
-  event OpenCover(
-    address indexed user,
-    uint64 indexed poolId,
-    uint256 indexed coverId,
-    uint256 coverAmount,
-    uint256 premiums
+  /// @notice Emitted when a position is opened
+  event PositionOpenned(uint256 indexed positionId);
+  /// @notice Emitted when a position's liquidity is updated
+  event InterestsTaken(uint256 indexed positionId);
+  /// @notice Emitted when a position's liquidity is updated
+  event PositionLiquidityUpdated(
+    uint256 indexed positionId,
+    uint256 amountAdded,
+    uint256 amountRemoved
   );
 
-  event UpdateCover();
-  event CloseCover();
+  /// @notice Emits when a new cover is bought
+  event CoverOpenned(uint64 indexed poolId, uint256 indexed coverId);
+  /// @notice Emits when a cover is updated
+  event CoverUpdated(uint256 indexed coverId);
+  /// @notice Emits when a cover is closed
+  event CoverClosed(uint256 indexed coverId);
+
+  /// @notice Compensation is paid out for a claim
+  event CompensationPaid(
+    uint256 indexed poolId,
+    uint256 indexed compensationId
+  );
 
   // ======= STORAGE ======= //
 
   IAthenaPositionToken public positionToken;
   IAthenaCoverToken public coverToken;
-  IStaking public staking;
-  IFarmingRange public farming;
   IEcclesiaDao public ecclesiaDao;
   IStrategyManager public strategyManager;
   address public claimManager;
+  address public yieldRewarder;
 
   /// The delay after commiting before a position can be withdrawn
   uint256 public withdrawDelay; // in seconds
@@ -122,10 +124,9 @@ contract LiquidityManager is
   constructor(
     IAthenaPositionToken positionToken_,
     IAthenaCoverToken coverToken_,
-    IStaking staking_,
-    IFarmingRange farming_,
     IEcclesiaDao ecclesiaDao_,
     IStrategyManager strategyManager_,
+    address yieldRewarder_,
     address claimManager_,
     uint256 withdrawDelay_,
     uint256 maxLeverage_,
@@ -133,8 +134,8 @@ contract LiquidityManager is
   ) Ownable(msg.sender) {
     positionToken = positionToken_;
     coverToken = coverToken_;
-    staking = staking_;
-    farming = farming_;
+
+    yieldRewarder = yieldRewarder_;
     ecclesiaDao = ecclesiaDao_;
     strategyManager = strategyManager_;
     claimManager = claimManager_;
@@ -142,6 +143,18 @@ contract LiquidityManager is
     withdrawDelay = withdrawDelay_;
     maxLeverage = maxLeverage_;
     leverageFeePerPool = leverageFeePerPool_;
+  }
+
+  /// ======= INTERNAL HELPERS ======= ///
+
+  /**
+   * @notice Throws if the pool is paused
+   * @param poolId_ The ID of the pool
+   *
+   * @dev You cannot buy cover, increase cover or add liquidity in a paused pool
+   */
+  function _isNotPaused(uint64 poolId_) internal view {
+    if (VirtualPool.getPool(poolId_).isPaused) revert PoolIsPaused();
   }
 
   /// ======= MODIFIERS ======= ///
@@ -176,10 +189,11 @@ contract LiquidityManager is
   }
 
   /**
-   * @notice Throws if the caller is not the farming range
+   * @notice Throws if the caller is not the reward authority for yield bonuses
    */
-  modifier onlyFarmingRange() {
-    if (msg.sender != address(farming)) revert OnlyFarmingRange();
+  modifier onlyYieldRewarder() {
+    if (msg.sender != address(yieldRewarder))
+      revert OnlyYieldRewarder();
     _;
   }
 
@@ -357,6 +371,8 @@ contract LiquidityManager is
       arePoolCompatible[poolId][compatiblePoolId] = true;
       arePoolCompatible[compatiblePoolId][poolId] = true;
     }
+
+    emit PoolCreated(poolId);
   }
 
   /// ======= MAKE LP POSITION ======= ///
@@ -375,7 +391,7 @@ contract LiquidityManager is
     uint256 amount,
     bool isWrapped,
     uint64[] calldata poolIds
-  ) external {
+  ) external nonReentrant {
     // Check that the amount of pools is below the max leverage
     if (maxLeverage < poolIds.length)
       revert AmountOfPoolsIsAboveMaxLeverage();
@@ -429,6 +445,8 @@ contract LiquidityManager is
       // Save index from which the position will start accruing strategy rewards
       strategyRewardIndex: strategyManager.getRewardIndex(strategyId)
     });
+
+    emit PositionOpenned(positionId);
   }
 
   /// ======= UPDATE LP POSITION ======= ///
@@ -446,7 +464,7 @@ contract LiquidityManager is
     uint256 positionId_,
     uint256 amount,
     bool isWrapped
-  ) external onlyPositionOwner(positionId_) {
+  ) external onlyPositionOwner(positionId_) nonReentrant {
     Position storage position = _positions[positionId_];
     uint256 strategyId = VirtualPool
       .getPool(position.poolIds[0])
@@ -517,7 +535,7 @@ contract LiquidityManager is
     uint256 positionId_,
     address coverRewardsBeneficiary_,
     uint256 yieldBonus_
-  ) private {
+  ) private nonReentrant {
     Position storage position = _positions[positionId_];
 
     // Locks interests to avoid abusively early withdrawal commits
@@ -571,6 +589,8 @@ contract LiquidityManager is
     position.strategyRewardIndex = latestStrategyRewardIndex;
     // Update the position capital to reflect potential reduction due to claims
     position.supplied = newUserCapital;
+
+    emit InterestsTaken(positionId_);
   }
 
   /**
@@ -593,13 +613,13 @@ contract LiquidityManager is
    * @param yieldBonus_ The yield bonus to apply
    * @param positionIds_ The IDs of the positions
    *
-   * @dev This function is only callable by the farming range
+   * @dev This function is only callable by the yield bonus authority
    */
   function takeInterestsWithYieldBonus(
     address account_,
     uint256 yieldBonus_,
     uint256[] calldata positionIds_
-  ) external onlyFarmingRange {
+  ) external onlyYieldRewarder {
     uint256 nbPositions = positionIds_.length;
     for (uint256 i; i < nbPositions; i++) {
       _takeInterests(positionIds_[i], account_, yieldBonus_);
@@ -673,7 +693,7 @@ contract LiquidityManager is
     uint256 positionId_,
     uint256 amount_,
     bool keepWrapped_
-  ) external onlyPositionOwner(positionId_) {
+  ) external onlyPositionOwner(positionId_) nonReentrant {
     Position storage position = _positions[positionId_];
 
     // Check that commit delay has been reached
@@ -748,7 +768,7 @@ contract LiquidityManager is
     uint64 poolId_,
     uint256 coverAmount_,
     uint256 premiums_
-  ) external {
+  ) external nonReentrant {
     // Get storage pointer to pool
     DataTypes.VPool storage pool = VirtualPool.getPool(poolId_);
 
@@ -756,7 +776,7 @@ contract LiquidityManager is
     VirtualPool._purgeExpiredCovers(poolId_);
 
     // Check if pool is currently paused
-    if (pool.isPaused) revert PoolIsPaused();
+    _isNotPaused(poolId_);
 
     // Transfer premiums from user
     IERC20(pool.paymentAsset).safeTransferFrom(
@@ -779,13 +799,7 @@ contract LiquidityManager is
       premiums_
     );
 
-    emit OpenCover(
-      msg.sender,
-      poolId_,
-      coverId,
-      coverAmount_,
-      premiums_
-    );
+    emit CoverOpenned(poolId_, coverId);
   }
 
   /// ======= UPDATE COVER ======= ///
@@ -807,7 +821,7 @@ contract LiquidityManager is
     uint256 coverToRemove_,
     uint256 premiumsToAdd_,
     uint256 premiumsToRemove_
-  ) external onlyCoverOwner(coverId_) {
+  ) external onlyCoverOwner(coverId_) nonReentrant {
     uint64 poolId = coverToPool[coverId_];
 
     // Get storage pointer to pool
@@ -816,8 +830,6 @@ contract LiquidityManager is
     // Clean pool from expired covers
     VirtualPool._purgeExpiredCovers(poolId);
 
-    // Check if pool is currently paused
-    if (pool.isPaused) revert PoolIsPaused();
     // Check if cover is expired
     if (!isCoverActive(coverId_)) revert CoverIsExpired();
 
@@ -833,6 +845,9 @@ contract LiquidityManager is
 
     // Only allow one operation on cover amount change
     if (0 < coverToAdd_) {
+      // Check if pool is currently paused
+      _isNotPaused(poolId);
+
       coverAmount += coverToAdd_;
     } else if (0 < coverToRemove_) {
       if (coverAmount <= coverToRemove_)
@@ -877,8 +892,12 @@ contract LiquidityManager is
         coverAmount,
         premiums
       );
+
+      emit CoverUpdated(coverId_);
+    } else {
+      emit CoverClosed(coverId_);
+      // @dev No need to freeze farming rewards since the cover owner needs to hold the cover to update it
     }
-    // @dev No need to freeze farming rewards since the cover owner needs to hold the cover to update it
   }
 
   /// ======= LIQUIDITY CHANGES ======= ///
@@ -905,7 +924,7 @@ contract LiquidityManager is
       DataTypes.VPool storage pool0 = VirtualPool.getPool(poolId0);
 
       // Check if pool is currently paused
-      if (pool0.isPaused) revert PoolIsPaused();
+      _isNotPaused(poolId0);
 
       // Remove expired covers
       /// @dev Skip the purge when adding liquidity since it has been done
@@ -948,6 +967,8 @@ contract LiquidityManager is
         pool0.overlaps[poolId1] += amount_;
       }
     }
+
+    emit PositionLiquidityUpdated(positionId_, amount_, 0);
   }
 
   /**
@@ -997,6 +1018,8 @@ contract LiquidityManager is
         pool0.overlaps[poolId1] -= amount_;
       }
     }
+
+    emit PositionLiquidityUpdated(positionId_, 0, amount_);
   }
 
   /// ======= CLAIMS ======= ///
@@ -1183,6 +1206,8 @@ contract LiquidityManager is
       compensationAmount_,
       claimant
     );
+
+    emit CompensationPaid(fromPoolId, compensationId);
   }
 
   /// ======= HELPERS ======= ///
