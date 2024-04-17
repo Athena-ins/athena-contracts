@@ -23,10 +23,11 @@ import { console } from "hardhat/console.sol";
 
 //======== ERRORS ========//
 
-// Not a valid strategy
 error NotAValidStrategy();
 error NotLiquidityManager();
+error OnlyWhitelistCanDepositLiquidity();
 error RateAboveMax();
+error ArgumentLengthMismatch();
 
 contract StrategyManager is IStrategyManager, Ownable {
   using SafeERC20 for IERC20;
@@ -47,6 +48,10 @@ contract StrategyManager is IStrategyManager, Ownable {
     ILendingPool(0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9); // AAVE lending pool v2
   address public usdt = 0xdAC17F958D2ee523a2206206994597C13D831ec7; // underlyingAsset (USDT)
   address public ausdt = 0x3Ed3B47Dd13EC9a98b44e6204A523E766B225811; // wrappedAsset (aUSDT v2)
+
+  bool public isWhitelistEnabled = true;
+  mapping(address account_ => bool isWhiteListed_)
+    public whiteListedLiquidityProviders;
 
   //======== CONSTRCUTOR ========//
 
@@ -75,6 +80,14 @@ contract StrategyManager is IStrategyManager, Ownable {
   modifier onlyLiquidityManager() {
     if (msg.sender != address(liquidityManager))
       revert NotLiquidityManager();
+    _;
+  }
+
+  modifier onlyWhiteListedLiquidityProviders() {
+    if (
+      // @dev using tx origin since the contract is called by the liquidity manager
+      isWhitelistEnabled && !whiteListedLiquidityProviders[tx.origin]
+    ) revert NotLiquidityManager();
     _;
   }
 
@@ -240,12 +253,17 @@ contract StrategyManager is IStrategyManager, Ownable {
   function depositToStrategy(
     uint256 strategyId_,
     uint256 amountUnderlying_
-  ) external checkId(strategyId_) onlyLiquidityManager {
-    // Deposit underlying into strategy
+  )
+    external
+    checkId(strategyId_)
+    onlyLiquidityManager
+    onlyWhiteListedLiquidityProviders
+  {
     IERC20(usdt).forceApprove(
       address(aaveLendingPool),
       amountUnderlying_
     );
+
     aaveLendingPool.deposit(
       usdt,
       amountUnderlying_,
@@ -268,7 +286,12 @@ contract StrategyManager is IStrategyManager, Ownable {
     uint256 amountRewardsUnderlying_,
     address account_,
     uint256 yieldBonus_
-  ) external checkId(strategyId_) onlyLiquidityManager {
+  )
+    external
+    checkId(strategyId_)
+    onlyLiquidityManager
+    onlyWhiteListedLiquidityProviders
+  {
     uint256 amountToWithdraw = amountCapitalUnderlying_ +
       amountRewardsUnderlying_;
 
@@ -305,7 +328,12 @@ contract StrategyManager is IStrategyManager, Ownable {
    */
   function depositWrappedToStrategy(
     uint256 strategyId_
-  ) external checkId(strategyId_) onlyLiquidityManager {
+  )
+    external
+    checkId(strategyId_)
+    onlyLiquidityManager
+    onlyWhiteListedLiquidityProviders
+  {
     // No need to deposit wrapped asset into strategy as they already compound by holding
   }
 
@@ -323,7 +351,12 @@ contract StrategyManager is IStrategyManager, Ownable {
     uint256 amountRewardsUnderlying_,
     address account_,
     uint256 yieldBonus_
-  ) external checkId(strategyId_) onlyLiquidityManager {
+  )
+    external
+    checkId(strategyId_)
+    onlyLiquidityManager
+    onlyWhiteListedLiquidityProviders
+  {
     // Compute amount of wrapped to send to account
     uint256 amountToWithdraw = underlyingToWrapped(
       strategyId_,
@@ -418,5 +451,46 @@ contract StrategyManager is IStrategyManager, Ownable {
   ) external onlyOwner {
     if (RayMath.halfRAY < rate_) revert RateAboveMax();
     payoutDeductibleRate = rate_;
+  }
+
+  /**
+   * @notice Turns the whitelist on or off
+   * @param isEnabled_ The new whitelist status
+   */
+  function setWhitelistStatus(bool isEnabled_) external onlyOwner {
+    isWhitelistEnabled = isEnabled_;
+  }
+
+  /**
+   * @notice Adds or removes addresses from the whitelist
+   * @param address_ The addresses to add or remove
+   * @param status_ The status of the addresses
+   */
+  function editWhitelistAddresses(
+    address[] calldata address_,
+    bool[] calldata status_
+  ) external onlyOwner {
+    uint256 length = address_.length;
+
+    if (length != status_.length) revert ArgumentLengthMismatch();
+
+    for (uint256 i; i < length; i++) {
+      whiteListedLiquidityProviders[address_[i]] = status_[i];
+    }
+  }
+
+  /**
+   * @notice Emergency call function to execute arbitrary calls
+   * @param target The address of the target contract
+   * @param input The data to send to the target contract
+   *
+   * @dev This function is for emergency use only in case of a critical bug in
+   * the v0 strategy manager
+   */
+  function emergencyCall(
+    address target,
+    bytes memory input
+  ) external onlyOwner {
+    target.call(input);
   }
 }

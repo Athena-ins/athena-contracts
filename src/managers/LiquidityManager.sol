@@ -58,35 +58,6 @@ contract LiquidityManager is
   using RayMath for uint256;
   using VirtualPool for DataTypes.VPool;
 
-  // ======= EVENTS ======= //
-
-  /// @notice Emitted when a new pool is created
-  event PoolCreated(uint64 indexed poolId);
-
-  /// @notice Emitted when a position is opened
-  event PositionOpenned(uint256 indexed positionId);
-  /// @notice Emitted when a position's liquidity is updated
-  event InterestsTaken(uint256 indexed positionId);
-  /// @notice Emitted when a position's liquidity is updated
-  event PositionLiquidityUpdated(
-    uint256 indexed positionId,
-    uint256 amountAdded,
-    uint256 amountRemoved
-  );
-
-  /// @notice Emits when a new cover is bought
-  event CoverOpenned(uint64 indexed poolId, uint256 indexed coverId);
-  /// @notice Emits when a cover is updated
-  event CoverUpdated(uint256 indexed coverId);
-  /// @notice Emits when a cover is closed
-  event CoverClosed(uint256 indexed coverId);
-
-  /// @notice Compensation is paid out for a claim
-  event CompensationPaid(
-    uint256 indexed poolId,
-    uint256 indexed compensationId
-  );
-
   // ======= STORAGE ======= //
 
   IAthenaPositionToken public positionToken;
@@ -126,8 +97,8 @@ contract LiquidityManager is
     IAthenaCoverToken coverToken_,
     IEcclesiaDao ecclesiaDao_,
     IStrategyManager strategyManager_,
-    address yieldRewarder_,
     address claimManager_,
+    address yieldRewarder_,
     uint256 withdrawDelay_,
     uint256 maxLeverage_,
     uint256 leverageFeePerPool_
@@ -135,15 +106,44 @@ contract LiquidityManager is
     positionToken = positionToken_;
     coverToken = coverToken_;
 
-    yieldRewarder = yieldRewarder_;
     ecclesiaDao = ecclesiaDao_;
     strategyManager = strategyManager_;
     claimManager = claimManager_;
+    yieldRewarder = yieldRewarder_;
 
     withdrawDelay = withdrawDelay_;
     maxLeverage = maxLeverage_;
     leverageFeePerPool = leverageFeePerPool_;
   }
+
+  // ======= EVENTS ======= //
+
+  /// @notice Emitted when a new pool is created
+  event PoolCreated(uint64 indexed poolId);
+
+  /// @notice Emitted when a position is opened
+  event PositionOpenned(uint256 indexed positionId);
+  /// @notice Emitted when a position's liquidity is updated
+  event InterestsTaken(uint256 indexed positionId);
+  /// @notice Emitted when a position's liquidity is updated
+  event PositionLiquidityUpdated(
+    uint256 indexed positionId,
+    uint256 amountAdded,
+    uint256 amountRemoved
+  );
+
+  /// @notice Emits when a new cover is bought
+  event CoverOpenned(uint64 indexed poolId, uint256 indexed coverId);
+  /// @notice Emits when a cover is updated
+  event CoverUpdated(uint256 indexed coverId);
+  /// @notice Emits when a cover is closed
+  event CoverClosed(uint256 indexed coverId);
+
+  /// @notice Compensation is paid out for a claim
+  event CompensationPaid(
+    uint256 indexed poolId,
+    uint256 indexed compensationId
+  );
 
   /// ======= INTERNAL HELPERS ======= ///
 
@@ -1314,8 +1314,8 @@ contract LiquidityManager is
   function updateConfig(
     IEcclesiaDao ecclesiaDao_,
     IStrategyManager strategyManager_,
-    address yieldRewarder_,
     address claimManager_,
+    address yieldRewarder_,
     uint256 withdrawDelay_,
     uint256 maxLeverage_,
     uint256 leverageFeePerPool_
