@@ -111,8 +111,6 @@ contract LiquidityManager is
 
   /// The ID of the next claim to be
   uint256 public nextCompensationId;
-  mapping(uint256 _id => DataTypes.Compensation)
-    public _compensations;
 
   /// The token ID position data
   uint64 public nextPoolId;
@@ -297,19 +295,6 @@ contract LiquidityManager is
         : VirtualPool.getPool(poolIdB_).overlaps[poolIdA_];
   }
 
-  /// ======= INTERNAL VIEWS ======= ///
-
-  /**
-   * @notice Returns the compensation's storage pointer
-   * @param compensationId_ The ID of the compensation
-   * @return The compensation's storage pointer
-   */
-  function _getCompensation(
-    uint256 compensationId_
-  ) internal view returns (DataTypes.Compensation storage) {
-    return _compensations[compensationId_];
-  }
-
   /// ======= POOLS ======= ///
 
   /**
@@ -363,9 +348,6 @@ contract LiquidityManager is
         rSlope2: rSlope2_ //Ray
       })
     );
-
-    // Attach child contract functions to the virtual pool
-    VirtualPool.getPool(poolId).getCompensation = _getCompensation;
 
     // Add compatible pools
     uint256 nbPools = compatiblePools_.length;
@@ -1102,9 +1084,8 @@ contract LiquidityManager is
     // Get compensation ID and its storage pointer
     uint256 compensationId = nextCompensationId;
     nextCompensationId++;
-    DataTypes.Compensation storage compensation = _compensations[
-      compensationId
-    ];
+    DataTypes.Compensation storage compensation = VirtualPool
+      .getCompensation(compensationId);
     // Register data common to all affected pools
     compensation.fromPoolId = fromPoolId;
     compensation.ratio = ratio;

@@ -56,6 +56,8 @@ library VirtualPool {
 
   bytes32 private constant POOL_SLOT_HASH =
     keccak256("diamond.storage.VPool");
+  bytes32 private constant COMPENSATION_SLOT_HASH =
+    keccak256("diamond.storage.Compensation");
   uint256 constant YEAR = 365 days;
   uint256 constant RAY = RayMath.RAY;
   uint256 constant MAX_SECONDS_PER_TICK = 1 days;
@@ -91,7 +93,7 @@ library VirtualPool {
     DataTypes.LpInfo newLpInfo;
   }
 
-  // ======= VIRTUAL STORAGE GET ======= //
+  // ======= STORAGE GETTERS ======= //
 
   /**
    * @notice Returns the storage slot position of a pool
@@ -109,6 +111,27 @@ library VirtualPool {
     // Set the position of our struct in contract storage
     assembly {
       pool.slot := storagePosition
+    }
+  }
+
+  /**
+   * @notice Returns the storage slot position of a compensation
+   * @param compensationId_ The compensation ID
+   * @return comp The storage slot position of the compensation
+   *
+   * @dev Enables VirtualPool library to access child compensation storage
+   */
+  function getCompensation(
+    uint256 compensationId_
+  ) internal pure returns (DataTypes.Compensation storage comp) {
+    // Generate a random storage storage slot position based on the compensation ID
+    bytes32 storagePosition = keccak256(
+      abi.encodePacked(COMPENSATION_SLOT_HASH, compensationId_)
+    );
+
+    // Set the position of our struct in contract storage
+    assembly {
+      comp.slot := storagePosition
     }
   }
 
@@ -136,7 +159,7 @@ library VirtualPool {
    */
   function _vPoolConstructor(
     VPoolConstructorParams memory params
-  ) external {
+  ) internal {
     if (
       params.underlyingAsset == address(0) ||
       params.paymentAsset == address(0)
@@ -885,7 +908,7 @@ library VirtualPool {
       compensationId < params.endCompensationId;
       compensationId++
     ) {
-      DataTypes.Compensation storage comp = self.getCompensation(
+      DataTypes.Compensation storage comp = getCompensation(
         compensationId
       );
 
