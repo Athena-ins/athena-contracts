@@ -1,22 +1,28 @@
 import { ethers } from "hardhat";
-import chai from "chai";
 // Functions
 import {
-  makeForkSnapshot,
-  restoreForkSnapshot,
+  evmSnapshot,
+  evmRevert,
   entityProviderChainId,
 } from "./helpers/hardhat";
 import {
   deployAllContractsAndInitializeProtocol,
   defaultProtocolConfig,
+  ProtocolConfig,
+  ProtocolContracts,
 } from "./helpers/deployers";
-import { makeTestHelpers, evidenceGuardianWallet } from "./helpers/protocol";
+import {
+  makeTestHelpers,
+  TestHelper,
+  evidenceGuardianWallet,
+} from "./helpers/protocol";
+// Chai hooks
+import { beforeEachSuite } from "./helpers/chai/beforeEachSuite";
+import { afterEachSuite } from "./helpers/chai/afterEachSuite";
 // Types
 import { Signer, Wallet } from "ethers";
-import { Suite, AsyncFunc } from "mocha";
+
 import { LiquidityManager__factory } from "../typechain";
-import { ProtocolConfig, ProtocolContracts } from "./helpers/deployers";
-import { TestHelper } from "./helpers/protocol";
 
 type ContextSigners = {
   deployer: Wallet;
@@ -52,13 +58,8 @@ declare module "mocha" {
   }
 }
 
-// Custom hook to run a function before each child test suite
-function beforeEachSuite(fn: AsyncFunc) {
-  before(function () {
-    let suites: Suite[] = this.test?.parent?.suites || [];
-    suites.forEach((suite) => suite.beforeAll(fn));
-  });
-}
+// Keep snapshot ID as global variables to avoid state conflicts in children tests
+let evmSnapshotId: string = "0x1";
 
 // This is run at the beginning of each test suite
 export function baseContext(description: string, hooks: () => void): void {
@@ -130,9 +131,6 @@ export function baseContext(description: string, hooks: () => void): void {
           this.contracts,
         );
 
-        // Used to restore fork at this point in the test suites
-        this.snapshortId = await makeForkSnapshot();
-
         // console.log(
         //   `\n=> Test context setup:\n${JSON.stringify(logData, null, 2)}\n`,
         // );
@@ -142,13 +140,16 @@ export function baseContext(description: string, hooks: () => void): void {
       }
     });
 
-    // This is run before each child test suite
-    beforeEachSuite(async function () {
+    // Used to restore fork at this point in time
+    beforeEachSuite(async function (this: Mocha.Context) {
       // Roll over snapshortId since snapshot ID reuse if forbidden
-      await restoreForkSnapshot(this.snapshortId);
-      this.snapshortId = await makeForkSnapshot();
+      evmSnapshotId = await evmSnapshot();
     });
 
     hooks();
+
+    afterEachSuite(async function (this: Mocha.Context) {
+      await evmRevert(evmSnapshotId);
+    });
   });
 }

@@ -1,4 +1,4 @@
-import { makeForkSnapshot, restoreForkSnapshot } from "../helpers/hardhat";
+import { evmSnapshot, evmRevert } from "../helpers/hardhat";
 // Story engine
 import { executeAction } from "./utils/actionEngine";
 // Stories
@@ -20,12 +20,14 @@ const scenarios = [
   // liquidityNegatives,
 ];
 
+let evmSnapshotId: string = "0x424242";
+
 export function ScenarioTests() {
   context("Scenario Tests", async function () {
     for (const scenario of scenarios) {
       describe(scenario.title, async function () {
         before(async function () {
-          this.snapshortId = await makeForkSnapshot();
+          evmSnapshotId = await evmSnapshot();
         });
 
         for (const story of scenario.stories) {
@@ -42,7 +44,7 @@ export function ScenarioTests() {
         }
 
         after(async function () {
-          await restoreForkSnapshot(this.snapshortId);
+          await evmRevert(evmSnapshotId);
         });
       });
     }
