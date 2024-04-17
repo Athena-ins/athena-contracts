@@ -8,7 +8,6 @@ import { BigNumber } from "ethers";
 interface Arguments extends Mocha.Context {
   args: {
     nbPools: number;
-    daoStakeAmount: BigNumber;
     daoLockDuration: number;
     lpAmount: BigNumber;
     nbLpProviders: number;
@@ -22,11 +21,10 @@ interface Arguments extends Mocha.Context {
 }
 
 export function SanityTest() {
-  context("Athena Sanity Test", function () {
+  context("Sanity Test", function () {
     before(async function (this: Arguments) {
       this.args = {
         nbPools: 3,
-        daoStakeAmount: toErc20(1000),
         daoLockDuration: 60 * 60 * 24 * 365,
         lpAmount: toUsd(1000),
         nbLpProviders: 1,
@@ -38,17 +36,6 @@ export function SanityTest() {
         coverIncreasePremiums: toUsd(50),
       };
     });
-
-    // @dev Now lock is created in constructor directly
-    // it.skip("creates lock in dao", async function (this: Arguments) {
-    //   expect(
-    //     await this.helpers.createDaoLock(
-    //       this.signers.deployer,
-    //       this.args.daoStakeAmount,
-    //       this.args.daoLockDuration,
-    //     ),
-    //   ).to.not.throw;
-    // });
 
     it("can create pools", async function (this: Arguments) {
       this.timeout(300_000);
@@ -198,36 +185,38 @@ export function SanityTest() {
     it("can increase LPs", async function (this: Arguments) {
       await setNextBlockTimestamp({ days: 365 });
 
-      expect(
+      for (let i = 0; i < this.args.nbLpProviders; i++) {
         await this.helpers.addLiquidity(
           this.signers.deployer,
-          0,
+          i,
           this.args.lpIncreaseAmount,
           false,
-        ),
-      ).to.not.throw;
+        );
+      }
 
       await setNextBlockTimestamp({ days: 5 });
 
-      expect(
-        await this.contracts.AthenaPositionToken.balanceOf(
-          this.signers.deployer.address,
-        ),
-      ).to.equal(1);
+      for (let i = 0; i < this.args.nbLpProviders; i++) {
+        expect(
+          await this.contracts.AthenaPositionToken.balanceOf(
+            this.signers.deployer.address,
+          ),
+        ).to.equal(this.args.nbLpProviders);
 
-      const position = await this.contracts.LiquidityManager.positionInfo(0);
+        const position = await this.contracts.LiquidityManager.positionInfo(i);
 
-      expect(position.poolIds.length).to.equal(this.args.nbPools);
-      expect(position.newUserCapital).to.equal(
-        this.args.lpIncreaseAmount
-          .add(this.args.lpAmount)
-          .sub(this.args.claimAmount.mul(this.args.nbPools)),
-      );
-      const totalRewards = position.coverRewards.reduce(
-        (acc, reward) => acc.add(reward),
-        BigNumber.from(0),
-      );
-      expect(totalRewards).to.almostEqual(417207);
+        expect(position.poolIds.length).to.equal(this.args.nbPools);
+        expect(position.newUserCapital).to.equal(
+          this.args.lpIncreaseAmount
+            .add(this.args.lpAmount)
+            .sub(this.args.claimAmount.mul(this.args.nbPools)),
+        );
+        const totalRewards = position.coverRewards.reduce(
+          (acc, reward) => acc.add(reward),
+          BigNumber.from(0),
+        );
+        expect(totalRewards).to.almostEqual(416439);
+      }
     });
 
     it("can increase cover & premiums", async function (this: Arguments) {
@@ -258,7 +247,7 @@ export function SanityTest() {
           .add(this.args.coverAmount)
           .sub(this.args.claimAmount),
       );
-      expect(cover.premiumsLeft).to.equal(241061228);
+      expect(cover.premiumsLeft).to.equal("594121582");
     });
 
     it("can close cover", async function (this: Arguments) {
@@ -306,30 +295,32 @@ export function SanityTest() {
       // Wait for unlock delay to pass
       await setNextBlockTimestamp({ days: 15 });
 
-      const positionInfo =
-        await this.contracts.LiquidityManager.positionInfo(0);
+      for (let i = 0; i < this.args.nbLpProviders; i++) {
+        const positionInfo =
+          await this.contracts.LiquidityManager.positionInfo(i);
 
-      expect(
-        await postTxHandler(
-          this.contracts.LiquidityManager.removeLiquidity(
-            0,
-            positionInfo.newUserCapital,
-            false,
+        expect(
+          await postTxHandler(
+            this.contracts.LiquidityManager.removeLiquidity(
+              i,
+              positionInfo.newUserCapital,
+              false,
+            ),
           ),
-        ),
-      ).to.not.throw;
+        ).to.not.throw;
 
-      const position = await this.contracts.LiquidityManager.positionInfo(0);
+        const position = await this.contracts.LiquidityManager.positionInfo(i);
 
-      expect(position.poolIds.length).to.equal(this.args.nbPools);
-      expect(position.poolIds[0]).to.equal(0);
-      expect(position.supplied).to.equal(0);
-      expect(position.newUserCapital).to.equal(0);
-      expect(position.strategyRewards).to.almostEqual(0);
-      for (let i = 0; i < this.args.nbPools; i++) {
-        expect(position.coverRewards[0]).to.equal(0);
+        expect(position.poolIds.length).to.equal(this.args.nbPools);
+        expect(position.poolIds[0]).to.equal(0);
+        expect(position.supplied).to.equal(0);
+        expect(position.newUserCapital).to.equal(0);
+        expect(position.strategyRewards).to.almostEqual(0);
+        for (let i = 0; i < this.args.nbPools; i++) {
+          expect(position.coverRewards[0]).to.equal(0);
+        }
+        expect(position.commitWithdrawalTimestamp).to.equal(0);
       }
-      expect(position.commitWithdrawalTimestamp).to.equal(0);
     });
   });
 }

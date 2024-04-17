@@ -10,6 +10,9 @@ import { baseContext } from "./context";
 import { deployProtocol } from "./integration/deployProtocol.test";
 import { SanityTest } from "./integration/sanity.test";
 
+// Scenarios
+import { ScenarioTests } from "./scenarios/scenario.test";
+
 // Unit test suites
 import { AthenaERC721Tests } from "./contracts/AthenaERC721";
 import { AthenaTokenTests } from "./contracts/AthenaToken";
@@ -22,26 +25,20 @@ import { StakingTests } from "./contracts/Staking";
 import { StrategyManagerTests } from "./contracts/StrategyManager";
 import { VirtualPoolTests } from "./contracts/VirtualPool";
 
-// Scenarios
-import { ScenarioTests } from "./scenarios/scenario.test";
-
 baseContext("Test Athena Protocol", function () {
-  // Integration tests
-  // deployProtocol();
+  //=== Integration tests ===//
+  deployProtocol();
   SanityTest();
 
-  // Unit tests
-  // AthenaERC721Tests(); -> todo
-  // AthenaTokenTests(); -> todo
-  // ClaimManagerTests();
-  // EcclesiaDaoTests();
+  //=== Scenarios ===//
+  ScenarioTests();
+
+  //=== Unit tests ===//
   // FarmingRangeTests();
   // LiquidityManagerTests();
-  // RewardManagerTests(); -> todo
-  // StakingTests(); -> todo
-  // StrategyManagerTests(); -> todo
-  // VirtualPoolTests();
-
-  // Scenarios
-  // ScenarioTests();
+  // ClaimManagerTests();
+  // EcclesiaDaoTests();
+  // RewardManagerTests();
+  // StakingTests();
+  // StrategyManagerTests();
 });
