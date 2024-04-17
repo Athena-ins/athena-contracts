@@ -1293,15 +1293,41 @@ contract LiquidityManager is
   /// ======= ADMIN ======= ///
 
   /**
+   * @notice Pause or unpause a pool
+   * @param poolId_ The ID of the pool
+   * @param isPaused_ True if the pool should be paused
+   *
+   * @dev You cannot buy cover, increase cover or add liquidity in a paused pool
+   */
+  function pausePool(
+    uint64 poolId_,
+    bool isPaused_
+  ) external onlyOwner {
+    VirtualPool.getPool(poolId_).isPaused = isPaused_;
+  }
+
+  /**
    * @notice Updates the withdraw delay and the maximum leverage
    * @param withdrawDelay_ The new withdraw delay
    * @param maxLeverage_ The new maximum leverage
    */
   function updateConfig(
+    IEcclesiaDao ecclesiaDao_,
+    IStrategyManager strategyManager_,
+    address yieldRewarder_,
+    address claimManager_,
     uint256 withdrawDelay_,
-    uint256 maxLeverage_
+    uint256 maxLeverage_,
+    uint256 leverageFeePerPool_
   ) external onlyOwner {
+    ecclesiaDao = ecclesiaDao_;
+    strategyManager = strategyManager_;
+
+    yieldRewarder = yieldRewarder_;
+    claimManager = claimManager_;
+
     withdrawDelay = withdrawDelay_;
     maxLeverage = maxLeverage_;
+    leverageFeePerPool = leverageFeePerPool_;
   }
 }
