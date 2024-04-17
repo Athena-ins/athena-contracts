@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.20;
+pragma solidity 0.8.25;
 
 // Libraries
 import { RayMath } from "../libs/RayMath.sol";
@@ -72,13 +72,9 @@ library DataTypes {
     mapping(uint32 _tick => uint256[] _coverIds) ticks;
     // Maps a cover ID to the premium position of the cover
     mapping(uint256 _coverId => Cover) covers;
-    // Function pointers to access child contract data
-    function(uint256)
-      view
-      returns (Compensation storage) getCompensation;
   }
 
-    struct VPoolConstructorParams {
+  struct VPoolConstructorParams {
     uint64 poolId;
     IEcclesiaDao dao;
     IStrategyManager strategyManager;

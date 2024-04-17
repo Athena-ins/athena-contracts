@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.20;
+pragma solidity 0.8.25;
 
 // Contracts
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
@@ -69,7 +69,7 @@ error CannotFarmPositionCommitedToWithdrawal();
 /**
  * @title FarmingRange
  * @notice Farming Range allows users to stake LP Tokens to receive various rewards
- * @custom:from Contract taken from the smardex protocol, adapted to version 0.8.20 and modified to use ERC-721 instead or ERC-20 tokens
+ * @custom:from Contract taken from the smardex protocol, adapted to version 0.8.25 and modified to use ERC-721 instead or ERC-20 tokens
  * @custom:url https://github.com/SmarDex-Dev/smart-contracts/blob/main/contracts/rewards/FarmingRange.sol
  */
 contract FarmingRange is IFarmingRange, Ownable, ReentrancyGuard {

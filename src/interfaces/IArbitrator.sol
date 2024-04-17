@@ -7,7 +7,7 @@
  * SPDX-License-Identifier: MIT
  */
 
-pragma solidity 0.8.20;
+pragma solidity 0.8.25;
 
 // Interfaces
 import { IArbitrable } from "./IArbitrable.sol";

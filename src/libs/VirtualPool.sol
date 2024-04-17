@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.20;
+pragma solidity 0.8.25;
 
 // Libraries
 import { RayMath } from "../libs/RayMath.sol";
@@ -58,6 +58,7 @@ library VirtualPool {
     keccak256("diamond.storage.VPool");
   bytes32 private constant COMPENSATION_SLOT_HASH =
     keccak256("diamond.storage.Compensation");
+
   uint256 constant YEAR = 365 days;
   uint256 constant RAY = RayMath.RAY;
   uint256 constant MAX_SECONDS_PER_TICK = 1 days;

@@ -7,7 +7,7 @@
  *  @deployments: []
  */
 
-pragma solidity 0.8.20;
+pragma solidity 0.8.25;
 
 // Interfaces
 import { IArbitrator } from "./IArbitrator.sol";

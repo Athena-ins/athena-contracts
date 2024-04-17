@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BUSL-1.1
 // solhint-disable not-rely-on-time
-pragma solidity 0.8.20;
+pragma solidity 0.8.25;
 
 // Contracts
 import { ERC20 } from "../tokens/ERC20.sol";
