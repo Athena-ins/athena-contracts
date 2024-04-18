@@ -49,7 +49,7 @@ contract StrategyManager is IStrategyManager, Ownable {
   address public USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48; // underlyingAsset (USDC)
   address public aUSDC = 0xBcca60bB61934080951369a648Fb03DF4F96263C; // wrappedAsset (aUSDC v2)
 
-  bool public isWhitelistEnabled = true;
+  bool public isWhitelistEnabled;
   mapping(address account_ => bool isWhiteListed_)
     public whiteListedLiquidityProviders;
 
@@ -87,7 +87,7 @@ contract StrategyManager is IStrategyManager, Ownable {
     if (
       // @dev using tx origin since the contract is called by the liquidity manager
       isWhitelistEnabled && !whiteListedLiquidityProviders[tx.origin]
-    ) revert NotLiquidityManager();
+    ) revert OnlyWhitelistCanDepositLiquidity();
     _;
   }
 
