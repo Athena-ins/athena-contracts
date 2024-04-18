@@ -11,7 +11,7 @@ export const liquidityProvision: Scenario = {
           userName: "deployer",
           name: "createPool",
           args: {
-            paymentAssetSymbol: "USDT",
+            paymentAssetSymbol: "USDC",
             strategyId: 0,
             compatiblePools: [1],
           },
@@ -22,7 +22,7 @@ export const liquidityProvision: Scenario = {
           userName: "deployer",
           name: "createPool",
           args: {
-            paymentAssetSymbol: "USDT",
+            paymentAssetSymbol: "USDC",
             strategyId: 0,
             compatiblePools: [0],
           },
@@ -33,7 +33,7 @@ export const liquidityProvision: Scenario = {
           userName: "deployer",
           name: "createPool",
           args: {
-            paymentAssetSymbol: "USDT",
+            paymentAssetSymbol: "USDC",
             strategyId: 0,
             compatiblePools: [],
           },
@@ -42,14 +42,14 @@ export const liquidityProvision: Scenario = {
       ],
     },
     {
-      description: "user0 gets 3_000 USDT and approves liquidity manager",
+      description: "user0 gets 3_000 USDC and approves liquidity manager",
       actions: [
         // get tokens for pos
         {
           userName: "user0",
           name: "getTokens",
           args: {
-            tokenSymbol: "USDT",
+            tokenSymbol: "USDC",
             amount: 3_000,
           },
           expected: "success",
@@ -60,7 +60,7 @@ export const liquidityProvision: Scenario = {
           name: "approveTokens",
           args: {
             spender: "LiquidityManager",
-            tokenSymbol: "USDT",
+            tokenSymbol: "USDC",
             amount: 3_000,
           },
           expected: "success",
@@ -69,7 +69,7 @@ export const liquidityProvision: Scenario = {
     },
     {
       description:
-        "user0 creates position 0 with 3_000 USDT using pool 0 and 1",
+        "user0 creates position 0 with 3_000 USDC using pool 0 and 1",
       actions: [
         // open position
         {
@@ -77,7 +77,7 @@ export const liquidityProvision: Scenario = {
           name: "openPosition",
           args: {
             amount: 3_000,
-            tokenSymbol: "USDT",
+            tokenSymbol: "USDC",
             isWrapped: false,
             poolIds: [0, 1],
           },
@@ -86,14 +86,14 @@ export const liquidityProvision: Scenario = {
       ],
     },
     {
-      description: "user1 gets 9_000 USDT and approves liquidity manager",
+      description: "user1 gets 9_000 USDC and approves liquidity manager",
       actions: [
         // get tokens for pos
         {
           userName: "user1",
           name: "getTokens",
           args: {
-            tokenSymbol: "USDT",
+            tokenSymbol: "USDC",
             amount: 9_000,
           },
           expected: "success",
@@ -104,7 +104,7 @@ export const liquidityProvision: Scenario = {
           name: "approveTokens",
           args: {
             spender: "LiquidityManager",
-            tokenSymbol: "USDT",
+            tokenSymbol: "USDC",
             amount: 9_000,
           },
           expected: "success",
@@ -112,7 +112,7 @@ export const liquidityProvision: Scenario = {
       ],
     },
     {
-      description: "user1 creates position 1 with 5_000 USDT using pool 1",
+      description: "user1 creates position 1 with 5_000 USDC using pool 1",
       actions: [
         // open position
         {
@@ -120,7 +120,7 @@ export const liquidityProvision: Scenario = {
           name: "openPosition",
           args: {
             amount: 5_000,
-            tokenSymbol: "USDT",
+            tokenSymbol: "USDC",
             isWrapped: false,
             poolIds: [1],
           },
@@ -129,14 +129,14 @@ export const liquidityProvision: Scenario = {
       ],
     },
     {
-      description: "user2 gets 12_000 USDT and approves liquidity manager",
+      description: "user2 gets 12_000 USDC and approves liquidity manager",
       actions: [
         // get tokens for pos
         {
           userName: "user2",
           name: "getTokens",
           args: {
-            tokenSymbol: "USDT",
+            tokenSymbol: "USDC",
             amount: 12_000,
           },
           expected: "success",
@@ -147,7 +147,7 @@ export const liquidityProvision: Scenario = {
           name: "approveTokens",
           args: {
             spender: "LiquidityManager",
-            tokenSymbol: "USDT",
+            tokenSymbol: "USDC",
             amount: 12_000,
           },
           expected: "success",
@@ -155,7 +155,7 @@ export const liquidityProvision: Scenario = {
       ],
     },
     {
-      description: "user2 creates position 2 with 4_000 USDT using pool 2",
+      description: "user2 creates position 2 with 4_000 USDC using pool 2",
       actions: [
         // open position
         {
@@ -163,7 +163,7 @@ export const liquidityProvision: Scenario = {
           name: "openPosition",
           args: {
             amount: 4_000,
-            tokenSymbol: "USDT",
+            tokenSymbol: "USDC",
             isWrapped: false,
             poolIds: [2],
           },
@@ -173,14 +173,14 @@ export const liquidityProvision: Scenario = {
     },
     {
       description:
-        "user3 creates cover 0 in pool 1 for 8_000 USDT with 3_000 USDT premiums after getting funds",
+        "user3 creates cover 0 in pool 1 for 8_000 USDC with 3_000 USDC premiums after getting funds",
       actions: [
         // get tokens for cover
         {
           userName: "user3",
           name: "getTokens",
           args: {
-            tokenSymbol: "USDT",
+            tokenSymbol: "USDC",
             amount: 3_000,
           },
           expected: "success",
@@ -191,7 +191,7 @@ export const liquidityProvision: Scenario = {
           name: "approveTokens",
           args: {
             spender: "LiquidityManager",
-            tokenSymbol: "USDT",
+            tokenSymbol: "USDC",
             amount: 3_000,
           },
           expected: "success",
@@ -202,9 +202,9 @@ export const liquidityProvision: Scenario = {
           name: "openCover",
           args: {
             poolId: 1,
-            coverTokenSymbol: "USDT",
+            coverTokenSymbol: "USDC",
             coverAmount: 8_000,
-            premiumTokenSymbol: "USDT",
+            premiumTokenSymbol: "USDC",
             premiumAmount: 3_000,
           },
           expected: "success",
@@ -237,7 +237,7 @@ export const liquidityProvision: Scenario = {
           name: "removeLiquidity",
           args: {
             positionId: 0,
-            tokenSymbol: "USDT",
+            tokenSymbol: "USDC",
             amount: 1,
             keepWrapped: false,
           },
@@ -247,7 +247,7 @@ export const liquidityProvision: Scenario = {
       ],
     },
     {
-      description: "user1 adds 4_000 USDT to its position 1",
+      description: "user1 adds 4_000 USDC to its position 1",
       actions: [
         {
           userName: "user1",
@@ -255,7 +255,7 @@ export const liquidityProvision: Scenario = {
           args: {
             positionId: 1,
             isWrapped: false,
-            tokenSymbol: "USDT",
+            tokenSymbol: "USDC",
             amount: 4_000,
           },
           expected: "success",
@@ -270,7 +270,7 @@ export const liquidityProvision: Scenario = {
           name: "removeLiquidity",
           args: {
             positionId: 0,
-            tokenSymbol: "USDT",
+            tokenSymbol: "USDC",
             amount: 3_000,
             keepWrapped: false,
           },
@@ -286,10 +286,10 @@ export const liquidityProvision: Scenario = {
           name: "updateCover",
           args: {
             coverId: 0,
-            coverTokenSymbol: "USDT",
+            coverTokenSymbol: "USDC",
             coverToAdd: 0,
             coverToRemove: 0,
-            premiumTokenSymbol: "USDT",
+            premiumTokenSymbol: "USDC",
             premiumToAdd: 0,
             premiumToRemove: "maxUint",
           },
@@ -322,7 +322,7 @@ export const liquidityProvision: Scenario = {
           name: "removeLiquidity",
           args: {
             positionId: 1,
-            tokenSymbol: "USDT",
+            tokenSymbol: "USDC",
             amount: 5_000,
             keepWrapped: false,
           },
@@ -430,7 +430,7 @@ export const liquidityProvision: Scenario = {
           name: "removeLiquidity",
           args: {
             positionId: 2,
-            tokenSymbol: "USDT",
+            tokenSymbol: "USDC",
             amount: 4_000,
             keepWrapped: false,
           },
@@ -440,7 +440,7 @@ export const liquidityProvision: Scenario = {
     },
     {
       description:
-        "user2 can add 2_000 USDT to its position 2 after having withdrawn all liquidity",
+        "user2 can add 2_000 USDC to its position 2 after having withdrawn all liquidity",
       actions: [
         {
           userName: "user2",
@@ -448,7 +448,7 @@ export const liquidityProvision: Scenario = {
           args: {
             positionId: 2,
             isWrapped: false,
-            tokenSymbol: "USDT",
+            tokenSymbol: "USDC",
             amount: 2_000,
           },
           expected: "success",
@@ -464,7 +464,7 @@ export const liquidityProvision: Scenario = {
           name: "approveTokens",
           args: {
             spender: "LiquidityManager",
-            tokenSymbol: "USDT",
+            tokenSymbol: "USDC",
             amount: 320,
           },
           expected: "success",
@@ -475,9 +475,9 @@ export const liquidityProvision: Scenario = {
           name: "openCover",
           args: {
             poolId: 2,
-            coverTokenSymbol: "USDT",
+            coverTokenSymbol: "USDC",
             coverAmount: 2_000,
-            premiumTokenSymbol: "USDT",
+            premiumTokenSymbol: "USDC",
             premiumAmount: 320,
           },
           expected: "success",
@@ -515,7 +515,7 @@ export const liquidityProvision: Scenario = {
           name: "removeLiquidity",
           args: {
             positionId: 2,
-            tokenSymbol: "USDT",
+            tokenSymbol: "USDC",
             amount: 2_000,
             keepWrapped: false,
           },
@@ -543,10 +543,10 @@ export const liquidityProvision: Scenario = {
           name: "updateCover",
           args: {
             coverId: 1,
-            coverTokenSymbol: "USDT",
+            coverTokenSymbol: "USDC",
             coverToAdd: 0,
             coverToRemove: 0,
-            premiumTokenSymbol: "USDT",
+            premiumTokenSymbol: "USDC",
             premiumToAdd: 0,
             premiumToRemove: 0,
           },
@@ -558,7 +558,7 @@ export const liquidityProvision: Scenario = {
           name: "removeLiquidity",
           args: {
             positionId: 2,
-            tokenSymbol: "USDT",
+            tokenSymbol: "USDC",
             amount: 2_000,
             keepWrapped: false,
           },

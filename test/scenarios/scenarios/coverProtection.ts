@@ -11,7 +11,7 @@ export const coverProtection: Scenario = {
           userName: "deployer",
           name: "createPool",
           args: {
-            paymentAssetSymbol: "USDT",
+            paymentAssetSymbol: "USDC",
             strategyId: 0,
             compatiblePools: [1],
           },
@@ -22,7 +22,7 @@ export const coverProtection: Scenario = {
           userName: "deployer",
           name: "createPool",
           args: {
-            paymentAssetSymbol: "USDT",
+            paymentAssetSymbol: "USDC",
             strategyId: 0,
             compatiblePools: [0],
           },
@@ -31,14 +31,14 @@ export const coverProtection: Scenario = {
       ],
     },
     {
-      description: "user0 gets 10_000 USDT and approves liquidity manager",
+      description: "user0 gets 10_000 USDC and approves liquidity manager",
       actions: [
         // get tokens for pos
         {
           userName: "user0",
           name: "getTokens",
           args: {
-            tokenSymbol: "USDT",
+            tokenSymbol: "USDC",
             amount: 10_000,
           },
           expected: "success",
@@ -49,7 +49,7 @@ export const coverProtection: Scenario = {
           name: "approveTokens",
           args: {
             spender: "LiquidityManager",
-            tokenSymbol: "USDT",
+            tokenSymbol: "USDC",
             amount: 10_000,
           },
           expected: "success",
@@ -58,7 +58,7 @@ export const coverProtection: Scenario = {
     },
     {
       description:
-        "user0 creates position 0 with 10_000 USDT using pool 0 and 1",
+        "user0 creates position 0 with 10_000 USDC using pool 0 and 1",
       actions: [
         // open position
         {
@@ -66,7 +66,7 @@ export const coverProtection: Scenario = {
           name: "openPosition",
           args: {
             amount: 10_000,
-            tokenSymbol: "USDT",
+            tokenSymbol: "USDC",
             isWrapped: false,
             poolIds: [0, 1],
           },
@@ -78,14 +78,14 @@ export const coverProtection: Scenario = {
      * Make covers
      */
     {
-      description: "user1 gets 2_000 USDT and approves liquidity manager",
+      description: "user1 gets 2_000 USDC and approves liquidity manager",
       actions: [
         // get tokens for cover
         {
           userName: "user1",
           name: "getTokens",
           args: {
-            tokenSymbol: "USDT",
+            tokenSymbol: "USDC",
             amount: 2_000,
           },
           expected: "success",
@@ -96,7 +96,7 @@ export const coverProtection: Scenario = {
           name: "approveTokens",
           args: {
             spender: "LiquidityManager",
-            tokenSymbol: "USDT",
+            tokenSymbol: "USDC",
             amount: 2_000,
           },
           expected: "success",
@@ -112,9 +112,9 @@ export const coverProtection: Scenario = {
           name: "openCover",
           args: {
             poolId: 0,
-            coverTokenSymbol: "USDT",
+            coverTokenSymbol: "USDC",
             coverAmount: 8_000,
-            premiumTokenSymbol: "USDT",
+            premiumTokenSymbol: "USDC",
             premiumAmount: 2_001,
           },
           expected: "revert",
@@ -124,7 +124,7 @@ export const coverProtection: Scenario = {
     },
     {
       description:
-        "user1 creates cover 0 of 8_000 USDT with 1_000 USDT in premiums in pool 0",
+        "user1 creates cover 0 of 8_000 USDC with 1_000 USDC in premiums in pool 0",
       actions: [
         // open cover
         {
@@ -132,9 +132,9 @@ export const coverProtection: Scenario = {
           name: "openCover",
           args: {
             poolId: 0,
-            coverTokenSymbol: "USDT",
+            coverTokenSymbol: "USDC",
             coverAmount: 8_000,
-            premiumTokenSymbol: "USDT",
+            premiumTokenSymbol: "USDC",
             premiumAmount: 1_000,
           },
           expected: "success",
@@ -145,7 +145,7 @@ export const coverProtection: Scenario = {
       ],
     },
     {
-      description: "user1 updates cover 0 adding 2_000 USDT in cover amount",
+      description: "user1 updates cover 0 adding 2_000 USDC in cover amount",
       actions: [
         // update cover
         {
@@ -153,10 +153,10 @@ export const coverProtection: Scenario = {
           name: "updateCover",
           args: {
             coverId: 0,
-            coverTokenSymbol: "USDT",
+            coverTokenSymbol: "USDC",
             coverToAdd: 2_000,
             coverToRemove: 0,
-            premiumTokenSymbol: "USDT",
+            premiumTokenSymbol: "USDC",
             premiumToAdd: 0,
             premiumToRemove: 0,
           },
@@ -168,7 +168,7 @@ export const coverProtection: Scenario = {
       ],
     },
     {
-      description: "user1 updates cover 0 removing 9_999 USDT in cover amount",
+      description: "user1 updates cover 0 removing 9_999 USDC in cover amount",
       actions: [
         // update cover
         {
@@ -176,10 +176,10 @@ export const coverProtection: Scenario = {
           name: "updateCover",
           args: {
             coverId: 0,
-            coverTokenSymbol: "USDT",
+            coverTokenSymbol: "USDC",
             coverToAdd: 0,
             coverToRemove: 9_999,
-            premiumTokenSymbol: "USDT",
+            premiumTokenSymbol: "USDC",
             premiumToAdd: 0,
             premiumToRemove: 0,
           },
@@ -188,7 +188,7 @@ export const coverProtection: Scenario = {
       ],
     },
     {
-      description: "user1 updates cover 0 adding 1 USDT in premiums",
+      description: "user1 updates cover 0 adding 1 USDC in premiums",
       actions: [
         // update cover
         {
@@ -196,10 +196,10 @@ export const coverProtection: Scenario = {
           name: "updateCover",
           args: {
             coverId: 0,
-            coverTokenSymbol: "USDT",
+            coverTokenSymbol: "USDC",
             coverToAdd: 0,
             coverToRemove: 0,
-            premiumTokenSymbol: "USDT",
+            premiumTokenSymbol: "USDC",
             premiumToAdd: 1,
             premiumToRemove: 0,
           },
@@ -208,7 +208,7 @@ export const coverProtection: Scenario = {
       ],
     },
     {
-      description: "user1 updates cover 0 removing 1 USDT in premiums",
+      description: "user1 updates cover 0 removing 1 USDC in premiums",
       actions: [
         // update cover
         {
@@ -216,10 +216,10 @@ export const coverProtection: Scenario = {
           name: "updateCover",
           args: {
             coverId: 0,
-            coverTokenSymbol: "USDT",
+            coverTokenSymbol: "USDC",
             coverToAdd: 0,
             coverToRemove: 0,
-            premiumTokenSymbol: "USDT",
+            premiumTokenSymbol: "USDC",
             premiumToAdd: 0,
             premiumToRemove: 1,
           },
@@ -229,7 +229,7 @@ export const coverProtection: Scenario = {
     },
     {
       description:
-        "user1 updates cover 0 adding 500 USDT in cover and 100 USDT in premiums",
+        "user1 updates cover 0 adding 500 USDC in cover and 100 USDC in premiums",
       actions: [
         // update cover
         {
@@ -237,10 +237,10 @@ export const coverProtection: Scenario = {
           name: "updateCover",
           args: {
             coverId: 0,
-            coverTokenSymbol: "USDT",
+            coverTokenSymbol: "USDC",
             coverToAdd: 500,
             coverToRemove: 0,
-            premiumTokenSymbol: "USDT",
+            premiumTokenSymbol: "USDC",
             premiumToAdd: 100,
             premiumToRemove: 0,
           },
@@ -250,7 +250,7 @@ export const coverProtection: Scenario = {
     },
     {
       description:
-        "user1 updates cover 0 removing 500 USDT in cover and adding 100 USDT in premiums",
+        "user1 updates cover 0 removing 500 USDC in cover and adding 100 USDC in premiums",
       actions: [
         // update cover
         {
@@ -258,10 +258,10 @@ export const coverProtection: Scenario = {
           name: "updateCover",
           args: {
             coverId: 0,
-            coverTokenSymbol: "USDT",
+            coverTokenSymbol: "USDC",
             coverToAdd: 0,
             coverToRemove: 500,
-            premiumTokenSymbol: "USDT",
+            premiumTokenSymbol: "USDC",
             premiumToAdd: 100,
             premiumToRemove: 0,
           },
@@ -278,10 +278,10 @@ export const coverProtection: Scenario = {
           name: "updateCover",
           args: {
             coverId: 0,
-            coverTokenSymbol: "USDT",
+            coverTokenSymbol: "USDC",
             coverToAdd: 0,
             coverToRemove: 0,
-            premiumTokenSymbol: "USDT",
+            premiumTokenSymbol: "USDC",
             premiumToAdd: 0,
             premiumToRemove: "maxUint",
           },
@@ -290,14 +290,14 @@ export const coverProtection: Scenario = {
       ],
     },
     {
-      description: "user2 gets 50 USDT and approves liquidity manager",
+      description: "user2 gets 50 USDC and approves liquidity manager",
       actions: [
         // get tokens for cover
         {
           userName: "user2",
           name: "getTokens",
           args: {
-            tokenSymbol: "USDT",
+            tokenSymbol: "USDC",
             amount: 50,
           },
           expected: "success",
@@ -308,7 +308,7 @@ export const coverProtection: Scenario = {
           name: "approveTokens",
           args: {
             spender: "LiquidityManager",
-            tokenSymbol: "USDT",
+            tokenSymbol: "USDC",
             amount: 50,
           },
           expected: "success",
@@ -317,7 +317,7 @@ export const coverProtection: Scenario = {
     },
     {
       description:
-        "user2 creating cover of 10_001 USDT reverts because there is not enough liquidity",
+        "user2 creating cover of 10_001 USDC reverts because there is not enough liquidity",
       actions: [
         // open cover
         {
@@ -325,9 +325,9 @@ export const coverProtection: Scenario = {
           name: "openCover",
           args: {
             poolId: 1,
-            coverTokenSymbol: "USDT",
+            coverTokenSymbol: "USDC",
             coverAmount: 10_001,
-            premiumTokenSymbol: "USDT",
+            premiumTokenSymbol: "USDC",
             premiumAmount: 50,
           },
           expected: "revert",
@@ -344,9 +344,9 @@ export const coverProtection: Scenario = {
           name: "openCover",
           args: {
             poolId: 1,
-            coverTokenSymbol: "USDT",
+            coverTokenSymbol: "USDC",
             coverAmount: 2_000,
-            premiumTokenSymbol: "USDT",
+            premiumTokenSymbol: "USDC",
             premiumAmount: 0.0001,
           },
           expected: "revert",
@@ -356,7 +356,7 @@ export const coverProtection: Scenario = {
     },
     {
       description:
-        "user2 creates cover 1 of 10_000 USDT with 50 USDT in premiums in pool 1",
+        "user2 creates cover 1 of 10_000 USDC with 50 USDC in premiums in pool 1",
       actions: [
         // open cover
         {
@@ -364,9 +364,9 @@ export const coverProtection: Scenario = {
           name: "openCover",
           args: {
             poolId: 1,
-            coverTokenSymbol: "USDT",
+            coverTokenSymbol: "USDC",
             coverAmount: 10_000,
-            premiumTokenSymbol: "USDT",
+            premiumTokenSymbol: "USDC",
             premiumAmount: 50,
           },
           expected: "success",
@@ -390,10 +390,10 @@ export const coverProtection: Scenario = {
           name: "updateCover",
           args: {
             coverId: 1,
-            coverTokenSymbol: "USDT",
+            coverTokenSymbol: "USDC",
             coverToAdd: 0,
             coverToRemove: 0,
-            premiumTokenSymbol: "USDT",
+            premiumTokenSymbol: "USDC",
             premiumToAdd: 100,
             premiumToRemove: 0,
           },
@@ -403,14 +403,14 @@ export const coverProtection: Scenario = {
       ],
     },
     {
-      description: "user3 gets 2_000 USDT and approves liquidity manager",
+      description: "user3 gets 2_000 USDC and approves liquidity manager",
       actions: [
         // get tokens for cover
         {
           userName: "user3",
           name: "getTokens",
           args: {
-            tokenSymbol: "USDT",
+            tokenSymbol: "USDC",
             amount: 2_000,
           },
           expected: "success",
@@ -421,7 +421,7 @@ export const coverProtection: Scenario = {
           name: "approveTokens",
           args: {
             spender: "LiquidityManager",
-            tokenSymbol: "USDT",
+            tokenSymbol: "USDC",
             amount: 2_000,
           },
           expected: "success",
@@ -430,7 +430,7 @@ export const coverProtection: Scenario = {
     },
     {
       description:
-        "user3 creates cover 2 of 6_000 USDT with 1_000 USDT in premiums in pool 0",
+        "user3 creates cover 2 of 6_000 USDC with 1_000 USDC in premiums in pool 0",
       actions: [
         // open cover
         {
@@ -438,9 +438,9 @@ export const coverProtection: Scenario = {
           name: "openCover",
           args: {
             poolId: 0,
-            coverTokenSymbol: "USDT",
+            coverTokenSymbol: "USDC",
             coverAmount: 6_000,
-            premiumTokenSymbol: "USDT",
+            premiumTokenSymbol: "USDC",
             premiumAmount: 1_000,
           },
           expected: "success",
@@ -449,7 +449,7 @@ export const coverProtection: Scenario = {
     },
     {
       description:
-        "user3 creates cover 3 of 2_000 USDT with 1_000 USDT in premiums in pool 0",
+        "user3 creates cover 3 of 2_000 USDC with 1_000 USDC in premiums in pool 0",
       actions: [
         // open cover
         {
@@ -457,9 +457,9 @@ export const coverProtection: Scenario = {
           name: "openCover",
           args: {
             poolId: 0,
-            coverTokenSymbol: "USDT",
+            coverTokenSymbol: "USDC",
             coverAmount: 2_000,
-            premiumTokenSymbol: "USDT",
+            premiumTokenSymbol: "USDC",
             premiumAmount: 1_000,
           },
           expected: "success",
@@ -470,7 +470,7 @@ export const coverProtection: Scenario = {
       ],
     },
     {
-      description: "user3 updates cover 2 adding 2_000 USDT in cover amount",
+      description: "user3 updates cover 2 adding 2_000 USDC in cover amount",
       actions: [
         // update cover
         {
@@ -478,10 +478,10 @@ export const coverProtection: Scenario = {
           name: "updateCover",
           args: {
             coverId: 2,
-            coverTokenSymbol: "USDT",
+            coverTokenSymbol: "USDC",
             coverToAdd: 2_000,
             coverToRemove: 0,
-            premiumTokenSymbol: "USDT",
+            premiumTokenSymbol: "USDC",
             premiumToAdd: 0,
             premiumToRemove: 0,
           },
@@ -493,7 +493,7 @@ export const coverProtection: Scenario = {
       ],
     },
     {
-      description: "user3 updates cover 3 removing 800 USDT in premiums",
+      description: "user3 updates cover 3 removing 800 USDC in premiums",
       actions: [
         // update cover
         {
@@ -501,10 +501,10 @@ export const coverProtection: Scenario = {
           name: "updateCover",
           args: {
             coverId: 3,
-            coverTokenSymbol: "USDT",
+            coverTokenSymbol: "USDC",
             coverToAdd: 0,
             coverToRemove: 0,
-            premiumTokenSymbol: "USDT",
+            premiumTokenSymbol: "USDC",
             premiumToAdd: 0,
             premiumToRemove: 800,
           },
@@ -521,10 +521,10 @@ export const coverProtection: Scenario = {
           name: "updateCover",
           args: {
             coverId: 2,
-            coverTokenSymbol: "USDT",
+            coverTokenSymbol: "USDC",
             coverToAdd: 0,
             coverToRemove: 0,
-            premiumTokenSymbol: "USDT",
+            premiumTokenSymbol: "USDC",
             premiumToAdd: 0,
             premiumToRemove: "maxUint",
           },
@@ -541,10 +541,10 @@ export const coverProtection: Scenario = {
           name: "updateCover",
           args: {
             coverId: 2,
-            coverTokenSymbol: "USDT",
+            coverTokenSymbol: "USDC",
             coverToAdd: 0,
             coverToRemove: 0,
-            premiumTokenSymbol: "USDT",
+            premiumTokenSymbol: "USDC",
             premiumToAdd: 1,
             premiumToRemove: 0,
           },

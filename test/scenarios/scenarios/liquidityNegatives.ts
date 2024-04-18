@@ -17,7 +17,7 @@ export const liquidityNegatives: Scenario = {
           name: "openPosition",
           args: {
             amount: 3_000,
-            tokenSymbol: "USDT",
+            tokenSymbol: "USDC",
             isWrapped: false,
             poolIds: [1, 0],
           },
