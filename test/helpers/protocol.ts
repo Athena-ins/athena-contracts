@@ -519,7 +519,7 @@ async function createPoolsWithLiquidity(
     makeIdArray(params.nbPools).map((poolId) =>
       postTxHandler(
         contracts.LiquidityManager.createPool(
-          contracts.TetherToken.address, // paymentAsset
+          contracts.CircleToken.address, // paymentAsset
           0, // strategyId
           0, // feeRate
           uOptimal,
@@ -604,6 +604,7 @@ export async function makeTestHelpers(
   const {
     AthenaToken,
     TetherToken,
+    CircleToken,
     LiquidityManager,
     ClaimManager,
     EcclesiaDao,
@@ -621,11 +622,11 @@ export async function makeTestHelpers(
     balanceOfAaveUsdt: (...args) => balanceOfAaveUsdt(deployer, ...args),
     getUsdt: (...args) => getTokens(deployer, TetherToken.address, ...args),
     //
-    transferUsdc: (...args) => transfer(TetherToken, ...args),
-    approveUsdc: (...args) => approve(TetherToken, ...args),
-    maxApproveUsdc: (...args) => maxApprove(TetherToken, ...args),
+    transferUsdc: (...args) => transfer(CircleToken, ...args),
+    approveUsdc: (...args) => approve(CircleToken, ...args),
+    maxApproveUsdc: (...args) => maxApprove(CircleToken, ...args),
     balanceOfAaveUsdc: (...args) => balanceOfAaveUsdc(deployer, ...args),
-    getUsdc: (...args) => getTokens(deployer, TetherToken.address, ...args),
+    getUsdc: (...args) => getTokens(deployer, CircleToken.address, ...args),
   };
 
   return {

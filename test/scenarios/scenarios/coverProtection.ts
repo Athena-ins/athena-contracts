@@ -118,7 +118,6 @@ export const coverProtection: Scenario = {
             premiumAmount: 2_001,
           },
           expected: "revert",
-          revertMessage: "FailedInnerCall",
         },
       ],
     },

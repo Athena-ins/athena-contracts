@@ -50,7 +50,7 @@ export function SanityTest() {
         expect(
           await postTxHandler(
             this.contracts.LiquidityManager.createPool(
-              this.contracts.TetherToken.address, // paymentAsset
+              this.contracts.CircleToken.address, // paymentAsset
               0, // strategyId
               0, // feeRate
               uOptimal,
@@ -65,10 +65,10 @@ export function SanityTest() {
         // Check pool info
         const poolInfo = await this.contracts.LiquidityManager.poolInfo(poolId);
         expect(poolInfo.paymentAsset.toLowerCase()).to.equal(
-          this.contracts.TetherToken.address,
+          this.contracts.CircleToken.address,
         );
         expect(poolInfo.underlyingAsset.toLowerCase()).to.equal(
-          this.contracts.TetherToken.address,
+          this.contracts.CircleToken.address,
         );
         expect(poolInfo.feeRate).to.equal(0);
         expect(poolInfo.strategyId).to.equal(0);

@@ -8,6 +8,7 @@ import {
 import {
   toErc20,
   usdtTokenAddress,
+  usdcTokenAddress,
   wethTokenAddress,
   evidenceGuardianWallet,
   buybackWallet,
@@ -316,8 +317,10 @@ export async function deployAllContractsAndInitializeProtocol(
   // Add USDT & WETH interface
   const usdtAddress = usdtTokenAddress(chainId);
   const UsdtToken = TetherToken__factory.connect(usdtAddress, deployer);
-  const usdcAddress = usdtTokenAddress(chainId);
+
+  const usdcAddress = usdcTokenAddress(chainId);
   const UsdcToken = ERC20__factory.connect(usdcAddress, deployer);
+
   const wethAddress = wethTokenAddress(chainId);
   const WethToken = IWETH__factory.connect(wethAddress, deployer);
 
