@@ -46,8 +46,8 @@ contract StrategyManager is IStrategyManager, Ownable {
 
   ILendingPool public aaveLendingPool =
     ILendingPool(0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9); // AAVE lending pool v2
-  address public usdt = 0xdAC17F958D2ee523a2206206994597C13D831ec7; // underlyingAsset (USDT)
-  address public ausdt = 0x3Ed3B47Dd13EC9a98b44e6204A523E766B225811; // wrappedAsset (aUSDT v2)
+  address public USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48; // underlyingAsset (USDC)
+  address public aUSDC = 0xBcca60bB61934080951369a648Fb03DF4F96263C; // wrappedAsset (aUSDC v2)
 
   bool public isWhitelistEnabled = true;
   mapping(address account_ => bool isWhiteListed_)
@@ -118,7 +118,7 @@ contract StrategyManager is IStrategyManager, Ownable {
   function getRewardIndex(
     uint256 strategyId_
   ) public view checkId(strategyId_) returns (uint256) {
-    return aaveLendingPool.getReserveNormalizedIncome(usdt);
+    return aaveLendingPool.getReserveNormalizedIncome(USDC);
   }
 
   /**
@@ -131,7 +131,7 @@ contract StrategyManager is IStrategyManager, Ownable {
   function getRewardRate(
     uint256 strategyId_
   ) public view checkId(strategyId_) returns (uint256) {
-    return aaveLendingPool.getReserveData(usdt).currentLiquidityRate;
+    return aaveLendingPool.getReserveData(USDC).currentLiquidityRate;
   }
 
   /**
@@ -161,7 +161,7 @@ contract StrategyManager is IStrategyManager, Ownable {
   function underlyingAsset(
     uint256 strategyId_
   ) external view checkId(strategyId_) returns (address) {
-    return usdt;
+    return USDC;
   }
 
   /**
@@ -172,7 +172,7 @@ contract StrategyManager is IStrategyManager, Ownable {
   function wrappedAsset(
     uint256 strategyId_
   ) external view checkId(strategyId_) returns (address) {
-    return ausdt;
+    return aUSDC;
   }
 
   /**
@@ -189,8 +189,8 @@ contract StrategyManager is IStrategyManager, Ownable {
     checkId(strategyId_)
     returns (address underlying, address wrapped)
   {
-    underlying = usdt;
-    wrapped = ausdt;
+    underlying = USDC;
+    wrapped = aUSDC;
   }
 
   /**
@@ -259,13 +259,13 @@ contract StrategyManager is IStrategyManager, Ownable {
     onlyLiquidityManager
     onlyWhiteListedLiquidityProviders
   {
-    IERC20(usdt).forceApprove(
+    IERC20(USDC).forceApprove(
       address(aaveLendingPool),
       amountUnderlying_
     );
 
     aaveLendingPool.deposit(
-      usdt,
+      USDC,
       amountUnderlying_,
       address(this),
       0
@@ -308,7 +308,7 @@ contract StrategyManager is IStrategyManager, Ownable {
       if (daoShare != 0) {
         // Deduct the daoShare from the amount to withdraw
         amountToWithdraw -= daoShare;
-        _accrueToDao(usdt, daoShare);
+        _accrueToDao(USDC, daoShare);
       }
     }
 
@@ -317,7 +317,7 @@ contract StrategyManager is IStrategyManager, Ownable {
 
     // @dev No need to approve aToken since they are burned in pool
     // @dev Remove 1 for rounding errors
-    aaveLendingPool.withdraw(usdt, amountToWithdraw - 1, account_);
+    aaveLendingPool.withdraw(USDC, amountToWithdraw - 1, account_);
   }
 
   //======== WRAPPED I/O ========//
@@ -371,7 +371,7 @@ contract StrategyManager is IStrategyManager, Ownable {
       if (daoShare != 0) {
         // Deduct the daoShare from the amount to withdraw
         amountToWithdraw -= daoShare;
-        _accrueToDao(usdt, daoShare);
+        _accrueToDao(USDC, daoShare);
       }
     }
 
@@ -379,7 +379,7 @@ contract StrategyManager is IStrategyManager, Ownable {
     if (amountToWithdraw <= 1) return;
 
     // @dev Remove 1 for rounding errors
-    IERC20(ausdt).safeTransfer(account_, amountToWithdraw - 1);
+    IERC20(aUSDC).safeTransfer(account_, amountToWithdraw - 1);
   }
 
   //======== CLAIMS ========//
@@ -400,7 +400,7 @@ contract StrategyManager is IStrategyManager, Ownable {
 
     // If there is a deductible, withdraw it from the pool to buy back & burn wallet
     if (0 < deductible)
-      aaveLendingPool.withdraw(usdt, deductible, buybackWallet);
+      aaveLendingPool.withdraw(USDC, deductible, buybackWallet);
 
     // @dev No need to approve aToken since they are burned in pool
     // @dev Remove 1 for rounding errors
@@ -409,7 +409,7 @@ contract StrategyManager is IStrategyManager, Ownable {
     // Since we remove 1 for rounding errors
     if (amountToPayout <= 1) return;
 
-    aaveLendingPool.withdraw(usdt, amountToPayout - 1, account_);
+    aaveLendingPool.withdraw(USDC, amountToPayout - 1, account_);
   }
 
   //======== ADMIN ========//
