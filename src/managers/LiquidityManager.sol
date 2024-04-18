@@ -266,12 +266,22 @@ contract LiquidityManager is
     return result;
   }
 
+  /**
+   * @notice Returns up to date data for an array of covers
+   * @param coverIds The IDs of the covers
+   * @return The array of covers data
+   */
   function coverInfos(
     uint256[] calldata coverIds
   ) external view returns (ILiquidityManager.CoverRead[] memory) {
     return AthenaDataProvider.coverInfos(coverIds);
   }
 
+  /**
+   * @notice Returns up to date data for an array of pools
+   * @param poolIds The IDs of the pools
+   * @return The array of pools data
+   */
   function poolInfos(
     uint256[] calldata poolIds
   ) external view returns (ILiquidityManager.VPoolRead[] memory) {
@@ -535,7 +545,7 @@ contract LiquidityManager is
     uint256 positionId_,
     address coverRewardsBeneficiary_,
     uint256 yieldBonus_
-  ) private nonReentrant {
+  ) private {
     Position storage position = _positions[positionId_];
 
     // Locks interests to avoid abusively early withdrawal commits
@@ -599,7 +609,7 @@ contract LiquidityManager is
    */
   function takeInterests(
     uint256 positionId_
-  ) public onlyPositionOwner(positionId_) {
+  ) public onlyPositionOwner(positionId_) nonReentrant {
     _takeInterests(
       positionId_,
       positionToken.ownerOf(positionId_),
@@ -637,7 +647,7 @@ contract LiquidityManager is
    */
   function commitRemoveLiquidity(
     uint256 positionId_
-  ) external onlyPositionOwner(positionId_) {
+  ) external onlyPositionOwner(positionId_) nonReentrant {
     Position storage position = _positions[positionId_];
 
     for (uint256 i; i < position.poolIds.length; i++) {
@@ -668,7 +678,7 @@ contract LiquidityManager is
    */
   function uncommitRemoveLiquidity(
     uint256 positionId_
-  ) external onlyPositionOwner(positionId_) {
+  ) external onlyPositionOwner(positionId_) nonReentrant {
     Position storage position = _positions[positionId_];
 
     // Avoid users accidentally paying their rewards to the leverage risk wallet
@@ -1210,8 +1220,13 @@ contract LiquidityManager is
     emit CompensationPaid(fromPoolId, compensationId);
   }
 
-  /// ======= HELPERS ======= ///
+  /// ======= MISC HELPERS ======= ///
 
+  /**
+   * @notice Purges a pool's expired covers up to a certain timestamp
+   * @param poolId_ The ID of the pool
+   * @param timestamp_ The timestamp up to which to purge the covers
+   */
   function purgeExpiredCoversUpTo(
     uint64 poolId_,
     uint256 timestamp_
@@ -1222,6 +1237,11 @@ contract LiquidityManager is
     VirtualPool._purgeExpiredCoversUpTo(poolId_, timestamp_);
   }
 
+  /**
+   * @notice Updates a position up to a certain compensation index
+   * @param positionId_ The ID of the position
+   * @param endCompensationIndexes_ The end indexes of the compensations to update up to for each pool
+   */
   function updatePositionUpTo(
     uint256 positionId_,
     uint256[] calldata endCompensationIndexes_
