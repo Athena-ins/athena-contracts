@@ -173,11 +173,10 @@ export function deployProtocol() {
           [
             this.args.deployedAt.AthenaPositionToken,
             this.args.deployedAt.AthenaCoverToken,
-            this.args.deployedAt.Staking,
-            this.args.deployedAt.FarmingRange,
             this.args.deployedAt.EcclesiaDao,
             this.args.deployedAt.StrategyManager,
             this.args.deployedAt.ClaimManager,
+            this.args.deployedAt.FarmingRange,
             this.protocolConfig.withdrawDelay,
             this.protocolConfig.maxLeverage,
             this.protocolConfig.leverageFeePerPool,

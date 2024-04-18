@@ -146,10 +146,10 @@ export function baseContext(description: string, hooks: () => void): void {
       evmSnapshotId = await evmSnapshot();
     });
 
-    hooks();
-
     afterEachSuite(async function (this: Mocha.Context) {
       await evmRevert(evmSnapshotId);
     });
+
+    hooks();
   });
 }

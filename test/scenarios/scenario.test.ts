@@ -20,7 +20,7 @@ const scenarios = [
   // liquidityNegatives,
 ];
 
-let evmSnapshotId: string = "0x424242";
+let evmSnapshotId: string = "0x4200000";
 
 export function ScenarioTests() {
   context("Scenario Tests", async function () {

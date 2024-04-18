@@ -377,11 +377,10 @@ export async function deployAllContractsAndInitializeProtocol(
     [
       deployedAt.AthenaPositionToken,
       deployedAt.AthenaCoverToken,
-      deployedAt.Staking,
-      deployedAt.FarmingRange,
       deployedAt.EcclesiaDao,
       deployedAt.StrategyManager,
       deployedAt.ClaimManager,
+      deployer.address,
       config.withdrawDelay,
       config.maxLeverage,
       config.leverageFeePerPool,
