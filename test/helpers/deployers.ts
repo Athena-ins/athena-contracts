@@ -60,6 +60,8 @@ import {
   TetherToken,
   IWETH,
   IWETH__factory,
+  ERC20,
+  ERC20__factory,
 } from "../../typechain/";
 // Types
 import { BigNumber, Wallet, Signer } from "ethers";
@@ -254,6 +256,7 @@ export const defaultProtocolConfig: ProtocolConfig = {
 
 export type ProtocolContracts = {
   TetherToken: TetherToken;
+  CircleToken: ERC20;
   WethToken: IWETH;
   AthenaCoverToken: AthenaCoverToken;
   AthenaPositionToken: AthenaPositionToken;
@@ -313,6 +316,8 @@ export async function deployAllContractsAndInitializeProtocol(
   // Add USDT & WETH interface
   const usdtAddress = usdtTokenAddress(chainId);
   const UsdtToken = TetherToken__factory.connect(usdtAddress, deployer);
+  const usdcAddress = usdtTokenAddress(chainId);
+  const UsdcToken = ERC20__factory.connect(usdcAddress, deployer);
   const wethAddress = wethTokenAddress(chainId);
   const WethToken = IWETH__factory.connect(wethAddress, deployer);
 
@@ -417,6 +422,7 @@ export async function deployAllContractsAndInitializeProtocol(
 
   const contracts = {
     TetherToken: UsdtToken,
+    CircleToken: UsdcToken,
     WethToken,
     AthenaCoverToken,
     AthenaPositionToken,

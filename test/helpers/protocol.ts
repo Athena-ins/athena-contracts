@@ -186,6 +186,29 @@ export async function balanceOfAaveUsdt(
   );
 }
 
+export async function balanceOfAaveUsdc(
+  signer: Wallet,
+  account: string | Wallet,
+): Promise<BigNumber> {
+  const chainId = await entityProviderChainId(signer);
+
+  const lendingPoolAddress = aaveLendingPoolV2Address(chainId);
+  const lendingPoolContract = ILendingPool__factory.connect(
+    lendingPoolAddress,
+    signer,
+  );
+
+  const usdcAddress = usdcTokenAddress(chainId);
+  const { aTokenAddress } =
+    await lendingPoolContract.getReserveData(usdcAddress);
+  const accountAddress =
+    typeof account === "string" ? account : await account.getAddress();
+
+  return IERC20__factory.connect(aTokenAddress, signer).balanceOf(
+    accountAddress,
+  );
+}
+
 // ===================== //
 // === Token helpers === //
 // ===================== //
@@ -547,14 +570,19 @@ type OmitThreeArgs<T extends (...args: any) => any> = T extends (
 // Token
 type TokenHelpers = {
   transferAten: OmitFirstArg<typeof transfer>;
-  transferUsdt: OmitFirstArg<typeof transfer>;
   approveAten: OmitFirstArg<typeof approve>;
-  approveUsdt: OmitFirstArg<typeof approve>;
   maxApproveAten: OmitFirstArg<typeof maxApprove>;
-  maxApproveUsdt: OmitFirstArg<typeof maxApprove>;
-  balanceOfAaveUsdt: OmitFirstArg<typeof balanceOfAaveUsdt>;
-  getUsdt: OmitFirstTwoArgs<typeof getTokens>;
   getAten: OmitFirstTwoArgs<typeof transfer>;
+  transferUsdt: OmitFirstArg<typeof transfer>;
+  approveUsdt: OmitFirstArg<typeof approve>;
+  maxApproveUsdt: OmitFirstArg<typeof maxApprove>;
+  getUsdt: OmitFirstTwoArgs<typeof getTokens>;
+  balanceOfAaveUsdt: OmitFirstArg<typeof balanceOfAaveUsdt>;
+  transferUsdc: OmitFirstArg<typeof transfer>;
+  approveUsdc: OmitFirstArg<typeof approve>;
+  maxApproveUsdc: OmitFirstArg<typeof maxApprove>;
+  getUsdc: OmitFirstTwoArgs<typeof getTokens>;
+  balanceOfAaveUsdc: OmitFirstArg<typeof balanceOfAaveUsdc>;
 };
 
 export type TestHelper = TokenHelpers & {
@@ -583,14 +611,21 @@ export async function makeTestHelpers(
 
   const tokenHelpers: TokenHelpers = {
     transferAten: (...args) => transfer(AthenaToken, ...args),
-    transferUsdt: (...args) => transfer(TetherToken, ...args),
     approveAten: (...args) => approve(AthenaToken, ...args),
-    approveUsdt: (...args) => approve(TetherToken, ...args),
     maxApproveAten: (...args) => maxApprove(AthenaToken, ...args),
+    getAten: (...args) => transfer(AthenaToken, deployer, ...args),
+    //
+    transferUsdt: (...args) => transfer(TetherToken, ...args),
+    approveUsdt: (...args) => approve(TetherToken, ...args),
     maxApproveUsdt: (...args) => maxApprove(TetherToken, ...args),
     balanceOfAaveUsdt: (...args) => balanceOfAaveUsdt(deployer, ...args),
     getUsdt: (...args) => getTokens(deployer, TetherToken.address, ...args),
-    getAten: (...args) => transfer(AthenaToken, deployer, ...args),
+    //
+    transferUsdc: (...args) => transfer(TetherToken, ...args),
+    approveUsdc: (...args) => approve(TetherToken, ...args),
+    maxApproveUsdc: (...args) => maxApprove(TetherToken, ...args),
+    balanceOfAaveUsdc: (...args) => balanceOfAaveUsdc(deployer, ...args),
+    getUsdc: (...args) => getTokens(deployer, TetherToken.address, ...args),
   };
 
   return {

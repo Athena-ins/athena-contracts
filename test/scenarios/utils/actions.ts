@@ -147,13 +147,22 @@ export async function getTokens(
   to: Wallet,
   amount: BigNumberish,
 ) {
-  const { TetherToken, AthenaToken } = testEnv.contracts;
-  const { getUsdt, getAten } = testEnv.helpers;
+  const { TetherToken, AthenaToken, CircleToken } = testEnv.contracts;
+  const { getUsdt, getAten, getUsdc } = testEnv.helpers;
 
-  const [tokenAddress, getterFunction] =
-    tokenSymbol === "USDT"
-      ? [TetherToken.address, getUsdt]
-      : [AthenaToken.address, getAten];
+  let tokenAddress: string;
+  let getterFunction: (
+    to: string,
+    value: BigNumberish,
+  ) => Promise<ContractReceipt>;
+
+  if (tokenSymbol === "USDT")
+    [tokenAddress, getterFunction] = [TetherToken.address, getUsdt];
+  else if (tokenSymbol === "USDC")
+    [tokenAddress, getterFunction] = [CircleToken.address, getUsdc];
+  else if (tokenSymbol === "ATEN")
+    [tokenAddress, getterFunction] = [AthenaToken.address, getAten];
+  else throw Error("Token not found");
 
   const token = ERC20__factory.connect(tokenAddress, to);
   const toAddress = await to.getAddress();
@@ -176,13 +185,23 @@ export async function approveTokens(
   spender: string,
   amount: BigNumberish,
 ) {
-  const { TetherToken, AthenaToken } = testEnv.contracts;
-  const { approveUsdt, approveAten } = testEnv.helpers;
+  const { TetherToken, AthenaToken, CircleToken } = testEnv.contracts;
+  const { approveUsdt, approveAten, approveUsdc } = testEnv.helpers;
 
-  const [tokenAddress, approveFunction] =
-    tokenSymbol === "USDT"
-      ? [TetherToken.address, approveUsdt]
-      : [AthenaToken.address, approveAten];
+  let tokenAddress: string;
+  let approveFunction: (
+    signer: Wallet,
+    spender: string,
+    value: BigNumberish,
+  ) => Promise<ContractReceipt>;
+
+  if (tokenSymbol === "USDT")
+    [tokenAddress, approveFunction] = [TetherToken.address, approveUsdt];
+  else if (tokenSymbol === "USDC")
+    [tokenAddress, approveFunction] = [CircleToken.address, approveUsdc];
+  else if (tokenSymbol === "ATEN")
+    [tokenAddress, approveFunction] = [AthenaToken.address, approveAten];
+  else throw Error("Token not found");
 
   const token = ERC20__factory.connect(tokenAddress, from);
   const fromAddress = await from.getAddress();
