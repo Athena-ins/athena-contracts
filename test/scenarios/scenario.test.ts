@@ -5,19 +5,19 @@ import { executeAction } from "./utils/actionEngine";
 import { allActions } from "./scenarios/allActions";
 import { liquidityProvision } from "./scenarios/liquidityProvision";
 import { coverProtection } from "./scenarios/coverProtection";
-import { claimingAndPayout } from "./scenarios/claimingAndPayout";
-import { multiplePools } from "./scenarios/multiplePools";
 import { coverNegatives } from "./scenarios/coverNegatives";
 import { liquidityNegatives } from "./scenarios/liquidityNegatives";
+import { claimingAndPayout } from "./scenarios/claimingAndPayout";
+import { multiplePools } from "./scenarios/multiplePools";
 
 const scenarios = [
   allActions,
   liquidityProvision,
   coverProtection,
+  liquidityNegatives,
+  // coverNegatives,
   // claimingAndPayout,
   // multiplePools,
-  // coverNegatives,
-  // liquidityNegatives,
 ];
 
 let evmSnapshotId: string = "0x4200000";
