@@ -7,27 +7,24 @@ type PoolTokenSymbols = "USDT" | "aUSDT" | "USDC" | "aUSDC";
 type TokensSymbols = "ATEN" | PoolTokenSymbols;
 
 type BaseActionSuccess = {
-  userName: SignerName;
   expected: "success";
   revertMessage?: undefined;
   timeTravel?: TimeTravelOptions;
 };
 type BaseActionRevert = {
-  userName: SignerName;
   expected: "revert";
   revertMessage?: string;
   timeTravel?: undefined;
 };
 
-type BaseAction = BaseActionSuccess | BaseActionRevert;
+type BaseAction = {
+  userName: SignerName;
+  skipTokenCheck?: boolean; // @bw awaiting compute loss post compensation
+} & (BaseActionSuccess | BaseActionRevert);
 
 type ActionWait = {
-  userName?: "deployer";
   name: "wait";
   timeTravel: TimeTravelOptions;
-  expected?: "success";
-  revertMessage?: undefined;
-  args?: {};
 };
 
 type ActionGetTokens = BaseAction & {

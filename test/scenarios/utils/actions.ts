@@ -293,6 +293,7 @@ export async function openPosition(
   expectedResult: "success" | "revert",
   revertMessage?: string,
   timeTravel?: TimeTravelOptions,
+  skipTokenCheck?: boolean,
 ) {
   const { LiquidityManager, AthenaPositionToken } = testEnv.contracts;
 
@@ -359,7 +360,7 @@ export async function openPosition(
     expect(balanceAfter).to.almostEqual(balanceBefore.sub(positionAmount));
 
     poolDataAfter.forEach((data, i) => expectEqual(data, expectedPoolData[i]));
-    expectEqual(tokenDataAfter, expectedTokenData);
+    if (!skipTokenCheck) expectEqual(tokenDataAfter, expectedTokenData);
   } else {
     await expect(
       LiquidityManager.connect(user).openPosition(
@@ -381,6 +382,7 @@ export async function addLiquidity(
   expectedResult: "success" | "revert",
   revertMessage?: string,
   timeTravel?: TimeTravelOptions,
+  skipTokenCheck?: boolean,
 ) {
   const { LiquidityManager } = testEnv.contracts;
 
@@ -466,7 +468,7 @@ export async function addLiquidity(
     // );
 
     poolDataAfter.forEach((data, i) => expectEqual(data, expectedPoolData[i]));
-    expectEqual(tokenDataAfter, expectedTokenData);
+    if (!skipTokenCheck) expectEqual(tokenDataAfter, expectedTokenData);
   } else {
     await expect(
       LiquidityManager.connect(user).addLiquidity(
@@ -485,6 +487,7 @@ export async function commitRemoveLiquidity(
   expectedResult: "success" | "revert",
   revertMessage?: string,
   timeTravel?: TimeTravelOptions,
+  skipTokenCheck?: boolean,
 ) {
   const { LiquidityManager, StrategyManager } = testEnv.contracts;
 
@@ -549,7 +552,7 @@ export async function commitRemoveLiquidity(
       );
 
     poolDataAfter.forEach((data, i) => expectEqual(data, expectedPoolData[i]));
-    expectEqual(tokenDataAfter, expectedTokenData);
+    if (!skipTokenCheck) expectEqual(tokenDataAfter, expectedTokenData);
   } else {
     await expect(
       LiquidityManager.connect(user).commitRemoveLiquidity(positionId),
@@ -564,6 +567,7 @@ export async function uncommitRemoveLiquidity(
   expectedResult: "success" | "revert",
   revertMessage?: string,
   timeTravel?: TimeTravelOptions,
+  skipTokenCheck?: boolean,
 ) {
   const { LiquidityManager, StrategyManager } = testEnv.contracts;
 
@@ -628,7 +632,7 @@ export async function uncommitRemoveLiquidity(
       );
 
     poolDataAfter.forEach((data, i) => expectEqual(data, expectedPoolData[i]));
-    expectEqual(tokenDataAfter, expectedTokenData);
+    if (!skipTokenCheck) expectEqual(tokenDataAfter, expectedTokenData);
   } else {
     await expect(
       LiquidityManager.connect(user).uncommitRemoveLiquidity(positionId),
@@ -643,6 +647,7 @@ export async function takeInterests(
   expectedResult: "success" | "revert",
   revertMessage?: string,
   timeTravel?: TimeTravelOptions,
+  skipTokenCheck?: boolean,
 ) {
   const { LiquidityManager } = testEnv.contracts;
 
@@ -693,7 +698,7 @@ export async function takeInterests(
     );
 
     poolDataAfter.forEach((data, i) => expectEqual(data, expectedPoolData[i]));
-    expectEqual(tokenDataAfter, expectedTokenData);
+    if (!skipTokenCheck) expectEqual(tokenDataAfter, expectedTokenData);
   } else {
     await expect(
       LiquidityManager.connect(user).takeInterests(positionId),
@@ -711,6 +716,7 @@ export async function removeLiquidity(
   expectedResult: "success" | "revert",
   revertMessage?: string,
   timeTravel?: TimeTravelOptions,
+  skipTokenCheck?: boolean,
 ) {
   const { LiquidityManager } = testEnv.contracts;
 
@@ -775,7 +781,7 @@ export async function removeLiquidity(
     );
 
     poolDataAfter.forEach((data, i) => expectEqual(data, expectedPoolData[i]));
-    expectEqual(tokenDataAfter, expectedTokenData);
+    if (!skipTokenCheck) expectEqual(tokenDataAfter, expectedTokenData);
   } else {
     await expect(
       LiquidityManager.connect(user).removeLiquidity(
@@ -798,6 +804,7 @@ export async function openCover(
   expectedResult: "success" | "revert",
   revertMessage?: string,
   timeTravel?: TimeTravelOptions,
+  skipTokenCheck?: boolean,
 ) {
   const { LiquidityManager, AthenaCoverToken } = testEnv.contracts;
 
@@ -864,7 +871,7 @@ export async function openCover(
 
     expect(balanceAfter).to.almostEqual(balanceBefore.sub(premiums));
     expectEqual(poolDataAfter, expectedPoolData);
-    expectEqual(tokenDataAfter, expectedTokenData);
+    if (!skipTokenCheck) expectEqual(tokenDataAfter, expectedTokenData);
   } else if (expectedResult === "revert") {
     await expect(
       LiquidityManager.connect(user).openCover(poolId, amount, premiums),
@@ -885,6 +892,7 @@ export async function updateCover(
   expectedResult: "success" | "revert",
   revertMessage?: string,
   timeTravel?: TimeTravelOptions,
+  skipTokenCheck?: boolean,
 ) {
   const { LiquidityManager } = testEnv.contracts;
 
@@ -978,7 +986,7 @@ export async function updateCover(
     }
 
     expectEqual(poolDataAfter, expectedPoolData);
-    expectEqual(tokenDataAfter, expectedTokenData);
+    if (!skipTokenCheck) expectEqual(tokenDataAfter, expectedTokenData);
   } else if (expectedResult === "revert") {
     await expect(
       LiquidityManager.connect(user).updateCover(
@@ -1004,6 +1012,7 @@ export async function initiateClaim(
   expectedResult: "success" | "revert",
   revertMessage?: string,
   timeTravel?: TimeTravelOptions,
+  skipTokenCheck?: boolean,
 ) {
   const { LiquidityManager, ClaimManager } = testEnv.contracts;
 
@@ -1076,7 +1085,7 @@ export async function initiateClaim(
     );
 
     expectEqual(poolDataAfter, expectedPoolData);
-    expectEqual(tokenDataAfter, expectedTokenData);
+    if (!skipTokenCheck) expectEqual(tokenDataAfter, expectedTokenData);
   } else if (expectedResult === "revert") {
     await expect(
       ClaimManager.connect(user).initiateClaim(
@@ -1099,6 +1108,7 @@ export async function withdrawCompensation(
   expectedResult: "success" | "revert",
   revertMessage?: string,
   timeTravel?: TimeTravelOptions,
+  skipTokenCheck?: boolean,
 ) {
   const { ClaimManager } = testEnv.contracts;
 
@@ -1158,7 +1168,7 @@ export async function withdrawCompensation(
     );
 
     expectEqual(poolDataAfter, expectedPoolData);
-    expectEqual(tokenDataAfter, expectedTokenData);
+    if (!skipTokenCheck) expectEqual(tokenDataAfter, expectedTokenData);
   } else if (expectedResult === "revert") {
     await expect(
       ClaimManager.connect(user).withdrawCompensation(claimId),

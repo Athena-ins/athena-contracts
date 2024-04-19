@@ -38,11 +38,19 @@ export type Scenario = {
 };
 
 export async function executeAction(this: Mocha.Context, action: Action) {
-  const { name, expected, userName, timeTravel, revertMessage, args } = action;
-
-  if (name === "wait") {
-    return await waitFor(timeTravel);
+  if (action.name === "wait") {
+    return await waitFor(action.timeTravel);
   }
+
+  const {
+    name,
+    expected,
+    userName,
+    timeTravel,
+    revertMessage,
+    args,
+    skipTokenCheck,
+  } = action;
 
   const signer = this.signers[userName];
 
@@ -145,6 +153,7 @@ export async function executeAction(this: Mocha.Context, action: Action) {
           expected,
           revertMessage,
           timeTravel,
+          skipTokenCheck,
         );
       }
       break;
@@ -184,6 +193,7 @@ export async function executeAction(this: Mocha.Context, action: Action) {
           expected,
           revertMessage,
           timeTravel,
+          skipTokenCheck,
         );
       }
       break;
@@ -207,6 +217,7 @@ export async function executeAction(this: Mocha.Context, action: Action) {
           expected,
           revertMessage,
           timeTravel,
+          skipTokenCheck,
         );
       }
       break;
@@ -230,6 +241,7 @@ export async function executeAction(this: Mocha.Context, action: Action) {
           expected,
           revertMessage,
           timeTravel,
+          skipTokenCheck,
         );
       }
       break;
@@ -245,6 +257,7 @@ export async function executeAction(this: Mocha.Context, action: Action) {
           expected,
           revertMessage,
           timeTravel,
+          skipTokenCheck,
         );
       }
       break;
@@ -260,6 +273,7 @@ export async function executeAction(this: Mocha.Context, action: Action) {
           expected,
           revertMessage,
           timeTravel,
+          skipTokenCheck,
         );
       }
       break;
@@ -283,6 +297,7 @@ export async function executeAction(this: Mocha.Context, action: Action) {
           expected,
           revertMessage,
           timeTravel,
+          skipTokenCheck,
         );
       }
       break;
@@ -298,6 +313,7 @@ export async function executeAction(this: Mocha.Context, action: Action) {
           expected,
           revertMessage,
           timeTravel,
+          skipTokenCheck,
         );
       }
       break;
@@ -333,6 +349,7 @@ export async function executeAction(this: Mocha.Context, action: Action) {
           expected,
           revertMessage,
           timeTravel,
+          skipTokenCheck,
         );
       }
       break;
@@ -348,6 +365,7 @@ export async function executeAction(this: Mocha.Context, action: Action) {
           expected,
           revertMessage,
           timeTravel,
+          skipTokenCheck,
         );
       }
       break;

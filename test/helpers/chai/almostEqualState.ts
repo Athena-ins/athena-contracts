@@ -24,11 +24,7 @@ function checkKey(
   actualKey: any,
   expectedKey: any,
 ) {
-  if (
-    key === "lastOnchainUpdateTimestamp" ||
-    key === "strategyRewardRate" ||
-    key === "supplied" // @bw awaiting compute loss post compensation
-  ) {
+  if (key === "lastOnchainUpdateTimestamp" || key === "strategyRewardRate") {
     // skipping consistency check on accessory data
     return;
   }
