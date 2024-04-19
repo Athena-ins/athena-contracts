@@ -19,7 +19,6 @@ import { console } from "hardhat/console.sol";
 // ======= ERRORS ======= //
 
 error ZeroAddressAsset();
-error CoverAlreadyExpired();
 error DurationBelowOneTick();
 error InsufficientCapacity();
 error NotEnoughLiquidityForRemoval();
@@ -98,9 +97,9 @@ library VirtualPool {
 
   /**
    * @notice Returns the storage slot position of a pool.
-   * 
+   *
    * @param poolId_ The pool ID
-   * 
+   *
    * @return pool The storage slot position of the pool
    */
   function getPool(
@@ -119,9 +118,9 @@ library VirtualPool {
 
   /**
    * @notice Returns the storage slot position of a compensation.
-   * 
+   *
    * @param compensationId_ The compensation ID
-   * 
+   *
    * @return comp The storage slot position of the compensation
    *
    * @dev Enables VirtualPool library to access child compensation storage
@@ -160,7 +159,7 @@ library VirtualPool {
 
   /**
    * @notice Initializes a virtual pool & populates its storage
-   * 
+   *
    * @param params The pool's constructor parameters
    */
   function _vPoolConstructor(
@@ -195,6 +194,8 @@ library VirtualPool {
     /// @dev the initial tick spacing is its maximum value 86400 seconds
     pool.slot0.secondsPerTick = MAX_SECONDS_PER_TICK;
     pool.slot0.lastUpdateTimestamp = block.timestamp;
+    /// @dev initialize at 1 to enable expiring covers created a first tick
+    pool.slot0.tick = 1;
 
     pool.overlappedPools.push(params.poolId);
   }
@@ -223,7 +224,7 @@ library VirtualPool {
 
   /**
    * @notice Returns the total liquidity of the pool.
-   * 
+   *
    * @param poolId_ The pool ID
    */
   function totalLiquidity(
@@ -234,7 +235,7 @@ library VirtualPool {
 
   /**
    * @notice Returns the available liquidity of the pool.
-   * 
+   *
    * @param poolId_ The pool ID
    */
   function availableLiquidity(
@@ -388,7 +389,7 @@ library VirtualPool {
 
   /**
    * @notice Adds liquidity info to the pool and updates the pool's state.
-   * 
+   *
    * @param poolId_ The pool ID
    * @param tokenId_ The LP position token ID
    * @param amount_ The amount of liquidity to deposit
@@ -413,7 +414,7 @@ library VirtualPool {
 
   /**
    * @notice Pays the rewards and fees to the position owner and the DAO.
-   * 
+   *
    * @param poolId_ The pool ID
    * @param rewards_ The rewards to pay
    * @param account_ The account to pay the rewards to
@@ -470,7 +471,7 @@ library VirtualPool {
 
   /**
    * @notice Takes the interests of a position and updates the pool's state.
-   * 
+   *
    * @param poolId_ The pool ID
    * @param tokenId_ The LP position token ID
    * @param account_ The account to pay the rewards to
@@ -539,7 +540,7 @@ library VirtualPool {
 
   /**
    * @notice Withdraws liquidity from the pool and updates the pool's state.
-   * 
+   *
    * @param poolId_ The pool ID
    * @param tokenId_ The LP position token ID
    * @param supplied_ The amount of liquidity to withdraw
@@ -604,7 +605,7 @@ library VirtualPool {
   /**
    * @notice Registers a premium position for a cover,
    * it also initializes the last tick (expiration tick) of the cover is needed.
-   * 
+   *
    * @param self The pool
    * @param coverId_ The cover ID
    * @param beginPremiumRate_ The premium rate at the beginning of the cover
@@ -640,7 +641,7 @@ library VirtualPool {
 
   /**
    * @notice Registers a premium position of a cover and updates the pool's slot0.
-   * 
+   *
    * @param poolId_ The pool ID
    * @param coverId_ The cover ID
    * @param coverAmount_ The amount of cover to buy
@@ -701,7 +702,7 @@ library VirtualPool {
 
   /**
    * @notice Closes a cover and updates the pool's slot0.
-   * 
+   *
    * @param poolId_ The pool ID
    * @param coverId_ The cover ID
    */
@@ -750,7 +751,7 @@ library VirtualPool {
 
   /**
    * @notice Removes covers in a tick flips its state to uninitialized
-   * 
+   *
    * @param self The pool
    * @param tick_ The tick to remove
    */
@@ -766,9 +767,9 @@ library VirtualPool {
 
   /**
    * @notice Purges expired covers from the pool and updates the pool's slot0 up to the latest timestamp
-   * 
+   *
    * @param poolId_ The pool ID
-   * 
+   *
    * @dev function _purgeExpiredCoversUpTo
    */
   function _purgeExpiredCovers(uint64 poolId_) external {
@@ -779,7 +780,7 @@ library VirtualPool {
    * @notice Removes expired covers from the pool and updates the pool's slot0.
    * Required before any operation that requires the slot0 to be up to date.
    * This includes all position and cover operations.
-   * 
+   *
    * @param poolId_ The pool ID
    */
   function _purgeExpiredCoversUpTo(
@@ -794,10 +795,10 @@ library VirtualPool {
 
   /**
    * @notice Checks if a cover is active or if it has expired or been closed
-   * 
+   *
    * @param poolId_ The pool ID
    * @param coverId_ The cover ID
-   * 
+   *
    * @return Whether the cover is active
    */
   function _isCoverActive(
@@ -811,7 +812,7 @@ library VirtualPool {
 
   /**
    * @notice Computes the cover and strategy rewards for an LP position.
-   * 
+   *
    * @param self The pool
    * @param info The updated position information
    * @param coverRewards The current rewards earned from cover premiums
@@ -821,7 +822,7 @@ library VirtualPool {
    * @param endliquidityIndex The end liquidity index
    * @param startStrategyRewardIndex The start strategy reward index
    * @param endStrategyRewardIndex The end strategy reward index
-   * 
+   *
    * @return coverRewards The aggregated rewards earned from cover premiums
    * @return strategyRewards The aggregated rewards earned by the strategy
    */
@@ -881,7 +882,7 @@ library VirtualPool {
    * - coverRewards The rewards earned from cover premiums
    * - strategyRewards The rewards earned by the strategy
    * - newLpInfo The updated LpInfo of the position
-   * 
+   *
    * @dev Used for takeInterest, withdrawLiquidity and rewardsOf
    */
   function _getUpdatedPositionInfo(
@@ -926,16 +927,16 @@ library VirtualPool {
     info.newLpInfo.beginClaimIndex = params.endCompensationId;
   }
 
-/**
- * @notice Updates the capital in an LP position post compensation payouts.
- * 
- * @param poolId_ The pool ID
- * @param poolIds_ The pool IDs of the position
- * @param params The update position parameters
- * 
- * @return info Updated information about the position:
- * @return upToStrategyRewardIndex The latest strategy reward index
- */
+  /**
+   * @notice Updates the capital in an LP position post compensation payouts.
+   *
+   * @param poolId_ The pool ID
+   * @param poolIds_ The pool IDs of the position
+   * @param params The update position parameters
+   *
+   * @return info Updated information about the position:
+   * @return upToStrategyRewardIndex The latest strategy reward index
+   */
   function _processCompensationsForPosition(
     uint64 poolId_,
     uint64[] storage poolIds_,
@@ -1009,14 +1010,14 @@ library VirtualPool {
     info.newLpInfo.beginClaimIndex = params.endCompensationId;
   }
 
-/**
- * @notice Computes the updated state of a cover.
- * 
- * @param poolId_ The pool ID
- * @param coverId_ The cover ID
- * 
- * @return info The cover data
- */
+  /**
+   * @notice Computes the updated state of a cover.
+   *
+   * @param poolId_ The pool ID
+   * @param coverId_ The cover ID
+   *
+   * @return info The cover data
+   */
   function _computeRefreshedCoverInfo(
     uint64 poolId_,
     uint256 coverId_
@@ -1033,10 +1034,10 @@ library VirtualPool {
 
   /**
    * @notice Returns the current state of a cover.
-   * 
+   *
    * @param poolId_ The pool ID
    * @param coverId_ The cover ID
-   * 
+   *
    * @return info The cover data
    */
   function _computeCurrentCoverInfo(

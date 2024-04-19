@@ -33,7 +33,6 @@ error PoolIdsMustBeUniqueAndAscending();
 error AmountOfPoolsIsAboveMaxLeverage();
 error IncompatiblePools(uint64 poolIdA, uint64 poolIdB);
 error WithdrawCommitDelayNotReached();
-error InsufficientLiquidityForCover();
 error RatioAbovePoolCapacity();
 error CoverIsExpired();
 error NotEnoughPremiums();
@@ -43,7 +42,7 @@ error CannotIncreaseCommittedPosition();
 error PositionNotCommited();
 error SenderNotLiquidationManager();
 error PoolHasOnGoingClaims();
-error CoverAmountMustBeGreaterThanZero();
+error ForbiddenZeroValue();
 error MustPurgeExpiredTokenInTheFuture();
 error InsufficientLiquidityForWithdrawal();
 error OutOfBounds();
@@ -413,6 +412,8 @@ contract LiquidityManager is
     bool isWrapped,
     uint64[] calldata poolIds
   ) external nonReentrant {
+    if (poolIds.length == 0 || amount == 0)
+      revert ForbiddenZeroValue();
     // Check that the amount of pools is below the max leverage
     if (maxLeverage < poolIds.length)
       revert AmountOfPoolsIsAboveMaxLeverage();
@@ -491,6 +492,7 @@ contract LiquidityManager is
       .getPool(position.poolIds[0])
       .strategyId;
 
+    if (amount == 0) revert ForbiddenZeroValue();
     // Positions that are commit for withdrawal cannot be increased
     if (position.commitWithdrawalTimestamp != 0)
       revert CannotIncreaseCommittedPosition();
@@ -717,6 +719,8 @@ contract LiquidityManager is
   ) external onlyPositionOwner(positionId_) nonReentrant {
     Position storage position = _positions[positionId_];
 
+    if (amount_ == 0) revert ForbiddenZeroValue();
+
     // Check that commit delay has been reached
     if (position.commitWithdrawalTimestamp == 0)
       revert PositionNotCommited();
@@ -792,15 +796,18 @@ contract LiquidityManager is
     uint256 coverAmount_,
     uint256 premiums_
   ) external nonReentrant {
+    // Check if pool exists & is not currently paused
+    _checkPoolExists(poolId_);
+    _checkIsNotPaused(poolId_);
+
     // Get storage pointer to pool
     DataTypes.VPool storage pool = VirtualPool.getPool(poolId_);
 
     // Clean pool from expired covers
     VirtualPool._purgeExpiredCovers(poolId_);
 
-    // Check if pool exists & is not currently paused
-    _checkPoolExists(poolId_);
-    _checkIsNotPaused(poolId_);
+    if (coverAmount_ == 0 || premiums_ == 0)
+      revert ForbiddenZeroValue();
 
     // Transfer premiums from user
     IERC20(pool.paymentAsset).safeTransferFrom(
@@ -874,8 +881,7 @@ contract LiquidityManager is
 
       coverAmount += coverToAdd_;
     } else if (0 < coverToRemove_) {
-      if (coverAmount <= coverToRemove_)
-        revert CoverAmountMustBeGreaterThanZero();
+      if (coverAmount <= coverToRemove_) revert ForbiddenZeroValue();
 
       // Unckecked is ok because we checked that coverToRemove_ < coverAmount
       unchecked {
@@ -1096,8 +1102,7 @@ contract LiquidityManager is
     }
 
     // This will trigger the catch part of the try/catch
-    if (newCoverAmount_ == 0)
-      revert CoverAmountMustBeGreaterThanZero();
+    if (newCoverAmount_ == 0) revert ForbiddenZeroValue();
 
     VirtualPool._registerCover(
       poolId_,

@@ -50,7 +50,7 @@ export function calcExpectedPoolDataAfterCreatePool(
       rSlope2,
     },
     slot0: {
-      tick: 0,
+      tick: 1,
       secondsPerTick: constants.MAX_SECONDS_PER_TICK.toNumber(),
       coveredCapital: BigNumber.from(0),
       remainingCovers: BigNumber.from(0),
