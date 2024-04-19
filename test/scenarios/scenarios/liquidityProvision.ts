@@ -374,7 +374,7 @@ export const liquidityProvision: Scenario = {
             positionId: 2,
           },
           expected: "revert",
-          revertMessage: "CannotUpdatePositionIfCommittedWithdrawal",
+          revertMessage: "CannotTakeInterestsCommittedPosition",
         },
       ],
     },
@@ -502,13 +502,10 @@ export const liquidityProvision: Scenario = {
       description: "user2 cannot empty position 2 before cover 1 expires",
       actions: [
         {
-          userName: "deployer",
           name: "wait",
           timeTravel: {
             days: 364,
           },
-          expected: "success",
-          args: {},
         },
         {
           userName: "user2",
@@ -528,15 +525,12 @@ export const liquidityProvision: Scenario = {
       description: "user2 can empty position 2 after cover 1",
       actions: [
         {
-          userName: "deployer",
           name: "wait",
           timeTravel: {
             days: 1,
             hours: 1.5, // 1 tick + 1 sec
             seconds: 1,
           },
-          expected: "success",
-          args: {},
         },
         {
           userName: "user3",

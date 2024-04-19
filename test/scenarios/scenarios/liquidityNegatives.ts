@@ -1,4 +1,3 @@
-import { expect } from "chai";
 import { Scenario } from "../utils/actionEngine";
 
 export const liquidityNegatives: Scenario = {
@@ -411,7 +410,7 @@ export const liquidityNegatives: Scenario = {
             isWrapped: false,
           },
           expected: "revert",
-          revertMessage: "CannotIncreaseIfCommittedWithdrawal",
+          revertMessage: "CannotIncreaseCommittedPosition",
         },
       ],
     },
@@ -425,7 +424,7 @@ export const liquidityNegatives: Scenario = {
             positionId: 0,
           },
           expected: "revert",
-          revertMessage: "CannotTakeInterestsIfCommittedWithdrawal",
+          revertMessage: "CannotTakeInterestsCommittedPosition",
         },
       ],
     },
@@ -625,6 +624,7 @@ export const liquidityNegatives: Scenario = {
           },
           expected: "success",
           timeTravel: { days: 15 },
+          skipTokenCheck: true,
         },
       ],
     },

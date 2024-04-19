@@ -37,13 +37,12 @@ error InsufficientLiquidityForCover();
 error RatioAbovePoolCapacity();
 error CoverIsExpired();
 error NotEnoughPremiums();
-error CannotUpdatePositionIfCommittedWithdrawal();
-error CannotTakeInterestsIfCommittedWithdrawal();
-error CannotIncreaseIfCommittedWithdrawal();
+error CannotUpdateCommittedPosition();
+error CannotTakeInterestsCommittedPosition();
+error CannotIncreaseCommittedPosition();
 error PositionNotCommited();
 error SenderNotLiquidationManager();
 error PoolHasOnGoingClaims();
-error CoverAmountIsZero();
 error CoverAmountMustBeGreaterThanZero();
 error MustPurgeExpiredTokenInTheFuture();
 error InsufficientLiquidityForWithdrawal();
@@ -494,7 +493,7 @@ contract LiquidityManager is
 
     // Positions that are commit for withdrawal cannot be increased
     if (position.commitWithdrawalTimestamp != 0)
-      revert CannotIncreaseIfCommittedWithdrawal();
+      revert CannotIncreaseCommittedPosition();
 
     // Take interests in all pools before update
     // @dev Needed to register rewards & claims impact on capital
@@ -562,7 +561,7 @@ contract LiquidityManager is
 
     // Locks interests to avoid abusively early withdrawal commits
     if (position.commitWithdrawalTimestamp != 0)
-      revert CannotTakeInterestsIfCommittedWithdrawal();
+      revert CannotTakeInterestsCommittedPosition();
 
     // All pools have same strategy since they are compatible
     uint256 latestStrategyRewardIndex = strategyManager
@@ -1097,7 +1096,8 @@ contract LiquidityManager is
     }
 
     // This will trigger the catch part of the try/catch
-    if (newCoverAmount_ == 0) revert CoverAmountIsZero();
+    if (newCoverAmount_ == 0)
+      revert CoverAmountMustBeGreaterThanZero();
 
     VirtualPool._registerCover(
       poolId_,
@@ -1268,7 +1268,7 @@ contract LiquidityManager is
 
     // Locks interests to avoid abusively early withdrawal commits
     if (position.commitWithdrawalTimestamp != 0)
-      revert CannotUpdatePositionIfCommittedWithdrawal();
+      revert CannotUpdateCommittedPosition();
 
     address account = positionToken.ownerOf(positionId_);
 
