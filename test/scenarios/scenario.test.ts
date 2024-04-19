@@ -7,6 +7,7 @@ import { liquidityProvision } from "./scenarios/liquidityProvision";
 import { coverProtection } from "./scenarios/coverProtection";
 import { coverNegatives } from "./scenarios/coverNegatives";
 import { liquidityNegatives } from "./scenarios/liquidityNegatives";
+import { poolNegatives } from "./scenarios/poolNegatives";
 import { claimingAndPayout } from "./scenarios/claimingAndPayout";
 import { multiplePools } from "./scenarios/multiplePools";
 
@@ -15,7 +16,7 @@ const scenarios = [
   liquidityProvision,
   coverProtection,
   liquidityNegatives,
-  // coverNegatives,
+  // poolNegatives,
   // claimingAndPayout,
   // multiplePools,
 ];
