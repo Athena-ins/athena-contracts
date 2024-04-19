@@ -27,6 +27,7 @@ import { console } from "hardhat/console.sol";
 error OnlyTokenOwner();
 error OnlyClaimManager();
 error OnlyYieldRewarder();
+error PoolDoesNotExist();
 error PoolIsPaused();
 error PoolIdsMustBeUniqueAndAscending();
 error AmountOfPoolsIsAboveMaxLeverage();
@@ -37,6 +38,7 @@ error RatioAbovePoolCapacity();
 error CoverIsExpired();
 error NotEnoughPremiums();
 error CannotUpdatePositionIfCommittedWithdrawal();
+error CannotTakeInterestsIfCommittedWithdrawal();
 error CannotIncreaseIfCommittedWithdrawal();
 error PositionNotCommited();
 error SenderNotLiquidationManager();
@@ -148,12 +150,22 @@ contract LiquidityManager is
   /// ======= INTERNAL HELPERS ======= ///
 
   /**
+   * @notice Throws if the pool does not exist
+   * @param poolId_ The ID of the pool
+   */
+  function _checkPoolExists(uint64 poolId_) internal view {
+    // We use the underlying asset since it cannot be address(0)
+    if (VirtualPool.getPool(poolId_).underlyingAsset == address(0))
+      revert PoolDoesNotExist();
+  }
+
+  /**
    * @notice Throws if the pool is paused
    * @param poolId_ The ID of the pool
    *
    * @dev You cannot buy cover, increase cover or add liquidity in a paused pool
    */
-  function _isNotPaused(uint64 poolId_) internal view {
+  function _checkIsNotPaused(uint64 poolId_) internal view {
     if (VirtualPool.getPool(poolId_).isPaused) revert PoolIsPaused();
   }
 
@@ -550,7 +562,7 @@ contract LiquidityManager is
 
     // Locks interests to avoid abusively early withdrawal commits
     if (position.commitWithdrawalTimestamp != 0)
-      revert CannotUpdatePositionIfCommittedWithdrawal();
+      revert CannotTakeInterestsIfCommittedWithdrawal();
 
     // All pools have same strategy since they are compatible
     uint256 latestStrategyRewardIndex = strategyManager
@@ -707,6 +719,8 @@ contract LiquidityManager is
     Position storage position = _positions[positionId_];
 
     // Check that commit delay has been reached
+    if (position.commitWithdrawalTimestamp == 0)
+      revert PositionNotCommited();
     if (
       block.timestamp <
       position.commitWithdrawalTimestamp + withdrawDelay
@@ -785,8 +799,9 @@ contract LiquidityManager is
     // Clean pool from expired covers
     VirtualPool._purgeExpiredCovers(poolId_);
 
-    // Check if pool is currently paused
-    _isNotPaused(poolId_);
+    // Check if pool exists & is not currently paused
+    _checkPoolExists(poolId_);
+    _checkIsNotPaused(poolId_);
 
     // Transfer premiums from user
     IERC20(pool.paymentAsset).safeTransferFrom(
@@ -856,7 +871,7 @@ contract LiquidityManager is
     // Only allow one operation on cover amount change
     if (0 < coverToAdd_) {
       // Check if pool is currently paused
-      _isNotPaused(poolId);
+      _checkIsNotPaused(poolId);
 
       coverAmount += coverToAdd_;
     } else if (0 < coverToRemove_) {
@@ -931,10 +946,13 @@ contract LiquidityManager is
 
     for (uint256 i; i < nbPoolIds; i++) {
       uint64 poolId0 = poolIds_[i];
+
+      _checkPoolExists(poolId0);
+
       DataTypes.VPool storage pool0 = VirtualPool.getPool(poolId0);
 
       // Check if pool is currently paused
-      _isNotPaused(poolId0);
+      _checkIsNotPaused(poolId0);
 
       // Remove expired covers
       /// @dev Skip the purge when adding liquidity since it has been done
