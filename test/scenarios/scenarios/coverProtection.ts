@@ -376,13 +376,10 @@ export const coverProtection: Scenario = {
       description: "user2 fails to update expired cover after 1 year",
       actions: [
         {
-          userName: "deployer",
           name: "wait",
           timeTravel: {
             days: 365,
           },
-          expected: "success",
-          args: {},
         },
         {
           userName: "user2",

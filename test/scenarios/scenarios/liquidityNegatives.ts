@@ -140,6 +140,23 @@ export const liquidityNegatives: Scenario = {
       ],
     },
     {
+      description: "user1 fails to add zero liquidity to position 1",
+      actions: [
+        {
+          userName: "user1",
+          name: "addLiquidity",
+          args: {
+            positionId: 1,
+            tokenSymbol: "USDC",
+            amount: 0,
+            isWrapped: false,
+          },
+          expected: "revert",
+          revertMessage: "ForbiddenZeroValue",
+        },
+      ],
+    },
+    {
       description: "user2 gets 12_000 USDC and approves liquidity manager",
       actions: [
         // get tokens for pos
@@ -162,6 +179,23 @@ export const liquidityNegatives: Scenario = {
             amount: 12_000,
           },
           expected: "success",
+        },
+      ],
+    },
+    {
+      description: "user2 fails to create position because of zero amount",
+      actions: [
+        {
+          userName: "user2",
+          name: "openPosition",
+          args: {
+            amount: 0,
+            tokenSymbol: "USDC",
+            isWrapped: false,
+            poolIds: [1],
+          },
+          expected: "revert",
+          revertMessage: "ForbiddenZeroValue",
         },
       ],
     },
@@ -483,7 +517,7 @@ export const liquidityNegatives: Scenario = {
       ],
     },
     {
-      description: "user0 cannot withdraw more than deposit from position 0",
+      description: "user0 cannot withdraw zero from position 0",
       actions: [
         {
           name: "wait",
@@ -491,6 +525,23 @@ export const liquidityNegatives: Scenario = {
             days: 5,
           },
         },
+        {
+          userName: "user0",
+          name: "removeLiquidity",
+          args: {
+            positionId: 0,
+            tokenSymbol: "USDC",
+            amount: 0,
+            keepWrapped: false,
+          },
+          expected: "revert",
+          revertMessage: "ForbiddenZeroValue",
+        },
+      ],
+    },
+    {
+      description: "user0 cannot withdraw more than deposit from position 0",
+      actions: [
         {
           userName: "user0",
           name: "removeLiquidity",
