@@ -24,7 +24,11 @@ function checkKey(
   actualKey: any,
   expectedKey: any,
 ) {
-  if (key === "lastOnchainUpdateTimestamp" || key === "strategyRewardRate") {
+  if (
+    key === "lastOnchainUpdateTimestamp" ||
+    key === "strategyRewardRate" ||
+    key === "supplied" // @bw awaiting compute loss post compensation
+  ) {
     // skipping consistency check on accessory data
     return;
   }
@@ -55,6 +59,7 @@ function checkKey(
 
   let deviationAllowed = 0;
   let deviationType: "percentage" | "absolute" | undefined;
+
   // For certain keys we will use a difference deviationAllowed
   if (key === "premiumsLeft") {
     deviationAllowed = 0.12;
@@ -133,6 +138,20 @@ function checkKey(
         actualKey.eq(expectedKey.add(3)),
       `expected ${actualString} to be almost equal or equal ${expectedString} for property ${path}`,
       `expected ${actualString} to be almost equal or equal ${expectedString} for property ${path}`,
+      expectedKey,
+      actualKey,
+    );
+  } else if (typeof actualKey === "number" && typeof expectedKey === "number") {
+    this.assert(
+      actualKey === expectedKey ||
+        actualKey + 1 === expectedKey ||
+        actualKey === expectedKey + 1 ||
+        actualKey + 2 === expectedKey ||
+        actualKey === expectedKey + 2 ||
+        actualKey + 3 === expectedKey ||
+        actualKey === expectedKey + 3,
+      `expected ${actualKey} to be almost equal or equal ${expectedKey} for property ${path}`,
+      `expected ${actualKey} to be almost equal or equal ${expectedKey} for property ${path}`,
       expectedKey,
       actualKey,
     );

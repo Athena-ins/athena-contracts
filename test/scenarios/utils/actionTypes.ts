@@ -6,20 +6,28 @@ import { TimeTravelOptions } from "../../helpers/hardhat";
 type PoolTokenSymbols = "USDT" | "aUSDT" | "USDC" | "aUSDC";
 type TokensSymbols = "ATEN" | PoolTokenSymbols;
 
-type BaseAction = {
+type BaseActionSuccess = {
   userName: SignerName;
-  expected: "revert" | "success";
-  revertMessage?: string;
-  timeTravel?: TimeTravelOptions;
-};
-
-type ActionWait = BaseAction & {
-  userName: "deployer";
-  name: "wait";
-  timeTravel: TimeTravelOptions;
   expected: "success";
   revertMessage?: undefined;
-  args: {};
+  timeTravel?: TimeTravelOptions;
+};
+type BaseActionRevert = {
+  userName: SignerName;
+  expected: "revert";
+  revertMessage?: string;
+  timeTravel?: undefined;
+};
+
+type BaseAction = BaseActionSuccess | BaseActionRevert;
+
+type ActionWait = {
+  userName?: "deployer";
+  name: "wait";
+  timeTravel: TimeTravelOptions;
+  expected?: "success";
+  revertMessage?: undefined;
+  args?: {};
 };
 
 type ActionGetTokens = BaseAction & {

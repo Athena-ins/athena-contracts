@@ -250,7 +250,7 @@ export const defaultProtocolConfig: ProtocolConfig = {
     { atenAmount: toErc20(1_000_000), yieldBonus: toRay(50, 4) },
   ],
   withdrawDelay: 14 * 24 * 60 * 60, // 14 days
-  maxLeverage: 30, // max pools per position
+  maxLeverage: 12, // max pools per position
   payoutDeductibleRate: toRay(0.1), // 10%
   performanceFee: toRay(0.5), // 50%
 };

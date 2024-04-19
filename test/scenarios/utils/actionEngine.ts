@@ -39,6 +39,11 @@ export type Scenario = {
 
 export async function executeAction(this: Mocha.Context, action: Action) {
   const { name, expected, userName, timeTravel, revertMessage, args } = action;
+
+  if (name === "wait") {
+    return await waitFor(timeTravel);
+  }
+
   const signer = this.signers[userName];
 
   if (!expected) {
@@ -49,12 +54,6 @@ export async function executeAction(this: Mocha.Context, action: Action) {
   }
 
   switch (name) {
-    case "wait":
-      {
-        await waitFor(timeTravel);
-      }
-      break;
-
     case "getTokens":
       {
         const { tokenSymbol, amount } = args;
