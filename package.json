@@ -9,14 +9,24 @@
     "compile": "npx hardhat compile",
     "test": "npx hardhat test ./test/index.ts",
     "typechain": "typechain --target ethers-v5 --out-dir typechain",
+
     "prettier:check": "prettier -c --plugin=prettier-plugin-solidity .",
     "prettier:write": "prettier -w --plugin=prettier-plugin-solidity .",
-    "deploy-hardhat": "npx hardhat run --network hardhat scripts/deploy/deployAthena.ts",
-    "deploy-goerli": "npx hardhat run --network goerli scripts/deploy/deployAthena.ts",
-    "make-pool-goerli": "npx hardhat run --network goerli scripts/deploy/deployPool.ts",
-    "gen-exports": "npx ts-node scripts/gen/gen-exports.ts",
-    "gen-fnsigs": "npx ts-node scripts/gen/gen-fnsigs.ts",
-    "gen-interfaces": "npx ts-node scripts/gen/gen-interfaces.ts && npx prettier --write contracts/interfaces"
+ 
+    "deploy:fork": "npx hardhat run --network hardhat scripts/deploy.ts",
+    "deploy:mumbai": "npx hardhat run --network mumbai scripts/deploy.ts",
+    "deploy:polygon": "npx hardhat run --network polygon scripts/deploy.ts",
+
+    "pool:fork": "npx hardhat run --network hardhat scripts/createPool.ts",
+    "pool:mumbai": "npx hardhat run --network mumbai scripts/createPool.ts",
+    "pool:polygon": "npx hardhat run --network polygon scripts/createPool.ts",
+
+    "verify:mumbai": "npx hardhat run --network mumbai scripts/verify.ts ",
+    "verify:polygon": "npx hardhat run --network polygon scripts/verify.ts ",
+
+    "gen:exports": "npx ts-node scripts/gen/gen-exports.ts",
+    "gen:fnsigs": "npx ts-node scripts/gen/gen-fnsigs.ts",
+    "gen:interfaces": "npx ts-node scripts/gen/gen-interfaces.ts && npx prettier --write contracts/interfaces"
   },
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.5",
