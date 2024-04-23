@@ -7,23 +7,22 @@
   "main": "hardhat.config.ts",
   "scripts": {
     "compile": "npx hardhat compile",
-    "test": "npx hardhat test ./test/index.ts",
+    "test": "npx hardhat test ./test/index.ts --network mainnet",
+    "test:arbitrum": "npx hardhat test ./test/index.ts --network arbitrum",
+    "test:mainnet": "npx hardhat test ./test/index.ts --network mainnet",
     "typechain": "typechain --target ethers-v5 --out-dir typechain",
-
     "prettier:check": "prettier -c --plugin=prettier-plugin-solidity .",
     "prettier:write": "prettier -w --plugin=prettier-plugin-solidity .",
- 
     "deploy:fork": "npx hardhat run --network hardhat scripts/deploy.ts",
-    "deploy:mumbai": "npx hardhat run --network mumbai scripts/deploy.ts",
-    "deploy:polygon": "npx hardhat run --network polygon scripts/deploy.ts",
-
+    "deploy:sepolia": "npx hardhat run --network sepolia scripts/deploy.ts",
+    "deploy:arbitrum": "npx hardhat run --network arbitrum scripts/deploy.ts",
+    "deploy:mainnet": "npx hardhat run --network mainnet scripts/deploy.ts",
     "pool:fork": "npx hardhat run --network hardhat scripts/createPool.ts",
-    "pool:mumbai": "npx hardhat run --network mumbai scripts/createPool.ts",
-    "pool:polygon": "npx hardhat run --network polygon scripts/createPool.ts",
-
-    "verify:mumbai": "npx hardhat run --network mumbai scripts/verify.ts ",
-    "verify:polygon": "npx hardhat run --network polygon scripts/verify.ts ",
-
+    "pool:sepolia": "npx hardhat run --network sepolia scripts/createPool.ts",
+    "pool:arbitrum": "npx hardhat run --network arbitrum scripts/createPool.ts",
+    "pool:mainnet": "npx hardhat run --network mainnet scripts/createPool.ts",
+    "verify:arbitrum": "npx hardhat run --network arbitrum scripts/verify.ts ",
+    "verify:mainnet": "npx hardhat run --network mainnet scripts/verify.ts ",
     "gen:exports": "npx ts-node scripts/gen/gen-exports.ts",
     "gen:fnsigs": "npx ts-node scripts/gen/gen-fnsigs.ts",
     "gen:interfaces": "npx ts-node scripts/gen/gen-interfaces.ts && npx prettier --write contracts/interfaces"

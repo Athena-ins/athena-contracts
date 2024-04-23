@@ -18,63 +18,125 @@ colors.enable();
 const { parseEther, id } = utils;
 
 const {
+  // Network: Fork (target)
   HARDHAT_FORK_TARGET,
-  //
+  // Network: Mainnet
   MAINNET_FORKING_BLOCK,
-  GOERLI_FORKING_BLOCK,
-  //
-  MAINNET_WALLET_PK,
-  GOERLI_WALLET_PK,
-  //
   MAINNET_RPC_URL,
-  GOERLI_RPC_URL,
-  //
-  EVIDENCE_GUARDIAN_PK,
-  BUY_BACK_PK,
+  MAINNET_VERIFY_API_KEY,
+  // Network: Arbitrum
+  ARBITRUM_FORKING_BLOCK,
+  ARBITRUM_RPC_URL,
+  ARBITRUM_VERIFY_API_KEY,
+  // Network: Sepolia
+  SEPOLIA_FORKING_BLOCK,
+  SEPOLIA_RPC_URL,
+  SEPOLIA_VERIFY_API_KEY,
+  // Gas reporter
   REPORT_GAS,
-  ETHERSCAN_API_KEY,
+  ETHERUM_PRICE,
+  ETHERUM_GAS_PRICE,
+  // CMC API key
   COINMARKETCAP_API_KEY,
+  // Accounts
+  DEPLOYER_PK,
+  EVIDENCE_GUARDIAN_PK,
+  BUYBACK_PK,
+  TREASURY_PK,
+  RISK_GUARD_PK,
 } = process.env;
 
-if (!MAINNET_FORKING_BLOCK || !GOERLI_FORKING_BLOCK)
-  throw Error("Missing fork block targets");
-if (!MAINNET_WALLET_PK || !GOERLI_WALLET_PK) throw Error("Missing wallet PK");
-if (!MAINNET_RPC_URL || !GOERLI_RPC_URL) throw Error("Missing RPC URL");
-if (!EVIDENCE_GUARDIAN_PK) throw Error("Missing evidence guardian PK");
-if (!BUY_BACK_PK) throw Error("Missing buy back wallet PK");
+if (!HARDHAT_FORK_TARGET) {
+  throw Error("Missing fork target");
+}
+
+if (!MAINNET_VERIFY_API_KEY || !MAINNET_FORKING_BLOCK || !MAINNET_RPC_URL) {
+  throw Error("Incomplete mainnet configuration");
+}
+if (!ARBITRUM_VERIFY_API_KEY || !ARBITRUM_FORKING_BLOCK || !ARBITRUM_RPC_URL) {
+  throw Error("Incomplete arbitrum configuration");
+}
+if (!SEPOLIA_VERIFY_API_KEY || !SEPOLIA_FORKING_BLOCK || !SEPOLIA_RPC_URL) {
+  throw Error("Incomplete sepolia configuration");
+}
+
+if (!MAINNET_RPC_URL || !ARBITRUM_RPC_URL || !SEPOLIA_RPC_URL) {
+  throw Error("Missing RPC URL");
+}
+if (
+  !DEPLOYER_PK ||
+  !EVIDENCE_GUARDIAN_PK ||
+  !BUYBACK_PK ||
+  !TREASURY_PK ||
+  !RISK_GUARD_PK
+) {
+  throw Error("Missing account PK");
+}
+if (!ETHERUM_PRICE || !ETHERUM_GAS_PRICE || !REPORT_GAS) {
+  throw Error("Missing gas report params");
+}
+
+// We force cast the type but check it's validity immediately after
+type NetworkNames = "mainnet" | "arbitrum" | "sepolia";
+const forkTarget = HARDHAT_FORK_TARGET.toLowerCase() as NetworkNames;
+if (
+  !HARDHAT_FORK_TARGET ||
+  (forkTarget !== "mainnet" &&
+    forkTarget !== "arbitrum" &&
+    forkTarget !== "sepolia")
+) {
+  throw Error("Missing or erroneous fork target");
+}
+
+const networkConfigs: {
+  [key in NetworkNames]: {
+    chainId: number;
+    rpcUrl: string;
+    forkingBlock: string;
+    verifyApiKey: string;
+  };
+} = {
+  mainnet: {
+    chainId: 1,
+    rpcUrl: MAINNET_RPC_URL,
+    forkingBlock: MAINNET_FORKING_BLOCK,
+    verifyApiKey: MAINNET_VERIFY_API_KEY,
+  },
+  arbitrum: {
+    chainId: 42161,
+    rpcUrl: ARBITRUM_RPC_URL,
+    forkingBlock: ARBITRUM_FORKING_BLOCK,
+    verifyApiKey: ARBITRUM_VERIFY_API_KEY,
+  },
+  sepolia: {
+    chainId: 11155111,
+    rpcUrl: SEPOLIA_RPC_URL,
+    forkingBlock: SEPOLIA_FORKING_BLOCK,
+    verifyApiKey: SEPOLIA_VERIFY_API_KEY,
+  },
+};
+
+const accounts = [
+  DEPLOYER_PK,
+  EVIDENCE_GUARDIAN_PK,
+  BUYBACK_PK,
+  TREASURY_PK,
+  RISK_GUARD_PK,
+];
 
 function makeForkConfig(): HardhatNetworkUserConfig {
-  const forkTarget = HARDHAT_FORK_TARGET?.toLowerCase();
-  if (
-    !HARDHAT_FORK_TARGET ||
-    (forkTarget !== "mainnet" && forkTarget !== "goerli")
-  )
-    throw Error("Missing or erroneous fork target");
+  const config = networkConfigs[forkTarget];
 
-  const isMainnetFork = forkTarget === "mainnet";
+  if (!config) throw Error("Missing network config");
 
-  const { chainId, forkedBlock, WALLET_PK, RPC_URL } = isMainnetFork
-    ? {
-        chainId: 1,
-        forkedBlock: Number(MAINNET_FORKING_BLOCK),
-        WALLET_PK: MAINNET_WALLET_PK,
-        RPC_URL: MAINNET_RPC_URL,
-      }
-    : {
-        chainId: 5,
-        forkedBlock: Number(GOERLI_FORKING_BLOCK),
-        WALLET_PK: GOERLI_WALLET_PK,
-        RPC_URL: GOERLI_RPC_URL,
-      };
+  const { chainId, rpcUrl, forkingBlock } = config;
 
   const networkConfig = {
     chainId,
     allowUnlimitedContractSize: true,
     forking: {
-      // We can cast safely because we checked for undefined
-      url: RPC_URL as string,
-      // Fixed to take advantage of the cache
-      blockNumber: forkedBlock,
+      url: rpcUrl,
+      blockNumber: Number(forkingBlock),
     },
     mining: {
       auto: true,
@@ -83,18 +145,11 @@ function makeForkConfig(): HardhatNetworkUserConfig {
       },
     },
     accounts: [
-      {
-        // Deployer account
-        // We can cast safely because we checked for undefined
-        privateKey: WALLET_PK as string,
+      ...accounts.map((pk) => ({
+        privateKey: pk,
         balance: parseEther("10000").toString(),
-      },
-      {
-        // Deployer account
-        // We can cast safely because we checked for undefined
-        privateKey: EVIDENCE_GUARDIAN_PK as string,
-        balance: parseEther("10000").toString(),
-      },
+      })),
+      // Add 20 test users
       ...Array(20)
         .fill("")
         .map((_, i) => ({
@@ -108,6 +163,8 @@ function makeForkConfig(): HardhatNetworkUserConfig {
 }
 
 const config: HardhatUserConfig = {
+  // ====== Solidity Compilers ====== //
+
   solidity: {
     compilers: [
       {
@@ -130,17 +187,16 @@ const config: HardhatUserConfig = {
   networks: {
     hardhat: makeForkConfig(),
     mainnet: {
-      url: MAINNET_RPC_URL,
-      accounts: [MAINNET_WALLET_PK, EVIDENCE_GUARDIAN_PK, BUY_BACK_PK],
+      url: networkConfigs.mainnet.rpcUrl,
+      accounts,
     },
-    goerli: {
-      url: GOERLI_RPC_URL,
-      accounts: [
-        GOERLI_WALLET_PK,
-        EVIDENCE_GUARDIAN_PK,
-        BUY_BACK_PK,
-        id(GOERLI_WALLET_PK),
-      ],
+    arbitrum: {
+      url: networkConfigs.arbitrum.rpcUrl,
+      accounts,
+    },
+    sepolia: {
+      url: networkConfigs.sepolia.rpcUrl,
+      accounts,
     },
   },
 
@@ -149,11 +205,15 @@ const config: HardhatUserConfig = {
   gasReporter: {
     enabled: REPORT_GAS === "true",
     currency: "USD",
-    token: "USDT", // Use USDT to hack our way to a fixed ETH price
+    token: "USDC", // Use USDT to hack our way to a fixed ETH price
     coinmarketcap: COINMARKETCAP_API_KEY || "",
 
     // @dev Switch between fixed and dynamic gas & ETH price
-    gasPrice: 20 * 2233, // gwei price * price of ETH in USDT
+
+    //=== Fixed ===//
+    gasPrice: Number(ETHERUM_PRICE) * Number(ETHERUM_GAS_PRICE),
+
+    //=== Dynamic ===//
     // gasPriceApi:
     //   "https://api.etherscan.io/api?module=proxy&action=eth_gasPrice",
   },
@@ -161,8 +221,22 @@ const config: HardhatUserConfig = {
   // ====== Etherscan ====== //
 
   etherscan: {
-    apiKey: ETHERSCAN_API_KEY || "",
-    customChains: [],
+    apiKey: {
+      // @dev Keys should match network provided by "npx hardhat verify --list-networks"
+      mainnet: networkConfigs.mainnet.verifyApiKey,
+      arbitrum: networkConfigs.arbitrum.verifyApiKey,
+      sepolia: networkConfigs.sepolia.verifyApiKey,
+    },
+    customChains: [
+      // {
+      //   network: "base",
+      //   chainId: 8453,
+      //   urls: {
+      //     apiURL: "https://api.basescan.org/api",
+      //     browserURL: "https://basescan.org",
+      //   },
+      // },
+    ],
   },
 
   // ====== Typechain ====== //
