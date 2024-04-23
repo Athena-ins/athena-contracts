@@ -297,6 +297,9 @@ export async function deployAllContractsAndInitializeProtocol(
   const chainId = await entityProviderChainId(deployer);
   if (!chainId) throw Error("No chainId found for deployment signer");
 
+  let txCount = 0;
+  let deployExecutors = [];
+
   const deployedAt: { [key: string]: string } = {};
 
   await Promise.all(
@@ -316,115 +319,227 @@ export async function deployAllContractsAndInitializeProtocol(
 
   // Add USDT & WETH interface
   const usdtAddress = usdtTokenAddress(chainId);
-  const UsdtToken = TetherToken__factory.connect(usdtAddress, deployer);
+  const TetherToken = TetherToken__factory.connect(usdtAddress, deployer);
 
   const usdcAddress = usdcTokenAddress(chainId);
-  const UsdcToken = ERC20__factory.connect(usdcAddress, deployer);
+  const CircleToken = ERC20__factory.connect(usdcAddress, deployer);
 
   const wethAddress = wethTokenAddress(chainId);
   const WethToken = IWETH__factory.connect(wethAddress, deployer);
 
-  const AthenaCoverToken = await deployAthenaCoverToken(deployer, [
-    deployedAt.LiquidityManager,
-  ]);
-  const AthenaPositionToken = await deployAthenaPositionToken(deployer, [
-    deployedAt.LiquidityManager,
-  ]);
-  const AthenaToken = await deployAthenaToken(deployer, [
-    [deployedAt.EcclesiaDao, deployedAt.Staking],
-  ]);
+  if (deploymentOrder[txCount] === "AthenaCoverToken") {
+    deployExecutors.push(() =>
+      deployAthenaCoverToken(deployer, [deployedAt.LiquidityManager]),
+    );
+    txCount++;
+  }
+
+  if (deploymentOrder[txCount] === "AthenaPositionToken") {
+    deployExecutors.push(() =>
+      deployAthenaPositionToken(deployer, [deployedAt.LiquidityManager]),
+    );
+    txCount++;
+  }
+
+  if (deploymentOrder[txCount] === "AthenaToken") {
+    deployExecutors.push(() =>
+      deployAthenaToken(deployer, [
+        [deployedAt.EcclesiaDao, deployedAt.Staking],
+      ]),
+    );
+    txCount++;
+  }
 
   // Approve for initial minimal DAO lock
-  await postTxHandler(
-    AthenaToken.connect(deployer).approve(
-      deployedAt.EcclesiaDao,
-      utils.parseEther("1"),
-    ),
-  );
+  if (deploymentOrder[txCount] === "_approve") {
+    deployExecutors.push(() =>
+      postTxHandler(
+        AthenaToken__factory.connect(deployedAt.AthenaToken, deployer).approve(
+          deployedAt.EcclesiaDao,
+          utils.parseEther("1"),
+        ),
+      ),
+    );
+    txCount++;
+  }
 
   // ======= Libs ======= //
 
-  const PoolMath = await deployPoolMath(deployer, []);
-  const VirtualPool = await deployVirtualPool(deployer, [], {
-    PoolMath: PoolMath.address,
-  });
-  const AthenaDataProvider = await deployAthenaDataProvider(deployer, [], {
-    PoolMath: PoolMath.address,
-    VirtualPool: VirtualPool.address,
-  });
+  if (deploymentOrder[txCount] === "PoolMath") {
+    deployExecutors.push(() => deployPoolMath(deployer, []));
+    txCount++;
+  }
+
+  if (deploymentOrder[txCount] === "VirtualPool") {
+    deployExecutors.push(() =>
+      deployVirtualPool(deployer, [], {
+        PoolMath: deployedAt.PoolMath,
+      }),
+    );
+    txCount++;
+  }
+
+  if (deploymentOrder[txCount] === "AthenaDataProvider") {
+    deployExecutors.push(() =>
+      deployAthenaDataProvider(deployer, [], {
+        PoolMath: deployedAt.PoolMath,
+        VirtualPool: deployedAt.VirtualPool,
+      }),
+    );
+    txCount++;
+  }
 
   // ======= Managers ======= //
 
-  const ClaimManager = await deployClaimManager(deployer, [
-    deployedAt.AthenaCoverToken, // IAthenaCoverToken coverToken_
-    deployedAt.LiquidityManager, // ILiquidityManager liquidityManager_
-    deployedAt.MockArbitrator, // IArbitrator arbitrator_
-    config.evidenceGuardian.address, // address metaEvidenceGuardian_
-    config.leverageRiskWallet.address, // address leverageRiskWallet_
-    config.subcourtId, // uint256 subcourtId_
-    config.nbOfJurors, // uint256 nbOfJurors_
-  ]);
-  const StrategyManager = await deployStrategyManager(deployer, [
-    deployedAt.LiquidityManager,
-    deployedAt.EcclesiaDao,
-    config.buybackWallet.address,
-    config.payoutDeductibleRate, // payoutDeductibleRate
-    config.performanceFee, // performanceFee
-  ]);
+  if (deploymentOrder[txCount] === "ClaimManager") {
+    deployExecutors.push(() =>
+      deployClaimManager(deployer, [
+        deployedAt.AthenaCoverToken, // IAthenaCoverToken coverToken_
+        deployedAt.LiquidityManager, // ILiquidityManager liquidityManager_
+        deployedAt.MockArbitrator, // IArbitrator arbitrator_
+        config.evidenceGuardian.address, // address metaEvidenceGuardian_
+        config.leverageRiskWallet.address, // address leverageRiskWallet_
+        config.subcourtId, // uint256 subcourtId_
+        config.nbOfJurors, // uint256 nbOfJurors_
+      ]),
+    );
+    txCount++;
+  }
 
-  const LiquidityManager = await deployLiquidityManager(
-    deployer,
-    [
-      deployedAt.AthenaPositionToken,
-      deployedAt.AthenaCoverToken,
-      deployedAt.EcclesiaDao,
-      deployedAt.StrategyManager,
-      deployedAt.ClaimManager,
-      deployer.address,
-      config.withdrawDelay,
-      config.maxLeverage,
-      config.leverageFeePerPool,
-    ],
-    {
-      VirtualPool: VirtualPool.address,
-      AthenaDataProvider: AthenaDataProvider.address,
-    },
-  );
+  if (deploymentOrder[txCount] === "StrategyManager") {
+    deployExecutors.push(() =>
+      deployStrategyManager(deployer, [
+        deployedAt.LiquidityManager,
+        deployedAt.EcclesiaDao,
+        config.buybackWallet.address,
+        config.payoutDeductibleRate, // payoutDeductibleRate
+        config.performanceFee, // performanceFee
+      ]),
+    );
+    txCount++;
+  }
 
-  const campaignStartBlock = (await getCurrentBlockNumber()) + 4;
-  const RewardManager = await deployRewardManager(deployer, [
-    deployedAt.LiquidityManager,
-    deployedAt.EcclesiaDao,
-    deployedAt.AthenaPositionToken,
-    deployedAt.AthenaCoverToken,
-    deployedAt.AthenaToken,
-    campaignStartBlock,
-    config.yieldBonuses,
-  ]);
+  if (deploymentOrder[txCount] === "LiquidityManager") {
+    deployExecutors.push(() =>
+      deployLiquidityManager(
+        deployer,
+        [
+          deployedAt.AthenaPositionToken,
+          deployedAt.AthenaCoverToken,
+          deployedAt.EcclesiaDao,
+          deployedAt.StrategyManager,
+          deployedAt.ClaimManager,
+          deployer.address,
+          config.withdrawDelay,
+          config.maxLeverage,
+          config.leverageFeePerPool,
+        ],
+        {
+          VirtualPool: deployedAt.VirtualPool,
+          AthenaDataProvider: deployedAt.AthenaDataProvider,
+        },
+      ),
+    );
+    txCount++;
+  }
+
+  if (deploymentOrder[txCount] === "RewardManager") {
+    deployExecutors.push(async () =>
+      deployRewardManager(deployer, [
+        deployedAt.LiquidityManager,
+        deployedAt.EcclesiaDao,
+        deployedAt.AthenaPositionToken,
+        deployedAt.AthenaCoverToken,
+        deployedAt.AthenaToken,
+        (await getCurrentBlockNumber()) + 4,
+        config.yieldBonuses,
+      ]),
+    );
+    txCount++;
+  }
 
   // ======= DAO ======= //
 
-  const EcclesiaDao = await deployEcclesiaDao(deployer, [
-    deployedAt.AthenaToken,
-    deployedAt.Staking,
-    deployedAt.LiquidityManager,
-    deployedAt.StrategyManager,
-    config.treasuryWallet.address,
-    config.leverageRiskWallet.address,
-  ]);
+  if (deploymentOrder[txCount] === "EcclesiaDao") {
+    deployExecutors.push(async () =>
+      deployEcclesiaDao(deployer, [
+        deployedAt.AthenaToken,
+        deployedAt.Staking,
+        deployedAt.LiquidityManager,
+        deployedAt.StrategyManager,
+        config.treasuryWallet.address,
+        config.leverageRiskWallet.address,
+      ]),
+    );
+    txCount++;
+  }
 
   // ======= Claims ======= //
-  const MockArbitrator = await deployMockArbitrator(deployer, [
-    config.arbitrationCollateral,
-  ]);
+  if (deploymentOrder[txCount] === "MockArbitrator") {
+    deployExecutors.push(async () =>
+      deployMockArbitrator(deployer, [config.arbitrationCollateral]),
+    );
+    txCount++;
+  }
 
-  // Use on chain addresses to check if were correctly precomputed
-  const FarmingRangeAddress = await RewardManager.farming();
-  const StakingAddress = await RewardManager.staking();
+  // Check that deploy order matches expected deployment count
+  if (
+    deploymentOrder.length !== deployExecutors.length ||
+    txCount !== deploymentOrder.length
+  ) {
+    throw Error("Deployment order mismatch");
+  }
+
+  // Execute all deploy executors
+  for (const executor of deployExecutors) {
+    await executor();
+  }
+
+  const AthenaCoverToken = AthenaCoverToken__factory.connect(
+    deployedAt.AthenaCoverToken,
+    deployer,
+  );
+  const AthenaPositionToken = AthenaPositionToken__factory.connect(
+    deployedAt.AthenaPositionToken,
+    deployer,
+  );
+  const AthenaToken = AthenaToken__factory.connect(
+    deployedAt.AthenaToken,
+    deployer,
+  );
+  const EcclesiaDao = EcclesiaDao__factory.connect(
+    deployedAt.EcclesiaDao,
+    deployer,
+  );
+  const MockArbitrator = MockArbitrator__factory.connect(
+    deployedAt.MockArbitrator,
+    deployer,
+  );
+  const ClaimManager = ClaimManager__factory.connect(
+    deployedAt.ClaimManager,
+    deployer,
+  );
+  const LiquidityManager = LiquidityManager__factory.connect(
+    deployedAt.LiquidityManager,
+    deployer,
+  );
+  const StrategyManager = StrategyManager__factory.connect(
+    deployedAt.StrategyManager,
+    deployer,
+  );
+  const RewardManager = RewardManager__factory.connect(
+    deployedAt.RewardManager,
+    deployer,
+  );
+  const FarmingRange = FarmingRange__factory.connect(
+    deployedAt.FarmingRange,
+    deployer,
+  );
+  const Staking = Staking__factory.connect(deployedAt.Staking, deployer);
 
   const contracts = {
-    TetherToken: UsdtToken,
-    CircleToken: UsdcToken,
+    TetherToken,
+    CircleToken,
     WethToken,
     AthenaCoverToken,
     AthenaPositionToken,
@@ -435,23 +550,9 @@ export async function deployAllContractsAndInitializeProtocol(
     LiquidityManager,
     StrategyManager,
     RewardManager,
-    FarmingRange: FarmingRange__factory.connect(FarmingRangeAddress, deployer),
-    Staking: Staking__factory.connect(StakingAddress, deployer),
-    // Mocks or testing contracts
-    // TestableVirtualPool: TestableVirtualPool__factory.connect(
-    //   deployedAt.LiquidityManager,
-    //   deployer,
-    // ),
+    FarmingRange,
+    Staking,
   };
-
-  // Check predicted deployment addresses
-  for (const [name, contract] of Object.entries(contracts)) {
-    if (
-      deployedAt[name] &&
-      contract.address.toLowerCase() !== deployedAt[name].toLowerCase()
-    )
-      throw Error(`Contract ${name} address mismatch`);
-  }
 
   if (logAddresses) {
     console.log(
