@@ -39,6 +39,10 @@ export async function getCurrentBlockNumber() {
   return (await ethers.provider.getBlock("latest")).number;
 }
 
+export async function getTxCount(address: string): Promise<number> {
+  return ethers.provider.getTransactionCount(address);
+}
+
 export function entityProviderChainId(
   entity: Signer | BaseContract,
 ): Promise<number> {
@@ -178,7 +182,7 @@ export async function genContractAddress(
 ): Promise<string> {
   const [fromUnsigned, nonce] =
     typeof signer === "string"
-      ? [signer, 0]
+      ? [signer, await getTxCount(signer)]
       : [signer.address, await signer.getTransactionCount()];
 
   const formatedNonce = formatNonce(nonce + nonceAdd);

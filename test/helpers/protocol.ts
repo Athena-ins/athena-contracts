@@ -146,21 +146,21 @@ export function evidenceGuardianWallet() {
 }
 
 export function buybackWallet() {
-  const BUY_BACK_PK = process.env.BUY_BACK_PK;
-  if (!BUY_BACK_PK) throw new Error("BUY_BACK_PK not set");
-  return new ethers.Wallet(BUY_BACK_PK);
+  const BUYBACK_PK = process.env.BUYBACK_PK;
+  if (!BUYBACK_PK) throw new Error("BUYBACK_PK not set");
+  return new ethers.Wallet(BUYBACK_PK);
 }
 
 export function treasuryWallet() {
-  const BUY_BACK_PK = process.env.BUY_BACK_PK;
-  if (!BUY_BACK_PK) throw new Error("BUY_BACK_PK not set");
-  return new ethers.Wallet(BUY_BACK_PK);
+  const TREASURY_PK = process.env.TREASURY_PK;
+  if (!TREASURY_PK) throw new Error("TREASURY_PK not set");
+  return new ethers.Wallet(TREASURY_PK);
 }
 
 export function leverageRiskWallet() {
-  const BUY_BACK_PK = process.env.BUY_BACK_PK;
-  if (!BUY_BACK_PK) throw new Error("BUY_BACK_PK not set");
-  return new ethers.Wallet(BUY_BACK_PK);
+  const RISK_GUARD_PK = process.env.RISK_GUARD_PK;
+  if (!RISK_GUARD_PK) throw new Error("RISK_GUARD_PK not set");
+  return new ethers.Wallet(RISK_GUARD_PK);
 }
 
 export async function balanceOfAaveUsdt(
