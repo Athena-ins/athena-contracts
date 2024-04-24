@@ -66,6 +66,7 @@ import {
 } from "../../typechain/";
 // Types
 import { BigNumber, Wallet, Signer } from "ethers";
+import { ConnectWithAddress } from "./contracts-getters";
 
 // ================================= //
 // === Deploy contract functions === //
@@ -259,7 +260,7 @@ export const defaultProtocolConfig: ProtocolConfig = {
   farmingBlockStart: 0, // leave 0 for dynamic
 };
 
-export type ProtocolContracts = {
+export type DeployedProtocolContracts = {
   TetherToken: TetherToken;
   CircleToken: ERC20;
   WethToken: IWETH;
@@ -274,8 +275,36 @@ export type ProtocolContracts = {
   FarmingRange: FarmingRange;
   RewardManager: RewardManager;
   Staking: Staking;
+  PoolMath: PoolMath;
+  VirtualPool: VirtualPool;
+  AthenaDataProvider: AthenaDataProvider;
   // TestableVirtualPool: TestableVirtualPool;
 };
+
+export type ConnectedProtocolContracts = {
+  TetherToken: ConnectWithAddress<TetherToken>;
+  CircleToken: ConnectWithAddress<ERC20>;
+  WethToken: ConnectWithAddress<IWETH>;
+  AthenaCoverToken: ConnectWithAddress<AthenaCoverToken>;
+  AthenaPositionToken: ConnectWithAddress<AthenaPositionToken>;
+  AthenaToken: ConnectWithAddress<AthenaToken>;
+  EcclesiaDao: ConnectWithAddress<EcclesiaDao>;
+  MockArbitrator: ConnectWithAddress<MockArbitrator>;
+  ClaimManager: ConnectWithAddress<ClaimManager>;
+  LiquidityManager: ConnectWithAddress<LiquidityManager>;
+  StrategyManager: ConnectWithAddress<StrategyManager>;
+  FarmingRange: ConnectWithAddress<FarmingRange>;
+  RewardManager: ConnectWithAddress<RewardManager>;
+  Staking: ConnectWithAddress<Staking>;
+  PoolMath: ConnectWithAddress<PoolMath>;
+  VirtualPool: ConnectWithAddress<VirtualPool>;
+  AthenaDataProvider: ConnectWithAddress<AthenaDataProvider>;
+  // TestableVirtualPool: ConnectWithAddress<TestableVirtualPool>;
+};
+
+export type ProtocolContracts =
+  | ConnectedProtocolContracts
+  | DeployedProtocolContracts;
 
 export const deploymentOrder = [
   "AthenaCoverToken",
@@ -541,6 +570,16 @@ export async function deployAllContractsAndInitializeProtocol(
   );
   const Staking = Staking__factory.connect(deployedAt.Staking, deployer);
 
+  const PoolMath = PoolMath__factory.connect(deployedAt.PoolMath, deployer);
+  const VirtualPool = VirtualPool__factory.connect(
+    deployedAt.VirtualPool,
+    deployer,
+  );
+  const AthenaDataProvider = AthenaDataProvider__factory.connect(
+    deployedAt.AthenaDataProvider,
+    deployer,
+  );
+
   const contracts = {
     TetherToken,
     CircleToken,
@@ -556,6 +595,9 @@ export async function deployAllContractsAndInitializeProtocol(
     RewardManager,
     FarmingRange,
     Staking,
+    PoolMath,
+    VirtualPool,
+    AthenaDataProvider,
   };
 
   if (logAddresses) {
