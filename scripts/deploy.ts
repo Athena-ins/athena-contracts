@@ -2,7 +2,7 @@ import { Wallet } from "ethers";
 import hre, { ethers } from "hardhat";
 import { deployAllContractsAndInitializeProtocol } from "../test/helpers/deployers";
 import { countdown } from "../test/helpers/miscUtils";
-import { getDeployParams } from "./verificationData/deployParams";
+import { getDeployConfig } from "./verificationData/deployParams";
 
 async function main() {
   try {
@@ -11,8 +11,8 @@ async function main() {
     const deployer = (await ethers.getSigners())[0] as unknown as Wallet;
     console.log("deployer: ", deployer.address);
 
-    const params = getDeployParams();
-    console.log("\n\nparams: ", params);
+    const config = getDeployConfig();
+    console.log("\n\nconfig: ", config);
 
     await countdown(60);
 
@@ -20,7 +20,7 @@ async function main() {
     //== CONTRACTS ==//
     //===============//
 
-    await deployAllContractsAndInitializeProtocol(deployer, params, true);
+    await deployAllContractsAndInitializeProtocol(deployer, config, true);
     console.log("\n==> Contracts OK");
 
     console.log("\n==> Protocol deployed & setup");

@@ -212,6 +212,7 @@ export type ProtocolConfig = {
   buybackWallet: Wallet;
   treasuryWallet: Wallet;
   leverageRiskWallet: Wallet;
+  yieldRewarder: string;
   leverageFeePerPool: BigNumber;
   poolFormula: {
     feeRate: BigNumber;
@@ -225,6 +226,7 @@ export type ProtocolConfig = {
   maxLeverage: number;
   payoutDeductibleRate: BigNumber;
   performanceFee: BigNumber;
+  farmingBlockStart: number; // leave 0 for dynamic
 };
 
 export const defaultProtocolConfig: ProtocolConfig = {
@@ -235,6 +237,7 @@ export const defaultProtocolConfig: ProtocolConfig = {
   buybackWallet: buybackWallet(),
   treasuryWallet: treasuryWallet(),
   leverageRiskWallet: leverageRiskWallet(),
+  yieldRewarder: "0x0000000000000000000000000000000000000000",
   leverageFeePerPool: toRay(1.5, 2), // 1.5% base 100
   poolFormula: {
     feeRate: toRay(0.1), // 10%
@@ -253,6 +256,7 @@ export const defaultProtocolConfig: ProtocolConfig = {
   maxLeverage: 12, // max pools per position
   payoutDeductibleRate: toRay(0.1), // 10%
   performanceFee: toRay(0.5), // 50%
+  farmingBlockStart: 0, // leave 0 for dynamic
 };
 
 export type ProtocolContracts = {
@@ -429,7 +433,7 @@ export async function deployAllContractsAndInitializeProtocol(
           deployedAt.EcclesiaDao,
           deployedAt.StrategyManager,
           deployedAt.ClaimManager,
-          deployer.address,
+          config.yieldRewarder, // to be replaced by farming
           config.withdrawDelay,
           config.maxLeverage,
           config.leverageFeePerPool,
@@ -451,7 +455,7 @@ export async function deployAllContractsAndInitializeProtocol(
         deployedAt.AthenaPositionToken,
         deployedAt.AthenaCoverToken,
         deployedAt.AthenaToken,
-        (await getCurrentBlockNumber()) + 4,
+        config.farmingBlockStart || (await getCurrentBlockNumber()) + 40000,
         config.yieldBonuses,
       ]),
     );

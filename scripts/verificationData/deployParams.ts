@@ -32,6 +32,7 @@ const deployParams: {
     buybackWallet: buybackWallet(),
     treasuryWallet: treasuryWallet(),
     leverageRiskWallet: leverageRiskWallet(),
+    yieldRewarder: "0x0000000000000000000000000000000000000000", // to be replaced by farming
     leverageFeePerPool: toRay(1.5, 2), // 1.5% base 100
     poolFormula: {
       feeRate: toRay(0.1), // 10%
@@ -50,10 +51,11 @@ const deployParams: {
     maxLeverage: 12, // max pools per position
     payoutDeductibleRate: toRay(0.1), // 10%
     performanceFee: toRay(0.5), // 50%
+    farmingBlockStart: 0,
   },
 };
 
-export function getDeployParams() {
+export function getDeployConfig() {
   const networkName = hre.network.name.toUpperCase();
   const contracts =
     networkName === "HARDHAT"
