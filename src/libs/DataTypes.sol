@@ -80,17 +80,11 @@ library DataTypes {
     IStrategyManager strategyManager;
     uint256 strategyId;
     address paymentAsset;
-    address underlyingAsset;
-    address wrappedAsset;
     uint256 feeRate; //Ray
     uint256 leverageFeePerPool; //Ray
     uint256 uOptimal; //Ray
     uint256 r0; //Ray
     uint256 rSlope1; //Ray
     uint256 rSlope2; //Ray
-    // Function pointer to child contract data
-    function(uint256)
-      view
-      returns (DataTypes.Compensation storage) getCompensation;
   }
 }

@@ -356,24 +356,15 @@ contract LiquidityManager is
     uint64 poolId = nextPoolId;
     nextPoolId++;
 
-    (address underlyingAsset, address wrappedAsset) = strategyManager
-      .assets(strategyId_);
-
-    // Get storage pointer to pool
-    // DataTypes.VPool storage pool = _pools[poolId];
-    // DataTypes.VPool storage pool = VirtualPool.getPool(poolId);
-
     // Create virtual pool
     VirtualPool._vPoolConstructor(
       // Create virtual pool argument struct
-      VirtualPool.VPoolConstructorParams({
+      DataTypes.VPoolConstructorParams({
         poolId: poolId,
         dao: ecclesiaDao,
         strategyManager: strategyManager,
         strategyId: strategyId_,
         paymentAsset: paymentAsset_,
-        underlyingAsset: underlyingAsset,
-        wrappedAsset: wrappedAsset,
         feeRate: feeRate_, //Ray
         leverageFeePerPool: leverageFeePerPool, //Ray
         uOptimal: uOptimal_, //Ray

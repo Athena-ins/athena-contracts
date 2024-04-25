@@ -31,11 +31,11 @@ error NotEnoughLiquidityForRemoval();
  *
  * Ticks:
  * They are a serie equidistant points in time who's distance from one another is variable.
- * Initially the tick after the first tick is at a distance of 86400 seconds (1 day), its maximum amount.
+ * The initial tick spacing is its maximum possible value of 86400 seconds or 1 day.
  * The distance between ticks will reduce as usage grows and increase when usage falls.
- * The change in distance represents the change in premium cost of cover time in relation to usage.
+ * The change in distance represents the speed at which cover premiums are spent given the pool's usage.
  *
- * Core pool states are computed with the following flow:
+ * Core pool metrics are computed with the following flow:
  * Utilization Rate (ray %) -> Premium Rate (ray %) -> Daily Cost (token/day)
  */
 library VirtualPool {
@@ -141,46 +141,34 @@ library VirtualPool {
 
   // ======= VIRTUAL STORAGE INIT ======= //
 
-  struct VPoolConstructorParams {
-    uint64 poolId;
-    IEcclesiaDao dao;
-    IStrategyManager strategyManager;
-    uint256 strategyId;
-    address paymentAsset;
-    address underlyingAsset;
-    address wrappedAsset;
-    uint256 feeRate; //Ray
-    uint256 leverageFeePerPool; //Ray
-    uint256 uOptimal; //Ray
-    uint256 r0; //Ray
-    uint256 rSlope1; //Ray
-    uint256 rSlope2; //Ray
-  }
-
   /**
    * @notice Initializes a virtual pool & populates its storage
    *
    * @param params The pool's constructor parameters
    */
   function _vPoolConstructor(
-    VPoolConstructorParams memory params
+    DataTypes.VPoolConstructorParams memory params
   ) internal {
+    DataTypes.VPool storage pool = VirtualPool.getPool(params.poolId);
+
+    (address underlyingAsset, address wrappedAsset) = params
+      .strategyManager
+      .assets(params.strategyId);
+
     if (
-      params.underlyingAsset == address(0) ||
+      underlyingAsset == address(0) ||
       params.paymentAsset == address(0)
     ) {
       revert ZeroAddressAsset();
     }
-
-    DataTypes.VPool storage pool = VirtualPool.getPool(params.poolId);
 
     pool.poolId = params.poolId;
     pool.dao = params.dao;
     pool.strategyManager = params.strategyManager;
     pool.paymentAsset = params.paymentAsset;
     pool.strategyId = params.strategyId;
-    pool.underlyingAsset = params.underlyingAsset;
-    pool.wrappedAsset = params.wrappedAsset;
+    pool.underlyingAsset = underlyingAsset;
+    pool.wrappedAsset = wrappedAsset;
     pool.feeRate = params.feeRate;
     pool.leverageFeePerPool = params.leverageFeePerPool;
 
@@ -199,24 +187,6 @@ library VirtualPool {
 
     pool.overlappedPools.push(params.poolId);
   }
-
-  // ======= EVENTS ======= //
-
-  event TakeInterest(
-    uint256 tokenId,
-    uint256 userCapital,
-    uint256 rewardsGross,
-    uint256 rewardsNet,
-    uint256 fee
-  );
-
-  event WithdrawLiquidity(
-    uint256 tokenId,
-    uint256 capital,
-    uint256 rewardsGross,
-    uint256 rewardsNet,
-    uint256 fee
-  );
 
   // ================================= //
   // ======= LIQUIDITY METHODS ======= //
