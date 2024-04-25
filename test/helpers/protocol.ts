@@ -37,7 +37,8 @@ import {
   TetherToken,
   IERC20,
   IERC20__factory,
-  ILendingPool__factory,
+  IAaveLendingPoolV2__factory,
+  IAaveLendingPoolV3__factory,
   IUniswapV2Factory__factory,
   IWETH__factory,
   IUniswapV2Router__factory,
@@ -66,10 +67,6 @@ export function aaveLendingPoolProviderV2Address(chainId: number): string {
   switch (chainId) {
     case 1: // Mainnet
       return "0xb53c1a33016b2dc2ff3653530bff1848a515c8c5".toLowerCase();
-    case 42161: // Arbitrum
-      return "0xa97684ead0e402dC232d5A977953DF7ECBaB3CDb".toLowerCase(); // AAVE v3
-    case 11155111: // Sepolia
-      return "0x012bAC54348C0E635dCAc9D5FB99f06F24136C9A".toLowerCase(); // AAVE v3
     default:
       throw Error("Unsupported chainId");
   }
@@ -79,10 +76,19 @@ export function aaveLendingPoolV2Address(chainId: number): string {
   switch (chainId) {
     case 1: // Mainnet
       return "0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9".toLowerCase();
-    // case 42161: // Arbitrum
-    //   return "0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9".toLowerCase(); // AAVE v3
-    // case 11155111: // Sepolia
-    //   return "0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9".toLowerCase(); // AAVE v3
+    default:
+      throw Error("Unsupported chainId");
+  }
+}
+
+export function aaveLendingPoolV3Address(chainId: number): string {
+  switch (chainId) {
+    case 1: // Mainnet
+      return "0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2".toLowerCase();
+    case 42161: // Arbitrum
+      return "0x794a61358D6845594F94dc1DB02A252b5b4814aD".toLowerCase();
+    case 11155111: // Sepolia
+      return "0x6Ae43d3271ff6888e7Fc43Fd7321a503ff738951".toLowerCase();
     default:
       throw Error("Unsupported chainId");
   }
@@ -208,14 +214,20 @@ export function leverageRiskWallet() {
 export async function balanceOfAaveUsdt(
   signer: Wallet,
   account: string | Wallet,
+  version: 2 | 3,
 ): Promise<BigNumber> {
   const chainId = await entityProviderChainId(signer);
 
-  const lendingPoolAddress = aaveLendingPoolV2Address(chainId);
-  const lendingPoolContract = ILendingPool__factory.connect(
-    lendingPoolAddress,
-    signer,
-  );
+  const lendingPoolContract =
+    version === 2
+      ? IAaveLendingPoolV2__factory.connect(
+          aaveLendingPoolV2Address(chainId),
+          signer,
+        )
+      : IAaveLendingPoolV3__factory.connect(
+          aaveLendingPoolV3Address(chainId),
+          signer,
+        );
 
   const usdtAddress = usdtTokenAddress(chainId);
   const { aTokenAddress } =
@@ -231,14 +243,20 @@ export async function balanceOfAaveUsdt(
 export async function balanceOfAaveUsdc(
   signer: Wallet,
   account: string | Wallet,
+  version: 2 | 3,
 ): Promise<BigNumber> {
   const chainId = await entityProviderChainId(signer);
 
-  const lendingPoolAddress = aaveLendingPoolV2Address(chainId);
-  const lendingPoolContract = ILendingPool__factory.connect(
-    lendingPoolAddress,
-    signer,
-  );
+  const lendingPoolContract =
+    version === 2
+      ? IAaveLendingPoolV2__factory.connect(
+          aaveLendingPoolV2Address(chainId),
+          signer,
+        )
+      : IAaveLendingPoolV3__factory.connect(
+          aaveLendingPoolV3Address(chainId),
+          signer,
+        );
 
   const usdcAddress = usdcTokenAddress(chainId);
   const { aTokenAddress } =

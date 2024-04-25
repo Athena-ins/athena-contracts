@@ -174,6 +174,10 @@ export async function getConnectedProtocolContracts(
   };
 }
 
+//===============//
+//==== OTHER ====//
+//===============//
+
 export async function getConnectedTokenContracts(
   tokenData: {
     name: string;

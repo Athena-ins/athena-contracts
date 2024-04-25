@@ -14,6 +14,7 @@ import {
   buybackWallet,
   treasuryWallet,
   leverageRiskWallet,
+  aaveLendingPoolV3Address,
 } from "./protocol";
 import { toRay } from "./utils/poolRayMath";
 // typechain
@@ -444,6 +445,8 @@ export async function deployAllContractsAndInitializeProtocol(
       deployStrategyManager(deployer, [
         deployedAt.LiquidityManager,
         deployedAt.EcclesiaDao,
+        aaveLendingPoolV3Address(chainId),
+        usdcTokenAddress(chainId),
         config.buybackWallet.address,
         config.payoutDeductibleRate, // payoutDeductibleRate
         config.performanceFee, // performanceFee

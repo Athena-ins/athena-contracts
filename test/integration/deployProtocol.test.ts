@@ -22,7 +22,12 @@ import {
   genContractAddress,
   getCurrentBlockNumber,
   postTxHandler,
+  entityProviderChainId,
 } from "../helpers/hardhat";
+import {
+  aaveLendingPoolV3Address,
+  usdcTokenAddress,
+} from "../helpers/protocol";
 import { AthenaToken__factory } from "../../typechain";
 // Types
 import { BaseContract } from "ethers";
@@ -156,9 +161,16 @@ export function deployProtocol() {
       });
 
       it("deploys StrategyManager", async function (this: Arguments) {
+        const chainId = await entityProviderChainId(this.signers.deployer);
+
+        const lendingPoolAddress = aaveLendingPoolV3Address(chainId);
+        const usdcAddress = usdcTokenAddress(chainId);
+
         await deployStrategyManager(this.signers.deployer, [
           this.args.deployedAt.LiquidityManager,
           this.args.deployedAt.EcclesiaDao,
+          lendingPoolAddress,
+          usdcAddress,
           this.signers.buybackWallet.address,
           this.protocolConfig.payoutDeductibleRate,
           this.protocolConfig.performanceFee,
@@ -246,7 +258,7 @@ export function deployProtocol() {
           this.protocolConfig,
         );
 
-        expect(Object.keys(contracts).length).to.equal(14);
+        expect(Object.keys(contracts).length).to.equal(17);
 
         for (const contract of Object.values(contracts)) {
           expect((await ethers.provider.getCode(contract.address)).length).gt(
