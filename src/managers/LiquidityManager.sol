@@ -20,8 +20,6 @@ import { IAthenaPositionToken } from "../interfaces/IAthenaPositionToken.sol";
 import { IAthenaCoverToken } from "../interfaces/IAthenaCoverToken.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import { console } from "hardhat/console.sol";
-
 // ======= ERRORS ======= //
 
 error OnlyTokenOwner();

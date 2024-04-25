@@ -168,9 +168,9 @@ library AthenaDataProvider {
       block.timestamp - slot0.lastUpdateTimestamp
     );
 
-    uint256 strategyRewardRate = IStrategyManager(
-      pool.strategyManager
-    ).getRewardRate(pool.strategyId);
+    uint256 strategyRewardRate = pool.strategyManager.getRewardRate(
+      pool.strategyId
+    );
 
     return
       ILiquidityManager.VPoolRead({

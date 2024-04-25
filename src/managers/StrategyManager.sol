@@ -15,11 +15,7 @@ import { IStrategyManager } from "../interfaces/IStrategyManager.sol";
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import { ILiquidityManager } from "../interfaces/ILiquidityManager.sol";
 import { IEcclesiaDao } from "../interfaces/IEcclesiaDao.sol";
-import { ILendingPool } from "../interfaces/ILendingPool.sol";
-
-import { console } from "hardhat/console.sol";
-
-// @bw implement LP whitelist for v0
+import { IAaveLendingPoolV3 } from "../interfaces/IAaveLendingPoolV3.sol";
 
 //======== ERRORS ========//
 
@@ -44,10 +40,9 @@ contract StrategyManager is IStrategyManager, Ownable {
   // Amount of performance fee to be paid to ecclesiaDao in RAY
   uint256 public performanceFee;
 
-  ILendingPool public aaveLendingPool =
-    ILendingPool(0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9); // AAVE lending pool v2
-  address public USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48; // underlyingAsset (USDC)
-  address public aUSDC = 0xBcca60bB61934080951369a648Fb03DF4F96263C; // wrappedAsset (aUSDC v2)
+  IAaveLendingPoolV3 public aaveLendingPool;
+  address public USDC; // underlyingAsset
+  address public aUSDC; // wrappedAsset
 
   bool public isWhitelistEnabled;
   mapping(address account_ => bool isWhiteListed_)
@@ -58,12 +53,17 @@ contract StrategyManager is IStrategyManager, Ownable {
   constructor(
     ILiquidityManager liquidityManager_,
     IEcclesiaDao ecclesiaDao_,
+    IAaveLendingPoolV3 aaveLendingPool_,
+    address reserveAsset_, // USDC for Strategy Manager v0
     address buybackWallet_,
     uint256 payoutDeductibleRate_,
     uint256 performanceFee_
   ) Ownable(msg.sender) {
     liquidityManager = liquidityManager_;
     ecclesiaDao = ecclesiaDao_;
+    aaveLendingPool = aaveLendingPool_;
+
+    USDC = reserveAsset_;
     buybackWallet = buybackWallet_;
 
     if (
@@ -73,6 +73,8 @@ contract StrategyManager is IStrategyManager, Ownable {
 
     payoutDeductibleRate = payoutDeductibleRate_;
     performanceFee = performanceFee_;
+
+    aUSDC = aaveLendingPool.getReserveData(USDC).aTokenAddress;
   }
 
   //======== MODIFIERS ========//
@@ -480,17 +482,23 @@ contract StrategyManager is IStrategyManager, Ownable {
   }
 
   /**
-   * @notice Emergency call function to execute arbitrary calls
-   * @param target The address of the target contract
-   * @param input The data to send to the target contract
+   * @notice Rescue and transfer tokens locked in this contract
+   * @param token The address of the token
+   * @param to The address of the recipient
+   * @param amount The amount of token to transfer
    *
    * @dev This function is for emergency use only in case of a critical bug in
    * the v0 strategy manager
    */
-  function emergencyCall(
-    address target,
-    bytes memory input
+  function rescueTokens(
+    address token,
+    address to,
+    uint256 amount
   ) external onlyOwner {
-    target.call(input);
+    if (token == address(0)) {
+      payable(to).transfer(amount);
+    } else {
+      IERC20(token).transfer(to, amount);
+    }
   }
 }
