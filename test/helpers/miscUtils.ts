@@ -18,8 +18,10 @@ export function deepCopy<T extends Object | Object[]>(source: T): T {
 }
 
 export async function countdown(seconds = 10) {
+  console.log("\n");
   for (let i = seconds; i > 0; i--) {
-    console.log(`${i}...`);
+    process.stdout.write(`Countdown: ${i} seconds\r`);
     await new Promise((resolve) => setTimeout(resolve, 1000));
   }
+  console.log("\n");
 }

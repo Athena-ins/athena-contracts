@@ -69,9 +69,26 @@ export function baseContext(description: string, hooks: () => void): void {
         const liqManagerSize = LiquidityManager__factory.bytecode.length / 2;
         console.log(`\nLiq. Manager size: ${liqManagerSize}/24576\n`);
 
+        const signers = await ethers.getSigners();
+
+        console.log(
+          "\nNamed Accounts:",
+          JSON.stringify(
+            {
+              deployer: signers[0].address,
+              evidenceGuardian: signers[1].address,
+              buybackWallet: signers[2].address,
+              treasuryWallet: signers[3].address,
+              leverageRiskWallet: signers[4].address,
+            },
+            null,
+            2,
+          ),
+          "\n",
+        );
+
         // Provides signers for testing
         const nbSpecialAccounts = 5;
-        const signers = await ethers.getSigners();
         this.signers = {
           deployer: signers[0] as Signer as Wallet,
           evidenceGuardian: signers[1] as Signer as Wallet,

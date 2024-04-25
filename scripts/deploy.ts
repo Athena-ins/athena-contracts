@@ -6,7 +6,12 @@ import { getDeployConfig } from "./verificationData/deployParams";
 
 async function main() {
   try {
-    console.log(`\n== DEPLOY ON ${hre.network.name.toUpperCase()} ==\n`);
+    const networkName = hre.network.name.toUpperCase();
+    const forkTarget =
+      networkName === "HARDHAT"
+        ? ` (${process.env.HARDHAT_FORK_TARGET?.toLowerCase()})`
+        : "";
+    console.log(`\n== DEPLOY ON ${networkName}${forkTarget} ==\n`);
 
     const deployer = (await ethers.getSigners())[0] as unknown as Wallet;
     console.log("deployer: ", deployer.address);
@@ -14,7 +19,7 @@ async function main() {
     const config = getDeployConfig();
     console.log("\n\nconfig: ", config);
 
-    await countdown(60);
+    await countdown(0);
 
     //===============//
     //== CONTRACTS ==//
