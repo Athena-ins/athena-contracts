@@ -1,107 +1,71 @@
-import hre, { ethers as hre_ethers } from "hardhat";
-import { deploymentAddress } from "../../test/helpers/TypedContracts";
-const { BigNumber } = hre_ethers;
+import { BigNumberish } from "ethers";
+import hre, { ethers } from "hardhat";
+import { getLiquidityManager } from "../test/helpers/contracts-getters";
+import { postTxHandler } from "../test/helpers/hardhat";
+import { getNetworkAddresses } from "./verificationData/addresses";
 
-const previousAthenaAbi = [
+type PoolParams = {
+  paymentAsset: string;
+  strategyId: BigNumberish;
+  feeRate: BigNumberish;
+  uOptimal: BigNumberish;
+  r0: BigNumberish;
+  rSlope1: BigNumberish;
+  rSlope2: BigNumberish;
+  compatiblePools: BigNumberish[];
+};
+
+const poolParams: PoolParams[] = [
   {
-    inputs: [
-      {
-        internalType: "string",
-        name: "poolName",
-        type: "string",
-      },
-      {
-        internalType: "uint128[]",
-        name: "incompatiblePools",
-        type: "uint128[]",
-      },
-      {
-        internalType: "uint128",
-        name: "commitDelay",
-        type: "uint128",
-      },
-      {
-        internalType: "string",
-        name: "ipfsAgreement",
-        type: "string",
-      },
-      {
-        internalType: "uint256",
-        name: "uOptimal",
-        type: "uint256",
-      },
-      {
-        internalType: "uint256",
-        name: "r0",
-        type: "uint256",
-      },
-      {
-        internalType: "uint256",
-        name: "rSlope1",
-        type: "uint256",
-      },
-      {
-        internalType: "uint256",
-        name: "rSlope2",
-        type: "uint256",
-      },
-    ],
-    name: "addNewProtocol",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
+    paymentAsset: "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+    strategyId: 0,
+    feeRate: 0,
+    uOptimal: 0,
+    r0: 0,
+    rSlope1: 0,
+    rSlope2: 0,
+    compatiblePools: [],
   },
 ];
 
-const poolNames = [
-  "Uniswap V2",
-  "Uniswap V3",
-  "SushiSwap V1",
-  "Compound V2",
-  "DyDx",
-];
-
 async function main() {
-  const chainName = hre.network.name;
-  console.log(`\n== DEPLOY ON ${chainName.toUpperCase()} ==\n`);
   try {
-    const signers = await hre_ethers.getSigners();
-    const deployer = signers[0];
+    const networkName = hre.network.name.toUpperCase();
+    const forkTarget =
+      networkName === "HARDHAT"
+        ? ` (${process.env.HARDHAT_FORK_TARGET?.toLowerCase()})`
+        : "";
+    console.log(`\n== CREATE POOL ON ${networkName}${forkTarget} ==\n`);
 
-    deploymentAddress.deployer = await deployer.getAddress();
+    const deployer = (await ethers.getSigners())[0];
+    console.log("deployer: ", deployer.address);
 
-    if (
-      hre.network.name === "goerli" &&
-      (!process.env.TESTER_WALLET || process.env.TESTER_WALLET.length != 42)
-    ) {
-      throw Error("TESTER_WALLET not set");
-    }
+    const liquidityManagerAddress = getNetworkAddresses().LiquidityManager;
+    const LiquidityManager = (
+      await getLiquidityManager(liquidityManagerAddress)
+    ).connect(deployer);
 
-    // =====> deploy pools
-    console.log("==> ADD POOLS");
+    //================//
+    //== OPEN POOLS ==//
+    //================//
 
-    const athenaContract = new hre_ethers.Contract(
-      deploymentAddress.ATHENA,
-      previousAthenaAbi,
-      deployer,
-    );
-
-    for (const [i, poolName] of poolNames.entries()) {
-      await athenaContract.addNewProtocol(
-        poolName,
-        [],
-        14 * 24 * 60 * 60,
-        "baguqeerasords4njcts6vs7qvdjfcvgnume4hqohf65zsfguprqphs3icwea",
-        BigNumber.from(70 + i * 4).mul(BigNumber.from(10).pow(27)), // uOptimal_
-        BigNumber.from(1 + i).mul(BigNumber.from(10).pow(27)), // r0_
-        BigNumber.from(4 + i).mul(BigNumber.from(10).pow(27)), // rSlope1_
-        BigNumber.from(8 + i).mul(BigNumber.from(10).pow(26)), // rSlope2_
+    for (const [i, params] of poolParams.entries()) {
+      postTxHandler(
+        LiquidityManager.createPool(
+          params.paymentAsset,
+          params.strategyId,
+          params.feeRate,
+          params.uOptimal,
+          params.r0,
+          params.rSlope1,
+          params.rSlope2,
+          params.compatiblePools,
+        ),
       );
 
-      console.log("Deployed : ", poolName);
+      console.log(`==> Deployed pool ${i}/${poolParams.length}`);
     }
   } catch (err: any) {
-    console.log("!!! ERROR !!!");
     console.log(err);
   }
 }
