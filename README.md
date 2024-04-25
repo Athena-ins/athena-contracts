@@ -10,7 +10,7 @@
 
 # ATHENA Smart Contracts
 
-This project is Athena's guarantee pool and policies smart contracts and tests.
+This repository contains the Athena protocol smart-contracts. Athena is DeFi cover AMM where users can provide liquidity to earn premiums from users who want to protect their DeFi assets. The current repository uses Solidity and Hardhat.
 
 # Starting project
 
@@ -26,16 +26,23 @@ Get your .env from .env.example
 cp .env.example .env
 ```
 
-and set your provider keys
+and set your RPC provider keys.
+
+# Git rules
+
+Respect conventional commits rules with scope :
+https://www.conventionalcommits.org/en/v1.0.0/#commit-message-with-scope
+
+Create a new branch when going to break features, and make a pull request.
 
 # Development
 
-TDD only : Every team member should write unit tests at least before developing a new feature.
-
 Launch tests :
 
+You can change the chain against which tests are performed by changing the `HARDHAT_FORK_TARGET` in your `.env` file. Only enter chain names available in the chain targets.
+
 ```shell
-npx hardhat test
+npm run test
 ```
 
 Launch only a specific test :
@@ -50,38 +57,57 @@ Before deploying make sure to have `> 90% coverage`
 npx hardhat coverage
 ```
 
-You can deploy on testnet :
+# Deploy
+
+Before deploying the protocol you must set your configuration for the protocol in the `scripts/verificationData/deployParams.ts` file.
+
+To deploy on Ethereum mainnet
 
 ```shell
-npx hardhat run scripts/deploy.ts --network kovan
+npm run deploy:mainnet
 ```
 
-# Git rules
-
-Respect conventional commits rules with scope :
-https://www.conventionalcommits.org/en/v1.0.0/#commit-message-with-scope
-
-Create a new branch when going to break features, and make a pull request.
-
-# Etherscan verification
-
-To try out Etherscan verification, you first need to deploy a contract to an Ethereum network that's supported by Etherscan, such as Kovan.
-
-In this project, copy the .env.example file to a file named .env, and then edit it to fill in the details. Enter your Etherscan API key, your Ropsten node URL (eg from Alchemy), and the private key of the account which will send the deployment transaction. With a valid .env file in place, first deploy your contract:
+To deploy on Arbitrum One
 
 ```shell
-hardhat run --network kovan scripts/sample-script.ts
+npm run deploy:arbitrum
 ```
 
-Then, copy the deployment address and paste it in to replace `DEPLOYED_CONTRACT_ADDRESS` in this command:
+To deploy on Sepolia mainnet
 
 ```shell
-npx hardhat verify --network ropsten DEPLOYED_CONTRACT_ADDRESS "Hello, Hardhat!"
+npm run deploy:sepolia
+```
+
+# Contract verification
+
+Before verifying contracts you must:
+
+- Specify the API key for the chain explorer in the appropriate `CHAIN_VERIFY_API_KEY` in the `.env` file
+
+- Set the deployment addresses in the `scripts/verificationData/addresses.ts` file
+
+To verify on https://etherscan.io/
+
+```shell
+npm run verify:mainnet
+```
+
+To verify on https://arbiscan.io
+
+```shell
+npm run verify:arbitrum
+```
+
+To verify on https://sepolia.etherscan.io
+
+```shell
+npm run verify:sepolia
 ```
 
 # Performance optimizations
 
-For faster runs of your tests and scripts, consider skipping ts-node's type checking by setting the environment variable `TS_NODE_TRANSPILE_ONLY` to `1` in hardhat's environment. For more details see [the documentation](https://hardhat.org/guides/typescript.html#performance-optimizations).
+For faster runs of your tests and scripts, consider setting `parallel` to `true` in the `hardhat.config.ts` file. Be aware than parallel testing can have undesired sequentiality effects on logs.
 
 #
 
