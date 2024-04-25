@@ -63,61 +63,103 @@ export function makeIdArray(length: number) {
 }
 
 export function aaveLendingPoolProviderV2Address(chainId: number): string {
-  if (chainId === 1)
-    return "0xb53c1a33016b2dc2ff3653530bff1848a515c8c5".toLowerCase();
-  if (chainId === 5)
-    return "0x5E52dEc931FFb32f609681B8438A51c675cc232d".toLowerCase();
-  throw Error("Unsupported chainId");
+  switch (chainId) {
+    case 1: // Mainnet
+      return "0xb53c1a33016b2dc2ff3653530bff1848a515c8c5".toLowerCase();
+    case 42161: // Arbitrum
+      return "0xa97684ead0e402dC232d5A977953DF7ECBaB3CDb".toLowerCase(); // AAVE v3
+    case 11155111: // Sepolia
+      return "0x012bAC54348C0E635dCAc9D5FB99f06F24136C9A".toLowerCase(); // AAVE v3
+    default:
+      throw Error("Unsupported chainId");
+  }
 }
 
 export function aaveLendingPoolV2Address(chainId: number): string {
-  if (chainId === 1)
-    return "0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9".toLowerCase();
-  if (chainId === 5)
-    return "0x4bd5643ac6f66a5237e18bfa7d47cf22f1c9f210".toLowerCase();
-  throw Error("Unsupported chainId");
+  switch (chainId) {
+    case 1: // Mainnet
+      return "0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9".toLowerCase();
+    // case 42161: // Arbitrum
+    //   return "0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9".toLowerCase(); // AAVE v3
+    // case 11155111: // Sepolia
+    //   return "0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9".toLowerCase(); // AAVE v3
+    default:
+      throw Error("Unsupported chainId");
+  }
 }
 
 export function uniswapV2Factory(chainId: number): string {
-  if (chainId === 1)
-    return "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f".toLowerCase();
-  // if (chainId === 5) return "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f".toLowerCase();
-  throw Error("Unsupported chainId");
+  switch (chainId) {
+    case 1: // Mainnet
+      return "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f".toLowerCase();
+    case 42161: // Arbitrum
+      return "0xf1D7CC64Fb4452F05c498126312eBE29f30Fbcf9".toLowerCase();
+    case 11155111: // Sepolia
+      return "0xB7f907f7A9eBC822a80BD25E224be42Ce0A698A0".toLowerCase();
+    default:
+      throw Error("Unsupported chainId");
+  }
 }
 
 export function uniswapV2Router(chainId: number): string {
-  if (chainId === 1)
-    return "0x7a250d5630b4cf539739df2c5dacb4c659f2488d".toLowerCase();
-  // if (chainId === 5) return "0x7a250d5630b4cf539739df2c5dacb4c659f2488d".toLowerCase();
-  throw Error("Unsupported chainId");
-}
-
-export function usdtTokenAddress(chainId: number): string {
-  if (chainId === 1)
-    return "0xdac17f958d2ee523a2206206994597c13d831ec7".toLowerCase();
-  if (chainId === 5)
-    return "0x65E2fe35C30eC218b46266F89847c63c2eDa7Dc7".toLowerCase();
-  throw Error("Unsupported chainId");
-}
-
-export function usdcTokenAddress(chainId: number): string {
-  if (chainId === 1)
-    return "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48".toLowerCase();
-  throw Error("Unsupported chainId");
+  switch (chainId) {
+    case 1: // Mainnet
+      return "0x7a250d5630b4cf539739df2c5dacb4c659f2488d".toLowerCase();
+    case 42161: // Arbitrum
+      return "0x4752ba5dbc23f44d87826276bf6fd6b1c372ad24".toLowerCase();
+    case 11155111: // Sepolia
+      return "0x425141165d3DE9FEC831896C016617a52363b687".toLowerCase();
+    default:
+      throw Error("Unsupported chainId");
+  }
 }
 
 export function klerosCourtAddress(chainId: number): string {
-  if (chainId === 1)
-    return "0x988b3a538b618c7a603e1c11ab82cd16dbe28069".toLowerCase();
-  throw Error("Unsupported chainId");
+  switch (chainId) {
+    case 1: // Mainnet
+      return "0x988b3a538b618c7a603e1c11ab82cd16dbe28069".toLowerCase();
+    default:
+      throw Error("Unsupported chainId");
+  }
+}
+
+export function usdtTokenAddress(chainId: number): string {
+  switch (chainId) {
+    case 1: // Mainnet
+      return "0xdac17f958d2ee523a2206206994597c13d831ec7".toLowerCase();
+    case 42161: // Arbitrum
+      return "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9".toLowerCase();
+    case 11155111: // Sepolia
+      return "0xaA8E23Fb1079EA71e0a56F48a2aA51851D8433D0".toLowerCase();
+    default:
+      throw Error("Unsupported chainId");
+  }
+}
+
+export function usdcTokenAddress(chainId: number): string {
+  switch (chainId) {
+    case 1: // Mainnet
+      return "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48".toLowerCase();
+    case 42161: // Arbitrum
+      return "0xaf88d065e77c8cC2239327C5EDb3A432268e5831".toLowerCase();
+    case 11155111: // Sepolia
+      return "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238".toLowerCase();
+    default:
+      throw Error("Unsupported chainId");
+  }
 }
 
 export function wethTokenAddress(chainId: number): string {
-  if (chainId === 1)
-    return "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2".toLowerCase();
-  if (chainId === 5)
-    return "0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6".toLowerCase();
-  throw Error("Unsupported chainId");
+  switch (chainId) {
+    case 1: // Mainnet
+      return "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2".toLowerCase();
+    case 42161: // Arbitrum
+      return "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1".toLowerCase();
+    case 11155111: // Sepolia
+      return "0x7b79995e5f793a07bc00c21412e50ecae098e7f9".toLowerCase();
+    default:
+      throw Error("Unsupported chainId");
+  }
 }
 
 export function getTokenAddressBySymbol(

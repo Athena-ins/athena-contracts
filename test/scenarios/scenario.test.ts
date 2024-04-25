@@ -16,6 +16,7 @@ const scenarios = [
   liquidityProvision,
   coverProtection,
   liquidityNegatives,
+  coverNegatives,
   // poolNegatives,
   // claimingAndPayout,
   // multiplePools,
