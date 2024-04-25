@@ -21,7 +21,7 @@ error ArgumentLengthMismatch();
 // When contracts allowed to receive tokens are currently limited
 error ContractNotYetAllowed();
 // When EAOs are targeted by the transfer & call function
-error OnlyContractsAllowed();
+error CannotCallEOA();
 // Not owner of the contract
 error Unauthorized();
 
@@ -34,33 +34,11 @@ contract AthenaToken is ERC20 {
   bool public isLimited = true;
   address public owner;
 
-  mapping(address => uint256) public nonces;
-
-  bytes32 public DOMAIN_SEPARATOR;
-  bytes32 public constant PERMIT_TYPEHASH =
-    keccak256(
-      "Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"
-    );
-  bytes32 public constant DOMAIN_TYPEHASH =
-    keccak256(
-      "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
-    );
-
   //======== CONSTRUCTOR ========//
   constructor(
     address[] memory destination
   ) ERC20("Athena Token", "ATEN") {
     owner = msg.sender;
-
-    DOMAIN_SEPARATOR = keccak256(
-      abi.encode(
-        DOMAIN_TYPEHASH,
-        keccak256(bytes(name)),
-        keccak256(bytes("1")),
-        block.chainid,
-        address(this)
-      )
-    );
 
     _mint(msg.sender, 3_000_000_000 ether);
 
@@ -124,7 +102,7 @@ contract AthenaToken is ERC20 {
     uint256 amount,
     bytes calldata data
   ) public returns (bool) {
-    if (_isContract(to)) revert OnlyContractsAllowed();
+    if (!_isContract(to)) revert CannotCallEOA();
 
     _transfer(msg.sender, to, amount);
 
@@ -134,43 +112,6 @@ contract AthenaToken is ERC20 {
         amount,
         data
       );
-  }
-
-  function permit(
-    address account,
-    address spender,
-    uint256 value,
-    uint256 deadline,
-    uint8 v,
-    bytes32 r,
-    bytes32 s
-  ) external {
-    require(deadline >= block.timestamp, "EXPIRED");
-    unchecked {
-      bytes32 digest = keccak256(
-        abi.encodePacked(
-          "\x19\x01",
-          DOMAIN_SEPARATOR,
-          keccak256(
-            abi.encode(
-              PERMIT_TYPEHASH,
-              account,
-              spender,
-              value,
-              nonces[account]++,
-              deadline
-            )
-          )
-        )
-      );
-      address recoveredAddress = ecrecover(digest, v, r, s);
-      require(
-        recoveredAddress != address(0) && recoveredAddress == account,
-        "INVALID_SIGNATURE"
-      );
-      allowance[recoveredAddress][spender] = value;
-    }
-    emit Approval(account, spender, value);
   }
 
   //======== ADMIN ========//
