@@ -55,7 +55,7 @@ library DataTypes {
 /**
  * @dev Interface of the ERC20 standard as defined in the EIP.
  */
-interface ILendingPool {
+interface IAaveLendingPoolV2 {
   /**
    * @dev Deposits an `amount` of underlying asset into the reserve, receiving in return overlying aTokens.
    * - E.g. User deposits 100 USDC and gets in return 100 aUSDC
