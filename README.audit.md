@@ -67,3 +67,32 @@ removeLiquidity
 takeInterests
 withdrawCompensation
 ```
+
+## How does it work ?
+
+The following diagram can help you get a first grasp of how the protocol works.
+
+### Pools
+
+The pool connects liquidity providers and cover buyers. It is a combination of 2 DeFi protocols:
+
+- The covered protocol. This is the one that is insured by the liquidity in the pool.
+- The strategy protocol. This is the one where the liquidity is invested to earn extra rewards.
+
+The pricing of covers in the pool depends on its usage. The more the pool's capital is already in use for covers, the more expensive they are. This is similar to the borrowing APR of AAVE lending pools.
+
+### Covers
+
+Users can buy covers for their assets invested in the covered protocol. In exchange they will pay premiums to the liquidity providers that insure their assets. Their cover is represented by an ERC-721 sent to their wallet.
+
+### Positions
+
+The covers are enabled by the liquidity provided by other users. Liquidity providers send funds that will earn cover premiums in exchange for providing insurance. If a covered user loses funds to an exploit in the cover pool, they will pay for it. Their funds also earn them rewards in the strategy they chose. Their position is represented by an ERC-721 sent to their wallet.
+
+A position can only have a single strategy but can "leverage" their capital in several pools. The position will earn premium rewards in each pool while also being exposed to the risk of loss in every pool.
+
+### Claims
+
+If the covered protocol gets exploited then cover buyers can create a claim. If it is accepted then he is paid back his insured amount. This amount is deducted from the assets provided by position owners.
+
+![image](assets/creation.png)
