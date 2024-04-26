@@ -1,6 +1,10 @@
 import { expect } from "chai";
 // Helpers
-import { setNextBlockTimestamp, postTxHandler } from "../helpers/hardhat";
+import {
+  setNextBlockTimestamp,
+  postTxHandler,
+  getCurrentTime,
+} from "../helpers/hardhat";
 import { toUsd, toErc20, makeIdArray } from "../helpers/protocol";
 // Types
 import { BigNumber } from "ethers";
@@ -279,6 +283,8 @@ export function SanityTest() {
       this.timeout(300_000);
       await setNextBlockTimestamp({ days: 10 });
 
+      const expectedTimestamp = await getCurrentTime();
+
       expect(
         await postTxHandler(
           this.contracts.LiquidityManager.commitRemoveLiquidity(0),
@@ -287,7 +293,9 @@ export function SanityTest() {
 
       const position = await this.contracts.LiquidityManager.positionInfo(0);
 
-      expect(position.commitWithdrawalTimestamp.div(100)).to.equal(18023657);
+      expect(position.commitWithdrawalTimestamp.div(100)).to.equal(
+        Math.floor(expectedTimestamp / 100),
+      );
     });
 
     it("can withdraw LPs", async function (this: Arguments) {
