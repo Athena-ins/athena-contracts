@@ -23,7 +23,7 @@
     "gen:exports": "npx ts-node scripts/gen/gen-exports.ts",
     "gen:fnsigs": "npx ts-node scripts/gen/gen-fnsigs.ts",
     "gen:interfaces": "npx ts-node scripts/gen/gen-interfaces.ts && npx prettier --write contracts/interfaces",
-    "publish": "git branch -d main&git checkout --orphan main & git commit -m $npm_config_title & git push -u publish main -f & git checkout dev",
+    "publish": "git branch -d main && git checkout --orphan main && git commit -m \"v0 audit\" && git push -u publish main -f && git checkout dev",
     "postinstall": "npm run compile"
   },
   "devDependencies": {
