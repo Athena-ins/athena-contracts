@@ -86,6 +86,7 @@ export async function executeAction(this: Mocha.Context, action: Action) {
         const paymentAsset = getTokenAddressBySymbol(
           this.contracts,
           paymentAssetSymbol,
+          this.chainId,
         );
 
         const feeRate =
@@ -135,11 +136,13 @@ export async function executeAction(this: Mocha.Context, action: Action) {
         const coverToken = getTokenAddressBySymbol(
           this.contracts,
           coverTokenSymbol,
+          this.chainId,
         );
 
         const premiumToken = getTokenAddressBySymbol(
           this.contracts,
           premiumTokenSymbol,
+          this.chainId,
         );
 
         await openCover(
@@ -173,11 +176,13 @@ export async function executeAction(this: Mocha.Context, action: Action) {
         const coverToken = getTokenAddressBySymbol(
           this.contracts,
           coverTokenSymbol,
+          this.chainId,
         );
 
         const premiumToken = getTokenAddressBySymbol(
           this.contracts,
           premiumTokenSymbol,
+          this.chainId,
         );
 
         await updateCover(
@@ -205,6 +210,7 @@ export async function executeAction(this: Mocha.Context, action: Action) {
         const depositToken = getTokenAddressBySymbol(
           this.contracts,
           tokenSymbol,
+          this.chainId,
         );
 
         await openPosition(
@@ -229,6 +235,7 @@ export async function executeAction(this: Mocha.Context, action: Action) {
         const depositToken = getTokenAddressBySymbol(
           this.contracts,
           tokenSymbol,
+          this.chainId,
         );
 
         await addLiquidity(
@@ -285,6 +292,7 @@ export async function executeAction(this: Mocha.Context, action: Action) {
         const withdrawnToken = getTokenAddressBySymbol(
           this.contracts,
           tokenSymbol,
+          this.chainId,
         );
 
         await removeLiquidity(
@@ -335,6 +343,7 @@ export async function executeAction(this: Mocha.Context, action: Action) {
         const tokenClaimed = getTokenAddressBySymbol(
           this.contracts,
           tokenSymbol,
+          this.chainId,
         );
 
         await initiateClaim(

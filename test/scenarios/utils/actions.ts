@@ -45,7 +45,6 @@ import {
   ClaimInfo,
   PoolInfoObject,
 } from "../../helpers/types";
-import { getTokenAddressBySymbol } from "../../helpers/protocol";
 // Types
 import {
   BigNumber,

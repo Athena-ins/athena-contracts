@@ -185,7 +185,7 @@ export function wethTokenAddress(chainId: number): string {
 export function getTokenAddressBySymbol(
   contracts: ProtocolContracts,
   symbol: string,
-  chainId = 1,
+  chainId: number,
 ): string {
   switch (symbol) {
     case "USDT":

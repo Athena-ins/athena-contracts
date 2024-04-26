@@ -49,6 +49,7 @@ export type TestEnv = {
 
 declare module "mocha" {
   export interface Context {
+    chainId: number;
     signers: ContextSigners;
     contracts: ProtocolContracts;
     protocolConfig: ProtocolConfig;
@@ -86,6 +87,8 @@ export function baseContext(description: string, hooks: () => void): void {
           ),
           "\n",
         );
+
+        this.chainId = await entityProviderChainId(signers[0]);
 
         // Provides signers for testing
         const nbSpecialAccounts = 5;
