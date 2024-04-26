@@ -42,6 +42,7 @@ import {
   IUniswapV2Factory__factory,
   IWETH__factory,
   IUniswapV2Router__factory,
+  IUniswapV3Router__factory,
 } from "../../typechain";
 import { ProtocolContracts } from "./deployers";
 
@@ -115,6 +116,19 @@ export function uniswapV2Router(chainId: number): string {
       return "0x4752ba5dbc23f44d87826276bf6fd6b1c372ad24".toLowerCase();
     case 11155111: // Sepolia
       return "0x425141165d3DE9FEC831896C016617a52363b687".toLowerCase();
+    default:
+      throw Error("Unsupported chainId");
+  }
+}
+
+export function uniswapV3Router(chainId: number): string {
+  switch (chainId) {
+    case 1: // Mainnet
+      return "0xE592427A0AEce92De3Edee1F18E0157C05861564".toLowerCase();
+    case 42161: // Arbitrum
+      return "0xE592427A0AEce92De3Edee1F18E0157C05861564".toLowerCase();
+    case 11155111: // Sepolia
+      return "0xE592427A0AEce92De3Edee1F18E0157C05861564".toLowerCase();
     default:
       throw Error("Unsupported chainId");
   }
@@ -313,8 +327,8 @@ export async function getTokens(
 ): Promise<ContractReceipt> {
   const chainId = await entityProviderChainId(signer);
 
-  const routerAddress = uniswapV2Router(chainId);
-  const uniswapRouter = IUniswapV2Router__factory.connect(
+  const routerAddress = uniswapV3Router(chainId);
+  const uniswapRouter = IUniswapV3Router__factory.connect(
     routerAddress,
     signer,
   );
@@ -324,15 +338,27 @@ export async function getTokens(
 
   await postTxHandler(weth.approve(routerAddress, parseEther("500")));
 
-  return postTxHandler(
-    uniswapRouter.swapTokensForExactTokens(
-      amount, // uint amountOut,
-      parseEther("500"), // uint amountInMax,
-      [wethAddress, token], // address[] calldata path,
-      to, // address to,
-      9999999999, // uint deadline
-    ),
-  );
+  const params = {
+    tokenIn: wethAddress,
+    tokenOut: token,
+    fee: 500,
+    recipient: to,
+    deadline: 9999999999,
+    amountOut: amount,
+    amountInMaximum: parseEther("500"),
+    sqrtPriceLimitX96: 0,
+  };
+
+  try {
+    return postTxHandler(uniswapRouter.exactOutputSingle(params));
+  } catch (error) {
+    return postTxHandler(
+      uniswapRouter.exactOutputSingle({
+        ...params,
+        fee: 3000,
+      }),
+    );
+  }
 }
 
 // ============================ //
