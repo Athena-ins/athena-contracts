@@ -2,7 +2,7 @@
 
 This document is intended as a support for your auditing process.
 
-Our support resources are limited at the time but we are working on improving them. In the meantime, contact us through message or calls if you want more details regarding a specific issue.
+Our documentation is minimal at this time but we are working on improving it. In the meantime, contact us through message or calls if you want more details regarding a specific issue.
 
 To contact me:
 
@@ -12,9 +12,9 @@ To contact me:
 
 ## Objectives
 
-As a first audit for a beta launch we feel it is important to underline the objectives so your work can be focused on current needs. Some improvements are already on our to-do list but are not implement yet and analysis of these elements would be redundant to our future internal work.
+As a first audit for a beta launch we feel it is important to underline the objectives so your work can be narrowed down to our current needs. Some improvements are already on our to-do list but are not implement yet and analysis of these elements would be redundant with our future internal work.
 
-Here are the aspect in which you help could, at the moment, help us the most:
+Here are the aspect in which your help can help us the most:
 
 - Ensuring the core logic of the protocol cannot cause major losses of user funds.
 - Ensuring the contracts do not present attack vectors that could cause major losses of user funds.
@@ -48,8 +48,8 @@ src/mock/*
 src/rewards/*
 ```
 
-For libraries in `src/lib/` they should only be analysed if they are imported in an in-scope contract.
-For tokens in the `src/tokens/` they can be assumed to be trusted.
+For libraries in `src/lib/` they should only be analysed if they are imported directly or indirectly in an in-scope contract.
+For tokens in the `src/tokens/` they can be assumed to be trusted and safe.
 
 ## Core functions
 
