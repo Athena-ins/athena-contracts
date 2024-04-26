@@ -98,30 +98,6 @@ export async function evmRevert(snapshotId: string) {
   });
 }
 
-export async function resetFork() {
-  const originalFork = (network.config as HardhatNetworkConfig).forking?.url;
-  // @bw should replace call to env with config file for type safety
-  const forkTarget = originalFork || process.env.GOERLI_RPC_URL;
-
-  const originalForkBlock = (network.config as HardhatNetworkConfig).forking
-    ?.blockNumber;
-  const forkTargetBlock = originalForkBlock || "latest";
-
-  await hre.network.provider.request({
-    method: "hardhat_reset",
-    params: [
-      {
-        forking: {
-          jsonRpcUrl: forkTarget,
-          blockNumber: forkTargetBlock,
-        },
-      },
-    ],
-  });
-
-  console.log("=> Forked chain reset");
-}
-
 export type TimeTravelOptions = {
   seconds?: number;
   minutes?: number;

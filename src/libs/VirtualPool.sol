@@ -41,7 +41,6 @@ error NotEnoughLiquidityForRemoval();
 library VirtualPool {
   // ======= LIBS ======= //
   using VirtualPool for DataTypes.VPool;
-  using VirtualPool for DataTypes.VPool;
   using RayMath for uint256;
   using SafeERC20 for IERC20;
   using Tick for mapping(uint32 => uint256[]);
@@ -257,7 +256,7 @@ library VirtualPool {
     uint256 secondsSinceTickStart = remaining;
     uint256 secondsParsed;
 
-    // @bw could opti here by searching for next initialized tick to compute the liquidity index with same premium & utilization in one go parsing multiple 256 value bitmaps. This should exit when remaining < secondsToNextTickEnd before finishing with the partial tick operation.
+    // @bw could opti here by searching for next initialized tick to compute the liquidity index with same premium & utilization in one go, parsing multiple 256 value bitmaps. This should exit when remaining < secondsToNextTickEnd before finishing with the partial tick operation.
     while (slot0.secondsPerTick <= remaining) {
       secondsSinceTickStart = 0;
 
