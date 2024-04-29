@@ -95,4 +95,8 @@ A position can only have a single strategy but can "leverage" their capital in s
 
 If the covered protocol gets exploited then cover buyers can create a claim. If it is accepted then he is paid back his insured amount. This amount is deducted from the assets provided by position owners.
 
+### Diagrams
+
+Here is an overall diagram to visualize how cover creation and liquidity provision works and the token flow of these interactions.
+
 ![image](assets/creation.png)
