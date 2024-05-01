@@ -227,7 +227,7 @@ export type ProtocolConfig = {
   withdrawDelay: number;
   maxLeverage: number;
   payoutDeductibleRate: BigNumber;
-  performanceFee: BigNumber;
+  performanceFeeRate: BigNumber;
   farmingBlockStart: number; // leave 0 for dynamic
 };
 
@@ -240,9 +240,9 @@ export const defaultProtocolConfig: ProtocolConfig = {
   treasuryWallet: treasuryWallet(),
   leverageRiskWallet: leverageRiskWallet(),
   yieldRewarder: "0x0000000000000000000000000000000000000000",
-  leverageFeePerPool: toRay(1.5, 2), // 1.5% base 100
+  leverageFeePerPool: toRay(1.5), // 1.5% base 100
   poolFormula: {
-    feeRate: toRay(0.1), // 10%
+    feeRate: toRay(10), // 10%
     uOptimal: toRay(75),
     r0: toRay(1),
     rSlope1: toRay(5),
@@ -256,8 +256,8 @@ export const defaultProtocolConfig: ProtocolConfig = {
   ],
   withdrawDelay: 14 * 24 * 60 * 60, // 14 days
   maxLeverage: 12, // max pools per position
-  payoutDeductibleRate: toRay(0.1), // 10%
-  performanceFee: toRay(0.5), // 50%
+  payoutDeductibleRate: toRay(10), // 10%
+  performanceFeeRate: toRay(50), // 50%
   farmingBlockStart: 0, // leave 0 for dynamic
 };
 
@@ -449,7 +449,7 @@ export async function deployAllContractsAndInitializeProtocol(
         usdcTokenAddress(chainId),
         config.buybackWallet.address,
         config.payoutDeductibleRate, // payoutDeductibleRate
-        config.performanceFee, // performanceFee
+        config.performanceFeeRate, // performanceFeeRate
       ]),
     );
     txCount++;
