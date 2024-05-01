@@ -25,6 +25,17 @@ error OnlyWhitelistCanDepositLiquidity();
 error RateAboveMax();
 error ArgumentLengthMismatch();
 
+/**
+ * @title Athena Strategy Manager
+ * @author vblackwhale
+ *
+ * This contract manages the assets deposited in Athena pools as liquidity.
+ * It is responsible for depositing and withdrawing assets from various DeFi protocols.
+ * It also computes the rewards and performance fees for the DAO.
+ *
+ * @dev For the v0 of the strategy manager, the only supported protocol is Aave v3 USDC.
+ *
+ */
 contract StrategyManager is IStrategyManager, Ownable {
   using SafeERC20 for IERC20;
   using RayMath for uint256;

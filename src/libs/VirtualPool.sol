@@ -27,6 +27,9 @@ error NotEnoughLiquidityForRemoval();
  * @title Athena Virtual Pool
  * @author vblackwhale
  *
+ * This library provides the logic to create and manage virtual pools.
+ * The pool storage is located in the Liquidity Manager contract.
+ *
  * Definitions:
  *
  * Ticks:

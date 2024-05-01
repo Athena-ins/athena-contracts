@@ -9,6 +9,18 @@ import { VirtualPool } from "../libs/VirtualPool.sol";
 import { DataTypes } from "../libs/DataTypes.sol";
 import { PoolMath } from "../libs/PoolMath.sol";
 
+/**
+ * @title Athena Data Provider
+ * @author vblackwhale
+ *
+ * This contract provides a way to access formatted data of various data structures.
+ * It enables frontend applications to access the data in a more readable way.
+ * The structures include:
+ * - Positions
+ * - Covers
+ * - Virtual Pools
+ *
+ */
 library AthenaDataProvider {
   /**
    * @notice Returns the up to date position data of a token
