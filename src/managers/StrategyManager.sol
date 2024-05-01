@@ -40,6 +40,10 @@ contract StrategyManager is IStrategyManager, Ownable {
   using SafeERC20 for IERC20;
   using RayMath for uint256;
 
+  uint256 constant PERCENTAGE_BASE = 100;
+  uint256 constant HUNDRED_PERCENT = PERCENTAGE_BASE * RayMath.RAY;
+  uint256 constant FIFTHY_PERCENT = HUNDRED_PERCENT / 2;
+
   //======== STORAGE ========//
   ILiquidityManager public liquidityManager;
   IEcclesiaDao public ecclesiaDao;
@@ -49,7 +53,7 @@ contract StrategyManager is IStrategyManager, Ownable {
   // Amount of underlying to be deducted from payout in RAY
   uint256 public payoutDeductibleRate;
   // Amount of performance fee to be paid to ecclesiaDao in RAY
-  uint256 public performanceFee;
+  uint256 public performanceFeeRate;
 
   IAaveLendingPoolV3 public aaveLendingPool;
   address public USDC; // underlyingAsset
@@ -67,8 +71,8 @@ contract StrategyManager is IStrategyManager, Ownable {
     IAaveLendingPoolV3 aaveLendingPool_,
     address reserveAsset_, // USDC for Strategy Manager v0
     address buybackWallet_,
-    uint256 payoutDeductibleRate_,
-    uint256 performanceFee_
+    uint256 payoutDeductibleRate_, // in rays
+    uint256 performanceFee_ // in rays
   ) Ownable(msg.sender) {
     liquidityManager = liquidityManager_;
     ecclesiaDao = ecclesiaDao_;
@@ -78,12 +82,12 @@ contract StrategyManager is IStrategyManager, Ownable {
     buybackWallet = buybackWallet_;
 
     if (
-      RayMath.halfRAY < payoutDeductibleRate_ ||
-      RayMath.halfRAY < performanceFee_
+      FIFTHY_PERCENT < payoutDeductibleRate_ ||
+      FIFTHY_PERCENT < performanceFee_
     ) revert RateAboveMax();
 
     payoutDeductibleRate = payoutDeductibleRate_;
-    performanceFee = performanceFee_;
+    performanceFeeRate = performanceFee_;
 
     aUSDC = aaveLendingPool.getReserveData(USDC).aTokenAddress;
   }
@@ -309,14 +313,15 @@ contract StrategyManager is IStrategyManager, Ownable {
       amountRewardsUnderlying_;
 
     // If the strategy has performance fees then compute the DAO share
+    // @dev the bonus is subtracted from the performance fee
     if (
-      performanceFee != 0 &&
+      performanceFeeRate != 0 &&
       amountRewardsUnderlying_ != 0 &&
-      yieldBonus_ < performanceFee
+      yieldBonus_ < performanceFeeRate
     ) {
       uint256 daoShare = ((amountRewardsUnderlying_ *
-        performanceFee) - (amountRewardsUnderlying_ * yieldBonus_)) /
-        RayMath.RAY;
+        performanceFeeRate) -
+        (amountRewardsUnderlying_ * yieldBonus_)) / HUNDRED_PERCENT;
 
       if (daoShare != 0) {
         // Deduct the daoShare from the amount to withdraw
@@ -377,9 +382,9 @@ contract StrategyManager is IStrategyManager, Ownable {
     ) + underlyingToWrapped(strategyId_, amountRewardsUnderlying_);
 
     // If the strategy has performance fees then compute the DAO share
-    if (performanceFee != 0 && amountRewardsUnderlying_ != 0) {
+    if (performanceFeeRate != 0 && amountRewardsUnderlying_ != 0) {
       uint256 daoShare = (amountRewardsUnderlying_ *
-        (performanceFee - yieldBonus_)) / RayMath.RAY;
+        (performanceFeeRate - yieldBonus_)) / RayMath.RAY;
 
       if (daoShare != 0) {
         // Deduct the daoShare from the amount to withdraw
@@ -409,7 +414,7 @@ contract StrategyManager is IStrategyManager, Ownable {
     address account_
   ) external checkId(strategyId_) onlyLiquidityManager {
     uint256 deductible = (amountUnderlying_ * payoutDeductibleRate) /
-      RayMath.RAY;
+      HUNDRED_PERCENT;
 
     // If there is a deductible, withdraw it from the pool to buy back & burn wallet
     if (0 < deductible)
@@ -448,11 +453,13 @@ contract StrategyManager is IStrategyManager, Ownable {
 
   /**
    * @notice Updates the performance fee for the strategy
-   * @param fee_ The new performance fee in RAY
+   * @param rate_ The new performance fee rate in RAY
    */
-  function updatePerformanceFee(uint256 fee_) external onlyOwner {
-    if (RayMath.halfRAY < fee_) revert RateAboveMax();
-    performanceFee = fee_;
+  function updatePerformanceFeeRate(
+    uint256 rate_ // in rays
+  ) external onlyOwner {
+    if (FIFTHY_PERCENT < rate_) revert RateAboveMax();
+    performanceFeeRate = rate_;
   }
 
   /**
@@ -460,9 +467,9 @@ contract StrategyManager is IStrategyManager, Ownable {
    * @param rate_ The new deductible rate in RAY
    */
   function updatePayoutDeductibleRate(
-    uint256 rate_
+    uint256 rate_ // in rays
   ) external onlyOwner {
-    if (RayMath.halfRAY < rate_) revert RateAboveMax();
+    if (FIFTHY_PERCENT < rate_) revert RateAboveMax();
     payoutDeductibleRate = rate_;
   }
 

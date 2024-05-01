@@ -65,7 +65,7 @@ library VirtualPool {
   uint256 constant MAX_SECONDS_PER_TICK = 1 days;
   uint256 constant FEE_BASE = RAY;
   uint256 constant PERCENTAGE_BASE = 100;
-  uint256 constant FULL_CAPACITY = PERCENTAGE_BASE * RAY;
+  uint256 constant HUNDRED_PERCENT = FEE_BASE * PERCENTAGE_BASE;
 
   // ======= STRUCTS ======= //
 
@@ -403,22 +403,26 @@ library VirtualPool {
     DataTypes.VPool storage self = VirtualPool.getPool(poolId_);
 
     if (0 < rewards_) {
-      uint256 fees = ((rewards_ *
-        self.feeRate *
-        (FEE_BASE - yieldBonus_)) / FEE_BASE) / FEE_BASE;
+      uint256 fees = (rewards_ * self.feeRate) / HUNDRED_PERCENT;
+      uint256 yieldBonus = (rewards_ *
+        (HUNDRED_PERCENT - yieldBonus_)) / HUNDRED_PERCENT;
+
+      uint256 netFees = fees == 0 || fees < yieldBonus
+        ? 0
+        : fees - yieldBonus;
 
       uint256 leverageFee;
       if (1 < nbPools_) {
         // The risk fee is only applied when using leverage
         leverageFee =
           (rewards_ * (self.leverageFeePerPool * nbPools_)) /
-          FEE_BASE;
+          HUNDRED_PERCENT;
       } else if (account_ == address(self.dao)) {
         // Take profits for the DAO accumulate the net in the leverage risk wallet
-        leverageFee = rewards_ - fees;
+        leverageFee = rewards_ - netFees;
       }
 
-      uint256 totalFees = fees + leverageFee;
+      uint256 totalFees = netFees + leverageFee;
       // With insane leverage then the user could have a total fee rate above 100%
       uint256 net = rewards_ < totalFees ? 0 : rewards_ - totalFees;
 
@@ -434,7 +438,11 @@ library VirtualPool {
           totalFees
         );
 
-        self.dao.accrueRevenue(self.paymentAsset, fees, leverageFee);
+        self.dao.accrueRevenue(
+          self.paymentAsset,
+          netFees,
+          leverageFee
+        );
       }
     }
   }
