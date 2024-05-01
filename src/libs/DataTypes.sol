@@ -41,6 +41,7 @@ library DataTypes {
 
   struct Compensation {
     uint64 fromPoolId;
+    // The ratio is the claimed amount/ total liquidity in the claim pool
     uint256 ratio;
     uint256 strategyRewardIndexBeforeClaim;
     mapping(uint64 _poolId => uint256 _amount) liquidityIndexBeforeClaim;
