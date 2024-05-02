@@ -8,7 +8,7 @@ To contact me:
 
 Victor (blackwhale)
 
-- WhatsApp: +33619959453
+- WhatsApp: +33 619959453
 - Telegram: https://t.me/blackwhale_eth
 - Discord: vblackwhale
 
@@ -118,14 +118,19 @@ A compensation is the result of a claim being paid out, it is registered in the 
 ### Utilization Rate
 
 The percentage of liquidity in a pool that is currently locked as a guarantee for bought covers.
- 
+
 ```
 i.e.
 
 Total liquidity in pool = $ 10 000
 Total covered amount in pool = $ 3 500
-Utilization = 35%
+
+=> Utilization = 35%
 ```
+
+<div align="center">
+    <img src="assets/utilization.png" alt="drawing" width="400"/>
+</div>
 
 ### Premiums
 
@@ -139,21 +144,22 @@ The APR cost of holding a cover in a given pool. This value is expressed in rays
 i.e.
 
 Covered amount = $ 100
-Premium rate = 2%
-Annual cost of cover = $ 2
+Premium APR = 2%
+
+=> Annual cost of cover = $ 2
 ```
 
 ### Reward Rate
 
 The APR for providing liquidity in a given pool. This value is obtained by multiplying the utilization rate and the premium rate.
 
-
 ```
 i.e.
 
 Utilization rate = 50%
-Premium rate = 8%
-Reward rate = 4%
+Premium APR = 8%
+
+=> Reward APR = 4%
 ```
 
 ### Ray
@@ -164,6 +170,10 @@ A ray is equal to 1e27 (27 decimals). It is used to scale up values when computi
 
 In the context of Athena, a position is using leverage when it provides liquidity to more than one pool. So a x2 leverage for a position means the liquidity is added in 2 pools. This leverage enables liquidity provider to earn more rewards and cover providers to have access to more liquidity. The downside is more risk for liquidity providers and the system as a whole.
 
+### Overlaps
+
+An overlap is the total amount of liquidity shared between two pools. This occurs when positions use leverage to provide liquidity to several pools. The overlap of a pool with itself is the pool's own/self/unleveraged liquidity. This is liquidity that was provided without it being shared with any other pool.
+
 ### Underlying Asset / Wrapped Asset
 
 The strategy manager can handle the underlying asset of a pool or the wrapped/receipt version that a DeFi protocol provides against deposits. For example in the case of the USDT lending pool in AAVE then the underlying asset is USDT and the wrapped asset is aUSDT.
@@ -171,6 +181,26 @@ The strategy manager can handle the underlying asset of a pool or the wrapped/re
 ### Strategy Reward Index / Liquidity Index
 
 These indexes track the accumulation of strategy rewards and premium rewards respectively. This value can only increase over time as more rewards are earned. This is similar to how Ethereum liquid staking tokens increase in value over time as rewards compound.
+
+The computation of the strategy reward index can vary depending on the DeFi protocol being used by the strategy. For AAVE this value is already available through view functions in their contracts.
+
+For the liquidity index corresponding to premium rewards here is how it is computed:
+
+```
+i.e.
+
+Utilization rate = 50%
+Premium APR = 8%
+
+=> Reward APR = 50% * 8% = 4%
+
+Number of ticks elapsed = 10
+Seconds per tick = 86400
+
+=> Total time elapsed = 10 * 86400 = 864000
+
+Rewards = capital * rewards APR * (total time elapsed / one year) = 0.109589 %
+```
 
 ## Mechanics
 
@@ -180,50 +210,215 @@ Here is an general diagram to visualize the interactions & token flows between `
 
 ![image](assets/open-action.png)
 
+### Premium Rate Formula
 
-### Premium Rate
+The premium rate uses the formula configuration of a pool to compute the current premium rate based on utilization. The premium rate follows a bi-linear curve based on 4 parameters, all these values are expressed in rays so 1e27 = 1%.
 
-### Ticks
+These are the formula parameters:
 
-Ticks are a core component of how covers are tracked in pools. You can imagine it as a timeline axis with ticks at regular intervals
-
-- The seconds per tick is the same for all ticks
-- The seconds per tick value changes based on pool usage
-- The max value for seconds per tick is 86400 seconds (1 day)
-- The minimal value for seconds per tick is 86400 * (minimum premium rate (r0) / max premium rate (r0 + rSlope1 + rSlope2))
+```
+uOptimal - the optimal utilization rate of the pool
+r0 - the base/minimal premium rate at 0% utilization
+rSlope1 - the APR that is linearly added to r0 between 0% utilization and uOptimal
+rSlope2 - the APR that is linearly added to r0 + rSlope1 between uOptimal and 100% utilization
+```
 
 ```
 i.e.
 
-Utilization rate = 50%
-Premium rate = 8%
-Reward rate = 4%
+uOptimal = 80%
+r0 = 2%
+rSlope1 = 6%
+rSlope2 = 15%
+
+Utilization rate = 40%
+=> Premium rate = 2% + 6% * (40%/80%) = 5%
+
+Utilization rate = 90%
+=> Premium rate = 2% + 6% + 15% * ((90% - 80%) / (100% - 80%)) = 15.5%
 ```
 
 <div align="center">
-<img src="assets/ticks.png" alt="drawing" height="150" align="center"/>
+    <img src="assets/apr.png" alt="drawing" height="450" align="center"/>
 </div>
- 
 
+### Ticks
 
-![image](assets/apr.png)
-![image](assets/tick-covers.png)
-![image](assets/tick-duration.png)
+Ticks are a core component of how covers are tracked in pools. You can imagine it as a timeline axis with a variable spacing between them. This spacing is the number of seconds between each tick. The first tick is 1 and not 0.
 
-<img src="assets/utilization.png" alt="drawing" width="200"/>
+The ticks also track the moment covers expire so that we can keep track of utilization and earned premiums. A tick will store the cover IDs of covers that expire once that tick ends. Each tick can either be initialized, meaning it contains at least one cover (to be expired) or uninitialized, meaning there is no cover in that tick.
 
-dsdsd
+<div align="center">
+    <img src="assets/ticks.png" alt="drawing" height="150" align="center"/>
+</div>
 
-![image](assets/utilization.png)
-![image](assets/leverage.png)
-![image](assets/comp-lev.png)
+#### Seconds per tick
 
-## Miscelanous Information
+- The seconds per tick is the same for all ticks
+- The max value for seconds per tick is 86400 seconds (1 day)
+- The minimal value for seconds per tick is 86400 \* (minimum premium rate (r0) / max premium rate (r0 + rSlope1 + rSlope2))
+- The seconds per tick value changes based on pool usage. At 0% utilization it is equal to the max value since covers are cheaper and their premiums last longer. At 100% utilization it is equal to the minimal value since covers are more expensive and their premiums are spent faster.
 
-### Overusage
+#### Tick storage
 
-### onlyClaimManager
+The virtual pool uses the following maps to keep track of tick data:
 
-purgeExpiredCoversUpTo
-updatePositionUpTo
+```js
+    // Maps an word position index to a bitmap of tick states (initialized or not)
+    mapping(uint24 _wordPos => uint256 _bitmap) tickBitmap;
+    // Maps a tick to the list of cover IDs
+    mapping(uint32 _tick => uint256[] _coverIds) ticks;
+```
 
+As you can see `ticks` is where cover IDs are stored in the tick at which they expire. The `tickBitmap` is used only through the `TickBitmap.sol` library, we never access this mapping directly through `_wordPos`. This mapping tracks the status (initialized or not) within the bits of an uint256 number. This enables us to parse faster large amounts of tick that might not contain covers.
+
+### Covers Duration and Ticks
+
+You can image covers as existing on the tick timeline. Their span is measured in ticks, which can be converted to seconds using the current seconds per tick. They start at the tick at which they were first created and are active until the tick in which their ID is stored is overtaken.
+
+You can imagine tick contracting and expanding as usage varies in a pool:
+
+<div align="center">
+    <img src="assets/duration.png" alt="drawing" width="600" align="center"/>
+</div>
+
+#### Here are a few observations we can make from the following diagram :
+
+- Cover A was created between tick 1 and 2 with a duration of 5 ticks
+- Cover B was created between tick 2 and 3 with a duration of 3 ticks
+- When cover B was created, utilization increased, so the tick spacing decreased and so the cover duration of cover A was reduced
+- Once the pool reached tick 5 then cover B expired, utilization decreased, so the tick spacing increased and so the cover duration of cover A was increased
+
+<div align="center">
+    <img src="assets/tick-covers.png" alt="drawing" height="180" align="center"/>
+</div>
+
+### Computing premium rewards
+
+You will see that when updating a position we perform a compute heavy operation in each pool the position is participating in. That function is `_processCompensationsForPosition` and its complexity is the consequence of several criteria affecting premium reward computation.
+
+Consider the following diagram that represents the premium rewards of a position being accumulated for a pool it provided liquidity to:
+
+<div align="center">
+    <img src="assets/rewards.png" alt="drawing" height="350" align="center"/>
+</div>
+
+&nbsp;
+
+Here are some scenarios that could explain the changes in reward rate taking place at a, b and c:
+
+#### a:
+
+- Increase in utilization because of new covers
+- Increase in utilization because liquidity was removed from the pool
+- Increase in utilization because a pool with overlapped capital reduced liquidity in pool
+- Increase in rewards because the user added more liquidity to their position
+
+#### b:
+
+- Decrease in utilization rate because covers expired
+- Decrease in utilization rate because covers was closed
+- Decrease in utilization rate because liquidity was added in the pool
+- Reduction of the position's capital because the user removed liquidity from their position
+- Loss of position capital because of compensations in the pool
+- Loss of position capital because of compensations in another pool of the position
+
+#### c:
+
+- Decrease in utilization to 0% because all covers expired
+- Decrease in utilization to 0% because all covers were closed
+- Reduction of the position's capital to 0 because the user removed all liquidity from their position
+- Loss of all position capital because of compensations in the pool
+- Loss of all position capital because of compensations in another pool of the position
+
+This is the reason why we parse all the compensations in order to correctly update utilization and position capital so that we can compute the
+
+### Implications of leverage
+
+The fact that liquidity providers may use leverage when creating positions means liquidity has several dimensions to it. A pool will can have part of its liquidity shared with any other compatible pool.
+
+#### Here are a few observations we can make from the following diagram :
+
+- The position creator is using leverage to provide liquidity to 2 cover pools
+- The position will earn premium rewards in both pools, at the same rate as any other liquidity provider in those pools
+- Since the position is using leverage it will have to pay an additional fee to the risk fund in order to reduce systemic protocol risk
+- The position's capital is exposed to the risk of paying bay cover buyers in both pools
+- Both pool A and pool B will need to have enough available liquidity for the position owner to withdraw
+- If a compensation is paid out in pool A then pool B's liquidity will be reduced because of the shared liquidity, this reverse is also true
+
+<div align="center">
+    <img src="assets/leverage.png" alt="drawing" width="800" align="center"/>
+</div>
+
+&nbsp;
+
+```
+i.e. (see next diagram)
+
+Pool A has a liquidity of $3000, including $1000 of shared with pool B.
+Pool B has a liquidity of $2000, including $1000 of shared with pool A.
+
+Imagine if a $1000 compensation payout affected pool A.
+This is how liquidity in these pools will be affected:
+
+First we must compute the ratio of the compensation in the pool where it takes place:
+compensation amount / total liquidity = 1000 / 3000 = 33%
+
+Then we apply this ratio to the self-overlaps / their own unleveraged liquidity:
+- For pool A = 2000 * 33% = $667
+- For pool B = 1000 * 33% = $333
+
+Therefore after the claim:
+- Pool A liquidity will be: 3000 - 667 = $2333
+- Pool B liquidity will be: 2000 - 333 = $1667
+- Unleveraged liquidity providers in Pool A will have lost 33% of their capital
+- Unleveraged liquidity providers in Pool B will have lost 0% of their capital
+- Leveraged liquidity providers in Pool A + B will have lost 33% of their capital
+- The cover buyer will be paid $1000 out from funds in the stategy common to pool A and B
+```
+
+<div align="center">
+    <img src="assets/comp-lev.png" alt="drawing" width="800" align="center"/>
+</div>
+
+## Miscellaneous Information
+
+### Over-usage
+
+You may have noticed that in theory the leverage of capital can cause a scenario where the reduction of capital in one pool can make another insolvent. To compensate for this systemic risk there are two core measures:
+
+- Preemptive:
+
+The compatibility of pools that may be leveraged in one position is carefully studied so that the risk of synchronous hacks/failures are minimal. We asses the dependencies of project at the code and protocol dependency level so that cover buyers are still protected in the unlikely event of simultaneous critical events.
+
+- Corrective:
+
+When users use leverage to increase the APR of their positions they pay an extra fee, the risk fee. The higher the leverage (number of pools), the higher the risk fee. This fee impacts the premiums received by liquidity providers. Risk fees are accumulated as backup liquidity in case a pool's covers no longer have the adequate liquidity to protect them.
+
+### Updating the pool
+
+As the pool heavily relies on the current tick being up to date when making operation that interact with liquidity. This is why you'll see almost all operations start by calling `_purgeExpiredCovers` on a pool before interacting with its storage.
+
+This operation will remove expired covers and refresh key parameters in the pool so that the operation can be performed against an up to date state. A certain number of view functions will also compute this refreshed state in order to provide up to date data even if they have not been written to storage yet.
+
+### Claim Manager (onlyClaimManager)
+
+Currently claims will be handled manually but soon we'll be implementing the latest Kleros (https://kleros.io/) court system to handle claim processing in fully decentralized manner. In the mean time consider the claim manager to be a trusted EOA.
+
+### Tick optimisation
+
+Yes. There are too many loops and probably significant gas savings to make. We'd love to hear your ideas but at the moment it is essential that user funds are secure and the protocol usable. Please focus on security. My optimization-loving-heart is broken too but we need to get this protocol on-chain before making it better.
+
+### Debug functions (purgeExpiredCoversUpTo & updatePositionUpTo)
+
+Because of some edge case / DoS scenarios that we discovered, we have implemented these to functions as way to make partial updates for certain potentially gas heavy updates. In extreme scenarios these operations could be pushed above the 30M gas unit limit in a block. Even if this scenario is highly unlikely, we chose to implement these backup functions just in case. These are restricted as they are not meant to be called by common users and their side effects under unrestricted conditions have not been studied enough.
+
+### Owner privilege
+
+Again we want to acknowledge that the current implementation provides a lot of privileges to the owner wallet. This can be mentioned in the report for disclosure to the users but these are meant as temporary safety measures before we are confident that the implementation is secure. We chose to delay full decentralization and permissionlessness in order to avoid potentially blocking scenarios.
+
+# Conclusions
+
+You've reached the end! If you need any clarification please reach out.
+
+Now let's break stuff and have fun. Happy hunting :)
