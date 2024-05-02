@@ -238,7 +238,7 @@ Seconds per tick = 86400
 
 => Total time elapsed = 10 * 86400 = 864000
 
-Rewards = capital * rewards APR * (total time elapsed / one year) = 0.109589 %
+Rewards = capital * rewards APR * (total time elapsed / one year) = 0.109589% of capital in rewards
 ```
 
 ## Mechanics
