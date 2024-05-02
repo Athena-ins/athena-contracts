@@ -99,13 +99,13 @@ Both of these tests include all the main actions and can easily be modified in o
 
 Finally after having completed you `.env` file you can run the tests with:
 
-```
-$ npm run test
+```shell
+npm run test
 ```
 
 Additionally you can get faster tests execution by activating parallelization in `hardhat.config.ts`. Be warned that this will probably break sequentiality of `console.log` within tests suites.  
 
-```
+```js
  // parallel: true,
 ```
 
