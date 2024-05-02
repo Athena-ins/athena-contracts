@@ -6,6 +6,8 @@ Our documentation is minimal at this time but we are working on improving it. In
 
 To contact me:
 
+Victor (blackwhale)
+
 - WhatsApp: +33619959453
 - Telegram: https://t.me/blackwhale_eth
 - Discord: vblackwhale
@@ -115,30 +117,104 @@ A compensation is the result of a claim being paid out, it is registered in the 
 
 ### Utilization Rate
 
-### Premium Rate
+The percentage of liquidity in a pool that is currently locked as a guarantee for bought covers.
+ 
+```
+i.e.
+
+Total liquidity in pool = $ 10 000
+Total covered amount in pool = $ 3 500
+Utilization = 35%
+```
 
 ### Premiums
 
-### Tick
+The tokens deposited by a cover buyer that will pay liquidity providers for the protection they provide. The amount deposited is up to the cover buyer. An estimated protection duration can be computed upon creating a cover but this can change. The actual rate at which the premiums are spent will depend of the premium rate, which can change based on utilization.
+
+### Premium Rate
+
+The APR cost of holding a cover in a given pool. This value is expressed in rays so 1e27 = 1%.
+
+```
+i.e.
+
+Covered amount = $ 100
+Premium rate = 2%
+Annual cost of cover = $ 2
+```
+
+### Reward Rate
+
+The APR for providing liquidity in a given pool. This value is obtained by multiplying the utilization rate and the premium rate.
+
+
+```
+i.e.
+
+Utilization rate = 50%
+Premium rate = 8%
+Reward rate = 4%
+```
 
 ### Ray
 
+A ray is equal to 1e27 (27 decimals). It is used to scale up values when computing percentages in order to avoid precision loss or rounding errors when using integers.
+
 ### Leverage
+
+In the context of Athena, a position is using leverage when it provides liquidity to more than one pool. So a x2 leverage for a position means the liquidity is added in 2 pools. This leverage enables liquidity provider to earn more rewards and cover providers to have access to more liquidity. The downside is more risk for liquidity providers and the system as a whole.
 
 ### Underlying Asset / Wrapped Asset
 
+The strategy manager can handle the underlying asset of a pool or the wrapped/receipt version that a DeFi protocol provides against deposits. For example in the case of the USDT lending pool in AAVE then the underlying asset is USDT and the wrapped asset is aUSDT.
+
 ### Strategy Reward Index / Liquidity Index
+
+These indexes track the accumulation of strategy rewards and premium rewards respectively. This value can only increase over time as more rewards are earned. This is similar to how Ethereum liquid staking tokens increase in value over time as rewards compound.
 
 ## Mechanics
 
-Here is an overall diagram to visualize how cover creation and liquidity provision works and the token flow of these interactions.
+### Token interactions
+
+Here is an general diagram to visualize the interactions & token flows between `LiquidityManager.sol` and `StrategyManager.sol` in the context of cover creation and liquidity provision.
+
+![image](assets/open-action.png)
+
+
+### Premium Rate
+
+### Ticks
+
+Ticks are a core component of how covers are tracked in pools. You can imagine it as a timeline axis with ticks at regular intervals
+
+- The seconds per tick is the same for all ticks
+- The seconds per tick value changes based on pool usage
+- The max value for seconds per tick is 86400 seconds (1 day)
+- The minimal value for seconds per tick is 86400 * (minimum premium rate (r0) / max premium rate (r0 + rSlope1 + rSlope2))
+
+```
+i.e.
+
+Utilization rate = 50%
+Premium rate = 8%
+Reward rate = 4%
+```
+
+<div align="center">
+<img src="assets/ticks.png" alt="drawing" height="150" align="center"/>
+</div>
+ 
+
 
 ![image](assets/apr.png)
-![image](assets/ticks.png)
 ![image](assets/tick-covers.png)
 ![image](assets/tick-duration.png)
+
+<img src="assets/utilization.png" alt="drawing" width="200"/>
+
+dsdsd
+
 ![image](assets/utilization.png)
-![image](assets/open-action.png)
 ![image](assets/leverage.png)
 ![image](assets/comp-lev.png)
 
@@ -146,7 +222,8 @@ Here is an overall diagram to visualize how cover creation and liquidity provisi
 
 ### Overusage
 
-### Ray
+### onlyClaimManager
 
 purgeExpiredCoversUpTo
 updatePositionUpTo
+
