@@ -1242,7 +1242,7 @@ contract LiquidityManager is
   function purgeExpiredCoversUpTo(
     uint64 poolId_,
     uint256 timestamp_
-  ) external nonReentrant {
+  ) external nonReentrant onlyOwner {
     if (timestamp_ <= block.timestamp)
       revert MustPurgeExpiredTokenInTheFuture();
 
@@ -1253,11 +1253,13 @@ contract LiquidityManager is
    * @notice Updates a position up to a certain compensation index
    * @param positionId_ The ID of the position
    * @param endCompensationIndexes_ The end indexes of the compensations to update up to for each pool
+   *
+   * @dev Only callable by owner but does not enable it to withdraw funds or rewards
    */
   function updatePositionUpTo(
     uint256 positionId_,
     uint256[] calldata endCompensationIndexes_
-  ) external nonReentrant onlyPositionOwner(positionId_) {
+  ) external nonReentrant onlyOwner {
     Position storage position = _positions[positionId_];
 
     // Locks interests to avoid abusively early withdrawal commits

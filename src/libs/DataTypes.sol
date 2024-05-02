@@ -63,11 +63,15 @@ library DataTypes {
     uint64[] overlappedPools;
     uint256 ongoingClaims;
     uint256[] compensationIds;
-    /// @dev poolId 0 -> poolId 0 points to a pool's own liquidity
-    /// @dev liquidity overlap is always registered in the lower poolId
-    // Maps poolId 0 -> poolId 1 -> overlapping capital
+    /**
+     * Maps poolId 0 -> poolId 1 -> overlapping capital
+     *
+     * @dev poolId 0 -> poolId 0 points to a pool's own liquidity
+     * @dev liquidity overlap is always registered in the lower poolId
+     */
     mapping(uint64 _poolId => uint256 _amount) overlaps;
     mapping(uint256 _positionId => LpInfo) lpInfos;
+    // Maps an word position index to a bitmap of tick states (initialized or not)
     mapping(uint24 _wordPos => uint256 _bitmap) tickBitmap;
     // Maps a tick to the list of cover IDs
     mapping(uint32 _tick => uint256[] _coverIds) ticks;
