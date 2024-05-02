@@ -35,6 +35,8 @@ import {
   AthenaToken,
   // Other
   TetherToken,
+  ERC20,
+  ERC20__factory,
   IERC20,
   IERC20__factory,
   IAaveLendingPoolV2__factory,
@@ -287,7 +289,7 @@ export async function balanceOfAaveUsdc(
 // === Token helpers === //
 // ===================== //
 
-async function transfer<T extends IERC20>(
+async function transfer<T extends IERC20 | ERC20>(
   contract: T | TetherToken,
   signer: Wallet,
   ...args: Parameters<IERC20["transfer"]>
@@ -295,7 +297,7 @@ async function transfer<T extends IERC20>(
   return postTxHandler(contract.connect(signer).transfer(...args));
 }
 
-export async function approve<T extends IERC20>(
+export async function approve<T extends IERC20 | ERC20>(
   contract: T | TetherToken,
   signer: Wallet,
   ...args: Parameters<IERC20["approve"]>
@@ -309,7 +311,7 @@ export async function approve<T extends IERC20>(
   );
 }
 
-async function maxApprove<T extends IERC20>(
+async function maxApprove<T extends IERC20 | ERC20>(
   contract: T | TetherToken,
   signer: Wallet,
   spender: string,

@@ -1,23 +1,29 @@
-import hre from "hardhat";
-import fs from "fs";
 import { exec } from "child_process";
+import fs from "fs";
+import hre, { ethers } from "hardhat";
 import { promisify } from "util";
+import { entityProviderChainId } from "../test/helpers/hardhat";
+import {
+  aaveLendingPoolV3Address,
+  usdcTokenAddress,
+} from "../test/helpers/protocol";
 import { getNetworkAddresses } from "./verificationData/addresses";
 import { getDeployConfig } from "./verificationData/deployParams";
 //
+import { Wallet } from "ethers";
 import {
   AthenaCoverToken__factory,
+  AthenaDataProvider__factory,
   AthenaPositionToken__factory,
   AthenaToken__factory,
-  PoolMath__factory,
-  VirtualPool__factory,
-  AthenaDataProvider__factory,
   ClaimManager__factory,
-  StrategyManager__factory,
-  LiquidityManager__factory,
-  RewardManager__factory,
   EcclesiaDao__factory,
+  LiquidityManager__factory,
   MockArbitrator__factory,
+  PoolMath__factory,
+  RewardManager__factory,
+  StrategyManager__factory,
+  VirtualPool__factory,
 } from "../typechain";
 //
 import dotenv from "dotenv";
@@ -141,6 +147,12 @@ async function main() {
   const networkName = hre.network.name.toUpperCase();
   console.log(`\n== VERIFYING ON ${networkName} ==\n`);
 
+  const deployer = (await ethers.getSigners())[0] as unknown as Wallet;
+  console.log("deployer: ", deployer.address);
+
+  const chainId = await entityProviderChainId(deployer);
+  if (!chainId) throw Error("No chainId found for deployment signer");
+
   const config = getDeployConfig();
   const deployedAt = getNetworkAddresses();
 
@@ -200,9 +212,11 @@ async function main() {
     [
       deployedAt.LiquidityManager,
       deployedAt.EcclesiaDao,
+      aaveLendingPoolV3Address(chainId),
+      usdcTokenAddress(chainId),
       config.buybackWallet.address,
       config.payoutDeductibleRate, // payoutDeductibleRate
-      config.performanceFee, // performanceFee
+      config.performanceFeeRate, // performanceFee
     ],
   );
   console.log("==> Verification processed for StrategyManager");
