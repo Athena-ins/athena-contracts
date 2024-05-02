@@ -10,7 +10,16 @@ Victor (blackwhale)
 
 - WhatsApp: +33 619959453
 - Telegram: https://t.me/blackwhale_eth
-- Discord: vblackwhale
+- Discord: vblackwhale - https://discordapp.com/users/vblackwhale
+
+## Tech Stack
+
+- Solidity 0.8.25
+- Typescript
+- Hardhat
+- Ethers v5 (BigNumber)
+- Typechain
+- Mocha + Chai
 
 ## Objectives
 
@@ -73,6 +82,36 @@ removeLiquidity
 takeInterests
 withdrawCompensation
 ```
+
+## Running tests
+
+You have a lot of helpers in the `test/helpers/` folder that can help you execute actions or deploy the whole protocol with just a few parameters. This will definetily be helpuful to you task. You can also check the `test/context.ts` file to get an idea of all the tools available to you through the `this` context within tests.
+
+A good starting point to run tests against the contracts is to copy either:
+- `test/integration/sanity.test.ts`
+- `test/scenarios/allActions.ts`
+
+Both of these tests include all the main actions and can easily be modified in order to run you test cases. Then:
+
+- To include another test file add it to `test/index.ts`
+- To include another test scenario add it to `test/scenarios/scenario.test.ts`
+- You can comment out any test you want to skip in `test/index.ts`
+
+Finally after having completed you `.env` file you can run the tests with:
+
+```
+$ npm run test
+```
+
+Additionally you can get faster tests execution by activating parallelization in `hardhat.config.ts`. Be warned that this will probably break sequentiality of `console.log` within tests suites.  
+
+```
+ // parallel: true,
+```
+
+
+&nbsp;
+&nbsp;
 
 # How does it work ?
 
@@ -307,14 +346,14 @@ Consider the following diagram that represents the premium rewards of a position
 
 Here are some scenarios that could explain the changes in reward rate taking place at a, b and c:
 
-#### a:
+#### a.
 
 - Increase in utilization because of new covers
 - Increase in utilization because liquidity was removed from the pool
 - Increase in utilization because a pool with overlapped capital reduced liquidity in pool
 - Increase in rewards because the user added more liquidity to their position
 
-#### b:
+#### b.
 
 - Decrease in utilization rate because covers expired
 - Decrease in utilization rate because covers was closed
@@ -323,7 +362,7 @@ Here are some scenarios that could explain the changes in reward rate taking pla
 - Loss of position capital because of compensations in the pool
 - Loss of position capital because of compensations in another pool of the position
 
-#### c:
+#### c.
 
 - Decrease in utilization to 0% because all covers expired
 - Decrease in utilization to 0% because all covers were closed
@@ -331,7 +370,7 @@ Here are some scenarios that could explain the changes in reward rate taking pla
 - Loss of all position capital because of compensations in the pool
 - Loss of all position capital because of compensations in another pool of the position
 
-This is the reason why we parse all the compensations in order to correctly update utilization and position capital so that we can compute the
+This is the reason why we parse all the compensations and see if it matches a pool in the position. We need to correctly update utilization and capital so that we can compute the correct amount of rewards for a given period.
 
 ### Implications of leverage
 
@@ -344,7 +383,7 @@ The fact that liquidity providers may use leverage when creating positions means
 - Since the position is using leverage it will have to pay an additional fee to the risk fund in order to reduce systemic protocol risk
 - The position's capital is exposed to the risk of paying bay cover buyers in both pools
 - Both pool A and pool B will need to have enough available liquidity for the position owner to withdraw
-- If a compensation is paid out in pool A then pool B's liquidity will be reduced because of the shared liquidity, this reverse is also true
+- If a compensation is paid out in pool A then pool B's liquidity will be reduced because of the shared liquidity, the reverse is also true
 
 <div align="center">
     <img src="assets/leverage.png" alt="drawing" width="800" align="center"/>
@@ -405,7 +444,7 @@ This operation will remove expired covers and refresh key parameters in the pool
 
 Currently claims will be handled manually but soon we'll be implementing the latest Kleros (https://kleros.io/) court system to handle claim processing in fully decentralized manner. In the mean time consider the claim manager to be a trusted EOA.
 
-### Tick optimisation
+### Tick optimization
 
 Yes. There are too many loops and probably significant gas savings to make. We'd love to hear your ideas but at the moment it is essential that user funds are secure and the protocol usable. Please focus on security. My optimization-loving-heart is broken too but we need to get this protocol on-chain before making it better.
 
