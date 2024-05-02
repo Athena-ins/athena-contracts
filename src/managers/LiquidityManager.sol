@@ -1164,8 +1164,7 @@ contract LiquidityManager is
         /// @dev Skip available liquidity lock check as payouts are always possible
         VirtualPool._syncLiquidity(poolIdB, 0, amountToRemove, true);
 
-        // Reduce available liquidity,
-        // at i = 0 this is the self liquidity of cover's pool
+        // Reduce available liquidity, at i = 0 this is the liquidity of cover's pool
         pool0.overlaps[poolId1] -= amountToRemove;
 
         // Only remove liquidity in indirectly dependant pools other than the cover's pool

@@ -203,7 +203,7 @@ Premium APR = 8%
 
 ### Ray
 
-A ray is equal to 1e27 (27 decimals). It is used to scale up values when computing percentages in order to avoid precision loss or rounding errors when using integers.
+A ray is equal to 1e27, 27 decimals, 100000000000000000000000000. It is used to scale up values when computing percentages in order to avoid precision loss or rounding errors. Often used with a base 100 for rates so 1 ray would be equal to 1%.
 
 ### Leverage
 
@@ -211,7 +211,7 @@ In the context of Athena, a position is using leverage when it provides liquidit
 
 ### Overlaps
 
-An overlap is the total amount of liquidity shared between two pools. This occurs when positions use leverage to provide liquidity to several pools. The overlap of a pool with itself is the pool's own/self/unleveraged liquidity. This is liquidity that was provided without it being shared with any other pool.
+An overlap is the total amount of liquidity shared between two pools. This occurs when positions use leverage to provide liquidity to several pools. The overlap of a pool with itself is the pool's total liquidity. The own/self/unleveraged liquidity is liquidity that was provided without it being shared with any other pool.
 
 ### Underlying Asset / Wrapped Asset
 
@@ -293,6 +293,7 @@ The ticks also track the moment covers expire so that we can keep track of utili
 
 #### Seconds per tick
 
+- Can also be referred to as tick spacing
 - The seconds per tick is the same for all ticks
 - The max value for seconds per tick is 86400 seconds (1 day)
 - The minimal value for seconds per tick is 86400 \* (minimum premium rate (r0) / max premium rate (r0 + rSlope1 + rSlope2))
@@ -325,8 +326,8 @@ You can imagine tick contracting and expanding as usage varies in a pool:
 
 - Cover A was created between tick 1 and 2 with a duration of 5 ticks
 - Cover B was created between tick 2 and 3 with a duration of 3 ticks
-- When cover B was created, utilization increased, so the tick spacing decreased and so the cover duration of cover A was reduced
-- Once the pool reached tick 5 then cover B expired, utilization decreased, so the tick spacing increased and so the cover duration of cover A was increased
+- When cover B was created, utilization increased, so the tick spacing decreased and the duration of cover A (in seconds) was reduced
+- Once the pool reached tick 5 then cover B expired, utilization decreased, so the tick spacing increased and the duration of cover A (in seconds) was increased
 
 <div align="center">
     <img src="assets/tick-covers.png" alt="drawing" height="180" align="center"/>
@@ -403,13 +404,16 @@ This is how liquidity in these pools will be affected:
 First we must compute the ratio of the compensation in the pool where it takes place:
 compensation amount / total liquidity = 1000 / 3000 = 33%
 
-Then we apply this ratio to the self-overlaps / their own unleveraged liquidity:
-- For pool A = 2000 * 33% = $667
-- For pool B = 1000 * 33% = $333
+For pool A, the claim pool, we apply this ratio to the total liquidity: 
+- 3000 * 33% = $1000
+For pool B, the dependant pool, we apply this ratio to the liquidity overlap with pool A:
+- 1000 * 33% = $333
 
 Therefore after the claim:
-- Pool A liquidity will be: 3000 - 667 = $2333
+- Pool A liquidity will be: 3000 - 1000 = $2000
+- Pool B liquidity will be composed of $1333 of self liquidity + $667 of shared liquidity
 - Pool B liquidity will be: 2000 - 333 = $1667
+- Pool B liquidity will be composed of $1000 of self liquidity + $667 of shared liquidity
 - Unleveraged liquidity providers in Pool A will have lost 33% of their capital
 - Unleveraged liquidity providers in Pool B will have lost 0% of their capital
 - Leveraged liquidity providers in Pool A + B will have lost 33% of their capital
