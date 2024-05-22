@@ -3,7 +3,6 @@ pragma solidity 0.8.25;
 
 // Libraries
 import { RayMath } from "../libs/RayMath.sol";
-import { Tick } from "../libs/Tick.sol";
 import { TickBitmap } from "../libs/TickBitmap.sol";
 import { PoolMath } from "../libs/PoolMath.sol";
 
@@ -16,7 +15,6 @@ library DataTypes {
     uint32 tick; // The last tick at which the pool's liquidity was updated
     uint256 secondsPerTick; // The distance in seconds between ticks
     uint256 coveredCapital;
-    uint256 remainingCovers;
     // The last timestamp at which the current tick changed
     uint256 lastUpdateTimestamp;
     // The index tracking how much premiums have been consumed in favor of LP
@@ -36,7 +34,6 @@ library DataTypes {
      * If cover is expired: tick at which the cover was expired minus 1
      */
     uint32 lastTick;
-    uint224 coverIdIndex; // The index of the coverId in its last tick
   }
 
   struct Compensation {
@@ -73,8 +70,8 @@ library DataTypes {
     mapping(uint256 _positionId => LpInfo) lpInfos;
     // Maps an word position index to a bitmap of tick states (initialized or not)
     mapping(uint24 _wordPos => uint256 _bitmap) tickBitmap;
-    // Maps a tick to the list of cover IDs
-    mapping(uint32 _tick => uint256[] _coverIds) ticks;
+    // Maps a tick to the amount of cover that expires after that tick ends
+    mapping(uint32 _tick => uint256 _coverAmount) ticks;
     // Maps a cover ID to the premium position of the cover
     mapping(uint256 _coverId => Cover) covers;
   }

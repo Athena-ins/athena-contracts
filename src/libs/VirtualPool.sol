@@ -3,7 +3,6 @@ pragma solidity 0.8.25;
 
 // Libraries
 import { RayMath } from "../libs/RayMath.sol";
-import { Tick } from "../libs/Tick.sol";
 import { TickBitmap } from "../libs/TickBitmap.sol";
 import { PoolMath } from "../libs/PoolMath.sol";
 import { DataTypes } from "../libs/DataTypes.sol";
@@ -47,12 +46,11 @@ library VirtualPool {
   using VirtualPool for DataTypes.VPool;
   using RayMath for uint256;
   using SafeERC20 for IERC20;
-  using Tick for mapping(uint32 => uint256[]);
   using TickBitmap for mapping(uint24 => uint256);
 
   // ======= EVENTS ======= //
 
-  event TickExpired(uint64 indexed poolId, uint256[] coverIds);
+  event TickExpired(uint64 indexed poolId, uint32 tick);
 
   // ======= CONSTANTS ======= //
 
@@ -600,21 +598,17 @@ library VirtualPool {
     uint256 beginPremiumRate_,
     uint32 lastTick_
   ) internal {
-    uint224 nbCoversInTick = self.ticks.addCoverId(
-      coverId_,
-      lastTick_
-    );
+    self.ticks[lastTick_] += coverAmount_;
 
     self.covers[coverId_] = DataTypes.Cover({
       coverAmount: coverAmount_,
       beginPremiumRate: beginPremiumRate_,
-      lastTick: lastTick_,
-      coverIdIndex: nbCoversInTick
+      lastTick: lastTick_
     });
 
     /**
      * If the tick at which the cover expires is not initialized then initialize it
-     * this indicates that the tick has covers and is not empty
+     * this indicates that the tick is not empty and has covers that expire
      */
     if (!self.tickBitmap.isInitializedTick(lastTick_)) {
       self.tickBitmap.flipTick(lastTick_);
@@ -678,7 +672,6 @@ library VirtualPool {
       lastTick
     );
 
-    self.slot0.remainingCovers++;
     self.slot0.coveredCapital += coverAmount_;
     self.slot0.secondsPerTick = newSecondsPerTick;
   }
@@ -696,23 +689,14 @@ library VirtualPool {
 
     DataTypes.Cover memory cover = self.covers[coverId_];
 
-    // If there are more than 1 cover in the tick then remove the cover from the tick
-    if (1 < self.ticks.nbCoversInTick(cover.lastTick)) {
-      uint256 coverIdToReplace = self.ticks.getLastCoverIdInTick(
-        cover.lastTick
-      );
+    // Remove cover amount from the tick at which it expires
+    uint256 coverAmount = cover.coverAmount;
+    self.ticks[cover.lastTick] -= coverAmount;
 
-      if (coverId_ != coverIdToReplace) {
-        self.covers[coverIdToReplace].coverIdIndex = self
-          .covers[coverId_]
-          .coverIdIndex;
-      }
-
-      self.ticks.removeCoverId(cover.coverIdIndex, cover.lastTick);
-    } else {
-      // If it is the only cover in the tick then purge the entire tick
-      /// @dev cover may be be in transitory close state for update so we don't clear it from pool state
-      self._removeTick(cover.lastTick);
+    // If there is no more cover in the tick then flip it to uninitialized
+    if (self.ticks[cover.lastTick] == 0) {
+      self.tickBitmap.flipTick(cover.lastTick);
+      emit TickExpired(self.poolId, cover.lastTick);
     }
 
     uint256 liquidity = totalLiquidity(self.poolId);
@@ -723,32 +707,16 @@ library VirtualPool {
       liquidity,
       self.slot0.coveredCapital,
       liquidity,
-      self.slot0.coveredCapital - cover.coverAmount
+      self.slot0.coveredCapital - coverAmount
     );
 
-    self.slot0.remainingCovers--;
-    self.slot0.coveredCapital -= cover.coverAmount;
+    self.slot0.coveredCapital -= coverAmount;
 
+    // @dev We remove 1 since the covers expire at the end of the tick
     self.covers[coverId_].lastTick = self.slot0.tick - 1;
   }
 
   // ======= INTERNAL POOL HELPERS ======= //
-
-  /**
-   * @notice Removes covers in a tick flips its state to uninitialized
-   *
-   * @param self The pool
-   * @param tick_ The tick to remove
-   */
-  function _removeTick(
-    DataTypes.VPool storage self,
-    uint32 tick_
-  ) internal {
-    self.ticks.clear(tick_);
-    self.tickBitmap.flipTick(tick_);
-
-    emit TickExpired(self.poolId, self.ticks[tick_]);
-  }
 
   /**
    * @notice Purges expired covers from the pool and updates the pool's slot0 up to the latest timestamp
@@ -1115,35 +1083,23 @@ library VirtualPool {
       uint256 premiumRate
     )
   {
-    uint256[] memory coverIds = self.ticks[tick_];
+    uint256 liquidity = totalLiquidity(self.poolId);
+    // Remove expired cover amount from the pool's covered capital
+    uint256 newCoveredCapital = slot0_.coveredCapital -
+      self.ticks[tick_];
 
-    uint256 coveredCapitalToRemove;
+    (premiumRate, slot0_.secondsPerTick, utilization) = PoolMath
+      .updatePoolMarket(
+        self.formula,
+        self.slot0.secondsPerTick,
+        liquidity,
+        self.slot0.coveredCapital,
+        liquidity,
+        newCoveredCapital
+      );
 
-    uint256 nbCovers = coverIds.length;
-    for (uint256 i; i < nbCovers; i++) {
-      // Add all the size of all covers in the tick
-      coveredCapitalToRemove += self.covers[coverIds[i]].coverAmount;
-    }
-
-    {
-      uint256 liquidity = totalLiquidity(self.poolId);
-      uint256 newCoveredCapital = slot0_.coveredCapital -
-        coveredCapitalToRemove;
-
-      (premiumRate, slot0_.secondsPerTick, utilization) = PoolMath
-        .updatePoolMarket(
-          self.formula,
-          self.slot0.secondsPerTick,
-          liquidity,
-          self.slot0.coveredCapital,
-          liquidity,
-          newCoveredCapital
-        );
-    }
-
-    // These are the mutated values
-    slot0_.coveredCapital -= coveredCapitalToRemove;
-    slot0_.remainingCovers -= nbCovers;
+    // Remove expired cover amount from the pool's covered capital
+    slot0_.coveredCapital = newCoveredCapital;
 
     return (slot0_, utilization, premiumRate);
   }
