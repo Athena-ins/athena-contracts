@@ -16,6 +16,7 @@ import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import { ILiquidityManager } from "../interfaces/ILiquidityManager.sol";
 import { IEcclesiaDao } from "../interfaces/IEcclesiaDao.sol";
 import { IAaveLendingPoolV3 } from "../interfaces/IAaveLendingPoolV3.sol";
+import { IAaveRewardsController } from "../interfaces/IAaveRewardsController.sol";
 
 //======== ERRORS ========//
 
@@ -498,6 +499,42 @@ contract StrategyManager is IStrategyManager, Ownable {
     for (uint256 i; i < length; i++) {
       whiteListedLiquidityProviders[address_[i]] = status_[i];
     }
+  }
+
+  /**
+   * @notice Claims extra AAVE rewards
+   * @param rewardsController The address of the rewards controller
+   * @param rewardableAssets The list of assets to check eligible distributions
+   * @param amount The amount of rewards to claim
+   * @param reward The address of the reward token
+   */
+  function claimAaveRewards(
+    address rewardsController,
+    address[] calldata rewardableAssets,
+    uint256 amount,
+    address reward
+  ) external onlyOwner {
+    IAaveRewardsController(rewardsController).claimRewards(
+      rewardableAssets,
+      amount,
+      msg.sender,
+      reward
+    );
+  }
+
+  /**
+   * @notice Claims all extra AAVE rewards
+   * @param rewardsController The address of the rewards controller
+   * @param rewardableAssets The list of assets to check eligible distributions
+   */
+  function claimAllAaveRewards(
+    address rewardsController,
+    address[] calldata rewardableAssets
+  ) external onlyOwner {
+    IAaveRewardsController(rewardsController).claimAllRewards(
+      rewardableAssets,
+      msg.sender
+    );
   }
 
   /**
