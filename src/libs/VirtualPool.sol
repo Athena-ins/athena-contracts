@@ -20,6 +20,7 @@ import { console } from "hardhat/console.sol";
 
 error ZeroAddressAsset();
 error DurationBelowOneTick();
+error DurationOverflow();
 error InsufficientCapacity();
 error NotEnoughLiquidityForRemoval();
 
@@ -414,6 +415,7 @@ library VirtualPool {
       uint256 leverageFee;
       if (1 < nbPools_) {
         // The risk fee is only applied when using leverage
+        // @dev The leverage fee is per pool so it starts at 2 * leverageFeePerPool
         leverageFee =
           (rewards_ * (self.leverageFeePerPool * nbPools_)) /
           HUNDRED_PERCENT;
@@ -663,8 +665,11 @@ library VirtualPool {
       revert DurationBelowOneTick();
 
     // @dev The user can loose up to almost 1 tick of cover due to the division
-    uint32 lastTick = self.slot0.tick +
-      uint32(durationInSeconds / newSecondsPerTick);
+    uint256 tickDuration = durationInSeconds / newSecondsPerTick;
+    // Check for overflow in case the cover amount is very low
+    if (type(uint32).max < tickDuration) revert DurationOverflow();
+
+    uint32 lastTick = self.slot0.tick + uint32(tickDuration);
 
     self._addPremiumPosition(
       coverId_,

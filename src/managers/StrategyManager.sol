@@ -516,7 +516,7 @@ contract StrategyManager is IStrategyManager, Ownable {
     if (token == address(0)) {
       payable(to).transfer(amount);
     } else {
-      IERC20(token).transfer(to, amount);
+      IERC20(token).safeTransfer(to, amount);
     }
   }
 }
