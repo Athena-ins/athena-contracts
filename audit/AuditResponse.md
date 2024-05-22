@@ -1,6 +1,6 @@
 ## [H-01] Cover premium rewards can be lost High
 
-Status:
+Status: fixed
 
 ## [M-01] First leveraged pool is extra penalized Medium
 
@@ -16,7 +16,7 @@ Status: fixed
 
 Status: fixed
 
-note for auditors: Integrating individual computation of rewards per user would be too time consuming at the moment and rewards may be negligible. We have implemented a two functions to avoid the loss of additional rewards and will review in what shape they can be redistributed to users in case the amounts are worthwhile.
+note for auditors: Integrating individual computation of rewards per user would be too time consuming at the moment and rewards may be negligible. We have implemented two privileged functions in the `StrategyManager` to avoid the loss of extra rewards. If the amounts become worthwhile, we will review how they can be redistributed to users.
 
 ## [L-01] Possible silent overflow Low
 

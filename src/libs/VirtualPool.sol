@@ -13,8 +13,6 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol"
 import { IEcclesiaDao } from "../interfaces/IEcclesiaDao.sol";
 import { IStrategyManager } from "../interfaces/IStrategyManager.sol";
 
-import { console } from "hardhat/console.sol";
-
 // ======= ERRORS ======= //
 
 error ZeroAddressAsset();
@@ -278,34 +276,46 @@ library VirtualPool {
       // Amount of time contained in the next tick segment
       /// @dev Add one to check if we can reach end of the tick to purge it
       uint256 secondsToNextTickEnd = slot0.secondsPerTick *
-        (1 + nextTick - slot0.tick);
+        ((1 + nextTick) - slot0.tick);
 
       if (secondsToNextTickEnd <= remaining) {
-        // If the tick has covers then expire them & update pool metrics
-        if (isInitialized) {
-          (slot0, utilization, premiumRate) = self
-            ._crossingInitializedTick(slot0, nextTick);
-        }
 
         // Remove parsed tick size from remaining time to current timestamp
         remaining -= secondsToNextTickEnd;
         secondsParsed = secondsToNextTickEnd;
+
+        slot0.liquidityIndex += PoolMath.computeLiquidityIndex(
+          utilization,
+          premiumRate,
+          secondsParsed
+        );
+
+        // If the tick has covers then expire them & update pool metrics 
+        if (isInitialized) {
+          (slot0, utilization, premiumRate) = self
+            ._crossingInitializedTick(slot0, nextTick);
+        }
+        // Add one since we overtake nextTick & are now at the start of nextTick + 1
         slot0.tick = nextTick + 1;
       } else {
-        // Time bewteen start of the new tick and the current timestamp
+        /**
+         * Time bewteen start of the new tick and the current timestamp
+         * This is ignored since this is not enough for a full tick to be processed
+         */ 
         secondsSinceTickStart = remaining % slot0.secondsPerTick;
         // Ignore interests of current uncompleted tick
         secondsParsed = remaining - secondsSinceTickStart;
+        // Number of complete ticks that we can take into account
         slot0.tick += uint32(secondsParsed / slot0.secondsPerTick);
         // Exit loop after the liquidity index update
         remaining = 0;
-      }
 
-      slot0.liquidityIndex += PoolMath.computeLiquidityIndex(
-        utilization,
-        premiumRate,
-        secondsParsed
-      );
+        slot0.liquidityIndex += PoolMath.computeLiquidityIndex(
+          utilization,
+          premiumRate,
+          secondsParsed
+        );
+      }
     }
 
     // Remove ignored duration so the update aligns with current tick start
@@ -658,7 +668,10 @@ library VirtualPool {
     if (durationInSeconds < newSecondsPerTick)
       revert DurationBelowOneTick();
 
-    // @dev The user can loose up to almost 1 tick of cover due to the division
+    /**
+     * @dev The user can loose up to almost 1 tick of cover due to the floored division
+     * The user can also win up to almost 1 tick of cover if he opens the cover at the start of a tick
+     */
     uint256 tickDuration = durationInSeconds / newSecondsPerTick;
     // Check for overflow in case the cover amount is very low
     if (type(uint32).max < tickDuration) revert DurationOverflow();

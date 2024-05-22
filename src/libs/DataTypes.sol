@@ -12,10 +12,15 @@ import { IStrategyManager } from "../interfaces/IStrategyManager.sol";
 
 library DataTypes {
   struct Slot0 {
-    uint32 tick; // The last tick at which the pool's liquidity was updated
-    uint256 secondsPerTick; // The distance in seconds between ticks
+    // The last tick at which the pool's liquidity was updated
+    uint32 tick;
+    // The distance in seconds between ticks
+    uint256 secondsPerTick;
     uint256 coveredCapital;
-    // The last timestamp at which the current tick changed
+    /**
+     * The last timestamp at which the current tick changed
+     * This value indicates the start of the current stored tick
+     */
     uint256 lastUpdateTimestamp;
     // The index tracking how much premiums have been consumed in favor of LP
     uint256 liquidityIndex;
