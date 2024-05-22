@@ -31,7 +31,7 @@ library DataTypes {
     uint256 beginPremiumRate;
     /**
      * If cover is active: last last tick for which the cover is valid
-     * If cover is expired: tick at which the cover was expired minus 1
+     * If cover is expired: slot0 tick at which the cover was expired minus 1
      */
     uint32 lastTick;
   }

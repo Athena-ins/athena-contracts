@@ -24,6 +24,7 @@ error NotLiquidityManager();
 error OnlyWhitelistCanDepositLiquidity();
 error RateAboveMax();
 error ArgumentLengthMismatch();
+error TransferCallFailed();
 
 /**
  * @title Athena Strategy Manager
@@ -514,7 +515,8 @@ contract StrategyManager is IStrategyManager, Ownable {
     uint256 amount
   ) external onlyOwner {
     if (token == address(0)) {
-      payable(to).transfer(amount);
+      (bool success, ) = payable(to).call{ value: amount }("");
+      if (!success) revert TransferCallFailed();
     } else {
       IERC20(token).safeTransfer(to, amount);
     }

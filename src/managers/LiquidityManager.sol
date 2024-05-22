@@ -38,7 +38,7 @@ error CannotUpdateCommittedPosition();
 error CannotTakeInterestsCommittedPosition();
 error CannotIncreaseCommittedPosition();
 error PositionNotCommited();
-error SenderNotLiquidationManager();
+error SenderNotLiquidityManager();
 error PoolHasOnGoingClaims();
 error ForbiddenZeroValue();
 error MustPurgeExpiredTokenInTheFuture();
@@ -1087,7 +1087,7 @@ contract LiquidityManager is
   ) external {
     // this function should be called only by this contract
     if (msg.sender != address(this)) {
-      revert SenderNotLiquidationManager();
+      revert SenderNotLiquidityManager();
     }
 
     // This will trigger the catch part of the try/catch
