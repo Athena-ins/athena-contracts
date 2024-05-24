@@ -46,10 +46,6 @@ library VirtualPool {
   using SafeERC20 for IERC20;
   using TickBitmap for mapping(uint24 => uint256);
 
-  // ======= EVENTS ======= //
-
-  event TickExpired(uint64 indexed poolId, uint32 tick);
-
   // ======= CONSTANTS ======= //
 
   bytes32 private constant POOL_SLOT_HASH =
@@ -273,16 +269,17 @@ library VirtualPool {
         );
       }
 
-      // Amount of time contained in the next tick segment
-      /// @dev Add one to check if we can reach end of the tick to purge it
-      uint256 secondsToNextTickEnd = slot0.secondsPerTick *
-        ((1 + nextTick) - slot0.tick);
+      /**
+       * Amount of time until we reach the start of the last tick for the cover
+       * We can consume the premiums safely as they cannot be refunded
+       */
+      uint256 secondsToNextTickStart = slot0.secondsPerTick *
+        (nextTick - slot0.tick);
 
-      if (secondsToNextTickEnd <= remaining) {
-
+      if (secondsToNextTickStart <= remaining) {
         // Remove parsed tick size from remaining time to current timestamp
-        remaining -= secondsToNextTickEnd;
-        secondsParsed = secondsToNextTickEnd;
+        remaining -= secondsToNextTickStart;
+        secondsParsed = secondsToNextTickStart;
 
         slot0.liquidityIndex += PoolMath.computeLiquidityIndex(
           utilization,
@@ -290,18 +287,18 @@ library VirtualPool {
           secondsParsed
         );
 
-        // If the tick has covers then expire them & update pool metrics 
+        // If the tick has covers then expire them & update pool metrics
         if (isInitialized) {
           (slot0, utilization, premiumRate) = self
             ._crossingInitializedTick(slot0, nextTick);
         }
-        // Add one since we overtake nextTick & are now at the start of nextTick + 1
-        slot0.tick = nextTick + 1;
+        // Pool is now at the start of nextTick
+        slot0.tick = nextTick;
       } else {
         /**
          * Time bewteen start of the new tick and the current timestamp
          * This is ignored since this is not enough for a full tick to be processed
-         */ 
+         */
         secondsSinceTickStart = remaining % slot0.secondsPerTick;
         // Ignore interests of current uncompleted tick
         secondsParsed = remaining - secondsSinceTickStart;
@@ -670,7 +667,7 @@ library VirtualPool {
 
     /**
      * @dev The user can loose up to almost 1 tick of cover due to the floored division
-     * The user can also win up to almost 1 tick of cover if he opens the cover at the start of a tick
+     * The user can also win up to almost 1 tick of cover if it is opened at the start of a tick
      */
     uint256 tickDuration = durationInSeconds / newSecondsPerTick;
     // Check for overflow in case the cover amount is very low
@@ -709,7 +706,6 @@ library VirtualPool {
     // If there is no more cover in the tick then flip it to uninitialized
     if (self.ticks[cover.lastTick] == 0) {
       self.tickBitmap.flipTick(cover.lastTick);
-      emit TickExpired(self.poolId, cover.lastTick);
     }
 
     uint256 liquidity = totalLiquidity(self.poolId);
