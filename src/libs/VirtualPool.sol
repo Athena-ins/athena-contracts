@@ -256,24 +256,13 @@ library VirtualPool {
     while (slot0.secondsPerTick <= remaining) {
       secondsSinceTickStart = 0;
 
-      uint32 nextTick;
-      bool isInitialized;
+      // Search for the next tick, either last in bitmap or next initialized
+      (uint32 nextTick, bool isInitialized) = self
+        .tickBitmap
+        .nextTick(slot0.tick);
 
-      if (self.tickBitmap.isInitializedTick(slot0.tick)) {
-        // Check current tick
-        (nextTick, isInitialized) = (slot0.tick, true);
-      } else {
-        // Else search for the next tick
-        (nextTick, isInitialized) = self.tickBitmap.nextTick(
-          slot0.tick
-        );
-      }
-
-      /**
-       * Add 1 for the time to overtake the last tick for the cover
-       */
       uint256 secondsToNextTickEnd = slot0.secondsPerTick *
-        ((1 + nextTick) - slot0.tick);
+        (nextTick - slot0.tick);
 
       if (secondsToNextTickEnd <= remaining) {
         // Remove parsed tick size from remaining time to current timestamp
@@ -283,17 +272,16 @@ library VirtualPool {
         slot0.liquidityIndex += PoolMath.computeLiquidityIndex(
           utilization,
           premiumRate,
-          // Since we overtake the last tick we need to remove the tick size
-          secondsParsed - slot0.secondsPerTick
+          secondsParsed
         );
 
-        // If the tick has covers then expire them & update pool metrics
+        // If the tick has covers then update pool metrics
         if (isInitialized) {
           (slot0, utilization, premiumRate) = self
             ._crossingInitializedTick(slot0, nextTick);
         }
-        // Pool is now synched at the start of nextTick plus one
-        slot0.tick = nextTick + 1;
+        // Pool is now synched at the start of nextTick
+        slot0.tick = nextTick;
       } else {
         /**
          * Time bewteen start of the new tick and the current timestamp
