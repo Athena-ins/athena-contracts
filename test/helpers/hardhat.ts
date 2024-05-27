@@ -144,10 +144,6 @@ export async function impersonateAccount(address: string) {
 // ========================== //
 
 export function formatNonce(nonce: number) {
-  if (nonce == 0) {
-    nonce = 1;
-    console.warn("WARN - Nonce is not 0 indexed!");
-  }
   const hexNonce = nonce.toString(16);
   return hexNonce.length % 2 ? `0${hexNonce}` : hexNonce;
 }
@@ -162,6 +158,11 @@ export async function genContractAddress(
       : [signer.address, await signer.getTransactionCount()];
 
   const formatedNonce = formatNonce(nonce + nonceAdd);
+
+  // Handle the special case for nonce 0
+  if (formatedNonce === "00") {
+    return `0x${keccak256(`0xd694${fromUnsigned.slice(2)}80`).slice(-40)}`;
+  }
 
   let nonceLength = "";
   if (parseInt(nonce.toString(), 16) > 127) {
