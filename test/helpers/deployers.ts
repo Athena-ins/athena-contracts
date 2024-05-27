@@ -73,10 +73,12 @@ import { ConnectWithAddress } from "./contracts-getters";
 // === Deploy contract functions === //
 // ================================= //
 
+type WithAddress<T> = T & { address: string };
+
 export async function deployPoolMath(
   signer: Signer,
   args: Parameters<PoolMath__factory["deploy"]>,
-): Promise<PoolMath> {
+): Promise<WithAddress<PoolMath>> {
   return new PoolMath__factory(signer).deploy(...args);
 }
 
@@ -84,7 +86,7 @@ export async function deployVirtualPool(
   signer: Signer,
   args: Parameters<VirtualPool__factory["deploy"]>,
   libAddresses: { PoolMath: string },
-): Promise<VirtualPool> {
+): Promise<WithAddress<VirtualPool>> {
   return new VirtualPool__factory(
     {
       ["src/libs/PoolMath.sol:PoolMath"]: libAddresses.PoolMath,
@@ -97,7 +99,7 @@ export async function deployAthenaDataProvider(
   signer: Signer,
   args: Parameters<AthenaDataProvider__factory["deploy"]>,
   libAddresses: { PoolMath: string; VirtualPool: string },
-): Promise<AthenaDataProvider> {
+): Promise<WithAddress<AthenaDataProvider>> {
   return new AthenaDataProvider__factory(
     {
       ["src/libs/PoolMath.sol:PoolMath"]: libAddresses.PoolMath,
@@ -110,21 +112,21 @@ export async function deployAthenaDataProvider(
 export async function deployMockArbitrator(
   signer: Signer,
   args: Parameters<MockArbitrator__factory["deploy"]>,
-): Promise<MockArbitrator> {
+): Promise<WithAddress<MockArbitrator>> {
   return new MockArbitrator__factory(signer).deploy(...args);
 }
 
 export async function deployEcclesiaDao(
   signer: Signer,
   args: Parameters<EcclesiaDao__factory["deploy"]>,
-): Promise<EcclesiaDao> {
+): Promise<WithAddress<EcclesiaDao>> {
   return new EcclesiaDao__factory(signer).deploy(...args);
 }
 
 export async function deployClaimManager(
   signer: Signer,
   args: Parameters<ClaimManager__factory["deploy"]>,
-): Promise<ClaimManager> {
+): Promise<WithAddress<ClaimManager>> {
   return new ClaimManager__factory(signer).deploy(...args);
 }
 
@@ -135,7 +137,7 @@ export async function deployLiquidityManager(
     VirtualPool: string;
     AthenaDataProvider: string;
   },
-): Promise<LiquidityManager> {
+): Promise<WithAddress<LiquidityManager>> {
   return new LiquidityManager__factory(
     {
       ["src/libs/VirtualPool.sol:VirtualPool"]: libAddresses.VirtualPool,
@@ -149,56 +151,56 @@ export async function deployLiquidityManager(
 // export async function deployTestableLiquidityManager(
 //   signer: Signer,
 //   args: Parameters<TestableLiquidityManager__factory["deploy"]>,
-// ): Promise<TestableLiquidityManager> {
+// ): Promise<WithAddress<TestableLiquidityManager>> {
 //   return new TestableLiquidityManager__factory(signer).deploy(...args);
 // }
 
 export async function deployStrategyManager(
   signer: Signer,
   args: Parameters<StrategyManager__factory["deploy"]>,
-): Promise<StrategyManager> {
+): Promise<WithAddress<StrategyManager>> {
   return new StrategyManager__factory(signer).deploy(...args);
 }
 
 export async function deployFarmingRange(
   signer: Signer,
   args: Parameters<FarmingRange__factory["deploy"]>,
-): Promise<FarmingRange> {
+): Promise<WithAddress<FarmingRange>> {
   return new FarmingRange__factory(signer).deploy(...args);
 }
 
 export async function deployRewardManager(
   signer: Signer,
   args: Parameters<RewardManager__factory["deploy"]>,
-): Promise<RewardManager> {
+): Promise<WithAddress<RewardManager>> {
   return new RewardManager__factory(signer).deploy(...args);
 }
 
 export async function deployStaking(
   signer: Signer,
   args: Parameters<Staking__factory["deploy"]>,
-): Promise<Staking> {
+): Promise<WithAddress<Staking>> {
   return new Staking__factory(signer).deploy(...args);
 }
 
 export async function deployAthenaCoverToken(
   signer: Signer,
   args: Parameters<AthenaCoverToken__factory["deploy"]>,
-): Promise<AthenaCoverToken> {
+): Promise<WithAddress<AthenaCoverToken>> {
   return new AthenaCoverToken__factory(signer).deploy(...args);
 }
 
 export async function deployAthenaPositionToken(
   signer: Signer,
   args: Parameters<AthenaPositionToken__factory["deploy"]>,
-): Promise<AthenaPositionToken> {
+): Promise<WithAddress<AthenaPositionToken>> {
   return new AthenaPositionToken__factory(signer).deploy(...args);
 }
 
 export async function deployAthenaToken(
   signer: Signer,
   args: Parameters<AthenaToken__factory["deploy"]>,
-): Promise<AthenaToken> {
+): Promise<WithAddress<AthenaToken>> {
   return new AthenaToken__factory(signer).deploy(...args);
 }
 
@@ -262,23 +264,23 @@ export const defaultProtocolConfig: ProtocolConfig = {
 };
 
 export type DeployedProtocolContracts = {
-  TetherToken: TetherToken;
-  CircleToken: ERC20;
-  WethToken: IWETH;
-  AthenaCoverToken: AthenaCoverToken;
-  AthenaPositionToken: AthenaPositionToken;
-  AthenaToken: AthenaToken;
-  EcclesiaDao: EcclesiaDao;
-  MockArbitrator: MockArbitrator;
-  ClaimManager: ClaimManager;
-  LiquidityManager: LiquidityManager;
-  StrategyManager: StrategyManager;
-  FarmingRange: FarmingRange;
-  RewardManager: RewardManager;
-  Staking: Staking;
-  PoolMath: PoolMath;
-  VirtualPool: VirtualPool;
-  AthenaDataProvider: AthenaDataProvider;
+  TetherToken: WithAddress<TetherToken>;
+  CircleToken: WithAddress<ERC20>;
+  WethToken: WithAddress<IWETH>;
+  AthenaCoverToken: WithAddress<AthenaCoverToken>;
+  AthenaPositionToken: WithAddress<AthenaPositionToken>;
+  AthenaToken: WithAddress<AthenaToken>;
+  EcclesiaDao: WithAddress<EcclesiaDao>;
+  MockArbitrator: WithAddress<MockArbitrator>;
+  ClaimManager: WithAddress<ClaimManager>;
+  LiquidityManager: WithAddress<LiquidityManager>;
+  StrategyManager: WithAddress<StrategyManager>;
+  FarmingRange: WithAddress<FarmingRange>;
+  RewardManager: WithAddress<RewardManager>;
+  Staking: WithAddress<Staking>;
+  PoolMath: WithAddress<PoolMath>;
+  VirtualPool: WithAddress<VirtualPool>;
+  AthenaDataProvider: WithAddress<AthenaDataProvider>;
   // TestableVirtualPool: TestableVirtualPool;
 };
 

@@ -85,9 +85,10 @@ withdrawCompensation
 
 ## Running tests
 
-You have a lot of helpers in the `test/helpers/` folder that can help you execute actions or deploy the whole protocol with just a few parameters. This will definetily be helpuful to you task. You can also check the `test/context.ts` file to get an idea of all the tools available to you through the `this` context within tests.
+You have a lot of helpers in the `test/helpers/` folder that can help you execute actions or deploy the whole protocol with just a few parameters. This will definitely be helpful to you task. You can also check the `test/context.ts` file to get an idea of all the tools available to you through the `this` context within tests.
 
 A good starting point to run tests against the contracts is to copy either:
+
 - `test/integration/sanity.test.ts`
 - `test/scenarios/allActions.ts`
 
@@ -103,12 +104,11 @@ Finally after having completed you `.env` file you can run the tests with:
 npm run test
 ```
 
-Additionally you can get faster tests execution by activating parallelization in `hardhat.config.ts`. Be warned that this will probably break sequentiality of `console.log` within tests suites.  
+Additionally you can get faster tests execution by activating parallelization in `hardhat.config.ts`. Be warned that this will probably break sequentially of `console.log` within tests suites.
 
 ```js
- // parallel: true,
+// parallel: true,
 ```
-
 
 &nbsp;
 &nbsp;
@@ -404,7 +404,7 @@ This is how liquidity in these pools will be affected:
 First we must compute the ratio of the compensation in the pool where it takes place:
 compensation amount / total liquidity = 1000 / 3000 = 33%
 
-For pool A, the claim pool, we apply this ratio to the total liquidity: 
+For pool A, the claim pool, we apply this ratio to the total liquidity:
 - 3000 * 33% = $1000
 For pool B, the dependant pool, we apply this ratio to the liquidity overlap with pool A:
 - 1000 * 33% = $333
