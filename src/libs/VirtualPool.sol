@@ -270,21 +270,21 @@ library VirtualPool {
       }
 
       /**
-       * Amount of time until we reach the start of the last tick for the cover
-       * We can consume the premiums safely as they cannot be refunded
+       * Add 1 for the time to overtake the last tick for the cover
        */
-      uint256 secondsToNextTickStart = slot0.secondsPerTick *
-        (nextTick - slot0.tick);
+      uint256 secondsToNextTickEnd = slot0.secondsPerTick *
+        ((1 + nextTick) - slot0.tick);
 
-      if (secondsToNextTickStart <= remaining) {
+      if (secondsToNextTickEnd <= remaining) {
         // Remove parsed tick size from remaining time to current timestamp
-        remaining -= secondsToNextTickStart;
-        secondsParsed = secondsToNextTickStart;
+        remaining -= secondsToNextTickEnd;
+        secondsParsed = secondsToNextTickEnd;
 
         slot0.liquidityIndex += PoolMath.computeLiquidityIndex(
           utilization,
           premiumRate,
-          secondsParsed
+          // Since we overtake the last tick we need to remove the tick size
+          secondsParsed - slot0.secondsPerTick
         );
 
         // If the tick has covers then expire them & update pool metrics
@@ -292,8 +292,8 @@ library VirtualPool {
           (slot0, utilization, premiumRate) = self
             ._crossingInitializedTick(slot0, nextTick);
         }
-        // Pool is now at the start of nextTick
-        slot0.tick = nextTick;
+        // Pool is now synched at the start of nextTick plus one
+        slot0.tick = nextTick + 1;
       } else {
         /**
          * Time bewteen start of the new tick and the current timestamp
