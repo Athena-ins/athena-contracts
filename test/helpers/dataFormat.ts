@@ -22,7 +22,6 @@ export function poolInfoFormat(
       tick: data.slot0.tick,
       secondsPerTick: data.slot0.secondsPerTick.toNumber(),
       coveredCapital: data.slot0.coveredCapital,
-      remainingCovers: data.slot0.remainingCovers,
       lastUpdateTimestamp: data.slot0.lastUpdateTimestamp.toNumber(),
       liquidityIndex: data.slot0.liquidityIndex,
     },

@@ -14,7 +14,6 @@ export type PoolInfoObject = {
     tick: number;
     secondsPerTick: number;
     coveredCapital: BigNumber;
-    remainingCovers: BigNumber;
     lastUpdateTimestamp: number;
     liquidityIndex: BigNumber;
   };

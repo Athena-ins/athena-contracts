@@ -53,7 +53,6 @@ export function calcExpectedPoolDataAfterCreatePool(
       tick: 1,
       secondsPerTick: constants.MAX_SECONDS_PER_TICK.toNumber(),
       coveredCapital: BigNumber.from(0),
-      remainingCovers: BigNumber.from(0),
       lastUpdateTimestamp: txTimestamp,
       liquidityIndex: BigNumber.from(0),
     },
@@ -483,7 +482,6 @@ export function calcExpectedPoolDataAfterOpenCover(
   // These value may be unpredictably changed due to covers expiring during time travel
   expect.availableLiquidity = pool.availableLiquidity.sub(amount);
   expect.slot0.coveredCapital = pool.slot0.coveredCapital.add(amount);
-  expect.slot0.remainingCovers = pool.slot0.remainingCovers.add(1);
 
   expect.utilizationRate = utilization(
     expect.slot0.coveredCapital,
@@ -554,14 +552,6 @@ export function calcExpectedPoolDataAfterUpdateCover(
   expect.slot0.coveredCapital = pool.slot0.coveredCapital
     .add(coverToAddAmount)
     .sub(coverToRemoveAmount);
-  expect.slot0.remainingCovers = pool.slot0.remainingCovers;
-
-  if (
-    premiumsToRemoveAmount.eq(constants.MAX_UINT256) ||
-    tokenDataBefore.premiumsLeft.eq(premiumsToRemoveAmount)
-  ) {
-    expect.slot0.remainingCovers = expect.slot0.remainingCovers.sub(1);
-  }
 
   expect.utilizationRate = utilization(
     expect.slot0.coveredCapital,
@@ -679,7 +669,6 @@ export function calcExpectedPoolDataAfterWithdrawCompensation(
     claimAmount.eq(tokenDataBefore.coverAmount) ||
     expect.availableLiquidity.lt(claimAmount)
   ) {
-    expect.slot0.remainingCovers = pool.slot0.remainingCovers.sub(1);
     expect.slot0.coveredCapital = pool.slot0.coveredCapital.sub(
       tokenDataBefore.coverAmount.sub(claimAmount),
     );
