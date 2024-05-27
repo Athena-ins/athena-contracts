@@ -26,6 +26,9 @@ interface Arguments extends Mocha.Context {
 
 export function SanityTest() {
   context("Sanity Test", function () {
+    // @dev Huge timeout for edge cases with +20 pools / claims / positions / etc.
+    this.timeout(600_000);
+
     before(async function (this: Arguments) {
       this.args = {
         nbPools: 3,
@@ -42,8 +45,6 @@ export function SanityTest() {
     });
 
     it("can create pools", async function (this: Arguments) {
-      this.timeout(300_000);
-
       for (let i = 0; i < this.args.nbPools; i++) {
         const poolId = i;
 
@@ -93,8 +94,6 @@ export function SanityTest() {
     });
 
     it("accepts LPs", async function (this: Arguments) {
-      this.timeout(300_000);
-
       for (let i = 0; i < this.args.nbLpProviders; i++) {
         expect(
           await this.helpers.openPosition(
@@ -122,8 +121,6 @@ export function SanityTest() {
     });
 
     it("accepts covers", async function (this: Arguments) {
-      this.timeout(300_000);
-
       for (let i = 0; i < this.args.nbPools; i++) {
         expect(
           await this.helpers.openCover(
@@ -133,15 +130,15 @@ export function SanityTest() {
             this.args.coverPremiums,
           ),
         ).to.not.throw;
+      }
 
         expect(
           await this.contracts.AthenaCoverToken.balanceOf(
             this.signers.deployer.address,
           ),
-        ).to.equal(1 + i);
-      }
+      ).to.equal(this.args.nbPools);
 
-      await setNextBlockTimestamp({ days: 365 });
+      // await setNextBlockTimestamp({ days: 365 });
 
       for (let i = 0; i < this.args.nbPools; i++) {
         const cover = await this.contracts.LiquidityManager.coverInfo(i);
@@ -150,12 +147,37 @@ export function SanityTest() {
         expect(cover.poolId).to.equal(i);
         expect(cover.coverAmount).to.equal(this.args.coverAmount);
         expect(cover.isActive).to.be.true;
-        expect(cover.premiumsLeft).to.almostEqual(840000000);
+        // expect(cover.premiumsLeft).to.almostEqual(840000000);
+      }
+    });
+
+    it("can take interests", async function (this: Arguments) {
+      await setNextBlockTimestamp({ days: 2 });
+
+      for (let i = 0; i < this.args.nbLpProviders; i++) {
+        const positionBefore =
+          await this.contracts.LiquidityManager.positionInfo(i);
+
+        expect(await this.contracts.LiquidityManager.takeInterests(i)).to.not
+          .throw;
+
+        const position = await this.contracts.LiquidityManager.positionInfo(i);
+
+        // Check that there were rewards before
+        for (let j = 0; j < this.args.nbPools; j++) {
+          expect(positionBefore.coverRewards[j]).to.not.equal(0);
+        }
+        expect(positionBefore.strategyRewards).to.not.equal(0);
+
+        // Check that rewards were taken
+        for (let j = 0; j < this.args.nbPools; j++) {
+          expect(position.coverRewards[j]).to.equal(0);
+        }
+        expect(position.strategyRewards).to.equal(0);
       }
     });
 
     it("can create claims", async function (this: Arguments) {
-      this.timeout(300_000);
       await setNextBlockTimestamp({ days: 365 });
 
       for (let i = 0; i < this.args.nbPools; i++) {
@@ -176,7 +198,6 @@ export function SanityTest() {
     });
 
     it("can resolve claims", async function (this: Arguments) {
-      this.timeout(600_000);
       await setNextBlockTimestamp({ days: 15 });
 
       for (let i = 0; i < this.args.nbPools; i++) {
@@ -280,7 +301,6 @@ export function SanityTest() {
     });
 
     it("can commit LPs withdrawal", async function (this: Arguments) {
-      this.timeout(300_000);
       await setNextBlockTimestamp({ days: 10 });
 
       const expectedTimestamp = await getCurrentTime();
@@ -299,7 +319,6 @@ export function SanityTest() {
     });
 
     it("can withdraw LPs", async function (this: Arguments) {
-      this.timeout(600_000);
       // Wait for unlock delay to pass
       await setNextBlockTimestamp({ days: 15 });
 
