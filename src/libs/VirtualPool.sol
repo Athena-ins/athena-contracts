@@ -745,6 +745,7 @@ library VirtualPool {
 
   /**
    * @notice Checks if a cover is active or if it has expired or been closed
+   * @dev The user is protected during lastTick but the cover cannot be updated
    *
    * @param poolId_ The pool ID
    * @param coverId_ The cover ID
@@ -757,7 +758,7 @@ library VirtualPool {
   ) external view returns (bool) {
     DataTypes.VPool storage self = VirtualPool.getPool(poolId_);
 
-    return self.slot0.tick <= self.covers[coverId_].lastTick;
+    return self.slot0.tick < self.covers[coverId_].lastTick;
   }
 
   /**

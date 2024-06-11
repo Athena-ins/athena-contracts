@@ -382,7 +382,11 @@ export async function deployAllContractsAndInitializeProtocol(
   }
 
   if (deploymentOrder[txCount] === "AthenaToken") {
-    deployExecutors.push(() => deployAthenaToken(deployer, [[]]));
+    deployExecutors.push(() =>
+      deployAthenaToken(deployer, [
+        [deployedAt.EcclesiaDao, deployedAt.Staking],
+      ]),
+    );
     txCount++;
   }
 

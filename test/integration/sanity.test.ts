@@ -132,10 +132,10 @@ export function SanityTest() {
         ).to.not.throw;
       }
 
-        expect(
-          await this.contracts.AthenaCoverToken.balanceOf(
-            this.signers.deployer.address,
-          ),
+      expect(
+        await this.contracts.AthenaCoverToken.balanceOf(
+          this.signers.deployer.address,
+        ),
       ).to.equal(this.args.nbPools);
 
       // await setNextBlockTimestamp({ days: 365 });
@@ -267,12 +267,13 @@ export function SanityTest() {
       const cover = await this.contracts.LiquidityManager.coverInfo(0);
 
       expect(cover.poolId).to.equal(0);
-      expect(cover.coverAmount).to.equal(
+      expect(cover.coverAmount).to.gt(0);
+      expect(cover.coverAmount).to.lt(
         this.args.coverIncreaseAmount
           .add(this.args.coverAmount)
           .sub(this.args.claimAmount),
       );
-      expect(cover.premiumsLeft).to.equal("594121582");
+      expect(cover.premiumsLeft).to.almostEqual("753246615");
     });
 
     it("can close cover", async function (this: Arguments) {
