@@ -18,7 +18,7 @@ interface IStaking is IERC20 {
 
   struct BonusLevel {
     uint256 atenAmount;
-    uint256 yieldBonus; // Ray
+    uint256 yieldBonus; // Rays (1 Ray = 1e27 = 1%)
   }
 
   /**
