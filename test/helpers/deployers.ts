@@ -69,6 +69,8 @@ import {
 import { BigNumber, Wallet, Signer } from "ethers";
 import { ConnectWithAddress } from "./contracts-getters";
 
+const ADDRESS_ZERO = "0x0000000000000000000000000000000000000000";
+
 // ================================= //
 // === Deploy contract functions === //
 // ================================= //
@@ -346,14 +348,16 @@ export async function deployAllContractsAndInitializeProtocol(
     ),
   );
 
-  await genContractAddress(deployedAt.RewardManager, 1).then(
-    (address) => (deployedAt.FarmingRange = address),
-  );
-  await genContractAddress(deployedAt.RewardManager, 2).then(
-    (address) => (deployedAt.Staking = address),
-  );
+  // Compute deployment addresses of reward manager deployed contracts
+  if (deploymentOrder.includes("RewardManager")) {
+    deployedAt.FarmingRange = await genContractAddress(
+      deployedAt.RewardManager,
+      1,
+    );
+    deployedAt.Staking = await genContractAddress(deployedAt.RewardManager, 2);
+  }
 
-  // Add USDT & WETH interface
+  // Add token interface
   const usdtAddress = usdtTokenAddress(chainId);
   const TetherToken = TetherToken__factory.connect(usdtAddress, deployer);
 
@@ -378,11 +382,7 @@ export async function deployAllContractsAndInitializeProtocol(
   }
 
   if (deploymentOrder[txCount] === "AthenaToken") {
-    deployExecutors.push(() =>
-      deployAthenaToken(deployer, [
-        [deployedAt.EcclesiaDao, deployedAt.Staking],
-      ]),
-    );
+    deployExecutors.push(() => deployAthenaToken(deployer, [[]]));
     txCount++;
   }
 
@@ -534,54 +534,60 @@ export async function deployAllContractsAndInitializeProtocol(
   }
 
   const AthenaCoverToken = AthenaCoverToken__factory.connect(
-    deployedAt.AthenaCoverToken,
+    deployedAt.AthenaCoverToken || ADDRESS_ZERO,
     deployer,
   );
   const AthenaPositionToken = AthenaPositionToken__factory.connect(
-    deployedAt.AthenaPositionToken,
+    deployedAt.AthenaPositionToken || ADDRESS_ZERO,
     deployer,
   );
   const AthenaToken = AthenaToken__factory.connect(
-    deployedAt.AthenaToken,
+    deployedAt.AthenaToken || ADDRESS_ZERO,
     deployer,
   );
   const EcclesiaDao = EcclesiaDao__factory.connect(
-    deployedAt.EcclesiaDao,
+    deployedAt.EcclesiaDao || ADDRESS_ZERO,
     deployer,
   );
   const MockArbitrator = MockArbitrator__factory.connect(
-    deployedAt.MockArbitrator,
+    deployedAt.MockArbitrator || ADDRESS_ZERO,
     deployer,
   );
   const ClaimManager = ClaimManager__factory.connect(
-    deployedAt.ClaimManager,
+    deployedAt.ClaimManager || ADDRESS_ZERO,
     deployer,
   );
   const LiquidityManager = LiquidityManager__factory.connect(
-    deployedAt.LiquidityManager,
+    deployedAt.LiquidityManager || ADDRESS_ZERO,
     deployer,
   );
   const StrategyManager = StrategyManager__factory.connect(
-    deployedAt.StrategyManager,
+    deployedAt.StrategyManager || ADDRESS_ZERO,
     deployer,
   );
   const RewardManager = RewardManager__factory.connect(
-    deployedAt.RewardManager,
+    deployedAt.RewardManager || ADDRESS_ZERO,
     deployer,
   );
   const FarmingRange = FarmingRange__factory.connect(
-    deployedAt.FarmingRange,
+    deployedAt.FarmingRange || ADDRESS_ZERO,
     deployer,
   );
-  const Staking = Staking__factory.connect(deployedAt.Staking, deployer);
+  const Staking = Staking__factory.connect(
+    deployedAt.Staking || ADDRESS_ZERO,
+    deployer,
+  );
 
-  const PoolMath = PoolMath__factory.connect(deployedAt.PoolMath, deployer);
+  const PoolMath = PoolMath__factory.connect(
+    deployedAt.PoolMath || ADDRESS_ZERO,
+    deployer,
+  );
   const VirtualPool = VirtualPool__factory.connect(
-    deployedAt.VirtualPool,
+    deployedAt.VirtualPool || ADDRESS_ZERO,
     deployer,
   );
   const AthenaDataProvider = AthenaDataProvider__factory.connect(
-    deployedAt.AthenaDataProvider,
+    deployedAt.AthenaDataProvider || ADDRESS_ZERO,
     deployer,
   );
 
