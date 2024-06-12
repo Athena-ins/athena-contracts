@@ -12,6 +12,7 @@ deployments
 typechain
 cache
 .blackwhale
+temp
 
 # files
 *.env

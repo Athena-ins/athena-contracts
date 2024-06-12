@@ -228,14 +228,15 @@ const config: HardhatUserConfig = {
       sepolia: networkConfigs.sepolia.verifyApiKey,
     },
     customChains: [
-      // {
-      //   network: "base",
-      //   chainId: 8453,
-      //   urls: {
-      //     apiURL: "https://api.basescan.org/api",
-      //     browserURL: "https://basescan.org",
-      //   },
-      // },
+      // @dev Since we use the term "arbitrum" instead of "arbitrumOne" we need to add a custom chain
+      {
+        network: "arbitrum",
+        chainId: 42161,
+        urls: {
+          apiURL: "https://api.arbiscan.io/api",
+          browserURL: "https://arbiscan.io",
+        },
+      },
     ],
   },
 

@@ -22,6 +22,8 @@ import {
   MockArbitrator__factory,
   PoolMath__factory,
   RewardManager__factory,
+  FarmingRange__factory,
+  Staking__factory,
   StrategyManager__factory,
   VirtualPool__factory,
 } from "../typechain";
@@ -30,6 +32,8 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const execPromise = promisify(exec);
+
+const ADDRESS_ZERO = "0x0000000000000000000000000000000000000000";
 
 const fatalErrors = [
   `The address provided as argument contains a contract, but its bytecode`,
@@ -52,10 +56,6 @@ export async function verifyEtherscanContract<
   constructorArguments: Parameters<T["deploy"]>,
   libraries?: string,
 ) {
-  if (!process.env.ETHERSCAN_API_KEY) {
-    throw Error("Missing process.env.ETHERSCAN_API_KEY.");
-  }
-
   try {
     const msDelay = 3000;
     const times = 4;
@@ -65,6 +65,8 @@ export async function verifyEtherscanContract<
     let path = "";
     if (constructorArguments.length) {
       path = `temp/verify-params.js`;
+
+      if (!fs.existsSync("temp")) fs.mkdirSync("temp");
 
       fs.writeFileSync(
         path,
@@ -118,6 +120,7 @@ export async function runTaskWithRetry(
       );
     }
   } catch (error: any) {
+    console.log("error: ", error);
     counter--;
 
     if (okErrors.some((okReason) => error.message.includes(okReason))) {
@@ -156,124 +159,172 @@ async function main() {
   const config = getDeployConfig();
   const deployedAt = getNetworkAddresses();
 
+  const {
+    AthenaCoverToken: AthenaCoverToken,
+    AthenaPositionToken: AthenaPositionToken,
+    AthenaToken: AthenaToken,
+    EcclesiaDao: EcclesiaDao,
+    MockArbitrator: MockArbitrator,
+    ClaimManager: ClaimManager,
+    LiquidityManager: LiquidityManager,
+    StrategyManager: StrategyManager,
+    RewardManager: RewardManager,
+    FarmingRange: FarmingRange,
+    Staking: Staking,
+    PoolMath: PoolMath,
+    VirtualPool: VirtualPool,
+    AthenaDataProvider: AthenaDataProvider,
+  } = deployedAt;
+
   // ======= Tokens ======= //
 
-  verifyEtherscanContract<AthenaCoverToken__factory>(
-    deployedAt.AthenaCoverToken,
-    [deployedAt.LiquidityManager],
-  );
-  console.log("==> Verification processed for AthenaCoverToken");
+  if (AthenaCoverToken !== ADDRESS_ZERO) {
+    await verifyEtherscanContract<AthenaCoverToken__factory>(AthenaCoverToken, [
+      LiquidityManager,
+    ]);
+    console.log("==> Verification processed for AthenaCoverToken");
+  }
 
-  verifyEtherscanContract<AthenaPositionToken__factory>(
-    deployedAt.AthenaPositionToken,
-    [deployedAt.LiquidityManager],
-  );
-  console.log("==> Verification processed for AthenaPositionToken");
+  if (AthenaPositionToken !== ADDRESS_ZERO) {
+    await verifyEtherscanContract<AthenaPositionToken__factory>(
+      AthenaPositionToken,
+      [LiquidityManager],
+    );
+    console.log("==> Verification processed for AthenaPositionToken");
+  }
 
-  verifyEtherscanContract<AthenaToken__factory>(deployedAt.AthenaToken, [
-    [deployedAt.EcclesiaDao, deployedAt.Staking],
-  ]);
-  console.log("==> Verification processed for AthenaToken");
+  if (AthenaToken !== ADDRESS_ZERO) {
+    await verifyEtherscanContract<AthenaToken__factory>(AthenaToken, [
+      [EcclesiaDao, Staking],
+    ]);
+    console.log("==> Verification processed for AthenaToken");
+  }
 
   // ======= Libs ======= //
 
-  verifyEtherscanContract<PoolMath__factory>(deployedAt.PoolMath, []);
-  console.log("==> Verification processed for PoolMath");
+  if (PoolMath !== ADDRESS_ZERO) {
+    await verifyEtherscanContract<PoolMath__factory>(PoolMath, []);
+    console.log("==> Verification processed for PoolMath");
+  }
 
-  verifyEtherscanContract<VirtualPool__factory>(
-    deployedAt.VirtualPool,
-    [],
-    "scripts/verificationData/libsVirtualPool.js",
-  );
-  console.log("==> Verification processed for VirtualPool");
+  if (VirtualPool !== ADDRESS_ZERO) {
+    await verifyEtherscanContract<VirtualPool__factory>(
+      VirtualPool,
+      [],
+      "scripts/verificationData/libsVirtualPool.js",
+    );
+    console.log("==> Verification processed for VirtualPool");
+  }
 
-  verifyEtherscanContract<AthenaDataProvider__factory>(
-    deployedAt.AthenaDataProvider,
-    [],
-    "scripts/verificationData/libsAthenaDataProvider.js",
-  );
-  console.log("==> Verification processed for AthenaDataProvider");
+  if (AthenaDataProvider !== ADDRESS_ZERO) {
+    await verifyEtherscanContract<AthenaDataProvider__factory>(
+      AthenaDataProvider,
+      [],
+      "scripts/verificationData/libsAthenaDataProvider.js",
+    );
+    console.log("==> Verification processed for AthenaDataProvider");
+  }
 
   // ======= Managers ======= //
 
-  verifyEtherscanContract<ClaimManager__factory>(deployedAt.ClaimManager, [
-    deployedAt.AthenaCoverToken, // IAthenaCoverToken coverToken_
-    deployedAt.LiquidityManager, // ILiquidityManager liquidityManager_
-    deployedAt.MockArbitrator, // IArbitrator arbitrator_
-    config.evidenceGuardian.address, // address metaEvidenceGuardian_
-    config.leverageRiskWallet.address, // address leverageRiskWallet_
-    config.subcourtId, // uint256 subcourtId_
-    config.nbOfJurors, // uint256 nbOfJurors_
-  ]);
-  console.log("==> Verification processed for ClaimManager");
+  if (ClaimManager !== ADDRESS_ZERO) {
+    await verifyEtherscanContract<ClaimManager__factory>(ClaimManager, [
+      AthenaCoverToken, // IAthenaCoverToken coverToken_
+      LiquidityManager, // ILiquidityManager liquidityManager_
+      MockArbitrator, // IArbitrator arbitrator_
+      config.evidenceGuardian.address, // address metaEvidenceGuardian_
+      config.leverageRiskWallet.address, // address leverageRiskWallet_
+      config.subcourtId, // uint256 subcourtId_
+      config.nbOfJurors, // uint256 nbOfJurors_
+    ]);
+    console.log("==> Verification processed for ClaimManager");
+  }
 
-  verifyEtherscanContract<StrategyManager__factory>(
-    deployedAt.StrategyManager,
-    [
-      deployedAt.LiquidityManager,
-      deployedAt.EcclesiaDao,
+  if (StrategyManager !== ADDRESS_ZERO) {
+    await verifyEtherscanContract<StrategyManager__factory>(StrategyManager, [
+      LiquidityManager,
+      EcclesiaDao,
       aaveLendingPoolV3Address(chainId),
       usdcTokenAddress(chainId),
       config.buybackWallet.address,
       config.payoutDeductibleRate, // payoutDeductibleRate
       config.performanceFeeRate, // performanceFee
-    ],
-  );
-  console.log("==> Verification processed for StrategyManager");
+    ]);
+    console.log("==> Verification processed for StrategyManager");
+  }
 
-  verifyEtherscanContract<LiquidityManager__factory>(
-    deployedAt.LiquidityManager,
-    [
-      deployedAt.AthenaPositionToken,
-      deployedAt.AthenaCoverToken,
-      deployedAt.EcclesiaDao,
-      deployedAt.StrategyManager,
-      deployedAt.ClaimManager,
-      config.yieldRewarder,
-      config.withdrawDelay,
-      config.maxLeverage,
-      config.leverageFeePerPool,
-    ],
-    "scripts/verificationData/libsLiquidityManager.js",
-  );
-  console.log("==> Verification processed for LiquidityManager");
+  if (LiquidityManager !== ADDRESS_ZERO) {
+    await verifyEtherscanContract<LiquidityManager__factory>(
+      LiquidityManager,
+      [
+        AthenaPositionToken,
+        AthenaCoverToken,
+        EcclesiaDao,
+        StrategyManager,
+        ClaimManager,
+        config.yieldRewarder,
+        config.withdrawDelay,
+        config.maxLeverage,
+        config.leverageFeePerPool,
+      ],
+      "scripts/verificationData/libsLiquidityManager.js",
+    );
+    console.log("==> Verification processed for LiquidityManager");
+  }
 
-  verifyEtherscanContract<RewardManager__factory>(deployedAt.RewardManager, [
-    deployedAt.LiquidityManager,
-    deployedAt.EcclesiaDao,
-    deployedAt.AthenaPositionToken,
-    deployedAt.AthenaCoverToken,
-    deployedAt.AthenaToken,
-    config.farmingBlockStart,
-    config.yieldBonuses,
-  ]);
-  console.log("==> Verification processed for RewardManager");
+  // ======= Rewards ======= //
+
+  if (RewardManager !== ADDRESS_ZERO) {
+    await verifyEtherscanContract<RewardManager__factory>(RewardManager, [
+      LiquidityManager,
+      EcclesiaDao,
+      AthenaPositionToken,
+      AthenaCoverToken,
+      AthenaToken,
+      config.farmingBlockStart,
+      config.yieldBonuses,
+    ]);
+    console.log("==> Verification processed for RewardManager");
+  }
+
+  if (FarmingRange !== ADDRESS_ZERO) {
+    await verifyEtherscanContract<FarmingRange__factory>(
+      FarmingRange,
+      [RewardManager, LiquidityManager, AthenaPositionToken, AthenaCoverToken], // args
+    );
+    console.log("=> Verified FarmingRange");
+  }
+
+  if (Staking !== ADDRESS_ZERO) {
+    await verifyEtherscanContract<Staking__factory>(
+      Staking,
+      [AthenaToken, FarmingRange, LiquidityManager, EcclesiaDao], // args
+    );
+    console.log("=> Verified Staking");
+  }
 
   // ======= DAO ======= //
 
-  verifyEtherscanContract<EcclesiaDao__factory>(deployedAt.EcclesiaDao, [
-    deployedAt.AthenaToken,
-    deployedAt.Staking,
-    deployedAt.LiquidityManager,
-    deployedAt.StrategyManager,
-    config.treasuryWallet.address,
-    config.leverageRiskWallet.address,
-  ]);
-  console.log("==> Verification processed for EcclesiaDao");
+  if (EcclesiaDao !== ADDRESS_ZERO) {
+    await verifyEtherscanContract<EcclesiaDao__factory>(EcclesiaDao, [
+      AthenaToken,
+      Staking,
+      LiquidityManager,
+      StrategyManager,
+      config.treasuryWallet.address,
+      config.leverageRiskWallet.address,
+    ]);
+    console.log("==> Verification processed for EcclesiaDao");
+  }
 
   // ======= Claims ======= //
 
-  verifyEtherscanContract<MockArbitrator__factory>(deployedAt.MockArbitrator, [
-    config.arbitrationCollateral,
-  ]);
-  console.log("==> Verification processed for MockArbitrator");
-
-  // await verifyEtherscanContract(
-  //   deployedAt.AthenaCoverToken,
-  //   [deployedAt.LiquidityManager], // args
-  //   "scripts/verificationData/LendingPoolLibs.js", // libs
-  // );
-  // console.log("=> Verified AthenaCoverToken");
+  if (MockArbitrator !== ADDRESS_ZERO) {
+    await verifyEtherscanContract<MockArbitrator__factory>(MockArbitrator, [
+      config.arbitrationCollateral,
+    ]);
+    console.log("==> Verification processed for MockArbitrator");
+  }
 }
 
 // We recommend this pattern to be able to use async/await everywhere
