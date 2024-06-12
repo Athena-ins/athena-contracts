@@ -325,6 +325,8 @@ async function main() {
     ]);
     console.log("==> Verification processed for MockArbitrator");
   }
+
+  console.log("\n==> Protocol verified");
 }
 
 // We recommend this pattern to be able to use async/await everywhere

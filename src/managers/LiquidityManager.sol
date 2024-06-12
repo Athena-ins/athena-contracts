@@ -28,6 +28,8 @@ error OnlyYieldRewarder();
 error PoolDoesNotExist();
 error PoolIsPaused();
 error PoolIdsMustBeUniqueAndAscending();
+error PoolCannotBeCompatibleWithItself();
+error PoolIdsAreCannotBeMatched(uint64 poolIdA, uint64 poolIdB);
 error AmountOfPoolsIsAboveMaxLeverage();
 error IncompatiblePools(uint64 poolIdA, uint64 poolIdB);
 error WithdrawCommitDelayNotReached();
@@ -376,9 +378,16 @@ contract LiquidityManager is
     uint256 nbPools = compatiblePools_.length;
     for (uint256 i; i < nbPools; i++) {
       uint64 compatiblePoolId = compatiblePools_[i];
-      // @dev Registered both ways for simplicity
-      arePoolCompatible[poolId][compatiblePoolId] = true;
-      arePoolCompatible[compatiblePoolId][poolId] = true;
+
+      if (poolId == compatiblePoolId)
+        revert PoolCannotBeCompatibleWithItself();
+
+      // Register in the lowers pool ID to avoid redundant storage
+      if (poolId < compatiblePoolId) {
+        arePoolCompatible[poolId][compatiblePoolId] = true;
+      } else {
+        arePoolCompatible[compatiblePoolId][poolId] = true;
+      }
     }
 
     emit PoolCreated(poolId);
@@ -974,16 +983,14 @@ contract LiquidityManager is
         if (poolId1 <= poolId0)
           revert PoolIdsMustBeUniqueAndAscending();
 
-        if (poolId0 != poolId1) {
-          // Check if pool is compatible
-          if (!arePoolCompatible[poolId0][poolId1])
-            revert IncompatiblePools(poolId0, poolId1);
+        // Check if pool is compatible
+        if (!arePoolCompatible[poolId0][poolId1])
+          revert IncompatiblePools(poolId0, poolId1);
 
-          // Register overlap in both pools
-          if (pool0.overlaps[poolId1] == 0) {
-            pool0.overlappedPools.push(poolId1);
-            pool1.overlappedPools.push(poolId0);
-          }
+        // Register overlap in both pools
+        if (pool0.overlaps[poolId1] == 0) {
+          pool0.overlappedPools.push(poolId1);
+          pool1.overlappedPools.push(poolId0);
         }
 
         pool0.overlaps[poolId1] += amount_;
@@ -1337,6 +1344,36 @@ contract LiquidityManager is
     bool isPaused_
   ) external onlyOwner {
     VirtualPool.getPool(poolId_).isPaused = isPaused_;
+  }
+
+  /**
+   * @notice Updates the compatibility between pools
+   * @param poolIds_ The IDs of the pools
+   * @param poolIdCompatible_ The IDs of the pools that are compatible
+   * @param poolIdCompatibleStatus_ The status of the compatibility
+   */
+  function updatePoolCompatibility(
+    uint64[] calldata poolIds_,
+    uint64[][] calldata poolIdCompatible_,
+    bool[][] calldata poolIdCompatibleStatus_
+  ) external onlyOwner {
+    uint256 nbPools = poolIds_.length;
+    for (uint256 i; i < nbPools; i++) {
+      uint64 poolId0 = poolIds_[i];
+
+      uint256 nbCompatiblePools = poolIdCompatible_[i].length;
+      for (uint256 j; j < nbCompatiblePools; j++) {
+        uint64 poolId1 = poolIdCompatible_[i][j];
+
+        // Check that pool does not self match & it stores in smallest pool ID
+        if (poolId1 <= poolId0)
+          revert PoolIdsAreCannotBeMatched(poolId0, poolId1);
+
+        arePoolCompatible[poolId0][poolId1] = poolIdCompatibleStatus_[
+          i
+        ][j];
+      }
+    }
   }
 
   /**
