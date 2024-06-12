@@ -1,3 +1,4 @@
+import { utils } from "ethers";
 import { expect } from "chai";
 // Helpers
 import {
@@ -5,9 +6,11 @@ import {
   postTxHandler,
   getCurrentTime,
 } from "../helpers/hardhat";
-import { toUsd, toErc20, makeIdArray } from "../helpers/protocol";
+import { makeIdArray } from "../helpers/miscUtils";
 // Types
 import { BigNumber } from "ethers";
+
+const { parseUnits } = utils;
 
 interface Arguments extends Mocha.Context {
   args: {
@@ -33,14 +36,14 @@ export function SanityTest() {
       this.args = {
         nbPools: 3,
         daoLockDuration: 60 * 60 * 24 * 365,
-        lpAmount: toUsd(1000),
+        lpAmount: parseUnits("1000", 6),
         nbLpProviders: 1,
-        coverAmount: toUsd(1000),
-        coverPremiums: toUsd(1000),
-        claimAmount: toUsd(200),
-        lpIncreaseAmount: toUsd(1500),
-        coverIncreaseAmount: toUsd(400),
-        coverIncreasePremiums: toUsd(50),
+        coverAmount: parseUnits("1000", 6),
+        coverPremiums: parseUnits("1000", 6),
+        claimAmount: parseUnits("200", 6),
+        lpIncreaseAmount: parseUnits("1500", 6),
+        coverIncreaseAmount: parseUnits("400", 6),
+        coverIncreasePremiums: parseUnits("50", 6),
       };
     });
 

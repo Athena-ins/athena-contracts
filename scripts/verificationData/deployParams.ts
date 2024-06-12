@@ -4,12 +4,11 @@ import {
   buybackWallet,
   evidenceGuardianWallet,
   leverageRiskWallet,
-  toErc20,
   treasuryWallet,
-} from "../../test/helpers/protocol";
+} from "../../test/helpers/hardhat";
 import { toRay } from "../../test/helpers/utils/poolRayMath";
 
-const utils = ethers.utils;
+const { parseEther, parseUnits } = ethers.utils;
 
 function fromFork() {
   const forkTarget = process.env.HARDHAT_FORK_TARGET?.toLowerCase();
@@ -27,7 +26,7 @@ const deployParams: {
   arbitrum: {
     subcourtId: 2,
     nbOfJurors: 4,
-    arbitrationCollateral: utils.parseEther("0.05"), // in ETH
+    arbitrationCollateral: parseEther("0.05"), // in ETH
     evidenceGuardian: evidenceGuardianWallet(),
     buybackWallet: buybackWallet(),
     treasuryWallet: treasuryWallet(),
@@ -42,10 +41,10 @@ const deployParams: {
       rSlope2: toRay(10),
     },
     yieldBonuses: [
-      { atenAmount: toErc20(0), yieldBonus: toRay(250, 4) },
-      { atenAmount: toErc20(1_000), yieldBonus: toRay(200, 4) },
-      { atenAmount: toErc20(100_000), yieldBonus: toRay(150, 4) },
-      { atenAmount: toErc20(1_000_000), yieldBonus: toRay(50, 4) },
+      { atenAmount: parseUnits("0", 18), yieldBonus: toRay(0.025) },
+      { atenAmount: parseUnits("1000", 18), yieldBonus: toRay(0.02) },
+      { atenAmount: parseUnits("100000", 18), yieldBonus: toRay(0.015) },
+      { atenAmount: parseUnits("1000000", 18), yieldBonus: toRay(0.005) },
     ],
     withdrawDelay: 14 * 24 * 60 * 60, // 14 days
     maxLeverage: 12, // max pools per position

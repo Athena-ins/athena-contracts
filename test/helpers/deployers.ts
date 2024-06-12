@@ -6,16 +6,17 @@ import {
   postTxHandler,
 } from "./hardhat";
 import {
-  toErc20,
   usdtTokenAddress,
   usdcTokenAddress,
   wethTokenAddress,
+  aaveLendingPoolV3Address,
+} from "./protocol";
+import {
   evidenceGuardianWallet,
   buybackWallet,
   treasuryWallet,
   leverageRiskWallet,
-  aaveLendingPoolV3Address,
-} from "./protocol";
+} from "./hardhat";
 import { toRay } from "./utils/poolRayMath";
 // typechain
 import {
@@ -68,6 +69,8 @@ import {
 // Types
 import { BigNumber, Wallet, Signer } from "ethers";
 import { ConnectWithAddress } from "./contracts-getters";
+
+const { parseUnits } = utils;
 
 const ADDRESS_ZERO = "0x0000000000000000000000000000000000000000";
 
@@ -253,10 +256,10 @@ export const defaultProtocolConfig: ProtocolConfig = {
     rSlope2: toRay(10),
   },
   yieldBonuses: [
-    { atenAmount: toErc20(0), yieldBonus: toRay(250, 4) },
-    { atenAmount: toErc20(1_000), yieldBonus: toRay(200, 4) },
-    { atenAmount: toErc20(100_000), yieldBonus: toRay(150, 4) },
-    { atenAmount: toErc20(1_000_000), yieldBonus: toRay(50, 4) },
+    { atenAmount: parseUnits("0", 18), yieldBonus: toRay(0.025) },
+    { atenAmount: parseUnits("1000", 18), yieldBonus: toRay(0.02) },
+    { atenAmount: parseUnits("100000", 18), yieldBonus: toRay(0.015) },
+    { atenAmount: parseUnits("1000000", 18), yieldBonus: toRay(0.005) },
   ],
   withdrawDelay: 14 * 24 * 60 * 60, // 14 days
   maxLeverage: 12, // max pools per position
