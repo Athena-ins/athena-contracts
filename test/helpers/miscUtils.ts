@@ -25,3 +25,7 @@ export async function countdown(seconds = 10) {
   }
   console.log("\n");
 }
+
+export function makeIdArray(length: number) {
+  return [...Array(length).keys()];
+}

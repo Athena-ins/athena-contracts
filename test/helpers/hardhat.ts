@@ -11,9 +11,37 @@ import { HardhatNetworkConfig, HardhatRuntimeEnvironment } from "hardhat/types";
 import { ERC20__factory } from "../../typechain";
 import { BigNumber } from "ethers";
 
-const keccak256 = utils.keccak256;
+const { keccak256 } = utils;
 const { MaxUint256 } = ethers.constants;
 type BytesLike = utils.BytesLike;
+
+// ================ //
+// === Accounts === //
+// ================ //
+
+export function evidenceGuardianWallet() {
+  const EVIDENCE_GUARDIAN_PK = process.env.EVIDENCE_GUARDIAN_PK;
+  if (!EVIDENCE_GUARDIAN_PK) throw new Error("EVIDENCE_GUARDIAN_PK not set");
+  return new ethers.Wallet(EVIDENCE_GUARDIAN_PK);
+}
+
+export function buybackWallet() {
+  const BUYBACK_PK = process.env.BUYBACK_PK;
+  if (!BUYBACK_PK) throw new Error("BUYBACK_PK not set");
+  return new ethers.Wallet(BUYBACK_PK);
+}
+
+export function treasuryWallet() {
+  const TREASURY_PK = process.env.TREASURY_PK;
+  if (!TREASURY_PK) throw new Error("TREASURY_PK not set");
+  return new ethers.Wallet(TREASURY_PK);
+}
+
+export function leverageRiskWallet() {
+  const RISK_GUARD_PK = process.env.RISK_GUARD_PK;
+  if (!RISK_GUARD_PK) throw new Error("RISK_GUARD_PK not set");
+  return new ethers.Wallet(RISK_GUARD_PK);
+}
 
 // =============== //
 // === Helpers === //

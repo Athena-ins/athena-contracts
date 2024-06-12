@@ -6,7 +6,9 @@ import {
   setNextBlockTimestamp,
   postTxHandler,
   getCurrentTime,
+  evidenceGuardianWallet,
 } from "./hardhat";
+import { makeIdArray } from "./miscUtils";
 import { defaultProtocolConfig } from "./deployers";
 // Types
 import {
@@ -53,18 +55,6 @@ const { parseEther, parseUnits } = ethers.utils;
 // =============== //
 // === Helpers === //
 // =============== //
-
-export function toUsd(amount: number) {
-  return parseUnits(amount.toString(), 6);
-}
-
-export function toErc20(amount: number) {
-  return parseUnits(amount.toString(), 18);
-}
-
-export function makeIdArray(length: number) {
-  return [...Array(length).keys()];
-}
 
 export function aaveLendingPoolProviderV2Address(chainId: number): string {
   switch (chainId) {
@@ -201,30 +191,6 @@ export function getTokenAddressBySymbol(
     default:
       throw Error("Unsupported token symbol");
   }
-}
-
-export function evidenceGuardianWallet() {
-  const EVIDENCE_GUARDIAN_PK = process.env.EVIDENCE_GUARDIAN_PK;
-  if (!EVIDENCE_GUARDIAN_PK) throw new Error("EVIDENCE_GUARDIAN_PK not set");
-  return new ethers.Wallet(EVIDENCE_GUARDIAN_PK);
-}
-
-export function buybackWallet() {
-  const BUYBACK_PK = process.env.BUYBACK_PK;
-  if (!BUYBACK_PK) throw new Error("BUYBACK_PK not set");
-  return new ethers.Wallet(BUYBACK_PK);
-}
-
-export function treasuryWallet() {
-  const TREASURY_PK = process.env.TREASURY_PK;
-  if (!TREASURY_PK) throw new Error("TREASURY_PK not set");
-  return new ethers.Wallet(TREASURY_PK);
-}
-
-export function leverageRiskWallet() {
-  const RISK_GUARD_PK = process.env.RISK_GUARD_PK;
-  if (!RISK_GUARD_PK) throw new Error("RISK_GUARD_PK not set");
-  return new ethers.Wallet(RISK_GUARD_PK);
 }
 
 export async function balanceOfAaveUsdt(
@@ -598,7 +564,7 @@ async function createPoolsWithLiquidity(
     user: params.user ?? deployer,
     nbPools: params.nbPools ?? 2,
     nbLpProviders: params.nbLpProviders ?? 2,
-    lpAmount: params.lpAmount ?? toErc20(1000),
+    lpAmount: params.lpAmount ?? parseUnits("1000", 18),
   };
 
   const { uOptimal, r0, rSlope1, rSlope2 } = defaultProtocolConfig.poolFormula;
