@@ -23,13 +23,13 @@ const networkAddresses: {
 };
 
 export function getNetworkAddresses() {
-  const networkName = hre.network.name.toUpperCase();
-  const contracts =
-    networkName === "HARDHAT"
+  const networkName = hre.network.name;
+  const addresses =
+    networkName === "hardhat"
       ? networkAddresses[fromFork()]
       : networkAddresses[networkName];
 
-  if (!contracts) throw Error(`Missing addresses for network ${networkName}`);
+  if (!addresses) throw Error(`Missing addresses for network ${networkName}`);
 
-  return contracts;
+  return addresses;
 }

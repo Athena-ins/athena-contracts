@@ -4,6 +4,8 @@ import { deployAllContractsAndInitializeProtocol } from "../test/helpers/deploye
 import { countdown } from "../test/helpers/miscUtils";
 import { getDeployConfig } from "./verificationData/deployParams";
 
+const { formatEther } = ethers.utils;
+
 async function main() {
   try {
     const networkName = hre.network.name.toUpperCase();
@@ -16,10 +18,13 @@ async function main() {
     const deployer = (await ethers.getSigners())[0] as unknown as Wallet;
     console.log("deployer: ", deployer.address);
 
+    const balance = await deployer.getBalance();
+    console.log("balance: ", `${formatEther(balance)} ETH`);
+
     const config = getDeployConfig();
     console.log("\n\nconfig: ", config);
 
-    await countdown(0);
+    await countdown(30);
 
     //===============//
     //== CONTRACTS ==//

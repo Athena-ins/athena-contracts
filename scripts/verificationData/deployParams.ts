@@ -55,13 +55,13 @@ const deployParams: {
 };
 
 export function getDeployConfig() {
-  const networkName = hre.network.name.toUpperCase();
-  const contracts =
-    networkName === "HARDHAT"
+  const networkName = hre.network.name;
+  const config =
+    networkName === "hardhat"
       ? deployParams[fromFork()]
       : deployParams[networkName];
 
-  if (!contracts) throw Error(`Missing addresses for network ${networkName}`);
+  if (!config) throw Error(`Missing deploy config for network ${networkName}`);
 
-  return contracts;
+  return config;
 }
