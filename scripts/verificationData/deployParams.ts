@@ -38,7 +38,7 @@ const deployParams: {
       uOptimal: toRay(75),
       r0: toRay(1),
       rSlope1: toRay(5),
-      rSlope2: toRay(10),
+      rSlope2: toRay(24),
     },
     yieldBonuses: [
       { atenAmount: parseUnits("0", 18), yieldBonus: toRay(0.025) },
@@ -46,7 +46,7 @@ const deployParams: {
       { atenAmount: parseUnits("100000", 18), yieldBonus: toRay(0.015) },
       { atenAmount: parseUnits("1000000", 18), yieldBonus: toRay(0.005) },
     ],
-    withdrawDelay: 14 * 24 * 60 * 60, // 14 days
+    withdrawDelay: 2 * 24 * 60 * 60, // 14 days
     maxLeverage: 12, // max pools per position
     payoutDeductibleRate: toRay(10), // 10%
     performanceFeeRate: toRay(50), // 50%
