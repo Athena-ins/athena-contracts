@@ -562,8 +562,8 @@ async function createPoolsWithLiquidity(
 ) {
   params = {
     user: params.user ?? deployer,
-    nbPools: params.nbPools ?? 2,
-    nbLpProviders: params.nbLpProviders ?? 2,
+    nbPools: params.nbPools ?? 1,
+    nbLpProviders: params.nbLpProviders ?? 1,
     lpAmount: params.lpAmount ?? parseUnits("1000", 18),
   };
 

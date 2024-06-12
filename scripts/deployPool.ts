@@ -1,8 +1,11 @@
-import { BigNumberish } from "ethers";
 import hre, { ethers } from "hardhat";
 import { getLiquidityManager } from "../test/helpers/contracts-getters";
 import { postTxHandler } from "../test/helpers/hardhat";
 import { getNetworkAddresses } from "./verificationData/addresses";
+import { getDeployConfig } from "./verificationData/deployParams";
+//
+import { BigNumberish } from "ethers";
+import { LiquidityManager__factory } from "../typechain";
 
 type PoolParams = {
   paymentAsset: string;
@@ -15,15 +18,18 @@ type PoolParams = {
   compatiblePools: BigNumberish[];
 };
 
+const addresses = getNetworkAddresses();
+const config = getDeployConfig();
+
 const poolParams: PoolParams[] = [
   {
-    paymentAsset: "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+    paymentAsset: addresses.CircleToken,
     strategyId: 0,
-    feeRate: 0,
-    uOptimal: 0,
-    r0: 0,
-    rSlope1: 0,
-    rSlope2: 0,
+    feeRate: config.poolFormula.feeRate,
+    uOptimal: config.poolFormula.uOptimal,
+    r0: config.poolFormula.r0,
+    rSlope1: config.poolFormula.rSlope1,
+    rSlope2: config.poolFormula.rSlope2,
     compatiblePools: [],
   },
 ];
@@ -40,10 +46,10 @@ async function main() {
     const deployer = (await ethers.getSigners())[0];
     console.log("deployer: ", deployer.address);
 
-    const liquidityManagerAddress = getNetworkAddresses().LiquidityManager;
-    const LiquidityManager = (
-      await getLiquidityManager(liquidityManagerAddress)
-    ).connect(deployer);
+    const LiquidityManager = LiquidityManager__factory.connect(
+      addresses.LiquidityManager,
+      deployer,
+    );
 
     //================//
     //== OPEN POOLS ==//
@@ -63,7 +69,7 @@ async function main() {
         ),
       );
 
-      console.log(`==> Deployed pool ${i}/${poolParams.length}`);
+      console.log(`==> Deployed pool ${i + 1}/${poolParams.length}`);
     }
   } catch (err: any) {
     console.log(err);
