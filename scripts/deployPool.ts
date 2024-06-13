@@ -56,7 +56,7 @@ async function main() {
     //================//
 
     for (const [i, params] of poolParams.entries()) {
-      postTxHandler(
+      await postTxHandler(
         LiquidityManager.createPool(
           params.paymentAsset,
           params.strategyId,
