@@ -433,11 +433,15 @@ library VirtualPool {
           totalFees
         );
 
-        self.dao.accrueRevenue(
-          self.paymentAsset,
-          netFees,
-          leverageFee
-        );
+        try
+          self.dao.accrueRevenue(
+            self.paymentAsset,
+            netFees,
+            leverageFee
+          )
+        {} catch {
+          // Ignore errors in case the DAO contract is not set
+        }
       }
     }
   }
