@@ -21,18 +21,18 @@ type PoolParams = {
 const addresses = getNetworkAddresses();
 const config = getDeployConfig();
 
-const poolParams: PoolParams[] = [
-  {
-    paymentAsset: addresses.CircleToken,
-    strategyId: 0,
-    feeRate: config.poolFormula.feeRate,
-    uOptimal: config.poolFormula.uOptimal,
-    r0: config.poolFormula.r0,
-    rSlope1: config.poolFormula.rSlope1,
-    rSlope2: config.poolFormula.rSlope2,
-    compatiblePools: [],
-  },
-];
+const poolIdArray = [0, 1, 2, 3, 4, 5, 6, 7];
+
+const poolParams: PoolParams[] = poolIdArray.map((i) => ({
+  paymentAsset: addresses.CircleToken,
+  strategyId: 0,
+  feeRate: config.poolFormula.feeRate,
+  uOptimal: config.poolFormula.uOptimal,
+  r0: config.poolFormula.r0,
+  rSlope1: config.poolFormula.rSlope1,
+  rSlope2: config.poolFormula.rSlope2,
+  compatiblePools: poolIdArray.filter((j) => j !== i),
+}));
 
 async function main() {
   try {
