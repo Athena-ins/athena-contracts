@@ -259,7 +259,9 @@ contract StrategyManager is IStrategyManager, Ownable {
     );
 
     // This will register the revenue in the DAO for distribution
-    ecclesiaDao.accrueRevenue(token_, amount_, 0);
+    try ecclesiaDao.accrueRevenue(token_, amount_, 0) {} catch {
+      // Ignore errors in case the DAO contract is not set
+    }
   }
 
   //======== UNDERLYING I/O ========//
@@ -321,6 +323,7 @@ contract StrategyManager is IStrategyManager, Ownable {
       amountRewardsUnderlying_ != 0 &&
       yieldBonus_ < performanceFeeRate
     ) {
+      // @bw simplify by deduction bonus from fee rate ?
       uint256 daoShare = ((amountRewardsUnderlying_ *
         performanceFeeRate) -
         (amountRewardsUnderlying_ * yieldBonus_)) / HUNDRED_PERCENT;
