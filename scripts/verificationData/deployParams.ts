@@ -47,7 +47,7 @@ const deployParams: {
       { atenAmount: parseUnits("1000000", 18), yieldBonus: toRay(0.005) },
     ],
     withdrawDelay: 2 * 24 * 60 * 60, // 14 days
-    maxLeverage: 12, // max pools per position
+    maxLeverage: 5, // max pools per position
     payoutDeductibleRate: toRay(10), // 10%
     performanceFeeRate: toRay(50), // 50%
     farmingBlockStart: 0,
