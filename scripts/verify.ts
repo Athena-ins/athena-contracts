@@ -31,6 +31,8 @@ import {
 import dotenv from "dotenv";
 dotenv.config();
 
+const VERIFY_V0 = true;
+
 const execPromise = promisify(exec);
 
 const ADDRESS_ZERO = "0x0000000000000000000000000000000000000000";
@@ -58,7 +60,7 @@ export async function verifyEtherscanContract<
 ) {
   try {
     const msDelay = 3000;
-    const times = 4;
+    const times = 1;
 
     await delay(msDelay);
 
@@ -149,6 +151,7 @@ export async function runTaskWithRetry(
 async function main() {
   const networkName = hre.network.name.toUpperCase();
   console.log(`\n== VERIFYING ON ${networkName} ==\n`);
+  console.log("VERIFY_V0: ", VERIFY_V0);
 
   const deployer = (await ethers.getSigners())[0] as unknown as Wallet;
   console.log("deployer: ", deployer.address);
@@ -195,7 +198,7 @@ async function main() {
 
   if (AthenaToken !== ADDRESS_ZERO) {
     await verifyEtherscanContract<AthenaToken__factory>(AthenaToken, [
-      [EcclesiaDao, Staking],
+      VERIFY_V0 ? [] : [EcclesiaDao, Staking],
     ]);
     console.log("==> Verification processed for AthenaToken");
   }
@@ -243,7 +246,7 @@ async function main() {
   if (StrategyManager !== ADDRESS_ZERO) {
     await verifyEtherscanContract<StrategyManager__factory>(StrategyManager, [
       LiquidityManager,
-      EcclesiaDao,
+      VERIFY_V0 ? deployer.address : EcclesiaDao,
       aaveLendingPoolV3Address(chainId),
       usdcTokenAddress(chainId),
       config.buybackWallet.address,
@@ -259,10 +262,10 @@ async function main() {
       [
         AthenaPositionToken,
         AthenaCoverToken,
-        EcclesiaDao,
+        VERIFY_V0 ? deployer.address : EcclesiaDao,
         StrategyManager,
-        ClaimManager,
-        config.yieldRewarder,
+        VERIFY_V0 ? deployer.address : ClaimManager,
+        VERIFY_V0 ? deployer.address : config.yieldRewarder,
         config.withdrawDelay,
         config.maxLeverage,
         config.leverageFeePerPool,

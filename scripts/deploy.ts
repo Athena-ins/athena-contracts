@@ -1,6 +1,7 @@
 import { Wallet } from "ethers";
 import hre, { ethers } from "hardhat";
 import { deployAllContractsAndInitializeProtocol } from "../test/helpers/deployers";
+import { deployAllContractsAndInitializeProtocolV0 } from "../test/helpers/deployersV0";
 import { countdown } from "../test/helpers/miscUtils";
 import { getDeployConfig } from "./verificationData/deployParams";
 
@@ -30,7 +31,7 @@ async function main() {
     //== CONTRACTS ==//
     //===============//
 
-    await deployAllContractsAndInitializeProtocol(deployer, config, true);
+    await deployAllContractsAndInitializeProtocolV0(deployer, config, true);
     console.log("\n==> Contracts OK");
 
     console.log("\n==> Protocol deployed & setup");
