@@ -1377,6 +1377,32 @@ contract LiquidityManager is
   }
 
   /**
+   * @notice Updates the pool's rate & formula configuration
+   * @param poolId The ID of the pool
+   * @param feeRate_ The new fee rate
+   * @param uOptimal_ The new optimal utilization rate
+   * @param r0_ The new base rate
+   * @param rSlope1_ The new slope 1
+   * @param rSlope2_ The new slope 2
+   */
+  function updatePoolConfig(
+    uint64 poolId,
+    uint256 feeRate_,
+    uint256 uOptimal_,
+    uint256 r0_,
+    uint256 rSlope1_,
+    uint256 rSlope2_
+  ) external onlyOwner {
+    DataTypes.VPool storage pool = VirtualPool.getPool(poolId);
+
+    pool.feeRate = feeRate_;
+    pool.formula.uOptimal = uOptimal_;
+    pool.formula.r0 = r0_;
+    pool.formula.rSlope1 = rSlope1_;
+    pool.formula.rSlope2 = rSlope2_;
+  }
+
+  /**
    * @notice Updates the withdraw delay and the maximum leverage
    * @param withdrawDelay_ The new withdraw delay
    * @param maxLeverage_ The new maximum leverage
