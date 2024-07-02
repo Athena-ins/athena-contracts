@@ -19,28 +19,34 @@ type BytesLike = utils.BytesLike;
 // === Accounts === //
 // ================ //
 
+export function deployerWallet() {
+  const DEPLOYER_PK = process.env.DEPLOYER_PK;
+  if (!DEPLOYER_PK) throw new Error("DEPLOYER_PK not set");
+  return new ethers.Wallet(DEPLOYER_PK, getProviderFromHardhat());
+}
+
 export function evidenceGuardianWallet() {
   const EVIDENCE_GUARDIAN_PK = process.env.EVIDENCE_GUARDIAN_PK;
   if (!EVIDENCE_GUARDIAN_PK) throw new Error("EVIDENCE_GUARDIAN_PK not set");
-  return new ethers.Wallet(EVIDENCE_GUARDIAN_PK);
+  return new ethers.Wallet(EVIDENCE_GUARDIAN_PK, getProviderFromHardhat());
 }
 
 export function buybackWallet() {
   const BUYBACK_PK = process.env.BUYBACK_PK;
   if (!BUYBACK_PK) throw new Error("BUYBACK_PK not set");
-  return new ethers.Wallet(BUYBACK_PK);
+  return new ethers.Wallet(BUYBACK_PK, getProviderFromHardhat());
 }
 
 export function treasuryWallet() {
   const TREASURY_PK = process.env.TREASURY_PK;
   if (!TREASURY_PK) throw new Error("TREASURY_PK not set");
-  return new ethers.Wallet(TREASURY_PK);
+  return new ethers.Wallet(TREASURY_PK, getProviderFromHardhat());
 }
 
 export function leverageRiskWallet() {
   const RISK_GUARD_PK = process.env.RISK_GUARD_PK;
   if (!RISK_GUARD_PK) throw new Error("RISK_GUARD_PK not set");
-  return new ethers.Wallet(RISK_GUARD_PK);
+  return new ethers.Wallet(RISK_GUARD_PK, getProviderFromHardhat());
 }
 
 // =============== //

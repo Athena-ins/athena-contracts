@@ -145,8 +145,8 @@ function makeForkConfig(): HardhatNetworkUserConfig {
       },
     },
     accounts: [
-      ...accounts.map((pk) => ({
-        privateKey: pk,
+      ...accounts.map((privateKey) => ({
+        privateKey: privateKey,
         balance: parseEther("10000").toString(),
       })),
       // Add 20 test users

@@ -4,6 +4,11 @@ import {
   evmSnapshot,
   evmRevert,
   entityProviderChainId,
+  deployerWallet,
+  evidenceGuardianWallet,
+  buybackWallet,
+  treasuryWallet,
+  leverageRiskWallet,
 } from "./helpers/hardhat";
 import {
   deployAllContractsAndInitializeProtocol,
@@ -11,11 +16,7 @@ import {
   ProtocolConfig,
   ProtocolContracts,
 } from "./helpers/deployers";
-import {
-  makeTestHelpers,
-  TestHelper,
-  evidenceGuardianWallet,
-} from "./helpers/protocol";
+import { makeTestHelpers, TestHelper } from "./helpers/protocol";
 // Chai hooks
 import { beforeEachSuite } from "./helpers/chai/beforeEachSuite";
 import { afterEachSuite } from "./helpers/chai/afterEachSuite";
@@ -90,14 +91,19 @@ export function baseContext(description: string, hooks: () => void): void {
 
         this.chainId = await entityProviderChainId(signers[0]);
 
+        const specialSigners = {
+          deployer: deployerWallet(),
+          evidenceGuardian: evidenceGuardianWallet(),
+          buybackWallet: buybackWallet(),
+          treasuryWallet: treasuryWallet(),
+          leverageRiskWallet: leverageRiskWallet(),
+        };
+
+        const nbSpecialAccounts = Object.keys(specialSigners).length;
+
         // Provides signers for testing
-        const nbSpecialAccounts = 5;
         this.signers = {
-          deployer: signers[0] as Signer as Wallet,
-          evidenceGuardian: signers[1] as Signer as Wallet,
-          buybackWallet: signers[2] as Signer as Wallet,
-          treasuryWallet: signers[3] as Signer as Wallet,
-          leverageRiskWallet: signers[4] as Signer as Wallet,
+          ...specialSigners,
           //
           user: signers[nbSpecialAccounts] as Signer as Wallet,
           user0: signers[nbSpecialAccounts] as Signer as Wallet,
@@ -123,15 +129,13 @@ export function baseContext(description: string, hooks: () => void): void {
           throw Error("Evidence guardian address mismatch");
 
         // Get WETH for all accounts
-        await Promise.all(
-          Object.values(this.signers).map((signer) =>
-            this.contracts.WethToken.connect(signer)
-              .deposit({
-                value: ethers.utils.parseEther("1000"),
-              })
-              .then((tx) => tx.wait()),
-          ),
-        );
+        for (const signer of Object.values(this.signers)) {
+          await this.contracts.WethToken.connect(signer)
+            .deposit({
+              value: ethers.utils.parseEther("1000"),
+            })
+            .then((tx) => tx.wait());
+        }
 
         const logData = {
           chainId: await entityProviderChainId(this.signers.deployer),
