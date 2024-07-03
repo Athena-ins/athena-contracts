@@ -383,10 +383,8 @@ async function openPosition(
       ),
   ]);
 
-  await Promise.all([
-    getTokens(user, token.address, userAccount, amount),
-    postTxHandler(token.connect(user).approve(contract.address, amount)),
-  ]);
+  await getTokens(user, token.address, userAccount, amount);
+  await postTxHandler(token.connect(user).approve(contract.address, amount));
 
   return postTxHandler(
     contract.connect(user).openPosition(amount, isWrapped, poolIds),
@@ -416,10 +414,8 @@ async function addLiquidity(
       ),
   ]);
 
-  await Promise.all([
-    getTokens(user, token.address, userAccount, amount),
-    postTxHandler(token.connect(user).approve(contract.address, amount)),
-  ]);
+  await getTokens(user, token.address, userAccount, amount);
+  await postTxHandler(token.connect(user).approve(contract.address, amount));
 
   return postTxHandler(
     contract.connect(user).addLiquidity(tokenId, amount, isWrapped),
@@ -444,10 +440,8 @@ async function openCover(
       ),
   ]);
 
-  await Promise.all([
-    getTokens(user, token.address, userAccount, premiums),
-    token.connect(user).approve(contract.address, premiums),
-  ]);
+  await getTokens(user, token.address, userAccount, premiums);
+  await postTxHandler(token.connect(user).approve(contract.address, premiums));
 
   return postTxHandler(
     contract.connect(user).openCover(poolId, coverAmount, premiums),
@@ -474,10 +468,11 @@ async function updateCover(
       .then((poolInfo) =>
         IERC20__factory.connect(poolInfo.underlyingAsset, user),
       );
-    await Promise.all([
-      getTokens(user, token.address, userAccount, premiumsToAdd),
+
+    await getTokens(user, token.address, userAccount, premiumsToAdd);
+    await postTxHandler(
       token.connect(user).approve(contract.address, premiumsToAdd),
-    ]);
+    );
   }
 
   return postTxHandler(

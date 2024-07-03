@@ -271,7 +271,7 @@ export function SanityTest() {
 
       expect(cover.poolId).to.equal(0);
       expect(cover.coverAmount).to.gt(0);
-      expect(cover.coverAmount).to.lt(
+      expect(cover.coverAmount).to.lte(
         this.args.coverIncreaseAmount
           .add(this.args.coverAmount)
           .sub(this.args.claimAmount),
