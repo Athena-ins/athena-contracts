@@ -44,7 +44,6 @@ contract StrategyManager is IStrategyManager, Ownable {
 
   uint256 constant PERCENTAGE_BASE = 100;
   uint256 constant HUNDRED_PERCENT = PERCENTAGE_BASE * RayMath.RAY;
-  uint256 constant FIFTHY_PERCENT = HUNDRED_PERCENT / 2;
 
   //======== STORAGE ========//
   ILiquidityManager public liquidityManager;
@@ -84,8 +83,8 @@ contract StrategyManager is IStrategyManager, Ownable {
     buybackWallet = buybackWallet_;
 
     if (
-      FIFTHY_PERCENT < payoutDeductibleRate_ ||
-      FIFTHY_PERCENT < performanceFee_
+      HUNDRED_PERCENT < payoutDeductibleRate_ ||
+      HUNDRED_PERCENT < performanceFee_
     ) revert RateAboveMax();
 
     payoutDeductibleRate = payoutDeductibleRate_;
@@ -463,7 +462,7 @@ contract StrategyManager is IStrategyManager, Ownable {
   function updatePerformanceFeeRate(
     uint256 rate_ // in rays
   ) external onlyOwner {
-    if (FIFTHY_PERCENT < rate_) revert RateAboveMax();
+    if (HUNDRED_PERCENT < rate_) revert RateAboveMax();
     performanceFeeRate = rate_;
   }
 
@@ -474,7 +473,7 @@ contract StrategyManager is IStrategyManager, Ownable {
   function updatePayoutDeductibleRate(
     uint256 rate_ // in rays
   ) external onlyOwner {
-    if (FIFTHY_PERCENT < rate_) revert RateAboveMax();
+    if (HUNDRED_PERCENT < rate_) revert RateAboveMax();
     payoutDeductibleRate = rate_;
   }
 
