@@ -122,6 +122,7 @@ export const deploymentOrder = [
 export async function deployAllContractsAndInitializeProtocolV0(
   deployer: Wallet,
   config: ProtocolConfig,
+  addresses?: { [key: string]: string },
   logAddresses = false,
 ): Promise<ProtocolContracts> {
   const chainId = await entityProviderChainId(deployer);
@@ -130,7 +131,7 @@ export async function deployAllContractsAndInitializeProtocolV0(
   let txCount = 0;
   let deployExecutors = [];
 
-  const deployedAt: { [key: string]: string } = {};
+  const deployedAt: { [key: string]: string } = addresses || {};
 
   await Promise.all(
     deploymentOrder.map((name, i) =>

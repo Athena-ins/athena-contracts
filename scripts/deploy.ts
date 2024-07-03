@@ -4,6 +4,9 @@ import { deployAllContractsAndInitializeProtocol } from "../test/helpers/deploye
 import { deployAllContractsAndInitializeProtocolV0 } from "../test/helpers/deployersV0";
 import { countdown } from "../test/helpers/miscUtils";
 import { getDeployConfig } from "./verificationData/deployParams";
+import { getNetworkAddresses } from "./verificationData/addresses";
+
+const ALLOW_PARTIAL_DEPLOY = false;
 
 const { formatEther } = ethers.utils;
 
@@ -27,11 +30,19 @@ async function main() {
 
     await countdown(30);
 
+    // Used to setup in case of partial deploys
+    const addresses = ALLOW_PARTIAL_DEPLOY ? getNetworkAddresses() : {};
+
     //===============//
     //== CONTRACTS ==//
     //===============//
 
-    await deployAllContractsAndInitializeProtocolV0(deployer, config, true);
+    await deployAllContractsAndInitializeProtocolV0(
+      deployer,
+      config,
+      addresses,
+      true,
+    );
     console.log("\n==> Contracts OK");
 
     console.log("\n==> Protocol deployed & setup");
