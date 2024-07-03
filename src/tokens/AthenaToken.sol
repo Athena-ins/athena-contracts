@@ -4,6 +4,9 @@ pragma solidity ^0.8.25;
 // Contracts
 import { ERC20 } from "./ERC20.sol";
 
+// Libraries
+import { IsContract } from "../libs/IsContract.sol";
+
 //======== INTERFACES ========//
 
 interface ITokenCallReceiver {
@@ -57,27 +60,6 @@ contract AthenaToken is ERC20 {
 
   //======== FUNCTIONS ========//
 
-  /**
-   * @notice Checks if address is a contract
-   * @param address_ address to check
-   * @return true if address is a contract
-   *
-   * @dev This function will return false if the address is:
-   * - an externally-owned account
-   * - a contract in construction
-   * - an address where a contract will be created
-   * - an address where a contract lived, but was destroyed
-   * All this is considered acceptable for the intended use cases.
-   *
-   */
-  function _isContract(address address_) private view returns (bool) {
-    uint32 size;
-    assembly {
-      size := extcodesize(address_)
-    }
-    return (size > 0);
-  }
-
   function _transfer(
     address from,
     address to,
@@ -85,7 +67,7 @@ contract AthenaToken is ERC20 {
   ) internal override returns (bool) {
     // During limited phase only authorized contracts are allowed
     if (isLimited)
-      if (_isContract(to))
+      if (IsContract._isContract(to))
         if (!canReceive[to]) revert ContractNotYetAllowed();
 
     return super._transfer(from, to, amount);
@@ -102,7 +84,7 @@ contract AthenaToken is ERC20 {
     uint256 amount,
     bytes calldata data
   ) public returns (bool) {
-    if (!_isContract(to)) revert CannotCallEOA();
+    if (!IsContract._isContract(to)) revert CannotCallEOA();
 
     _transfer(msg.sender, to, amount);
 

@@ -6,6 +6,7 @@ import { RayMath } from "../libs/RayMath.sol";
 import { TickBitmap } from "../libs/TickBitmap.sol";
 import { PoolMath } from "../libs/PoolMath.sol";
 import { DataTypes } from "../libs/DataTypes.sol";
+import { IsContract } from "../libs/IsContract.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 // Interfaces
@@ -433,14 +434,13 @@ library VirtualPool {
           totalFees
         );
 
-        try
+        // This will register the revenue in the DAO for distribution
+        if (IsContract._isContract(address(self.dao))) {
           self.dao.accrueRevenue(
             self.paymentAsset,
             netFees,
             leverageFee
-          )
-        {} catch {
-          // Ignore errors in case the DAO contract is not set
+          );
         }
       }
     }

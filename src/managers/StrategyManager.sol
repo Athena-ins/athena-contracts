@@ -9,6 +9,7 @@ import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.s
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { Address } from "@openzeppelin/contracts/utils/Address.sol";
 import { RayMath } from "../libs/RayMath.sol";
+import { IsContract } from "../libs/IsContract.sol";
 
 // interfaces
 import { IStrategyManager } from "../interfaces/IStrategyManager.sol";
@@ -258,8 +259,8 @@ contract StrategyManager is IStrategyManager, Ownable {
     );
 
     // This will register the revenue in the DAO for distribution
-    try ecclesiaDao.accrueRevenue(token_, amount_, 0) {} catch {
-      // Ignore errors in case the DAO contract is not set
+    if (IsContract._isContract(address(ecclesiaDao))) {
+      ecclesiaDao.accrueRevenue(token_, amount_, 0);
     }
   }
 
