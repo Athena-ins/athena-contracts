@@ -133,7 +133,7 @@ function makeForkConfig(): HardhatNetworkUserConfig {
 
   const networkConfig = {
     chainId,
-    allowUnlimitedContractSize: true,
+    allowUnlimitedContractSize: false,
     forking: {
       url: rpcUrl,
       blockNumber: Number(forkingBlock),
