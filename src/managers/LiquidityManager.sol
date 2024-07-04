@@ -699,24 +699,33 @@ contract LiquidityManager is
   }
 
   /**
-   * @notice Cancels a position's commit to withdraw its liquidity
+   * @notice Closes a position's commit to withdraw its liquidity
    * @param positionId_ The ID of the position
    *
    * @dev This redirects interest back to the position owner
    */
-  function uncommitRemoveLiquidity(
-    uint256 positionId_
-  ) external onlyPositionOwner(positionId_) nonReentrant {
+  function _closeWithdrawalCommit(uint256 positionId_) private {
     Position storage position = _positions[positionId_];
 
     // Avoid users accidentally paying their rewards to the leverage risk wallet
     if (position.commitWithdrawalTimestamp == 0)
       revert PositionNotCommited();
 
+    // Reset the position's commitWithdrawalTimestamp
     position.commitWithdrawalTimestamp = 0;
 
     // Pool rewards after commit are paid in favor of the DAO's leverage risk wallet
     _takeInterests(positionId_, address(ecclesiaDao), 0);
+  }
+
+  /**
+   * @notice Cancels a position's commit to withdraw its liquidity
+   * @param positionId_ The ID of the position
+   */
+  function uncommitRemoveLiquidity(
+    uint256 positionId_
+  ) external onlyPositionOwner(positionId_) nonReentrant {
+    _closeWithdrawalCommit(positionId_);
   }
 
   /**
@@ -737,12 +746,13 @@ contract LiquidityManager is
     if (amount_ == 0) revert ForbiddenZeroValue();
 
     // Check that commit delay has been reached
-    if (position.commitWithdrawalTimestamp == 0)
-      revert PositionNotCommited();
     if (
       block.timestamp <
       position.commitWithdrawalTimestamp + withdrawDelay
     ) revert WithdrawCommitDelayNotReached();
+
+    // Consume the commit then take interests
+    _closeWithdrawalCommit(positionId_);
 
     // All pools have same strategy since they are compatible
     uint256 latestStrategyRewardIndex = strategyManager
@@ -769,8 +779,6 @@ contract LiquidityManager is
       revert InsufficientLiquidityForWithdrawal();
 
     position.supplied = capital - amount_;
-    // Reset the position's commitWithdrawalTimestamp
-    position.commitWithdrawalTimestamp = 0;
     position.strategyRewardIndex = latestStrategyRewardIndex;
 
     // All pools have same strategy since they are compatible
@@ -920,6 +928,9 @@ contract LiquidityManager is
         premiumsToRemove_
       );
     } else if (0 < premiumsToAdd_) {
+      // Check if pool is currently paused
+      _checkIsNotPaused(poolId);
+
       // Transfer premiums from user
       IERC20(pool.paymentAsset).safeTransferFrom(
         msg.sender,
