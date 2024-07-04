@@ -401,8 +401,10 @@ contract LiquidityManager is
 
       // Register in the lowers pool ID to avoid redundant storage
       if (poolId < compatiblePoolId) {
+        // poolId = pool0, compatiblePoolId = pool1
         arePoolCompatible[poolId][compatiblePoolId] = true;
       } else {
+        // compatiblePoolId = pool0, poolId = pool1
         arePoolCompatible[compatiblePoolId][poolId] = true;
       }
     }
