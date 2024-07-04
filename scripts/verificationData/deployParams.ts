@@ -20,6 +20,8 @@ function fromFork() {
   return forkTarget === "arbitrum" ? "arbitrum" : "";
 }
 
+const DAY = 24 * 60 * 60;
+
 const deployParams: {
   [key: string]: ProtocolConfig;
 } = {
@@ -28,11 +30,18 @@ const deployParams: {
     nbOfJurors: 4,
     arbitrationCollateral: parseEther("0.05"), // in ETH
     evidenceGuardian: evidenceGuardianWallet(),
+    //
     buybackWallet: buybackWallet(),
     treasuryWallet: treasuryWallet(),
     leverageRiskWallet: leverageRiskWallet(),
     yieldRewarder: "0x0000000000000000000000000000000000000000", // to be replaced by farming
-    leverageFeePerPool: toRay(1.5), // 1.5% base 100
+    //
+    leverageFeePerPool: toRay(0.7), // 1.5% base 100
+    withdrawDelay: 10 * DAY, // 14 days
+    maxLeverage: 16, // max pools per position
+    payoutDeductibleRate: toRay(5), // 10%
+    strategyFeeRate: toRay(0), // 50%
+    //
     poolFormula: {
       feeRate: toRay(10), // 10%
       uOptimal: toRay(75),
@@ -46,10 +55,6 @@ const deployParams: {
       { atenAmount: parseUnits("100000", 18), yieldBonus: toRay(0.015) },
       { atenAmount: parseUnits("1000000", 18), yieldBonus: toRay(0.005) },
     ],
-    withdrawDelay: 2 * 24 * 60 * 60, // 14 days
-    maxLeverage: 5, // max pools per position
-    payoutDeductibleRate: toRay(10), // 10%
-    performanceFeeRate: toRay(50), // 50%
     farmingBlockStart: 0,
   },
 };

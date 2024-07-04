@@ -99,7 +99,7 @@ export const defaultProtocolConfig: ProtocolConfig = {
   withdrawDelay: 14 * 24 * 60 * 60, // 14 days
   maxLeverage: 12, // max pools per position
   payoutDeductibleRate: toRay(10), // 10%
-  performanceFeeRate: toRay(50), // 50%
+  strategyFeeRate: toRay(50), // 50%
   farmingBlockStart: 0, // leave 0 for dynamic
 };
 
@@ -244,7 +244,7 @@ export async function deployAllContractsAndInitializeProtocolV0(
         usdcTokenAddress(chainId),
         config.buybackWallet.address,
         config.payoutDeductibleRate, // payoutDeductibleRate
-        config.performanceFeeRate, // performanceFeeRate
+        config.strategyFeeRate, // strategyFeeRate
       ]),
     );
     txCount++;

@@ -55,7 +55,7 @@ contract StrategyManager is IStrategyManager, Ownable {
   // Amount of underlying to be deducted from payout in RAY
   uint256 public payoutDeductibleRate;
   // Amount of performance fee to be paid to ecclesiaDao in RAY
-  uint256 public performanceFeeRate;
+  uint256 public strategyFeeRate;
 
   IAaveLendingPoolV3 public aaveLendingPool;
   address public USDC; // underlyingAsset
@@ -89,7 +89,7 @@ contract StrategyManager is IStrategyManager, Ownable {
     ) revert RateAboveMax();
 
     payoutDeductibleRate = payoutDeductibleRate_;
-    performanceFeeRate = performanceFee_;
+    strategyFeeRate = performanceFee_;
 
     aUSDC = aaveLendingPool.getReserveData(USDC).aTokenAddress;
   }
@@ -319,14 +319,14 @@ contract StrategyManager is IStrategyManager, Ownable {
     // If the strategy has performance fees then compute the DAO share
     // @dev the bonus is subtracted from the performance fee
     if (
-      performanceFeeRate != 0 &&
+      strategyFeeRate != 0 &&
       amountRewardsUnderlying_ != 0 &&
-      yieldBonus_ < performanceFeeRate
+      yieldBonus_ < strategyFeeRate
     ) {
       // @bw simplify by deduction bonus from fee rate ?
       uint256 daoShare = ((amountRewardsUnderlying_ *
-        performanceFeeRate) -
-        (amountRewardsUnderlying_ * yieldBonus_)) / HUNDRED_PERCENT;
+        strategyFeeRate) - (amountRewardsUnderlying_ * yieldBonus_)) /
+        HUNDRED_PERCENT;
 
       if (daoShare != 0) {
         // Deduct the daoShare from the amount to withdraw
@@ -387,9 +387,9 @@ contract StrategyManager is IStrategyManager, Ownable {
     ) + underlyingToWrapped(strategyId_, amountRewardsUnderlying_);
 
     // If the strategy has performance fees then compute the DAO share
-    if (performanceFeeRate != 0 && amountRewardsUnderlying_ != 0) {
+    if (strategyFeeRate != 0 && amountRewardsUnderlying_ != 0) {
       uint256 daoShare = (amountRewardsUnderlying_ *
-        (performanceFeeRate - yieldBonus_)) / RayMath.RAY;
+        (strategyFeeRate - yieldBonus_)) / RayMath.RAY;
 
       if (daoShare != 0) {
         // Deduct the daoShare from the amount to withdraw
@@ -460,11 +460,11 @@ contract StrategyManager is IStrategyManager, Ownable {
    * @notice Updates the performance fee for the strategy
    * @param rate_ The new performance fee rate in RAY
    */
-  function updatePerformanceFeeRate(
+  function updateStrategyFeeRate(
     uint256 rate_ // in rays
   ) external onlyOwner {
     if (HUNDRED_PERCENT < rate_) revert RateAboveMax();
-    performanceFeeRate = rate_;
+    strategyFeeRate = rate_;
   }
 
   /**

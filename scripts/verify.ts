@@ -251,7 +251,7 @@ async function main() {
       usdcTokenAddress(chainId),
       config.buybackWallet.address,
       config.payoutDeductibleRate, // payoutDeductibleRate
-      config.performanceFeeRate, // performanceFee
+      config.strategyFeeRate, // performanceFee
     ]);
     console.log("==> Verification processed for StrategyManager");
   }

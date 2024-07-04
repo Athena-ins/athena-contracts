@@ -173,7 +173,7 @@ export function deployProtocol() {
           usdcAddress,
           this.signers.buybackWallet.address,
           this.protocolConfig.payoutDeductibleRate,
-          this.protocolConfig.performanceFeeRate,
+          this.protocolConfig.strategyFeeRate,
         ]).then((contract) =>
           postDeployCheck(contract, this.args.deployedAt.StrategyManager),
         );
