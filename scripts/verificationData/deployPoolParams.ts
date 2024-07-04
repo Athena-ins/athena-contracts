@@ -108,6 +108,7 @@ const deployParams: {
   [chainName: string]: { [coverName in ProtocolName]: PoolParams };
 } = {
   arbitrum: {
+    //=== A ===//
     "Eigen layer": {
       paymentAsset: addresses.CircleToken,
       strategyId: 0,
@@ -203,24 +204,7 @@ const deployParams: {
       incompatiblePools: [],
       ...formulaConfig.A,
     },
-    "Curve": {
-      paymentAsset: addresses.CircleToken,
-      strategyId: 0,
-      incompatiblePools: [],
-      ...formulaConfig.A,
-    },
-    "Compound": {
-      paymentAsset: addresses.CircleToken,
-      strategyId: 0,
-      incompatiblePools: [],
-      ...formulaConfig.A,
-    },
-    "Balancer": {
-      paymentAsset: addresses.CircleToken,
-      strategyId: 0,
-      incompatiblePools: [],
-      ...formulaConfig.A,
-    },
+    //=== B ===//
     "Eigen + Ether.fi + Zircuit + Pendle": {
       paymentAsset: addresses.CircleToken,
       strategyId: 0,
@@ -233,7 +217,7 @@ const deployParams: {
         "Eigen + Kelp DAO + Zircuit + Pendle",
         "Eigen + Renzo + Zircuit + Pendle",
       ],
-      ...formulaConfig.A,
+      ...formulaConfig.B,
     },
     "Eigen + Ether.fi + Karak + Pendle": {
       paymentAsset: addresses.CircleToken,
@@ -247,7 +231,7 @@ const deployParams: {
         "Eigen + Kelp DAO + Zircuit + Pendle",
         "Eigen + Renzo + Zircuit + Pendle",
       ],
-      ...formulaConfig.A,
+      ...formulaConfig.B,
     },
     "Eigen + Kelp DAO + Zircuit + Pendle": {
       paymentAsset: addresses.CircleToken,
@@ -261,7 +245,7 @@ const deployParams: {
         "Eigen + Ether.fi + Karak + Pendle",
         "Eigen + Renzo + Zircuit + Pendle",
       ],
-      ...formulaConfig.A,
+      ...formulaConfig.B,
     },
     "Eigen + Renzo + Zircuit + Pendle": {
       paymentAsset: addresses.CircleToken,
@@ -275,43 +259,65 @@ const deployParams: {
         "Eigen + Ether.fi + Karak + Pendle",
         "Eigen + Kelp DAO + Zircuit + Pendle",
       ],
-      ...formulaConfig.A,
+      ...formulaConfig.B,
     },
+    //=== C ===//
     "Ethena USDe": {
       paymentAsset: addresses.CircleToken,
       strategyId: 0,
       incompatiblePools: [],
-      ...formulaConfig.A,
+      ...formulaConfig.C,
     },
     "Dai": {
       paymentAsset: addresses.CircleToken,
       strategyId: 0,
       incompatiblePools: ["USDT"],
-      ...formulaConfig.A,
+      ...formulaConfig.C,
     },
+    //=== D ===//
     "AAVE GHO": {
       paymentAsset: addresses.CircleToken,
       strategyId: 0,
       incompatiblePools: [],
-      ...formulaConfig.A,
+      ...formulaConfig.D,
     },
     "Liquity LUSD": {
       paymentAsset: addresses.CircleToken,
       strategyId: 0,
       incompatiblePools: [],
-      ...formulaConfig.A,
+      ...formulaConfig.D,
     },
+    //=== E ===//
     "USDT": {
       paymentAsset: addresses.CircleToken,
       strategyId: 0,
       incompatiblePools: ["Dai"],
-      ...formulaConfig.A,
+      ...formulaConfig.E,
     },
     "Angle USDa": {
       paymentAsset: addresses.CircleToken,
       strategyId: 0,
       incompatiblePools: [],
-      ...formulaConfig.A,
+      ...formulaConfig.E,
+    },
+    //=== F ===//
+    "Curve": {
+      paymentAsset: addresses.CircleToken,
+      strategyId: 0,
+      incompatiblePools: [],
+      ...formulaConfig.F,
+    },
+    "Compound": {
+      paymentAsset: addresses.CircleToken,
+      strategyId: 0,
+      incompatiblePools: [],
+      ...formulaConfig.F,
+    },
+    "Balancer": {
+      paymentAsset: addresses.CircleToken,
+      strategyId: 0,
+      incompatiblePools: [],
+      ...formulaConfig.F,
     },
   },
 };
