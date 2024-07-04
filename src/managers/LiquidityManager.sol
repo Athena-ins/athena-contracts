@@ -27,6 +27,7 @@ error OnlyClaimManager();
 error OnlyYieldRewarder();
 error PoolDoesNotExist();
 error PoolIsPaused();
+error ProtocolIsFrozen();
 error PoolIdsMustBeUniqueAndAscending();
 error PoolCannotBeCompatibleWithItself();
 error PoolIdsAreCannotBeMatched(uint64 poolIdA, uint64 poolIdB);
@@ -90,6 +91,10 @@ contract LiquidityManager is
   /// Maps a pool ID to the virtualized pool's storage
   mapping(uint64 _id => DataTypes.VPool) internal _pools;
 
+  /// Wether the contract is frozen or not
+  /// @dev all operations are paused when the contract is frozen
+  bool isFrozen;
+
   // ======= CONSTRUCTOR ======= //
 
   constructor(
@@ -146,6 +151,18 @@ contract LiquidityManager is
   );
 
   /// ======= INTERNAL HELPERS ======= ///
+
+  /**
+   * @notice Purges expired covers from a pool
+   * @param poolId_ The ID of the pool
+   *
+   * @dev This function also acts as the enforcer for the protocol being frozen since all operations require the pool to be purged
+   */
+  function _purgeExpiredCovers(uint64 poolId_) private {
+    if (isFrozen) revert ProtocolIsFrozen();
+
+    VirtualPool._purgeExpiredCovers(poolId_);
+  }
 
   /**
    * @notice Throws if the pool does not exist
@@ -576,7 +593,7 @@ contract LiquidityManager is
     uint256 nbPools = position.poolIds.length;
     for (uint256 i; i < nbPools; i++) {
       // Clean pool from expired covers
-      VirtualPool._purgeExpiredCovers(position.poolIds[i]);
+      _purgeExpiredCovers(position.poolIds[i]);
 
       // These are the same values at each iteration
       (newUserCapital, strategyRewards) = VirtualPool
@@ -802,7 +819,7 @@ contract LiquidityManager is
     DataTypes.VPool storage pool = VirtualPool.getPool(poolId_);
 
     // Clean pool from expired covers
-    VirtualPool._purgeExpiredCovers(poolId_);
+    _purgeExpiredCovers(poolId_);
 
     if (coverAmount_ == 0 || premiums_ == 0)
       revert ForbiddenZeroValue();
@@ -857,7 +874,7 @@ contract LiquidityManager is
     DataTypes.VPool storage pool = VirtualPool.getPool(poolId);
 
     // Clean pool from expired covers
-    VirtualPool._purgeExpiredCovers(poolId);
+    _purgeExpiredCovers(poolId);
 
     // Check if cover is expired
     if (!isCoverActive(coverId_)) revert CoverIsExpired();
@@ -935,7 +952,7 @@ contract LiquidityManager is
    * @param poolIds_ The IDs of the pools to add liquidity to
    * @param positionId_ The ID of the position
    * @param amount_ The amount of liquidity to add
-   * @param purgePools If it should purge expired covers
+   * @param purgePools If it should purge expired covers (avoids redundant purges)
    *
    * @dev PoolIds are checked at creation to ensure they are unique and ascending
    */
@@ -959,7 +976,7 @@ contract LiquidityManager is
 
       // Remove expired covers
       /// @dev Skip the purge when adding liquidity since it has been done
-      if (purgePools) VirtualPool._purgeExpiredCovers(poolId0);
+      if (purgePools) _purgeExpiredCovers(poolId0);
 
       // Update premium rate, seconds per tick & LP position info
       VirtualPool._depositToPool(poolId0, positionId_, amount_);
@@ -1026,7 +1043,7 @@ contract LiquidityManager is
       DataTypes.VPool storage pool0 = VirtualPool.getPool(poolId0);
 
       // Need to clean covers to avoid them causing a utilization overflow
-      VirtualPool._purgeExpiredCovers(poolId0);
+      _purgeExpiredCovers(poolId0);
 
       // Remove liquidity
       // The updated user capital & strategy rewards are the same at each iteration
@@ -1155,7 +1172,7 @@ contract LiquidityManager is
       // Skip if overlap is 0 because the pools no longer share liquidity
       if (pool0.overlaps[poolId1] == 0) continue;
       // Update pool state & remove expired covers
-      VirtualPool._purgeExpiredCovers(poolIdB);
+      _purgeExpiredCovers(poolIdB);
 
       // New context to avoid stack too deep error
       {
@@ -1279,7 +1296,7 @@ contract LiquidityManager is
 
     for (uint256 i; i < position.poolIds.length; i++) {
       // Clean pool from expired covers
-      VirtualPool._purgeExpiredCovers(position.poolIds[i]);
+      _purgeExpiredCovers(position.poolIds[i]);
 
       DataTypes.VPool storage pool = VirtualPool.getPool(
         position.poolIds[i]
@@ -1344,6 +1361,16 @@ contract LiquidityManager is
     bool isPaused_
   ) external onlyOwner {
     VirtualPool.getPool(poolId_).isPaused = isPaused_;
+  }
+
+  /**
+   * @notice Freeze or unfreeze the protocol
+   * @param isFrozen_ True if the protocol should be frozen
+   *
+   * @dev You cannot buy cover, modify cover, close cover, add liquidity or remove liquidity if the protocol is frozen
+   */
+  function freezeProtocol(bool isFrozen_) external onlyOwner {
+    isFrozen = isFrozen_;
   }
 
   /**
