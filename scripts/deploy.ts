@@ -28,8 +28,6 @@ async function main() {
     const config = getDeployConfig();
     console.log("\n\nconfig: ", config);
 
-    await countdown(30);
-
     // Used to setup in case of partial deploys
     const addresses = ALLOW_PARTIAL_DEPLOY ? getNetworkAddresses() : {};
 
