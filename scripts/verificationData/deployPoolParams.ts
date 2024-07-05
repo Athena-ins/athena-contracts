@@ -61,34 +61,34 @@ const formulaConfig = {
 };
 
 const protocolNames = [
-  "Eigen layer",
-  "Pendle",
-  "Renzo",
-  "Ether.fi",
-  "Amphor",
-  "Spectra",
-  "Equilibria",
-  "Kelp DAO",
-  "Puffer Finance",
-  "Karak",
-  "Zircuit",
-  "Mellow",
-  "Symbiotic",
-  "Curve",
-  "Compound",
-  "Balancer",
+  "Eigen layer", // Restaking layer
+  "Pendle", // Liquid yield
+  "Renzo", // LRT
+  "Ether.fi", // LRT
+  "Amphor", // Asset manager
+  "Spectra", // Bitcoin L2
+  "Equilibria", // Pendle wrapper/booster
+  "Kelp DAO", // LRT
+  "Puffer Finance", // LRT
+  "Karak", // Restaking operator with any token
+  "Zircuit", // L2 + LRT boost on bridge
+  "Mellow", // LRT creation + manage operator & AVS users of LRT
+  "Symbiotic", // Restaking Operator Source
+  "Curve", // AMM for tokens with similar value
+  "Compound", // Lending
+  "Balancer", // AMM for multi token pools
   //
   "Eigen + Ether.fi + Zircuit + Pendle",
   "Eigen + Ether.fi + Karak + Pendle",
   "Eigen + Kelp DAO + Zircuit + Pendle",
   "Eigen + Renzo + Zircuit + Pendle",
   //
-  "Ethena USDe",
-  "Dai",
-  "AAVE GHO",
-  "Liquity LUSD",
-  "USDT",
-  "Angle USDa",
+  "Ethena USDe", // ETH backed stablecoin
+  "Dai", // Token backed stablecoin
+  "AAVE GHO", // AAVE backed stablecoin
+  "Liquity LUSD", // ETH backed stablecoin
+  "USDT", // RWA backed stablecoin
+  "Angle USDa", // DeFi backed stablecoin
 ] as const;
 
 type ProtocolName = (typeof protocolNames)[number];
@@ -108,7 +108,9 @@ const deployParams: {
   [chainName: string]: { [coverName in ProtocolName]: PoolParams };
 } = {
   arbitrum: {
+    //=========//
     //=== A ===//
+    //=========//
     "Eigen layer": {
       paymentAsset: addresses.CircleToken,
       strategyId: 0,
@@ -179,7 +181,7 @@ const deployParams: {
     "Karak": {
       paymentAsset: addresses.CircleToken,
       strategyId: 0,
-      incompatiblePools: ["Pendle", "Eigen layer", "Ether.fi", "Karak"],
+      incompatiblePools: ["Eigen + Ether.fi + Karak + Pendle"],
       ...formulaConfig.A,
     },
     "Zircuit": {
@@ -204,15 +206,17 @@ const deployParams: {
       incompatiblePools: [],
       ...formulaConfig.A,
     },
+    //=========//
     //=== B ===//
+    //=========//
     "Eigen + Ether.fi + Zircuit + Pendle": {
       paymentAsset: addresses.CircleToken,
       strategyId: 0,
       incompatiblePools: [
-        "Pendle",
         "Eigen layer",
         "Ether.fi",
         "Zircuit",
+        "Pendle",
         "Eigen + Ether.fi + Karak + Pendle",
         "Eigen + Kelp DAO + Zircuit + Pendle",
         "Eigen + Renzo + Zircuit + Pendle",
@@ -223,10 +227,10 @@ const deployParams: {
       paymentAsset: addresses.CircleToken,
       strategyId: 0,
       incompatiblePools: [
-        "Pendle",
         "Eigen layer",
         "Ether.fi",
         "Karak",
+        "Pendle",
         "Eigen + Ether.fi + Zircuit + Pendle",
         "Eigen + Kelp DAO + Zircuit + Pendle",
         "Eigen + Renzo + Zircuit + Pendle",
@@ -237,10 +241,10 @@ const deployParams: {
       paymentAsset: addresses.CircleToken,
       strategyId: 0,
       incompatiblePools: [
-        "Pendle",
         "Eigen layer",
         "Kelp DAO",
         "Zircuit",
+        "Pendle",
         "Eigen + Ether.fi + Zircuit + Pendle",
         "Eigen + Ether.fi + Karak + Pendle",
         "Eigen + Renzo + Zircuit + Pendle",
@@ -251,17 +255,19 @@ const deployParams: {
       paymentAsset: addresses.CircleToken,
       strategyId: 0,
       incompatiblePools: [
-        "Pendle",
         "Eigen layer",
         "Renzo",
         "Zircuit",
+        "Pendle",
         "Eigen + Ether.fi + Zircuit + Pendle",
         "Eigen + Ether.fi + Karak + Pendle",
         "Eigen + Kelp DAO + Zircuit + Pendle",
       ],
       ...formulaConfig.B,
     },
+    //=========//
     //=== C ===//
+    //=========//
     "Ethena USDe": {
       paymentAsset: addresses.CircleToken,
       strategyId: 0,
@@ -274,7 +280,9 @@ const deployParams: {
       incompatiblePools: ["USDT"],
       ...formulaConfig.C,
     },
+    //=========//
     //=== D ===//
+    //=========//
     "AAVE GHO": {
       paymentAsset: addresses.CircleToken,
       strategyId: 0,
@@ -287,7 +295,9 @@ const deployParams: {
       incompatiblePools: [],
       ...formulaConfig.D,
     },
+    //=========//
     //=== E ===//
+    //=========//
     "USDT": {
       paymentAsset: addresses.CircleToken,
       strategyId: 0,
@@ -300,7 +310,9 @@ const deployParams: {
       incompatiblePools: [],
       ...formulaConfig.E,
     },
+    //=========//
     //=== F ===//
+    //=========//
     "Curve": {
       paymentAsset: addresses.CircleToken,
       strategyId: 0,
@@ -323,6 +335,7 @@ const deployParams: {
 };
 
 type FormattedPoolParams = PoolParams & {
+  name: ProtocolName;
   compatiblePools: number[];
 };
 
@@ -348,7 +361,7 @@ function formatCompatiblePools(networkPools: {
       // If push to throw once all incompatible pools have been checked
       if (!hasMirror) {
         errors.push(
-          `Pool ${incompatiblePool} is missing ${poolNames[i]} in its incompatible pools`,
+          `\n>> Pool ${poolNames[i]} is missing in incompatible pool list of ${incompatiblePool}`,
         );
       }
     }
@@ -367,6 +380,7 @@ function formatCompatiblePools(networkPools: {
 
     return {
       ...params,
+      name: poolNames[i],
       compatiblePools,
     };
   });

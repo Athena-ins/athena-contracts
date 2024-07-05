@@ -1,38 +1,14 @@
 import hre, { ethers } from "hardhat";
-import { getLiquidityManager } from "../test/helpers/contracts-getters";
 import { postTxHandler } from "../test/helpers/hardhat";
 import { getNetworkAddresses } from "./verificationData/addresses";
 import { getDeployConfig } from "./verificationData/deployParams";
+import { getDeployPoolConfig } from "./verificationData/deployPoolParams";
 //
 import { BigNumberish } from "ethers";
 import { LiquidityManager__factory } from "../typechain";
 
-type PoolParams = {
-  paymentAsset: string;
-  strategyId: BigNumberish;
-  feeRate: BigNumberish;
-  uOptimal: BigNumberish;
-  r0: BigNumberish;
-  rSlope1: BigNumberish;
-  rSlope2: BigNumberish;
-  compatiblePools: BigNumberish[];
-};
-
 const addresses = getNetworkAddresses();
-const config = getDeployConfig();
-
-const poolIdArray = [0, 1, 2, 3, 4, 5, 6, 7];
-
-const poolParams: PoolParams[] = poolIdArray.map((i) => ({
-  paymentAsset: addresses.CircleToken,
-  strategyId: 0,
-  feeRate: config.poolFormula.feeRate,
-  uOptimal: config.poolFormula.uOptimal,
-  r0: config.poolFormula.r0,
-  rSlope1: config.poolFormula.rSlope1,
-  rSlope2: config.poolFormula.rSlope2,
-  compatiblePools: poolIdArray.filter((j) => j !== i),
-}));
+const poolParams = getDeployPoolConfig();
 
 async function main() {
   try {
@@ -55,6 +31,8 @@ async function main() {
     //== OPEN POOLS ==//
     //================//
 
+    const nbPools = poolParams.length;
+
     for (const [i, params] of poolParams.entries()) {
       await postTxHandler(
         LiquidityManager.createPool(
@@ -69,7 +47,7 @@ async function main() {
         ),
       );
 
-      console.log(`==> Deployed pool ${i + 1}/${poolParams.length}`);
+      console.log(`==> Deployed pool ${params.name} - ${i + 1}/${nbPools}`);
     }
   } catch (err: any) {
     console.log(err);
