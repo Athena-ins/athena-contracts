@@ -30,7 +30,7 @@ const deployParams: {
     nbOfJurors: 4,
     challengePeriod: 10 * DAY_SECONDS,
     overrulePeriod: 4 * DAY_SECONDS,
-    collateralAmount: parseEther("0.05"),
+    claimCollateral: parseEther("0.05"),
     arbitrationCost: parseEther("0"), // in ETH for centralized AthenaArbitrator
     evidenceGuardian: evidenceGuardianWallet(),
     //

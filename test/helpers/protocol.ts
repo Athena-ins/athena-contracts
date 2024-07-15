@@ -509,12 +509,12 @@ async function initiateClaim(
   amountClaimed: BigNumberish,
 ): Promise<ContractReceipt> {
   // Get the cost of arbitration + challenge collateral
-  const [arbitrationCost, collateralAmount] = await Promise.all([
+  const [arbitrationCost, claimCollateral] = await Promise.all([
     contract.connect(user).arbitrationCost(),
-    contract.connect(user).collateralAmount(),
+    contract.connect(user).claimCollateral(),
   ]);
 
-  const valueForTx = arbitrationCost.add(collateralAmount);
+  const valueForTx = arbitrationCost.add(claimCollateral);
 
   const { ipfsCid, cidSignature } = await getTestingCidAndSig();
 

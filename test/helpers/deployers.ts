@@ -219,7 +219,7 @@ export type ProtocolConfig = {
   nbOfJurors: number;
   challengePeriod: number;
   overrulePeriod: number;
-  collateralAmount: BigNumber;
+  claimCollateral: BigNumber;
   arbitrationCost: BigNumber; // in ETH for centralized AthenaArbitrator
   evidenceGuardian: Wallet;
   buybackWallet: Wallet;
@@ -247,7 +247,7 @@ export const defaultProtocolConfig: ProtocolConfig = {
   nbOfJurors: 4,
   challengePeriod: 10 * DAY_SECONDS, // 10 days
   overrulePeriod: 4 * DAY_SECONDS, // 4 days
-  collateralAmount: utils.parseEther("0.05"), // in ETH
+  claimCollateral: utils.parseEther("0.05"), // in ETH
   arbitrationCost: utils.parseEther("0"), // in ETH
   evidenceGuardian: evidenceGuardianWallet(),
   buybackWallet: buybackWallet(),
@@ -452,7 +452,7 @@ export async function deployAllContractsAndInitializeProtocol(
         config.nbOfJurors, // uint256 nbOfJurors_
         config.challengePeriod, // uint256 challengePeriod_
         config.overrulePeriod, // uint256 overrulePeriod_
-        config.collateralAmount, // uint256 collateralAmount_
+        config.claimCollateral, // uint256 claimCollateral_
       ]),
     );
     txCount++;

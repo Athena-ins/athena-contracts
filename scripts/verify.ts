@@ -240,7 +240,7 @@ async function main() {
       config.nbOfJurors, // uint256 nbOfJurors_
       config.challengePeriod, // uint256 challengePeriod_
       config.overrulePeriod, // uint256 overrulePeriod_
-      config.collateralAmount, // uint256 collateralAmount
+      config.claimCollateral, // uint256 claimCollateral
     ]);
     console.log("==> Verification processed for ClaimManager");
   }

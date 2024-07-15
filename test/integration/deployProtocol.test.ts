@@ -156,7 +156,7 @@ export function deployProtocol() {
           this.protocolConfig.nbOfJurors, // uint256 nbOfJurors_
           this.protocolConfig.challengePeriod, // uint256 challengePeriod_
           this.protocolConfig.overrulePeriod, // uint256 overrulePeriod_
-          this.protocolConfig.collateralAmount, // uint256 collateralAmount_
+          this.protocolConfig.claimCollateral, // uint256 claimCollateral_
         ]).then((contract) =>
           postDeployCheck(contract, this.args.deployedAt.ClaimManager),
         );

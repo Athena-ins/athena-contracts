@@ -116,7 +116,7 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
   mapping(uint256 _claimId => string[] _cids)
     public claimIdToCounterEvidence;
 
-  uint256 public collateralAmount;
+  uint256 public claimCollateral;
   // The params for Kleros specifying the subcourt ID and the number of jurors
   bytes public klerosExtraData;
   uint64 public challengePeriod;
@@ -137,13 +137,13 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
     uint256 nbOfJurors_,
     uint64 challengePeriod_,
     uint64 overrulePeriod_,
-    uint256 collateralAmount_
+    uint256 claimCollateral_
   ) Ownable(msg.sender) {
     coverToken = coverToken_;
     liquidityManager = liquidityManager_;
     evidenceGuardian = evidenceGuardian_;
 
-    setRequiredCollateral(collateralAmount_);
+    setRequiredCollateral(claimCollateral_);
     setPeriods(challengePeriod_, overrulePeriod_);
     setKlerosConfiguration(arbitrator_, subcourtId_, nbOfJurors_);
   }
@@ -518,9 +518,9 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
     // Register the claim to prevent exit from the pool untill resolution
     liquidityManager.addClaimToPool(coverId_);
 
-    // Check that the user has deposited the capital necessary for arbitration and collateral
+    // Check that the user has deposited the collateral & arbitration cost
     uint256 costOfArbitration = arbitrationCost();
-    if (msg.value < costOfArbitration + collateralAmount)
+    if (msg.value < costOfArbitration + claimCollateral)
       revert InsufficientDeposit();
 
     // Check if there already an ongoing claim related to this cover
@@ -746,7 +746,7 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
    * @param amount_ The new amount of collateral.
    */
   function setRequiredCollateral(uint256 amount_) public onlyOwner {
-    collateralAmount = amount_;
+    claimCollateral = amount_;
   }
 
   /**

@@ -1023,7 +1023,7 @@ export async function initiateClaim(
   const messageValue: BigNumberish =
     valueSent ||
     (await Promise.all([
-      ClaimManager.collateralAmount(),
+      ClaimManager.claimCollateral(),
       ClaimManager.arbitrationCost(),
     ]).then((prices) =>
       prices.reduce((acc, el) => acc.add(el), BigNumber.from(0)),
@@ -1042,7 +1042,6 @@ export async function initiateClaim(
         coverId,
         amountClaimedAmount,
         ipfsMetaEvidenceCid,
-        signature,
         {
           value: messageValue,
         },
@@ -1091,7 +1090,6 @@ export async function initiateClaim(
         coverId,
         amountClaimedAmount,
         ipfsMetaEvidenceCid,
-        signature,
         {
           value: messageValue,
         },
