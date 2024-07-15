@@ -31,7 +31,7 @@ const deployParams: {
     challengePeriod: 10 * DAY_SECONDS,
     overrulePeriod: 4 * DAY_SECONDS,
     collateralAmount: parseEther("0.05"),
-    arbitrationCollateral: parseEther("0.05"), // in ETH
+    arbitrationCost: parseEther("0"), // in ETH for centralized AthenaArbitrator
     evidenceGuardian: evidenceGuardianWallet(),
     //
     buybackWallet: buybackWallet(),

@@ -326,7 +326,8 @@ async function main() {
 
   if (AthenaArbitrator !== ADDRESS_ZERO) {
     await verifyEtherscanContract<AthenaArbitrator__factory>(AthenaArbitrator, [
-      config.arbitrationCollateral,
+      ClaimManager,
+      config.arbitrationCost,
     ]);
     console.log("==> Verification processed for AthenaArbitrator");
   }

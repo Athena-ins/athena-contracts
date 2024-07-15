@@ -520,11 +520,9 @@ async function initiateClaim(
 
   // Create the claim
   return postTxHandler(
-    contract
-      .connect(user)
-      .initiateClaim(coverId, amountClaimed, ipfsCid, cidSignature, {
-        value: valueForTx,
-      }),
+    contract.connect(user).initiateClaim(coverId, amountClaimed, ipfsCid, {
+      value: valueForTx,
+    }),
   );
 }
 

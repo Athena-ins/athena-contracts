@@ -280,7 +280,10 @@ export async function deployAllContractsAndInitializeProtocolV0(
   // ======= Claims ======= //
   if (deploymentOrder[txCount] === "AthenaArbitrator") {
     deployExecutors.push(async () =>
-      deployAthenaArbitrator(deployer, [config.arbitrationCollateral]),
+      deployAthenaArbitrator(deployer, [
+        deployedAt.ClaimManager,
+        config.arbitrationCost,
+      ]),
     );
     txCount++;
   }

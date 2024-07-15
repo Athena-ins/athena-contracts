@@ -244,7 +244,8 @@ export function deployProtocol() {
 
       it("deploys AthenaArbitrator", async function (this: Arguments) {
         await deployAthenaArbitrator(this.signers.deployer, [
-          ethers.utils.parseEther("0.05"),
+          this.args.deployedAt.ClaimManager,
+          this.protocolConfig.arbitrationCost,
         ]).then((contract) =>
           postDeployCheck(contract, this.args.deployedAt.AthenaArbitrator),
         );
