@@ -23,9 +23,8 @@ error OutOfRange();
 error BadRange();
 error WrongClaimStatus();
 error InvalidParty();
-error InvalidMetaEvidence();
 error CannotClaimZero();
-error NotEnoughEthForClaim();
+error InsufficientDeposit();
 error PreviousClaimStillOngoing();
 error ClaimNotChallengeable();
 error ClaimAlreadyChallenged();
@@ -37,6 +36,7 @@ error GuardianSetToAddressZero();
 error OverrulePeriodEnded();
 error ClaimDoesNotExist();
 error NoClaimsForCover();
+error CourtClosed();
 
 // IClaimManager,
 contract ClaimManager is Ownable, VerifySignature, IArbitrable {
@@ -63,27 +63,28 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
     RejectClaim
   }
 
-  struct ClaimView {
-    address claimant;
-    uint256 coverId;
-    uint64 poolId;
+  struct ClaimRead {
     uint256 claimId;
+    uint64 poolId;
+    address claimant;
+    string[] evidence;
+    string[] counterEvidence;
+    //
+    uint256 coverId;
     uint256 disputeId;
+    string metaEvidence;
     ClaimStatus status;
     uint256 createdAt;
     uint256 amount;
     address challenger;
     uint256 deposit;
-    string[] evidence;
-    string[] counterEvidence;
-    string metaEvidence;
     uint256 rulingTimestamp;
   }
 
-  // @dev claimId is set to 0 to minimize gas cost but filled in view functions
   struct Claim {
     uint256 coverId;
     uint256 disputeId;
+    string metaEvidence;
     ClaimStatus status;
     uint256 createdAt;
     uint256 amount;
@@ -98,9 +99,8 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
   ILiquidityManager public liquidityManager;
   IArbitrator public arbitrator;
 
-  address public metaEvidenceGuardian;
+  address public evidenceGuardian;
   address public overruleGuardian;
-  address public leverageRiskWallet;
 
   // The params for Kleros specifying the subcourt ID and the number of jurors
   bytes public klerosExtraData;
@@ -120,8 +120,6 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
   mapping(uint256 _disputeId => uint256 _claimId)
     public disputeIdToClaimId;
 
-  // Maps a pool ID to its generic meta-evidence IPFS file CID
-  mapping(uint64 _poolId => string _cid) public poolIdToCoverTerms;
   // Maps a claim ID to its submited evidence
   mapping(uint256 _claimId => string[] _cids)
     public claimIdToEvidence;
@@ -134,15 +132,13 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
     IAthenaCoverToken coverToken_,
     ILiquidityManager liquidityManager_,
     IArbitrator arbitrator_,
-    address metaEvidenceGuardian_,
-    address leverageRiskWallet_,
+    address evidenceGuardian_,
     uint256 subcourtId_,
     uint256 nbOfJurors_
   ) Ownable(msg.sender) {
     coverToken = coverToken_;
     liquidityManager = liquidityManager_;
-    metaEvidenceGuardian = metaEvidenceGuardian_;
-    leverageRiskWallet = leverageRiskWallet_;
+    evidenceGuardian = evidenceGuardian_;
 
     setKlerosConfiguration(arbitrator_, subcourtId_, nbOfJurors_);
   }
@@ -209,17 +205,6 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
   }
 
   /**
-   * @notice
-   * Check caller is owner of the cover holder NFT
-   * @param coverId_ cover holder NFT ID
-   */
-  modifier onlyCoverOwner(uint256 coverId_) {
-    if (msg.sender != coverToken.ownerOf(coverId_))
-      revert OnlyCoverOwner();
-    _;
-  }
-
-  /**
    * @notice Check that the cover exists
    * @param coverId_ The cover ID
    */
@@ -252,43 +237,12 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
   }
 
   /**
-   * @notice Returns the URI of the cover terms for a pool.
-   * @param poolId The pool ID*
-   * @return _ The URI of the cover terms
-   */
-  function getPoolCoverTerms(
-    uint64 poolId
-  ) external view returns (string memory) {
-    return poolIdToCoverTerms[poolId];
-  }
-
-  /**
    * @notice
    * Returns the cost of arbitration for a Kleros dispute.
    * @return _ the arbitration cost
    */
   function arbitrationCost() public view returns (uint256) {
     return arbitrator.arbitrationCost(klerosExtraData);
-  }
-
-  /**
-   * @notice
-   * Returns the remaining time to challenge a claim.
-   * @param claimId_ The claim ID
-   * @return _ the remaining time to challenge
-   */
-  function remainingTimeToChallenge(
-    uint256 claimId_
-  ) external view claimsExists(claimId_) returns (uint256) {
-    Claim memory userClaim = claims[claimId_];
-
-    // If the claim is not in the Initiated state it cannot be challenged
-    if (userClaim.status != ClaimStatus.Initiated) return 0;
-    else if (userClaim.createdAt + challengePeriod < block.timestamp)
-      return 0;
-    else
-      return
-        (userClaim.createdAt + challengePeriod) - block.timestamp;
   }
 
   /**
@@ -332,22 +286,22 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
     internal
     view
     claimsExists(claimId_)
-    returns (ClaimView memory claimData)
+    returns (ClaimRead memory claimData)
   {
     Claim storage claim = claims[claimId_];
 
     address claimant = coverToken.ownerOf(claim.coverId);
     uint64 poolId = liquidityManager.coverToPool(claim.coverId);
 
-    claimData = ClaimView({
+    claimData = ClaimRead({
       claimant: claimant,
       claimId: claimId_,
       poolId: poolId,
-      metaEvidence: poolIdToCoverTerms[poolId],
       evidence: claimIdToEvidence[claimId_],
       counterEvidence: claimIdToCounterEvidence[claimId_],
       coverId: claim.coverId,
       disputeId: claim.disputeId,
+      metaEvidence: claim.metaEvidence,
       status: claim.status,
       createdAt: claim.createdAt,
       amount: claim.amount,
@@ -372,7 +326,7 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
    */
   function claimInfo(
     uint256 claimId_
-  ) external view returns (ClaimView memory /* claimInfo */) {
+  ) external view returns (ClaimRead memory /* claimInfo */) {
     return _claimViewData(claimId_);
   }
 
@@ -386,12 +340,12 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
   function claimRange(
     uint256 beginIndex,
     uint256 endIndex
-  ) external view returns (ClaimView[] memory claimsInfo) {
+  ) external view returns (ClaimRead[] memory claimsInfo) {
     if (nextClaimId < endIndex) revert OutOfRange();
     if (endIndex <= beginIndex) revert BadRange();
 
     uint256 nbOfClaims = endIndex - beginIndex;
-    claimsInfo = new ClaimView[](nbOfClaims);
+    claimsInfo = new ClaimRead[](nbOfClaims);
 
     for (uint256 i = beginIndex; i < nbOfClaims; i++) {
       claimsInfo[i] = _claimViewData(beginIndex + i);
@@ -409,11 +363,11 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
     public
     view
     coverExists(coverId_)
-    returns (ClaimView[] memory claimsInfo)
+    returns (ClaimRead[] memory claimsInfo)
   {
     uint256 nbClaims = coverIdToClaimIds[coverId_].length;
 
-    claimsInfo = new ClaimView[](nbClaims);
+    claimsInfo = new ClaimRead[](nbClaims);
 
     for (uint256 i; i < nbClaims; i++) {
       claimsInfo[i] = _claimViewData(coverIdToClaimIds[coverId_][i]);
@@ -427,7 +381,7 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
    */
   function claimsByAccount(
     address account_
-  ) external view returns (ClaimView[] memory claimsInfo) {
+  ) external view returns (ClaimRead[] memory claimsInfo) {
     uint256[] memory coverIds = coverToken.tokensOf(account_);
 
     uint256 nbOfCovers = coverIds.length;
@@ -436,7 +390,7 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
       nbOfClaims += coverIdToClaimIds[coverIds[i]].length;
     }
 
-    claimsInfo = new ClaimView[](nbOfClaims);
+    claimsInfo = new ClaimRead[](nbOfClaims);
 
     for (uint256 i; i < nbOfCovers; i++) {
       uint256[] memory claimsForCover = coverIdToClaimIds[
@@ -491,19 +445,6 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
 
   /**
    * @notice
-   * Add or update the document associated to the pool's insurance terms.
-   * @param poolId_ The new pool ID
-   * @param ipfsAgreementCid_ The IPFS CID of the meta evidence
-   */
-  function addCoverTermsForPool(
-    uint64 poolId_,
-    string calldata ipfsAgreementCid_
-  ) external onlyOwner {
-    poolIdToCoverTerms[poolId_] = ipfsAgreementCid_;
-  }
-
-  /**
-   * @notice
    * Adds evidence IPFS CIDs for a claim.
    * @param claimId_ The claim ID
    * @param ipfsEvidenceCids_ The IPFS CIDs of the evidence
@@ -512,20 +453,19 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
     uint256 claimId_,
     string[] calldata ipfsEvidenceCids_
   ) external claimsExists(claimId_) {
-    Claim storage userClaim = claims[claimId_];
+    Claim storage claim = claims[claimId_];
 
     if (
-      userClaim.status != ClaimStatus.Initiated &&
-      userClaim.status != ClaimStatus.Disputed
+      claim.status != ClaimStatus.Initiated &&
+      claim.status != ClaimStatus.Disputed
     ) revert WrongClaimStatus();
 
-    bool isClaimant = msg.sender ==
-      coverToken.ownerOf(userClaim.coverId);
+    bool isClaimant = msg.sender == coverToken.ownerOf(claim.coverId);
 
     if (
       !isClaimant &&
-      msg.sender != userClaim.challenger &&
-      msg.sender != metaEvidenceGuardian
+      msg.sender != claim.challenger &&
+      msg.sender != evidenceGuardian
     ) revert InvalidParty();
 
     string[] storage evidence = isClaimant
@@ -558,14 +498,11 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
   function initiateClaim(
     uint256 coverId_,
     uint256 amountClaimed_,
-    string calldata ipfsMetaEvidenceCid_,
-    bytes calldata signature_
-  ) external payable onlyCoverOwner(coverId_) {
-    // Verify authenticity of the IPFS meta-evidence CID
-    if (
-      recoverSigner(ipfsMetaEvidenceCid_, signature_) !=
-      metaEvidenceGuardian
-    ) revert InvalidMetaEvidence();
+    string calldata ipfsMetaEvidenceCid_
+  ) external payable {
+    if (msg.sender != coverToken.ownerOf(coverId_))
+      revert OnlyCoverOwner();
+
     if (amountClaimed_ == 0) revert CannotClaimZero();
 
     // Register the claim to prevent exit from the pool untill resolution
@@ -574,17 +511,16 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
     // Check that the user has deposited the capital necessary for arbitration and collateral
     uint256 costOfArbitration = arbitrationCost();
     if (msg.value < costOfArbitration + collateralAmount)
-      revert NotEnoughEthForClaim();
+      revert InsufficientDeposit();
 
     // Check if there already an ongoing claim related to this cover
     if (0 < coverIdToClaimIds[coverId_].length) {
-      uint256 latestClaimIdOfCover = latestCoverClaimId(coverId_);
+      Claim storage prevClaim = claims[latestCoverClaimId(coverId_)];
+
       // Only allow for a new claim if it is not initiated or disputed
-      // @dev a cover can lead to multiple claims but if the total claimed amount exceeds their coverage amount then the claim may be disputed
-      Claim storage userClaim = claims[latestClaimIdOfCover];
       if (
-        userClaim.status == ClaimStatus.Initiated ||
-        userClaim.status == ClaimStatus.Disputed
+        prevClaim.status == ClaimStatus.Initiated ||
+        prevClaim.status == ClaimStatus.Disputed
       ) revert PreviousClaimStillOngoing();
     }
 
@@ -597,6 +533,7 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
     Claim storage claim = claims[claimId];
     claim.coverId = coverId_;
     claim.amount = amountClaimed_;
+    claim.metaEvidence = ipfsMetaEvidenceCid_;
     claim.createdAt = block.timestamp;
     claim.deposit = msg.value;
     claim.status = ClaimStatus.Initiated;
@@ -616,16 +553,16 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
   function disputeClaim(
     uint256 claimId_
   ) external payable claimsExists(claimId_) {
-    Claim storage userClaim = claims[claimId_];
+    Claim storage claim = claims[claimId_];
 
     // Check the claim is in the appropriate status and challenge is within period
     if (
-      userClaim.status != ClaimStatus.Initiated ||
-      userClaim.createdAt + challengePeriod <= block.timestamp
+      claim.status != ClaimStatus.Initiated ||
+      claim.createdAt + challengePeriod <= block.timestamp
     ) revert ClaimNotChallengeable();
 
     // Check the claim is not already disputed
-    if (userClaim.challenger != address(0))
+    if (claim.challenger != address(0))
       revert ClaimAlreadyChallenged();
 
     // Check that the challenger has deposited enough capital for dispute creation
@@ -636,12 +573,12 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
     // Create the claim and obtain the Kleros dispute ID
     uint256 disputeId = arbitrator.createDispute{
       value: costOfArbitration
-    }(2, klerosExtraData);
+    }(numberOfRulingOptions, klerosExtraData);
 
     // Update the claim with challenged status and challenger address
-    userClaim.status = ClaimStatus.Disputed;
-    userClaim.challenger = msg.sender;
-    userClaim.disputeId = disputeId;
+    claim.status = ClaimStatus.Disputed;
+    claim.challenger = msg.sender;
+    claim.disputeId = disputeId;
 
     // Map the new dispute ID to be able to search it after ruling
     disputeIdToClaimId[disputeId] = claimId_;
@@ -662,43 +599,42 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
     uint256 ruling_
   ) external onlyArbitrator {
     uint256 claimId = disputeIdToClaimId[disputeId_];
-    Claim storage userClaim = claims[claimId];
+    Claim storage claim = claims[claimId];
 
     // Check the status of the claim
-    if (userClaim.status != ClaimStatus.Disputed)
+    if (claim.status != ClaimStatus.Disputed)
       revert ClaimNotInDispute();
     if (numberOfRulingOptions < ruling_) revert InvalidRuling();
 
     // Manage ETH for claim creation, claim collateral and dispute creation
     if (ruling_ == uint256(RulingOptions.PayClaimant)) {
-      userClaim.status = ClaimStatus.AcceptedByCourtDecision;
+      claim.status = ClaimStatus.AcceptedByCourtDecision;
 
       // Save timestamp to initiate overrule period
-      userClaim.rulingTimestamp = block.timestamp;
+      claim.rulingTimestamp = block.timestamp;
     } else if (ruling_ == uint256(RulingOptions.RejectClaim)) {
-      userClaim.status = ClaimStatus.RejectedByCourtDecision;
+      claim.status = ClaimStatus.RejectedByCourtDecision;
 
-      address challenger = userClaim.challenger;
+      address challenger = claim.challenger;
       // Refund arbitration cost to the challenger and pay them with collateral
-      _sendValue(challenger, userClaim.deposit);
+      _sendValue(challenger, claim.deposit);
     } else {
       // This is the case where the arbitrator refuses to rule
-      userClaim.status = ClaimStatus.RejectedByRefusalToArbitrate;
+      claim.status = ClaimStatus.RejectedByRefusalToArbitrate;
 
-      /// @dev we remove 1 wei from the arbitration cost to avoid a rounding errors
-      uint256 halfArbitrationCost = (arbitrationCost() / 2) - 1;
-
-      address claimant = userClaim.challenger;
-      address challenger = userClaim.challenger;
+      uint256 halfArbitrationCost = (arbitrationCost() / 2);
 
       // Send back the collateral and half the arbitration cost to the claimant
-      _sendValue(claimant, userClaim.deposit - halfArbitrationCost);
+      _sendValue(
+        coverToken.ownerOf(claim.coverId),
+        claim.deposit - halfArbitrationCost
+      );
       // Send back half the arbitration cost to the challenger
-      _sendValue(challenger, halfArbitrationCost);
+      _sendValue(claim.challenger, halfArbitrationCost);
     }
 
     // Remove claims from pool to unblock withdrawals
-    liquidityManager.removeClaimFromPool(userClaim.coverId);
+    liquidityManager.removeClaimFromPool(claim.coverId);
 
     emit DisputeResolved({
       claimId: claimId,
@@ -718,39 +654,33 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
   function withdrawCompensation(
     uint256 claimId_
   ) external claimsExists(claimId_) {
-    Claim storage userClaim = claims[claimId_];
+    Claim storage claim = claims[claimId_];
 
     // Check the claim is in the appropriate status
-    if (userClaim.status == ClaimStatus.Initiated) {
+    if (claim.status == ClaimStatus.Initiated) {
       // Check the claim has passed the disputable period
-      if (block.timestamp < userClaim.createdAt + challengePeriod)
+      if (block.timestamp < claim.createdAt + challengePeriod)
         revert PeriodNotElapsed();
 
       // Remove claims from pool to unblock withdrawals
-      liquidityManager.removeClaimFromPool(userClaim.coverId);
+      liquidityManager.removeClaimFromPool(claim.coverId);
 
-      userClaim.status = ClaimStatus.Compensated;
-    } else if (
-      userClaim.status == ClaimStatus.AcceptedByCourtDecision
-    ) {
+      claim.status = ClaimStatus.Compensated;
+    } else if (claim.status == ClaimStatus.AcceptedByCourtDecision) {
       // Check the ruling has passed the overrule period
-      if (
-        block.timestamp < userClaim.rulingTimestamp + overrulePeriod
-      ) revert PeriodNotElapsed();
+      if (block.timestamp < claim.rulingTimestamp + overrulePeriod)
+        revert PeriodNotElapsed();
 
-      userClaim.status = ClaimStatus.CompensatedAfterDispute;
+      claim.status = ClaimStatus.CompensatedAfterDispute;
     } else {
       revert WrongClaimStatus();
     }
 
     // Send back the collateral and arbitration cost to the claimant
-    _sendValue(
-      coverToken.ownerOf(userClaim.coverId),
-      userClaim.deposit
-    );
+    _sendValue(coverToken.ownerOf(claim.coverId), claim.deposit);
 
     // Call Athena core to pay the compensation
-    liquidityManager.payoutClaim(userClaim.coverId, userClaim.amount);
+    liquidityManager.payoutClaim(claim.coverId, claim.amount);
   }
 
   // ======= ADMIN ======= //
@@ -764,23 +694,23 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
     uint256 claimId_,
     bool punishClaimant_
   ) external claimsExists(claimId_) onlyOwner {
-    Claim storage userClaim = claims[claimId_];
+    Claim storage claim = claims[claimId_];
 
     // Check the claim is in the appropriate status
-    if (userClaim.status != ClaimStatus.AcceptedByCourtDecision)
+    if (claim.status != ClaimStatus.AcceptedByCourtDecision)
       revert WrongClaimStatus();
     // Check the ruling has passed the overrule period
-    if (userClaim.rulingTimestamp + overrulePeriod < block.timestamp)
+    if (claim.rulingTimestamp + overrulePeriod < block.timestamp)
       revert OverrulePeriodEnded();
 
-    userClaim.status = ClaimStatus.RejectedByOverrule;
+    claim.status = ClaimStatus.RejectedByOverrule;
 
     if (punishClaimant_) {
       // In case of blatant attacks on the claim process then punish the offender
-      _sendValue(leverageRiskWallet, userClaim.deposit);
+      _sendValue(msg.sender, claim.deposit);
     } else {
       // Send back the collateral and arbitration cost to the claimant
-      _sendValue(msg.sender, userClaim.deposit);
+      _sendValue(coverToken.ownerOf(claim.coverId), claim.deposit);
     }
   }
 
@@ -826,14 +756,15 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
 
   /**
    * @notice Changes the address of the meta-evidence guardian.
-   * @param metaEvidenceGuardian_ The new address of the meta-evidence guardian.
+   * @param evidenceGuardian_ The new address of the meta-evidence guardian.
    */
   function changeMetaEvidenceGuardian(
     address metaEvidenceGuardian_
   ) external onlyOwner {
-    if (metaEvidenceGuardian_ == address(0))
+    if (evidenceGuardian_ == address(0))
       revert GuardianSetToAddressZero();
 
+    evidenceGuardian = evidenceGuardian_;
     metaEvidenceGuardian = metaEvidenceGuardian_;
   }
 }
