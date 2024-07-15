@@ -22,7 +22,7 @@ import {
   // Dao
   EcclesiaDao,
   // Claims
-  MockArbitrator,
+  AthenaArbitrator,
   // Managers
   ClaimManager,
   LiquidityManager,

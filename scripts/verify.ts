@@ -19,7 +19,7 @@ import {
   ClaimManager__factory,
   EcclesiaDao__factory,
   LiquidityManager__factory,
-  MockArbitrator__factory,
+  AthenaArbitrator__factory,
   PoolMath__factory,
   RewardManager__factory,
   FarmingRange__factory,
@@ -167,7 +167,7 @@ async function main() {
     AthenaPositionToken: AthenaPositionToken,
     AthenaToken: AthenaToken,
     EcclesiaDao: EcclesiaDao,
-    MockArbitrator: MockArbitrator,
+    AthenaArbitrator: AthenaArbitrator,
     ClaimManager: ClaimManager,
     LiquidityManager: LiquidityManager,
     StrategyManager: StrategyManager,
@@ -234,7 +234,7 @@ async function main() {
     await verifyEtherscanContract<ClaimManager__factory>(ClaimManager, [
       AthenaCoverToken, // IAthenaCoverToken coverToken_
       LiquidityManager, // ILiquidityManager liquidityManager_
-      MockArbitrator, // IArbitrator arbitrator_
+      AthenaArbitrator, // IArbitrator arbitrator_
       config.evidenceGuardian.address, // address metaEvidenceGuardian_
       config.subcourtId, // uint256 subcourtId_
       config.nbOfJurors, // uint256 nbOfJurors_
@@ -324,11 +324,11 @@ async function main() {
 
   // ======= Claims ======= //
 
-  if (MockArbitrator !== ADDRESS_ZERO) {
-    await verifyEtherscanContract<MockArbitrator__factory>(MockArbitrator, [
+  if (AthenaArbitrator !== ADDRESS_ZERO) {
+    await verifyEtherscanContract<AthenaArbitrator__factory>(AthenaArbitrator, [
       config.arbitrationCollateral,
     ]);
-    console.log("==> Verification processed for MockArbitrator");
+    console.log("==> Verification processed for AthenaArbitrator");
   }
 
   console.log("\n==> Protocol verified");

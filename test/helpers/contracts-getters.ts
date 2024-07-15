@@ -4,7 +4,7 @@ import {
   // Dao
   EcclesiaDao__factory,
   // Claims
-  MockArbitrator__factory,
+  AthenaArbitrator__factory,
   // Managers
   ClaimManager__factory,
   LiquidityManager__factory,
@@ -55,8 +55,8 @@ async function connectWrapper<
 export async function getEcclesiaDao(address: string) {
   return connectWrapper(EcclesiaDao__factory, address);
 }
-export async function getMockArbitrator(address: string) {
-  return connectWrapper(MockArbitrator__factory, address);
+export async function getAthenaArbitrator(address: string) {
+  return connectWrapper(AthenaArbitrator__factory, address);
 }
 export async function getClaimManager(address: string) {
   return connectWrapper(ClaimManager__factory, address);
@@ -117,7 +117,7 @@ export async function getConnectedProtocolContracts(
 ): Promise<ConnectedProtocolContracts> {
   const [
     EcclesiaDao,
-    MockArbitrator,
+    AthenaArbitrator,
     ClaimManager,
     LiquidityManager,
     StrategyManager,
@@ -135,7 +135,7 @@ export async function getConnectedProtocolContracts(
     WethToken,
   ] = await Promise.all([
     getEcclesiaDao(addresses.EcclesiaDao),
-    getMockArbitrator(addresses.MockArbitrator),
+    getAthenaArbitrator(addresses.AthenaArbitrator),
     getClaimManager(addresses.ClaimManager),
     getLiquidityManager(addresses.LiquidityManager),
     getStrategyManager(addresses.StrategyManager),
@@ -155,7 +155,7 @@ export async function getConnectedProtocolContracts(
 
   return {
     EcclesiaDao,
-    MockArbitrator,
+    AthenaArbitrator,
     ClaimManager,
     LiquidityManager,
     StrategyManager,

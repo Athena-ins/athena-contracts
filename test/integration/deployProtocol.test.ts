@@ -4,7 +4,7 @@ import hre, { ethers } from "hardhat";
 import {
   deploymentOrder,
   //
-  deployMockArbitrator,
+  deployAthenaArbitrator,
   deployAthenaCoverToken,
   deployAthenaPositionToken,
   deployAthenaToken,
@@ -150,7 +150,7 @@ export function deployProtocol() {
         await deployClaimManager(this.signers.deployer, [
           this.args.deployedAt.AthenaCoverToken, // IAthenaCoverToken coverToken_
           this.args.deployedAt.LiquidityManager, // ILiquidityManager liquidityManager_
-          this.args.deployedAt.MockArbitrator, // IArbitrator arbitrator_
+          this.args.deployedAt.AthenaArbitrator, // IArbitrator arbitrator_
           this.signers.evidenceGuardian.address, // address metaEvidenceGuardian_
           this.protocolConfig.subcourtId, // uint256 subcourtId_
           this.protocolConfig.nbOfJurors, // uint256 nbOfJurors_
@@ -242,11 +242,11 @@ export function deployProtocol() {
 
       // ======= Claims ======= //
 
-      it("deploys MockArbitrator", async function (this: Arguments) {
-        await deployMockArbitrator(this.signers.deployer, [
+      it("deploys AthenaArbitrator", async function (this: Arguments) {
+        await deployAthenaArbitrator(this.signers.deployer, [
           ethers.utils.parseEther("0.05"),
         ]).then((contract) =>
-          postDeployCheck(contract, this.args.deployedAt.MockArbitrator),
+          postDeployCheck(contract, this.args.deployedAt.AthenaArbitrator),
         );
       });
     });

@@ -20,6 +20,9 @@ error OnlyClaimManager();
 /** @title Athena Implementation of Kleros Centralized Arbitrator
  * Used as a temporary arbitrator until the Kleros Arbitrum Arbitrator is live.
  * This arbitrator decides alone on the result of disputes. No appeals are possible.
+ *
+ * Originial Kleros contract:
+ * https://github.com/kleros/kleros-interaction/blob/master/contracts/standard/arbitration/CentralizedArbitrator.sol
  */
 contract AthenaArbitrator is IArbitrator, Ownable {
   // ======= STORAGE ======= //

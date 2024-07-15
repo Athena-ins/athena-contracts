@@ -35,7 +35,7 @@ import {
   IWETH__factory,
   LiquidityManager__factory,
   // Claims
-  MockArbitrator__factory,
+  AthenaArbitrator__factory,
   // Libs
   PoolMath__factory,
   RewardManager__factory,
@@ -49,7 +49,7 @@ import {
   deployPoolMath,
   deployVirtualPool,
   deployAthenaDataProvider,
-  deployMockArbitrator,
+  deployAthenaArbitrator,
   deployEcclesiaDao,
   deployClaimManager,
   deployLiquidityManager,
@@ -195,7 +195,7 @@ export async function deployAllContractsAndInitializeProtocolV0(
       deployClaimManager(deployer, [
         deployedAt.AthenaCoverToken, // IAthenaCoverToken coverToken_
         deployedAt.LiquidityManager, // ILiquidityManager liquidityManager_
-        deployedAt.MockArbitrator, // IArbitrator arbitrator_
+        deployedAt.AthenaArbitrator, // IArbitrator arbitrator_
         config.evidenceGuardian.address, // address metaEvidenceGuardian_
         config.subcourtId, // uint256 subcourtId_
         config.nbOfJurors, // uint256 nbOfJurors_
@@ -278,9 +278,9 @@ export async function deployAllContractsAndInitializeProtocolV0(
   }
 
   // ======= Claims ======= //
-  if (deploymentOrder[txCount] === "MockArbitrator") {
+  if (deploymentOrder[txCount] === "AthenaArbitrator") {
     deployExecutors.push(async () =>
-      deployMockArbitrator(deployer, [config.arbitrationCollateral]),
+      deployAthenaArbitrator(deployer, [config.arbitrationCollateral]),
     );
     txCount++;
   }
@@ -314,8 +314,8 @@ export async function deployAllContractsAndInitializeProtocolV0(
     deployedAt.EcclesiaDao || ADDRESS_ZERO,
     deployer,
   );
-  const MockArbitrator = MockArbitrator__factory.connect(
-    deployedAt.MockArbitrator || ADDRESS_ZERO,
+  const AthenaArbitrator = AthenaArbitrator__factory.connect(
+    deployedAt.AthenaArbitrator || ADDRESS_ZERO,
     deployer,
   );
   const ClaimManager = ClaimManager__factory.connect(
@@ -364,7 +364,7 @@ export async function deployAllContractsAndInitializeProtocolV0(
     AthenaPositionToken,
     AthenaToken,
     EcclesiaDao,
-    MockArbitrator,
+    AthenaArbitrator,
     ClaimManager,
     LiquidityManager,
     StrategyManager,

@@ -24,8 +24,8 @@ import {
   EcclesiaDao__factory,
   EcclesiaDao,
   // Claims
-  MockArbitrator__factory,
-  MockArbitrator,
+  AthenaArbitrator__factory,
+  AthenaArbitrator,
   // Managers
   ClaimManager__factory,
   ClaimManager,
@@ -115,11 +115,11 @@ export async function deployAthenaDataProvider(
   ).deploy(...args);
 }
 
-export async function deployMockArbitrator(
+export async function deployAthenaArbitrator(
   signer: Signer,
-  args: Parameters<MockArbitrator__factory["deploy"]>,
-): Promise<WithAddress<MockArbitrator>> {
-  return new MockArbitrator__factory(signer).deploy(...args);
+  args: Parameters<AthenaArbitrator__factory["deploy"]>,
+): Promise<WithAddress<AthenaArbitrator>> {
+  return new AthenaArbitrator__factory(signer).deploy(...args);
 }
 
 export async function deployEcclesiaDao(
@@ -283,7 +283,7 @@ export type DeployedProtocolContracts = {
   AthenaPositionToken: WithAddress<AthenaPositionToken>;
   AthenaToken: WithAddress<AthenaToken>;
   EcclesiaDao: WithAddress<EcclesiaDao>;
-  MockArbitrator: WithAddress<MockArbitrator>;
+  AthenaArbitrator: WithAddress<AthenaArbitrator>;
   ClaimManager: WithAddress<ClaimManager>;
   LiquidityManager: WithAddress<LiquidityManager>;
   StrategyManager: WithAddress<StrategyManager>;
@@ -304,7 +304,7 @@ export type ConnectedProtocolContracts = {
   AthenaPositionToken: ConnectWithAddress<AthenaPositionToken>;
   AthenaToken: ConnectWithAddress<AthenaToken>;
   EcclesiaDao: ConnectWithAddress<EcclesiaDao>;
-  MockArbitrator: ConnectWithAddress<MockArbitrator>;
+  AthenaArbitrator: ConnectWithAddress<AthenaArbitrator>;
   ClaimManager: ConnectWithAddress<ClaimManager>;
   LiquidityManager: ConnectWithAddress<LiquidityManager>;
   StrategyManager: ConnectWithAddress<StrategyManager>;
@@ -334,7 +334,7 @@ export const deploymentOrder = [
   "LiquidityManager",
   "RewardManager",
   "EcclesiaDao",
-  "MockArbitrator",
+  "AthenaArbitrator",
 ];
 
 export async function deployAllContractsAndInitializeProtocol(
@@ -446,7 +446,7 @@ export async function deployAllContractsAndInitializeProtocol(
       deployClaimManager(deployer, [
         deployedAt.AthenaCoverToken, // IAthenaCoverToken coverToken_
         deployedAt.LiquidityManager, // ILiquidityManager liquidityManager_
-        deployedAt.MockArbitrator, // IArbitrator arbitrator_
+        deployedAt.AthenaArbitrator, // IArbitrator arbitrator_
         config.evidenceGuardian.address, // address metaEvidenceGuardian_
         config.subcourtId, // uint256 subcourtId_
         config.nbOfJurors, // uint256 nbOfJurors_
@@ -529,9 +529,9 @@ export async function deployAllContractsAndInitializeProtocol(
   }
 
   // ======= Claims ======= //
-  if (deploymentOrder[txCount] === "MockArbitrator") {
+  if (deploymentOrder[txCount] === "AthenaArbitrator") {
     deployExecutors.push(async () =>
-      deployMockArbitrator(deployer, [config.arbitrationCollateral]),
+      deployAthenaArbitrator(deployer, [config.arbitrationCollateral]),
     );
     txCount++;
   }
@@ -565,8 +565,8 @@ export async function deployAllContractsAndInitializeProtocol(
     deployedAt.EcclesiaDao || ADDRESS_ZERO,
     deployer,
   );
-  const MockArbitrator = MockArbitrator__factory.connect(
-    deployedAt.MockArbitrator || ADDRESS_ZERO,
+  const AthenaArbitrator = AthenaArbitrator__factory.connect(
+    deployedAt.AthenaArbitrator || ADDRESS_ZERO,
     deployer,
   );
   const ClaimManager = ClaimManager__factory.connect(
@@ -615,7 +615,7 @@ export async function deployAllContractsAndInitializeProtocol(
     AthenaPositionToken,
     AthenaToken,
     EcclesiaDao,
-    MockArbitrator,
+    AthenaArbitrator,
     ClaimManager,
     LiquidityManager,
     StrategyManager,
