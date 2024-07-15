@@ -5,7 +5,7 @@ pragma solidity 0.8.25;
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
 // Libraries
-import { VerifySignature } from "../libs/VerifySignature.sol";
+import { ReentrancyGuard } from "../libs/ReentrancyGuard.sol";
 
 // Interfaces
 import { IArbitrable } from "../interfaces/IArbitrable.sol";
@@ -38,8 +38,12 @@ error ClaimDoesNotExist();
 error NoClaimsForCover();
 error CourtClosed();
 
-// IClaimManager,
-contract ClaimManager is Ownable, VerifySignature, IArbitrable {
+contract ClaimManager is
+  IClaimManager,
+  IArbitrable,
+  Ownable,
+  ReentrancyGuard
+{
   // ======= MODELS ======= //
 
   // @dev the 'Accepted' status is virtual as it is never written to the blockchain
@@ -126,6 +130,8 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
   mapping(uint256 _claimId => string[] _cids)
     public claimIdToCounterEvidence;
 
+  bool public courtClosed;
+
   // ======= CONSTRUCTOR ======= //
 
   constructor(
@@ -203,6 +209,11 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
   );
 
   // ======= MODIFIERS ======= //
+
+  modifier isCourtClosed() {
+    if (courtClosed) revert CourtClosed();
+    _;
+  }
 
   modifier onlyArbitrator() {
     if (msg.sender != address(arbitrator)) revert OnlyArbitrator();
@@ -504,7 +515,7 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
     uint256 coverId_,
     uint256 amountClaimed_,
     string calldata ipfsMetaEvidenceCid_
-  ) external payable {
+  ) external payable isCourtClosed nonReentrant {
     if (msg.sender != coverToken.ownerOf(coverId_))
       revert OnlyCoverOwner();
 
@@ -557,7 +568,7 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
    */
   function disputeClaim(
     uint256 claimId_
-  ) external payable claimsExists(claimId_) {
+  ) external payable claimsExists(claimId_) nonReentrant {
     Claim storage claim = claims[claimId_];
 
     // Check the claim is in the appropriate status and challenge is within period
@@ -602,7 +613,7 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
   function rule(
     uint256 disputeId_,
     uint256 ruling_
-  ) external onlyArbitrator {
+  ) external onlyArbitrator nonReentrant {
     uint256 claimId = disputeIdToClaimId[disputeId_];
     Claim storage claim = claims[claimId];
 
@@ -658,7 +669,7 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
    */
   function withdrawCompensation(
     uint256 claimId_
-  ) external claimsExists(claimId_) {
+  ) external claimsExists(claimId_) nonReentrant {
     Claim storage claim = claims[claimId_];
 
     // Check the claim is in the appropriate status
@@ -768,5 +779,15 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
       revert GuardianSetToAddressZero();
 
     evidenceGuardian = evidenceGuardian_;
+  }
+
+  /**
+   * @notice Prevents new claims from being created with this claim manager.
+   * @param _courtClosed Whether the court is closed or not.
+   *
+   * @dev This is used when the claim manager is being upgraded.
+   */
+  function setCourClosed(bool _courtClosed) external onlyOwner {
+    courtClosed = _courtClosed;
   }
 }
