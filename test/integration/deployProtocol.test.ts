@@ -152,9 +152,11 @@ export function deployProtocol() {
           this.args.deployedAt.LiquidityManager, // ILiquidityManager liquidityManager_
           this.args.deployedAt.MockArbitrator, // IArbitrator arbitrator_
           this.signers.evidenceGuardian.address, // address metaEvidenceGuardian_
-          this.signers.leverageRiskWallet.address, // address leverageRiskWallet_
           this.protocolConfig.subcourtId, // uint256 subcourtId_
           this.protocolConfig.nbOfJurors, // uint256 nbOfJurors_
+          this.protocolConfig.challengePeriod, // uint256 challengePeriod_
+          this.protocolConfig.overrulePeriod, // uint256 overrulePeriod_
+          this.protocolConfig.collateralAmount, // uint256 collateralAmount_
         ]).then((contract) =>
           postDeployCheck(contract, this.args.deployedAt.ClaimManager),
         );

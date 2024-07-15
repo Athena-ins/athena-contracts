@@ -73,36 +73,6 @@ const ADDRESS_ZERO = "0x0000000000000000000000000000000000000000";
 // === Deploy protocol === //
 // ======================= //
 
-export const defaultProtocolConfig: ProtocolConfig = {
-  subcourtId: 2,
-  nbOfJurors: 4,
-  arbitrationCollateral: utils.parseEther("0.05"), // in ETH
-  evidenceGuardian: evidenceGuardianWallet(),
-  buybackWallet: buybackWallet(),
-  treasuryWallet: treasuryWallet(),
-  leverageRiskWallet: leverageRiskWallet(),
-  yieldRewarder: "0x0000000000000000000000000000000000000000",
-  leverageFeePerPool: toRay(1.5), // 1.5% base 100
-  poolFormula: {
-    feeRate: toRay(10), // 10%
-    uOptimal: toRay(75),
-    r0: toRay(1),
-    rSlope1: toRay(5),
-    rSlope2: toRay(10),
-  },
-  yieldBonuses: [
-    { atenAmount: parseUnits("0", 18), yieldBonus: toRay(0.025) },
-    { atenAmount: parseUnits("1000", 18), yieldBonus: toRay(0.02) },
-    { atenAmount: parseUnits("100000", 18), yieldBonus: toRay(0.015) },
-    { atenAmount: parseUnits("1000000", 18), yieldBonus: toRay(0.005) },
-  ],
-  withdrawDelay: 14 * 24 * 60 * 60, // 14 days
-  maxLeverage: 12, // max pools per position
-  payoutDeductibleRate: toRay(10), // 10%
-  strategyFeeRate: toRay(50), // 50%
-  farmingBlockStart: 0, // leave 0 for dynamic
-};
-
 export const deploymentOrder = [
   "AthenaCoverToken",
   "AthenaPositionToken",
@@ -227,9 +197,11 @@ export async function deployAllContractsAndInitializeProtocolV0(
         deployedAt.LiquidityManager, // ILiquidityManager liquidityManager_
         deployedAt.MockArbitrator, // IArbitrator arbitrator_
         config.evidenceGuardian.address, // address metaEvidenceGuardian_
-        config.leverageRiskWallet.address, // address leverageRiskWallet_
         config.subcourtId, // uint256 subcourtId_
         config.nbOfJurors, // uint256 nbOfJurors_
+        config.challengePeriod, // uint256 challengePeriod_
+        config.overrulePeriod, // uint256 overrulePeriod_
+        config.collateralAmount, // uint256 collateralAmount_
       ]),
     );
     txCount++;

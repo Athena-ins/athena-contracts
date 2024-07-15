@@ -236,9 +236,11 @@ async function main() {
       LiquidityManager, // ILiquidityManager liquidityManager_
       MockArbitrator, // IArbitrator arbitrator_
       config.evidenceGuardian.address, // address metaEvidenceGuardian_
-      config.leverageRiskWallet.address, // address leverageRiskWallet_
       config.subcourtId, // uint256 subcourtId_
       config.nbOfJurors, // uint256 nbOfJurors_
+      config.challengePeriod, // uint256 challengePeriod_
+      config.overrulePeriod, // uint256 overrulePeriod_
+      config.collateralAmount, // uint256 collateralAmount
     ]);
     console.log("==> Verification processed for ClaimManager");
   }

@@ -73,6 +73,7 @@ import { ConnectWithAddress } from "./contracts-getters";
 const { parseUnits } = utils;
 
 const ADDRESS_ZERO = "0x0000000000000000000000000000000000000000";
+const DAY_SECONDS = 24 * 60 * 60;
 
 // ================================= //
 // === Deploy contract functions === //
@@ -216,6 +217,9 @@ export async function deployAthenaToken(
 export type ProtocolConfig = {
   subcourtId: number;
   nbOfJurors: number;
+  challengePeriod: number;
+  overrulePeriod: number;
+  collateralAmount: BigNumber;
   arbitrationCollateral: BigNumber;
   evidenceGuardian: Wallet;
   buybackWallet: Wallet;
@@ -241,6 +245,9 @@ export type ProtocolConfig = {
 export const defaultProtocolConfig: ProtocolConfig = {
   subcourtId: 2,
   nbOfJurors: 4,
+  challengePeriod: 10 * DAY_SECONDS, // 10 days
+  overrulePeriod: 4 * DAY_SECONDS, // 4 days
+  collateralAmount: utils.parseEther("0.05"), // in ETH
   arbitrationCollateral: utils.parseEther("0.05"), // in ETH
   evidenceGuardian: evidenceGuardianWallet(),
   buybackWallet: buybackWallet(),
@@ -261,7 +268,7 @@ export const defaultProtocolConfig: ProtocolConfig = {
     { atenAmount: parseUnits("100000", 18), yieldBonus: toRay(0.015) },
     { atenAmount: parseUnits("1000000", 18), yieldBonus: toRay(0.005) },
   ],
-  withdrawDelay: 14 * 24 * 60 * 60, // 14 days
+  withdrawDelay: 14 * DAY_SECONDS, // 14 days
   maxLeverage: 12, // max pools per position
   payoutDeductibleRate: toRay(10), // 10%
   strategyFeeRate: toRay(50), // 50%
@@ -441,9 +448,11 @@ export async function deployAllContractsAndInitializeProtocol(
         deployedAt.LiquidityManager, // ILiquidityManager liquidityManager_
         deployedAt.MockArbitrator, // IArbitrator arbitrator_
         config.evidenceGuardian.address, // address metaEvidenceGuardian_
-        config.leverageRiskWallet.address, // address leverageRiskWallet_
         config.subcourtId, // uint256 subcourtId_
         config.nbOfJurors, // uint256 nbOfJurors_
+        config.challengePeriod, // uint256 challengePeriod_
+        config.overrulePeriod, // uint256 overrulePeriod_
+        config.collateralAmount, // uint256 collateralAmount_
       ]),
     );
     txCount++;

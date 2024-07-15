@@ -20,7 +20,7 @@ function fromFork() {
   return forkTarget === "arbitrum" ? "arbitrum" : "";
 }
 
-const DAY = 24 * 60 * 60;
+const DAY_SECONDS = 24 * 60 * 60;
 
 const deployParams: {
   [key: string]: ProtocolConfig;
@@ -28,6 +28,9 @@ const deployParams: {
   arbitrum: {
     subcourtId: 2,
     nbOfJurors: 4,
+    challengePeriod: 10 * DAY_SECONDS,
+    overrulePeriod: 4 * DAY_SECONDS,
+    collateralAmount: parseEther("0.05"),
     arbitrationCollateral: parseEther("0.05"), // in ETH
     evidenceGuardian: evidenceGuardianWallet(),
     //
@@ -36,18 +39,18 @@ const deployParams: {
     leverageRiskWallet: leverageRiskWallet(),
     yieldRewarder: "0x0000000000000000000000000000000000000000", // to be replaced by farming
     //
-    leverageFeePerPool: toRay(0.7), // 1.5% base 100
-    withdrawDelay: 10 * DAY, // 14 days
+    leverageFeePerPool: toRay(0.7), // base 100
+    withdrawDelay: 10 * DAY_SECONDS, // 14 days
     maxLeverage: 16, // max pools per position
-    payoutDeductibleRate: toRay(5), // 10%
-    strategyFeeRate: toRay(0), // 50%
+    payoutDeductibleRate: toRay(5), // base 100
+    strategyFeeRate: toRay(0), // base 100
     //
     poolFormula: {
-      feeRate: toRay(10), // 10%
-      uOptimal: toRay(75),
-      r0: toRay(1),
-      rSlope1: toRay(5),
-      rSlope2: toRay(24),
+      feeRate: toRay(10), // base 100
+      uOptimal: toRay(75), // base 100
+      r0: toRay(1), // base 100
+      rSlope1: toRay(5), // base 100
+      rSlope2: toRay(24), // base 100
     },
     yieldBonuses: [
       { atenAmount: parseUnits("0", 18), yieldBonus: toRay(0.025) },
