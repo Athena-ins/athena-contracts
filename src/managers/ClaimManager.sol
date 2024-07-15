@@ -104,9 +104,9 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
 
   // The params for Kleros specifying the subcourt ID and the number of jurors
   bytes public klerosExtraData;
-  uint256 public challengePeriod = 10 days;
-  uint256 public overrulePeriod = 4 days;
-  uint256 public collateralAmount = 0.1 ether;
+  uint256 public challengePeriod;
+  uint256 public overrulePeriod;
+  uint256 public collateralAmount;
 
   uint256 public immutable numberOfRulingOptions = 2;
 
@@ -134,12 +134,17 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
     IArbitrator arbitrator_,
     address evidenceGuardian_,
     uint256 subcourtId_,
-    uint256 nbOfJurors_
+    uint256 nbOfJurors_,
+    uint256 challengePeriod_,
+    uint256 overrulePeriod_,
+    uint256 collateralAmount_
   ) Ownable(msg.sender) {
     coverToken = coverToken_;
     liquidityManager = liquidityManager_;
     evidenceGuardian = evidenceGuardian_;
 
+    setRequiredCollateral(collateralAmount_);
+    setPeriods(challengePeriod_, overrulePeriod_);
     setKlerosConfiguration(arbitrator_, subcourtId_, nbOfJurors_);
   }
 
@@ -735,9 +740,7 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
    * @dev The collateral is paid to the challenger if the claim is disputed and rejected.
    * @param amount_ The new amount of collateral.
    */
-  function changeRequiredCollateral(
-    uint256 amount_
-  ) external onlyOwner {
+  function setRequiredCollateral(uint256 amount_) public onlyOwner {
     collateralAmount = amount_;
   }
 
@@ -746,10 +749,10 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
    * @param challengePeriod_ The new challenge period.
    * @param overrulePeriod_ The new overrule period.
    */
-  function changePeriods(
+  function setPeriods(
     uint256 challengePeriod_,
     uint256 overrulePeriod_
-  ) external onlyOwner {
+  ) public onlyOwner {
     challengePeriod = challengePeriod_;
     overrulePeriod = overrulePeriod_;
   }
@@ -758,13 +761,12 @@ contract ClaimManager is Ownable, VerifySignature, IArbitrable {
    * @notice Changes the address of the meta-evidence guardian.
    * @param evidenceGuardian_ The new address of the meta-evidence guardian.
    */
-  function changeMetaEvidenceGuardian(
-    address metaEvidenceGuardian_
+  function setEvidenceGuardian(
+    address evidenceGuardian_
   ) external onlyOwner {
     if (evidenceGuardian_ == address(0))
       revert GuardianSetToAddressZero();
 
     evidenceGuardian = evidenceGuardian_;
-    metaEvidenceGuardian = metaEvidenceGuardian_;
   }
 }
