@@ -533,7 +533,7 @@ async function withdrawCompensation(
   user: Wallet,
   coverId: number,
 ): Promise<ContractReceipt> {
-  const claimIds = await contract.connect(user).getCoverIdToClaimIds(coverId);
+  const claimIds = await contract.connect(user).coverIdToClaimIds(coverId);
   const latestClaimId = claimIds[claimIds.length - 1];
 
   return postTxHandler(

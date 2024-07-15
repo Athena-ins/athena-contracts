@@ -15,11 +15,8 @@ import { IAthenaCoverToken } from "../interfaces/IAthenaCoverToken.sol";
 
 // ======= ERRORS ======= //
 
-error OnlyLiquidityManager();
 error OnlyArbitrator();
 error OnlyCoverOwner();
-error OutOfRange();
-error BadRange();
 error WrongClaimStatus();
 error InvalidParty();
 error CannotClaimZero();
@@ -27,14 +24,13 @@ error InsufficientDeposit();
 error PreviousClaimStillOngoing();
 error ClaimNotChallengeable();
 error ClaimAlreadyChallenged();
-error MustMatchClaimantDeposit();
+error MustDepositArbitrationCost();
 error ClaimNotInDispute();
 error InvalidRuling();
 error PeriodNotElapsed();
 error GuardianSetToAddressZero();
 error OverrulePeriodEnded();
 error ClaimDoesNotExist();
-error NoClaimsForCover();
 error CourtClosed();
 
 contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
@@ -44,7 +40,7 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
   // It enables view functions to display the adequate state of the claim
   enum ClaimStatus {
     Initiated,
-    Accepted,
+    Accepted, // Virtual status
     Compensated,
     // Statuses below are only used when a claim is disputed
     Disputed,
@@ -105,7 +101,7 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
   mapping(uint256 _claimId => Claim) public claims;
   // Maps a coverId to its claim IDs
   mapping(uint256 _coverId => uint256[] _claimIds)
-    public coverIdToClaimIds;
+    public _coverIdToClaimIds;
   // Maps a Kleros dispute ID to its claim ID
   mapping(uint256 _disputeId => uint256 _claimId)
     public disputeIdToClaimId;
@@ -204,11 +200,9 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
 
   // ======= MODIFIERS ======= //
 
-  modifier isCourtClosed() {
-    if (courtClosed) revert CourtClosed();
-    _;
-  }
-
+  /**
+   * @notice Check that the caller is the arbitrator contract
+   */
   modifier onlyArbitrator() {
     if (msg.sender != address(arbitrator)) revert OnlyArbitrator();
     _;
@@ -236,17 +230,6 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
   // ======= VIEWS ======= //
 
   /**
-   * @notice Returns the claim IDs associated with a cover.
-   * @param coverId_ The cover ID
-   * @return _ The claim IDs associated with the cover
-   */
-  function getCoverIdToClaimIds(
-    uint256 coverId_
-  ) external view coverExists(coverId_) returns (uint256[] memory) {
-    return coverIdToClaimIds[coverId_];
-  }
-
-  /**
    * @notice
    * Returns the cost of arbitration for a Kleros dispute.
    * @return _ the arbitration cost
@@ -260,29 +243,15 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
    * @param coverId_ The cover ID
    * @return claimIds All the claim IDs associated with the cover
    */
-  function claimIdsByCoverId(
+  function coverIdToClaimIds(
     uint256 coverId_
   )
     external
     view
     coverExists(coverId_)
-    returns (uint256[] memory claimIds)
+    returns (uint256[] memory /*claimIds*/)
   {
-    claimIds = coverIdToClaimIds[coverId_];
-  }
-
-  /**
-   * @notice Returns the latest claim ID associated with a cover.
-   * @param coverId_ The cover ID
-   * @return claimId The latest claim ID associated with the cover
-   */
-  function latestCoverClaimId(
-    uint256 coverId_
-  ) public view coverExists(coverId_) returns (uint256) {
-    uint256 nbClaims = coverIdToClaimIds[coverId_].length;
-    if (0 == nbClaims) revert NoClaimsForCover();
-
-    return coverIdToClaimIds[coverId_][nbClaims - 1];
+    return _coverIdToClaimIds[coverId_];
   }
 
   /**
@@ -332,83 +301,75 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
   /**
    * @notice Get a claim by its ID.
    * @param claimId_ The claim ID
-   * @return claimInfo The claim's data
+   * @return result The claim's data
    */
   function claimInfo(
     uint256 claimId_
-  ) external view returns (ClaimRead memory /* claimInfo */) {
+  ) external view returns (ClaimRead memory /*result*/) {
     return _claimViewData(claimId_);
   }
 
   /**
-   * @notice Get all or a range of exiting claims.
-   * @dev The range is inclusive of the beginIndex and exclusive of the endIndex.
-   * @param beginIndex The index of the first claim to return
-   * @param endIndex The index of the claim at which to stop
-   * @return claimsInfo All the claims in the specified range
+   * @notice Returns multiple claims by their IDs.
+   * @param claimIds_ The claim IDs
+   *
+   * @return result All the claims' data
    */
-  function claimRange(
-    uint256 beginIndex,
-    uint256 endIndex
-  ) external view returns (ClaimRead[] memory claimsInfo) {
-    if (nextClaimId < endIndex) revert OutOfRange();
-    if (endIndex <= beginIndex) revert BadRange();
+  function claimInfos(
+    uint256[] memory claimIds_
+  ) public view returns (ClaimRead[] memory result) {
+    uint256 nbClaims = claimIds_.length;
 
-    uint256 nbOfClaims = endIndex - beginIndex;
-    claimsInfo = new ClaimRead[](nbOfClaims);
+    result = new ClaimRead[](nbClaims);
 
-    for (uint256 i = beginIndex; i < nbOfClaims; i++) {
-      claimsInfo[i] = _claimViewData(beginIndex + i);
+    for (uint256 i; i < nbClaims; i++) {
+      result[i] = _claimViewData(claimIds_[i]);
     }
   }
 
   /**
    * @notice Returns all the claims associated with a cover.
    * @param coverId_ The cover ID
+   *
    * @return claimsInfo All the cover's claims
    */
   function claimsByCoverId(
     uint256 coverId_
-  )
-    public
-    view
-    coverExists(coverId_)
-    returns (ClaimRead[] memory claimsInfo)
-  {
-    uint256 nbClaims = coverIdToClaimIds[coverId_].length;
+  ) public view returns (ClaimRead[] memory /*result*/) {
+    uint256[] memory claimIds = _coverIdToClaimIds[coverId_];
 
-    claimsInfo = new ClaimRead[](nbClaims);
-
-    for (uint256 i; i < nbClaims; i++) {
-      claimsInfo[i] = _claimViewData(coverIdToClaimIds[coverId_][i]);
-    }
+    return claimInfos(claimIds);
   }
 
   /**
    * @notice Returns all the claims of a user.
    * @param account_ The user's address
-   * @return claimsInfo All the user's claims
+   *
+   * @return result All the user's claims
    */
   function claimsByAccount(
     address account_
-  ) external view returns (ClaimRead[] memory claimsInfo) {
+  ) external view returns (ClaimRead[] memory result) {
     uint256[] memory coverIds = coverToken.tokensOf(account_);
 
-    uint256 nbOfCovers = coverIds.length;
+    uint256 nbCovers = coverIds.length;
     uint256 nbOfClaims;
-    for (uint256 i; i < nbOfCovers; i++) {
-      nbOfClaims += coverIdToClaimIds[coverIds[i]].length;
+    for (uint256 i; i < nbCovers; i++) {
+      nbOfClaims += _coverIdToClaimIds[coverIds[i]].length;
     }
 
-    claimsInfo = new ClaimRead[](nbOfClaims);
+    result = new ClaimRead[](nbOfClaims);
 
-    for (uint256 i; i < nbOfCovers; i++) {
-      uint256[] memory claimsForCover = coverIdToClaimIds[
+    uint256 index;
+    for (uint256 i; i < nbCovers; i++) {
+      uint256[] memory claimsForCover = _coverIdToClaimIds[
         coverIds[i]
       ];
+      uint256 nbClaims = claimsForCover.length;
 
-      for (uint256 j; j < claimsForCover.length; j++) {
-        claimsInfo[i] = _claimViewData(claimsForCover[j]);
+      for (uint256 j; j < nbClaims; j++) {
+        result[index] = _claimViewData(claimsForCover[j]);
+        index++;
       }
     }
   }
@@ -509,7 +470,8 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
     uint256 coverId_,
     uint256 amountClaimed_,
     string calldata ipfsMetaEvidenceCid_
-  ) external payable isCourtClosed nonReentrant {
+  ) external payable nonReentrant {
+    if (courtClosed) revert CourtClosed();
     if (msg.sender != coverToken.ownerOf(coverId_))
       revert OnlyCoverOwner();
 
@@ -524,8 +486,13 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
       revert InsufficientDeposit();
 
     // Check if there already an ongoing claim related to this cover
-    if (0 < coverIdToClaimIds[coverId_].length) {
-      Claim storage prevClaim = claims[latestCoverClaimId(coverId_)];
+    uint256 nbAssociatedClaims = _coverIdToClaimIds[coverId_].length;
+    if (0 < nbAssociatedClaims) {
+      uint256 latestClaimId = _coverIdToClaimIds[coverId_][
+        nbAssociatedClaims - 1
+      ];
+
+      Claim storage prevClaim = claims[latestClaimId];
 
       // Only allow for a new claim if it is not initiated or disputed
       if (
@@ -537,7 +504,7 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
     // Save latest claim ID of cover and update claim index
     uint256 claimId = nextClaimId;
     nextClaimId++;
-    coverIdToClaimIds[coverId_].push(claimId);
+    _coverIdToClaimIds[coverId_].push(claimId);
 
     // Save claim data
     Claim storage claim = claims[claimId];
@@ -578,7 +545,7 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
     // Check that the challenger has deposited enough capital for dispute creation
     uint256 costOfArbitration = arbitrationCost();
     if (msg.value < costOfArbitration)
-      revert MustMatchClaimantDeposit();
+      revert MustDepositArbitrationCost();
 
     // Create the claim and obtain the Kleros dispute ID
     uint256 disputeId = arbitrator.createDispute{
