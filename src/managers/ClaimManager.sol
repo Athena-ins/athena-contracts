@@ -8,7 +8,6 @@ import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { ReentrancyGuard } from "../libs/ReentrancyGuard.sol";
 
 // Interfaces
-import { IArbitrable } from "../interfaces/IArbitrable.sol";
 import { IArbitrator } from "../interfaces/IArbitrator.sol";
 import { IClaimManager } from "../interfaces/IClaimManager.sol";
 import { ILiquidityManager } from "../interfaces/ILiquidityManager.sol";
@@ -38,12 +37,7 @@ error ClaimDoesNotExist();
 error NoClaimsForCover();
 error CourtClosed();
 
-contract ClaimManager is
-  IClaimManager,
-  IArbitrable,
-  Ownable,
-  ReentrancyGuard
-{
+contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
   // ======= MODELS ======= //
 
   // @dev the 'Accepted' status is virtual as it is never written to the blockchain
@@ -69,32 +63,32 @@ contract ClaimManager is
 
   struct ClaimRead {
     uint256 claimId;
-    uint64 poolId;
     address claimant;
     string[] evidence;
     string[] counterEvidence;
+    uint64 poolId;
     //
+    uint64 createdAt;
+    uint64 rulingTimestamp;
+    ClaimStatus status;
     uint256 coverId;
     uint256 disputeId;
     string metaEvidence;
-    ClaimStatus status;
-    uint256 createdAt;
     uint256 amount;
     address challenger;
     uint256 deposit;
-    uint256 rulingTimestamp;
   }
 
   struct Claim {
+    uint64 createdAt;
+    uint64 rulingTimestamp;
+    ClaimStatus status;
     uint256 coverId;
     uint256 disputeId;
     string metaEvidence;
-    ClaimStatus status;
-    uint256 createdAt;
     uint256 amount;
     address challenger;
     uint256 deposit;
-    uint256 rulingTimestamp;
   }
 
   // ======= STORAGE ======= //
@@ -105,14 +99,6 @@ contract ClaimManager is
 
   address public evidenceGuardian;
   address public overruleGuardian;
-
-  // The params for Kleros specifying the subcourt ID and the number of jurors
-  bytes public klerosExtraData;
-  uint256 public challengePeriod;
-  uint256 public overrulePeriod;
-  uint256 public collateralAmount;
-
-  uint256 public immutable numberOfRulingOptions = 2;
 
   uint256 public nextClaimId;
   // Maps a claim ID to a claim's data
@@ -130,6 +116,14 @@ contract ClaimManager is
   mapping(uint256 _claimId => string[] _cids)
     public claimIdToCounterEvidence;
 
+  uint256 public collateralAmount;
+  // The params for Kleros specifying the subcourt ID and the number of jurors
+  bytes public klerosExtraData;
+  uint64 public challengePeriod;
+  uint64 public overrulePeriod;
+
+  uint64 public immutable numberOfRulingOptions = 2;
+
   bool public courtClosed;
 
   // ======= CONSTRUCTOR ======= //
@@ -141,8 +135,8 @@ contract ClaimManager is
     address evidenceGuardian_,
     uint256 subcourtId_,
     uint256 nbOfJurors_,
-    uint256 challengePeriod_,
-    uint256 overrulePeriod_,
+    uint64 challengePeriod_,
+    uint64 overrulePeriod_,
     uint256 collateralAmount_
   ) Ownable(msg.sender) {
     coverToken = coverToken_;
@@ -550,7 +544,7 @@ contract ClaimManager is
     claim.coverId = coverId_;
     claim.amount = amountClaimed_;
     claim.metaEvidence = ipfsMetaEvidenceCid_;
-    claim.createdAt = block.timestamp;
+    claim.createdAt = uint64(block.timestamp);
     claim.deposit = msg.value;
     claim.status = ClaimStatus.Initiated;
 
@@ -589,7 +583,7 @@ contract ClaimManager is
     // Create the claim and obtain the Kleros dispute ID
     uint256 disputeId = arbitrator.createDispute{
       value: costOfArbitration
-    }(numberOfRulingOptions, klerosExtraData);
+    }(uint256(numberOfRulingOptions), klerosExtraData);
 
     // Update the claim with challenged status and challenger address
     claim.status = ClaimStatus.Disputed;
@@ -627,7 +621,7 @@ contract ClaimManager is
       claim.status = ClaimStatus.AcceptedByCourtDecision;
 
       // Save timestamp to initiate overrule period
-      claim.rulingTimestamp = block.timestamp;
+      claim.rulingTimestamp = uint64(block.timestamp);
     } else if (ruling_ == uint256(RulingOptions.RejectClaim)) {
       claim.status = ClaimStatus.RejectedByCourtDecision;
 
@@ -761,8 +755,8 @@ contract ClaimManager is
    * @param overrulePeriod_ The new overrule period.
    */
   function setPeriods(
-    uint256 challengePeriod_,
-    uint256 overrulePeriod_
+    uint64 challengePeriod_,
+    uint64 overrulePeriod_
   ) public onlyOwner {
     challengePeriod = challengePeriod_;
     overrulePeriod = overrulePeriod_;

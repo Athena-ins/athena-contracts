@@ -1,4 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
-interface IClaimManager {}
+// Interfaces
+import { IArbitrable } from "../interfaces/IArbitrable.sol";
+
+interface IClaimManager is IArbitrable {}
