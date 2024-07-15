@@ -337,6 +337,7 @@ export async function executeAction(this: Mocha.Context, action: Action) {
           valueSent,
         } = args;
 
+        // @dev Remove usage of signature authentication
         const { ipfsCid, cidSignature } =
           await getTestingCidAndSig(ipfsMetaEvidenceCid);
 

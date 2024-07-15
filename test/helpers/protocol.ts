@@ -499,6 +499,7 @@ export async function getTestingCidAndSig(
     ethers.utils.arrayify(hash),
   );
 
+  // @dev Not using signature authentication
   return { ipfsCid, cidSignature };
 }
 
@@ -516,6 +517,7 @@ async function initiateClaim(
 
   const valueForTx = arbitrationCost.add(claimCollateral);
 
+  // @dev Remove usage of signature authentication
   const { ipfsCid, cidSignature } = await getTestingCidAndSig();
 
   // Create the claim
