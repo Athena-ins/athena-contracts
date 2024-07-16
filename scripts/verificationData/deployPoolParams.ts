@@ -83,6 +83,7 @@ const protocolNames = [
   //
   "Ethena USDe", // ETH backed stablecoin
   "Liquity LUSD", // ETH backed stablecoin
+  "crvUSD", // Token backed stablecoin
   "USDT", // RWA backed stablecoin
   "Angle USDa", // DeFi backed stablecoin
   //
@@ -296,6 +297,12 @@ const deployParams: {
       incompatiblePools: [],
       ...formulaConfig.D,
     },
+    "crvUSD": {
+      paymentAsset: addresses.CircleToken,
+      strategyId: 0,
+      incompatiblePools: ["Curve"],
+      ...formulaConfig.D,
+    },
     //=========//
     //=== E ===//
     //=========//
@@ -317,7 +324,7 @@ const deployParams: {
     "Curve": {
       paymentAsset: addresses.CircleToken,
       strategyId: 0,
-      incompatiblePools: [],
+      incompatiblePools: ["crvUSD"],
       ...formulaConfig.F,
     },
     "Compound": {
