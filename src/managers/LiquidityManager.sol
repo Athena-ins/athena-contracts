@@ -984,8 +984,8 @@ contract LiquidityManager is
 
       DataTypes.VPool storage pool0 = VirtualPool.getPool(poolId0);
 
-      // Check if pool is currently paused
-      _checkIsNotPaused(poolId0);
+      // @dev The admin may add capital from the risk fund even if the pool is paused
+      if (msg.sender != owner()) _checkIsNotPaused(poolId0);
 
       // Remove expired covers
       /// @dev Skip the purge when adding liquidity since it has been done
