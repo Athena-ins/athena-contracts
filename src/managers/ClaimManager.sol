@@ -62,7 +62,10 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
     address claimant;
     string[] evidence;
     string[] counterEvidence;
+    uint256[] relatedClaimIds;
     uint64 poolId;
+    uint256 coverAmount;
+    bool isCoverActive;
     //
     uint64 createdAt;
     uint64 rulingTimestamp;
@@ -276,8 +279,14 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
       claimant: claimant,
       claimId: claimId_,
       poolId: poolId,
+      relatedClaimIds: _coverIdToClaimIds[claim.coverId],
       evidence: claimIdToEvidence[claimId_],
       counterEvidence: claimIdToCounterEvidence[claimId_],
+      coverAmount: liquidityManager
+        .coverInfo(claim.coverId)
+        .coverAmount,
+      isCoverActive: liquidityManager.isCoverActive(claim.coverId),
+      //
       coverId: claim.coverId,
       disputeId: claim.disputeId,
       metaEvidence: claim.metaEvidence,
