@@ -27,6 +27,7 @@ import {
   StrategyManager__factory,
   VirtualPool__factory,
 } from "../typechain";
+import { ProtocolContracts } from "../test/helpers/deployers";
 //
 import dotenv from "dotenv";
 dotenv.config();
@@ -148,6 +149,23 @@ export async function runTaskWithRetry(
   }
 }
 
+const shouldVerify: Partial<keyof ProtocolContracts>[] = [
+  "AthenaCoverToken",
+  "AthenaPositionToken",
+  "AthenaToken",
+  "PoolMath",
+  "VirtualPool",
+  "AthenaDataProvider",
+  "ClaimManager",
+  "StrategyManager",
+  "LiquidityManager",
+  "RewardManager",
+  "FarmingRange",
+  "Staking",
+  "EcclesiaDao",
+  "AthenaArbitrator",
+];
+
 async function main() {
   const networkName = hre.network.name.toUpperCase();
   console.log(`\n== VERIFYING ON ${networkName} ==\n`);
@@ -179,16 +197,22 @@ async function main() {
     AthenaDataProvider: AthenaDataProvider,
   } = deployedAt;
 
+  for (const contract of shouldVerify) {
+    if (deployedAt[contract] === ADDRESS_ZERO) {
+      throw Error(`Contract ${contract} not deployed`);
+    }
+  }
+
   // ======= Tokens ======= //
 
-  if (AthenaCoverToken !== ADDRESS_ZERO) {
+  if (shouldVerify.includes("AthenaCoverToken")) {
     await verifyEtherscanContract<AthenaCoverToken__factory>(AthenaCoverToken, [
       LiquidityManager,
     ]);
     console.log("==> Verification processed for AthenaCoverToken");
   }
 
-  if (AthenaPositionToken !== ADDRESS_ZERO) {
+  if (shouldVerify.includes("AthenaPositionToken")) {
     await verifyEtherscanContract<AthenaPositionToken__factory>(
       AthenaPositionToken,
       [LiquidityManager],
@@ -196,7 +220,7 @@ async function main() {
     console.log("==> Verification processed for AthenaPositionToken");
   }
 
-  if (AthenaToken !== ADDRESS_ZERO) {
+  if (shouldVerify.includes("AthenaToken")) {
     await verifyEtherscanContract<AthenaToken__factory>(AthenaToken, [
       VERIFY_V0 ? [] : [EcclesiaDao, Staking],
     ]);
@@ -205,12 +229,12 @@ async function main() {
 
   // ======= Libs ======= //
 
-  if (PoolMath !== ADDRESS_ZERO) {
+  if (shouldVerify.includes("PoolMath")) {
     await verifyEtherscanContract<PoolMath__factory>(PoolMath, []);
     console.log("==> Verification processed for PoolMath");
   }
 
-  if (VirtualPool !== ADDRESS_ZERO) {
+  if (shouldVerify.includes("VirtualPool")) {
     await verifyEtherscanContract<VirtualPool__factory>(
       VirtualPool,
       [],
@@ -219,7 +243,7 @@ async function main() {
     console.log("==> Verification processed for VirtualPool");
   }
 
-  if (AthenaDataProvider !== ADDRESS_ZERO) {
+  if (shouldVerify.includes("AthenaDataProvider")) {
     await verifyEtherscanContract<AthenaDataProvider__factory>(
       AthenaDataProvider,
       [],
@@ -230,7 +254,7 @@ async function main() {
 
   // ======= Managers ======= //
 
-  if (ClaimManager !== ADDRESS_ZERO) {
+  if (shouldVerify.includes("ClaimManager")) {
     await verifyEtherscanContract<ClaimManager__factory>(ClaimManager, [
       AthenaCoverToken, // IAthenaCoverToken coverToken_
       LiquidityManager, // ILiquidityManager liquidityManager_
@@ -245,7 +269,7 @@ async function main() {
     console.log("==> Verification processed for ClaimManager");
   }
 
-  if (StrategyManager !== ADDRESS_ZERO) {
+  if (shouldVerify.includes("StrategyManager")) {
     await verifyEtherscanContract<StrategyManager__factory>(StrategyManager, [
       LiquidityManager,
       VERIFY_V0 ? deployer.address : EcclesiaDao,
@@ -258,7 +282,7 @@ async function main() {
     console.log("==> Verification processed for StrategyManager");
   }
 
-  if (LiquidityManager !== ADDRESS_ZERO) {
+  if (shouldVerify.includes("LiquidityManager")) {
     await verifyEtherscanContract<LiquidityManager__factory>(
       LiquidityManager,
       [
@@ -279,7 +303,7 @@ async function main() {
 
   // ======= Rewards ======= //
 
-  if (RewardManager !== ADDRESS_ZERO) {
+  if (shouldVerify.includes("RewardManager")) {
     await verifyEtherscanContract<RewardManager__factory>(RewardManager, [
       LiquidityManager,
       EcclesiaDao,
@@ -292,7 +316,7 @@ async function main() {
     console.log("==> Verification processed for RewardManager");
   }
 
-  if (FarmingRange !== ADDRESS_ZERO) {
+  if (shouldVerify.includes("FarmingRange")) {
     await verifyEtherscanContract<FarmingRange__factory>(
       FarmingRange,
       [RewardManager, LiquidityManager, AthenaPositionToken, AthenaCoverToken], // args
@@ -300,7 +324,7 @@ async function main() {
     console.log("=> Verified FarmingRange");
   }
 
-  if (Staking !== ADDRESS_ZERO) {
+  if (shouldVerify.includes("Staking")) {
     await verifyEtherscanContract<Staking__factory>(
       Staking,
       [AthenaToken, FarmingRange, LiquidityManager, EcclesiaDao], // args
@@ -310,7 +334,7 @@ async function main() {
 
   // ======= DAO ======= //
 
-  if (EcclesiaDao !== ADDRESS_ZERO) {
+  if (shouldVerify.includes("EcclesiaDao")) {
     await verifyEtherscanContract<EcclesiaDao__factory>(EcclesiaDao, [
       AthenaToken,
       Staking,
@@ -324,7 +348,7 @@ async function main() {
 
   // ======= Claims ======= //
 
-  if (AthenaArbitrator !== ADDRESS_ZERO) {
+  if (shouldVerify.includes("AthenaArbitrator")) {
     await verifyEtherscanContract<AthenaArbitrator__factory>(AthenaArbitrator, [
       ClaimManager,
       config.arbitrationCost,
