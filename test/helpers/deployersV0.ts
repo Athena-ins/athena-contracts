@@ -81,12 +81,12 @@ export const deploymentOrder = [
   "PoolMath",
   "VirtualPool",
   "AthenaDataProvider",
-  // "ClaimManager",
+  "ClaimManager",
   "StrategyManager",
   "LiquidityManager",
   // "RewardManager",
   // "EcclesiaDao",
-  // "AthenaArbitrator",
+  "AthenaArbitrator",
 ];
 
 export async function deployAllContractsAndInitializeProtocolV0(
