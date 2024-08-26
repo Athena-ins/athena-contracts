@@ -79,14 +79,14 @@ export function ClaimManager_disputeClaim() {
       expect(updatedClaim.status).to.equal(ClaimStatus.Disputed); // Use the actual enum value
     });
 
-    it("should record the challenger's address in the claim", async function (this: Arguments) {
-      // Dispute a claim and check if the challenger's address is recorded
+    it("should record the prosecutor's address in the claim", async function (this: Arguments) {
+      // Dispute a claim and check if the prosecutor's address is recorded
       await this.contract.disputeClaim(this.args.claimId, {
         value: this.args.disputeStake,
       });
       const updatedClaim = await this.contract.claims(this.args.claimId);
 
-      expect(updatedClaim.challenger).to.equal(this.signers.challenger.address);
+      expect(updatedClaim.prosecutor).to.equal(this.signers.prosecutor.address);
     });
 
     it("should correctly map the Kleros dispute ID to the claim ID", async function (this: Arguments) {

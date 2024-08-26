@@ -47,24 +47,24 @@ export function ClaimManager_submitEvidenceForClaim() {
       ).to.not.throw;
     });
 
-    it("should allow challenger to submit evidence for an 'Initiated' claim", async function (this: Arguments) {
-      // Check successful evidence submission by challenger for an 'Initiated' claim
+    it("should allow prosecutor to submit evidence for an 'Initiated' claim", async function (this: Arguments) {
+      // Check successful evidence submission by prosecutor for an 'Initiated' claim
       expect(
         await this.contract.submitEvidenceForClaim(
           this.args.initiatedClaimId,
           this.args.evidenceCids,
-          { from: this.signers.challenger },
+          { from: this.signers.prosecutor },
         ),
       ).to.not.throw;
     });
 
-    it("should allow challenger to submit evidence for a 'Disputed' claim", async function (this: Arguments) {
-      // Check successful evidence submission by challenger for a 'Disputed' claim
+    it("should allow prosecutor to submit evidence for a 'Disputed' claim", async function (this: Arguments) {
+      // Check successful evidence submission by prosecutor for a 'Disputed' claim
       expect(
         await this.contract.submitEvidenceForClaim(
           this.args.disputedClaimId,
           this.args.evidenceCids,
-          { from: this.signers.challenger },
+          { from: this.signers.prosecutor },
         ),
       ).to.not.throw;
     });
@@ -104,12 +104,12 @@ export function ClaimManager_submitEvidenceForClaim() {
       expect(evidenceArray).to.include.members(this.args.evidenceCids);
     });
 
-    it("should append submitted evidence to the claim's counter-evidence array for challenger", async function (this: Arguments) {
-      // Submit evidence and check if it is correctly appended to the challenger's counter-evidence array
+    it("should append submitted evidence to the claim's counter-evidence array for prosecutor", async function (this: Arguments) {
+      // Submit evidence and check if it is correctly appended to the prosecutor's counter-evidence array
       await this.contract.submitEvidenceForClaim(
         this.args.claimId,
         this.args.evidenceCids,
-        { from: this.signers.challenger },
+        { from: this.signers.prosecutor },
       );
       const counterEvidenceArray =
         await this.contract.getClaimCounterEvidenceArray(this.args.claimId); // Replace with actual function

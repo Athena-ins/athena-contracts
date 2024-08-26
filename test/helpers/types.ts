@@ -69,7 +69,7 @@ export type ClaimInfoObject = {
   status: number;
   createdAt: number;
   amount: BigNumber;
-  challenger: string;
+  prosecutor: string;
   deposit: BigNumber;
   evidence: string[];
   counterEvidence: string[];

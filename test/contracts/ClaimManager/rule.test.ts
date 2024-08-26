@@ -56,16 +56,16 @@ export function ClaimManager_rule() {
       // Check for other side effects such as timestamp updates, etc.
     });
 
-    it("should correctly rule in favor of the challenger", async function (this: Arguments) {
-      // Rule in favor of the challenger and check claim status, refunds, and other side effects
+    it("should correctly rule in favor of the prosecutor", async function (this: Arguments) {
+      // Rule in favor of the prosecutor and check claim status, refunds, and other side effects
       await this.contract.rule(
         this.args.validDisputeId,
-        this.args.rulingInFavorOfChallenger,
+        this.args.rulingInFavorOfprosecutor,
       );
 
       const updatedClaim = await this.contract.claims(this.args.claimId);
       expect(updatedClaim.status).to.equal(ClaimStatus.RejectedByCourtDecision);
-      // Check for refund to the challenger and other side effects
+      // Check for refund to the prosecutor and other side effects
     });
 
     it("should handle the case where the arbitrator refuses to rule", async function (this: Arguments) {

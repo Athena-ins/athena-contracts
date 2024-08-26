@@ -74,7 +74,7 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
     uint256 disputeId;
     string metaEvidence;
     uint256 amount;
-    address challenger;
+    address prosecutor;
     uint256 deposit;
   }
 
@@ -86,7 +86,7 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
     uint256 disputeId;
     string metaEvidence;
     uint256 amount;
-    address challenger;
+    address prosecutor;
     uint256 deposit;
   }
 
@@ -293,7 +293,7 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
       status: claim.status,
       createdAt: claim.createdAt,
       amount: claim.amount,
-      challenger: claim.challenger,
+      prosecutor: claim.prosecutor,
       deposit: claim.deposit,
       rulingTimestamp: claim.rulingTimestamp
     });
@@ -395,7 +395,7 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
   }
 
   /**
-   * @notice Returns the counter-evidence submitted by challenger or Athena for a claim.
+   * @notice Returns the counter-evidence submitted by prosecutor or Athena for a claim.
    * @param claimId_ The claim ID
    * @return _ The counter-evidence CIDs
    */
@@ -444,7 +444,7 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
 
     if (
       !isClaimant &&
-      msg.sender != claim.challenger &&
+      msg.sender != claim.prosecutor &&
       msg.sender != evidenceGuardian
     ) revert InvalidParty();
 
@@ -548,10 +548,10 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
     ) revert ClaimNotChallengeable();
 
     // Check the claim is not already disputed
-    if (claim.challenger != address(0))
+    if (claim.prosecutor != address(0))
       revert ClaimAlreadyChallenged();
 
-    // Check that the challenger has deposited enough capital for dispute creation
+    // Check that the prosecutor has deposited enough capital for dispute creation
     uint256 costOfArbitration = arbitrationCost();
     if (msg.value < costOfArbitration)
       revert MustDepositArbitrationCost();
@@ -561,9 +561,9 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
       value: costOfArbitration
     }(uint256(numberOfRulingOptions), klerosExtraData);
 
-    // Update the claim with challenged status and challenger address
+    // Update the claim with challenged status and prosecutor address
     claim.status = ClaimStatus.Disputed;
-    claim.challenger = msg.sender;
+    claim.prosecutor = msg.sender;
     claim.disputeId = disputeId;
 
     // Map the new dispute ID to be able to search it after ruling
@@ -601,9 +601,9 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
     } else if (ruling_ == uint256(RulingOptions.RejectClaim)) {
       claim.status = ClaimStatus.RejectedByCourtDecision;
 
-      address challenger = claim.challenger;
-      // Refund arbitration cost to the challenger and pay them with collateral
-      _sendValue(challenger, claim.deposit);
+      address prosecutor = claim.prosecutor;
+      // Refund arbitration cost to the prosecutor and pay them with collateral
+      _sendValue(prosecutor, claim.deposit);
     } else {
       // This is the case where the arbitrator refuses to rule
       claim.status = ClaimStatus.RejectedByRefusalToArbitrate;
@@ -615,8 +615,8 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
         coverToken.ownerOf(claim.coverId),
         claim.deposit - halfArbitrationCost
       );
-      // Send back half the arbitration cost to the challenger
-      _sendValue(claim.challenger, halfArbitrationCost);
+      // Send back half the arbitration cost to the prosecutor
+      _sendValue(claim.prosecutor, halfArbitrationCost);
     }
 
     // Remove claims from pool to unblock withdrawals
@@ -718,7 +718,7 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
   /**
    * @notice
    * Changes the amount of collateral required when opening a claim.
-   * @dev The collateral is paid to the challenger if the claim is disputed and rejected.
+   * @dev The collateral is paid to the prosecutor if the claim is disputed and rejected.
    * @param amount_ The new amount of collateral.
    */
   function setRequiredCollateral(uint256 amount_) public onlyOwner {

@@ -89,7 +89,7 @@ export function claimInfoFormat(
     status: data.status,
     createdAt: data.createdAt.toNumber(),
     amount: data.amount,
-    challenger: data.challenger,
+    prosecutor: data.prosecutor,
     deposit: data.deposit,
     evidence: data.evidence,
     counterEvidence: data.counterEvidence,
