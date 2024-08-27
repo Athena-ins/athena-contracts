@@ -598,17 +598,18 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
 
       // Save timestamp to initiate overrule period
       claim.rulingTimestamp = uint64(block.timestamp);
+
+      /// @dev The refund of the claimant deposit is made in the withdrawCompensation function
     } else if (ruling_ == uint256(RulingOptions.RejectClaim)) {
       claim.status = ClaimStatus.RejectedByCourtDecision;
 
-      address prosecutor = claim.prosecutor;
       // Refund arbitration cost to the prosecutor and pay them with collateral
-      _sendValue(prosecutor, claim.deposit);
+      _sendValue(claim.prosecutor, claim.deposit);
     } else {
       // This is the case where the arbitrator refuses to rule
       claim.status = ClaimStatus.RejectedByRefusalToArbitrate;
 
-      uint256 halfArbitrationCost = (arbitrationCost() / 2);
+      uint256 halfArbitrationCost = arbitrationCost() / 2;
 
       // Send back the collateral and half the arbitration cost to the claimant
       _sendValue(
