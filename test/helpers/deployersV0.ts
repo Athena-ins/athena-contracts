@@ -201,6 +201,7 @@ export async function deployAllContractsAndInitializeProtocolV0(
         config.nbOfJurors, // uint256 nbOfJurors_
         config.challengePeriod, // uint256 challengePeriod_
         config.overrulePeriod, // uint256 overrulePeriod_
+        config.evidenceUploadPeriod, // uint256 evidenceUploadPeriod_
         config.claimCollateral, // uint256 claimCollateral_
       ]),
     );

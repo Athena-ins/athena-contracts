@@ -28,8 +28,9 @@ const deployParams: {
   arbitrum: {
     subcourtId: 2,
     nbOfJurors: 4,
-    challengePeriod: 10 * DAY_SECONDS,
-    overrulePeriod: 4 * DAY_SECONDS,
+    challengePeriod: 2 * DAY_SECONDS,
+    overrulePeriod: 1 * DAY_SECONDS,
+    evidenceUploadPeriod: 1 * DAY_SECONDS,
     claimCollateral: parseEther("0.05"),
     arbitrationCost: parseEther("0"), // in ETH for centralized AthenaArbitrator
     evidenceGuardian: evidenceGuardianWallet(),

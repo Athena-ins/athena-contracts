@@ -219,6 +219,7 @@ export type ProtocolConfig = {
   nbOfJurors: number;
   challengePeriod: number;
   overrulePeriod: number;
+  evidenceUploadPeriod: number;
   claimCollateral: BigNumber;
   arbitrationCost: BigNumber; // in ETH for centralized AthenaArbitrator
   evidenceGuardian: Wallet;
@@ -247,6 +248,7 @@ export const defaultProtocolConfig: ProtocolConfig = {
   nbOfJurors: 4,
   challengePeriod: 10 * DAY_SECONDS, // 10 days
   overrulePeriod: 4 * DAY_SECONDS, // 4 days
+  evidenceUploadPeriod: 2 * DAY_SECONDS, // 2 days
   claimCollateral: utils.parseEther("0.05"), // in ETH
   arbitrationCost: utils.parseEther("0"), // in ETH
   evidenceGuardian: evidenceGuardianWallet(),
@@ -452,6 +454,7 @@ export async function deployAllContractsAndInitializeProtocol(
         config.nbOfJurors, // uint256 nbOfJurors_
         config.challengePeriod, // uint256 challengePeriod_
         config.overrulePeriod, // uint256 overrulePeriod_
+        config.evidenceUploadPeriod, // uint256 evidenceUploadPeriod_
         config.claimCollateral, // uint256 claimCollateral_
       ]),
     );
