@@ -30,6 +30,7 @@ error InvalidRuling();
 error PeriodNotElapsed();
 error GuardianSetToAddressZero();
 error OverrulePeriodEnded();
+error EvidenceUploadPeriodEnded();
 error ClaimDoesNotExist();
 error CourtClosed();
 
@@ -51,6 +52,7 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
     CompensatedAfterDispute
   }
 
+  /// @dev The neutral "refuse to arbitrate" option MUST ALWAYS be 0
   enum RulingOptions {
     RefusedToArbitrate,
     PayClaimant,
@@ -69,6 +71,7 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
     //
     uint64 createdAt;
     uint64 rulingTimestamp;
+    uint64 challengedTimestamp;
     ClaimStatus status;
     uint256 coverId;
     uint256 disputeId;
@@ -81,6 +84,7 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
   struct Claim {
     uint64 createdAt;
     uint64 rulingTimestamp;
+    uint64 challengedTimestamp;
     ClaimStatus status;
     uint256 coverId;
     uint256 disputeId;
@@ -120,6 +124,7 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
   bytes public klerosExtraData;
   uint64 public challengePeriod;
   uint64 public overrulePeriod;
+  uint64 public evidenceUploadPeriod;
 
   uint64 public immutable numberOfRulingOptions = 2;
 
@@ -136,6 +141,7 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
     uint256 nbOfJurors_,
     uint64 challengePeriod_,
     uint64 overrulePeriod_,
+    uint64 evidenceUploadPeriod_,
     uint256 claimCollateral_
   ) Ownable(msg.sender) {
     coverToken = coverToken_;
@@ -143,7 +149,11 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
     evidenceGuardian = evidenceGuardian_;
 
     setRequiredCollateral(claimCollateral_);
-    setPeriods(challengePeriod_, overrulePeriod_);
+    setPeriods(
+      challengePeriod_,
+      overrulePeriod_,
+      evidenceUploadPeriod_
+    );
     setKlerosConfiguration(arbitrator_, subcourtId_, nbOfJurors_);
   }
 
@@ -295,7 +305,8 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
       amount: claim.amount,
       prosecutor: claim.prosecutor,
       deposit: claim.deposit,
-      rulingTimestamp: claim.rulingTimestamp
+      rulingTimestamp: claim.rulingTimestamp,
+      challengedTimestamp: claim.challengedTimestamp
     });
 
     // We should check if the claim is available for compensation
@@ -448,6 +459,14 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
       msg.sender != evidenceGuardian
     ) revert InvalidParty();
 
+    // Check the evidence upload period has not ended
+    if (
+      claim.status == ClaimStatus.Disputed &&
+      claim.challengedTimestamp + evidenceUploadPeriod <
+      block.timestamp &&
+      msg.sender != evidenceGuardian
+    ) revert EvidenceUploadPeriodEnded();
+
     string[] storage evidence = isClaimant
       ? claimIdToEvidence[claimId_]
       : claimIdToCounterEvidence[claimId_];
@@ -565,6 +584,7 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
     claim.status = ClaimStatus.Disputed;
     claim.prosecutor = msg.sender;
     claim.disputeId = disputeId;
+    claim.challengedTimestamp = uint64(block.timestamp);
 
     // Map the new dispute ID to be able to search it after ruling
     disputeIdToClaimId[disputeId] = claimId_;
@@ -733,10 +753,12 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
    */
   function setPeriods(
     uint64 challengePeriod_,
-    uint64 overrulePeriod_
+    uint64 overrulePeriod_,
+    uint64 evidenceUploadPeriod_
   ) public onlyOwner {
     challengePeriod = challengePeriod_;
     overrulePeriod = overrulePeriod_;
+    evidenceUploadPeriod = evidenceUploadPeriod_;
   }
 
   /**
