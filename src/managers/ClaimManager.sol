@@ -6,6 +6,7 @@ import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
 // Libraries
 import { ReentrancyGuard } from "../libs/ReentrancyGuard.sol";
+import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 
 // Interfaces
 import { IArbitrator } from "../interfaces/IArbitrator.sol";
@@ -35,6 +36,8 @@ error ClaimDoesNotExist();
 error CourtClosed();
 
 contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
+  using Strings for uint256;
+
   // ======= MODELS ======= //
 
   // @dev the 'Accepted' status is virtual as it is never written to the blockchain
@@ -75,7 +78,7 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
     ClaimStatus status;
     uint256 coverId;
     uint256 disputeId;
-    string metaEvidence;
+    string metaEvidenceURI;
     uint256 amount;
     address prosecutor;
     uint256 deposit;
@@ -88,13 +91,15 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
     ClaimStatus status;
     uint256 coverId;
     uint256 disputeId;
-    string metaEvidence;
     uint256 amount;
     address prosecutor;
     uint256 deposit;
   }
 
   // ======= STORAGE ======= //
+
+  string public baseMetaEvidenceURI;
+  string private _chainId = block.chainid.toString();
 
   IAthenaCoverToken public coverToken;
   ILiquidityManager public liquidityManager;
@@ -139,14 +144,17 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
     address evidenceGuardian_,
     uint256 subcourtId_,
     uint256 nbOfJurors_,
+    uint256 claimCollateral_,
     uint64 challengePeriod_,
     uint64 overrulePeriod_,
     uint64 evidenceUploadPeriod_,
-    uint256 claimCollateral_
+    string memory baseMetaEvidenceURI_
   ) Ownable(msg.sender) {
     coverToken = coverToken_;
     liquidityManager = liquidityManager_;
     evidenceGuardian = evidenceGuardian_;
+
+    baseMetaEvidenceURI = baseMetaEvidenceURI_;
 
     setRequiredCollateral(claimCollateral_);
     setPeriods(
@@ -243,12 +251,29 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
   // ======= VIEWS ======= //
 
   /**
-   * @notice
-   * Returns the cost of arbitration for a Kleros dispute.
+   * @notice Returns the cost of arbitration for a Kleros dispute.
    * @return _ the arbitration cost
    */
   function arbitrationCost() public view returns (uint256) {
     return arbitrator.arbitrationCost(klerosExtraData);
+  }
+
+  /**
+   * @notice Returns the URI of the meta-evidence for a claim
+   * @param claimId The claim ID
+   * @return _ the URI of the meta-evidence
+   */
+  function metaEvidenceURI(
+    uint256 claimId
+  ) public view returns (string memory) {
+    return
+      string.concat(
+        baseMetaEvidenceURI,
+        "?claimId=",
+        claimId.toString(),
+        "&chainId=",
+        _chainId
+      );
   }
 
   /**
@@ -299,7 +324,7 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
       //
       coverId: claim.coverId,
       disputeId: claim.disputeId,
-      metaEvidence: claim.metaEvidence,
+      metaEvidenceURI: metaEvidenceURI(claimId_),
       status: claim.status,
       createdAt: claim.createdAt,
       amount: claim.amount,
@@ -492,12 +517,10 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
    * Initiates a payment claim to Kleros by a cover holder.
    * @param coverId_ The cover ID
    * @param amountClaimed_ The amount claimed by the cover holder
-   * @param ipfsMetaEvidenceCid_ The IPFS CID of the meta evidence file
    */
   function initiateClaim(
     uint256 coverId_,
-    uint256 amountClaimed_,
-    string calldata ipfsMetaEvidenceCid_
+    uint256 amountClaimed_
   ) external payable nonReentrant {
     if (courtClosed) revert CourtClosed();
     if (msg.sender != coverToken.ownerOf(coverId_))
@@ -538,14 +561,13 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
     Claim storage claim = claims[claimId];
     claim.coverId = coverId_;
     claim.amount = amountClaimed_;
-    claim.metaEvidence = ipfsMetaEvidenceCid_;
     claim.createdAt = uint64(block.timestamp);
     claim.deposit = msg.value;
     claim.status = ClaimStatus.Initiated;
 
     // Emit Athena claim creation event
     emit ClaimCreated(msg.sender, coverId_, claimId);
-    emit MetaEvidence(claimId, ipfsMetaEvidenceCid_);
+    emit MetaEvidence(claimId, metaEvidenceURI(claimId));
   }
 
   // ======= DISPUTE ======= //
@@ -782,5 +804,15 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
    */
   function setCourClosed(bool _courtClosed) external onlyOwner {
     courtClosed = _courtClosed;
+  }
+
+  /**
+   * @notice Changes the base URI for the meta-evidence.
+   * @param baseMetaEvidenceURI_ The new base URI for the meta-evidence.
+   */
+  function setBaseMetaEvidenceURI(
+    string memory baseMetaEvidenceURI_
+  ) external onlyOwner {
+    baseMetaEvidenceURI = baseMetaEvidenceURI_;
   }
 }
