@@ -199,10 +199,11 @@ export async function deployAllContractsAndInitializeProtocolV0(
         config.evidenceGuardian.address, // address metaEvidenceGuardian_
         config.subcourtId, // uint256 subcourtId_
         config.nbOfJurors, // uint256 nbOfJurors_
+        config.claimCollateral, // uint256 claimCollateral_
         config.challengePeriod, // uint256 challengePeriod_
         config.overrulePeriod, // uint256 overrulePeriod_
         config.evidenceUploadPeriod, // uint256 evidenceUploadPeriod_
-        config.claimCollateral, // uint256 claimCollateral_
+        config.baseMetaEvidenceURI, // string baseMetaEvidenceURI_
       ]),
     );
     txCount++;

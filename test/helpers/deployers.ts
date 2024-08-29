@@ -220,6 +220,7 @@ export type ProtocolConfig = {
   challengePeriod: number;
   overrulePeriod: number;
   evidenceUploadPeriod: number;
+  baseMetaEvidenceURI: string;
   claimCollateral: BigNumber;
   arbitrationCost: BigNumber; // in ETH for centralized AthenaArbitrator
   evidenceGuardian: Wallet;
@@ -243,12 +244,17 @@ export type ProtocolConfig = {
   farmingBlockStart: number; // leave 0 for dynamic
 };
 
+if (!process.env.ATHENA_API_URL) {
+  throw Error("ATHENA_API_URL not set");
+}
+
 export const defaultProtocolConfig: ProtocolConfig = {
   subcourtId: 2,
   nbOfJurors: 4,
   challengePeriod: 10 * DAY_SECONDS, // 10 days
   overrulePeriod: 4 * DAY_SECONDS, // 4 days
   evidenceUploadPeriod: 2 * DAY_SECONDS, // 2 days
+  baseMetaEvidenceURI: process.env.ATHENA_API_URL,
   claimCollateral: utils.parseEther("0.05"), // in ETH
   arbitrationCost: utils.parseEther("0"), // in ETH
   evidenceGuardian: evidenceGuardianWallet(),
@@ -452,10 +458,11 @@ export async function deployAllContractsAndInitializeProtocol(
         config.evidenceGuardian.address, // address metaEvidenceGuardian_
         config.subcourtId, // uint256 subcourtId_
         config.nbOfJurors, // uint256 nbOfJurors_
+        config.claimCollateral, // uint256 claimCollateral_
         config.challengePeriod, // uint256 challengePeriod_
         config.overrulePeriod, // uint256 overrulePeriod_
         config.evidenceUploadPeriod, // uint256 evidenceUploadPeriod_
-        config.claimCollateral, // uint256 claimCollateral_
+        config.baseMetaEvidenceURI, // string baseMetaEvidenceURI_
       ]),
     );
     txCount++;
