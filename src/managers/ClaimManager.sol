@@ -92,6 +92,7 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
     uint256 coverId;
     uint256 disputeId;
     uint256 amount;
+    address claimant;
     address prosecutor;
     uint256 deposit;
   }
@@ -307,11 +308,9 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
   {
     Claim storage claim = claims[claimId_];
 
-    address claimant = coverToken.ownerOf(claim.coverId);
     uint64 poolId = liquidityManager.coverToPool(claim.coverId);
 
     claimData = ClaimRead({
-      claimant: claimant,
       claimId: claimId_,
       poolId: poolId,
       relatedClaimIds: _coverIdToClaimIds[claim.coverId],
@@ -328,6 +327,7 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
       status: claim.status,
       createdAt: claim.createdAt,
       amount: claim.amount,
+      claimant: claim.claimant,
       prosecutor: claim.prosecutor,
       deposit: claim.deposit,
       rulingTimestamp: claim.rulingTimestamp,
@@ -476,7 +476,7 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
       claim.status != ClaimStatus.Disputed
     ) revert WrongClaimStatus();
 
-    bool isClaimant = msg.sender == coverToken.ownerOf(claim.coverId);
+    bool isClaimant = msg.sender == claim.claimant;
 
     if (
       !isClaimant &&
@@ -559,6 +559,7 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
 
     // Save claim data
     Claim storage claim = claims[claimId];
+    claim.claimant = msg.sender;
     claim.coverId = coverId_;
     claim.amount = amountClaimed_;
     claim.createdAt = uint64(block.timestamp);
@@ -654,10 +655,7 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
       uint256 halfArbitrationCost = arbitrationCost() / 2;
 
       // Send back the collateral and half the arbitration cost to the claimant
-      _sendValue(
-        coverToken.ownerOf(claim.coverId),
-        claim.deposit - halfArbitrationCost
-      );
+      _sendValue(claim.claimant, claim.deposit - halfArbitrationCost);
       // Send back half the arbitration cost to the prosecutor
       _sendValue(claim.prosecutor, halfArbitrationCost);
     }
@@ -706,7 +704,7 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
     }
 
     // Send back the collateral and arbitration cost to the claimant
-    _sendValue(coverToken.ownerOf(claim.coverId), claim.deposit);
+    _sendValue(claim.claimant, claim.deposit);
 
     // Call Athena core to pay the compensation
     liquidityManager.payoutClaim(claim.coverId, claim.amount);
@@ -739,7 +737,7 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
       _sendValue(msg.sender, claim.deposit);
     } else {
       // Send back the collateral and arbitration cost to the claimant
-      _sendValue(coverToken.ownerOf(claim.coverId), claim.deposit);
+      _sendValue(claim.claimant, claim.deposit);
     }
   }
 
