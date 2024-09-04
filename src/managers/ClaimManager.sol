@@ -698,6 +698,8 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
       if (block.timestamp < claim.rulingTimestamp + overrulePeriod)
         revert PeriodNotElapsed();
 
+      /// @dev The claim has been removed from the pool in the rule function
+
       claim.status = ClaimStatus.CompensatedAfterDispute;
     } else {
       revert WrongClaimStatus();
