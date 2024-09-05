@@ -22,10 +22,6 @@ function fromFork() {
 
 const DAY_SECONDS = 24 * 60 * 60;
 
-if (!process.env.ATHENA_API_URL) {
-  throw Error("Missing ATHENA_API_URL env variable");
-}
-
 const deployParams: {
   [key: string]: ProtocolConfig;
 } = {
@@ -38,7 +34,7 @@ const deployParams: {
     claimCollateral: parseEther("0.05"),
     arbitrationCost: parseEther("0"), // in ETH for centralized AthenaArbitrator
     evidenceGuardian: evidenceGuardianWallet(),
-    baseMetaEvidenceURI: process.env.ATHENA_API_URL,
+    baseMetaEvidenceURI: "https://api.athenains.io/metaevidence",
     //
     buybackWallet: buybackWallet(),
     treasuryWallet: treasuryWallet(),
