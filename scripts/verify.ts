@@ -150,20 +150,20 @@ export async function runTaskWithRetry(
 }
 
 const shouldVerify: Partial<keyof ProtocolContracts>[] = [
-  "AthenaCoverToken",
-  "AthenaPositionToken",
-  "AthenaToken",
-  "PoolMath",
-  "VirtualPool",
-  "AthenaDataProvider",
+  // "AthenaCoverToken",
+  // "AthenaPositionToken",
+  // "AthenaToken",
+  // "PoolMath",
+  // "VirtualPool",
+  // "AthenaDataProvider",
   "ClaimManager",
-  "StrategyManager",
-  "LiquidityManager",
-  "RewardManager",
-  "FarmingRange",
-  "Staking",
-  "EcclesiaDao",
   "AthenaArbitrator",
+  // "StrategyManager",
+  // "LiquidityManager",
+  // "RewardManager",
+  // "FarmingRange",
+  // "Staking",
+  // "EcclesiaDao",
 ];
 
 async function main() {
@@ -256,15 +256,17 @@ async function main() {
 
   if (shouldVerify.includes("ClaimManager")) {
     await verifyEtherscanContract<ClaimManager__factory>(ClaimManager, [
-      AthenaCoverToken, // IAthenaCoverToken coverToken_
-      LiquidityManager, // ILiquidityManager liquidityManager_
-      AthenaArbitrator, // IArbitrator arbitrator_
-      config.evidenceGuardian.address, // address metaEvidenceGuardian_
-      config.subcourtId, // uint256 subcourtId_
-      config.nbOfJurors, // uint256 nbOfJurors_
-      config.challengePeriod, // uint256 challengePeriod_
-      config.overrulePeriod, // uint256 overrulePeriod_
-      config.claimCollateral, // uint256 claimCollateral
+      AthenaCoverToken, // IAthenaCoverToken coverToken_,
+      LiquidityManager, // ILiquidityManager liquidityManager_,
+      AthenaArbitrator, // IArbitrator arbitrator_,
+      config.evidenceGuardian.address, // address evidenceGuardian_,
+      config.subcourtId, // uint256 subcourtId_,
+      config.nbOfJurors, // uint256 nbOfJurors_,
+      config.claimCollateral, // uint256 claimCollateral_,
+      config.challengePeriod, // uint64 challengePeriod_,
+      config.overrulePeriod, // uint64 overrulePeriod_,
+      config.evidenceUploadPeriod, // uint64 evidenceUploadPeriod_,
+      config.baseMetaEvidenceURI, // string memory baseMetaEvidenceURI_
     ]);
     console.log("==> Verification processed for ClaimManager");
   }
