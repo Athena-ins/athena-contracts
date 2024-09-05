@@ -9,7 +9,7 @@ import {
   evidenceGuardianWallet,
 } from "./hardhat";
 import { makeIdArray } from "./miscUtils";
-import { defaultProtocolConfig } from "./deployers";
+import { defaultProtocolConfig } from "../../scripts/verificationData/deployParams";
 // Types
 import {
   BigNumber,
@@ -522,7 +522,7 @@ async function initiateClaim(
 
   // Create the claim
   return postTxHandler(
-    contract.connect(user).initiateClaim(coverId, amountClaimed, ipfsCid, {
+    contract.connect(user).initiateClaim(coverId, amountClaimed, {
       value: valueForTx,
     }),
   );

@@ -12,10 +12,10 @@ import {
 } from "./helpers/hardhat";
 import {
   deployAllContractsAndInitializeProtocol,
-  defaultProtocolConfig,
   ProtocolConfig,
   ProtocolContracts,
 } from "./helpers/deployers";
+import { defaultProtocolConfig } from "../scripts/verificationData/deployParams";
 import { makeTestHelpers, TestHelper } from "./helpers/protocol";
 // Chai hooks
 import { beforeEachSuite } from "./helpers/chai/beforeEachSuite";
