@@ -1,6 +1,9 @@
-import { Wallet } from "ethers";
+import { Wallet, BigNumber } from "ethers";
 import hre, { ethers } from "hardhat";
-import { deployAllContractsAndInitializeProtocol } from "../test/helpers/deployers";
+import {
+  deployAllContractsAndInitializeProtocol,
+  ProtocolConfig,
+} from "../test/helpers/deployers";
 import { deployAllContractsAndInitializeProtocolV0 } from "../test/helpers/deployersV0";
 import { countdown } from "../test/helpers/miscUtils";
 import { getDeployConfig } from "./verificationData/deployParams";
@@ -9,6 +12,20 @@ import { getNetworkAddresses } from "./verificationData/addresses";
 const ALLOW_PARTIAL_DEPLOY = false;
 
 const { formatEther } = ethers.utils;
+
+function formatConfigForLog(config: ProtocolConfig) {
+  return Object.entries(config).reduce((acc, [key, value]) => {
+    if ((config as any)[key]._isSigner) {
+      acc[key] = (value as Wallet).address;
+    } else if ((config as any)[key]._isBigNumber) {
+      acc[key] = (value as BigNumber).toString();
+    } else {
+      acc[key] = value;
+    }
+
+    return acc;
+  }, {} as any);
+}
 
 async function main() {
   try {
@@ -26,7 +43,7 @@ async function main() {
     console.log("balance: ", `${formatEther(balance)} ETH`);
 
     const config = getDeployConfig();
-    console.log("\n\nconfig: ", config);
+    console.log("\n\nconfig: ", formatConfigForLog(config));
 
     // Used to setup in case of partial deploys
     const addresses = ALLOW_PARTIAL_DEPLOY ? getNetworkAddresses() : {};
