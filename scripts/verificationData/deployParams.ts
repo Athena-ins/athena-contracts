@@ -31,8 +31,8 @@ const deployParams: {
     challengePeriod: 182 * DAY_SECONDS,
     overrulePeriod: 4 * DAY_SECONDS,
     evidenceUploadPeriod: 2 * DAY_SECONDS,
-    claimCollateral: parseEther("0.05"),
-    arbitrationCost: parseEther("0"), // in ETH for centralized AthenaArbitrator
+    claimCollateral: parseEther("0.0002"),
+    arbitrationCost: parseEther("0.00012"), // in ETH for centralized AthenaArbitrator
     evidenceGuardian: evidenceGuardianWallet(),
     baseMetaEvidenceURI: "https://api.athenains.io/metaevidence",
     //
