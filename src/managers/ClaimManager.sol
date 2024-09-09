@@ -34,6 +34,7 @@ error OverrulePeriodEnded();
 error EvidenceUploadPeriodEnded();
 error ClaimDoesNotExist();
 error CourtClosed();
+error CannotChallengeYourOwnClaim();
 
 contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
   using Strings for uint256;
@@ -597,6 +598,9 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
     uint256 costOfArbitration = arbitrationCost();
     if (msg.value < costOfArbitration)
       revert MustDepositArbitrationCost();
+
+    if (msg.sender == claim.claimant)
+      revert CannotChallengeYourOwnClaim();
 
     // Create the claim and obtain the Kleros dispute ID
     uint256 disputeId = arbitrator.createDispute{
