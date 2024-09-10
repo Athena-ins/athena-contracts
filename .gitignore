@@ -13,6 +13,7 @@ typechain
 cache
 .blackwhale
 temp
+markups
 
 # files
 *.env

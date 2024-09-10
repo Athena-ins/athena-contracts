@@ -6,6 +6,7 @@ import "@nomiclabs/hardhat-waffle";
 import "@typechain/hardhat";
 import "hardhat-gas-reporter";
 import "solidity-coverage";
+import "@solarity/hardhat-markup";
 // Types
 import { HardhatUserConfig } from "hardhat/config";
 import { HardhatNetworkUserConfig } from "hardhat/types";
@@ -162,7 +163,17 @@ function makeForkConfig(): HardhatNetworkUserConfig {
   return networkConfig;
 }
 
-const config: HardhatUserConfig = {
+type MarkupConfig = {
+  outdir: string;
+  onlyFiles: string[];
+  skipFiles: string[];
+  noCompile: boolean;
+  verbose: boolean;
+};
+
+const config: HardhatUserConfig & {
+  markup: MarkupConfig;
+} = {
   // ====== Solidity Compilers ====== //
 
   solidity: {
@@ -245,6 +256,16 @@ const config: HardhatUserConfig = {
   typechain: {
     outDir: "typechain",
     target: "ethers-v5",
+  },
+
+  // ====== Typechain ====== //
+
+  markup: {
+    outdir: "./markups",
+    onlyFiles: ["./src/managers", "./src/misc"],
+    skipFiles: [],
+    noCompile: false,
+    verbose: true,
   },
 
   // ====== Paths ====== //
