@@ -262,7 +262,12 @@ const config: HardhatUserConfig & {
 
   markup: {
     outdir: "./markups",
-    onlyFiles: ["./src/managers", "./src/misc"],
+    onlyFiles: [
+      "./src/managers",
+      "./src/misc",
+      "./src/tokens",
+      "./src/interfaces",
+    ],
     skipFiles: [],
     noCompile: false,
     verbose: true,
