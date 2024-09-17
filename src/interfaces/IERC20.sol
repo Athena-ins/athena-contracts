@@ -30,6 +30,11 @@ interface IERC20 {
   );
 
   /**
+   * @dev Returns the decimals used to get its user representation.
+   */
+  function decimals() external view returns (uint8);
+
+  /**
    * @dev Returns the value of tokens in existence.
    */
   function totalSupply() external view returns (uint256);
