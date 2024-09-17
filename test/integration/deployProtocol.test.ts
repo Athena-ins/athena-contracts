@@ -154,9 +154,11 @@ export function deployProtocol() {
           this.signers.evidenceGuardian.address, // address metaEvidenceGuardian_
           this.protocolConfig.subcourtId, // uint256 subcourtId_
           this.protocolConfig.nbOfJurors, // uint256 nbOfJurors_
+          this.protocolConfig.claimCollateral, // uint256 claimCollateral_
           this.protocolConfig.challengePeriod, // uint256 challengePeriod_
           this.protocolConfig.overrulePeriod, // uint256 overrulePeriod_
-          this.protocolConfig.claimCollateral, // uint256 claimCollateral_
+          this.protocolConfig.evidenceUploadPeriod, // uint256 evidenceUploadPeriod_
+          this.protocolConfig.baseMetaEvidenceURI, // string baseMetaEvidenceURI_
         ]).then((contract) =>
           postDeployCheck(contract, this.args.deployedAt.ClaimManager),
         );

@@ -1038,14 +1038,9 @@ export async function initiateClaim(
     ).then((data) => poolInfoFormat(data));
 
     const txResult = await postTxHandler(
-      ClaimManager.connect(user).initiateClaim(
-        coverId,
-        amountClaimedAmount,
-        ipfsMetaEvidenceCid,
-        {
-          value: messageValue,
-        },
-      ),
+      ClaimManager.connect(user).initiateClaim(coverId, amountClaimedAmount, {
+        value: messageValue,
+      }),
     );
 
     const { txTimestamp } = await getTxCostAndTimestamp(txResult);
@@ -1086,14 +1081,9 @@ export async function initiateClaim(
     if (!skipTokenCheck) expectEqual(tokenDataAfter, expectedTokenData);
   } else if (expectedResult === "revert") {
     await expect(
-      ClaimManager.connect(user).initiateClaim(
-        coverId,
-        amountClaimedAmount,
-        ipfsMetaEvidenceCid,
-        {
-          value: messageValue,
-        },
-      ),
+      ClaimManager.connect(user).initiateClaim(coverId, amountClaimedAmount, {
+        value: messageValue,
+      }),
     ).to.revertTransactionWith(revertMessage);
   }
 }

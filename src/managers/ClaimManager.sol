@@ -185,40 +185,40 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
 
   /**
    * @dev To be emitted when meta-evidence is submitted.
-   * @param _metaEvidenceID Unique identifier of meta-evidence.
-   * @param _evidence IPFS path to metaevidence, example: '/ipfs/Qmarwkf7C9RuzDEJNnarT3WZ7kem5bk8DZAzx78acJjMFH/metaevidence.json'
+   * @param metaEvidenceID_ Unique identifier of meta-evidence.
+   * @param evidence_ IPFS path to metaevidence, example: '/ipfs/Qmarwkf7C9RuzDEJNnarT3WZ7kem5bk8DZAzx78acJjMFH/metaevidence.json'
    */
   event MetaEvidence(
-    uint256 indexed _metaEvidenceID,
-    string _evidence
+    uint256 indexed metaEvidenceID_,
+    string evidence_
   );
 
   /**
    * @dev To be raised when evidence is submitted. Should point to the resource (evidences are not to be stored on chain due to gas considerations).
-   * @param _arbitrator The arbitrator of the contract.
-   * @param _evidenceGroupID Unique identifier of the evidence group the evidence belongs to.
-   * @param _party The address of the party submiting the evidence. Note that 0x0 refers to evidence not submitted by any party.
-   * @param _evidence IPFS path to evidence, example: '/ipfs/Qmarwkf7C9RuzDEJNnarT3WZ7kem5bk8DZAzx78acJjMFH/evidence.json'
+   * @param arbitrator_ The arbitrator of the contract.
+   * @param evidenceGroupID_ Unique identifier of the evidence group the evidence belongs to.
+   * @param party_ The address of the party submiting the evidence. Note that 0x0 refers to evidence not submitted by any party.
+   * @param evidence_ IPFS path to evidence, example: '/ipfs/Qmarwkf7C9RuzDEJNnarT3WZ7kem5bk8DZAzx78acJjMFH/evidence.json'
    */
   event Evidence(
-    IArbitrator indexed _arbitrator,
-    uint256 indexed _evidenceGroupID,
-    address indexed _party,
-    string _evidence
+    IArbitrator indexed arbitrator_,
+    uint256 indexed evidenceGroupID_,
+    address indexed party_,
+    string evidence_
   );
 
   /**
    * @dev To be emitted when a dispute is created to link the correct meta-evidence to the disputeID.
-   * @param _arbitrator The arbitrator of the contract.
-   * @param _disputeID ID of the dispute in the Arbitrator contract.
-   * @param _metaEvidenceID Unique identifier of meta-evidence.
-   * @param _evidenceGroupID Unique identifier of the evidence group that is linked to this dispute.
+   * @param arbitrator_ The arbitrator of the contract.
+   * @param disputeID_ ID of the dispute in the Arbitrator contract.
+   * @param metaEvidenceID_ Unique identifier of meta-evidence.
+   * @param evidenceGroupID_ Unique identifier of the evidence group that is linked to this dispute.
    */
   event Dispute(
-    IArbitrator indexed _arbitrator,
-    uint256 indexed _disputeID,
-    uint256 _metaEvidenceID,
-    uint256 _evidenceGroupID
+    IArbitrator indexed arbitrator_,
+    uint256 indexed disputeID_,
+    uint256 metaEvidenceID_,
+    uint256 evidenceGroupID_
   );
 
   // ======= MODIFIERS ======= //
@@ -802,12 +802,12 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
 
   /**
    * @notice Prevents new claims from being created with this claim manager.
-   * @param _courtClosed Whether the court is closed or not.
+   * @param courtClosed_ Whether the court is closed or not.
    *
    * @dev This is used when the claim manager is being upgraded.
    */
-  function setCourClosed(bool _courtClosed) external onlyOwner {
-    courtClosed = _courtClosed;
+  function setCourClosed(bool courtClosed_) external onlyOwner {
+    courtClosed = courtClosed_;
   }
 
   /**
