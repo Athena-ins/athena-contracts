@@ -1,4 +1,3 @@
-import { StrategyManager } from "./../../typechain/StrategyManager.d";
 import { utils } from "ethers";
 import {
   entityProviderChainId,
@@ -151,7 +150,11 @@ export async function deployAllContractsAndInitializeProtocolVE(
   }
 
   if (deploymentOrder[txCount] === "AthenaToken") {
-    deployExecutors.push(() => deployAthenaToken(deployer, [[]]));
+    deployExecutors.push(() =>
+      deployAthenaToken(deployer, [
+        [deployedAt.EcclesiaDao, deployedAt.Staking],
+      ]),
+    );
     txCount++;
   }
 
@@ -245,7 +248,7 @@ export async function deployAllContractsAndInitializeProtocolVE(
           deployedAt.AthenaCoverToken,
           deployer.address, // EcclesiaDao
           deployedAt.StrategyManager,
-          deployer.address, // ClaimManager
+          deployedAt.ClaimManager, // ClaimManager
           deployer.address, // to be replaced by farming/yieldRewarder
           config.withdrawDelay,
           config.maxLeverage,

@@ -28,13 +28,13 @@ type AmphorStrategyParams = {
   amphrLRT: string;
 };
 
-const amphorStrategyParams = {
+export const amphorStrategyParams = {
   // Lido LST Token
-  wstETH: "0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0",
+  wstETH: "0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0".toLowerCase(),
   // (((Strategy 1))) - Amphor Restaked ETH
-  amphrETH: "0x5fD13359Ba15A84B76f7F87568309040176167cd",
+  amphrETH: "0x5fD13359Ba15A84B76f7F87568309040176167cd".toLowerCase(),
   // (((Strategy 2))) - Amphor Symbiotic LRT
-  amphrLRT: "0x06824c27c8a0dbde5f72f770ec82e3c0fd4dcec3",
+  amphrLRT: "0x06824c27c8a0dbde5f72f770ec82e3c0fd4dcec3".toLowerCase(),
 };
 
 const deployParams: {

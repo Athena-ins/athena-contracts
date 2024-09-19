@@ -1,5 +1,6 @@
 import { ethers } from "hardhat";
 // Functions
+import { amphorStrategyParams } from "../../scripts/verificationData/deployParams";
 import {
   entityProviderChainId,
   impersonateAccount,
@@ -47,6 +48,7 @@ import {
   IWETH__factory,
   IUniswapV2Router__factory,
   IUniswapV3Router__factory,
+  IUniswapV3Router,
 } from "../../typechain";
 import { ProtocolContracts } from "./deployers";
 
@@ -287,6 +289,64 @@ async function maxApprove<T extends IERC20 | ERC20>(
   );
 }
 
+// ========== UNISWAP ============== //
+
+type ExactOutputSingleParams = {
+  tokenIn: string;
+  tokenOut: string;
+  recipient: string;
+  deadline: number;
+  amountOut: BigNumberish;
+  amountInMaximum: BigNumberish;
+  sqrtPriceLimitX96: BigNumberish;
+};
+
+async function tryExactOutputSingle(
+  uniswapRouter: IUniswapV3Router,
+  params: ExactOutputSingleParams,
+): Promise<ContractReceipt> {
+  const fees = [500, 3000, 100];
+
+  for (const fee of fees) {
+    try {
+      const result = await postTxHandler(
+        uniswapRouter.exactOutputSingle({ ...params, fee }),
+      );
+      return result;
+    } catch (error) {
+      console.warn(`Failed with fee ${fee}:`, error);
+    }
+  }
+
+  throw Error("Failed to execute exactOutputSingle");
+}
+
+function encodeMultiHopPath(path: (string | number)[]): string {
+  // Structure of the path should be [tokenOut, fee,[...token,fee], tokenIn]
+  if (path.length < 2 || path.length % 2 === 0) {
+    throw new Error(
+      "Invalid path: must have an even number of elements (at least 2)",
+    );
+  }
+
+  const types = [];
+  const values = [];
+
+  for (let i = 0; i < path.length; i++) {
+    if (i % 2 === 0) {
+      // Even indices are token addresses
+      types.push("address");
+      values.push(path[i]);
+    } else {
+      // Odd indices are fees
+      types.push("uint24");
+      values.push(path[i]);
+    }
+  }
+
+  return ethers.utils.solidityPack(types, values);
+}
+
 export async function getTokens(
   signer: Wallet,
   token: string,
@@ -306,10 +366,38 @@ export async function getTokens(
 
   await postTxHandler(weth.approve(routerAddress, parseEther("500")));
 
-  const params = {
+  if (
+    token.toLowerCase() === amphorStrategyParams.amphrETH ||
+    token.toLowerCase() === amphorStrategyParams.amphrLRT
+  ) {
+    // const holder =
+    //   token.toLowerCase() === amphorStrategyParams.amphrETH
+    //     ? "0xe3fb0c9e52dadc7272a1b2f226842fdf8e3636de"
+    //     : "0x924cafec4f967be5df085ad94d8d50574f9a2bb0";
+    // const holderSigner = await impersonateAccount(holder);
+    // const tokenContract = IWETH__factory.connect(token, holderSigner);
+    // return postTxHandler(tokenContract.transfer(to, amount));
+
+    const params = {
+      path: encodeMultiHopPath([
+        token,
+        3000,
+        amphorStrategyParams.wstETH,
+        100,
+        wethAddress,
+      ]), // bytes path;
+      recipient: to, // address recipient;
+      deadline: 9999999999, // uint256 deadline;
+      amountOut: amount, // uint256 amountOut;
+      amountInMaximum: BigNumber.from(2).pow(128), // uint256 amountInMaximum;
+    };
+
+    return postTxHandler(uniswapRouter.exactOutput(params));
+  }
+
+  const paramsSingle = {
     tokenIn: wethAddress,
     tokenOut: token,
-    fee: 500,
     recipient: to,
     deadline: 9999999999,
     amountOut: amount,
@@ -317,16 +405,7 @@ export async function getTokens(
     sqrtPriceLimitX96: 0,
   };
 
-  try {
-    return postTxHandler(uniswapRouter.exactOutputSingle(params));
-  } catch (error) {
-    return postTxHandler(
-      uniswapRouter.exactOutputSingle({
-        ...params,
-        fee: 3000,
-      }),
-    );
-  }
+  return tryExactOutputSingle(uniswapRouter, paramsSingle);
 }
 
 // ============================ //
@@ -435,12 +514,11 @@ async function openCover(
     user.getAddress(),
     contract
       .poolInfo(poolId)
-      .then((poolInfo) =>
-        IERC20__factory.connect(poolInfo.underlyingAsset, user),
-      ),
+      .then((poolInfo) => IERC20__factory.connect(poolInfo.paymentAsset, user)),
   ]);
 
   await getTokens(user, token.address, userAccount, premiums);
+
   await postTxHandler(token.connect(user).approve(contract.address, premiums));
 
   return postTxHandler(
@@ -516,9 +594,6 @@ async function initiateClaim(
   ]);
 
   const valueForTx = arbitrationCost.add(claimCollateral);
-
-  // @dev Remove usage of signature authentication
-  const { ipfsCid, cidSignature } = await getTestingCidAndSig();
 
   // Create the claim
   return postTxHandler(
