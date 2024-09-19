@@ -22,8 +22,25 @@ function fromFork() {
 
 const DAY_SECONDS = 24 * 60 * 60;
 
+type AmphorStrategyParams = {
+  wstETH: string;
+  amphrETH: string;
+  amphrLRT: string;
+};
+
+const amphorStrategyParams = {
+  // Lido LST Token
+  wstETH: "0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0",
+  // (((Strategy 1))) - Amphor Restaked ETH
+  amphrETH: "0x5fD13359Ba15A84B76f7F87568309040176167cd",
+  // (((Strategy 2))) - Amphor Symbiotic LRT
+  amphrLRT: "0x06824c27c8a0dbde5f72f770ec82e3c0fd4dcec3",
+};
+
 const deployParams: {
   [key: string]: ProtocolConfig;
+} & {
+  mainnet?: ProtocolConfig & AmphorStrategyParams;
 } = {
   arbitrum: {
     subcourtId: 2,
@@ -79,13 +96,13 @@ export function getDeployConfig() {
 /**
  * This configuration in ONLY to be used in the test suite
  */
-export const defaultProtocolConfig: ProtocolConfig = {
+export const defaultProtocolConfig: ProtocolConfig & AmphorStrategyParams = {
   subcourtId: 2,
   nbOfJurors: 4,
   challengePeriod: 10 * DAY_SECONDS, // 10 days
   overrulePeriod: 4 * DAY_SECONDS, // 4 days
   evidenceUploadPeriod: 2 * DAY_SECONDS, // 2 days
-  baseMetaEvidenceURI: "process.env.ATHENA_API_URL",
+  baseMetaEvidenceURI: "https://api.athenains.io/metaevidence",
   claimCollateral: parseEther("0.05"), // in ETH
   arbitrationCost: parseEther("0"), // in ETH
   evidenceGuardian: evidenceGuardianWallet(),
@@ -112,4 +129,5 @@ export const defaultProtocolConfig: ProtocolConfig = {
   payoutDeductibleRate: toRay(10), // 10%
   strategyFeeRate: toRay(50), // 50%
   farmingBlockStart: 0, // leave 0 for dynamic
+  ...amphorStrategyParams,
 };

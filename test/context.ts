@@ -57,6 +57,7 @@ declare module "mocha" {
     snapshortId: string; // Used to reset fork
     helpers: TestHelper;
     args: any; // Used to set arguments within a test suite
+    customEnv: any; // Used to set custom environment within a test suite
   }
 }
 
@@ -68,6 +69,10 @@ export function baseContext(description: string, hooks: () => void): void {
   describe(description, function () {
     before(async function () {
       try {
+        console.log(
+          `\n== TESTING ON ${process.env.HARDHAT_FORK_TARGET?.toUpperCase()} ==\n`,
+        );
+
         const liqManagerSize = LiquidityManager__factory.bytecode.length / 2;
         console.log(`\nLiq. Manager size: ${liqManagerSize}/24576\n`);
 

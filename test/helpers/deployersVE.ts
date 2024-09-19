@@ -1,7 +1,8 @@
+import { StrategyManager } from "./../../typechain/StrategyManager.d";
 import { utils } from "ethers";
 import {
-  genContractAddress,
   entityProviderChainId,
+  genContractAddress,
   getCurrentBlockNumber,
   postTxHandler,
 } from "./hardhat";
@@ -20,288 +21,59 @@ import {
 import { toRay } from "./utils/poolRayMath";
 // typechain
 import {
-  // Dao
-  EcclesiaDao__factory,
-  EcclesiaDao,
-  // Claims
-  AthenaArbitrator__factory,
-  AthenaArbitrator,
-  // Managers
-  ClaimManager__factory,
-  ClaimManager,
-  LiquidityManager__factory,
-  LiquidityManager,
-  StrategyManager__factory,
-  StrategyManager,
-  StrategyManagerVE__factory,
-  StrategyManagerVE,
-  // Rewards
-  FarmingRange__factory,
-  FarmingRange,
-  RewardManager__factory,
-  RewardManager,
-  Staking__factory,
-  Staking,
   // Tokens
   AthenaCoverToken__factory,
-  AthenaCoverToken,
+  AthenaDataProvider__factory,
   AthenaPositionToken__factory,
-  AthenaPositionToken,
   AthenaToken__factory,
-  AthenaToken,
+  // Managers
+  ClaimManager__factory,
+  ERC20__factory,
+  // Dao
+  EcclesiaDao__factory,
+  // Rewards
+  FarmingRange__factory,
+  IWETH__factory,
+  LiquidityManager__factory,
+  // Claims
+  AthenaArbitrator__factory,
   // Libs
   PoolMath__factory,
-  PoolMath,
-  VirtualPool__factory,
-  VirtualPool,
-  AthenaDataProvider__factory,
-  AthenaDataProvider,
+  RewardManager__factory,
+  Staking__factory,
+  StrategyManagerVE,
+  StrategyManagerVE__factory,
   // Other
-  // TestableVirtualPool__factory,
-  // TestableVirtualPool,
-  // TestableLiquidityManager__factory,
-  // TestableLiquidityManager,
   TetherToken__factory,
-  TetherToken,
-  IWETH,
-  IWETH__factory,
-  ERC20,
-  ERC20__factory,
-} from "../../typechain/";
+  VirtualPool__factory,
+} from "../../typechain";
+import {
+  deployPoolMath,
+  deployVirtualPool,
+  deployAthenaDataProvider,
+  deployAthenaArbitrator,
+  deployEcclesiaDao,
+  deployClaimManager,
+  deployLiquidityManager,
+  deployStrategyManagerVE,
+  deployFarmingRange,
+  deployRewardManager,
+  deployStaking,
+  deployAthenaCoverToken,
+  deployAthenaPositionToken,
+  deployAthenaToken,
+} from "./deployers";
 // Types
-import { BigNumber, Wallet, Signer } from "ethers";
-import { ConnectWithAddress } from "./contracts-getters";
+import { ProtocolConfig, ProtocolContracts } from "./deployers";
+import { Wallet } from "ethers";
 
 const { parseUnits } = utils;
 
 const ADDRESS_ZERO = "0x0000000000000000000000000000000000000000";
-const DAY_SECONDS = 24 * 60 * 60;
-
-// ================================= //
-// === Deploy contract functions === //
-// ================================= //
-
-type WithAddress<T> = T & { address: string };
-
-export async function deployPoolMath(
-  signer: Signer,
-  args: Parameters<PoolMath__factory["deploy"]>,
-): Promise<WithAddress<PoolMath>> {
-  return new PoolMath__factory(signer).deploy(...args);
-}
-
-export async function deployVirtualPool(
-  signer: Signer,
-  args: Parameters<VirtualPool__factory["deploy"]>,
-  libAddresses: { PoolMath: string },
-): Promise<WithAddress<VirtualPool>> {
-  return new VirtualPool__factory(
-    {
-      ["src/libs/PoolMath.sol:PoolMath"]: libAddresses.PoolMath,
-    },
-    signer,
-  ).deploy(...args);
-}
-
-export async function deployAthenaDataProvider(
-  signer: Signer,
-  args: Parameters<AthenaDataProvider__factory["deploy"]>,
-  libAddresses: { PoolMath: string; VirtualPool: string },
-): Promise<WithAddress<AthenaDataProvider>> {
-  return new AthenaDataProvider__factory(
-    {
-      ["src/libs/PoolMath.sol:PoolMath"]: libAddresses.PoolMath,
-      ["src/libs/VirtualPool.sol:VirtualPool"]: libAddresses.VirtualPool,
-    },
-    signer,
-  ).deploy(...args);
-}
-
-export async function deployAthenaArbitrator(
-  signer: Signer,
-  args: Parameters<AthenaArbitrator__factory["deploy"]>,
-): Promise<WithAddress<AthenaArbitrator>> {
-  return new AthenaArbitrator__factory(signer).deploy(...args);
-}
-
-export async function deployEcclesiaDao(
-  signer: Signer,
-  args: Parameters<EcclesiaDao__factory["deploy"]>,
-): Promise<WithAddress<EcclesiaDao>> {
-  return new EcclesiaDao__factory(signer).deploy(...args);
-}
-
-export async function deployClaimManager(
-  signer: Signer,
-  args: Parameters<ClaimManager__factory["deploy"]>,
-): Promise<WithAddress<ClaimManager>> {
-  return new ClaimManager__factory(signer).deploy(...args);
-}
-
-export async function deployLiquidityManager(
-  signer: Signer,
-  args: Parameters<LiquidityManager__factory["deploy"]>,
-  libAddresses: {
-    VirtualPool: string;
-    AthenaDataProvider: string;
-  },
-): Promise<WithAddress<LiquidityManager>> {
-  return new LiquidityManager__factory(
-    {
-      ["src/libs/VirtualPool.sol:VirtualPool"]: libAddresses.VirtualPool,
-      ["src/misc/AthenaDataProvider.sol:AthenaDataProvider"]:
-        libAddresses.AthenaDataProvider,
-    },
-    signer,
-  ).deploy(...args);
-}
-
-// export async function deployTestableLiquidityManager(
-//   signer: Signer,
-//   args: Parameters<TestableLiquidityManager__factory["deploy"]>,
-// ): Promise<WithAddress<TestableLiquidityManager>> {
-//   return new TestableLiquidityManager__factory(signer).deploy(...args);
-// }
-
-export async function deployStrategyManager(
-  signer: Signer,
-  args: Parameters<StrategyManager__factory["deploy"]>,
-): Promise<WithAddress<StrategyManager>> {
-  return new StrategyManager__factory(signer).deploy(...args);
-}
-
-export async function deployStrategyManagerVE(
-  signer: Signer,
-  args: Parameters<StrategyManagerVE__factory["deploy"]>,
-): Promise<WithAddress<StrategyManagerVE>> {
-  return new StrategyManagerVE__factory(signer).deploy(...args);
-}
-
-export async function deployFarmingRange(
-  signer: Signer,
-  args: Parameters<FarmingRange__factory["deploy"]>,
-): Promise<WithAddress<FarmingRange>> {
-  return new FarmingRange__factory(signer).deploy(...args);
-}
-
-export async function deployRewardManager(
-  signer: Signer,
-  args: Parameters<RewardManager__factory["deploy"]>,
-): Promise<WithAddress<RewardManager>> {
-  return new RewardManager__factory(signer).deploy(...args);
-}
-
-export async function deployStaking(
-  signer: Signer,
-  args: Parameters<Staking__factory["deploy"]>,
-): Promise<WithAddress<Staking>> {
-  return new Staking__factory(signer).deploy(...args);
-}
-
-export async function deployAthenaCoverToken(
-  signer: Signer,
-  args: Parameters<AthenaCoverToken__factory["deploy"]>,
-): Promise<WithAddress<AthenaCoverToken>> {
-  return new AthenaCoverToken__factory(signer).deploy(...args);
-}
-
-export async function deployAthenaPositionToken(
-  signer: Signer,
-  args: Parameters<AthenaPositionToken__factory["deploy"]>,
-): Promise<WithAddress<AthenaPositionToken>> {
-  return new AthenaPositionToken__factory(signer).deploy(...args);
-}
-
-export async function deployAthenaToken(
-  signer: Signer,
-  args: Parameters<AthenaToken__factory["deploy"]>,
-): Promise<WithAddress<AthenaToken>> {
-  return new AthenaToken__factory(signer).deploy(...args);
-}
 
 // ======================= //
 // === Deploy protocol === //
 // ======================= //
-
-export type ProtocolConfig = {
-  subcourtId: number;
-  nbOfJurors: number;
-  challengePeriod: number;
-  overrulePeriod: number;
-  evidenceUploadPeriod: number;
-  baseMetaEvidenceURI: string;
-  claimCollateral: BigNumber;
-  arbitrationCost: BigNumber; // in ETH for centralized AthenaArbitrator
-  evidenceGuardian: Wallet;
-  buybackWallet: Wallet;
-  treasuryWallet: Wallet;
-  leverageRiskWallet: Wallet;
-  yieldRewarder: string;
-  leverageFeePerPool: BigNumber;
-  poolFormula: {
-    feeRate: BigNumber;
-    uOptimal: BigNumber;
-    r0: BigNumber;
-    rSlope1: BigNumber;
-    rSlope2: BigNumber;
-  };
-  yieldBonuses: { atenAmount: BigNumber; yieldBonus: BigNumber }[];
-  withdrawDelay: number;
-  maxLeverage: number;
-  payoutDeductibleRate: BigNumber;
-  strategyFeeRate: BigNumber;
-  farmingBlockStart: number; // leave 0 for dynamic
-  // For Amphor strategy
-  wstETH?: string;
-  amphrETH?: string;
-  amphrLRT?: string;
-};
-
-export type DeployedProtocolContracts = {
-  TetherToken: WithAddress<TetherToken>;
-  CircleToken: WithAddress<ERC20>;
-  WethToken: WithAddress<IWETH>;
-  AthenaCoverToken: WithAddress<AthenaCoverToken>;
-  AthenaPositionToken: WithAddress<AthenaPositionToken>;
-  AthenaToken: WithAddress<AthenaToken>;
-  EcclesiaDao: WithAddress<EcclesiaDao>;
-  AthenaArbitrator: WithAddress<AthenaArbitrator>;
-  ClaimManager: WithAddress<ClaimManager>;
-  LiquidityManager: WithAddress<LiquidityManager>;
-  StrategyManager: WithAddress<StrategyManager>;
-  FarmingRange: WithAddress<FarmingRange>;
-  RewardManager: WithAddress<RewardManager>;
-  Staking: WithAddress<Staking>;
-  PoolMath: WithAddress<PoolMath>;
-  VirtualPool: WithAddress<VirtualPool>;
-  AthenaDataProvider: WithAddress<AthenaDataProvider>;
-  // TestableVirtualPool: TestableVirtualPool;
-};
-
-export type ConnectedProtocolContracts = {
-  TetherToken: ConnectWithAddress<TetherToken>;
-  CircleToken: ConnectWithAddress<ERC20>;
-  WethToken: ConnectWithAddress<IWETH>;
-  AthenaCoverToken: ConnectWithAddress<AthenaCoverToken>;
-  AthenaPositionToken: ConnectWithAddress<AthenaPositionToken>;
-  AthenaToken: ConnectWithAddress<AthenaToken>;
-  EcclesiaDao: ConnectWithAddress<EcclesiaDao>;
-  AthenaArbitrator: ConnectWithAddress<AthenaArbitrator>;
-  ClaimManager: ConnectWithAddress<ClaimManager>;
-  LiquidityManager: ConnectWithAddress<LiquidityManager>;
-  StrategyManager: ConnectWithAddress<StrategyManager>;
-  FarmingRange: ConnectWithAddress<FarmingRange>;
-  RewardManager: ConnectWithAddress<RewardManager>;
-  Staking: ConnectWithAddress<Staking>;
-  PoolMath: ConnectWithAddress<PoolMath>;
-  VirtualPool: ConnectWithAddress<VirtualPool>;
-  AthenaDataProvider: ConnectWithAddress<AthenaDataProvider>;
-  // TestableVirtualPool: ConnectWithAddress<TestableVirtualPool>;
-};
-
-export type ProtocolContracts =
-  | ConnectedProtocolContracts
-  | DeployedProtocolContracts;
 
 export const deploymentOrder = [
   "AthenaCoverToken",
@@ -319,18 +91,23 @@ export const deploymentOrder = [
   "AthenaArbitrator",
 ];
 
-export async function deployAllContractsAndInitializeProtocol(
+export type VEProtocolContracts = ProtocolContracts & {
+  StrategyManager: StrategyManagerVE;
+};
+
+export async function deployAllContractsAndInitializeProtocolVE(
   deployer: Wallet,
   config: ProtocolConfig,
+  addresses?: { [key: string]: string },
   logAddresses = false,
-): Promise<ProtocolContracts> {
+): Promise<VEProtocolContracts> {
   const chainId = await entityProviderChainId(deployer);
   if (!chainId) throw Error("No chainId found for deployment signer");
 
   let txCount = 0;
   let deployExecutors = [];
 
-  const deployedAt: { [key: string]: string } = {};
+  const deployedAt: { [key: string]: string } = addresses || {};
 
   await Promise.all(
     deploymentOrder.map((name, i) =>
@@ -374,11 +151,7 @@ export async function deployAllContractsAndInitializeProtocol(
   }
 
   if (deploymentOrder[txCount] === "AthenaToken") {
-    deployExecutors.push(() =>
-      deployAthenaToken(deployer, [
-        [deployedAt.EcclesiaDao, deployedAt.Staking],
-      ]),
-    );
+    deployExecutors.push(() => deployAthenaToken(deployer, [[]]));
     txCount++;
   }
 
@@ -443,15 +216,21 @@ export async function deployAllContractsAndInitializeProtocol(
   }
 
   if (deploymentOrder[txCount] === "StrategyManager") {
+    if (!config.wstETH || !config.amphrETH || !config.amphrLRT)
+      throw Error("Missing amphor strategy params");
+
     deployExecutors.push(() =>
-      deployStrategyManager(deployer, [
+      deployStrategyManagerVE(deployer, [
         deployedAt.LiquidityManager,
-        deployedAt.EcclesiaDao,
+        deployer.address, // EcclesiaDao
         aaveLendingPoolV3Address(chainId),
         usdcTokenAddress(chainId),
         config.buybackWallet.address,
         config.payoutDeductibleRate, // payoutDeductibleRate
         config.strategyFeeRate, // strategyFeeRate
+        config.wstETH as string,
+        config.amphrETH as string,
+        config.amphrLRT as string,
       ]),
     );
     txCount++;
@@ -464,10 +243,10 @@ export async function deployAllContractsAndInitializeProtocol(
         [
           deployedAt.AthenaPositionToken,
           deployedAt.AthenaCoverToken,
-          deployedAt.EcclesiaDao,
+          deployer.address, // EcclesiaDao
           deployedAt.StrategyManager,
-          deployedAt.ClaimManager,
-          config.yieldRewarder, // to be replaced by farming
+          deployer.address, // ClaimManager
+          deployer.address, // to be replaced by farming/yieldRewarder
           config.withdrawDelay,
           config.maxLeverage,
           config.leverageFeePerPool,
@@ -564,7 +343,7 @@ export async function deployAllContractsAndInitializeProtocol(
     deployedAt.LiquidityManager || ADDRESS_ZERO,
     deployer,
   );
-  const StrategyManager = StrategyManager__factory.connect(
+  const StrategyManager = StrategyManagerVE__factory.connect(
     deployedAt.StrategyManager || ADDRESS_ZERO,
     deployer,
   );
