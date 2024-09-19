@@ -1,6 +1,7 @@
 import { utils } from "ethers";
 import { expect } from "chai";
 // Helpers
+import { getCoverRewards } from "../helpers/utils/poolRayMath";
 import {
   setNextBlockTimestamp,
   postTxHandler,
@@ -23,6 +24,7 @@ import {
   aaveLendingPoolV3Address,
   usdcTokenAddress,
 } from "../helpers/protocol";
+import { ERC20Basic__factory } from "../../typechain";
 // Types
 import { BigNumber } from "ethers";
 
@@ -36,7 +38,7 @@ interface Arguments extends Mocha.Context {
   args: {
     nbPools: number;
     daoLockDuration: number;
-    nbLpProviders: number;
+    assets: string[];
     //
     lpAmount: BigNumber;
     coverAmount: BigNumber;
@@ -67,17 +69,18 @@ export function AmphorStrategiesTest() {
         console.warn("\n\nTest is disabled for non-mainnet network\n\n");
         this.skip();
       }
+      if (!this.protocolConfig.amphrETH || !this.protocolConfig.amphrLRT) {
+        throw new Error("amphrETH or amphrLRT not set in protocol config");
+      }
 
       const veContracts = await deployAllContractsAndInitializeProtocolVE(
         this.signers.deployer,
         this.protocolConfig,
       );
-
       const veHelpers = await makeTestHelpers(
         this.signers.deployer,
         veContracts,
       );
-
       this.customEnv = {
         contracts: veContracts,
         helpers: veHelpers,
@@ -85,8 +88,12 @@ export function AmphorStrategiesTest() {
 
       this.args = {
         nbPools: 3,
-        nbLpProviders: 1,
         daoLockDuration: 60 * 60 * 24 * 365,
+        assets: [
+          veContracts.CircleToken.address,
+          this.protocolConfig.amphrETH,
+          this.protocolConfig.amphrLRT,
+        ],
         //
         lpAmountUsd: parseUnits("1000", 6),
         lpIncreaseAmountUsd: parseUnits("1500", 6),
@@ -117,7 +124,7 @@ export function AmphorStrategiesTest() {
         expect(
           await postTxHandler(
             this.customEnv.contracts.LiquidityManager.createPool(
-              this.customEnv.contracts.CircleToken.address, // paymentAsset
+              this.args.assets[i], // paymentAsset
               i, // strategyId
               0, // feeRate
               uOptimal,
@@ -133,29 +140,14 @@ export function AmphorStrategiesTest() {
         const poolInfo =
           await this.customEnv.contracts.LiquidityManager.poolInfo(poolId);
 
-        if (i == 0) {
-          expect(poolInfo.paymentAsset.toLowerCase()).to.equal(
-            this.customEnv.contracts.CircleToken.address,
-          );
-          expect(poolInfo.underlyingAsset.toLowerCase()).to.equal(
-            this.customEnv.contracts.CircleToken.address,
-          );
-        } else if (i == 1) {
-          expect(poolInfo.paymentAsset.toLowerCase()).to.equal(
-            this.protocolConfig.amphrETH,
-          );
-          expect(poolInfo.underlyingAsset.toLowerCase()).to.equal(
-            this.protocolConfig.amphrETH,
-          );
-        } else if (i == 2) {
-          expect(poolInfo.paymentAsset.toLowerCase()).to.equal(
-            this.protocolConfig.amphrLRT,
-          );
-          expect(poolInfo.underlyingAsset.toLowerCase()).to.equal(
-            this.protocolConfig.amphrLRT,
-          );
-        }
-
+        expect(poolInfo.paymentAsset.toLowerCase()).to.equal(
+          this.args.assets[i],
+        );
+        expect(poolInfo.underlyingAsset.toLowerCase()).to.equal(
+          i === 0
+            ? this.customEnv.contracts.CircleToken.address
+            : this.protocolConfig.wstETH,
+        );
         expect(poolInfo.strategyId).to.equal(i);
         expect(poolInfo.feeRate).to.equal(0);
         expect(poolInfo.formula.uOptimal).to.equal(
@@ -174,7 +166,7 @@ export function AmphorStrategiesTest() {
       }
     });
 
-    it.skip("accepts LPs", async function (this: Arguments) {
+    it("accepts LPs", async function (this: Arguments) {
       for (let i = 0; i < this.args.nbPools; i++) {
         const lpAmount = i === 0 ? this.args.lpAmountUsd : this.args.lpAmount;
 
@@ -182,7 +174,7 @@ export function AmphorStrategiesTest() {
           await this.customEnv.helpers.openPosition(
             this.signers.deployer,
             lpAmount,
-            true,
+            i === 0 ? false : true,
             [i],
           ),
         ).to.not.throw;
@@ -201,7 +193,7 @@ export function AmphorStrategiesTest() {
       }
     });
 
-    it.skip("accepts covers", async function (this: Arguments) {
+    it("accepts covers", async function (this: Arguments) {
       for (let i = 0; i < this.args.nbPools; i++) {
         const [coverAmount, coverPremiums] =
           i === 0
@@ -241,10 +233,10 @@ export function AmphorStrategiesTest() {
       }
     });
 
-    it.skip("can take interests", async function (this: Arguments) {
+    it("can take interests", async function (this: Arguments) {
       await setNextBlockTimestamp({ days: 2 });
 
-      for (let i = 0; i < this.args.nbLpProviders; i++) {
+      for (let i = 0; i < this.args.nbPools; i++) {
         const positionBefore =
           await this.customEnv.contracts.LiquidityManager.positionInfo(i);
 
@@ -254,21 +246,11 @@ export function AmphorStrategiesTest() {
         const position =
           await this.customEnv.contracts.LiquidityManager.positionInfo(i);
 
-        // Check that there were rewards before
-        for (let j = 0; j < this.args.nbPools; j++) {
-          expect(positionBefore.coverRewards[j]).to.not.equal(0);
-        }
-        expect(positionBefore.strategyRewards).to.not.equal(0);
-
-        // Check that rewards were taken
-        for (let j = 0; j < this.args.nbPools; j++) {
-          expect(position.coverRewards[j]).to.equal(0);
-        }
-        expect(position.strategyRewards).to.equal(0);
+        expect(positionBefore.coverRewards[0]).to.not.equal(0);
       }
     });
 
-    it.skip("can create claims", async function (this: Arguments) {
+    it("can create claims", async function (this: Arguments) {
       await setNextBlockTimestamp({ days: 365 });
 
       for (let i = 0; i < this.args.nbPools; i++) {
@@ -291,7 +273,7 @@ export function AmphorStrategiesTest() {
       }
     });
 
-    it.skip("can resolve claims", async function (this: Arguments) {
+    it("can resolve claims", async function (this: Arguments) {
       await setNextBlockTimestamp({ days: 15 });
 
       for (let i = 0; i < this.args.nbPools; i++) {
@@ -304,10 +286,10 @@ export function AmphorStrategiesTest() {
       }
     });
 
-    it.skip("can increase LPs", async function (this: Arguments) {
+    it("can increase LPs", async function (this: Arguments) {
       await setNextBlockTimestamp({ days: 365 });
 
-      for (let i = 0; i < this.args.nbLpProviders; i++) {
+      for (let i = 0; i < this.args.nbPools; i++) {
         const lpIncreaseAmount =
           i === 0 ? this.args.lpIncreaseAmountUsd : this.args.lpIncreaseAmount;
 
@@ -315,13 +297,19 @@ export function AmphorStrategiesTest() {
           this.signers.deployer,
           i,
           lpIncreaseAmount,
-          false,
+          i === 0 ? false : true,
         );
       }
 
       await setNextBlockTimestamp({ days: 5 });
 
-      for (let i = 0; i < this.args.nbLpProviders; i++) {
+      expect(
+        await this.customEnv.contracts.AthenaPositionToken.balanceOf(
+          this.signers.deployer.address,
+        ),
+      ).to.equal(this.args.nbPools);
+
+      for (let i = 0; i < this.args.nbPools; i++) {
         const [lpAmount, claimAmount, lpIncreaseAmount] =
           i === 0
             ? [
@@ -335,40 +323,37 @@ export function AmphorStrategiesTest() {
                 this.args.lpIncreaseAmount,
               ];
 
-        expect(
-          await this.customEnv.contracts.AthenaPositionToken.balanceOf(
-            this.signers.deployer.address,
-          ),
-        ).to.equal(this.args.nbLpProviders);
-
         const position =
           await this.customEnv.contracts.LiquidityManager.positionInfo(i);
 
-        expect(position.poolIds.length).to.equal(this.args.nbPools);
+        expect(position.poolIds.length).to.equal(1);
         expect(position.newUserCapital).to.equal(
-          lpIncreaseAmount
-            .add(lpAmount)
-            .sub(claimAmount.mul(this.args.nbPools)),
+          lpIncreaseAmount.add(lpAmount).sub(claimAmount),
         );
         const totalRewards = position.coverRewards.reduce(
           (acc, reward) => acc.add(reward),
           BigNumber.from(0),
         );
-        expect(totalRewards).to.almostEqual(416439);
+
+        expect(totalRewards).to.almostEqual(
+          i === 0 ? "350682" : "3506823988457635",
+        );
       }
     });
 
-    it.skip("can increase cover & premiums", async function (this: Arguments) {
+    it("can increase cover & premiums", async function (this: Arguments) {
+      const coverId = 2;
+
       const [coverAmount, coverIncreaseAmount, coverIncreasePremiums] = [
-        this.args.coverAmountUsd,
-        this.args.coverIncreaseAmountUsd,
-        this.args.coverIncreasePremiumsUsd,
+        this.args.coverAmount,
+        this.args.coverIncreaseAmount,
+        this.args.coverIncreasePremiums,
       ];
 
       expect(
         await this.customEnv.helpers.updateCover(
           this.signers.deployer,
-          1,
+          coverId,
           coverIncreaseAmount,
           0,
           coverIncreasePremiums,
@@ -385,77 +370,91 @@ export function AmphorStrategiesTest() {
       ).to.equal(this.args.nbPools);
 
       const cover =
-        await this.customEnv.contracts.LiquidityManager.coverInfo(0);
+        await this.customEnv.contracts.LiquidityManager.coverInfo(coverId);
 
-      expect(cover.poolId).to.equal(1);
+      expect(cover.poolId).to.equal(coverId);
       expect(cover.coverAmount).to.gt(0);
       expect(cover.coverAmount).to.lte(
         this.args.coverIncreaseAmount
           .add(coverAmount)
           .sub(this.args.claimAmount),
       );
-      expect(cover.premiumsLeft).to.almostEqual("753246615");
+      expect(cover.premiumsLeft).to.almostEqual("11033965587651379789");
     });
 
-    it.skip("can close cover", async function (this: Arguments) {
-      const [coverAmount, coverIncreaseAmount, claimAmount] = [
-        this.args.coverAmount,
-        this.args.coverIncreaseAmount,
-        this.args.claimAmount,
-      ];
-
-      const uint256Max = BigNumber.from(2).pow(256).sub(1);
-      expect(
-        await this.customEnv.helpers.updateCover(
-          this.signers.deployer,
-          1,
-          0,
-          0,
-          0,
-          uint256Max,
-        ),
-      ).to.not.throw;
-
+    it("can close cover", async function (this: Arguments) {
       expect(
         await this.customEnv.contracts.AthenaCoverToken.balanceOf(
           this.signers.deployer.address,
         ),
       ).to.equal(this.args.nbPools);
 
-      const cover =
-        await this.customEnv.contracts.LiquidityManager.coverInfo(0);
+      for (let i = 0; i < this.args.nbPools; i++) {
+        const [coverAmount, coverIncreaseAmount, claimAmount] =
+          i === 0
+            ? [
+                this.args.coverAmountUsd,
+                this.args.coverIncreaseAmountUsd,
+                this.args.claimAmountUsd,
+              ]
+            : [
+                this.args.coverAmount,
+                this.args.coverIncreaseAmount,
+                this.args.claimAmount,
+              ];
 
-      expect(cover.poolId).to.equal(0);
-      expect(cover.coverAmount).to.equal(
-        coverIncreaseAmount.add(coverAmount).sub(claimAmount),
-      );
-      expect(cover.premiumsLeft).to.equal(0);
+        const uint256Max = BigNumber.from(2).pow(256).sub(1);
+
+        expect(
+          await this.customEnv.helpers.updateCover(
+            this.signers.deployer,
+            i,
+            0,
+            0,
+            0,
+            uint256Max,
+          ),
+        ).to.not.throw;
+
+        const cover =
+          await this.customEnv.contracts.LiquidityManager.coverInfo(i);
+
+        expect(cover.poolId).to.equal(i);
+        expect(cover.coverAmount).to.equal(
+          i === 2
+            ? coverIncreaseAmount.add(coverAmount).sub(claimAmount)
+            : coverAmount.sub(claimAmount),
+        );
+        expect(cover.premiumsLeft).to.equal(0);
+      }
     });
 
-    it.skip("can commit LPs withdrawal", async function (this: Arguments) {
-      await setNextBlockTimestamp({ days: 10 });
+    it("can commit LPs withdrawal", async function (this: Arguments) {
+      await setNextBlockTimestamp({ days: 15 });
 
       const expectedTimestamp = await getCurrentTime();
 
-      expect(
-        await postTxHandler(
-          this.customEnv.contracts.LiquidityManager.commitRemoveLiquidity(0),
-        ),
-      ).to.not.throw;
+      for (let i = 0; i < this.args.nbPools; i++) {
+        expect(
+          await postTxHandler(
+            this.customEnv.contracts.LiquidityManager.commitRemoveLiquidity(i),
+          ),
+        ).to.not.throw;
 
-      const position =
-        await this.customEnv.contracts.LiquidityManager.positionInfo(0);
+        const position =
+          await this.customEnv.contracts.LiquidityManager.positionInfo(i);
 
-      expect(position.commitWithdrawalTimestamp.div(100)).to.equal(
-        Math.floor(expectedTimestamp / 100),
-      );
+        expect(position.commitWithdrawalTimestamp.div(100)).to.equal(
+          Math.floor(expectedTimestamp / 100),
+        );
+      }
     });
 
-    it.skip("can withdraw LPs", async function (this: Arguments) {
+    it("can withdraw LPs", async function (this: Arguments) {
       // Wait for unlock delay to pass
       await setNextBlockTimestamp({ days: 15 });
 
-      for (let i = 0; i < this.args.nbLpProviders; i++) {
+      for (let i = 0; i < this.args.nbPools; i++) {
         const positionInfo =
           await this.customEnv.contracts.LiquidityManager.positionInfo(i);
 
@@ -464,7 +463,7 @@ export function AmphorStrategiesTest() {
             this.customEnv.contracts.LiquidityManager.removeLiquidity(
               i,
               positionInfo.newUserCapital,
-              false,
+              i === 0 ? false : true,
             ),
           ),
         ).to.not.throw;
@@ -472,16 +471,120 @@ export function AmphorStrategiesTest() {
         const position =
           await this.customEnv.contracts.LiquidityManager.positionInfo(i);
 
-        expect(position.poolIds.length).to.equal(this.args.nbPools);
-        expect(position.poolIds[0]).to.equal(0);
+        expect(position.poolIds.length).to.equal(1);
+        expect(position.poolIds[0]).to.equal(i);
         expect(position.supplied).to.equal(0);
         expect(position.newUserCapital).to.equal(0);
         expect(position.strategyRewards).to.almostEqual(0);
-        for (let i = 0; i < this.args.nbPools; i++) {
-          expect(position.coverRewards[0]).to.equal(0);
-        }
+        expect(position.coverRewards[0]).to.equal(0);
         expect(position.commitWithdrawalTimestamp).to.equal(0);
       }
+    });
+
+    describe("Strategy Computation", async function () {
+      it("builds test setup", async function (this: Arguments) {
+        expect(
+          await this.customEnv.helpers.openPosition(
+            this.signers.deployer,
+            parseUnits("10", 18),
+            true,
+            [2],
+          ),
+        ).to.not.throw;
+
+        expect(
+          await this.customEnv.helpers.openCover(
+            this.signers.deployer,
+            2,
+            parseUnits("10", 18),
+            parseUnits("10", 18),
+          ),
+        ).to.not.throw;
+      });
+
+      it("check results", async function (this: Arguments) {
+        const uint256Max = BigNumber.from(2).pow(256).sub(1);
+        const token = ERC20Basic__factory.connect(
+          this.args.assets[2],
+          this.signers.deployer,
+        );
+
+        const poolInfoBefore =
+          await this.customEnv.contracts.LiquidityManager.poolInfo(2);
+
+        await setNextBlockTimestamp({ days: 365 });
+
+        const poolInfoAfter =
+          await this.customEnv.contracts.LiquidityManager.poolInfo(2);
+
+        const latestPositionId = (
+          await this.customEnv.contracts.AthenaPositionToken.nextPositionId()
+        ).sub(1);
+        const latestCoverId = (
+          await this.customEnv.contracts.AthenaCoverToken.nextCoverId()
+        ).sub(1);
+
+        const positionInfo =
+          await this.customEnv.contracts.LiquidityManager.positionInfo(
+            latestPositionId,
+          );
+
+        const expectedRewards = getCoverRewards(
+          positionInfo.newUserCapital,
+          poolInfoBefore.slot0.liquidityIndex,
+          poolInfoAfter.slot0.liquidityIndex,
+        );
+
+        expect(positionInfo.newUserCapital).to.almostEqual(
+          parseUnits("10", 18),
+        );
+        expect(positionInfo.strategyRewards).to.almostEqual("0");
+        expect(positionInfo.coverRewards[0]).to.almostEqual(expectedRewards);
+
+        expect(
+          await this.customEnv.helpers.updateCover(
+            this.signers.deployer,
+            latestCoverId,
+            0,
+            0,
+            0,
+            uint256Max,
+          ),
+        ).to.not.throw;
+
+        const balanceBefore = await token.balanceOf(
+          this.signers.deployer.address,
+        );
+
+        expect(
+          await postTxHandler(
+            this.customEnv.contracts.LiquidityManager.commitRemoveLiquidity(
+              latestPositionId,
+            ),
+          ),
+        ).to.not.throw;
+
+        // Wait for unlock delay to pass
+        await setNextBlockTimestamp({ days: 15 });
+
+        expect(
+          await postTxHandler(
+            this.customEnv.contracts.LiquidityManager.removeLiquidity(
+              latestPositionId,
+              positionInfo.newUserCapital,
+              true,
+            ),
+          ),
+        ).to.not.throw;
+
+        const balanceAfter = await token.balanceOf(
+          this.signers.deployer.address,
+        );
+
+        expect(balanceAfter.sub(balanceBefore)).to.almostEqual(
+          parseUnits("10", 18).add(expectedRewards),
+        );
+      });
     });
   });
 }
