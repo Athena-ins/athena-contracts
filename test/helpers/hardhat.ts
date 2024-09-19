@@ -61,7 +61,14 @@ export async function postTxHandler(txPromise: Promise<ContractTransaction>) {
   return txPromise
     .then((tx) => tx.wait())
     .catch((err) => {
-      throw Error(err.reason || err.name || err.message || err);
+      let info = "";
+      const customError = extractError(err, false);
+      if (customError) info += `Custom error: ${customError}\n`;
+      if (err.tx) info += `Transaction: ${JSON.stringify(err.tx, null, 2)}\n`;
+
+      throw Error(
+        `POST TX\n${info}${err.reason || err.name || err.message || err}`,
+      );
     });
 }
 
@@ -91,6 +98,25 @@ export function entityProviderChainId(
   }
 }
 
+function extractError(err: any, requireError = false) {
+  if (err.errorName) {
+    return err.errorName;
+  }
+  if (err.reason?.includes("reverted with custom error")) {
+    return err.reason.slice(
+      err.reason.indexOf("reverted with custom error") + 28,
+      err.reason.length - 3,
+    );
+  }
+
+  // For tests we generally want to verify the presence of the custom error
+  if (requireError) {
+    throw Error(`Transaction did not revert with custom error: ${err}`);
+  } else {
+    return "";
+  }
+}
+
 // Gets the custom Solidity error on tx revert
 export async function getCustomError(
   txPromise: Promise<any>,
@@ -100,22 +126,7 @@ export async function getCustomError(
     await txPromise;
     throw Error("Transaction did not throw");
   } catch (err: any) {
-    if (err.errorName) {
-      return err.errorName;
-    }
-    if (err.reason?.includes("reverted with custom error")) {
-      return err.reason.slice(
-        err.reason.indexOf("reverted with custom error") + 28,
-        err.reason.length - 3,
-      );
-    }
-
-    // For tests we generally want to verify the presence of the custom error
-    if (requireError) {
-      throw Error(`Transaction did not revert with custom error: ${err}`);
-    } else {
-      return "";
-    }
+    return extractError(err, requireError);
   }
 }
 

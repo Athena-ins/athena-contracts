@@ -543,9 +543,7 @@ async function updateCover(
   if (BigNumber.from(premiumsToAdd).gt(0)) {
     const token = await contract
       .poolInfo(poolId)
-      .then((poolInfo) =>
-        IERC20__factory.connect(poolInfo.underlyingAsset, user),
-      );
+      .then((poolInfo) => IERC20__factory.connect(poolInfo.paymentAsset, user));
 
     await getTokens(user, token.address, userAccount, premiumsToAdd);
     await postTxHandler(
