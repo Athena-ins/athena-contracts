@@ -63,7 +63,7 @@ library AthenaDataProvider {
           itCompounds: pool.strategyManager.itCompounds(
             pool.strategyId
           ),
-          endCompensationId: pool.compensationIds.length,
+          endCompensationIndex: pool.compensationIds.length,
           nbPools: position_.poolIds.length
         })
       );

@@ -1337,7 +1337,7 @@ contract LiquidityManager is
               itCompounds: pool.strategyManager.itCompounds(
                 pool.strategyId
               ),
-              endCompensationId: endCompensationIndexes_[i],
+              endCompensationIndex: endCompensationIndexes_[i],
               nbPools: position.poolIds.length
             })
           );

@@ -78,7 +78,7 @@ library VirtualPool {
     uint256 latestStrategyRewardIndex;
     uint256 strategyId;
     bool itCompounds;
-    uint256 endCompensationId;
+    uint256 endCompensationIndex;
     uint256 nbPools;
   }
 
@@ -494,7 +494,7 @@ library VirtualPool {
         itCompounds: self.strategyManager.itCompounds(
           self.strategyId
         ),
-        endCompensationId: self.compensationIds.length,
+        endCompensationIndex: self.compensationIds.length,
         nbPools: poolIds_.length
       })
     );
@@ -553,7 +553,7 @@ library VirtualPool {
         itCompounds: self.strategyManager.itCompounds(
           self.strategyId
         ),
-        endCompensationId: self.compensationIds.length,
+        endCompensationIndex: self.compensationIds.length,
         nbPools: poolIds_.length
       })
     );
@@ -879,7 +879,7 @@ library VirtualPool {
     // Register up to where the position has been updated
     // @dev
     info.newLpInfo.beginLiquidityIndex = params.currentLiquidityIndex;
-    info.newLpInfo.beginClaimIndex = params.endCompensationId;
+    info.newLpInfo.beginClaimIndex = params.endCompensationIndex;
   }
 
   /**
@@ -911,19 +911,19 @@ library VirtualPool {
 
     // This index is not bubbled up in info because it is updated by the LiquidityManager
     upToStrategyRewardIndex = params.strategyRewardIndex;
-    uint256 compensationId = info.newLpInfo.beginClaimIndex;
+    uint256 compensationIndex = info.newLpInfo.beginClaimIndex;
 
     /**
      * Parse each claim that may affect capital due to overlap in order to
      * compute rewards on post compensation capital
      */
     for (
-      compensationId;
-      compensationId < params.endCompensationId;
-      compensationId++
+      compensationIndex;
+      compensationIndex < params.endCompensationIndex;
+      compensationIndex++
     ) {
       DataTypes.Compensation storage comp = getCompensation(
-        compensationId
+        self.compensationIds[compensationIndex]
       );
 
       // For each pool in the position
@@ -962,7 +962,7 @@ library VirtualPool {
     }
 
     // Register up to where the position has been updated
-    info.newLpInfo.beginClaimIndex = params.endCompensationId;
+    info.newLpInfo.beginClaimIndex = params.endCompensationIndex;
   }
 
   /**
