@@ -422,7 +422,15 @@ contract StrategyManagerVE is IStrategyManager, Ownable {
       aaveLendingPool.withdraw(USDC, amountToWithdraw - 1, account_);
     } else {
       // Amphor Restaked ETH & Amphor Symbiotic LRT
-      revert UseOfUnderlyingAssetNotSupported();
+      // @dev deposits/withdrawals in underlying are not supported for Amphor strategies
+      return
+        withdrawWrappedFromStrategy(
+          strategyId_,
+          underlyingToWrapped(strategyId_, amountCapitalUnderlying_),
+          underlyingToWrapped(strategyId_, amountRewardsUnderlying_),
+          account_,
+          yieldBonus_
+        );
     }
   }
 
@@ -458,7 +466,7 @@ contract StrategyManagerVE is IStrategyManager, Ownable {
     address account_,
     uint256 yieldBonus_
   )
-    external
+    public
     checkId(strategyId_)
     onlyLiquidityManager
     onlyWhiteListedLiquidityProviders
