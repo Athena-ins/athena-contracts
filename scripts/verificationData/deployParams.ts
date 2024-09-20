@@ -13,11 +13,11 @@ const { parseEther, parseUnits } = ethers.utils;
 function fromFork() {
   const forkTarget = process.env.HARDHAT_FORK_TARGET?.toLowerCase();
 
-  if (!forkTarget || forkTarget !== "arbitrum") {
+  if (!forkTarget) {
     throw Error("Missing or erroneous fork target");
   }
 
-  return forkTarget === "arbitrum" ? "arbitrum" : "";
+  return forkTarget;
 }
 
 const DAY_SECONDS = 24 * 60 * 60;

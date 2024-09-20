@@ -60,6 +60,19 @@ async function main() {
     );
     console.log("\n==> Contracts OK");
 
+    const [balanceAfter, gasPrice] = await Promise.all([
+      deployer.getBalance(),
+      hre.ethers.provider.getGasPrice(),
+    ]);
+
+    console.log(
+      "\ncost: ",
+      `${formatEther(balance.sub(balanceAfter))} ETH / ${ethers.utils.formatUnits(
+        gasPrice,
+        9,
+      )} GWEI`,
+    );
+
     console.log("\n==> Protocol deployed & setup");
   } catch (err: any) {
     console.log(err);

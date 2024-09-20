@@ -8,11 +8,11 @@ export type ProtocolContractsAddresses = {
 function fromFork() {
   const forkTarget = process.env.HARDHAT_FORK_TARGET?.toLowerCase();
 
-  if (!forkTarget || forkTarget !== "arbitrum") {
+  if (!forkTarget) {
     throw Error("Missing or erroneous fork target");
   }
 
-  return forkTarget === "arbitrum" ? "arbitrum" : "";
+  return forkTarget;
 }
 
 const networkAddresses: {
