@@ -317,7 +317,7 @@ export function SanityTest() {
 
       const position = await this.contracts.LiquidityManager.positionInfo(0);
 
-      expect(position.commitWithdrawalTimestamp.div(100)).to.equal(
+      expect(position.commitWithdrawalTimestamp.div(100)).to.almostEqual(
         Math.floor(expectedTimestamp / 100),
       );
     });

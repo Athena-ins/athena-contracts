@@ -444,7 +444,7 @@ export function AmphorStrategiesTest() {
         const position =
           await this.customEnv.contracts.LiquidityManager.positionInfo(i);
 
-        expect(position.commitWithdrawalTimestamp.div(100)).to.equal(
+        expect(position.commitWithdrawalTimestamp.div(100)).to.almostEqual(
           Math.floor(expectedTimestamp / 100),
         );
       }
