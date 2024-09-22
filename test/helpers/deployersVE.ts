@@ -77,17 +77,17 @@ const ADDRESS_ZERO = "0x0000000000000000000000000000000000000000";
 export const deploymentOrder = [
   "AthenaCoverToken",
   "AthenaPositionToken",
-  "AthenaToken",
-  "_approve",
+  // "AthenaToken",
+  // "_approve",
   "PoolMath",
   "VirtualPool",
   "AthenaDataProvider",
   "ClaimManager",
   "StrategyManager",
   "LiquidityManager",
-  "RewardManager",
-  "EcclesiaDao",
-  "AthenaArbitrator",
+  // "RewardManager",
+  // "EcclesiaDao",
+  // "AthenaArbitrator",
 ];
 
 export type VEProtocolContracts = ProtocolContracts & {

@@ -5,6 +5,7 @@ import {
   ProtocolConfig,
 } from "../test/helpers/deployers";
 import { deployAllContractsAndInitializeProtocolV0 } from "../test/helpers/deployersV0";
+import { deployAllContractsAndInitializeProtocolVE } from "../test/helpers/deployersVE";
 import { countdown } from "../test/helpers/miscUtils";
 import { getDeployConfig } from "./verificationData/deployParams";
 import { getNetworkAddresses } from "./verificationData/addresses";
