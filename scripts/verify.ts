@@ -181,20 +181,20 @@ async function main() {
   const deployedAt = getNetworkAddresses();
 
   const {
-    AthenaCoverToken: AthenaCoverToken,
-    AthenaPositionToken: AthenaPositionToken,
-    AthenaToken: AthenaToken,
-    EcclesiaDao: EcclesiaDao,
-    AthenaArbitrator: AthenaArbitrator,
-    ClaimManager: ClaimManager,
-    LiquidityManager: LiquidityManager,
-    StrategyManager: StrategyManager,
-    RewardManager: RewardManager,
-    FarmingRange: FarmingRange,
-    Staking: Staking,
-    PoolMath: PoolMath,
-    VirtualPool: VirtualPool,
-    AthenaDataProvider: AthenaDataProvider,
+    AthenaCoverToken,
+    AthenaPositionToken,
+    AthenaToken,
+    EcclesiaDao,
+    AthenaArbitrator,
+    ClaimManager,
+    LiquidityManager,
+    StrategyManager,
+    RewardManager,
+    FarmingRange,
+    Staking,
+    PoolMath,
+    VirtualPool,
+    AthenaDataProvider,
   } = deployedAt;
 
   for (const contract of shouldVerify) {

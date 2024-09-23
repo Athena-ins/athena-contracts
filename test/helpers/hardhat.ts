@@ -53,6 +53,10 @@ export function leverageRiskWallet() {
 // === Helpers === //
 // =============== //
 
+export function isNonNullAddress(address: string | undefined): boolean {
+  return !!address && address !== ethers.constants.AddressZero;
+}
+
 function getProviderFromHardhat() {
   return hre.ethers.provider;
 }
