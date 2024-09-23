@@ -25,6 +25,7 @@ import {
   FarmingRange__factory,
   Staking__factory,
   StrategyManager__factory,
+  StrategyManagerVE__factory,
   VirtualPool__factory,
 } from "../typechain";
 import { ProtocolContracts } from "../test/helpers/deployers";
@@ -33,6 +34,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const VERIFY_V0 = true;
+const VERIFY_VE = true;
 
 const execPromise = promisify(exec);
 
@@ -156,10 +158,10 @@ const shouldVerify: Partial<keyof ProtocolContracts>[] = [
   // "PoolMath",
   // "VirtualPool",
   // "AthenaDataProvider",
-  "ClaimManager",
-  "AthenaArbitrator",
+  // "ClaimManager",
+  // "AthenaArbitrator",
   // "StrategyManager",
-  // "LiquidityManager",
+  "LiquidityManager",
   // "RewardManager",
   // "FarmingRange",
   // "Staking",
@@ -170,6 +172,7 @@ async function main() {
   const networkName = hre.network.name.toUpperCase();
   console.log(`\n== VERIFYING ON ${networkName} ==\n`);
   console.log("VERIFY_V0: ", VERIFY_V0);
+  console.log("VERIFY_VE: ", VERIFY_VE);
 
   const deployer = (await ethers.getSigners())[0] as unknown as Wallet;
   console.log("deployer: ", deployer.address);
@@ -272,15 +275,36 @@ async function main() {
   }
 
   if (shouldVerify.includes("StrategyManager")) {
-    await verifyEtherscanContract<StrategyManager__factory>(StrategyManager, [
-      LiquidityManager,
-      VERIFY_V0 ? deployer.address : EcclesiaDao,
-      aaveLendingPoolV3Address(chainId),
-      usdcTokenAddress(chainId),
-      config.buybackWallet.address,
-      config.payoutDeductibleRate, // payoutDeductibleRate
-      config.strategyFeeRate, // performanceFee
-    ]);
+    if (VERIFY_VE) {
+      if (!config.wstETH || !config.amphrETH || !config.amphrLRT)
+        throw Error("Missing amphor strategy params");
+
+      await verifyEtherscanContract<StrategyManagerVE__factory>(
+        StrategyManager,
+        [
+          LiquidityManager,
+          VERIFY_V0 ? deployer.address : EcclesiaDao,
+          aaveLendingPoolV3Address(chainId),
+          usdcTokenAddress(chainId),
+          config.buybackWallet.address,
+          config.payoutDeductibleRate, // payoutDeductibleRate
+          config.strategyFeeRate, // performanceFee
+          config.wstETH, // wstETH
+          config.amphrETH, // amphrETH
+          config.amphrLRT, // amphrL
+        ],
+      );
+    } else {
+      await verifyEtherscanContract<StrategyManager__factory>(StrategyManager, [
+        LiquidityManager,
+        VERIFY_V0 ? deployer.address : EcclesiaDao,
+        aaveLendingPoolV3Address(chainId),
+        usdcTokenAddress(chainId),
+        config.buybackWallet.address,
+        config.payoutDeductibleRate, // payoutDeductibleRate
+        config.strategyFeeRate, // performanceFee
+      ]);
+    }
     console.log("==> Verification processed for StrategyManager");
   }
 
@@ -292,7 +316,7 @@ async function main() {
         AthenaCoverToken,
         VERIFY_V0 ? deployer.address : EcclesiaDao,
         StrategyManager,
-        VERIFY_V0 ? deployer.address : ClaimManager,
+        VERIFY_V0 && !VERIFY_VE ? deployer.address : ClaimManager,
         VERIFY_V0 ? deployer.address : config.yieldRewarder,
         config.withdrawDelay,
         config.maxLeverage,

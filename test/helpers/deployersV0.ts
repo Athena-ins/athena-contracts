@@ -73,21 +73,22 @@ const ADDRESS_ZERO = "0x0000000000000000000000000000000000000000";
 // === Deploy protocol === //
 // ======================= //
 
-export const deploymentOrder = [
-  "AthenaCoverToken",
-  "AthenaPositionToken",
-  "AthenaToken",
-  // "_approve",
-  "PoolMath",
-  "VirtualPool",
-  "AthenaDataProvider",
-  "ClaimManager",
-  "StrategyManager",
-  "LiquidityManager",
-  // "RewardManager",
-  // "EcclesiaDao",
-  "AthenaArbitrator",
-];
+export const deploymentOrder: Partial<keyof ProtocolContracts | "_approve">[] =
+  [
+    "AthenaCoverToken",
+    "AthenaPositionToken",
+    "AthenaToken",
+    // "_approve",
+    "PoolMath",
+    "VirtualPool",
+    "AthenaDataProvider",
+    "ClaimManager",
+    "StrategyManager",
+    "LiquidityManager",
+    // "RewardManager",
+    // "EcclesiaDao",
+    "AthenaArbitrator",
+  ];
 
 export async function deployAllContractsAndInitializeProtocolV0(
   deployer: Wallet,
