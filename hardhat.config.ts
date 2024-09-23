@@ -137,7 +137,7 @@ function makeForkConfig(): HardhatNetworkUserConfig {
     allowUnlimitedContractSize: false,
     forking: {
       url: rpcUrl,
-      blockNumber: Number(forkingBlock),
+      blockNumber: forkingBlock === "latest" ? undefined : Number(forkingBlock),
     },
     mining: {
       auto: true,
