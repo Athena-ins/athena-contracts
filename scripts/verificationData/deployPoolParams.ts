@@ -2,6 +2,7 @@ import hre, { ethers } from "hardhat";
 import { toRay } from "../../test/helpers/utils/poolRayMath";
 import { getNetworkAddresses } from "./addresses";
 import { BigNumberish } from "ethers";
+import { amphorStrategyParams } from "./deployParams";
 
 const addresses = getNetworkAddresses();
 
@@ -58,6 +59,21 @@ const formulaConfig = {
     rSlope1: toRay(1.9),
     rSlope2: toRay(9),
   },
+  // Mainnet
+  G: {
+    feeRate: toRay(0), // 0%
+    uOptimal: toRay(85),
+    r0: toRay(0.26),
+    rSlope1: toRay(0.69),
+    rSlope2: toRay(2.02),
+  },
+  H: {
+    feeRate: toRay(0), // 0%
+    uOptimal: toRay(75),
+    r0: toRay(0.42),
+    rSlope1: toRay(0.78),
+    rSlope2: toRay(1.91),
+  },
 };
 
 const protocolNames = [
@@ -87,6 +103,9 @@ const protocolNames = [
   "USDT", // RWA backed stablecoin
   "Angle USDa", // DeFi backed stablecoin
   //
+  "Amphor Restaked ETH",
+  "Amphor Symbiotic LRT Vault",
+  //
   // "Spectra", // Bitcoin L2
   // "Equilibria", // Pendle wrapper/booster
   // "Dai", // Token backed stablecoin
@@ -107,8 +126,22 @@ type PoolParams = {
 };
 
 const deployParams: {
-  [chainName: string]: { [coverName in ProtocolName]: PoolParams };
+  [chainName: string]: { [coverName in ProtocolName]?: PoolParams };
 } = {
+  mainnet: {
+    "Amphor Restaked ETH": {
+      paymentAsset: amphorStrategyParams.amphrETH,
+      strategyId: 1,
+      incompatiblePools: ["Amphor Symbiotic LRT Vault"],
+      ...formulaConfig.G,
+    },
+    "Amphor Symbiotic LRT Vault": {
+      paymentAsset: amphorStrategyParams.amphrLRT,
+      strategyId: 2,
+      incompatiblePools: ["Amphor Restaked ETH"],
+      ...formulaConfig.H,
+    },
+  },
   arbitrum: {
     //=========//
     //=== A ===//
@@ -348,7 +381,7 @@ type FormattedPoolParams = PoolParams & {
 };
 
 function formatCompatiblePools(networkPools: {
-  [coverName in ProtocolName]: PoolParams;
+  [coverName in ProtocolName]?: PoolParams;
 }): FormattedPoolParams[] {
   const poolNames = Object.keys(networkPools) as ProtocolName[];
   const poolParams = Object.values(networkPools);
@@ -362,9 +395,9 @@ function formatCompatiblePools(networkPools: {
     // Check each incompatible pool
     for (const incompatiblePool of pool.incompatiblePools) {
       // To see if the other pool has the current pool as incompatible
-      const hasMirror = networkPools[
+      const hasMirror = networkPools?.[
         incompatiblePool
-      ].incompatiblePools.includes(poolNames[i]);
+      ]?.incompatiblePools.includes(poolNames[i]);
 
       // If push to throw once all incompatible pools have been checked
       if (!hasMirror) {
