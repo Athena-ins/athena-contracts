@@ -7,6 +7,8 @@ import { getDeployPoolConfig } from "./verificationData/deployPoolParams";
 import { BigNumberish } from "ethers";
 import { LiquidityManager__factory } from "../typechain";
 
+const { formatEther } = ethers.utils;
+
 const addresses = getNetworkAddresses();
 const poolParams = getDeployPoolConfig();
 
@@ -21,6 +23,9 @@ async function main() {
 
     const deployer = (await ethers.getSigners())[0];
     console.log("deployer: ", deployer.address);
+
+    const balance = await deployer.getBalance();
+    console.log("balance: ", `${formatEther(balance)} ETH`);
 
     const LiquidityManager = LiquidityManager__factory.connect(
       addresses.LiquidityManager,
@@ -49,6 +54,19 @@ async function main() {
 
       console.log(`==> Deployed pool ${params.name} - ${i + 1}/${nbPools}`);
     }
+
+    const [balanceAfter, gasPrice] = await Promise.all([
+      deployer.getBalance(),
+      hre.ethers.provider.getGasPrice(),
+    ]);
+
+    console.log(
+      "\ncost: ",
+      `${formatEther(balance.sub(balanceAfter))} ETH / ${ethers.utils.formatUnits(
+        gasPrice,
+        9,
+      )} GWEI`,
+    );
   } catch (err: any) {
     console.log(err);
   }
