@@ -2,33 +2,50 @@ import hre from "hardhat";
 // typechain
 import {
   // Dao
+  EcclesiaDao,
   EcclesiaDao__factory,
   // Claims
+  AthenaArbitrator,
   AthenaArbitrator__factory,
   // Managers
+  ClaimManager,
   ClaimManager__factory,
+  LiquidityManager,
   LiquidityManager__factory,
+  StrategyManager,
   StrategyManager__factory,
+  StrategyManagerVE,
+  StrategyManagerVE__factory,
   // Rewards
+  FarmingRange,
   FarmingRange__factory,
+  RewardManager,
   RewardManager__factory,
+  Staking,
   Staking__factory,
   // Tokens
+  AthenaCoverToken,
   AthenaCoverToken__factory,
+  AthenaPositionToken,
   AthenaPositionToken__factory,
+  AthenaToken,
   AthenaToken__factory,
   // Libs
+  PoolMath,
   PoolMath__factory,
+  VirtualPool,
   VirtualPool__factory,
+  AthenaDataProvider,
   AthenaDataProvider__factory,
   // Tokens
+  TetherToken,
   TetherToken__factory,
   IWETH,
   IWETH__factory,
   ERC20,
   ERC20__factory,
 } from "../../typechain/";
-import { ProtocolContracts, ConnectedProtocolContracts } from "./deployers";
+import { ProtocolContracts } from "./deployers";
 
 export type ConnectWithAddress<F> = F extends {
   connect: (...args: any[]) => infer R;
@@ -44,7 +61,7 @@ async function connectWrapper<
   const signer = (await hre.ethers.getSigners())[0];
   const contract = factory.connect(address, signer) as ConnectWithAddress<F>;
 
-  contract.address = address;
+  // contract.address = address;
   return contract;
 }
 
@@ -66,6 +83,9 @@ export async function getLiquidityManager(address: string) {
 }
 export async function getStrategyManager(address: string) {
   return connectWrapper(StrategyManager__factory, address);
+}
+export async function getStrategyManagerVE(address: string) {
+  return connectWrapper(StrategyManagerVE__factory, address);
 }
 export async function getFarmingRange(address: string) {
   return connectWrapper(FarmingRange__factory, address);
@@ -112,8 +132,39 @@ export type ProtocolContractsAddresses = {
   [K in keyof ProtocolContracts]: string;
 };
 
+export type ConnectedProtocolContracts = {
+  TetherToken: ConnectWithAddress<TetherToken>;
+  CircleToken: ConnectWithAddress<ERC20>;
+  WethToken: ConnectWithAddress<IWETH>;
+  AthenaCoverToken: ConnectWithAddress<AthenaCoverToken>;
+  AthenaPositionToken: ConnectWithAddress<AthenaPositionToken>;
+  AthenaToken: ConnectWithAddress<AthenaToken>;
+  EcclesiaDao: ConnectWithAddress<EcclesiaDao>;
+  AthenaArbitrator: ConnectWithAddress<AthenaArbitrator>;
+  ClaimManager: ConnectWithAddress<ClaimManager>;
+  LiquidityManager: ConnectWithAddress<LiquidityManager>;
+  StrategyManager: ConnectWithAddress<StrategyManager>;
+  FarmingRange: ConnectWithAddress<FarmingRange>;
+  RewardManager: ConnectWithAddress<RewardManager>;
+  Staking: ConnectWithAddress<Staking>;
+  PoolMath: ConnectWithAddress<PoolMath>;
+  VirtualPool: ConnectWithAddress<VirtualPool>;
+  AthenaDataProvider: ConnectWithAddress<AthenaDataProvider>;
+  // TestableVirtualPool: ConnectWithAddress<TestableVirtualPool>;
+};
+
+export type VEConnectedProtocolContracts = ConnectedProtocolContracts & {
+  StrategyManager: ConnectWithAddress<StrategyManagerVE>;
+};
+
 export async function getConnectedProtocolContracts(
   addresses: ProtocolContractsAddresses,
+  isVE: true,
+): Promise<VEConnectedProtocolContracts>;
+
+export async function getConnectedProtocolContracts(
+  addresses: ProtocolContractsAddresses,
+  isVE = false,
 ): Promise<ConnectedProtocolContracts> {
   const [
     EcclesiaDao,
@@ -138,7 +189,9 @@ export async function getConnectedProtocolContracts(
     getAthenaArbitrator(addresses.AthenaArbitrator),
     getClaimManager(addresses.ClaimManager),
     getLiquidityManager(addresses.LiquidityManager),
-    getStrategyManager(addresses.StrategyManager),
+    isVE
+      ? getStrategyManagerVE(addresses.StrategyManager)
+      : getStrategyManager(addresses.StrategyManager),
     getFarmingRange(addresses.FarmingRange),
     getRewardManager(addresses.RewardManager),
     getStaking(addresses.Staking),

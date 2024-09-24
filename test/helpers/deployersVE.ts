@@ -3,24 +3,19 @@ import {
   entityProviderChainId,
   genContractAddress,
   getCurrentBlockNumber,
-  postTxHandler,
   isNonNullAddress,
+  postTxHandler,
 } from "./hardhat";
 import {
-  usdtTokenAddress,
-  usdcTokenAddress,
-  wethTokenAddress,
   aaveLendingPoolV3Address,
+  usdcTokenAddress,
+  usdtTokenAddress,
+  wethTokenAddress,
 } from "./protocol";
-import {
-  evidenceGuardianWallet,
-  buybackWallet,
-  treasuryWallet,
-  leverageRiskWallet,
-} from "./hardhat";
-import { toRay } from "./utils/poolRayMath";
 // typechain
 import {
+  // Claims
+  AthenaArbitrator__factory,
   // Tokens
   AthenaCoverToken__factory,
   AthenaDataProvider__factory,
@@ -35,8 +30,6 @@ import {
   FarmingRange__factory,
   IWETH__factory,
   LiquidityManager__factory,
-  // Claims
-  AthenaArbitrator__factory,
   // Libs
   PoolMath__factory,
   RewardManager__factory,
@@ -48,24 +41,22 @@ import {
   VirtualPool__factory,
 } from "../../typechain";
 import {
-  deployPoolMath,
-  deployVirtualPool,
-  deployAthenaDataProvider,
   deployAthenaArbitrator,
-  deployEcclesiaDao,
-  deployClaimManager,
-  deployLiquidityManager,
-  deployStrategyManagerVE,
-  deployFarmingRange,
-  deployRewardManager,
-  deployStaking,
   deployAthenaCoverToken,
+  deployAthenaDataProvider,
   deployAthenaPositionToken,
   deployAthenaToken,
+  deployClaimManager,
+  deployEcclesiaDao,
+  deployLiquidityManager,
+  deployPoolMath,
+  deployRewardManager,
+  deployStrategyManagerVE,
+  deployVirtualPool,
 } from "./deployers";
 // Types
-import { ProtocolConfig, ProtocolContracts } from "./deployers";
 import { Wallet } from "ethers";
+import { ProtocolConfig, ProtocolContracts } from "./deployers";
 
 const { parseUnits } = utils;
 

@@ -70,7 +70,7 @@ import {
 } from "../../typechain/";
 // Types
 import { BigNumber, Wallet, Signer } from "ethers";
-import { ConnectWithAddress } from "./contracts-getters";
+import { ConnectedProtocolContracts } from "./contracts-getters";
 
 const { parseUnits } = utils;
 
@@ -276,27 +276,6 @@ export type DeployedProtocolContracts = {
   VirtualPool: WithAddress<VirtualPool>;
   AthenaDataProvider: WithAddress<AthenaDataProvider>;
   // TestableVirtualPool: TestableVirtualPool;
-};
-
-export type ConnectedProtocolContracts = {
-  TetherToken: ConnectWithAddress<TetherToken>;
-  CircleToken: ConnectWithAddress<ERC20>;
-  WethToken: ConnectWithAddress<IWETH>;
-  AthenaCoverToken: ConnectWithAddress<AthenaCoverToken>;
-  AthenaPositionToken: ConnectWithAddress<AthenaPositionToken>;
-  AthenaToken: ConnectWithAddress<AthenaToken>;
-  EcclesiaDao: ConnectWithAddress<EcclesiaDao>;
-  AthenaArbitrator: ConnectWithAddress<AthenaArbitrator>;
-  ClaimManager: ConnectWithAddress<ClaimManager>;
-  LiquidityManager: ConnectWithAddress<LiquidityManager>;
-  StrategyManager: ConnectWithAddress<StrategyManager>;
-  FarmingRange: ConnectWithAddress<FarmingRange>;
-  RewardManager: ConnectWithAddress<RewardManager>;
-  Staking: ConnectWithAddress<Staking>;
-  PoolMath: ConnectWithAddress<PoolMath>;
-  VirtualPool: ConnectWithAddress<VirtualPool>;
-  AthenaDataProvider: ConnectWithAddress<AthenaDataProvider>;
-  // TestableVirtualPool: ConnectWithAddress<TestableVirtualPool>;
 };
 
 export type ProtocolContracts =
