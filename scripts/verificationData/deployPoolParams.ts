@@ -61,14 +61,14 @@ const formulaConfig = {
   },
   // Mainnet
   G: {
-    feeRate: toRay(0), // 0%
+    feeRate: toRay(50), // 0%
     uOptimal: toRay(85),
     r0: toRay(0.26),
     rSlope1: toRay(0.69),
     rSlope2: toRay(2.02),
   },
   H: {
-    feeRate: toRay(0), // 0%
+    feeRate: toRay(50), // 0%
     uOptimal: toRay(75),
     r0: toRay(0.42),
     rSlope1: toRay(0.78),
