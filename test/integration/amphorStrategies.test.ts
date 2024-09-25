@@ -1,44 +1,43 @@
-import { utils } from "ethers";
 import { expect } from "chai";
+import { utils } from "ethers";
+// Functions
+import { getNetworkAddresses } from "../../scripts/verificationData/addresses";
 // Helpers
-import { getCoverRewards } from "../helpers/utils/poolRayMath";
 import {
-  setNextBlockTimestamp,
-  postTxHandler,
-  getCurrentTime,
-  evmSnapshot,
-  evmRevert,
-} from "../helpers/hardhat";
-import { makeIdArray } from "../helpers/miscUtils";
+  getConnectedProtocolContracts,
+  VEConnectedProtocolContracts,
+} from "../helpers/contracts-getters";
 import {
   deployAllContractsAndInitializeProtocolVE,
   VEProtocolContracts,
 } from "../helpers/deployersVE";
-import { makeTestHelpers, TestHelper } from "../helpers/protocol";
 import {
-  genContractAddress,
-  getCurrentBlockNumber,
   entityProviderChainId,
+  getCurrentTime,
+  postTxHandler,
+  setNextBlockTimestamp,
 } from "../helpers/hardhat";
-import {
-  aaveLendingPoolV3Address,
-  usdcTokenAddress,
-} from "../helpers/protocol";
-import { ERC20Basic__factory } from "../../typechain";
+import { makeTestHelpers, TestHelper } from "../helpers/protocol";
+import { getCoverRewards } from "../helpers/utils/poolRayMath";
 // Types
 import { BigNumber } from "ethers";
+import { ERC20Basic__factory } from "../../typechain";
 
 const { parseUnits } = utils;
+const DAY_SECONDS = 24 * 60 * 60;
 
 interface Arguments extends Mocha.Context {
   customEnv: {
-    contracts: VEProtocolContracts;
+    contracts: VEProtocolContracts | VEConnectedProtocolContracts;
     helpers: TestHelper;
   };
   args: {
     nbPools: number;
     daoLockDuration: number;
     assets: string[];
+    claimResolvePeriod: number;
+    withdrawDelay: number;
+    aaveStrategyId: number;
     //
     lpAmount: BigNumber;
     coverAmount: BigNumber;
@@ -73,10 +72,15 @@ export function AmphorStrategiesTest() {
         throw new Error("amphrETH or amphrLRT not set in protocol config");
       }
 
-      const veContracts = await deployAllContractsAndInitializeProtocolVE(
-        this.signers.deployer,
-        this.protocolConfig,
+      const veContracts = await getConnectedProtocolContracts(
+        getNetworkAddresses(),
+        true,
       );
+      // const veContracts = await deployAllContractsAndInitializeProtocolVE(
+      //   this.signers.deployer,
+      //   this.protocolConfig,
+      // );
+
       const veHelpers = await makeTestHelpers(
         this.signers.deployer,
         veContracts,
@@ -88,12 +92,15 @@ export function AmphorStrategiesTest() {
 
       this.args = {
         nbPools: 3,
-        daoLockDuration: 60 * 60 * 24 * 365,
+        daoLockDuration: 365 * DAY_SECONDS,
         assets: [
-          veContracts.CircleToken.address,
           this.protocolConfig.amphrETH,
           this.protocolConfig.amphrLRT,
+          veContracts.CircleToken.address,
         ],
+        claimResolvePeriod: 186 * DAY_SECONDS,
+        withdrawDelay: 10 * DAY_SECONDS,
+        aaveStrategyId: 2,
         //
         lpAmountUsd: parseUnits("1000", 6),
         lpIncreaseAmountUsd: parseUnits("1500", 6),
@@ -114,18 +121,24 @@ export function AmphorStrategiesTest() {
     });
 
     it("can create pools", async function (this: Arguments) {
-      for (let i = 0; i < this.args.nbPools; i++) {
+      const existingPools = (
+        await this.customEnv.contracts.LiquidityManager.nextPoolId()
+      ).toNumber();
+
+      for (let i = existingPools; i < this.args.nbPools; i++) {
         const poolId = i;
 
         const { uOptimal, r0, rSlope1, rSlope2 } =
           this.protocolConfig.poolFormula;
+
+        const strategy = i === this.args.aaveStrategyId ? 0 : i;
 
         // Create a pool
         expect(
           await postTxHandler(
             this.customEnv.contracts.LiquidityManager.createPool(
               this.args.assets[i], // paymentAsset
-              i, // strategyId
+              strategy, // strategyId
               0, // feeRate
               uOptimal,
               r0,
@@ -144,11 +157,11 @@ export function AmphorStrategiesTest() {
           this.args.assets[i],
         );
         expect(poolInfo.underlyingAsset.toLowerCase()).to.equal(
-          i === 0
+          i === this.args.aaveStrategyId
             ? this.customEnv.contracts.CircleToken.address
             : this.protocolConfig.wstETH,
         );
-        expect(poolInfo.strategyId).to.equal(i);
+        expect(poolInfo.strategyId).to.equal(0);
         expect(poolInfo.feeRate).to.equal(0);
         expect(poolInfo.formula.uOptimal).to.equal(
           this.protocolConfig.poolFormula.uOptimal,
@@ -168,13 +181,16 @@ export function AmphorStrategiesTest() {
 
     it("accepts LPs", async function (this: Arguments) {
       for (let i = 0; i < this.args.nbPools; i++) {
-        const lpAmount = i === 0 ? this.args.lpAmountUsd : this.args.lpAmount;
+        const lpAmount =
+          i === this.args.aaveStrategyId
+            ? this.args.lpAmountUsd
+            : this.args.lpAmount;
 
         expect(
           await this.customEnv.helpers.openPosition(
             this.signers.deployer,
             lpAmount,
-            i === 0 ? false : true,
+            i === this.args.aaveStrategyId ? false : true,
             [i],
           ),
         ).to.not.throw;
@@ -196,7 +212,7 @@ export function AmphorStrategiesTest() {
     it("accepts covers", async function (this: Arguments) {
       for (let i = 0; i < this.args.nbPools; i++) {
         const [coverAmount, coverPremiums] =
-          i === 0
+          i === this.args.aaveStrategyId
             ? [this.args.coverAmountUsd, this.args.coverPremiumsUsd]
             : [this.args.coverAmount, this.args.coverPremiums];
 
@@ -220,7 +236,9 @@ export function AmphorStrategiesTest() {
 
       for (let i = 0; i < this.args.nbPools; i++) {
         const coverAmount =
-          i === 0 ? this.args.coverAmountUsd : this.args.coverAmount;
+          i === this.args.aaveStrategyId
+            ? this.args.coverAmountUsd
+            : this.args.coverAmount;
 
         const cover =
           await this.customEnv.contracts.LiquidityManager.coverInfo(i);
@@ -255,7 +273,9 @@ export function AmphorStrategiesTest() {
 
       for (let i = 0; i < this.args.nbPools; i++) {
         const claimAmount =
-          i === 0 ? this.args.claimAmountUsd : this.args.claimAmount;
+          i === this.args.aaveStrategyId
+            ? this.args.claimAmountUsd
+            : this.args.claimAmount;
 
         expect(
           await this.customEnv.helpers.initiateClaim(
@@ -274,7 +294,7 @@ export function AmphorStrategiesTest() {
     });
 
     it("can resolve claims", async function (this: Arguments) {
-      await setNextBlockTimestamp({ days: 15 });
+      await setNextBlockTimestamp({ days: this.args.claimResolvePeriod });
 
       for (let i = 0; i < this.args.nbPools; i++) {
         expect(
@@ -291,13 +311,15 @@ export function AmphorStrategiesTest() {
 
       for (let i = 0; i < this.args.nbPools; i++) {
         const lpIncreaseAmount =
-          i === 0 ? this.args.lpIncreaseAmountUsd : this.args.lpIncreaseAmount;
+          i === this.args.aaveStrategyId
+            ? this.args.lpIncreaseAmountUsd
+            : this.args.lpIncreaseAmount;
 
         await this.customEnv.helpers.addLiquidity(
           this.signers.deployer,
           i,
           lpIncreaseAmount,
-          i === 0 ? false : true,
+          i === this.args.aaveStrategyId ? false : true,
         );
       }
 
@@ -311,7 +333,7 @@ export function AmphorStrategiesTest() {
 
       for (let i = 0; i < this.args.nbPools; i++) {
         const [lpAmount, claimAmount, lpIncreaseAmount] =
-          i === 0
+          i === this.args.aaveStrategyId
             ? [
                 this.args.lpAmountUsd,
                 this.args.claimAmountUsd,
@@ -336,7 +358,7 @@ export function AmphorStrategiesTest() {
         );
 
         expect(totalRewards).to.almostEqual(
-          i === 0 ? "350682" : "3506823988457635",
+          i === this.args.aaveStrategyId ? "350682" : "3506823988457635",
         );
       }
     });
@@ -391,7 +413,7 @@ export function AmphorStrategiesTest() {
 
       for (let i = 0; i < this.args.nbPools; i++) {
         const [coverAmount, coverIncreaseAmount, claimAmount] =
-          i === 0
+          i === this.args.aaveStrategyId
             ? [
                 this.args.coverAmountUsd,
                 this.args.coverIncreaseAmountUsd,
@@ -430,7 +452,7 @@ export function AmphorStrategiesTest() {
     });
 
     it("can commit LPs withdrawal", async function (this: Arguments) {
-      await setNextBlockTimestamp({ days: 15 });
+      await setNextBlockTimestamp({ days: this.args.withdrawDelay });
 
       const expectedTimestamp = await getCurrentTime();
 
@@ -452,7 +474,7 @@ export function AmphorStrategiesTest() {
 
     it("can withdraw LPs", async function (this: Arguments) {
       // Wait for unlock delay to pass
-      await setNextBlockTimestamp({ days: 15 });
+      await setNextBlockTimestamp({ days: this.args.withdrawDelay });
 
       for (let i = 0; i < this.args.nbPools; i++) {
         const positionInfo =
@@ -463,7 +485,7 @@ export function AmphorStrategiesTest() {
             this.customEnv.contracts.LiquidityManager.removeLiquidity(
               i,
               positionInfo.newUserCapital,
-              i === 0 ? false : true,
+              i === this.args.aaveStrategyId ? false : true,
             ),
           ),
         ).to.not.throw;
@@ -565,7 +587,7 @@ export function AmphorStrategiesTest() {
         ).to.not.throw;
 
         // Wait for unlock delay to pass
-        await setNextBlockTimestamp({ days: 15 });
+        await setNextBlockTimestamp({ days: this.args.withdrawDelay });
 
         expect(
           await postTxHandler(
