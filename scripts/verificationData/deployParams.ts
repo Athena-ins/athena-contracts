@@ -1,25 +1,17 @@
 import hre, { ethers } from "hardhat";
-import { ProtocolConfig } from "../../test/helpers/deployers";
 import {
   buybackWallet,
   evidenceGuardianWallet,
   leverageRiskWallet,
   treasuryWallet,
+  fromFork,
 } from "../../test/helpers/hardhat";
 import { toRay } from "../../test/helpers/utils/poolRayMath";
+// Types
+import { ProtocolConfig } from "../../test/helpers/deployers";
 import { NetworkName, NetworksOrFork } from "../../hardhat.config";
 
 const { parseEther, parseUnits } = ethers.utils;
-
-function fromFork() {
-  const forkTarget = process.env.HARDHAT_FORK_TARGET?.toLowerCase();
-
-  if (!forkTarget) {
-    throw Error("Missing or erroneous fork target");
-  }
-
-  return forkTarget;
-}
 
 const DAY_SECONDS = 24 * 60 * 60;
 

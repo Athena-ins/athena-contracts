@@ -1,24 +1,17 @@
 import hre from "hardhat";
+import { fromFork } from "../../test/helpers/hardhat";
+// Types
 import { ProtocolContracts } from "../../test/helpers/deployers";
+import { NetworkName, NetworksOrFork } from "../../hardhat.config";
 
 export type ProtocolContractsAddresses = {
   [K in keyof ProtocolContracts]: string;
 };
 
-function fromFork() {
-  const forkTarget = process.env.HARDHAT_FORK_TARGET?.toLowerCase();
-
-  if (!forkTarget) {
-    throw Error("Missing or erroneous fork target");
-  }
-
-  return forkTarget;
-}
-
 const networkAddresses: {
-  [key: string]: ProtocolContractsAddresses;
+  [key in NetworkName]?: ProtocolContractsAddresses;
 } = {
-  // === Dev addresses === //
+  // === Production addresses === //
   mainnet: {
     TetherToken: "0xdac17f958d2ee523a2206206994597c13d831ec7",
     CircleToken: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
@@ -81,10 +74,11 @@ const networkAddresses: {
 };
 
 export function getNetworkAddresses() {
-  const networkName = hre.network.name;
+  const networkName = hre.network.name as NetworksOrFork;
+  const forkedNetworkName = networkName === "hardhat" ? fromFork() : "";
   const addresses =
     networkName === "hardhat"
-      ? networkAddresses[fromFork()]
+      ? networkAddresses[forkedNetworkName as NetworkName]
       : networkAddresses[networkName];
 
   if (!addresses) throw Error(`Missing addresses for network ${networkName}`);

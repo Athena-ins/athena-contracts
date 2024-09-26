@@ -1,5 +1,5 @@
 import hre, { ethers } from "hardhat";
-import { postTxHandler } from "../test/helpers/hardhat";
+import { postTxHandler, fromFork } from "../test/helpers/hardhat";
 import { getNetworkAddresses } from "./verificationData/addresses";
 import { getDeployConfig } from "./verificationData/deployParams";
 import { getDeployPoolConfig } from "./verificationData/deployPoolParams";
@@ -15,10 +15,7 @@ const poolParams = getDeployPoolConfig();
 async function main() {
   try {
     const networkName = hre.network.name.toUpperCase();
-    const forkTarget =
-      networkName === "HARDHAT"
-        ? ` (${process.env.HARDHAT_FORK_TARGET?.toLowerCase()})`
-        : "";
+    const forkTarget = networkName === "HARDHAT" ? ` (${fromFork()})` : "";
     console.log(`\n== CREATE POOL ON ${networkName}${forkTarget} ==\n`);
 
     const deployer = (await ethers.getSigners())[0];

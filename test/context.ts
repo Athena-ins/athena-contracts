@@ -9,6 +9,7 @@ import {
   buybackWallet,
   treasuryWallet,
   leverageRiskWallet,
+  fromFork,
 } from "./helpers/hardhat";
 import {
   deployAllContractsAndInitializeProtocol,
@@ -69,9 +70,7 @@ export function baseContext(description: string, hooks: () => void): void {
   describe(description, function () {
     before(async function () {
       try {
-        console.log(
-          `\n== TESTING ON ${process.env.HARDHAT_FORK_TARGET?.toUpperCase()} ==\n`,
-        );
+        console.log(`\n== TESTING ON ${fromFork()?.toUpperCase()} ==\n`);
 
         const liqManagerSize = LiquidityManager__factory.bytecode.length / 2;
         console.log(`\nLiq. Manager size: ${liqManagerSize}/24576\n`);

@@ -61,6 +61,22 @@ function getProviderFromHardhat() {
   return hre.ethers.provider;
 }
 
+export function fromFork() {
+  const networkName = hre.network.name.toLowerCase();
+  const forkTarget = process.env.HARDHAT_FORK_TARGET?.toLowerCase();
+
+  // Checks that the target chain has adequate configuration
+  if (networkName !== "hardhat" && forkTarget !== networkName) {
+    throw Error("Target chain mismatch");
+  }
+
+  if (!forkTarget) {
+    throw Error("Missing or erroneous fork target");
+  }
+
+  return forkTarget;
+}
+
 export async function postTxHandler(txPromise: Promise<ContractTransaction>) {
   return txPromise
     .then((tx) => tx.wait())

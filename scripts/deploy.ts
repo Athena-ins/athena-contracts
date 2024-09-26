@@ -6,9 +6,11 @@ import {
 } from "../test/helpers/deployers";
 import { deployAllContractsAndInitializeProtocolV0 } from "../test/helpers/deployersV0";
 import { deployAllContractsAndInitializeProtocolVE } from "../test/helpers/deployersVE";
+import { deployAllContractsAndInitializeProtocolVL } from "../test/helpers/deployersVL";
 import { countdown } from "../test/helpers/miscUtils";
 import { getDeployConfig } from "./verificationData/deployParams";
 import { getNetworkAddresses } from "./verificationData/addresses";
+import { fromFork } from "../test/helpers/hardhat";
 
 const ALLOW_PARTIAL_DEPLOY = false;
 
@@ -31,10 +33,7 @@ function formatConfigForLog(config: ProtocolConfig) {
 async function main() {
   try {
     const networkName = hre.network.name.toUpperCase();
-    const forkTarget =
-      networkName === "HARDHAT"
-        ? ` (${process.env.HARDHAT_FORK_TARGET?.toLowerCase()})`
-        : "";
+    const forkTarget = networkName === "HARDHAT" ? ` (${fromFork()})` : "";
     console.log(`\n== DEPLOY ON ${networkName}${forkTarget} ==\n`);
 
     const deployer = (await ethers.getSigners())[0] as unknown as Wallet;
@@ -42,6 +41,8 @@ async function main() {
 
     const balance = await deployer.getBalance();
     console.log("balance: ", `${formatEther(balance)} ETH`);
+
+    if (balance.eq(0)) throw new Error("Zero balance in deployer wallet");
 
     const config = getDeployConfig();
     console.log("\n\nconfig: ", formatConfigForLog(config));

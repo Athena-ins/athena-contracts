@@ -1,20 +1,11 @@
 import hre, { ethers } from "hardhat";
 import { toRay } from "../../test/helpers/utils/poolRayMath";
+import { fromFork } from "../../test/helpers/hardhat";
 import { getNetworkAddresses } from "./addresses";
 import { BigNumberish } from "ethers";
 import { amphorStrategyParams } from "./deployParams";
 
 const addresses = getNetworkAddresses();
-
-function fromFork() {
-  const forkTarget = process.env.HARDHAT_FORK_TARGET?.toLowerCase();
-
-  if (!forkTarget) {
-    throw Error("Missing or erroneous fork target");
-  }
-
-  return forkTarget;
-}
 
 const formulaConfig = {
   A: {
