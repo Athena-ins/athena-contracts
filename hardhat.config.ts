@@ -33,6 +33,10 @@ const {
   SEPOLIA_FORKING_BLOCK,
   SEPOLIA_RPC_URL,
   SEPOLIA_VERIFY_API_KEY,
+  // Network: Lisk Sepolia
+  LISK_SEPOLIA_FORKING_BLOCK,
+  LISK_SEPOLIA_RPC_URL,
+  LISK_SEPOLIA_VERIFY_API_KEY,
   // Gas reporter
   REPORT_GAS,
   ETHERUM_PRICE,
@@ -60,6 +64,13 @@ if (!ARBITRUM_VERIFY_API_KEY || !ARBITRUM_FORKING_BLOCK || !ARBITRUM_RPC_URL) {
 if (!SEPOLIA_VERIFY_API_KEY || !SEPOLIA_FORKING_BLOCK || !SEPOLIA_RPC_URL) {
   throw Error("Incomplete sepolia configuration");
 }
+if (
+  !LISK_SEPOLIA_VERIFY_API_KEY ||
+  !LISK_SEPOLIA_FORKING_BLOCK ||
+  !LISK_SEPOLIA_RPC_URL
+) {
+  throw Error("Incomplete lisk sepolia configuration");
+}
 
 if (!MAINNET_RPC_URL || !ARBITRUM_RPC_URL || !SEPOLIA_RPC_URL) {
   throw Error("Missing RPC URL");
@@ -78,19 +89,22 @@ if (!ETHERUM_PRICE || !ETHERUM_GAS_PRICE || !REPORT_GAS) {
 }
 
 // We force cast the type but check it's validity immediately after
-type NetworkNames = "mainnet" | "arbitrum" | "sepolia";
-const forkTarget = HARDHAT_FORK_TARGET.toLowerCase() as NetworkNames;
-if (
-  !HARDHAT_FORK_TARGET ||
-  (forkTarget !== "mainnet" &&
-    forkTarget !== "arbitrum" &&
-    forkTarget !== "sepolia")
-) {
+const networkNames = [
+  "mainnet",
+  "arbitrum",
+  "sepolia",
+  "lisk_sepolia",
+] as const;
+export type NetworkName = (typeof networkNames)[number];
+export type NetworksOrFork = NetworkName | "hardhat";
+
+const forkTarget = HARDHAT_FORK_TARGET.toLowerCase() as NetworkName;
+if (!HARDHAT_FORK_TARGET || !networkNames.includes(forkTarget)) {
   throw Error("Missing or erroneous fork target");
 }
 
 const networkConfigs: {
-  [key in NetworkNames]: {
+  [key in NetworkName]: {
     chainId: number;
     rpcUrl: string;
     forkingBlock: string;
@@ -111,6 +125,12 @@ const networkConfigs: {
   },
   sepolia: {
     chainId: 11155111,
+    rpcUrl: SEPOLIA_RPC_URL,
+    forkingBlock: SEPOLIA_FORKING_BLOCK,
+    verifyApiKey: SEPOLIA_VERIFY_API_KEY,
+  },
+  lisk_sepolia: {
+    chainId: 4202,
     rpcUrl: SEPOLIA_RPC_URL,
     forkingBlock: SEPOLIA_FORKING_BLOCK,
     verifyApiKey: SEPOLIA_VERIFY_API_KEY,
@@ -209,6 +229,10 @@ const config: HardhatUserConfig & {
       url: networkConfigs.sepolia.rpcUrl,
       accounts,
     },
+    lisk_sepolia: {
+      url: networkConfigs.sepolia.rpcUrl,
+      accounts,
+    },
   },
 
   // ====== Gas Reporter ====== //
@@ -237,6 +261,7 @@ const config: HardhatUserConfig & {
       mainnet: networkConfigs.mainnet.verifyApiKey,
       arbitrum: networkConfigs.arbitrum.verifyApiKey,
       sepolia: networkConfigs.sepolia.verifyApiKey,
+      lisk_sepolia: networkConfigs.sepolia.verifyApiKey,
     },
     customChains: [
       // @dev Since we use the term "arbitrum" instead of "arbitrumOne" we need to add a custom chain
@@ -254,6 +279,14 @@ const config: HardhatUserConfig & {
         urls: {
           apiURL: "https://api.etherscan.io/api",
           browserURL: "https://etherscan.io",
+        },
+      },
+      {
+        network: "lisk_sepolia",
+        chainId: 4202,
+        urls: {
+          apiURL: "https://sepolia-blockscout.lisk.com/api",
+          browserURL: "https://sepolia-blockscout.lisk.com",
         },
       },
     ],
