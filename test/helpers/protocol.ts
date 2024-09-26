@@ -84,6 +84,8 @@ export function aaveLendingPoolV3Address(chainId: number): string {
       return "0x794a61358D6845594F94dc1DB02A252b5b4814aD".toLowerCase();
     case 11155111: // Sepolia
       return "0x6Ae43d3271ff6888e7Fc43Fd7321a503ff738951".toLowerCase();
+    case 4202: // Sepolia
+      return "0x6Ae43d3271ff6888e7Fc43Fd7321a503ff738951".toLowerCase();
     default:
       throw Error("Unsupported chainId");
   }
@@ -171,6 +173,8 @@ export function wethTokenAddress(chainId: number): string {
       return "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1".toLowerCase();
     case 11155111: // Sepolia
       return "0x7b79995e5f793a07bc00c21412e50ecae098e7f9".toLowerCase();
+    case 4202: // Lisk Sepolia
+      return "0x4200000000000000000000000000000000000006".toLowerCase();
     default:
       throw Error("Unsupported chainId");
   }

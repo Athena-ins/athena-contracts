@@ -7,6 +7,7 @@ import {
   treasuryWallet,
 } from "../../test/helpers/hardhat";
 import { toRay } from "../../test/helpers/utils/poolRayMath";
+import { NetworkName, NetworksOrFork } from "../../hardhat.config";
 
 const { parseEther, parseUnits } = ethers.utils;
 
@@ -38,7 +39,7 @@ export const amphorStrategyParams = {
 };
 
 const deployParams: {
-  [key: string]: ProtocolConfig;
+  [key in NetworkName]?: ProtocolConfig;
 } & {
   mainnet?: ProtocolConfig & AmphorStrategyParams;
 } = {
@@ -118,14 +119,52 @@ const deployParams: {
     ],
     farmingBlockStart: 0,
   },
+
+  lisk_sepolia: {
+    subcourtId: 2,
+    nbOfJurors: 4,
+    challengePeriod: 8 * DAY_SECONDS,
+    overrulePeriod: 4 * DAY_SECONDS,
+    evidenceUploadPeriod: 2 * DAY_SECONDS,
+    claimCollateral: parseEther("0.0002"),
+    arbitrationCost: parseEther("0.00012"), // in ETH for centralized AthenaArbitrator
+    evidenceGuardian: evidenceGuardianWallet(),
+    baseMetaEvidenceURI: "https://api.athenains.io/metaevidence",
+    //
+    buybackWallet: buybackWallet(),
+    treasuryWallet: treasuryWallet(),
+    leverageRiskWallet: leverageRiskWallet(),
+    yieldRewarder: "0x0000000000000000000000000000000000000000", // to be replaced by farming
+    //
+    leverageFeePerPool: toRay(0.7), // base 100
+    withdrawDelay: 10 * DAY_SECONDS, // 14 days
+    maxLeverage: 16, // max pools per position
+    payoutDeductibleRate: toRay(5), // base 100
+    strategyFeeRate: toRay(0), // base 100
+    //
+    poolFormula: {
+      feeRate: toRay(10), // base 100
+      uOptimal: toRay(75), // base 100
+      r0: toRay(1), // base 100
+      rSlope1: toRay(5), // base 100
+      rSlope2: toRay(24), // base 100
+    },
+    yieldBonuses: [
+      { atenAmount: parseUnits("0", 18), yieldBonus: toRay(0.025) },
+      { atenAmount: parseUnits("1000", 18), yieldBonus: toRay(0.02) },
+      { atenAmount: parseUnits("100000", 18), yieldBonus: toRay(0.015) },
+      { atenAmount: parseUnits("1000000", 18), yieldBonus: toRay(0.005) },
+    ],
+    farmingBlockStart: 0,
+  },
 };
 
 export function getDeployConfig() {
-  const networkName = hre.network.name;
+  const networkName = hre.network.name as NetworksOrFork;
   const forkedNetworkName = networkName === "hardhat" ? fromFork() : "";
   const config =
     networkName === "hardhat"
-      ? deployParams[forkedNetworkName]
+      ? deployParams[forkedNetworkName as NetworkName]
       : deployParams[networkName];
 
   if (!config)
