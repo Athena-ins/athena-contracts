@@ -5,6 +5,7 @@ import {
   genContractAddress,
   getCurrentBlockNumber,
   postTxHandler,
+  isNonNullAddress,
 } from "./hardhat";
 import {
   aaveLendingPoolV3Address,
@@ -34,7 +35,8 @@ import {
   PoolMath__factory,
   RewardManager__factory,
   Staking__factory,
-  StrategyManager__factory,
+  StrategyManagerVE__factory,
+  StrategyManagerVE,
   // Other
   TetherToken__factory,
   VirtualPool__factory,
@@ -51,7 +53,7 @@ import {
   deployLiquidityManager,
   deployPoolMath,
   deployRewardManager,
-  deployStrategyManager,
+  deployStrategyManagerVE,
   deployVirtualPool,
   deployMockToken,
 } from "./deployers";
@@ -66,6 +68,10 @@ const ADDRESS_ZERO = "0x0000000000000000000000000000000000000000";
 // ======================= //
 // === Deploy protocol === //
 // ======================= //
+
+export type VLProtocolContracts = ProtocolContracts & {
+  StrategyManager: StrategyManagerVE;
+};
 
 export const deploymentOrder: Partial<keyof ProtocolContracts | "_approve">[] =
   [
@@ -86,7 +92,7 @@ export const deploymentOrder: Partial<keyof ProtocolContracts | "_approve">[] =
     "AthenaArbitrator",
   ];
 
-export async function deployAllContractsAndInitializeProtocolV0(
+export async function deployAllContractsAndInitializeProtocolVL(
   deployer: Wallet,
   config: ProtocolConfig,
   addresses?: { [key: string]: string },
@@ -120,7 +126,6 @@ export async function deployAllContractsAndInitializeProtocolV0(
   }
 
   // Add token interface
-
   const wethAddress = wethTokenAddress(chainId);
   const WethToken = IWETH__factory.connect(wethAddress, deployer);
 
@@ -226,15 +231,28 @@ export async function deployAllContractsAndInitializeProtocolV0(
   }
 
   if (deploymentOrder[txCount] === "StrategyManager") {
+    if (!deployedAt.TetherToken || !deployedAt.CircleToken)
+      throw Error("Missing lisk strategy params");
+
+    if (
+      !isNonNullAddress(deployedAt.LiquidityManager) ||
+      !isNonNullAddress(config.buybackWallet.address)
+    ) {
+      throw Error("Missing address");
+    }
+
     deployExecutors.push(() =>
-      deployStrategyManager(deployer, [
+      deployStrategyManagerVE(deployer, [
         deployedAt.LiquidityManager,
         deployer.address, // EcclesiaDao
         aaveLendingPoolV3Address(chainId),
-        usdcTokenAddress(chainId),
+        deployedAt.CircleToken,
         config.buybackWallet.address,
         config.payoutDeductibleRate, // payoutDeductibleRate
         config.strategyFeeRate, // strategyFeeRate
+        deployedAt.CircleToken,
+        deployedAt.CircleToken,
+        deployedAt.CircleToken,
       ]),
     );
     txCount++;
@@ -356,7 +374,7 @@ export async function deployAllContractsAndInitializeProtocolV0(
     deployedAt.LiquidityManager || ADDRESS_ZERO,
     deployer,
   );
-  const StrategyManager = StrategyManager__factory.connect(
+  const StrategyManager = StrategyManagerVE__factory.connect(
     deployedAt.StrategyManager || ADDRESS_ZERO,
     deployer,
   );

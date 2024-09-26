@@ -21,7 +21,12 @@ type AmphorStrategyParams = {
   amphrLRT: string;
 };
 
-export const amphorStrategyParams = {
+type LiskStrategyParams = {
+  usdt: string;
+  lsk: string;
+};
+
+export const amphorStrategyParams: AmphorStrategyParams = {
   // Lido LST Token
   wstETH: "0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0".toLowerCase(),
   // (((Strategy 1))) - Amphor Restaked ETH
@@ -30,10 +35,18 @@ export const amphorStrategyParams = {
   amphrLRT: "0x06824c27c8a0dbde5f72f770ec82e3c0fd4dcec3".toLowerCase(),
 };
 
+export const liskStrategyParams: LiskStrategyParams = {
+  // Premiums tokens
+  usdt: "0x19a488cc734e578d9431d6a83439b80824569bb9".toLowerCase(),
+  // (((Strategy 1))) - Collateral
+  lsk: "0x2d7382d9d020532a937bd2231376bbcd99168393".toLowerCase(),
+};
+
 const deployParams: {
   [key in NetworkName]?: ProtocolConfig;
 } & {
   mainnet?: ProtocolConfig & AmphorStrategyParams;
+  lisk_sepolia?: ProtocolConfig & LiskStrategyParams;
 } = {
   mainnet: {
     subcourtId: 2,
@@ -148,6 +161,7 @@ const deployParams: {
       { atenAmount: parseUnits("1000000", 18), yieldBonus: toRay(0.005) },
     ],
     farmingBlockStart: 0,
+    ...liskStrategyParams,
   },
 };
 

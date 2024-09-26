@@ -264,6 +264,9 @@ export type ProtocolConfig = {
   wstETH?: string;
   amphrETH?: string;
   amphrLRT?: string;
+  // For Lisk strategy
+  usdt?: string;
+  lsk?: string;
 };
 
 export type DeployedProtocolContracts = {
