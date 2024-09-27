@@ -16,6 +16,8 @@ import {
   StrategyManager__factory,
   StrategyManagerVE,
   StrategyManagerVE__factory,
+  StrategyManagerVL,
+  StrategyManagerVL__factory,
   // Rewards
   FarmingRange,
   FarmingRange__factory,
@@ -87,6 +89,9 @@ export async function getStrategyManager(address: string) {
 export async function getStrategyManagerVE(address: string) {
   return connectWrapper(StrategyManagerVE__factory, address);
 }
+export async function getStrategyManagerVL(address: string) {
+  return connectWrapper(StrategyManagerVL__factory, address);
+}
 export async function getFarmingRange(address: string) {
   return connectWrapper(FarmingRange__factory, address);
 }
@@ -156,16 +161,33 @@ export type ConnectedProtocolContracts = {
 export type VEConnectedProtocolContracts = ConnectedProtocolContracts & {
   StrategyManager: ConnectWithAddress<StrategyManagerVE>;
 };
+export type VLConnectedProtocolContracts = ConnectedProtocolContracts & {
+  StrategyManager: ConnectWithAddress<StrategyManagerVL>;
+};
 
 export async function getConnectedProtocolContracts(
   addresses: ProtocolContractsAddresses,
   isVE: true,
+  isVL: false,
 ): Promise<VEConnectedProtocolContracts>;
 
 export async function getConnectedProtocolContracts(
   addresses: ProtocolContractsAddresses,
+  isVE: false,
+  isVL: true,
+): Promise<VLConnectedProtocolContracts>;
+
+export async function getConnectedProtocolContracts(
+  addresses: ProtocolContractsAddresses,
   isVE = false,
+  isVL = false,
 ): Promise<ConnectedProtocolContracts> {
+  if (isVE && isVL) throw new Error("Cannot be both VE and VL");
+
+  let stratManagerGetter = getStrategyManager;
+  if (isVE) stratManagerGetter = getStrategyManagerVE;
+  if (isVL) stratManagerGetter = getStrategyManagerVL;
+
   const [
     EcclesiaDao,
     AthenaArbitrator,
@@ -189,9 +211,7 @@ export async function getConnectedProtocolContracts(
     getAthenaArbitrator(addresses.AthenaArbitrator),
     getClaimManager(addresses.ClaimManager),
     getLiquidityManager(addresses.LiquidityManager),
-    isVE
-      ? getStrategyManagerVE(addresses.StrategyManager)
-      : getStrategyManager(addresses.StrategyManager),
+    stratManagerGetter(addresses.StrategyManager),
     getFarmingRange(addresses.FarmingRange),
     getRewardManager(addresses.RewardManager),
     getStaking(addresses.Staking),

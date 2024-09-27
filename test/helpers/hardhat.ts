@@ -87,7 +87,7 @@ export async function postTxHandler(txPromise: Promise<ContractTransaction>) {
       if (err.tx) info += `Transaction: ${JSON.stringify(err.tx, null, 2)}\n`;
 
       throw Error(
-        `POST TX\n${info}${err.reason || err.name || err.message || err}`,
+        `POST TX\n${info}${err.reason || err.name || err.message || err}`.red,
       );
     });
 }

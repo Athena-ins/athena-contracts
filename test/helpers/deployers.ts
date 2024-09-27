@@ -35,6 +35,8 @@ import {
   StrategyManager,
   StrategyManagerVE__factory,
   StrategyManagerVE,
+  StrategyManagerVL__factory,
+  StrategyManagerVL,
   // Rewards
   FarmingRange__factory,
   FarmingRange,
@@ -184,6 +186,12 @@ export async function deployStrategyManagerVE(
   args: Parameters<StrategyManagerVE__factory["deploy"]>,
 ): Promise<WithAddress<StrategyManagerVE>> {
   return new StrategyManagerVE__factory(signer).deploy(...args);
+}
+export async function deployStrategyManagerVL(
+  signer: Signer,
+  args: Parameters<StrategyManagerVL__factory["deploy"]>,
+): Promise<WithAddress<StrategyManagerVL>> {
+  return new StrategyManagerVL__factory(signer).deploy(...args);
 }
 
 export async function deployFarmingRange(

@@ -26,6 +26,7 @@ import {
   Staking__factory,
   StrategyManager__factory,
   StrategyManagerVE__factory,
+  StrategyManagerVL__factory,
   VirtualPool__factory,
 } from "../typechain";
 import { ProtocolContracts } from "../test/helpers/deployers";
@@ -34,7 +35,28 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const VERIFY_V0 = true;
-const VERIFY_VE = true;
+const VERIFY_VE = false;
+const VERIFY_VL = true;
+
+if (VERIFY_VE && VERIFY_VL)
+  throw Error("VERIFY_VE and VERIFY_V0 cannot be true at the same time");
+
+const shouldVerify: Partial<keyof ProtocolContracts>[] = [
+  // "AthenaCoverToken",
+  // "AthenaPositionToken",
+  // "AthenaToken",
+  "PoolMath",
+  "VirtualPool",
+  "AthenaDataProvider",
+  "ClaimManager",
+  "AthenaArbitrator",
+  "StrategyManager",
+  "LiquidityManager",
+  // "RewardManager",
+  // "FarmingRange",
+  // "Staking",
+  // "EcclesiaDao",
+];
 
 const execPromise = promisify(exec);
 
@@ -151,28 +173,12 @@ export async function runTaskWithRetry(
   }
 }
 
-const shouldVerify: Partial<keyof ProtocolContracts>[] = [
-  // "AthenaCoverToken",
-  // "AthenaPositionToken",
-  // "AthenaToken",
-  // "PoolMath",
-  // "VirtualPool",
-  // "AthenaDataProvider",
-  // "ClaimManager",
-  // "AthenaArbitrator",
-  // "StrategyManager",
-  "LiquidityManager",
-  // "RewardManager",
-  // "FarmingRange",
-  // "Staking",
-  // "EcclesiaDao",
-];
-
 async function main() {
   const networkName = hre.network.name.toUpperCase();
   console.log(`\n== VERIFYING ON ${networkName} ==\n`);
   console.log("VERIFY_V0: ", VERIFY_V0);
   console.log("VERIFY_VE: ", VERIFY_VE);
+  console.log("VERIFY_VL: ", VERIFY_VL);
 
   const deployer = (await ethers.getSigners())[0] as unknown as Wallet;
   console.log("deployer: ", deployer.address);
@@ -292,6 +298,24 @@ async function main() {
           config.wstETH, // wstETH
           config.amphrETH, // amphrETH
           config.amphrLRT, // amphrL
+        ],
+      );
+    } else if (VERIFY_VL) {
+      if (!config.lsk) throw Error("Missing amphor strategy params");
+
+      await verifyEtherscanContract<StrategyManagerVL__factory>(
+        StrategyManager,
+        [
+          LiquidityManager,
+          deployer.address,
+          aaveLendingPoolV3Address(chainId),
+          config.lsk,
+          config.buybackWallet.address,
+          config.payoutDeductibleRate, // payoutDeductibleRate
+          config.strategyFeeRate, // performanceFee
+          config.lsk, // wstETH
+          config.lsk, // amphrETH
+          config.lsk, // amphrL
         ],
       );
     } else {

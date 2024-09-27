@@ -35,8 +35,8 @@ import {
   PoolMath__factory,
   RewardManager__factory,
   Staking__factory,
-  StrategyManagerVE__factory,
-  StrategyManagerVE,
+  StrategyManagerVL__factory,
+  StrategyManagerVL,
   // Other
   TetherToken__factory,
   VirtualPool__factory,
@@ -53,7 +53,7 @@ import {
   deployLiquidityManager,
   deployPoolMath,
   deployRewardManager,
-  deployStrategyManagerVE,
+  deployStrategyManagerVL,
   deployVirtualPool,
   deployMockToken,
 } from "./deployers";
@@ -70,7 +70,7 @@ const ADDRESS_ZERO = "0x0000000000000000000000000000000000000000";
 // ======================= //
 
 export type VLProtocolContracts = ProtocolContracts & {
-  StrategyManager: StrategyManagerVE;
+  StrategyManager: StrategyManagerVL;
 };
 
 export const deploymentOrder: Partial<keyof ProtocolContracts | "_approve">[] =
@@ -242,7 +242,7 @@ export async function deployAllContractsAndInitializeProtocolVL(
     }
 
     deployExecutors.push(() =>
-      deployStrategyManagerVE(deployer, [
+      deployStrategyManagerVL(deployer, [
         deployedAt.LiquidityManager,
         deployer.address, // EcclesiaDao
         aaveLendingPoolV3Address(chainId),
@@ -374,7 +374,7 @@ export async function deployAllContractsAndInitializeProtocolVL(
     deployedAt.LiquidityManager || ADDRESS_ZERO,
     deployer,
   );
-  const StrategyManager = StrategyManagerVE__factory.connect(
+  const StrategyManager = StrategyManagerVL__factory.connect(
     deployedAt.StrategyManager || ADDRESS_ZERO,
     deployer,
   );
