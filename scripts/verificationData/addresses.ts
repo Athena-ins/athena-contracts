@@ -73,8 +73,8 @@ const networkAddresses: {
   // },
   // === Dev addresses === //
   lisk_sepolia: {
-    TetherToken: "0x2d7382d9d020532a937bd2231376bbcd9168393", // USDT
-    CircleToken: "0x7ea5687dda47947468ced48503626a05ee4fee4", // LSK
+    TetherToken: "0x2d7382d9d020532a937bd2231376bbcd99168393", // USDT
+    CircleToken: "0x7ea5687DDA47947468Ced48503626a05E42FFee4", // LSK
     WethToken: "0x4200000000000000000000000000000000000000",
     AthenaCoverToken: "0xbb00f924e1bf263c343cbd32d0213a93b0c8a2ee",
     AthenaPositionToken: "0xfb1e29d1e8e39c26819b85489690b610c0f05973",
