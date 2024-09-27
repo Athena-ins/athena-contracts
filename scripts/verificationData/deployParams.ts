@@ -37,9 +37,9 @@ export const amphorStrategyParams: AmphorStrategyParams = {
 
 export const liskStrategyParams: LiskStrategyParams = {
   // Premiums tokens
-  usdt: "0x19a488cc734e578d9431d6a83439b80824569bb9".toLowerCase(),
+  usdt: "0x2d7382d9d020532a937bd2231376bbcd99168393".toLowerCase(),
   // (((Strategy 1))) - Collateral
-  lsk: "0x2d7382d9d020532a937bd2231376bbcd99168393".toLowerCase(),
+  lsk: "0x7ea5687DDA47947468Ced48503626a05E42FFee4".toLowerCase(),
 };
 
 const deployParams: {
@@ -170,7 +170,7 @@ export function getDeployConfig() {
   const forkedNetworkName = networkName === "hardhat" ? fromFork() : "";
   const config =
     networkName === "hardhat"
-      ? deployParams[forkedNetworkName as NetworkName]
+      ? deployParams[fromFork() as NetworkName]
       : deployParams[networkName];
 
   if (!config)

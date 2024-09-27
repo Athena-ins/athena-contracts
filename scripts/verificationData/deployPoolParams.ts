@@ -2,12 +2,22 @@ import hre, { ethers } from "hardhat";
 import { toRay } from "../../test/helpers/utils/poolRayMath";
 import { fromFork } from "../../test/helpers/hardhat";
 import { getNetworkAddresses } from "./addresses";
-import { BigNumberish } from "ethers";
-import { amphorStrategyParams } from "./deployParams";
+import { amphorStrategyParams, liskStrategyParams } from "./deployParams";
+// Types
+import { BigNumberish, BigNumber } from "ethers";
+import { NetworkName, NetworksOrFork } from "../../hardhat.config";
 
 const addresses = getNetworkAddresses();
 
-const formulaConfig = {
+const formulaConfig: {
+  [key: string]: {
+    feeRate: BigNumber;
+    uOptimal: BigNumber;
+    r0: BigNumber;
+    rSlope1: BigNumber;
+    rSlope2: BigNumber;
+  };
+} = {
   A: {
     feeRate: toRay(0), // 10%
     uOptimal: toRay(80),
@@ -97,6 +107,9 @@ const protocolNames = [
   "Amphor Restaked ETH",
   "Amphor Symbiotic LRT Vault",
   //
+  "Across Bridge",
+  "Oku LP",
+  "Relay Bridge",
   // "Spectra", // Bitcoin L2
   // "Equilibria", // Pendle wrapper/booster
   // "Dai", // Token backed stablecoin
@@ -117,7 +130,7 @@ type PoolParams = {
 };
 
 const deployParams: {
-  [chainName: string]: { [coverName in ProtocolName]?: PoolParams };
+  [key in NetworkName]?: { [coverName in ProtocolName]?: PoolParams };
 } = {
   mainnet: {
     "Amphor Restaked ETH": {
@@ -364,6 +377,26 @@ const deployParams: {
       ...formulaConfig.F,
     },
   },
+  lisk_sepolia: {
+    "Across Bridge": {
+      paymentAsset: liskStrategyParams.usdt,
+      strategyId: 1,
+      incompatiblePools: ["Oku LP"],
+      ...formulaConfig.G,
+    },
+    "Oku LP": {
+      paymentAsset: liskStrategyParams.usdt,
+      strategyId: 1,
+      incompatiblePools: ["Across Bridge"],
+      ...formulaConfig.H,
+    },
+    "Relay Bridge": {
+      paymentAsset: liskStrategyParams.usdt,
+      strategyId: 1,
+      incompatiblePools: [],
+      ...formulaConfig.A,
+    },
+  },
 };
 
 type FormattedPoolParams = PoolParams & {
@@ -419,13 +452,17 @@ function formatCompatiblePools(networkPools: {
 }
 
 export function getDeployPoolConfig(): FormattedPoolParams[] {
-  const networkName = hre.network.name;
+  const networkName = hre.network.name as NetworksOrFork;
+  const forkedNetworkName = networkName === "hardhat" ? fromFork() : "";
   const config =
     networkName === "hardhat"
-      ? deployParams[fromFork()]
+      ? deployParams[fromFork() as NetworkName]
       : deployParams[networkName];
 
-  if (!config) throw Error(`Missing deploy config for network ${networkName}`);
+  if (!config)
+    throw Error(
+      `Missing pool config for network ${forkedNetworkName || networkName}`,
+    );
 
   return formatCompatiblePools(config);
 }

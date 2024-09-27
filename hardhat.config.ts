@@ -51,6 +51,8 @@ const {
   RISK_GUARD_PK,
 } = process.env;
 
+// ====== NETWORK CHECKS ====== //
+
 if (!HARDHAT_FORK_TARGET) {
   throw Error("Missing fork target");
 }
@@ -72,9 +74,8 @@ if (
   throw Error("Incomplete lisk sepolia configuration");
 }
 
-if (!MAINNET_RPC_URL || !ARBITRUM_RPC_URL || !SEPOLIA_RPC_URL) {
-  throw Error("Missing RPC URL");
-}
+// ====== WALLET CHECKS ====== //
+
 if (
   !DEPLOYER_PK ||
   !EVIDENCE_GUARDIAN_PK ||
@@ -84,9 +85,14 @@ if (
 ) {
   throw Error("Missing account PK");
 }
+
+// ====== MISC CHECKS ====== //
+
 if (!ETHERUM_PRICE || !ETHERUM_GAS_PRICE || !REPORT_GAS) {
   throw Error("Missing gas report params");
 }
+
+// ====== CONFIG ====== //
 
 // We force cast the type but check it's validity immediately after
 const networkNames = [
@@ -131,9 +137,9 @@ const networkConfigs: {
   },
   lisk_sepolia: {
     chainId: 4202,
-    rpcUrl: SEPOLIA_RPC_URL,
-    forkingBlock: SEPOLIA_FORKING_BLOCK,
-    verifyApiKey: SEPOLIA_VERIFY_API_KEY,
+    rpcUrl: LISK_SEPOLIA_RPC_URL,
+    forkingBlock: LISK_SEPOLIA_FORKING_BLOCK,
+    verifyApiKey: LISK_SEPOLIA_VERIFY_API_KEY,
   },
 };
 
@@ -230,7 +236,7 @@ const config: HardhatUserConfig & {
       accounts,
     },
     lisk_sepolia: {
-      url: networkConfigs.sepolia.rpcUrl,
+      url: networkConfigs.lisk_sepolia.rpcUrl,
       accounts,
     },
   },
@@ -261,7 +267,7 @@ const config: HardhatUserConfig & {
       mainnet: networkConfigs.mainnet.verifyApiKey,
       arbitrum: networkConfigs.arbitrum.verifyApiKey,
       sepolia: networkConfigs.sepolia.verifyApiKey,
-      lisk_sepolia: networkConfigs.sepolia.verifyApiKey,
+      lisk_sepolia: networkConfigs.lisk_sepolia.verifyApiKey,
     },
     customChains: [
       // @dev Since we use the term "arbitrum" instead of "arbitrumOne" we need to add a custom chain
