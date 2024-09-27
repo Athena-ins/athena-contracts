@@ -20,6 +20,8 @@
     "pools:arbitrum": "npx hardhat run scripts/deployPool.ts --network arbitrum",
     "pools:mainnet": "npx hardhat run scripts/deployPool.ts --network mainnet",
     "pools:lisk-sepolia": "npx hardhat run scripts/deployPool.ts --network lisk_sepolia",
+    "compat:fork": "npx hardhat run scripts/updatePoolCompat.ts --network hardhat",
+    "compat:lisk-sepolia": "npx hardhat run scripts/updatePoolCompat.ts --network lisk_sepolia",
     "verify:arbitrum": "npx hardhat run scripts/verify.ts --network arbitrum ",
     "verify:mainnet": "npx hardhat run scripts/verify.ts --network mainnet ",
     "verify:lisk-sepolia": "npx hardhat run scripts/verify.ts --network lisk_sepolia ",
