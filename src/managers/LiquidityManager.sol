@@ -680,14 +680,6 @@ contract LiquidityManager is
   ) external onlyPositionOwner(positionId_) nonReentrant {
     Position storage position = _positions[positionId_];
 
-    for (uint256 i; i < position.poolIds.length; i++) {
-      DataTypes.VPool storage pool = VirtualPool.getPool(
-        position.poolIds[i]
-      );
-      // Cannot commit to withdraw while there are ongoing claims
-      if (0 < pool.ongoingClaims) revert PoolHasOnGoingClaims();
-    }
-
     // Take interests in all pools before withdrawal
     // @dev Any rewards accrued after this point will be send to the leverage risk wallet
     _takeInterests(
@@ -1054,6 +1046,9 @@ contract LiquidityManager is
     for (uint256 i; i < nbPoolIds; i++) {
       uint64 poolId0 = poolIds_[i];
       DataTypes.VPool storage pool0 = VirtualPool.getPool(poolId0);
+
+      // Cannot withdraw while there are ongoing claims that might affect liquidity
+      if (0 < pool0.ongoingClaims) revert PoolHasOnGoingClaims();
 
       // Need to clean covers to avoid them causing a utilization overflow
       _purgeExpiredCovers(poolId0);
