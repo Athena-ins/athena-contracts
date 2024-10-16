@@ -295,7 +295,6 @@ export type DeployedProtocolContracts = {
   PoolMath: WithAddress<PoolMath>;
   VirtualPool: WithAddress<VirtualPool>;
   AthenaDataProvider: WithAddress<AthenaDataProvider>;
-  // TestableVirtualPool: TestableVirtualPool;
 };
 
 export type ProtocolContracts =

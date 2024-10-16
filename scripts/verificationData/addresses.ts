@@ -4,12 +4,12 @@ import { fromFork } from "../../test/helpers/hardhat";
 import { ProtocolContracts } from "../../test/helpers/deployers";
 import { NetworkName, NetworksOrFork } from "../../hardhat.config";
 
-export type ProtocolContractsAddresses = {
+export type NetworkAddressDirectory = {
   [K in keyof ProtocolContracts]: string;
 };
 
 const networkAddresses: {
-  [key in NetworkName]?: ProtocolContractsAddresses;
+  [key in NetworkName]?: NetworkAddressDirectory;
 } = {
   // === Production addresses === //
   mainnet: {

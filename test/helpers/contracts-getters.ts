@@ -48,6 +48,7 @@ import {
   ERC20__factory,
 } from "../../typechain/";
 import { ProtocolContracts } from "./deployers";
+import { NetworkAddressDirectory } from "../../scripts/verificationData/addresses";
 
 export type ConnectWithAddress<F> = F extends {
   connect: (...args: any[]) => infer R;
@@ -133,10 +134,6 @@ export async function getERC20(address: string) {
 //==== PROTOCOL ====//
 //==================//
 
-export type ProtocolContractsAddresses = {
-  [K in keyof ProtocolContracts]: string;
-};
-
 export type ConnectedProtocolContracts = {
   TetherToken: ConnectWithAddress<TetherToken>;
   CircleToken: ConnectWithAddress<ERC20>;
@@ -166,19 +163,19 @@ export type VLConnectedProtocolContracts = ConnectedProtocolContracts & {
 };
 
 export async function getConnectedProtocolContracts(
-  addresses: ProtocolContractsAddresses,
+  addresses: NetworkAddressDirectory,
   isVE: true,
   isVL: false,
 ): Promise<VEConnectedProtocolContracts>;
 
 export async function getConnectedProtocolContracts(
-  addresses: ProtocolContractsAddresses,
+  addresses: NetworkAddressDirectory,
   isVE: false,
   isVL: true,
 ): Promise<VLConnectedProtocolContracts>;
 
 export async function getConnectedProtocolContracts(
-  addresses: ProtocolContractsAddresses,
+  addresses: NetworkAddressDirectory,
   isVE = false,
   isVL = false,
 ): Promise<ConnectedProtocolContracts> {
