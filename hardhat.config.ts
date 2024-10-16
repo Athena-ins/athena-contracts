@@ -37,6 +37,10 @@ const {
   LISK_SEPOLIA_FORKING_BLOCK,
   LISK_SEPOLIA_RPC_URL,
   LISK_SEPOLIA_VERIFY_API_KEY,
+  // Network: Core DAO
+  CORE_DAO_FORKING_BLOCK,
+  CORE_DAO_RPC_URL,
+  CORE_DAO_VERIFY_API_KEY,
   // Gas reporter
   REPORT_GAS,
   ETHERUM_PRICE,
@@ -73,6 +77,9 @@ if (
 ) {
   throw Error("Incomplete lisk sepolia configuration");
 }
+if (!CORE_DAO_VERIFY_API_KEY || !CORE_DAO_FORKING_BLOCK || !CORE_DAO_RPC_URL) {
+  throw Error("Incomplete core dao configuration");
+}
 
 // ====== WALLET CHECKS ====== //
 
@@ -100,6 +107,7 @@ const networkNames = [
   "arbitrum",
   "sepolia",
   "lisk_sepolia",
+  "core_dao",
 ] as const;
 export type NetworkName = (typeof networkNames)[number];
 export type NetworksOrFork = NetworkName | "hardhat";
@@ -140,6 +148,12 @@ const networkConfigs: {
     rpcUrl: LISK_SEPOLIA_RPC_URL,
     forkingBlock: LISK_SEPOLIA_FORKING_BLOCK,
     verifyApiKey: LISK_SEPOLIA_VERIFY_API_KEY,
+  },
+  core_dao: {
+    chainId: 1115,
+    rpcUrl: CORE_DAO_RPC_URL,
+    forkingBlock: CORE_DAO_FORKING_BLOCK,
+    verifyApiKey: CORE_DAO_VERIFY_API_KEY,
   },
 };
 
@@ -239,6 +253,10 @@ const config: HardhatUserConfig & {
       url: networkConfigs.lisk_sepolia.rpcUrl,
       accounts,
     },
+    core_dao: {
+      url: networkConfigs.core_dao.rpcUrl,
+      accounts,
+    },
   },
 
   // ====== Gas Reporter ====== //
@@ -268,6 +286,7 @@ const config: HardhatUserConfig & {
       arbitrum: networkConfigs.arbitrum.verifyApiKey,
       sepolia: networkConfigs.sepolia.verifyApiKey,
       lisk_sepolia: networkConfigs.lisk_sepolia.verifyApiKey,
+      core_dao: networkConfigs.core_dao.verifyApiKey,
     },
     customChains: [
       // @dev Since we use the term "arbitrum" instead of "arbitrumOne" we need to add a custom chain
@@ -293,6 +312,14 @@ const config: HardhatUserConfig & {
         urls: {
           apiURL: "https://sepolia-blockscout.lisk.com/api",
           browserURL: "https://sepolia-blockscout.lisk.com",
+        },
+      },
+      {
+        network: "core_dao",
+        chainId: 1116,
+        urls: {
+          apiURL: "https://scan.coredao.org/api",
+          browserURL: "https://scan.coredao.org",
         },
       },
     ],
