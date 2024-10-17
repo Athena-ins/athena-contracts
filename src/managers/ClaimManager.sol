@@ -639,12 +639,12 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
       revert ClaimNotInDispute();
     if (numberOfRulingOptions < ruling_) revert InvalidRuling();
 
+    // Save timestamp to initiate overrule period if validated
+    claim.rulingTimestamp = uint64(block.timestamp);
+
     // Manage ETH for claim creation, claim collateral and dispute creation
     if (ruling_ == uint256(RulingOptions.PayClaimant)) {
       claim.status = ClaimStatus.AcceptedByCourtDecision;
-
-      // Save timestamp to initiate overrule period
-      claim.rulingTimestamp = uint64(block.timestamp);
 
       /// @dev The refund of the claimant deposit is made in the withdrawCompensation function
     } else if (ruling_ == uint256(RulingOptions.RejectClaim)) {
