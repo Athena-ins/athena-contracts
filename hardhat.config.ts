@@ -120,6 +120,8 @@ if (!HARDHAT_FORK_TARGET || !networkNames.includes(forkTarget)) {
 const networkConfigs: {
   [key in NetworkName]: {
     chainId: number;
+    apiURL: string;
+    browserURL: string;
     rpcUrl: string;
     forkingBlock: string;
     verifyApiKey: string;
@@ -127,30 +129,40 @@ const networkConfigs: {
 } = {
   mainnet: {
     chainId: 1,
+    apiURL: "https://api.etherscan.io/api",
+    browserURL: "https://etherscan.io",
     rpcUrl: MAINNET_RPC_URL,
     forkingBlock: MAINNET_FORKING_BLOCK,
     verifyApiKey: MAINNET_VERIFY_API_KEY,
   },
   arbitrum: {
     chainId: 42161,
+    apiURL: "https://api.arbiscan.io/api",
+    browserURL: "https://arbiscan.io",
     rpcUrl: ARBITRUM_RPC_URL,
     forkingBlock: ARBITRUM_FORKING_BLOCK,
     verifyApiKey: ARBITRUM_VERIFY_API_KEY,
   },
   sepolia: {
     chainId: 11155111,
+    apiURL: "",
+    browserURL: "",
     rpcUrl: SEPOLIA_RPC_URL,
     forkingBlock: SEPOLIA_FORKING_BLOCK,
     verifyApiKey: SEPOLIA_VERIFY_API_KEY,
   },
   lisk_sepolia: {
     chainId: 4202,
+    apiURL: "https://sepolia-blockscout.lisk.com/api",
+    browserURL: "https://sepolia-blockscout.lisk.com",
     rpcUrl: LISK_SEPOLIA_RPC_URL,
     forkingBlock: LISK_SEPOLIA_FORKING_BLOCK,
     verifyApiKey: LISK_SEPOLIA_VERIFY_API_KEY,
   },
   core_dao: {
-    chainId: 1115,
+    chainId: 1116,
+    apiURL: "https://scan.coredao.org/api",
+    browserURL: "https://scan.coredao.org",
     rpcUrl: CORE_DAO_RPC_URL,
     forkingBlock: CORE_DAO_FORKING_BLOCK,
     verifyApiKey: CORE_DAO_VERIFY_API_KEY,
@@ -288,41 +300,15 @@ const config: HardhatUserConfig & {
       lisk_sepolia: networkConfigs.lisk_sepolia.verifyApiKey,
       core_dao: networkConfigs.core_dao.verifyApiKey,
     },
-    customChains: [
-      // @dev Since we use the term "arbitrum" instead of "arbitrumOne" we need to add a custom chain
-      {
-        network: "arbitrum",
-        chainId: 42161,
-        urls: {
-          apiURL: "https://api.arbiscan.io/api",
-          browserURL: "https://arbiscan.io",
-        },
+    // @dev Since we use the term "arbitrum" instead of "arbitrumOne" we need to add a custom chain
+    customChains: Object.entries(networkConfigs).map(([name, config]) => ({
+      network: name,
+      chainId: config.chainId,
+      urls: {
+        apiURL: config.apiURL,
+        browserURL: config.browserURL,
       },
-      {
-        network: "mainnet",
-        chainId: 1,
-        urls: {
-          apiURL: "https://api.etherscan.io/api",
-          browserURL: "https://etherscan.io",
-        },
-      },
-      {
-        network: "lisk_sepolia",
-        chainId: 4202,
-        urls: {
-          apiURL: "https://sepolia-blockscout.lisk.com/api",
-          browserURL: "https://sepolia-blockscout.lisk.com",
-        },
-      },
-      {
-        network: "core_dao",
-        chainId: 1116,
-        urls: {
-          apiURL: "https://scan.coredao.org/api",
-          browserURL: "https://scan.coredao.org",
-        },
-      },
-    ],
+    })),
   },
 
   // ====== Typechain ====== //
