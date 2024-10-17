@@ -41,6 +41,10 @@ const {
   CORE_DAO_FORKING_BLOCK,
   CORE_DAO_RPC_URL,
   CORE_DAO_VERIFY_API_KEY,
+  // Network: Core DAO testnet
+  CORE_DAO_TESTNET_FORKING_BLOCK,
+  CORE_DAO_TESTNET_RPC_URL,
+  CORE_DAO_TESTNET_VERIFY_API_KEY,
   // Gas reporter
   REPORT_GAS,
   ETHERUM_PRICE,
@@ -80,6 +84,13 @@ if (
 if (!CORE_DAO_VERIFY_API_KEY || !CORE_DAO_FORKING_BLOCK || !CORE_DAO_RPC_URL) {
   throw Error("Incomplete core dao configuration");
 }
+if (
+  !CORE_DAO_TESTNET_VERIFY_API_KEY ||
+  !CORE_DAO_TESTNET_FORKING_BLOCK ||
+  !CORE_DAO_TESTNET_RPC_URL
+) {
+  throw Error("Incomplete core dao TESTNET configuration");
+}
 
 // ====== WALLET CHECKS ====== //
 
@@ -108,6 +119,7 @@ const networkNames = [
   "sepolia",
   "lisk_sepolia",
   "core_dao",
+  "core_dao_testnet",
 ] as const;
 export type NetworkName = (typeof networkNames)[number];
 export type NetworksOrFork = NetworkName | "hardhat";
@@ -163,6 +175,14 @@ const networkConfigs: {
     chainId: 1116,
     apiURL: "https://scan.coredao.org/api",
     browserURL: "https://scan.coredao.org",
+    rpcUrl: CORE_DAO_RPC_URL,
+    forkingBlock: CORE_DAO_FORKING_BLOCK,
+    verifyApiKey: CORE_DAO_VERIFY_API_KEY,
+  },
+  core_dao_testnet: {
+    chainId: 1115,
+    apiURL: "https://scan.test.btcs.network/api",
+    browserURL: "https://scan.test.btcs.network/",
     rpcUrl: CORE_DAO_RPC_URL,
     forkingBlock: CORE_DAO_FORKING_BLOCK,
     verifyApiKey: CORE_DAO_VERIFY_API_KEY,
