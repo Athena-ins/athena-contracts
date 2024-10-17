@@ -10,7 +10,7 @@ import {
   evidenceGuardianWallet,
 } from "./hardhat";
 import { makeIdArray } from "./miscUtils";
-import { defaultProtocolConfig } from "../../scripts/verificationData/deployParams";
+import { getDefaultProtocolConfig } from "../../scripts/verificationData/deployParams";
 // Types
 import {
   BigNumber,
@@ -84,8 +84,12 @@ export function aaveLendingPoolV3Address(chainId: number): string {
       return "0x794a61358D6845594F94dc1DB02A252b5b4814aD".toLowerCase();
     case 11155111: // Sepolia
       return "0x6Ae43d3271ff6888e7Fc43Fd7321a503ff738951".toLowerCase();
-    case 4202: // Sepolia
-      return "0x6Ae43d3271ff6888e7Fc43Fd7321a503ff738951".toLowerCase();
+    case 4202: // Lisk Sepolia
+      return "0x0000000000000000000000000000000000000000".toLowerCase();
+    case 1115: // Core DAO Testnet
+      return "0x0000000000000000000000000000000000000000".toLowerCase();
+    case 1116: // Core DAO
+      return "0x0000000000000000000000000000000000000000".toLowerCase();
     default:
       throw Error("Unsupported chainId");
   }
@@ -175,6 +179,10 @@ export function wethTokenAddress(chainId: number): string {
       return "0x7b79995e5f793a07bc00c21412e50ecae098e7f9".toLowerCase();
     case 4202: // Lisk Sepolia
       return "0x4200000000000000000000000000000000000006".toLowerCase();
+    case 1116: // Core DAO
+      return "0x191e94fa59739e188dce837f7f6978d84727ad01".toLowerCase();
+    case 1115: // Core DAO
+      return "0x79637354b9366ab59306ea995c05f30371b2b38f".toLowerCase();
     default:
       throw Error("Unsupported chainId");
   }
@@ -639,7 +647,8 @@ async function createPoolsWithLiquidity(
     lpAmount: params.lpAmount ?? parseUnits("1000", 18),
   };
 
-  const { uOptimal, r0, rSlope1, rSlope2 } = defaultProtocolConfig.poolFormula;
+  const { uOptimal, r0, rSlope1, rSlope2 } =
+    getDefaultProtocolConfig().poolFormula;
 
   await Promise.all(
     makeIdArray(params.nbPools).map((poolId) =>

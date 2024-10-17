@@ -16,7 +16,7 @@ import {
   ProtocolConfig,
   ProtocolContracts,
 } from "./helpers/deployers";
-import { defaultProtocolConfig } from "../scripts/verificationData/deployParams";
+import { getDefaultProtocolConfig } from "../scripts/verificationData/deployParams";
 import { makeTestHelpers, TestHelper } from "./helpers/protocol";
 // Chai hooks
 import { beforeEachSuite } from "./helpers/chai/beforeEachSuite";
@@ -117,12 +117,12 @@ export function baseContext(description: string, hooks: () => void): void {
           user4: signers[nbSpecialAccounts + 4] as Signer as Wallet,
         };
 
-        this.protocolConfig = defaultProtocolConfig;
+        this.protocolConfig = getDefaultProtocolConfig();
 
         // Setup protocol for testing & provide interfaces to tests
         this.contracts = await deployAllContractsAndInitializeProtocol(
           this.signers.deployer,
-          defaultProtocolConfig,
+          this.protocolConfig,
           // true,
         );
 
