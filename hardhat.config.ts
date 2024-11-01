@@ -183,9 +183,9 @@ const networkConfigs: {
     chainId: 1115,
     apiURL: "https://scan.test.btcs.network/api",
     browserURL: "https://scan.test.btcs.network/",
-    rpcUrl: CORE_DAO_RPC_URL,
-    forkingBlock: CORE_DAO_FORKING_BLOCK,
-    verifyApiKey: CORE_DAO_VERIFY_API_KEY,
+    rpcUrl: CORE_DAO_TESTNET_RPC_URL,
+    forkingBlock: CORE_DAO_TESTNET_FORKING_BLOCK,
+    verifyApiKey: CORE_DAO_TESTNET_VERIFY_API_KEY,
   },
 };
 
