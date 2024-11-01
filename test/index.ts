@@ -9,6 +9,7 @@ import { baseContext } from "./context";
 // Integration test suites
 import { deployProtocol } from "./integration/deployProtocol.test";
 import { SanityTest } from "./integration/sanity.test";
+import { SanityTestCore } from "./integration/sanityCore.test";
 import { AmphorStrategiesTest } from "./integration/amphorStrategies.test";
 
 // Scenarios
@@ -30,6 +31,7 @@ baseContext("Test Athena Protocol", function () {
   //=== Integration tests ===//
   deployProtocol();
   SanityTest();
+  SanityTestCore();
   AmphorStrategiesTest();
 
   //=== Scenarios ===//
