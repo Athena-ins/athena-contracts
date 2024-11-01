@@ -37,6 +37,8 @@ import {
   StrategyManagerVE,
   StrategyManagerVL__factory,
   StrategyManagerVL,
+  StrategyManagerCore__factory,
+  StrategyManagerCore,
   // Rewards
   FarmingRange__factory,
   FarmingRange,
@@ -193,6 +195,12 @@ export async function deployStrategyManagerVL(
 ): Promise<WithAddress<StrategyManagerVL>> {
   return new StrategyManagerVL__factory(signer).deploy(...args);
 }
+export async function deployStrategyManagerCore(
+  signer: Signer,
+  args: Parameters<StrategyManagerCore__factory["deploy"]>,
+): Promise<WithAddress<StrategyManagerCore>> {
+  return new StrategyManagerCore__factory(signer).deploy(...args);
+}
 
 export async function deployFarmingRange(
   signer: Signer,
@@ -275,6 +283,12 @@ export type ProtocolConfig = {
   // For Lisk strategy
   usdt?: string;
   lsk?: string;
+  // For Core strategy
+  colendLendingPool?: string;
+  USDC?: string;
+  sUSDC?: string;
+  wCORE?: string;
+  stCORE?: string;
 };
 
 export type DeployedProtocolContracts = {

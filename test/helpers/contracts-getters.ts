@@ -18,6 +18,8 @@ import {
   StrategyManagerVE__factory,
   StrategyManagerVL,
   StrategyManagerVL__factory,
+  StrategyManagerCore,
+  StrategyManagerCore__factory,
   // Rewards
   FarmingRange,
   FarmingRange__factory,
@@ -92,6 +94,9 @@ export async function getStrategyManagerVE(address: string) {
 }
 export async function getStrategyManagerVL(address: string) {
   return connectWrapper(StrategyManagerVL__factory, address);
+}
+export async function getStrategyManagerCore(address: string) {
+  return connectWrapper(StrategyManagerCore__factory, address);
 }
 export async function getFarmingRange(address: string) {
   return connectWrapper(FarmingRange__factory, address);

@@ -151,6 +151,8 @@ export function usdtTokenAddress(chainId: number): string {
       return "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9".toLowerCase();
     case 11155111: // Sepolia
       return "0xaA8E23Fb1079EA71e0a56F48a2aA51851D8433D0".toLowerCase();
+    case 1116: // Core DAO
+      return "0x900101d06A7426441Ae63e9AB3B9b0F63Be145F1".toLowerCase();
     default:
       throw Error("Unsupported chainId");
   }
@@ -164,6 +166,8 @@ export function usdcTokenAddress(chainId: number): string {
       return "0xaf88d065e77c8cC2239327C5EDb3A432268e5831".toLowerCase();
     case 11155111: // Sepolia
       return "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238".toLowerCase();
+    case 1116: // Core DAO
+      return "0xa4151b2b3e269645181dccf2d426ce75fcbdeca9".toLowerCase();
     default:
       throw Error("Unsupported chainId");
   }
@@ -179,9 +183,9 @@ export function wethTokenAddress(chainId: number): string {
       return "0x7b79995e5f793a07bc00c21412e50ecae098e7f9".toLowerCase();
     case 4202: // Lisk Sepolia
       return "0x4200000000000000000000000000000000000006".toLowerCase();
-    case 1116: // Core DAO
+    case 1116: // Core DAO - wCORE
       return "0x191e94fa59739e188dce837f7f6978d84727ad01".toLowerCase();
-    case 1115: // Core DAO
+    case 1115: // Core DAO - wCORE
       return "0x79637354b9366ab59306ea995c05f30371b2b38f".toLowerCase();
     default:
       throw Error("Unsupported chainId");

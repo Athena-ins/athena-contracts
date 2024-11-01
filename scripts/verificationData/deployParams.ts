@@ -27,8 +27,11 @@ type LiskStrategyParams = {
 };
 
 type CoreDaoStrategyParams = {
-  usdt: string;
-  stCore: string;
+  colendLendingPool: string;
+  USDC: string;
+  sUSDC: string;
+  wCORE: string;
+  stCORE: string;
 };
 
 export const amphorStrategyParams: AmphorStrategyParams = {
@@ -48,17 +51,13 @@ export const liskStrategyParams: LiskStrategyParams = {
 };
 
 export const coreDaoStrategyParams: CoreDaoStrategyParams = {
-  // Premiums tokens
-  usdt: "0x2d7382d9d020532a937bd2231376bbcd99168393".toLowerCase(),
-  // (((Strategy 1))) - Collateral
-  stCore: "0xb3a8f0f0da9ffc65318aa39e55079796093029ad".toLowerCase(),
-};
-
-export const coreDaoTestnetStrategyParams: CoreDaoStrategyParams = {
-  // Premiums tokens
-  usdt: "0x2d7382d9d020532a937bd2231376bbcd99168393".toLowerCase(),
-  // (((Strategy 1))) - Collateral
-  stCore: "0xb3a8f0f0da9ffc65318aa39e55079796093029ad".toLowerCase(),
+  // (((Strategy 0))) - Colend Lending Pool USDC
+  colendLendingPool: "0x0CEa9F0F49F30d376390e480ba32f903B43B19C5".toLowerCase(),
+  USDC: "0xa4151B2B3e269645181dCcF2D426cE75fcbDeca9".toLowerCase(),
+  sUSDC: "0x8f9d6649C4ac1d894BB8A26c3eed8f1C9C5f82Dd".toLowerCase(),
+  // (((Strategy 1))) - Core Liquid Staking
+  wCORE: "0x40375C92d9FAf44d2f9db9Bd9ba41a3317a2404f".toLowerCase(),
+  stCORE: "0xb3a8f0f0da9ffc65318aa39e55079796093029ad".toLowerCase(),
 };
 
 /**
@@ -198,7 +197,6 @@ const deployParams: {
     claimCollateral: parseEther("0.0002"),
     arbitrationCost: parseEther("0.00012"),
   }),
-  core_dao_testnet: getDefaultProtocolConfig("core_dao_testnet"),
 };
 
 export function getDeployConfig() {
@@ -230,12 +228,12 @@ export function getDefaultProtocolConfig(
   overrides?: Partial<ProtocolConfig>,
 ): ProtocolConfig & AmphorStrategyParams;
 export function getDefaultProtocolConfig(
-  extraParams: "core_dao" | "core_dao_testnet",
+  extraParams: "core_dao",
   overrides?: Partial<ProtocolConfig>,
 ): ProtocolConfig & CoreDaoStrategyParams;
 
 export function getDefaultProtocolConfig(
-  extraParams?: "amphor" | "lisk" | "core_dao" | "core_dao_testnet",
+  extraParams?: "amphor" | "lisk" | "core_dao",
   overrides: Partial<ProtocolConfig> = {},
 ) {
   let extraChainParams = {};
@@ -248,9 +246,6 @@ export function getDefaultProtocolConfig(
   }
   if (extraParams === "core_dao") {
     extraChainParams = coreDaoStrategyParams;
-  }
-  if (extraParams === "core_dao_testnet") {
-    extraChainParams = coreDaoTestnetStrategyParams;
   }
 
   return {

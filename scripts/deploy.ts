@@ -7,6 +7,7 @@ import {
 import { deployAllContractsAndInitializeProtocolV0 } from "../test/helpers/deployersV0";
 import { deployAllContractsAndInitializeProtocolVE } from "../test/helpers/deployersVE";
 import { deployAllContractsAndInitializeProtocolVL } from "../test/helpers/deployersVL";
+import { deployAllContractsAndInitializeProtocolCore } from "../test/helpers/deployersCore";
 import { countdown } from "../test/helpers/miscUtils";
 import { getDeployConfig } from "./verificationData/deployParams";
 import { getNetworkAddresses } from "./verificationData/addresses";
@@ -54,7 +55,7 @@ async function main() {
     //== CONTRACTS ==//
     //===============//
 
-    await deployAllContractsAndInitializeProtocolV0(
+    await deployAllContractsAndInitializeProtocolVL(
       deployer,
       config,
       addresses,
