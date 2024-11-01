@@ -16,6 +16,19 @@ import {
   ProtocolConfig,
   ProtocolContracts,
 } from "./helpers/deployers";
+import { deployAllContractsAndInitializeProtocolV0 } from "../test/helpers/deployersV0";
+import {
+  deployAllContractsAndInitializeProtocolVE,
+  VEProtocolContracts,
+} from "../test/helpers/deployersVE";
+import {
+  deployAllContractsAndInitializeProtocolVL,
+  VLProtocolContracts,
+} from "../test/helpers/deployersVL";
+import {
+  deployAllContractsAndInitializeProtocolCore,
+  CoreProtocolContracts,
+} from "../test/helpers/deployersCore";
 import { getDefaultProtocolConfig } from "../scripts/verificationData/deployParams";
 import { makeTestHelpers, TestHelper } from "./helpers/protocol";
 // Chai hooks
@@ -61,6 +74,25 @@ declare module "mocha" {
     customEnv: any; // Used to set custom environment within a test suite
   }
 }
+
+const procotolDeployerScript: {
+  [chainId: number]: (
+    deployer: Wallet,
+    config: ProtocolConfig,
+    // partialDeploy: boolean,
+  ) => Promise<
+    | ProtocolContracts
+    | VEProtocolContracts
+    | VLProtocolContracts
+    | CoreProtocolContracts
+  >;
+} = {
+  0: deployAllContractsAndInitializeProtocol, // default
+  42161: deployAllContractsAndInitializeProtocolV0, // arbitrum
+  1: deployAllContractsAndInitializeProtocolVE, // ethereum
+  4202: deployAllContractsAndInitializeProtocolVL, // lisk
+  1116: deployAllContractsAndInitializeProtocolCore, // core
+};
 
 // Keep snapshot ID as global variables to avoid state conflicts in children tests
 let evmSnapshotId: string = "0x1";
@@ -120,7 +152,14 @@ export function baseContext(description: string, hooks: () => void): void {
         this.protocolConfig = getDefaultProtocolConfig();
 
         // Setup protocol for testing & provide interfaces to tests
-        this.contracts = await deployAllContractsAndInitializeProtocol(
+        let protocolDeployerScript =
+          procotolDeployerScript[this.chainId] || procotolDeployerScript[0];
+        console.log(
+          "Using contract version: ",
+          procotolDeployerScript[this.chainId] ? this.chainId : "default",
+          "\n",
+        );
+        this.contracts = await protocolDeployerScript(
           this.signers.deployer,
           this.protocolConfig,
           // true,

@@ -93,14 +93,18 @@ export async function deployMockToken(
   signer: Signer,
   args: Parameters<MockToken__factory["deploy"]>,
 ): Promise<WithAddress<MockToken>> {
-  return new MockToken__factory(signer).deploy(...args);
+  return new MockToken__factory(signer).deploy(...args).catch((err) => {
+    throw Error(`Deploy MockToken:\n${err}`);
+  });
 }
 
 export async function deployPoolMath(
   signer: Signer,
   args: Parameters<PoolMath__factory["deploy"]>,
 ): Promise<WithAddress<PoolMath>> {
-  return new PoolMath__factory(signer).deploy(...args);
+  return new PoolMath__factory(signer).deploy(...args).catch((err) => {
+    throw Error(`Deploy PoolMath:\n${err}`);
+  });
 }
 
 export async function deployVirtualPool(
@@ -113,7 +117,11 @@ export async function deployVirtualPool(
       ["src/libs/PoolMath.sol:PoolMath"]: libAddresses.PoolMath,
     },
     signer,
-  ).deploy(...args);
+  )
+    .deploy(...args)
+    .catch((err) => {
+      throw Error(`Deploy VirtualPool:\n${err}`);
+    });
 }
 
 export async function deployAthenaDataProvider(
@@ -127,28 +135,38 @@ export async function deployAthenaDataProvider(
       ["src/libs/VirtualPool.sol:VirtualPool"]: libAddresses.VirtualPool,
     },
     signer,
-  ).deploy(...args);
+  )
+    .deploy(...args)
+    .catch((err) => {
+      throw Error(`Deploy AthenaDataProvider:\n${err}`);
+    });
 }
 
 export async function deployAthenaArbitrator(
   signer: Signer,
   args: Parameters<AthenaArbitrator__factory["deploy"]>,
 ): Promise<WithAddress<AthenaArbitrator>> {
-  return new AthenaArbitrator__factory(signer).deploy(...args);
+  return new AthenaArbitrator__factory(signer).deploy(...args).catch((err) => {
+    throw Error(`Deploy AthenaArbitrator:\n${err}`);
+  });
 }
 
 export async function deployEcclesiaDao(
   signer: Signer,
   args: Parameters<EcclesiaDao__factory["deploy"]>,
 ): Promise<WithAddress<EcclesiaDao>> {
-  return new EcclesiaDao__factory(signer).deploy(...args);
+  return new EcclesiaDao__factory(signer).deploy(...args).catch((err) => {
+    throw Error(`Deploy EcclesiaDao:\n${err}`);
+  });
 }
 
 export async function deployClaimManager(
   signer: Signer,
   args: Parameters<ClaimManager__factory["deploy"]>,
 ): Promise<WithAddress<ClaimManager>> {
-  return new ClaimManager__factory(signer).deploy(...args);
+  return new ClaimManager__factory(signer).deploy(...args).catch((err) => {
+    throw Error(`Deploy ClaimManager:\n${err}`);
+  });
 }
 
 export async function deployLiquidityManager(
@@ -166,82 +184,110 @@ export async function deployLiquidityManager(
         libAddresses.AthenaDataProvider,
     },
     signer,
-  ).deploy(...args);
+  )
+    .deploy(...args)
+    .catch((err) => {
+      throw Error(`Deploy LiquidityManager:\n${err}`);
+    });
 }
 
 // export async function deployTestableLiquidityManager(
 //   signer: Signer,
 //   args: Parameters<TestableLiquidityManager__factory["deploy"]>,
 // ): Promise<WithAddress<TestableLiquidityManager>> {
-//   return new TestableLiquidityManager__factory(signer).deploy(...args);
+//   return new TestableLiquidityManager__factory(signer).deploy(...args).catch(err => {throw Error(`Deploy TestableLiquidityManager:\n${err}`)});
 // }
 
 export async function deployStrategyManager(
   signer: Signer,
   args: Parameters<StrategyManager__factory["deploy"]>,
 ): Promise<WithAddress<StrategyManager>> {
-  return new StrategyManager__factory(signer).deploy(...args);
+  return new StrategyManager__factory(signer).deploy(...args).catch((err) => {
+    throw Error(`Deploy StrategyManager:\n${err}`);
+  });
 }
 
 export async function deployStrategyManagerVE(
   signer: Signer,
   args: Parameters<StrategyManagerVE__factory["deploy"]>,
 ): Promise<WithAddress<StrategyManagerVE>> {
-  return new StrategyManagerVE__factory(signer).deploy(...args);
+  return new StrategyManagerVE__factory(signer).deploy(...args).catch((err) => {
+    throw Error(`Deploy StrategyManagerVE:\n${err}`);
+  });
 }
 export async function deployStrategyManagerVL(
   signer: Signer,
   args: Parameters<StrategyManagerVL__factory["deploy"]>,
 ): Promise<WithAddress<StrategyManagerVL>> {
-  return new StrategyManagerVL__factory(signer).deploy(...args);
+  return new StrategyManagerVL__factory(signer).deploy(...args).catch((err) => {
+    throw Error(`Deploy StrategyManagerVL:\n${err}`);
+  });
 }
 export async function deployStrategyManagerCore(
   signer: Signer,
   args: Parameters<StrategyManagerCore__factory["deploy"]>,
 ): Promise<WithAddress<StrategyManagerCore>> {
-  return new StrategyManagerCore__factory(signer).deploy(...args);
+  return new StrategyManagerCore__factory(signer)
+    .deploy(...args)
+    .catch((err) => {
+      throw Error(`Deploy StrategyManagerCore:\n${err}`);
+    });
 }
 
 export async function deployFarmingRange(
   signer: Signer,
   args: Parameters<FarmingRange__factory["deploy"]>,
 ): Promise<WithAddress<FarmingRange>> {
-  return new FarmingRange__factory(signer).deploy(...args);
+  return new FarmingRange__factory(signer).deploy(...args).catch((err) => {
+    throw Error(`Deploy FarmingRange:\n${err}`);
+  });
 }
 
 export async function deployRewardManager(
   signer: Signer,
   args: Parameters<RewardManager__factory["deploy"]>,
 ): Promise<WithAddress<RewardManager>> {
-  return new RewardManager__factory(signer).deploy(...args);
+  return new RewardManager__factory(signer).deploy(...args).catch((err) => {
+    throw Error(`Deploy RewardManager:\n${err}`);
+  });
 }
 
 export async function deployStaking(
   signer: Signer,
   args: Parameters<Staking__factory["deploy"]>,
 ): Promise<WithAddress<Staking>> {
-  return new Staking__factory(signer).deploy(...args);
+  return new Staking__factory(signer).deploy(...args).catch((err) => {
+    throw Error(`Deploy Staking:\n${err}`);
+  });
 }
 
 export async function deployAthenaCoverToken(
   signer: Signer,
   args: Parameters<AthenaCoverToken__factory["deploy"]>,
 ): Promise<WithAddress<AthenaCoverToken>> {
-  return new AthenaCoverToken__factory(signer).deploy(...args);
+  return new AthenaCoverToken__factory(signer).deploy(...args).catch((err) => {
+    throw Error(`Deploy AthenaCoverToken:\n${err}`);
+  });
 }
 
 export async function deployAthenaPositionToken(
   signer: Signer,
   args: Parameters<AthenaPositionToken__factory["deploy"]>,
 ): Promise<WithAddress<AthenaPositionToken>> {
-  return new AthenaPositionToken__factory(signer).deploy(...args);
+  return new AthenaPositionToken__factory(signer)
+    .deploy(...args)
+    .catch((err) => {
+      throw Error(`Deploy AthenaPositionToken:\n${err}`);
+    });
 }
 
 export async function deployAthenaToken(
   signer: Signer,
   args: Parameters<AthenaToken__factory["deploy"]>,
 ): Promise<WithAddress<AthenaToken>> {
-  return new AthenaToken__factory(signer).deploy(...args);
+  return new AthenaToken__factory(signer).deploy(...args).catch((err) => {
+    throw Error(`Deploy AthenaToken:\n${err}`);
+  });
 }
 
 // ======================= //
@@ -335,6 +381,9 @@ export const deploymentOrder: Partial<keyof ProtocolContracts | "_approve">[] =
 export async function deployAllContractsAndInitializeProtocol(
   deployer: Wallet,
   config: ProtocolConfig,
+  addresses?: {
+    [key: string]: string;
+  },
   logAddresses = false,
 ): Promise<ProtocolContracts> {
   const chainId = await entityProviderChainId(deployer);
@@ -343,7 +392,7 @@ export async function deployAllContractsAndInitializeProtocol(
   let txCount = 0;
   let deployExecutors = [];
 
-  const deployedAt: { [key: string]: string } = {};
+  const deployedAt: { [key: string]: string } = addresses || {};
 
   await Promise.all(
     deploymentOrder.map((name, i) =>

@@ -81,7 +81,9 @@ contract StrategyManagerCore is IStrategyManager, Ownable {
   ) Ownable(msg.sender) {
     liquidityManager = liquidityManager_;
     ecclesiaDao = ecclesiaDao_;
+    colendLendingPool = colendLendingPool_;
 
+    USDC = reserveAsset_;
     buybackWallet = buybackWallet_;
 
     if (

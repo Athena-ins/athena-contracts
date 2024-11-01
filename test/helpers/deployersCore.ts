@@ -114,8 +114,6 @@ export async function deployAllContractsAndInitializeProtocolCore(
     ),
   );
 
-  // Add token interface
-
   // Compute deployment addresses of reward manager deployed contracts
   if (deploymentOrder.includes("RewardManager")) {
     deployedAt.FarmingRange = await genContractAddress(
@@ -227,7 +225,7 @@ export async function deployAllContractsAndInitializeProtocolCore(
         deployedAt.LiquidityManager,
         deployer.address, // EcclesiaDao
         aaveLendingPoolV3Address(chainId),
-        deployedAt.CircleToken,
+        usdcAddress,
         config.buybackWallet.address,
         config.payoutDeductibleRate, // payoutDeductibleRate
         config.strategyFeeRate, // strategyFeeRate
