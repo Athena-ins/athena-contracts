@@ -74,7 +74,7 @@ export function AmphorStrategiesTest() {
 
       const veContracts = await getConnectedProtocolContracts(
         getNetworkAddresses(),
-        true,
+        "ethereum",
       );
       // const veContracts = await deployAllContractsAndInitializeProtocolVE(
       //   this.signers.deployer,

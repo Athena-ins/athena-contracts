@@ -166,29 +166,48 @@ export type VEConnectedProtocolContracts = ConnectedProtocolContracts & {
 export type VLConnectedProtocolContracts = ConnectedProtocolContracts & {
   StrategyManager: ConnectWithAddress<StrategyManagerVL>;
 };
+export type CoreConnectedProtocolContracts = ConnectedProtocolContracts & {
+  StrategyManager: ConnectWithAddress<StrategyManagerCore>;
+};
 
 export async function getConnectedProtocolContracts(
   addresses: NetworkAddressDirectory,
-  isVE: true,
-  isVL: false,
+  version: "ethereum",
 ): Promise<VEConnectedProtocolContracts>;
 
 export async function getConnectedProtocolContracts(
   addresses: NetworkAddressDirectory,
-  isVE: false,
-  isVL: true,
+  version: "lisk",
 ): Promise<VLConnectedProtocolContracts>;
 
 export async function getConnectedProtocolContracts(
   addresses: NetworkAddressDirectory,
-  isVE = false,
-  isVL = false,
-): Promise<ConnectedProtocolContracts> {
-  if (isVE && isVL) throw new Error("Cannot be both VE and VL");
+  version: "core",
+): Promise<CoreConnectedProtocolContracts>;
 
-  let stratManagerGetter = getStrategyManager;
-  if (isVE) stratManagerGetter = getStrategyManagerVE;
-  if (isVL) stratManagerGetter = getStrategyManagerVL;
+export async function getConnectedProtocolContracts(
+  addresses: NetworkAddressDirectory,
+  version?: undefined,
+): Promise<ConnectedProtocolContracts>;
+
+export async function getConnectedProtocolContracts(
+  addresses: NetworkAddressDirectory,
+  version?: "ethereum" | "lisk" | "core",
+): Promise<
+  | ConnectedProtocolContracts
+  | VEConnectedProtocolContracts
+  | VLConnectedProtocolContracts
+  | CoreConnectedProtocolContracts
+> {
+  let stratManagerGetter:
+    | typeof getStrategyManager
+    | typeof getStrategyManagerVE
+    | typeof getStrategyManagerVL
+    | typeof getStrategyManagerCore = getStrategyManager;
+
+  if (version === "ethereum") stratManagerGetter = getStrategyManagerVE;
+  if (version === "lisk") stratManagerGetter = getStrategyManagerVL;
+  if (version === "core") stratManagerGetter = getStrategyManagerCore;
 
   const [
     EcclesiaDao,

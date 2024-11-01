@@ -6,12 +6,6 @@ import { getNetworkAddresses } from "./verificationData/addresses";
 
 const { formatEther } = ethers.utils;
 
-const IS_VE = false;
-const IS_VL = true;
-
-if (IS_VE && IS_VL)
-  throw Error("IS_VE and IS_V0 cannot be true at the same time");
-
 async function main() {
   try {
     const networkName = hre.network.name.toUpperCase();
@@ -35,8 +29,7 @@ async function main() {
 
     const { LiquidityManager } = await getConnectedProtocolContracts(
       addresses,
-      IS_VE,
-      IS_VL,
+      "lisk",
     );
 
     console.log("\n==> Contracts OK");
