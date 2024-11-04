@@ -1,6 +1,9 @@
 import { ethers } from "hardhat";
 // Functions
-import { amphorStrategyParams } from "../../scripts/verificationData/deployParams";
+import {
+  amphorStrategyParams,
+  coreDaoStrategyParams,
+} from "../../scripts/verificationData/deployParams";
 import {
   entityProviderChainId,
   impersonateAccount,
@@ -89,7 +92,7 @@ export function aaveLendingPoolV3Address(chainId: number): string {
     case 1115: // Core DAO Testnet
       return "0x0000000000000000000000000000000000000000".toLowerCase();
     case 1116: // Core DAO
-      return "0x0000000000000000000000000000000000000000".toLowerCase();
+      return "0x0CEa9F0F49F30d376390e480ba32f903B43B19C5".toLowerCase();
     default:
       throw Error("Unsupported chainId");
   }
@@ -129,6 +132,8 @@ export function uniswapV3Router(chainId: number): string {
       return "0xE592427A0AEce92De3Edee1F18E0157C05861564".toLowerCase();
     case 11155111: // Sepolia
       return "0xE592427A0AEce92De3Edee1F18E0157C05861564".toLowerCase();
+    case 1116: // Core DAO - SushiSwap
+      return "0x734583f62Bb6ACe3c9bA9bd5A53143CA2Ce8C55A".toLowerCase();
     default:
       throw Error("Unsupported chainId");
   }
@@ -167,7 +172,7 @@ export function usdcTokenAddress(chainId: number): string {
     case 11155111: // Sepolia
       return "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238".toLowerCase();
     case 1116: // Core DAO
-      return "0xa4151b2b3e269645181dccf2d426ce75fcbdeca9".toLowerCase();
+      return "0xa4151B2B3e269645181dCcF2D426cE75fcbDeca9".toLowerCase();
     default:
       throw Error("Unsupported chainId");
   }
@@ -380,20 +385,26 @@ export async function getTokens(
   const wethAddress = wethTokenAddress(chainId);
   const weth = IWETH__factory.connect(wethAddress, signer);
 
-  await postTxHandler(weth.approve(routerAddress, parseEther("500")));
+  /// @dev for Core the token is lower in value
+  const amountIn = chainId === 1116 ? parseEther("10000") : parseEther("500");
+
+  await postTxHandler(weth.approve(routerAddress, amountIn));
+
+  if (
+    token.toLowerCase() === coreDaoStrategyParams.USDC ||
+    token.toLowerCase() === coreDaoStrategyParams.stCORE
+  ) {
+    const holderSigner = await impersonateAccount(
+      "0xB9EFb3ABfd12649faF03D360818D66e62592262c",
+    );
+    const tokenContract = IERC20__factory.connect(token, holderSigner);
+    return postTxHandler(tokenContract.transfer(to, amount));
+  }
 
   if (
     token.toLowerCase() === amphorStrategyParams.amphrETH ||
     token.toLowerCase() === amphorStrategyParams.amphrLRT
   ) {
-    // const holder =
-    //   token.toLowerCase() === amphorStrategyParams.amphrETH
-    //     ? "0xe3fb0c9e52dadc7272a1b2f226842fdf8e3636de"
-    //     : "0x924cafec4f967be5df085ad94d8d50574f9a2bb0";
-    // const holderSigner = await impersonateAccount(holder);
-    // const tokenContract = IWETH__factory.connect(token, holderSigner);
-    // return postTxHandler(tokenContract.transfer(to, amount));
-
     const params = {
       path: encodeMultiHopPath([
         token,

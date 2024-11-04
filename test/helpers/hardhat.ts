@@ -119,6 +119,11 @@ export function entityProviderChainId(
 }
 
 function extractError(err: any, requireError = false) {
+  const errorMatch = err.message?.match(/custom error '([^']+)'/);
+  if (errorMatch && errorMatch[1]) {
+    return errorMatch[1];
+  }
+
   if (err.errorName) {
     return err.errorName;
   }

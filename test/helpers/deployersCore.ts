@@ -243,7 +243,7 @@ export async function deployAllContractsAndInitializeProtocolCore(
           deployedAt.AthenaCoverToken,
           deployer.address, // EcclesiaDao
           deployedAt.StrategyManager,
-          deployer.address, // ClaimManager
+          deployedAt.ClaimManager, // ClaimManager
           deployer.address, // to be replaced by farming/yieldRewarder
           config.withdrawDelay,
           config.maxLeverage,
