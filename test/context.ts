@@ -102,7 +102,9 @@ export function baseContext(description: string, hooks: () => void): void {
   describe(description, function () {
     before(async function () {
       try {
-        console.log(`\n== TESTING ON ${fromFork()?.toUpperCase()} ==\n`);
+        console.log(
+          `\n== TESTING ON ${fromFork()?.toUpperCase()} ==\n`.magenta,
+        );
 
         const liqManagerSize = LiquidityManager__factory.bytecode.length / 2;
         console.log(`\nLiq. Manager size: ${liqManagerSize}/24576\n`);
@@ -110,7 +112,7 @@ export function baseContext(description: string, hooks: () => void): void {
         const signers = await ethers.getSigners();
 
         console.log(
-          "\nNamed Accounts:",
+          "\nNamed Accounts:".magenta,
           JSON.stringify(
             {
               deployer: signers[0].address,
@@ -155,7 +157,7 @@ export function baseContext(description: string, hooks: () => void): void {
         let protocolDeployerScript =
           procotolDeployerScript[this.chainId] || procotolDeployerScript[0];
         console.log(
-          "Using contract version: ",
+          "Using contract version: ".magenta,
           procotolDeployerScript[this.chainId] ? this.chainId : "default",
           "\n",
         );

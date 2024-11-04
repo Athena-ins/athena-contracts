@@ -223,7 +223,7 @@ contract StrategyManagerCore is IStrategyManager, Ownable {
     if (strategyId_ == 0) {
       // Colend v3 USDC
       return sUSDC;
-    } else if (strategyId_ == 1) {
+    } else {
       // Core Staking Restaked ETH
       return stCORE;
     }
@@ -435,8 +435,8 @@ contract StrategyManagerCore is IStrategyManager, Ownable {
     // Compute amount of wrapped to send to account
     uint256 amountToWithdraw = underlyingToWrapped(
       strategyId_,
-      amountCapitalUnderlying_
-    ) + underlyingToWrapped(strategyId_, amountRewardsUnderlying_);
+      amountCapitalUnderlying_ + amountRewardsUnderlying_
+    );
 
     // If the strategy has performance fees then compute the DAO share
     if (strategyFeeRate != 0 && amountRewardsUnderlying_ != 0) {

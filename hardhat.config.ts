@@ -206,7 +206,7 @@ function makeForkConfig(): HardhatNetworkUserConfig {
 
   const networkConfig = {
     chainId,
-    allowUnlimitedContractSize: false,
+    allowUnlimitedContractSize: true,
     forking: {
       url: rpcUrl,
       blockNumber: forkingBlock === "latest" ? undefined : Number(forkingBlock),
@@ -220,14 +220,14 @@ function makeForkConfig(): HardhatNetworkUserConfig {
     accounts: [
       ...accounts.map((privateKey) => ({
         privateKey: privateKey,
-        balance: parseEther("10000").toString(),
+        balance: parseEther("100000").toString(),
       })),
       // Add 20 test users
       ...Array(20)
         .fill("")
         .map((_, i) => ({
           privateKey: id(`Test User ${i}`),
-          balance: parseEther("10000").toString(),
+          balance: parseEther("100000").toString(),
         })),
     ],
   };
@@ -243,16 +243,23 @@ type MarkupConfig = {
   verbose: boolean;
 };
 
+let evmVersion: string | undefined = undefined;
+if (forkTarget === "core_dao") {
+  /// @dev enable for Core chain
+  evmVersion = "paris";
+  console.log("=> Overriding EVM version with:".magenta, evmVersion, "\n");
+}
+
 const config: HardhatUserConfig & {
   markup: MarkupConfig;
 } = {
   // ====== Solidity Compilers ====== //
-
   solidity: {
     compilers: [
       {
         version: "0.8.25",
         settings: {
+          evmVersion,
           optimizer: {
             enabled: true,
             runs: 1,
@@ -261,6 +268,9 @@ const config: HardhatUserConfig & {
       },
       {
         version: "0.4.17",
+        settings: {
+          evmVersion,
+        },
       },
     ],
   },
