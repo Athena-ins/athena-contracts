@@ -14,6 +14,7 @@ import { IsContract } from "../libs/IsContract.sol";
 // interfaces
 import { IStrategyManager } from "../interfaces/IStrategyManager.sol";
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
+import { IERC4626 } from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import { ILiquidityManager } from "../interfaces/ILiquidityManager.sol";
 import { IEcclesiaDao } from "../interfaces/IEcclesiaDao.sol";
 import { IAaveLendingPoolV3 } from "../interfaces/IAaveLendingPoolV3.sol";
@@ -23,7 +24,6 @@ import { IAaveRewardsController } from "../interfaces/IAaveRewardsController.sol
 
 error NotAValidStrategy();
 error NotLiquidityManager();
-error OnlyWhitelistCanDepositLiquidity();
 error UseOfUnderlyingAssetNotSupported();
 error RateAboveMax();
 error ArgumentLengthMismatch();
@@ -41,7 +41,7 @@ error TransferCallFailed();
  * on top of the Aave v3 USDC strategy.
  *
  */
-contract StrategyManagerVE is IStrategyManager, Ownable {
+contract StrategyManagerMorpho is IStrategyManager, Ownable {
   using SafeERC20 for IERC20;
   using RayMath for uint256;
 
@@ -60,20 +60,18 @@ contract StrategyManagerVE is IStrategyManager, Ownable {
   uint256 public strategyFeeRate;
 
   // (((Strategy 0))) - AAVE v3 USDC
-  IAaveLendingPoolV3 public aaveLendingPool;
-  address public USDC; // underlyingAsset
-  address public aUSDC; // wrappedAsset
-
+  IAaveLendingPoolV3 public immutable aaveLendingPool;
+  address public immutable USDC; // underlyingAsset
+  address public immutable aUSDC; // wrappedAsset
   // Lido LST Token
-  address public wstETH; // 0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0
+  address public immutable wstETH; // 0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0
   // (((Strategy 1))) - Amphor Restaked ETH
-  address public amphrETH; // 0x5fD13359Ba15A84B76f7F87568309040176167cd
+  address public immutable amphrETH; // 0x5fD13359Ba15A84B76f7F87568309040176167cd
   // (((Strategy 2))) - Amphor Symbiotic LRT
-  address public amphrLRT; // 0x06824c27c8a0dbde5f72f770ec82e3c0fd4dcec3
-
-  bool public isWhitelistEnabled;
-  mapping(address account_ => bool isWhiteListed_)
-    public whiteListedLiquidityProviders;
+  address public immutable amphrLRT; // 0x06824c27c8a0dbde5f72f770ec82e3c0fd4dcec3
+  // (((Strategy 3))) - Metamorpho MEV Capital wETH
+  address public immutable morphoMevVaultUnderlying;
+  address public immutable morphoMevVault;
 
   //======== CONSTRCUTOR ========//
 
@@ -87,7 +85,8 @@ contract StrategyManagerVE is IStrategyManager, Ownable {
     uint256 performanceFee_, // in rays
     address wstETH_,
     address amphrETH_,
-    address amphrLRT_
+    address amphrLRT_,
+    address morphoMevVault_
   ) Ownable(msg.sender) {
     liquidityManager = liquidityManager_;
     ecclesiaDao = ecclesiaDao_;
@@ -100,6 +99,9 @@ contract StrategyManagerVE is IStrategyManager, Ownable {
     wstETH = wstETH_;
     amphrETH = amphrETH_;
     amphrLRT = amphrLRT_;
+    // Metamorpho MEV Capital wETH
+    morphoMevVaultUnderlying = IERC4626(morphoMevVault_).asset();
+    morphoMevVault = morphoMevVault_;
 
     if (
       HUNDRED_PERCENT < payoutDeductibleRate_ ||
@@ -120,16 +122,8 @@ contract StrategyManagerVE is IStrategyManager, Ownable {
     _;
   }
 
-  modifier onlyWhiteListedLiquidityProviders() {
-    if (
-      // @dev using tx origin since the contract is called by the liquidity manager
-      isWhitelistEnabled && !whiteListedLiquidityProviders[tx.origin]
-    ) revert OnlyWhitelistCanDepositLiquidity();
-    _;
-  }
-
   modifier checkId(uint256 strategyId_) {
-    if (2 < strategyId_) revert NotAValidStrategy();
+    if (3 < strategyId_) revert NotAValidStrategy();
     _;
   }
 
@@ -147,7 +141,7 @@ contract StrategyManagerVE is IStrategyManager, Ownable {
       // AAVE v3 USDC
       return true;
     } else {
-      // Amphor Restaked ETH & Amphor Symbiotic LRT
+      // Others considered non compounding
       return false;
     }
   }
@@ -160,15 +154,15 @@ contract StrategyManagerVE is IStrategyManager, Ownable {
    */
   function getRewardIndex(
     uint256 strategyId_
-  ) public view checkId(strategyId_) returns (uint256) {
+  ) public view returns (uint256) {
     if (strategyId_ == 0) {
-      // AAVE v3 USDC
       return aaveLendingPool.getReserveNormalizedIncome(USDC);
-    } else {
-      // Amphor Restaked ETH & Amphor Symbiotic LRT
-      /// @dev The token compounds in value so amount is constant
+    } else if (strategyId_ == 1 || strategyId_ == 2) {
       return RayMath.RAY;
+    } else if (strategyId_ == 3) {
+      return IERC4626(morphoMevVault).convertToAssets(RayMath.RAY);
     }
+    revert NotAValidStrategy();
   }
 
   /**
@@ -206,17 +200,15 @@ contract StrategyManagerVE is IStrategyManager, Ownable {
     uint256 amount_,
     uint256 startRewardIndex_,
     uint256 endRewardIndex_
-  ) external pure checkId(strategyId_) returns (uint256) {
-    if (strategyId_ == 0) {
-      // AAVE v3 USDC
+  ) external pure returns (uint256) {
+    if (strategyId_ == 0 || strategyId_ == 3) {
       return
         amount_.rayMul(endRewardIndex_).rayDiv(startRewardIndex_) -
         amount_;
-    } else {
-      // Amphor Restaked ETH & Amphor Symbiotic LRT
-      /// @dev For value compounding strategies rewards are not computed
+    } else if (strategyId_ == 1 || strategyId_ == 2) {
       return 0;
     }
+    revert NotAValidStrategy();
   }
 
   /**
@@ -226,15 +218,15 @@ contract StrategyManagerVE is IStrategyManager, Ownable {
    */
   function underlyingAsset(
     uint256 strategyId_
-  ) public view checkId(strategyId_) returns (address) {
+  ) public view returns (address) {
     if (strategyId_ == 0) {
-      // AAVE v3 USDC
       return USDC;
-    } else {
-      // Amphor Restaked ETH & Amphor Symbiotic LRT
-      /// @dev deposits/withdrawals in underlying are not supported for Amphor strategies
+    } else if (strategyId_ == 1 || strategyId_ == 2) {
       return wstETH;
+    } else if (strategyId_ == 3) {
+      return morphoMevVaultUnderlying;
     }
+    revert NotAValidStrategy();
   }
 
   /**
@@ -244,17 +236,17 @@ contract StrategyManagerVE is IStrategyManager, Ownable {
    */
   function wrappedAsset(
     uint256 strategyId_
-  ) public view checkId(strategyId_) returns (address) {
+  ) public view returns (address) {
     if (strategyId_ == 0) {
-      // AAVE v3 USDC
       return aUSDC;
     } else if (strategyId_ == 1) {
-      // Amphor Restaked ETH
       return amphrETH;
-    } else {
-      // Amphor Symbiotic LRT
+    } else if (strategyId_ == 2) {
       return amphrLRT;
+    } else if (strategyId_ == 3) {
+      return morphoMevVault;
     }
+    revert NotAValidStrategy();
   }
 
   /**
@@ -284,7 +276,11 @@ contract StrategyManagerVE is IStrategyManager, Ownable {
   function wrappedToUnderlying(
     uint256 strategyId_,
     uint256 amountWrapped_
-  ) public pure checkId(strategyId_) returns (uint256) {
+  ) public view checkId(strategyId_) returns (uint256) {
+    if (strategyId_ == 3) {
+      return IERC4626(morphoMevVault).convertToAssets(amountWrapped_);
+    }
+
     // For AAVE underlying === wrapped since aToken amounts autocompound
     // For Amphor underlying === wrapped since underlying is not supported
     return amountWrapped_;
@@ -299,7 +295,12 @@ contract StrategyManagerVE is IStrategyManager, Ownable {
   function underlyingToWrapped(
     uint256 strategyId_,
     uint256 amountUnderlying_
-  ) public pure checkId(strategyId_) returns (uint256) {
+  ) public view checkId(strategyId_) returns (uint256) {
+    if (strategyId_ == 3) {
+      return
+        IERC4626(morphoMevVault).convertToShares(amountUnderlying_);
+    }
+
     // For AAVE underlying === wrapped since aToken amounts autocompound
     // For Amphor underlying === wrapped since underlying is not supported
     return amountUnderlying_;
@@ -309,33 +310,42 @@ contract StrategyManagerVE is IStrategyManager, Ownable {
 
   /**
    * @notice Withdraws DAO revenue from the strategy and accrues it in the DAO
-   * @param token_ The address of the token
-   * @param amount_ The amount of tokens to accrue
+   * @param strategyId_ The ID of the strategy
+   * @param amountRewardsUnderlying_ The amount of rewards in underlying tokens
+   * @param yieldBonus_ The yield bonus in RAY
    */
-  function _accrueToDao(address token_, uint256 amount_) private {
-    // Since we remove 1 for rounding errors
-    if (amount_ < 1) return;
+  function _accrueToDao(
+    uint256 strategyId_,
+    uint256 amountRewardsUnderlying_,
+    uint256 yieldBonus_
+  ) private returns (uint256 daoShareUnderlying) {
+    if (
+      strategyFeeRate == 0 ||
+      amountRewardsUnderlying_ == 0 ||
+      strategyFeeRate <= yieldBonus_
+    ) return 0;
 
-    if (token_ == USDC) {
-      // AAVE v3 USDC
-      // Withdraw the revenue from the strategy to the DAO contract
-      aaveLendingPool.withdraw(
-        token_,
-        amount_ - 1,
-        address(ecclesiaDao)
-      );
-    } else {
-      // Amphor Restaked ETH & Amphor Symbiotic LRT
-      IERC20(token_).safeTransfer(address(ecclesiaDao), amount_ - 1);
-    }
+    daoShareUnderlying =
+      (amountRewardsUnderlying_ * (strategyFeeRate - yieldBonus_)) /
+      HUNDRED_PERCENT;
+
+    if (daoShareUnderlying == 0) return 0;
+
+    uint256 daoShareWrapped = underlyingToWrapped(
+      strategyId_,
+      daoShareUnderlying
+    );
+
+    address token = wrappedAsset(strategyId_);
+    IERC20(token).safeTransfer(address(ecclesiaDao), daoShareWrapped);
 
     // This will register the revenue in the DAO for distribution
     if (IsContract._isContract(address(ecclesiaDao))) {
-      ecclesiaDao.accrueRevenue(token_, amount_, 0);
+      ecclesiaDao.accrueRevenue(token, daoShareWrapped, 0);
     }
   }
 
-  //======== UNDERLYING I/O ========//
+  //======== DEPOSIT ========//
 
   /**
    * @notice Deposits underlying tokens into the strategy
@@ -345,12 +355,7 @@ contract StrategyManagerVE is IStrategyManager, Ownable {
   function depositToStrategy(
     uint256 strategyId_,
     uint256 amountUnderlying_
-  )
-    external
-    checkId(strategyId_)
-    onlyLiquidityManager
-    onlyWhiteListedLiquidityProviders
-  {
+  ) external checkId(strategyId_) onlyLiquidityManager {
     if (strategyId_ == 0) {
       // AAVE v3 USDC
       IERC20(USDC).forceApprove(
@@ -364,11 +369,33 @@ contract StrategyManagerVE is IStrategyManager, Ownable {
         address(this),
         0
       );
-    } else {
+    } else if (strategyId_ == 1 || strategyId_ == 2) {
       // Amphor Restaked ETH & Amphor Symbiotic LRT
       revert UseOfUnderlyingAssetNotSupported();
+    } else if (strategyId_ == 3) {
+      address underlying = underlyingAsset(strategyId_);
+      IERC20(underlying).forceApprove(
+        morphoMevVault,
+        amountUnderlying_
+      );
+      IERC4626(morphoMevVault).deposit(
+        amountUnderlying_,
+        address(this)
+      );
     }
   }
+
+  /**
+   * @notice Deposits wrapped tokens into the strategy
+   * @param strategyId_ The ID of the strategy
+   */
+  function depositWrappedToStrategy(
+    uint256 strategyId_
+  ) external checkId(strategyId_) onlyLiquidityManager {
+    // No need to deposit wrapped asset into strategy as they already compound by holding
+  }
+
+  //======== WITHDRAW ========//
 
   /**
    * @notice Withdraws underlying tokens from the strategy
@@ -384,45 +411,23 @@ contract StrategyManagerVE is IStrategyManager, Ownable {
     uint256 amountRewardsUnderlying_,
     address account_,
     uint256 yieldBonus_
-  )
-    external
-    checkId(strategyId_)
-    onlyLiquidityManager
-    onlyWhiteListedLiquidityProviders
-  {
+  ) external checkId(strategyId_) onlyLiquidityManager {
     if (strategyId_ == 0) {
       // AAVE v3 USDC
       uint256 amountToWithdraw = amountCapitalUnderlying_ +
         amountRewardsUnderlying_;
 
-      // If the strategy has performance fees then compute the DAO share
-      // @dev the bonus is subtracted from the performance fee
-      if (
-        strategyFeeRate != 0 &&
-        amountRewardsUnderlying_ != 0 &&
-        yieldBonus_ < strategyFeeRate
-      ) {
-        // @bw simplify by deduction bonus from fee rate ?
-        uint256 daoShare = ((amountRewardsUnderlying_ *
-          strategyFeeRate) -
-          (amountRewardsUnderlying_ * yieldBonus_)) / HUNDRED_PERCENT;
+      // Check for DAO share on strategy rewards
+      uint256 daoShare = _accrueToDao(
+        strategyId_,
+        amountRewardsUnderlying_,
+        yieldBonus_
+      );
+      amountToWithdraw -= daoShare;
 
-        if (daoShare != 0) {
-          // Deduct the daoShare from the amount to withdraw
-          amountToWithdraw -= daoShare;
-          _accrueToDao(USDC, daoShare);
-        }
-      }
-
-      // Since we remove 1 for rounding errors
-      if (amountToWithdraw <= 1) return;
-
-      // @dev No need to approve aToken since they are burned in pool
-      // @dev Remove 1 for rounding errors
-      aaveLendingPool.withdraw(USDC, amountToWithdraw - 1, account_);
-    } else {
+      aaveLendingPool.withdraw(USDC, amountToWithdraw, account_);
+    } else if (strategyId_ == 1 || strategyId_ == 2) {
       // Amphor Restaked ETH & Amphor Symbiotic LRT
-      // @dev deposits/withdrawals in underlying are not supported for Amphor strategies
       return
         withdrawWrappedFromStrategy(
           strategyId_,
@@ -431,24 +436,27 @@ contract StrategyManagerVE is IStrategyManager, Ownable {
           account_,
           yieldBonus_
         );
+    } else if (strategyId_ == 3) {
+      uint256 amountToWithdraw = amountCapitalUnderlying_ +
+        amountRewardsUnderlying_;
+
+      // Handle performance fees
+      uint256 daoShare = _accrueToDao(
+        strategyId_,
+        amountRewardsUnderlying_,
+        yieldBonus_
+      );
+      amountToWithdraw -= daoShare;
+
+      // Convert underlying amount to shares
+      uint256 sharesToWithdraw = IERC4626(morphoMevVault)
+        .convertToShares(amountToWithdraw);
+      IERC4626(morphoMevVault).redeem(
+        sharesToWithdraw,
+        account_,
+        address(this)
+      );
     }
-  }
-
-  //======== WRAPPED I/O ========//
-
-  /**
-   * @notice Deposits wrapped tokens into the strategy
-   * @param strategyId_ The ID of the strategy
-   */
-  function depositWrappedToStrategy(
-    uint256 strategyId_
-  )
-    external
-    checkId(strategyId_)
-    onlyLiquidityManager
-    onlyWhiteListedLiquidityProviders
-  {
-    // No need to deposit wrapped asset into strategy as they already compound by holding
   }
 
   /**
@@ -465,40 +473,23 @@ contract StrategyManagerVE is IStrategyManager, Ownable {
     uint256 amountRewardsUnderlying_,
     address account_,
     uint256 yieldBonus_
-  )
-    public
-    checkId(strategyId_)
-    onlyLiquidityManager
-    onlyWhiteListedLiquidityProviders
-  {
-    /// @dev override underlying for Amphor strategies since it is not supported
-    (address underlying, address wrapped) = strategyId_ == 0
-      ? assets(strategyId_) // AAVE v3 USDC
-      : (wrappedAsset(strategyId_), wrappedAsset(strategyId_)); // Amphor Restaked ETH & Amphor Symbiotic LRT
-
+  ) public checkId(strategyId_) onlyLiquidityManager {
     // Compute amount of wrapped to send to account
     uint256 amountToWithdraw = underlyingToWrapped(
       strategyId_,
-      amountCapitalUnderlying_
-    ) + underlyingToWrapped(strategyId_, amountRewardsUnderlying_);
+      amountCapitalUnderlying_ + amountRewardsUnderlying_
+    );
 
-    // If the strategy has performance fees then compute the DAO share
-    if (strategyFeeRate != 0 && amountRewardsUnderlying_ != 0) {
-      uint256 daoShare = (amountRewardsUnderlying_ *
-        (strategyFeeRate - yieldBonus_)) / RayMath.RAY;
+    // Check for DAO share on strategy rewards
+    uint256 daoShare = _accrueToDao(
+      strategyId_,
+      amountRewardsUnderlying_,
+      yieldBonus_
+    );
+    amountToWithdraw -= daoShare;
 
-      if (daoShare != 0) {
-        // Deduct the daoShare from the amount to withdraw
-        amountToWithdraw -= daoShare;
-        _accrueToDao(underlying, daoShare);
-      }
-    }
-
-    // Since we remove 1 for rounding errors
-    if (amountToWithdraw <= 1) return;
-
-    // @dev Remove 1 for rounding errors
-    IERC20(wrapped).safeTransfer(account_, amountToWithdraw - 1);
+    address wrapped = wrappedAsset(strategyId_);
+    IERC20(wrapped).safeTransfer(account_, amountToWithdraw);
   }
 
   //======== CLAIMS ========//
@@ -518,7 +509,6 @@ contract StrategyManagerVE is IStrategyManager, Ownable {
       HUNDRED_PERCENT;
 
     // @dev No need to approve aToken since they are burned in pool
-    // @dev Remove 1 for rounding errors
     uint256 amountToPayout = (amountUnderlying_ - deductible);
 
     if (strategyId_ == 0) {
@@ -528,10 +518,7 @@ contract StrategyManagerVE is IStrategyManager, Ownable {
       if (0 < deductible)
         aaveLendingPool.withdraw(USDC, deductible, buybackWallet);
 
-      // Since we remove 1 for rounding errors
-      if (amountToPayout <= 1) return;
-
-      aaveLendingPool.withdraw(USDC, amountToPayout - 1, account_);
+      aaveLendingPool.withdraw(USDC, amountToPayout, account_);
     } else {
       // Amphor Restaked ETH & Amphor Symbiotic LRT
       address asset = wrappedAsset(strategyId_);
@@ -540,10 +527,7 @@ contract StrategyManagerVE is IStrategyManager, Ownable {
       if (0 < deductible)
         IERC20(asset).safeTransfer(buybackWallet, deductible);
 
-      // Since we remove 1 for rounding errors
-      if (amountToPayout <= 1) return;
-
-      IERC20(asset).safeTransfer(account_, amountToPayout - 1);
+      IERC20(asset).safeTransfer(account_, amountToPayout);
     }
   }
 
@@ -588,32 +572,6 @@ contract StrategyManagerVE is IStrategyManager, Ownable {
   ) external onlyOwner {
     if (HUNDRED_PERCENT < rate_) revert RateAboveMax();
     payoutDeductibleRate = rate_;
-  }
-
-  /**
-   * @notice Turns the whitelist on or off
-   * @param isEnabled_ The new whitelist status
-   */
-  function setWhitelistStatus(bool isEnabled_) external onlyOwner {
-    isWhitelistEnabled = isEnabled_;
-  }
-
-  /**
-   * @notice Adds or removes addresses from the whitelist
-   * @param address_ The addresses to add or remove
-   * @param status_ The status of the addresses
-   */
-  function editWhitelistAddresses(
-    address[] calldata address_,
-    bool[] calldata status_
-  ) external onlyOwner {
-    uint256 length = address_.length;
-
-    if (length != status_.length) revert ArgumentLengthMismatch();
-
-    for (uint256 i; i < length; i++) {
-      whiteListedLiquidityProviders[address_[i]] = status_[i];
-    }
   }
 
   /**
