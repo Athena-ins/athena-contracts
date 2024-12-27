@@ -312,7 +312,7 @@ const config: HardhatUserConfig & {
     // @dev Switch between fixed and dynamic gas & ETH price
 
     //=== Fixed ===//
-    gasPrice: Number(ETHERUM_PRICE) * Number(ETHERUM_GAS_PRICE),
+    // gasPrice: Number(ETHERUM_PRICE) * Number(ETHERUM_GAS_PRICE),
 
     //=== Dynamic ===//
     // gasPriceApi:

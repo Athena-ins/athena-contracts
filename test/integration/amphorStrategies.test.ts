@@ -7,10 +7,7 @@ import {
   getConnectedProtocolContracts,
   VEConnectedProtocolContracts,
 } from "../helpers/contracts-getters";
-import {
-  deployAllContractsAndInitializeProtocolVE,
-  VEProtocolContracts,
-} from "../helpers/deployersVE";
+import { VEProtocolContracts } from "../helpers/deployersVE";
 import {
   entityProviderChainId,
   getCurrentTime,
@@ -74,7 +71,7 @@ export function AmphorStrategiesTest() {
 
       const veContracts = await getConnectedProtocolContracts(
         getNetworkAddresses(),
-        "ethereum",
+        "ethereum-amphor",
       );
       // const veContracts = await deployAllContractsAndInitializeProtocolVE(
       //   this.signers.deployer,
