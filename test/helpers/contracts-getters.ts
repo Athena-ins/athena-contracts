@@ -16,6 +16,8 @@ import {
   StrategyManager__factory,
   StrategyManagerVE,
   StrategyManagerVE__factory,
+  StrategyManagerMorpho,
+  StrategyManagerMorpho__factory,
   StrategyManagerVL,
   StrategyManagerVL__factory,
   StrategyManagerCore,
@@ -92,6 +94,9 @@ export async function getStrategyManager(address: string) {
 export async function getStrategyManagerVE(address: string) {
   return connectWrapper(StrategyManagerVE__factory, address);
 }
+export async function getStrategyManagerMorpho(address: string) {
+  return connectWrapper(StrategyManagerMorpho__factory, address);
+}
 export async function getStrategyManagerVL(address: string) {
   return connectWrapper(StrategyManagerVL__factory, address);
 }
@@ -150,7 +155,12 @@ export type ConnectedProtocolContracts = {
   AthenaArbitrator: ConnectWithAddress<AthenaArbitrator>;
   ClaimManager: ConnectWithAddress<ClaimManager>;
   LiquidityManager: ConnectWithAddress<LiquidityManager>;
-  StrategyManager: ConnectWithAddress<StrategyManager>;
+  StrategyManager:
+    | ConnectWithAddress<StrategyManager>
+    | ConnectWithAddress<StrategyManagerVE>
+    | ConnectWithAddress<StrategyManagerMorpho>
+    | ConnectWithAddress<StrategyManagerVL>
+    | ConnectWithAddress<StrategyManagerCore>;
   FarmingRange: ConnectWithAddress<FarmingRange>;
   RewardManager: ConnectWithAddress<RewardManager>;
   Staking: ConnectWithAddress<Staking>;
@@ -160,8 +170,14 @@ export type ConnectedProtocolContracts = {
   // TestableVirtualPool: ConnectWithAddress<TestableVirtualPool>;
 };
 
+export type DefaultConnectedProtocolContracts = ConnectedProtocolContracts & {
+  StrategyManager: ConnectWithAddress<StrategyManager>;
+};
 export type VEConnectedProtocolContracts = ConnectedProtocolContracts & {
   StrategyManager: ConnectWithAddress<StrategyManagerVE>;
+};
+export type MorphoConnectedProtocolContracts = ConnectedProtocolContracts & {
+  StrategyManager: ConnectWithAddress<StrategyManagerMorpho>;
 };
 export type VLConnectedProtocolContracts = ConnectedProtocolContracts & {
   StrategyManager: ConnectWithAddress<StrategyManagerVL>;
@@ -172,8 +188,13 @@ export type CoreConnectedProtocolContracts = ConnectedProtocolContracts & {
 
 export async function getConnectedProtocolContracts(
   addresses: NetworkAddressDirectory,
-  version: "ethereum",
+  version: "ethereum-amphor",
 ): Promise<VEConnectedProtocolContracts>;
+
+export async function getConnectedProtocolContracts(
+  addresses: NetworkAddressDirectory,
+  version: "ethereum-morpho",
+): Promise<MorphoConnectedProtocolContracts>;
 
 export async function getConnectedProtocolContracts(
   addresses: NetworkAddressDirectory,
@@ -187,25 +208,23 @@ export async function getConnectedProtocolContracts(
 
 export async function getConnectedProtocolContracts(
   addresses: NetworkAddressDirectory,
-  version?: undefined,
-): Promise<ConnectedProtocolContracts>;
+  version: undefined,
+): Promise<DefaultConnectedProtocolContracts>;
 
 export async function getConnectedProtocolContracts(
   addresses: NetworkAddressDirectory,
-  version?: "ethereum" | "lisk" | "core",
-): Promise<
-  | ConnectedProtocolContracts
-  | VEConnectedProtocolContracts
-  | VLConnectedProtocolContracts
-  | CoreConnectedProtocolContracts
-> {
+  version?: "ethereum-amphor" | "ethereum-morpho" | "lisk" | "core",
+): Promise<ConnectedProtocolContracts> {
   let stratManagerGetter:
     | typeof getStrategyManager
     | typeof getStrategyManagerVE
+    | typeof getStrategyManagerMorpho
     | typeof getStrategyManagerVL
     | typeof getStrategyManagerCore = getStrategyManager;
 
-  if (version === "ethereum") stratManagerGetter = getStrategyManagerVE;
+  if (version === "ethereum-amphor") stratManagerGetter = getStrategyManagerVE;
+  if (version === "ethereum-morpho")
+    stratManagerGetter = getStrategyManagerMorpho;
   if (version === "lisk") stratManagerGetter = getStrategyManagerVL;
   if (version === "core") stratManagerGetter = getStrategyManagerCore;
 

@@ -35,6 +35,8 @@ import {
   StrategyManager,
   StrategyManagerVE__factory,
   StrategyManagerVE,
+  StrategyManagerMorpho__factory,
+  StrategyManagerMorpho,
   StrategyManagerVL__factory,
   StrategyManagerVL,
   StrategyManagerCore__factory,
@@ -207,6 +209,17 @@ export async function deployStrategyManager(
   });
 }
 
+export async function deployStrategyManagerMorpho(
+  signer: Signer,
+  args: Parameters<StrategyManagerMorpho__factory["deploy"]>,
+): Promise<WithAddress<StrategyManagerMorpho>> {
+  return new StrategyManagerMorpho__factory(signer)
+    .deploy(...args)
+    .catch((err) => {
+      throw Error(`Deploy StrategyManagerMorpho:\n${err}`);
+    });
+}
+
 export async function deployStrategyManagerVE(
   signer: Signer,
   args: Parameters<StrategyManagerVE__factory["deploy"]>,
@@ -326,6 +339,7 @@ export type ProtocolConfig = {
   wstETH?: string;
   amphrETH?: string;
   amphrLRT?: string;
+  morphoMevVault?: string;
   // For Lisk strategy
   usdt?: string;
   lsk?: string;
