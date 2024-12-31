@@ -385,6 +385,10 @@ export async function getTokens(
   const wethAddress = wethTokenAddress(chainId);
   const weth = IWETH__factory.connect(wethAddress, signer);
 
+  if (token.toLowerCase() === wethAddress.toLowerCase()) {
+    return postTxHandler(weth.deposit({ value: amount }));
+  }
+
   /// @dev for Core the token is lower in value
   const amountIn = chainId === 1116 ? parseEther("10000") : parseEther("500");
 
