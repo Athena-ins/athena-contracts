@@ -7,7 +7,11 @@ import {
   getConnectedProtocolContracts,
   VEConnectedProtocolContracts,
 } from "../helpers/contracts-getters";
-import { VEProtocolContracts } from "../helpers/deployersVE";
+import { getDefaultProtocolConfig } from "../../scripts/verificationData/deployParams";
+import {
+  deployAllContractsAndInitializeProtocolVE,
+  VEProtocolContracts,
+} from "../helpers/deployersVE";
 import {
   entityProviderChainId,
   getCurrentTime,
@@ -55,11 +59,11 @@ interface Arguments extends Mocha.Context {
 
 export function AmphorStrategiesTest() {
   context("Amphor Strategies Test", function () {
-    // @dev Huge timeout for edge cases with +20 pools / claims / positions / etc.
     this.timeout(600_000);
 
     before(async function (this: Arguments) {
       const chainId = await entityProviderChainId(this.signers.deployer);
+      this.protocolConfig = getDefaultProtocolConfig("amphor");
 
       if (chainId !== 1) {
         console.warn("\n\nTest is disabled for non-mainnet network\n\n");
@@ -69,14 +73,14 @@ export function AmphorStrategiesTest() {
         throw new Error("amphrETH or amphrLRT not set in protocol config");
       }
 
-      const veContracts = await getConnectedProtocolContracts(
-        getNetworkAddresses(),
-        "ethereum-amphor",
-      );
-      // const veContracts = await deployAllContractsAndInitializeProtocolVE(
-      //   this.signers.deployer,
-      //   this.protocolConfig,
+      // const veContracts = await getConnectedProtocolContracts(
+      //   getNetworkAddresses(),
+      //   "ethereum-amphor",
       // );
+      const veContracts = await deployAllContractsAndInitializeProtocolVE(
+        this.signers.deployer,
+        this.protocolConfig,
+      );
 
       const veHelpers = await makeTestHelpers(
         this.signers.deployer,
@@ -95,9 +99,9 @@ export function AmphorStrategiesTest() {
           this.protocolConfig.amphrLRT,
           veContracts.CircleToken.address,
         ],
-        claimResolvePeriod: 186 * DAY_SECONDS,
-        withdrawDelay: 10 * DAY_SECONDS,
-        aaveStrategyId: 2,
+        claimResolvePeriod: 186,
+        withdrawDelay: 10,
+        aaveStrategyId: 0,
         //
         lpAmountUsd: parseUnits("1000", 6),
         lpIncreaseAmountUsd: parseUnits("1500", 6),
