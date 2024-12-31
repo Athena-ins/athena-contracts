@@ -1,20 +1,17 @@
-import { Wallet, BigNumber } from "ethers";
+import { BigNumber, Wallet } from "ethers";
 import hre, { ethers } from "hardhat";
+import { getConnectedProtocolContracts } from "../test/helpers/contracts-getters";
 import {
-  deployAllContractsAndInitializeProtocol,
+  deployStrategyManagerMorpho,
   ProtocolConfig,
 } from "../test/helpers/deployers";
-import { deployAllContractsAndInitializeProtocolV0 } from "../test/helpers/deployersV0";
-import { deployAllContractsAndInitializeProtocolVE } from "../test/helpers/deployersVE";
-import { deployAllContractsAndInitializeProtocolMorpho } from "../test/helpers/deployersMorpho";
-import { deployAllContractsAndInitializeProtocolVL } from "../test/helpers/deployersVL";
-import { deployAllContractsAndInitializeProtocolCore } from "../test/helpers/deployersCore";
-import { countdown } from "../test/helpers/miscUtils";
-import { getDeployConfig } from "./verificationData/deployParams";
+import { fromFork, entityProviderChainId } from "../test/helpers/hardhat";
+import {
+  aaveLendingPoolV3Address,
+  usdcTokenAddress,
+} from "../test/helpers/protocol";
 import { getNetworkAddresses } from "./verificationData/addresses";
-import { fromFork } from "../test/helpers/hardhat";
-
-const ALLOW_PARTIAL_DEPLOY = false;
+import { getDeployConfig } from "./verificationData/deployParams";
 
 const { formatEther } = ethers.utils;
 
@@ -46,22 +43,47 @@ async function main() {
 
     if (balance.eq(0)) throw new Error("Zero balance in deployer wallet");
 
+    const chainId = await entityProviderChainId(deployer);
+    const addresses = getNetworkAddresses();
     const config = getDeployConfig();
-    console.log("\n\nconfig: ", formatConfigForLog(config));
-
-    // Used to setup in case of partial deploys
-    const addresses = ALLOW_PARTIAL_DEPLOY ? getNetworkAddresses() : {};
+    // console.log("\n\nconfig: ", formatConfigForLog(config));
 
     //===============//
     //== CONTRACTS ==//
     //===============//
-
-    await deployAllContractsAndInitializeProtocolVL(
-      deployer,
-      config,
+    const contracts = await getConnectedProtocolContracts(
       addresses,
-      true,
+      "ethereum-amphor",
     );
+
+    const StrategyManagerMorpho = await deployStrategyManagerMorpho(deployer, [
+      contracts.LiquidityManager.address,
+      deployer.address, // EcclesiaDao
+      aaveLendingPoolV3Address(chainId),
+      usdcTokenAddress(chainId),
+      config.buybackWallet.address,
+      config.payoutDeductibleRate,
+      config.strategyFeeRate,
+      config.wstETH as string,
+      config.amphrETH as string,
+      config.amphrLRT as string,
+      config.morphoMevVault as string,
+    ]);
+
+    console.log(
+      "StrategyManagerMorpho.address: ",
+      StrategyManagerMorpho.address,
+    );
+    await contracts.LiquidityManager.updateConfig(
+      deployer.address, // ecclesiaDao
+      StrategyManagerMorpho.address, // strategyManager
+      contracts.ClaimManager.address, // claimManager
+      deployer.address, // yieldRewarder
+      config.withdrawDelay, // withdrawDelay
+      config.maxLeverage, // maxLeverage
+      config.leverageFeePerPool, // leverageFeePerPool
+    );
+
     console.log("\n==> Contracts OK");
 
     const [balanceAfter, gasPrice] = await Promise.all([
@@ -77,7 +99,7 @@ async function main() {
       )} GWEI`,
     );
 
-    console.log("\n==> Protocol deployed & setup");
+    console.log("\n==> Contract deployed & setup");
   } catch (err: any) {
     console.log(err);
   }
