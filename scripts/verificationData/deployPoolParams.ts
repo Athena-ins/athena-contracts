@@ -418,6 +418,14 @@ function formatCompatiblePools(networkPools: {
   for (const [i, pool] of poolParams.entries()) {
     // Check each incompatible pool
     for (const incompatiblePool of pool.incompatiblePools) {
+      // If the pool is not being deployed it is not necessary to check
+      if (!networkPools[incompatiblePool]) {
+        console.log(
+          `\n>> WARN Must update pool ${incompatiblePool} with new incompatible pool ${poolNames[i]}`,
+        );
+        continue;
+      }
+
       // To see if the other pool has the current pool as incompatible
       const hasMirror = networkPools?.[
         incompatiblePool
