@@ -27,6 +27,7 @@ import {
   StrategyManager__factory,
   StrategyManagerVE__factory,
   StrategyManagerVL__factory,
+  StrategyManagerMorpho__factory,
   VirtualPool__factory,
 } from "../typechain";
 import { ProtocolContracts } from "../test/helpers/deployers";
@@ -34,24 +35,34 @@ import { ProtocolContracts } from "../test/helpers/deployers";
 import dotenv from "dotenv";
 dotenv.config();
 
-const VERIFY_V0 = true;
+const VERIFY_V0 = false;
 const VERIFY_VE = false;
-const VERIFY_VL = true;
+const VERIFY_VL = false;
+const VERIFY_MORPHO = true;
 
-if (VERIFY_VE && VERIFY_VL)
-  throw Error("VERIFY_VE and VERIFY_V0 cannot be true at the same time");
+const nbStrategyManagerOptions = [
+  VERIFY_V0,
+  VERIFY_VE,
+  VERIFY_VL,
+  VERIFY_MORPHO,
+]
+  .map((el) => Number(el))
+  .reduce((a, b) => a + b, 0);
+
+if (1 < nbStrategyManagerOptions)
+  throw Error("Can only verify one strategy at a time");
 
 const shouldVerify: Partial<keyof ProtocolContracts>[] = [
   // "AthenaCoverToken",
   // "AthenaPositionToken",
   // "AthenaToken",
-  "PoolMath",
-  "VirtualPool",
-  "AthenaDataProvider",
-  "ClaimManager",
-  "AthenaArbitrator",
+  // "PoolMath",
+  // "VirtualPool",
+  // "AthenaDataProvider",
+  // "ClaimManager",
+  // "AthenaArbitrator",
   "StrategyManager",
-  "LiquidityManager",
+  // "LiquidityManager",
   // "RewardManager",
   // "FarmingRange",
   // "Staking",
@@ -176,9 +187,10 @@ export async function runTaskWithRetry(
 async function main() {
   const networkName = hre.network.name.toUpperCase();
   console.log(`\n== VERIFYING ON ${networkName} ==\n`);
-  console.log("VERIFY_V0: ", VERIFY_V0);
-  console.log("VERIFY_VE: ", VERIFY_VE);
-  console.log("VERIFY_VL: ", VERIFY_VL);
+  if (VERIFY_V0) console.log(">>> Version VERIFY_V0 <<<\n");
+  if (VERIFY_VE) console.log(">>> Version VERIFY_VE <<<\n");
+  if (VERIFY_VL) console.log(">>> Version VERIFY_VL <<<\n");
+  if (VERIFY_MORPHO) console.log(">>> Version VERIFY_MORPHO <<<\n");
 
   const deployer = (await ethers.getSigners())[0] as unknown as Wallet;
   console.log("deployer: ", deployer.address);
@@ -316,6 +328,31 @@ async function main() {
           config.lsk, // wstETH
           config.lsk, // amphrETH
           config.lsk, // amphrL
+        ],
+      );
+    } else if (VERIFY_MORPHO) {
+      if (
+        !config.wstETH ||
+        !config.amphrETH ||
+        !config.amphrLRT ||
+        !config.morphoMevVault
+      )
+        throw Error("Missing morpho version strategy params");
+
+      await verifyEtherscanContract<StrategyManagerMorpho__factory>(
+        StrategyManager,
+        [
+          LiquidityManager,
+          deployer.address,
+          aaveLendingPoolV3Address(chainId),
+          usdcTokenAddress(chainId),
+          config.buybackWallet.address,
+          config.payoutDeductibleRate, // payoutDeductibleRate
+          config.strategyFeeRate, // performanceFee
+          config.wstETH, // wstETH
+          config.amphrETH, // amphrETH
+          config.amphrLRT, // amphrL
+          config.morphoMevVault,
         ],
       );
     } else {
