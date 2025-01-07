@@ -19,6 +19,7 @@ type AmphorStrategyParams = {
   wstETH: string;
   amphrETH: string;
   amphrLRT: string;
+  weth: string;
   morphoMevVault: string;
 };
 
@@ -43,6 +44,7 @@ export const amphorStrategyParams: AmphorStrategyParams = {
   // (((Strategy 2))) - Amphor Symbiotic LRT
   amphrLRT: "0x06824c27c8a0dbde5f72f770ec82e3c0fd4dcec3".toLowerCase(),
   // (((Strategy 3))) - Morpho MEV Vault
+  weth: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
   morphoMevVault: "0x9a8bC3B04b7f3D87cfC09ba407dCED575f2d61D8",
 };
 

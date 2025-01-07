@@ -23,7 +23,7 @@ const networkAddresses: {
     AthenaArbitrator: "0xf519b11948ffec6c2a2b7a38bc9ff4bd6533bf24",
     ClaimManager: "0x8a440da566b74c811e6ad1df6d36f888db451a31",
     LiquidityManager: "0xbc69d8d072fa7f7b2d6a3773f915e497917a22d9",
-    StrategyManager: "0xdfd097cd3fe208fcbbee09b4bef79442f5693071",
+    StrategyManager: "0xFE0C098968627361aF5785a702545aa5DE09e649",
     RewardManager: "0x0000000000000000000000000000000000000000",
     FarmingRange: "0x0000000000000000000000000000000000000000",
     Staking: "0x0000000000000000000000000000000000000000",

@@ -28,6 +28,8 @@ async function main() {
       addresses.LiquidityManager,
       deployer,
     );
+    const nextPoolId = await LiquidityManager.nextPoolId();
+    console.log("Next Pool Id: ", nextPoolId.toNumber());
 
     //================//
     //== OPEN POOLS ==//
@@ -36,6 +38,12 @@ async function main() {
     const nbPools = poolParams.length;
 
     for (const [i, params] of poolParams.entries()) {
+      // Skip already deployed pools
+      if (i < nextPoolId.toNumber()) {
+        console.log(`==> Pool ${i} (${params.name}) already deployed`);
+        continue;
+      }
+
       await postTxHandler(
         LiquidityManager.createPool(
           params.paymentAsset,
