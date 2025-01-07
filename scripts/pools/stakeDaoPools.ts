@@ -6,10 +6,10 @@ type PoolName = (typeof protocolList)[number];
 
 const mevPools: PoolName[] = [
   "Stake DAO USDT/crvUSD",
-  "Stake DAO crvUSD/tBTC/wstETH", // index 15
+  "Stake DAO crvUSD/tBTC/wstETH",
   "Stake DAO crvUSD Leverage (WETH collat)",
   "Stake DAO crvUSD Leverage (wstETH collat)",
-  "Stake DAO crvUSD Leverage (WBTC collat)", // index 20
+  "Stake DAO crvUSD Leverage (WBTC collat)",
   "Stake DAO crvUSD/WETH/CRV",
   "Stake DAO FRAX/crvUSD",
   "Stake DAO ETH/ETHx",
@@ -391,14 +391,17 @@ function runValidation() {
 }
 
 type PoolConfig = {
-  name: PoolName;
   paymentAsset: string;
   strategyId: BigNumberish;
-  incompatiblePools: number[];
-  compatiblePools: number[];
+  incompatiblePools: string[];
+  compatiblePools?: string[];
+  incompatiblePoolIds?: number[];
+  compatiblePoolIds?: number[];
 };
 
 function generatePoolsFile(poolNames: PoolName[]) {
+  console.log(`\nGenerating pools.json file for ${poolNames.length} pools`);
+
   const paymentAsset = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"; // WETH
   const strategyId = 3; // Morpho MEV Vault
 
@@ -411,30 +414,35 @@ function generatePoolsFile(poolNames: PoolName[]) {
 
   for (const protocol of poolNames) {
     // Maps incompatible IDs to names & remove pools not included in deployment
-    const incompatibleNames = incompatibilities[protocol]
-      .map((id) => protocolList[id])
-      .filter((pool) => poolNames.includes(pool));
+    // const incompatibleNames = incompatibilities[protocol]
+    //   .map((id) => protocolList[id])
+    //   .filter((pool) => poolNames.includes(pool));
+    const newIncompatiblePools: PoolName[] = [];
 
     // Add existing pools to incompatible names
-    const fullIncompatibleNames = [...existingPools, ...incompatibleNames];
+    const incompatiblePools = [...existingPools, ...newIncompatiblePools];
+    const compatiblePools = allPools.filter(
+      (pool) => !incompatiblePools.includes(pool),
+    );
 
     // Maps incompatible names to IDs
-    const incompatiblePools = fullIncompatibleNames.map((pool) => {
+    const incompatiblePoolIds = incompatiblePools.map((pool) => {
       const id = allPools.indexOf(pool);
-      if (id === -1) throw Error("Did not find ID");
+      if (id === -1) console.error("Did not find ID");
       return id;
     });
     // Infer compatible pools from incompatible pools
-    const compatiblePools = Array.from({ length: allPools.length }, (_, i) =>
-      incompatiblePools.includes(i) ? -1 : i,
+    const compatiblePoolIds = Array.from({ length: allPools.length }, (_, i) =>
+      incompatiblePoolIds.includes(i) ? -1 : i,
     ).filter((id) => id !== -1);
 
     deployConfig[protocol] = {
-      name: protocol,
       paymentAsset,
       strategyId,
       incompatiblePools,
-      compatiblePools,
+      // compatiblePools,
+      // incompatiblePoolIds,
+      // compatiblePoolIds,
     };
   }
 
@@ -442,6 +450,7 @@ function generatePoolsFile(poolNames: PoolName[]) {
     "./scripts/pools/pools.json",
     JSON.stringify(deployConfig, null, 2),
   );
+  console.log("pools.json file generated");
 }
 
 runValidation();

@@ -1,0 +1,83 @@
+{
+  "Stake DAO USDT/crvUSD": {
+    "paymentAsset": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+    "strategyId": 3,
+    "incompatiblePools": [
+      "Amphor Restaked ETH",
+      "Amphor Symbiotic LRT Vault",
+      "Stake DAO USDT/crvUSD"
+    ]
+  },
+  "Stake DAO crvUSD/tBTC/wstETH": {
+    "paymentAsset": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+    "strategyId": 3,
+    "incompatiblePools": [
+      "Amphor Restaked ETH",
+      "Amphor Symbiotic LRT Vault",
+      "Stake DAO crvUSD/tBTC/wstETH"
+    ]
+  },
+  "Stake DAO crvUSD Leverage (WETH collat)": {
+    "paymentAsset": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+    "strategyId": 3,
+    "incompatiblePools": [
+      "Amphor Restaked ETH",
+      "Amphor Symbiotic LRT Vault",
+      "Stake DAO crvUSD Leverage (WETH collat)"
+    ]
+  },
+  "Stake DAO crvUSD Leverage (wstETH collat)": {
+    "paymentAsset": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+    "strategyId": 3,
+    "incompatiblePools": [
+      "Amphor Restaked ETH",
+      "Amphor Symbiotic LRT Vault",
+      "Stake DAO crvUSD Leverage (wstETH collat)"
+    ]
+  },
+  "Stake DAO crvUSD Leverage (WBTC collat)": {
+    "paymentAsset": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+    "strategyId": 3,
+    "incompatiblePools": [
+      "Amphor Restaked ETH",
+      "Amphor Symbiotic LRT Vault",
+      "Stake DAO crvUSD Leverage (WBTC collat)"
+    ]
+  },
+  "Stake DAO crvUSD/WETH/CRV": {
+    "paymentAsset": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+    "strategyId": 3,
+    "incompatiblePools": [
+      "Amphor Restaked ETH",
+      "Amphor Symbiotic LRT Vault",
+      "Stake DAO crvUSD/WETH/CRV"
+    ]
+  },
+  "Stake DAO FRAX/crvUSD": {
+    "paymentAsset": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+    "strategyId": 3,
+    "incompatiblePools": [
+      "Amphor Restaked ETH",
+      "Amphor Symbiotic LRT Vault",
+      "Stake DAO FRAX/crvUSD"
+    ]
+  },
+  "Stake DAO ETH/ETHx": {
+    "paymentAsset": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+    "strategyId": 3,
+    "incompatiblePools": [
+      "Amphor Restaked ETH",
+      "Amphor Symbiotic LRT Vault",
+      "Stake DAO ETH/ETHx"
+    ]
+  },
+  "Stake DAO USDC/crvUSD": {
+    "paymentAsset": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+    "strategyId": 3,
+    "incompatiblePools": [
+      "Amphor Restaked ETH",
+      "Amphor Symbiotic LRT Vault",
+      "Stake DAO USDC/crvUSD"
+    ]
+  }
+}
