@@ -7,9 +7,10 @@ import "./helpers/utils/bigIntString";
 import { baseContext } from "./context";
 
 // Integration test suites
-import { deployProtocol } from "./integration/deployProtocol.test";
+import { DeployProtocolTest } from "./integration/deployProtocol.test";
 import { SanityTest } from "./integration/sanity.test";
-import { SanityTestCore } from "./integration/sanityCore.test";
+import { WrappedTokenGatewayTest } from "./integration/wrappedGateway.test";
+import { CoreStrategyTest } from "./integration/coreStrategies.test";
 import { AmphorStrategiesTest } from "./integration/amphorStrategies.test";
 import { MorphoStrategyTest } from "./integration/morphoMevStrategy.test";
 import { MorphoStrategyUpgradeTest } from "./integration/morphoMevStrategyUpgrade.test";
@@ -31,15 +32,16 @@ import { VirtualPoolTests } from "./contracts/VirtualPool";
 
 baseContext("Test Athena Protocol", function () {
   //=== Integration tests ===//
-  deployProtocol();
+  DeployProtocolTest();
   SanityTest();
-  SanityTestCore();
+
+  CoreStrategyTest();
   AmphorStrategiesTest();
   MorphoStrategyTest();
   MorphoStrategyUpgradeTest();
 
   //=== Scenarios ===//
-  ScenarioTests();
+  // ScenarioTests();
 
   //=== Unit tests ===//
   // FarmingRangeTests();

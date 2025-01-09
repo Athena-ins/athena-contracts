@@ -32,7 +32,7 @@ interface Arguments extends Mocha.Context {
   };
 }
 
-export function SanityTestCore() {
+export function CoreStrategyTest() {
   context("Sanity Test Core", function () {
     this.timeout(600_000);
 

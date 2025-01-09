@@ -38,7 +38,7 @@ interface Arguments extends Omit<Mocha.Context, "contracts"> {
   };
 }
 
-export function deployProtocol() {
+export function DeployProtocolTest() {
   context("Setup protocol", function () {
     before(async function (this: Arguments) {
       this.args = {
