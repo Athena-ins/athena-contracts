@@ -12,6 +12,7 @@ import { SanityTest } from "./integration/sanity.test";
 import { SanityTestCore } from "./integration/sanityCore.test";
 import { AmphorStrategiesTest } from "./integration/amphorStrategies.test";
 import { MorphoStrategyTest } from "./integration/morphoMevStrategy.test";
+import { MorphoStrategyUpgradeTest } from "./integration/morphoMevStrategyUpgrade.test";
 
 // Scenarios
 import { ScenarioTests } from "./scenarios/scenario.test";
@@ -35,6 +36,7 @@ baseContext("Test Athena Protocol", function () {
   SanityTestCore();
   AmphorStrategiesTest();
   MorphoStrategyTest();
+  MorphoStrategyUpgradeTest();
 
   //=== Scenarios ===//
   ScenarioTests();
