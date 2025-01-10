@@ -63,10 +63,8 @@ import {
   AthenaDataProvider__factory,
   AthenaDataProvider,
   // Other
-  // TestableVirtualPool__factory,
-  // TestableVirtualPool,
-  // TestableLiquidityManager__factory,
-  // TestableLiquidityManager,
+  BasicProxy__factory,
+  BasicProxy,
   TetherToken__factory,
   TetherToken,
   IWETH,
@@ -300,6 +298,15 @@ export async function deployAthenaToken(
 ): Promise<WithAddress<AthenaToken>> {
   return new AthenaToken__factory(signer).deploy(...args).catch((err) => {
     throw Error(`Deploy AthenaToken:\n${err}`);
+  });
+}
+
+export async function deployBasicProxy(
+  signer: Signer,
+  args: Parameters<BasicProxy__factory["deploy"]>,
+): Promise<WithAddress<BasicProxy>> {
+  return new BasicProxy__factory(signer).deploy(...args).catch((err) => {
+    throw Error(`Deploy BasicProxy:\n${err}`);
   });
 }
 

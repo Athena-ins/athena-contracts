@@ -1,15 +1,15 @@
 import {
   BaseContract,
+  BigNumber,
   BigNumberish,
+  Contract,
   ContractTransaction,
   Signer,
   Wallet,
   utils,
 } from "ethers";
-import hre, { ethers, network } from "hardhat";
-import { HardhatNetworkConfig, HardhatRuntimeEnvironment } from "hardhat/types";
+import hre, { ethers } from "hardhat";
 import { ERC20__factory } from "../../typechain";
-import { BigNumber } from "ethers";
 
 const { keccak256 } = utils;
 const { MaxUint256 } = ethers.constants;
@@ -282,4 +282,34 @@ export async function convertToCurrencyDecimals(
   let decimals = (await token.decimals()).toString();
 
   return ethers.utils.parseUnits(amount.toString(), decimals);
+}
+
+// ============== //
+// === PROXY === //
+// ============== //
+
+export async function getProxyAdmin(proxyContract: Contract): Promise<string> {
+  // ERC1967 storage slot
+  const ADMIN_SLOT =
+    "0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103";
+
+  const adminBytes = await proxyContract.provider.getStorageAt(
+    proxyContract.address,
+    ADMIN_SLOT,
+  );
+  return ethers.utils.getAddress(ethers.utils.hexDataSlice(adminBytes, 12));
+}
+
+export async function getProxyImplementation(
+  proxyContract: Contract,
+): Promise<string> {
+  // ERC1967 storage slot
+  const IMPLEMENTATION_SLOT =
+    "0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc";
+
+  const implBytes = await proxyContract.provider.getStorageAt(
+    proxyContract.address,
+    IMPLEMENTATION_SLOT,
+  );
+  return ethers.utils.getAddress(ethers.utils.hexDataSlice(implBytes, 12));
 }
