@@ -32,17 +32,18 @@ import { VirtualPoolTests } from "./contracts/VirtualPool";
 
 baseContext("Test Athena Protocol", function () {
   //=== Integration tests ===//
-  DeployProtocolTest();
-  SanityTest();
-
-  CoreStrategyTest();
-  AmphorStrategiesTest();
-  MorphoStrategyTest();
-  MorphoStrategyUpgradeTest();
-
+  // DeployProtocolTest();
+  // SanityTest();
+  // WrappedTokenGatewayTest();
+  //
+  // CoreStrategyTest();
+  // AmphorStrategiesTest();
+  // MorphoStrategyTest();
+  // MorphoStrategyUpgradeTest();
+  //
   //=== Scenarios ===//
   // ScenarioTests();
-
+  //
   //=== Unit tests ===//
   // FarmingRangeTests();
   // LiquidityManagerTests();

@@ -1438,9 +1438,14 @@ contract LiquidityManager is
   }
 
   /**
-   * @notice Updates the withdraw delay and the maximum leverage
+   * @notice Updates key configuration parameters
+   * @param ecclesiaDao_ The new DAO address
+   * @param strategyManager_ The new strategy manager address
+   * @param claimManager_ The new claim manager address
+   * @param yieldRewarder_ The new yield rewarder address
    * @param withdrawDelay_ The new withdraw delay
    * @param maxLeverage_ The new maximum leverage
+   * @param leverageFeePerPool_ The new leverage fee per pool
    */
   function updateConfig(
     IEcclesiaDao ecclesiaDao_,
