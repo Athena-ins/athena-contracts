@@ -130,7 +130,7 @@ export function MorphoStrategyUpgradeTest() {
         assets: [
           this.protocolConfig.amphrETH,
           this.protocolConfig.amphrLRT,
-          usdcTokenAddress(this.args.chainId),
+          usdcTokenAddress(chainId),
         ],
         aaveStrategyId: 0,
         morphoStrategyId: 3,
@@ -176,33 +176,47 @@ export function MorphoStrategyUpgradeTest() {
         );
 
         // Initialize state using existing setters
-        await strategyManager.updateAddressList(
-          this.customEnv.contracts.LiquidityManager.address,
-          this.customEnv.contracts.EcclesiaDao.address,
-          this.config.buybackWallet.address,
-        );
-        await strategyManager.updateStrategyFeeRate(
-          this.config.strategyFeeRate,
-        );
-        await strategyManager.updatePayoutDeductibleRate(
-          this.config.payoutDeductibleRate,
-        );
+        await strategyManager
+          .updateAddressList(
+            this.customEnv.contracts.LiquidityManager.address,
+            this.customEnv.contracts.EcclesiaDao.address,
+            this.signers.buybackWallet.address,
+          )
+          .then((tx) => tx.wait());
+        await strategyManager
+          .updateStrategyFeeRate(this.protocolConfig.strategyFeeRate)
+          .then((tx) => tx.wait());
+        await strategyManager
+          .updatePayoutDeductibleRate(this.protocolConfig.payoutDeductibleRate)
+          .then((tx) => tx.wait());
 
         // Verify state was updated
-        expect(await strategyManager.liquidityManager()).to.equal(
-          this.customEnv.contracts.LiquidityManager.address,
+        const [
+          liquidityManager,
+          ecclesiaDao,
+          buybackWallet,
+          strategyFeeRate,
+          payoutDeductibleRate,
+        ] = await Promise.all([
+          strategyManager.liquidityManager(),
+          strategyManager.ecclesiaDao(),
+          strategyManager.buybackWallet(),
+          strategyManager.strategyFeeRate(),
+          strategyManager.payoutDeductibleRate(),
+        ]);
+
+        expect(liquidityManager.toLowerCase()).to.equal(
+          this.customEnv.contracts.LiquidityManager.address.toLowerCase(),
         );
-        expect(await strategyManager.ecclesiaDao()).to.equal(
-          this.customEnv.contracts.EcclesiaDao.address,
+        expect(ecclesiaDao.toLowerCase()).to.equal(
+          this.customEnv.contracts.EcclesiaDao.address.toLowerCase(),
         );
-        expect(await strategyManager.buybackWallet()).to.equal(
-          this.config.buybackWallet.address,
+        expect(buybackWallet.toLowerCase()).to.equal(
+          this.signers.buybackWallet.address.toLowerCase(),
         );
-        expect(await strategyManager.strategyFeeRate()).to.equal(
-          this.config.strategyFeeRate,
-        );
-        expect(await strategyManager.payoutDeductibleRate()).to.equal(
-          this.config.payoutDeductibleRate,
+        expect(strategyFeeRate).to.equal(this.protocolConfig.strategyFeeRate);
+        expect(payoutDeductibleRate).to.equal(
+          this.protocolConfig.payoutDeductibleRate,
         );
       });
 
@@ -211,7 +225,7 @@ export function MorphoStrategyUpgradeTest() {
           await postTxHandler(
             this.customEnv.contracts.LiquidityManager.updateConfig(
               this.signers.deployer.address, // ecclesiaDao
-              this.customEnv.contracts.StrategyManager.address, // strategyManager
+              this.args.ProxyContract.address, // strategyManager
               this.customEnv.contracts.ClaimManager.address, // claimManager
               this.signers.deployer.address, // yieldRewarder
               this.protocolConfig.withdrawDelay, // withdrawDelay
@@ -227,7 +241,7 @@ export function MorphoStrategyUpgradeTest() {
       });
     });
 
-    describe("after proxy implementation", async function () {
+    describe("test protocol with proxy", async function () {
       it("can create pool with Morpho strategy", async function (this: Arguments) {
         const poolId = (
           await this.customEnv.contracts.LiquidityManager.nextPoolId()
@@ -545,7 +559,7 @@ export function MorphoStrategyUpgradeTest() {
       });
     });
 
-    describe("after proxy upgrade", async function () {
+    describe("test protocol after proxy upgrade", async function () {
       it("can create pools", async function (this: Arguments) {
         const existingPools = (
           await this.customEnv.contracts.LiquidityManager.nextPoolId()
