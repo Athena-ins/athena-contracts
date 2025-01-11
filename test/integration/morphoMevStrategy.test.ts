@@ -232,8 +232,10 @@ export function MorphoStrategyTest() {
         );
 
       expect(
-        await this.customEnv.contracts.LiquidityManager.takeInterests(
+        await postTxHandler(
+          this.customEnv.contracts.LiquidityManager.takeInterests(
           this.args.positionId,
+          ),
         ),
       ).to.not.throw;
 
@@ -269,8 +271,8 @@ export function MorphoStrategyTest() {
       await setNextBlockTimestamp({ days: this.args.claimResolvePeriod });
 
       expect(
-        await this.customEnv.contracts.ClaimManager.withdrawCompensation(
-          claimId,
+        await postTxHandler(
+          this.customEnv.contracts.ClaimManager.withdrawCompensation(claimId),
         ),
       ).to.not.throw;
     });

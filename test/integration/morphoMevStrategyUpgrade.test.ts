@@ -328,8 +328,10 @@ export function MorphoStrategyUpgradeTest() {
           );
 
         expect(
-          await this.customEnv.contracts.LiquidityManager.takeInterests(
+          await postTxHandler(
+            this.customEnv.contracts.LiquidityManager.takeInterests(
             this.args.positionId,
+            ),
           ),
         ).to.not.throw;
 
@@ -366,8 +368,8 @@ export function MorphoStrategyUpgradeTest() {
         await setNextBlockTimestamp({ days: this.args.claimResolvePeriod });
 
         expect(
-          await this.customEnv.contracts.ClaimManager.withdrawCompensation(
-            claimId,
+          await postTxHandler(
+            this.customEnv.contracts.ClaimManager.withdrawCompensation(claimId),
           ),
         ).to.not.throw;
       });
@@ -699,13 +701,16 @@ export function MorphoStrategyUpgradeTest() {
             await this.customEnv.contracts.LiquidityManager.positionInfo(i);
 
           expect(
-            await this.customEnv.contracts.LiquidityManager.takeInterests(i),
+            await postTxHandler(
+              this.customEnv.contracts.LiquidityManager.takeInterests(i),
+            ),
           ).to.not.throw;
 
           const position =
             await this.customEnv.contracts.LiquidityManager.positionInfo(i);
 
           expect(positionBefore.coverRewards[0]).to.not.equal(0);
+          expect(position.coverRewards[0]).to.equal(0);
         }
       });
 
