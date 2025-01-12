@@ -70,16 +70,16 @@ export const deploymentOrder: Partial<keyof ProtocolContracts | "_approve">[] =
   [
     "AthenaCoverToken",
     "AthenaPositionToken",
-    "AthenaToken",
-    "_approve",
+    // "AthenaToken",
+    // "_approve",
     "PoolMath",
     "VirtualPool",
     "AthenaDataProvider",
     "ClaimManager",
     "StrategyManager",
     "LiquidityManager",
-    "RewardManager",
-    "EcclesiaDao",
+    // "RewardManager",
+    // "EcclesiaDao",
     "AthenaArbitrator",
   ];
 

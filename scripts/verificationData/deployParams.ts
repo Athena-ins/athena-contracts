@@ -82,7 +82,7 @@ const defaultProtocolConfig: ProtocolConfig = {
   },
   //==== Strategy Manager Config ====//
   payoutDeductibleRate: toRay(10), // 10%
-  strategyFeeRate: toRay(50), // 50%
+  strategyFeeRate: toRay(5), // 5%
   //==== Claim Manager Config ====//
   subcourtId: 2,
   nbOfJurors: 4,
@@ -224,14 +224,17 @@ export function getDefaultProtocolConfig(
   extraParams?: undefined,
   overrides?: Partial<ProtocolConfig>,
 ): ProtocolConfig;
+
 export function getDefaultProtocolConfig(
   extraParams: "lisk",
   overrides?: Partial<ProtocolConfig>,
 ): ProtocolConfig & LiskStrategyParams;
+
 export function getDefaultProtocolConfig(
   extraParams: "amphor",
   overrides?: Partial<ProtocolConfig>,
 ): ProtocolConfig & AmphorStrategyParams;
+
 export function getDefaultProtocolConfig(
   extraParams: "core_dao",
   overrides?: Partial<ProtocolConfig>,
