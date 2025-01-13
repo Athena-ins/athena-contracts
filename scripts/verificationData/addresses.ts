@@ -8,8 +8,12 @@ export type NetworkAddressDirectory = {
   [K in keyof ProtocolContracts]: string;
 };
 
+type ProxyContracts = {
+  ProxyStrategyManager?: string;
+};
+
 const networkAddresses: {
-  [key in NetworkName]?: NetworkAddressDirectory;
+  [key in NetworkName]?: NetworkAddressDirectory & ProxyContracts;
 } = {
   // === Production addresses === //
   mainnet: {
@@ -30,6 +34,7 @@ const networkAddresses: {
     PoolMath: "0x1c98f659c0f293cdf2d7bc98cac1f11ca4e8fb37",
     VirtualPool: "0x7c0ca0e6d4ad499706a7433fa4b69bc969294282",
     AthenaDataProvider: "0x6affa1c136dfaa81c980724130056fa8b7b7daf1",
+    ProxyStrategyManager: "0x3f80B7b8065E5CA1Cb5dB0B4360f722965e65571",
   },
   // === Production addresses === //
   // arbitrum: {

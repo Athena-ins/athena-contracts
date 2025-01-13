@@ -1,33 +1,15 @@
 import { BigNumber, Wallet } from "ethers";
 import hre, { ethers } from "hardhat";
 import { getConnectedProtocolContracts } from "../test/helpers/contracts-getters";
-import {
-  deployStrategyManagerMorpho,
-  ProtocolConfig,
-} from "../test/helpers/deployers";
+import { deployBasicProxy, ProtocolConfig } from "../test/helpers/deployers";
 import { fromFork, entityProviderChainId } from "../test/helpers/hardhat";
-import {
-  aaveLendingPoolV3Address,
-  usdcTokenAddress,
-} from "../test/helpers/protocol";
 import { getNetworkAddresses } from "./verificationData/addresses";
 import { getDeployConfig } from "./verificationData/deployParams";
+import { StrategyManagerMorpho__factory, ERC20__factory } from "../typechain";
 
 const { formatEther } = ethers.utils;
 
-function formatConfigForLog(config: ProtocolConfig) {
-  return Object.entries(config).reduce((acc, [key, value]) => {
-    if ((config as any)[key]._isSigner) {
-      acc[key] = (value as Wallet).address;
-    } else if ((config as any)[key]._isBigNumber) {
-      acc[key] = (value as BigNumber).toString();
-    } else {
-      acc[key] = value;
-    }
-
-    return acc;
-  }, {} as any);
-}
+// npx hardhat run scripts/singleContract.ts --network hardhat
 
 async function main() {
   try {
@@ -46,37 +28,59 @@ async function main() {
     const chainId = await entityProviderChainId(deployer);
     const addresses = getNetworkAddresses();
     const config = getDeployConfig();
-    // console.log("\n\nconfig: ", formatConfigForLog(config));
+
+    if (!addresses.ProxyStrategyManager)
+      throw Error("ProxyStrategyManager address is missing");
 
     //===============//
     //== CONTRACTS ==//
     //===============//
     const contracts = await getConnectedProtocolContracts(
       addresses,
-      "ethereum-amphor",
+      "ethereum-morpho",
     );
 
-    const StrategyManagerMorpho = await deployStrategyManagerMorpho(deployer, [
-      contracts.LiquidityManager.address,
-      deployer.address, // EcclesiaDao
-      aaveLendingPoolV3Address(chainId),
-      usdcTokenAddress(chainId),
-      config.buybackWallet.address,
-      config.payoutDeductibleRate,
-      config.strategyFeeRate,
-      config.wstETH as string,
-      config.amphrETH as string,
-      config.amphrLRT as string,
-      config.morphoMevVault as string,
-    ]);
+    const strategyManager = StrategyManagerMorpho__factory.connect(
+      addresses.ProxyStrategyManager,
+      deployer,
+    );
 
+    // Initialize state using existing setters
+    await strategyManager
+      .updateAddressList(
+        contracts.LiquidityManager.address,
+        deployer.address, // EcclesiaDao
+        deployer.address, // buybackWallet
+      )
+      .then((tx) => tx.wait());
+    await strategyManager
+      .updateStrategyFeeRate(config.strategyFeeRate)
+      .then((tx) => tx.wait());
+    await strategyManager
+      .updatePayoutDeductibleRate(config.payoutDeductibleRate)
+      .then((tx) => tx.wait());
+
+    // Retransfer previously held funds to new strategy manager
     console.log(
-      "StrategyManagerMorpho.address: ",
-      StrategyManagerMorpho.address,
+      "contracts.StrategyManager.address: ",
+      contracts.StrategyManager.address,
     );
+    const strategyManagerOld = StrategyManagerMorpho__factory.connect(
+      contracts.StrategyManager.address,
+      deployer,
+    );
+
+    await strategyManagerOld
+      .rescueTokens(
+        "0x06824C27C8a0DbDe5F72f770eC82e3c0FD4DcEc3",
+        addresses.ProxyStrategyManager,
+        "60000000000000000",
+      )
+      .then((tx) => tx.wait());
+
     await contracts.LiquidityManager.updateConfig(
       deployer.address, // ecclesiaDao
-      StrategyManagerMorpho.address, // strategyManager
+      addresses.ProxyStrategyManager, // strategyManager
       contracts.ClaimManager.address, // claimManager
       deployer.address, // yieldRewarder
       config.withdrawDelay, // withdrawDelay
