@@ -167,7 +167,7 @@ export type ConnectedProtocolContracts = {
   PoolMath: ConnectWithAddress<PoolMath>;
   VirtualPool: ConnectWithAddress<VirtualPool>;
   AthenaDataProvider: ConnectWithAddress<AthenaDataProvider>;
-  // TestableVirtualPool: ConnectWithAddress<TestableVirtualPool>;
+  ProxyStrategyManager?: ConnectWithAddress<StrategyManager>;
 };
 
 export type DefaultConnectedProtocolContracts = ConnectedProtocolContracts & {

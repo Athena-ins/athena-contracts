@@ -376,6 +376,7 @@ export type DeployedProtocolContracts = {
   PoolMath: WithAddress<PoolMath>;
   VirtualPool: WithAddress<VirtualPool>;
   AthenaDataProvider: WithAddress<AthenaDataProvider>;
+  ProxyStrategyManager?: WithAddress<StrategyManager>;
 };
 
 export type ProtocolContracts =

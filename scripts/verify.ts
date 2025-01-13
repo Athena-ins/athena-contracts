@@ -29,6 +29,7 @@ import {
   StrategyManagerVL__factory,
   StrategyManagerMorpho__factory,
   VirtualPool__factory,
+  BasicProxy__factory,
 } from "../typechain";
 import { ProtocolContracts } from "../test/helpers/deployers";
 //
@@ -61,12 +62,13 @@ const shouldVerify: Partial<keyof ProtocolContracts>[] = [
   // "AthenaDataProvider",
   // "ClaimManager",
   // "AthenaArbitrator",
-  "StrategyManager",
+  // "StrategyManager",
   // "LiquidityManager",
   // "RewardManager",
   // "FarmingRange",
   // "Staking",
   // "EcclesiaDao",
+  "ProxyStrategyManager",
 ];
 
 const execPromise = promisify(exec);
@@ -85,6 +87,14 @@ function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+type HardhatVerifyParams = {
+  address: string;
+  libraries: string | undefined;
+  constructorArgs: string;
+  relatedSources: boolean;
+  contract: string | undefined;
+};
+
 export async function verifyEtherscanContract<
   T extends {
     deploy: (...args: any[]) => any;
@@ -93,6 +103,7 @@ export async function verifyEtherscanContract<
   address: string,
   constructorArguments: Parameters<T["deploy"]>,
   libraries?: string,
+  contractPath?: string,
 ) {
   try {
     const msDelay = 3000;
@@ -116,11 +127,12 @@ export async function verifyEtherscanContract<
       if (path && fs.existsSync(path)) fs.unlinkSync(path);
     }
 
-    const params = {
+    const params: HardhatVerifyParams = {
       address: address,
       libraries,
       constructorArgs: path,
       relatedSources: true,
+      contract: contractPath,
     };
     await runTaskWithRetry("verify", params, times, msDelay, cleanup);
   } catch (error) {
@@ -130,7 +142,7 @@ export async function verifyEtherscanContract<
 
 export async function runTaskWithRetry(
   task: string,
-  params: any,
+  params: HardhatVerifyParams,
   times: number,
   msDelay: number,
   cleanup: () => void,
@@ -144,11 +156,12 @@ export async function runTaskWithRetry(
   const args = params.constructorArgs
     ? ` --constructor-args ${params.constructorArgs}`
     : "";
+  const contract = params.contract ? ` --contract ${params.contract}` : "";
 
   try {
     if (times >= 1) {
       await execPromise(
-        `npx hardhat verify ${params.address}${libs}${args} --network ${networkName}`,
+        `npx hardhat verify ${params.address}${contract}${libs}${args} --network ${networkName}`,
       );
       cleanup();
     } else {
@@ -178,7 +191,7 @@ export async function runTaskWithRetry(
     console.info(`Retrying attemps: ${counter}.`);
     if (error.message.includes("Fail - Unable to verify")) {
       console.log("Trying to verify via uploading all sources.");
-      delete params.relatedSources;
+      params.relatedSources = false;
     }
     await runTaskWithRetry(task, params, counter, msDelay, cleanup);
   }
@@ -216,6 +229,7 @@ async function main() {
     PoolMath,
     VirtualPool,
     AthenaDataProvider,
+    ProxyStrategyManager,
   } = deployedAt;
 
   for (const contract of shouldVerify) {
@@ -441,6 +455,20 @@ async function main() {
       config.arbitrationCost,
     ]);
     console.log("==> Verification processed for AthenaArbitrator");
+  }
+
+  // ======= Proxies ======= //
+
+  if (shouldVerify.includes("ProxyStrategyManager")) {
+    if (!ProxyStrategyManager)
+      throw Error("ProxyStrategyManager address is missing");
+
+    await verifyEtherscanContract<BasicProxy__factory>(
+      ProxyStrategyManager,
+      [StrategyManager, deployer.address],
+      undefined,
+      "src/misc/BasicProxy.sol:BasicProxy",
+    );
   }
 
   console.log("\n==> Protocol verified");
