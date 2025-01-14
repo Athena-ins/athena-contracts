@@ -36,7 +36,7 @@ type CoreDaoStrategyParams = {
   stCORE: string;
 };
 
-export const amphorStrategyParams: AmphorStrategyParams = {
+export const mainnetStrategyParams: AmphorStrategyParams = {
   // Lido LST Token
   wstETH: "0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0".toLowerCase(),
   // (((Strategy 1))) - Amphor Restaked ETH
@@ -152,7 +152,7 @@ const deployParams: {
       { atenAmount: parseUnits("1000000", 18), yieldBonus: toRay(0.005) },
     ],
     farmingBlockStart: 0,
-    ...amphorStrategyParams,
+    ...mainnetStrategyParams,
   },
 
   arbitrum: {
@@ -231,7 +231,7 @@ export function getDefaultProtocolConfig(
 ): ProtocolConfig & LiskStrategyParams;
 
 export function getDefaultProtocolConfig(
-  extraParams: "amphor",
+  extraParams: "mainnet",
   overrides?: Partial<ProtocolConfig>,
 ): ProtocolConfig & AmphorStrategyParams;
 
@@ -241,13 +241,13 @@ export function getDefaultProtocolConfig(
 ): ProtocolConfig & CoreDaoStrategyParams;
 
 export function getDefaultProtocolConfig(
-  extraParams?: "amphor" | "lisk" | "core_dao",
+  extraParams?: "mainnet" | "lisk" | "core_dao",
   overrides: Partial<ProtocolConfig> = {},
 ) {
   let extraChainParams = {};
 
-  if (extraParams === "amphor") {
-    extraChainParams = amphorStrategyParams;
+  if (extraParams === "mainnet") {
+    extraChainParams = mainnetStrategyParams;
   }
   if (extraParams === "lisk") {
     extraChainParams = liskStrategyParams;

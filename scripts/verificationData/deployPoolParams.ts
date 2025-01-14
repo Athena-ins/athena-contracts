@@ -2,7 +2,7 @@ import hre, { ethers } from "hardhat";
 import { toRay } from "../../test/helpers/utils/poolRayMath";
 import { fromFork } from "../../test/helpers/hardhat";
 import { getNetworkAddresses } from "./addresses";
-import { amphorStrategyParams, liskStrategyParams } from "./deployParams";
+import { mainnetStrategyParams, liskStrategyParams } from "./deployParams";
 // Types
 import { BigNumberish, BigNumber } from "ethers";
 import { NetworkName, NetworksOrFork } from "../../hardhat.config";
@@ -147,7 +147,7 @@ const deployParams: {
 } = {
   mainnet: {
     "Amphor Restaked ETH": {
-      paymentAsset: amphorStrategyParams.amphrETH,
+      paymentAsset: mainnetStrategyParams.amphrETH,
       strategyId: 1,
       incompatiblePools: [
         "Amphor Symbiotic LRT Vault",
@@ -164,7 +164,7 @@ const deployParams: {
       ...formulaConfig.G,
     },
     "Amphor Symbiotic LRT Vault": {
-      paymentAsset: amphorStrategyParams.amphrLRT,
+      paymentAsset: mainnetStrategyParams.amphrLRT,
       strategyId: 2,
       incompatiblePools: [
         "Amphor Restaked ETH",
@@ -184,55 +184,55 @@ const deployParams: {
     //=== K ===//
     //=========//
     "Stake DAO USDT/crvUSD": {
-      paymentAsset: amphorStrategyParams.weth,
+      paymentAsset: mainnetStrategyParams.weth,
       strategyId: 3,
       incompatiblePools: ["Amphor Restaked ETH", "Amphor Symbiotic LRT Vault"],
       ...formulaConfig.K,
     },
     "Stake DAO crvUSD/tBTC/wstETH": {
-      paymentAsset: amphorStrategyParams.weth,
+      paymentAsset: mainnetStrategyParams.weth,
       strategyId: 3,
       incompatiblePools: ["Amphor Restaked ETH", "Amphor Symbiotic LRT Vault"],
       ...formulaConfig.K,
     },
     "Stake DAO crvUSD Leverage (WETH collat)": {
-      paymentAsset: amphorStrategyParams.weth,
+      paymentAsset: mainnetStrategyParams.weth,
       strategyId: 3,
       incompatiblePools: ["Amphor Restaked ETH", "Amphor Symbiotic LRT Vault"],
       ...formulaConfig.K,
     },
     "Stake DAO crvUSD Leverage (wstETH collat)": {
-      paymentAsset: amphorStrategyParams.weth,
+      paymentAsset: mainnetStrategyParams.weth,
       strategyId: 3,
       incompatiblePools: ["Amphor Restaked ETH", "Amphor Symbiotic LRT Vault"],
       ...formulaConfig.K,
     },
     "Stake DAO crvUSD Leverage (WBTC collat)": {
-      paymentAsset: amphorStrategyParams.weth,
+      paymentAsset: mainnetStrategyParams.weth,
       strategyId: 3,
       incompatiblePools: ["Amphor Restaked ETH", "Amphor Symbiotic LRT Vault"],
       ...formulaConfig.K,
     },
     "Stake DAO crvUSD/WETH/CRV": {
-      paymentAsset: amphorStrategyParams.weth,
+      paymentAsset: mainnetStrategyParams.weth,
       strategyId: 3,
       incompatiblePools: ["Amphor Restaked ETH", "Amphor Symbiotic LRT Vault"],
       ...formulaConfig.K,
     },
     "Stake DAO FRAX/crvUSD": {
-      paymentAsset: amphorStrategyParams.weth,
+      paymentAsset: mainnetStrategyParams.weth,
       strategyId: 3,
       incompatiblePools: ["Amphor Restaked ETH", "Amphor Symbiotic LRT Vault"],
       ...formulaConfig.K,
     },
     "Stake DAO ETH/ETHx": {
-      paymentAsset: amphorStrategyParams.weth,
+      paymentAsset: mainnetStrategyParams.weth,
       strategyId: 3,
       incompatiblePools: ["Amphor Restaked ETH", "Amphor Symbiotic LRT Vault"],
       ...formulaConfig.K,
     },
     "Stake DAO USDC/crvUSD": {
-      paymentAsset: amphorStrategyParams.weth,
+      paymentAsset: mainnetStrategyParams.weth,
       strategyId: 3,
       incompatiblePools: ["Amphor Restaked ETH", "Amphor Symbiotic LRT Vault"],
       ...formulaConfig.K,

@@ -1,7 +1,7 @@
 import { ethers } from "hardhat";
 // Functions
 import {
-  amphorStrategyParams,
+  mainnetStrategyParams,
   coreDaoStrategyParams,
 } from "../../scripts/verificationData/deployParams";
 import {
@@ -406,14 +406,14 @@ export async function getTokens(
   }
 
   if (
-    token.toLowerCase() === amphorStrategyParams.amphrETH ||
-    token.toLowerCase() === amphorStrategyParams.amphrLRT
+    token.toLowerCase() === mainnetStrategyParams.amphrETH ||
+    token.toLowerCase() === mainnetStrategyParams.amphrLRT
   ) {
     const params = {
       path: encodeMultiHopPath([
         token,
         3000,
-        amphorStrategyParams.wstETH,
+        mainnetStrategyParams.wstETH,
         100,
         wethAddress,
       ]), // bytes path;
