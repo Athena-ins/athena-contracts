@@ -6,6 +6,7 @@ import {
   getCurrentTime,
 } from "../helpers/hardhat";
 import { makeIdArray } from "../helpers/miscUtils";
+import { poolInfoFormat } from "../helpers/dataFormat";
 import { BigNumber } from "ethers";
 
 const { parseEther } = utils;
@@ -29,16 +30,23 @@ export function WrappedTokenGatewayTest() {
     this.timeout(600_000);
 
     before(async function (this: Arguments) {
+      if (
+        !this.contracts.WrappedTokenGateway ||
+        this.contracts.WrappedTokenGateway.address ===
+          "0x0000000000000000000000000000000000000000"
+      )
+        throw Error("WrappedTokenGateway not deployed");
+
       this.args = {
         nbPools: 3,
         daoLockDuration: 60 * 60 * 24 * 365,
         lpAmount: parseEther("1000"),
         nbLpProviders: 1,
         coverAmount: parseEther("1000"),
-        coverPremiums: parseEther("10"),
-        lpIncreaseAmount: parseEther("1500"),
-        coverIncreaseAmount: parseEther("400"),
-        coverIncreasePremiums: parseEther("5"),
+        coverPremiums: parseEther("200"),
+        lpIncreaseAmount: parseEther("500"),
+        coverIncreaseAmount: parseEther("350"),
+        coverIncreasePremiums: parseEther("1"),
       };
     });
 
@@ -52,7 +60,7 @@ export function WrappedTokenGatewayTest() {
           await postTxHandler(
             this.contracts.LiquidityManager.createPool(
               this.contracts.WethToken.address,
-              0,
+              3, // Morpho vault strategy ID
               0,
               uOptimal,
               r0,
@@ -146,6 +154,15 @@ export function WrappedTokenGatewayTest() {
       for (let i = 0; i < this.args.nbLpProviders; i++) {
         expect(
           await postTxHandler(
+            this.contracts.AthenaPositionToken.approve(
+              this.contracts.WrappedTokenGateway.address,
+              i,
+            ),
+          ),
+        ).to.not.throw;
+
+        expect(
+          await postTxHandler(
             this.contracts.WrappedTokenGateway.addLiquidityETH(i, {
               value: this.args.lpIncreaseAmount,
             }),
@@ -164,33 +181,58 @@ export function WrappedTokenGatewayTest() {
     });
 
     it("can increase cover & premiums through ETH gateway", async function (this: Arguments) {
-      expect(
-        await postTxHandler(
-          this.contracts.WrappedTokenGateway.updateCoverETH(
-            0,
-            this.args.coverIncreaseAmount,
-            0,
-            this.args.coverIncreasePremiums,
-            0,
-            { value: this.args.coverIncreasePremiums },
+      for (let i = 0; i < this.args.nbPools; i++) {
+        const coverId = i;
+
+        expect(
+          await postTxHandler(
+            this.contracts.AthenaCoverToken.approve(
+              this.contracts.WrappedTokenGateway.address,
+              coverId,
+            ),
           ),
-        ),
-      ).to.not.throw;
+        ).to.not.throw;
 
-      await setNextBlockTimestamp({ days: 5 });
+        expect(
+          await postTxHandler(
+            this.contracts.WrappedTokenGateway.updateCoverETH(
+              coverId,
+              this.args.coverIncreaseAmount,
+              0,
+              this.args.coverIncreasePremiums,
+              0,
+              { value: this.args.coverIncreasePremiums },
+            ),
+          ),
+        ).to.not.throw;
 
-      const cover = await this.contracts.LiquidityManager.coverInfo(0);
-      expect(cover.coverAmount).to.equal(
-        this.args.coverIncreaseAmount.add(this.args.coverAmount),
-      );
+        await setNextBlockTimestamp({ days: 5 });
+
+        const cover = await this.contracts.LiquidityManager.coverInfo(coverId);
+        expect(cover.coverAmount).to.equal(
+          this.args.coverIncreaseAmount.add(this.args.coverAmount),
+        );
+      }
     });
 
     it("can close cover through ETH gateway", async function (this: Arguments) {
       const uint256Max = BigNumber.from(2).pow(256).sub(1);
+
+      const coverId = 0;
+
+      expect(
+        await postTxHandler(
+          this.contracts.AthenaCoverToken.approve(
+            this.contracts.WrappedTokenGateway.address,
+            coverId,
+          ),
+        ),
+      ).to.not.throw;
+
       expect(
         await postTxHandler(
           this.contracts.WrappedTokenGateway.updateCoverETH(
-            0,
+            coverId,
             0,
             0,
             0,
@@ -199,13 +241,22 @@ export function WrappedTokenGatewayTest() {
         ),
       ).to.not.throw;
 
-      const cover = await this.contracts.LiquidityManager.coverInfo(0);
+      const cover = await this.contracts.LiquidityManager.coverInfo(coverId);
       expect(cover.premiumsLeft).to.equal(0);
     });
 
     it("can commit LPs withdrawal", async function (this: Arguments) {
       await setNextBlockTimestamp({ days: 10 });
       const expectedTimestamp = await getCurrentTime();
+
+      expect(
+        await postTxHandler(
+          this.contracts.AthenaPositionToken.approve(
+            this.contracts.WrappedTokenGateway.address,
+            0,
+          ),
+        ),
+      ).to.not.throw;
 
       expect(
         await postTxHandler(
@@ -220,13 +271,22 @@ export function WrappedTokenGatewayTest() {
     });
 
     it("can withdraw LPs through ETH gateway", async function (this: Arguments) {
-      await setNextBlockTimestamp({ days: 15 });
+      await setNextBlockTimestamp({ days: 365 });
 
       for (let i = 0; i < this.args.nbLpProviders; i++) {
         const positionInfo =
-          await this.contracts.LiquidityManager.positionInfo(i);
+          await this.contracts.LiquidityManager.positionInfo(0);
 
         const balanceBefore = await this.signers.deployer.getBalance();
+
+        expect(
+          await postTxHandler(
+            this.contracts.AthenaPositionToken.approve(
+              this.contracts.WrappedTokenGateway.address,
+              i,
+            ),
+          ),
+        ).to.not.throw;
 
         expect(
           await postTxHandler(
