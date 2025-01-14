@@ -30,6 +30,8 @@ import {
   FarmingRange__factory,
   IWETH__factory,
   LiquidityManager__factory,
+  // Misc
+  WrappedTokenGateway__factory,
   // Libs
   PoolMath__factory,
   RewardManager__factory,
@@ -53,6 +55,8 @@ import {
   deployRewardManager,
   deployStrategyManagerMorpho,
   deployVirtualPool,
+  deployBasicProxy,
+  deployWrappedTokenGateway,
 } from "./deployers";
 // Types
 import { Wallet } from "ethers";
@@ -81,6 +85,7 @@ export const deploymentOrder: Partial<keyof ProtocolContracts | "_approve">[] =
     // "RewardManager",
     // "EcclesiaDao",
     "AthenaArbitrator",
+    "WrappedTokenGateway",
   ];
 
 export type MorphoProtocolContracts = ProtocolContracts & {
@@ -370,6 +375,20 @@ export async function deployAllContractsAndInitializeProtocolMorpho(
     txCount++;
   }
 
+  // ======= MISC ======= //
+
+  if (deploymentOrder[txCount] === "WrappedTokenGateway") {
+    deployExecutors.push(async () =>
+      deployWrappedTokenGateway(deployer, [
+        wethAddress, // weth
+        deployedAt.LiquidityManager, // liquidityManager
+        deployedAt.AthenaPositionToken, // positionToken
+        deployedAt.AthenaCoverToken, // coverToken
+      ]),
+    );
+    txCount++;
+  }
+
   // Check that deploy order matches expected deployment count
   if (
     deploymentOrder.length !== deployExecutors.length ||
@@ -440,6 +459,10 @@ export async function deployAllContractsAndInitializeProtocolMorpho(
     deployedAt.AthenaDataProvider || ADDRESS_ZERO,
     deployer,
   );
+  const WrappedTokenGateway = await WrappedTokenGateway__factory.connect(
+    deployedAt.WrappedTokenGateway || ADDRESS_ZERO,
+    deployer,
+  );
 
   const contracts = {
     TetherToken,
@@ -459,6 +482,7 @@ export async function deployAllContractsAndInitializeProtocolMorpho(
     PoolMath,
     VirtualPool,
     AthenaDataProvider,
+    WrappedTokenGateway,
   };
 
   if (logAddresses) {

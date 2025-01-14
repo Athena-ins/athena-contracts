@@ -18,9 +18,9 @@ import {
 } from "./helpers/deployers";
 import { deployAllContractsAndInitializeProtocolV0 } from "../test/helpers/deployersV0";
 import {
-  deployAllContractsAndInitializeProtocolVE,
-  VEProtocolContracts,
-} from "../test/helpers/deployersVE";
+  deployAllContractsAndInitializeProtocolMorpho,
+  MorphoProtocolContracts,
+} from "../test/helpers/deployersMorpho";
 import {
   deployAllContractsAndInitializeProtocolVL,
   VLProtocolContracts,
@@ -75,24 +75,66 @@ declare module "mocha" {
   }
 }
 
-const procotolDeployerScript: {
-  [chainId: number]: (
-    deployer: Wallet,
-    config: ProtocolConfig,
-    // partialDeploy: boolean,
-  ) => Promise<
+async function getProtocolContractsAndConfig(
+  deployer: Wallet,
+  chainId?: number,
+): Promise<{
+  contracts:
     | ProtocolContracts
-    | VEProtocolContracts
+    | MorphoProtocolContracts
     | VLProtocolContracts
-    | CoreProtocolContracts
-  >;
-} = {
-  0: deployAllContractsAndInitializeProtocol, // default
-  42161: deployAllContractsAndInitializeProtocolV0, // arbitrum
-  1: deployAllContractsAndInitializeProtocolVE, // ethereum
-  4202: deployAllContractsAndInitializeProtocolVL, // lisk
-  1116: deployAllContractsAndInitializeProtocolCore, // core
-};
+    | CoreProtocolContracts;
+  protocolConfig: ProtocolConfig;
+}> {
+  console.log("Using contract for chain".magenta, chainId || "default", "\n");
+
+  // arbitrum
+  if (chainId === 42161) {
+    const protocolConfig = getDefaultProtocolConfig();
+    const contracts = await deployAllContractsAndInitializeProtocolV0(
+      deployer,
+      protocolConfig,
+    );
+    return { contracts, protocolConfig };
+  }
+
+  // ethereum
+  if (chainId === 1) {
+    const protocolConfig = getDefaultProtocolConfig("mainnet");
+    const contracts = await deployAllContractsAndInitializeProtocolMorpho(
+      deployer,
+      protocolConfig,
+    );
+    return { contracts, protocolConfig };
+  }
+
+  // lisk
+  if (chainId === 4202) {
+    const protocolConfig = getDefaultProtocolConfig("lisk");
+    const contracts = await deployAllContractsAndInitializeProtocolVL(
+      deployer,
+      protocolConfig,
+    );
+    return { contracts, protocolConfig };
+  }
+
+  // core
+  if (chainId === 1116) {
+    const protocolConfig = getDefaultProtocolConfig("core_dao");
+    const contracts = await deployAllContractsAndInitializeProtocolCore(
+      deployer,
+      protocolConfig,
+    );
+    return { contracts, protocolConfig };
+  }
+
+  const protocolConfig = getDefaultProtocolConfig();
+  const contracts = await deployAllContractsAndInitializeProtocol(
+    deployer,
+    protocolConfig,
+  );
+  return { contracts, protocolConfig };
+}
 
 // Keep snapshot ID as global variables to avoid state conflicts in children tests
 let evmSnapshotId: string = "0x1";
@@ -115,11 +157,11 @@ export function baseContext(description: string, hooks: () => void): void {
           "\nNamed Accounts:".magenta,
           JSON.stringify(
             {
-              deployer: signers[0].address,
-              evidenceGuardian: signers[1].address,
-              buybackWallet: signers[2].address,
-              treasuryWallet: signers[3].address,
-              leverageRiskWallet: signers[4].address,
+              deployer: signers[0].address.slice(0, 8),
+              evidenceGuardian: signers[1].address.slice(0, 8),
+              buybackWallet: signers[2].address.slice(0, 8),
+              treasuryWallet: signers[3].address.slice(0, 8),
+              leverageRiskWallet: signers[4].address.slice(0, 8),
             },
             null,
             2,
@@ -151,21 +193,14 @@ export function baseContext(description: string, hooks: () => void): void {
           user4: signers[nbSpecialAccounts + 4] as Signer as Wallet,
         };
 
-        this.protocolConfig = getDefaultProtocolConfig();
-
         // Setup protocol for testing & provide interfaces to tests
-        let protocolDeployerScript =
-          procotolDeployerScript[this.chainId] || procotolDeployerScript[0];
-        console.log(
-          "Using contract version: ".magenta,
-          procotolDeployerScript[this.chainId] ? this.chainId : "default",
-          "\n",
-        );
-        this.contracts = await protocolDeployerScript(
-          this.signers.deployer,
-          this.protocolConfig,
-          // true,
-        );
+        const { contracts, protocolConfig } =
+          await getProtocolContractsAndConfig(
+            this.signers.deployer,
+            this.chainId,
+          );
+        this.contracts = contracts;
+        this.protocolConfig = protocolConfig;
 
         if (
           this.signers.evidenceGuardian.address !=
