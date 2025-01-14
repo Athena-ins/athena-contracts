@@ -18,8 +18,6 @@ import { IAthenaCoverToken } from "../interfaces/IAthenaCoverToken.sol";
 
 error InsufficientETHSent();
 error ETHTransferFailed();
-error OnlyWETHCanSendETH();
-error DirectETHTransfersNotAllowed();
 
 /**
  * @title WrappedTokenGateway
@@ -27,13 +25,18 @@ error DirectETHTransfersNotAllowed();
  * @dev This contract wraps ETH to WETH for interactions with the LiquidityManager
  */
 contract WrappedTokenGateway is Ownable, ReentrancyGuard {
+  /// ======= LIBS ======= ///
   using SafeERC20 for IERC20;
+
+  /// ======= STORAGE ======= ///
 
   // Immutable addresses
   IWETH public immutable WETH;
   ILiquidityManager public immutable LIQUIDITY_MANAGER;
   IAthenaPositionToken public immutable POSITION_TOKEN;
   IAthenaCoverToken public immutable COVER_TOKEN;
+
+  /// ======= CONSTRUCTOR ======= ///
 
   /**
    * @notice Sets the WETH address and the LiquidityManager address
@@ -57,13 +60,70 @@ contract WrappedTokenGateway is Ownable, ReentrancyGuard {
     IWETH(weth).approve(liquidityManager, type(uint256).max);
   }
 
+  /// ======= MODIFIERS ======= ///
+
+  /**
+   * @notice Modifier to handle borrowing position NFT from user for operations
+   * @param positionId The ID of the position token
+   * @param isMint Whether the position is being minted (true) or already exists (false)
+   * @dev If not minting, transfers position from user to contract, executes operation, then returns it
+   */
+  modifier borrowPositionFromUser(uint256 positionId, bool isMint) {
+    if (!isMint) {
+      POSITION_TOKEN.transferFrom(
+        msg.sender,
+        address(this),
+        positionId
+      );
+    }
+    _;
+    POSITION_TOKEN.transferFrom(
+      address(this),
+      msg.sender,
+      positionId
+    );
+  }
+
+  /**
+   * @notice Modifier to handle borrowing cover NFT from user for operations
+   * @param coverId The ID of the cover token
+   * @param isMint Whether the cover is being minted (true) or already exists (false)
+   * @dev If not minting, transfers cover from user to contract, executes operation, then returns it
+   */
+  modifier borrowCoverFromUser(uint256 coverId, bool isMint) {
+    if (!isMint) {
+      COVER_TOKEN.transferFrom(msg.sender, address(this), coverId);
+    }
+    _;
+    COVER_TOKEN.transferFrom(address(this), msg.sender, coverId);
+  }
+
+  /// ======= INTERNAL ======= ///
+
+  /**
+   * @notice Helper function to transfer ETH to an address
+   * @param to Address to transfer ETH to
+   * @param value Amount of ETH to transfer
+   */
+  function _safeTransferETH(address to, uint256 value) internal {
+    (bool success, ) = to.call{ value: value }("");
+    if (!success) revert ETHTransferFailed();
+  }
+
+  /// ======= POSITIONS ======= ///
+
   /**
    * @notice Opens a new position using ETH
    * @param poolIds The IDs of the pools to provide liquidity to
    */
   function openPositionETH(
     uint64[] calldata poolIds
-  ) external payable nonReentrant {
+  )
+    external
+    payable
+    nonReentrant
+    borrowPositionFromUser(POSITION_TOKEN.nextPositionId(), true)
+  {
     // Convert ETH to WETH
     WETH.deposit{ value: msg.value }();
 
@@ -77,29 +137,58 @@ contract WrappedTokenGateway is Ownable, ReentrancyGuard {
    */
   function addLiquidityETH(
     uint256 positionId
-  ) external payable nonReentrant {
-    // Store current owner
-    address positionOwner = POSITION_TOKEN.ownerOf(positionId);
-
-    // Transfer position NFT to this contract
-    POSITION_TOKEN.transferFrom(
-      positionOwner,
-      address(this),
-      positionId
-    );
-
+  )
+    external
+    payable
+    nonReentrant
+    borrowPositionFromUser(positionId, false)
+  {
     // Convert ETH to WETH
     WETH.deposit{ value: msg.value }();
 
     // Add liquidity
     LIQUIDITY_MANAGER.addLiquidity(positionId, msg.value, false);
+  }
 
-    // Return position NFT
-    POSITION_TOKEN.transferFrom(
-      address(this),
-      positionOwner,
-      positionId
-    );
+  /**
+   * @notice Takes interests from a position and converts them to ETH
+   * @param positionId The ID of the position
+   * @dev After taking interests, converts any WETH earned to ETH and sends to user
+   */
+  function takeInterestsETH(
+    uint256 positionId
+  ) external nonReentrant borrowPositionFromUser(positionId, false) {
+    // Take interests using the LiquidityManager
+    LIQUIDITY_MANAGER.takeInterests(positionId);
+
+    // Convert any earned WETH to ETH and send to user
+    uint256 wethBalance = WETH.balanceOf(address(this));
+    if (wethBalance > 0) {
+      WETH.withdraw(wethBalance);
+      _safeTransferETH(msg.sender, wethBalance);
+    }
+  }
+
+  /**
+   * @notice Commits to remove liquidity from a position (starts withdrawal delay)
+   * @param positionId The ID of the position
+   */
+  function commitRemoveLiquidityETH(
+    uint256 positionId
+  ) external nonReentrant borrowPositionFromUser(positionId, false) {
+    // Commit to remove liquidity using the LiquidityManager
+    LIQUIDITY_MANAGER.commitRemoveLiquidity(positionId);
+  }
+
+  /**
+   * @notice Cancels a pending liquidity removal commitment
+   * @param positionId The ID of the position
+   */
+  function uncommitRemoveLiquidityETH(
+    uint256 positionId
+  ) external nonReentrant borrowPositionFromUser(positionId, false) {
+    // Uncommit liquidity removal using the LiquidityManager
+    LIQUIDITY_MANAGER.uncommitRemoveLiquidity(positionId);
   }
 
   /**
@@ -110,31 +199,16 @@ contract WrappedTokenGateway is Ownable, ReentrancyGuard {
   function removeLiquidityETH(
     uint256 positionId,
     uint256 amount
-  ) external nonReentrant {
-    // Store current owner
-    address positionOwner = POSITION_TOKEN.ownerOf(positionId);
-
-    // Transfer position NFT to this contract
-    POSITION_TOKEN.transferFrom(
-      positionOwner,
-      address(this),
-      positionId
-    );
-
+  ) external nonReentrant borrowPositionFromUser(positionId, false) {
     // Remove liquidity and get WETH
     LIQUIDITY_MANAGER.removeLiquidity(positionId, amount, false);
 
     // Convert WETH to ETH and send to user
     WETH.withdraw(amount);
-    _safeTransferETH(positionOwner, amount);
-
-    // Return position NFT
-    POSITION_TOKEN.transferFrom(
-      address(this),
-      positionOwner,
-      positionId
-    );
+    _safeTransferETH(msg.sender, amount);
   }
+
+  /// ======= COVERS ======= ///
 
   /**
    * @notice Buys cover using ETH as payment
@@ -146,7 +220,12 @@ contract WrappedTokenGateway is Ownable, ReentrancyGuard {
     uint64 poolId,
     uint256 coverAmount,
     uint256 premiums
-  ) external payable nonReentrant {
+  )
+    external
+    payable
+    nonReentrant
+    borrowCoverFromUser(COVER_TOKEN.nextCoverId(), true)
+  {
     if (msg.value < premiums) revert InsufficientETHSent();
 
     // Convert ETH to WETH
@@ -175,14 +254,13 @@ contract WrappedTokenGateway is Ownable, ReentrancyGuard {
     uint256 coverToRemove,
     uint256 premiumsToAdd,
     uint256 premiumsToRemove
-  ) external payable nonReentrant {
+  )
+    external
+    payable
+    nonReentrant
+    borrowCoverFromUser(coverId, false)
+  {
     if (msg.value < premiumsToAdd) revert InsufficientETHSent();
-
-    // Store current owner
-    address coverOwner = COVER_TOKEN.ownerOf(coverId);
-
-    // Transfer cover NFT to this contract
-    COVER_TOKEN.transferFrom(coverOwner, address(this), coverId);
 
     // Convert ETH to WETH if adding premiums
     if (premiumsToAdd > 0) {
@@ -198,9 +276,6 @@ contract WrappedTokenGateway is Ownable, ReentrancyGuard {
       premiumsToRemove
     );
 
-    // Return cover NFT
-    COVER_TOKEN.transferFrom(address(this), coverOwner, coverId);
-
     // Return excess ETH if any
     if (msg.value > premiumsToAdd) {
       _safeTransferETH(msg.sender, msg.value - premiumsToAdd);
@@ -209,19 +284,11 @@ contract WrappedTokenGateway is Ownable, ReentrancyGuard {
     // If removing premiums, convert returned WETH to ETH and send to user
     if (premiumsToRemove > 0) {
       WETH.withdraw(premiumsToRemove);
-      _safeTransferETH(coverOwner, premiumsToRemove);
+      _safeTransferETH(msg.sender, premiumsToRemove);
     }
   }
 
-  /**
-   * @notice Helper function to transfer ETH to an address
-   * @param to Address to transfer ETH to
-   * @param value Amount of ETH to transfer
-   */
-  function _safeTransferETH(address to, uint256 value) internal {
-    (bool success, ) = to.call{ value: value }(new bytes(0));
-    if (!success) revert ETHTransferFailed();
-  }
+  /// ======= ADMIN ======= ///
 
   /**
    * @notice Recovers ERC20 tokens accidentally sent to this contract
