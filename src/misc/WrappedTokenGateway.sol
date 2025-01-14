@@ -18,6 +18,8 @@ import { IAthenaCoverToken } from "../interfaces/IAthenaCoverToken.sol";
 
 error InsufficientETHSent();
 error ETHTransferFailed();
+error DirectETHTransfersNotAllowed();
+error OnlyWETHCanSendETH();
 
 /**
  * @title WrappedTokenGateway
@@ -58,6 +60,18 @@ contract WrappedTokenGateway is Ownable, ReentrancyGuard {
 
     // Approve WETH for LiquidityManager
     IWETH(weth).approve(liquidityManager, type(uint256).max);
+  }
+
+  /// ======= DEFAULTS ======= ///
+
+  // Required to receive ETH from WETH withdrawals
+  receive() external payable {
+    if (msg.sender != address(WETH)) revert OnlyWETHCanSendETH();
+  }
+
+  // Prevent accidental ETH transfers
+  fallback() external payable {
+    revert DirectETHTransfersNotAllowed();
   }
 
   /// ======= MODIFIERS ======= ///
@@ -283,8 +297,11 @@ contract WrappedTokenGateway is Ownable, ReentrancyGuard {
 
     // If removing premiums, convert returned WETH to ETH and send to user
     if (premiumsToRemove > 0) {
-      WETH.withdraw(premiumsToRemove);
-      _safeTransferETH(msg.sender, premiumsToRemove);
+      // Read from balance since we close covers with type(uint256).max
+      uint256 wethBalance = WETH.balanceOf(address(this));
+
+      WETH.withdraw(wethBalance);
+      _safeTransferETH(msg.sender, wethBalance);
     }
   }
 
