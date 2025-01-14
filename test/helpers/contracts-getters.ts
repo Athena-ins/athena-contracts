@@ -36,6 +36,11 @@ import {
   AthenaPositionToken__factory,
   AthenaToken,
   AthenaToken__factory,
+  // Misc
+  WrappedTokenGateway,
+  WrappedTokenGateway__factory,
+  BasicProxy,
+  BasicProxy__factory,
   // Libs
   PoolMath,
   PoolMath__factory,
@@ -53,6 +58,7 @@ import {
 } from "../../typechain/";
 import { ProtocolContracts } from "./deployers";
 import { NetworkAddressDirectory } from "../../scripts/verificationData/addresses";
+import { get } from "http";
 
 export type ConnectWithAddress<F> = F extends {
   connect: (...args: any[]) => infer R;
@@ -139,6 +145,12 @@ export async function getWETH(address: string) {
 export async function getERC20(address: string) {
   return connectWrapper(ERC20__factory, address);
 }
+export async function getWrappedTokenGateway(address: string) {
+  return connectWrapper(WrappedTokenGateway__factory, address);
+}
+export async function getBasicProxy(address: string) {
+  return connectWrapper(BasicProxy__factory, address);
+}
 
 //==================//
 //==== PROTOCOL ====//
@@ -167,6 +179,7 @@ export type ConnectedProtocolContracts = {
   PoolMath: ConnectWithAddress<PoolMath>;
   VirtualPool: ConnectWithAddress<VirtualPool>;
   AthenaDataProvider: ConnectWithAddress<AthenaDataProvider>;
+  WrappedTokenGateway: ConnectWithAddress<WrappedTokenGateway>;
   ProxyStrategyManager?: ConnectWithAddress<StrategyManager>;
 };
 
@@ -246,6 +259,7 @@ export async function getConnectedProtocolContracts(
     TetherToken,
     CircleToken,
     WethToken,
+    WrappedTokenGateway,
   ] = await Promise.all([
     getEcclesiaDao(addresses.EcclesiaDao),
     getAthenaArbitrator(addresses.AthenaArbitrator),
@@ -264,6 +278,7 @@ export async function getConnectedProtocolContracts(
     getTetherToken(addresses.TetherToken),
     getERC20(addresses.CircleToken),
     getWETH(addresses.WethToken),
+    getWrappedTokenGateway(addresses.WrappedTokenGateway),
   ]);
 
   return {
@@ -284,6 +299,7 @@ export async function getConnectedProtocolContracts(
     TetherToken,
     CircleToken,
     WethToken,
+    WrappedTokenGateway,
   };
 }
 

@@ -63,6 +63,8 @@ import {
   AthenaDataProvider__factory,
   AthenaDataProvider,
   // Other
+  WrappedTokenGateway__factory,
+  WrappedTokenGateway,
   BasicProxy__factory,
   BasicProxy,
   TetherToken__factory,
@@ -310,6 +312,17 @@ export async function deployBasicProxy(
   });
 }
 
+export async function deployWrappedTokenGateway(
+  signer: Signer,
+  args: Parameters<WrappedTokenGateway__factory["deploy"]>,
+): Promise<WithAddress<WrappedTokenGateway>> {
+  return new WrappedTokenGateway__factory(signer)
+    .deploy(...args)
+    .catch((err) => {
+      throw Error(`Deploy WrappedTokenGateway:\n${err}`);
+    });
+}
+
 // ======================= //
 // === Deploy protocol === //
 // ======================= //
@@ -376,6 +389,7 @@ export type DeployedProtocolContracts = {
   PoolMath: WithAddress<PoolMath>;
   VirtualPool: WithAddress<VirtualPool>;
   AthenaDataProvider: WithAddress<AthenaDataProvider>;
+  WrappedTokenGateway: WithAddress<WrappedTokenGateway>;
   ProxyStrategyManager?: WithAddress<StrategyManager>;
 };
 
@@ -398,6 +412,7 @@ export const deploymentOrder: Partial<keyof ProtocolContracts | "_approve">[] =
     "RewardManager",
     "EcclesiaDao",
     "AthenaArbitrator",
+    "WrappedTokenGateway",
   ];
 
 export async function deployAllContractsAndInitializeProtocol(
@@ -607,6 +622,20 @@ export async function deployAllContractsAndInitializeProtocol(
     txCount++;
   }
 
+  // ======= MISC ======= //
+
+  if (deploymentOrder[txCount] === "WrappedTokenGateway") {
+    deployExecutors.push(async () =>
+      deployWrappedTokenGateway(deployer, [
+        wethAddress, // weth
+        deployedAt.LiquidityManager, // liquidityManager
+        deployedAt.AthenaPositionToken, // positionToken
+        deployedAt.AthenaCoverToken, // coverToken
+      ]),
+    );
+    txCount++;
+  }
+
   // Check that deploy order matches expected deployment count
   if (
     deploymentOrder.length !== deployExecutors.length ||
@@ -677,6 +706,10 @@ export async function deployAllContractsAndInitializeProtocol(
     deployedAt.AthenaDataProvider || ADDRESS_ZERO,
     deployer,
   );
+  const WrappedTokenGateway = WrappedTokenGateway__factory.connect(
+    deployedAt.WrappedTokenGateway || ADDRESS_ZERO,
+    deployer,
+  );
 
   const contracts = {
     TetherToken,
@@ -696,6 +729,7 @@ export async function deployAllContractsAndInitializeProtocol(
     PoolMath,
     VirtualPool,
     AthenaDataProvider,
+    WrappedTokenGateway,
   };
 
   if (logAddresses) {
