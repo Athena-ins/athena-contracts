@@ -30,6 +30,7 @@ import {
   StrategyManagerMorpho__factory,
   VirtualPool__factory,
   BasicProxy__factory,
+  WrappedTokenGateway__factory,
 } from "../typechain";
 import { ProtocolContracts } from "../test/helpers/deployers";
 //
@@ -68,7 +69,8 @@ const shouldVerify: Partial<keyof ProtocolContracts>[] = [
   // "FarmingRange",
   // "Staking",
   // "EcclesiaDao",
-  "ProxyStrategyManager",
+  // "ProxyStrategyManager",
+  "WrappedTokenGateway",
 ];
 
 const execPromise = promisify(exec);
@@ -230,6 +232,8 @@ async function main() {
     VirtualPool,
     AthenaDataProvider,
     ProxyStrategyManager,
+    WrappedTokenGateway,
+    WethToken,
   } = deployedAt;
 
   for (const contract of shouldVerify) {
@@ -455,6 +459,16 @@ async function main() {
       config.arbitrationCost,
     ]);
     console.log("==> Verification processed for AthenaArbitrator");
+  }
+
+  // ======= Misc ======= //
+
+  if (shouldVerify.includes("WrappedTokenGateway")) {
+    await verifyEtherscanContract<WrappedTokenGateway__factory>(
+      WrappedTokenGateway,
+      [WethToken, LiquidityManager, AthenaPositionToken, AthenaCoverToken],
+    );
+    console.log("==> Verification processed for WrappedTokenGateway");
   }
 
   // ======= Proxies ======= //

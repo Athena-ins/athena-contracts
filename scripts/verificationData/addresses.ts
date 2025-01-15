@@ -35,7 +35,7 @@ const networkAddresses: {
     VirtualPool: "0x7c0ca0e6d4ad499706a7433fa4b69bc969294282",
     AthenaDataProvider: "0x6affa1c136dfaa81c980724130056fa8b7b7daf1",
     ProxyStrategyManager: "0x3f80B7b8065E5CA1Cb5dB0B4360f722965e65571",
-    WrappedTokenGateway: "0x0000000000000000000000000000000000000000",
+    WrappedTokenGateway: "0x1e5DE7180E79D0dbb3BB30520D3e5D806C27e379",
   },
   // === Production addresses === //
   // arbitrum: {
