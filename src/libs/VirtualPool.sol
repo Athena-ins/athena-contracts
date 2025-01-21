@@ -423,6 +423,7 @@ library VirtualPool {
       uint256 net = rewards_ < totalFees ? 0 : rewards_ - totalFees;
 
       // Pay position owner
+      // @bw would be better to move this up to liq man to pay all in one go
       if (net != 0) {
         IERC20(self.paymentAsset).safeTransfer(account_, net);
       }
