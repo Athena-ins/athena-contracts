@@ -15,6 +15,7 @@ import { IsContract } from "../libs/IsContract.sol";
 import { IStrategyManager } from "../interfaces/IStrategyManager.sol";
 import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import { IERC4626 } from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
+import { IInceptionVault_S } from "../interfaces/IInceptionVault_S.sol";
 import { ILiquidityManager } from "../interfaces/ILiquidityManager.sol";
 import { IEcclesiaDao } from "../interfaces/IEcclesiaDao.sol";
 import { IAaveLendingPoolV3 } from "../interfaces/IAaveLendingPoolV3.sol";
@@ -41,7 +42,7 @@ error TransferCallFailed();
  * on top of the Aave v3 USDC strategy.
  *
  */
-contract StrategyManagerMorpho is IStrategyManager, Ownable {
+contract StrategyManagerEthereum is IStrategyManager, Ownable {
   using SafeERC20 for IERC20;
   using RayMath for uint256;
 
@@ -63,7 +64,7 @@ contract StrategyManagerMorpho is IStrategyManager, Ownable {
   IAaveLendingPoolV3 public immutable aaveLendingPool;
   address public immutable USDC; // underlyingAsset
   address public immutable aUSDC; // wrappedAsset
-  // Lido LST Token
+  // Lido Wrapped LST Token
   address public immutable wstETH; // 0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0
   // (((Strategy 1))) - Amphor Restaked ETH
   address public immutable amphrETH; // 0x5fD13359Ba15A84B76f7F87568309040176167cd
@@ -72,6 +73,10 @@ contract StrategyManagerMorpho is IStrategyManager, Ownable {
   // (((Strategy 3))) - Metamorpho MEV Capital wETH
   address public immutable morphoMevVaultUnderlying;
   address public immutable morphoMevVault;
+  // (((Strategy 4))) - Inception Symbiotic Restaked wstETH
+  address public immutable inwstETHs;
+  address public immutable inceptionVaultUnderlying; // wstETH
+  address public immutable inceptionVault;
 
   //======== CONSTRCUTOR ========//
 
@@ -86,7 +91,8 @@ contract StrategyManagerMorpho is IStrategyManager, Ownable {
     address wstETH_,
     address amphrETH_,
     address amphrLRT_,
-    address morphoMevVault_
+    address morphoMevVault_,
+    address inceptionVault_
   ) Ownable(msg.sender) {
     liquidityManager = liquidityManager_;
     ecclesiaDao = ecclesiaDao_;
@@ -102,6 +108,12 @@ contract StrategyManagerMorpho is IStrategyManager, Ownable {
     // Metamorpho MEV Capital wETH
     morphoMevVaultUnderlying = IERC4626(morphoMevVault_).asset();
     morphoMevVault = morphoMevVault_;
+    // Inception Symbiotic Restaked wstETH
+    inceptionVaultUnderlying = IERC4626(inceptionVault_).asset();
+    inwstETHs = address(
+      IInceptionVault_S(inceptionVault_).inceptionToken()
+    );
+    inceptionVault = inceptionVault_;
 
     if (
       HUNDRED_PERCENT < payoutDeductibleRate_ ||
@@ -123,7 +135,7 @@ contract StrategyManagerMorpho is IStrategyManager, Ownable {
   }
 
   modifier checkId(uint256 strategyId_) {
-    if (3 < strategyId_) revert NotAValidStrategy();
+    if (4 < strategyId_) revert NotAValidStrategy();
     _;
   }
 
@@ -161,6 +173,8 @@ contract StrategyManagerMorpho is IStrategyManager, Ownable {
       return RayMath.RAY;
     } else if (strategyId_ == 3) {
       return IERC4626(morphoMevVault).convertToAssets(RayMath.RAY);
+    } else if (strategyId_ == 4) {
+      return IERC4626(inceptionVault).convertToAssets(RayMath.RAY);
     }
     revert NotAValidStrategy();
   }
@@ -201,7 +215,7 @@ contract StrategyManagerMorpho is IStrategyManager, Ownable {
     uint256 startRewardIndex_,
     uint256 endRewardIndex_
   ) external pure returns (uint256) {
-    if (strategyId_ == 0 || strategyId_ == 3) {
+    if (strategyId_ == 0 || strategyId_ == 3 || strategyId_ == 4) {
       return
         amount_.rayMul(endRewardIndex_).rayDiv(startRewardIndex_) -
         amount_;
@@ -225,6 +239,8 @@ contract StrategyManagerMorpho is IStrategyManager, Ownable {
       return wstETH;
     } else if (strategyId_ == 3) {
       return morphoMevVaultUnderlying;
+    } else if (strategyId_ == 4) {
+      return inceptionVaultUnderlying; // wstETH
     }
     revert NotAValidStrategy();
   }
@@ -245,6 +261,8 @@ contract StrategyManagerMorpho is IStrategyManager, Ownable {
       return amphrLRT;
     } else if (strategyId_ == 3) {
       return morphoMevVault;
+    } else if (strategyId_ == 4) {
+      return inwstETHs;
     }
     revert NotAValidStrategy();
   }
@@ -277,8 +295,12 @@ contract StrategyManagerMorpho is IStrategyManager, Ownable {
     uint256 strategyId_,
     uint256 amountWrapped_
   ) public view checkId(strategyId_) returns (uint256) {
-    if (strategyId_ == 3) {
-      return IERC4626(morphoMevVault).convertToAssets(amountWrapped_);
+    if (strategyId_ == 3 || strategyId_ == 4) {
+      address vault = strategyId_ == 3
+        ? morphoMevVault
+        : inceptionVault;
+
+      return IERC4626(vault).convertToAssets(amountWrapped_);
     }
 
     // For AAVE underlying === wrapped since aToken amounts autocompound
@@ -296,9 +318,12 @@ contract StrategyManagerMorpho is IStrategyManager, Ownable {
     uint256 strategyId_,
     uint256 amountUnderlying_
   ) public view checkId(strategyId_) returns (uint256) {
-    if (strategyId_ == 3) {
-      return
-        IERC4626(morphoMevVault).convertToShares(amountUnderlying_);
+    if (strategyId_ == 3 || strategyId_ == 4) {
+      address vault = strategyId_ == 3
+        ? morphoMevVault
+        : inceptionVault;
+
+      return IERC4626(vault).convertToShares(amountUnderlying_);
     }
 
     // For AAVE underlying === wrapped since aToken amounts autocompound
@@ -372,16 +397,14 @@ contract StrategyManagerMorpho is IStrategyManager, Ownable {
     } else if (strategyId_ == 1 || strategyId_ == 2) {
       // Amphor Restaked ETH & Amphor Symbiotic LRT
       revert UseOfUnderlyingAssetNotSupported();
-    } else if (strategyId_ == 3) {
+    } else if (strategyId_ == 3 || strategyId_ == 4) {
+      address vault = strategyId_ == 3
+        ? morphoMevVault
+        : inceptionVault;
+
       address underlying = underlyingAsset(strategyId_);
-      IERC20(underlying).forceApprove(
-        morphoMevVault,
-        amountUnderlying_
-      );
-      IERC4626(morphoMevVault).deposit(
-        amountUnderlying_,
-        address(this)
-      );
+      IERC20(underlying).forceApprove(vault, amountUnderlying_);
+      IERC4626(vault).deposit(amountUnderlying_, address(this));
     }
   }
 
@@ -405,13 +428,13 @@ contract StrategyManagerMorpho is IStrategyManager, Ownable {
    * @param account_ The address to send the underlying tokens to
    * @param yieldBonus_ The yield bonus in RAY
    */
-  function withdrawFromStrategy(
+  function _withdrawFromStrategy(
     uint256 strategyId_,
     uint256 amountCapitalUnderlying_,
     uint256 amountRewardsUnderlying_,
     address account_,
     uint256 yieldBonus_
-  ) external checkId(strategyId_) onlyLiquidityManager {
+  ) internal {
     if (strategyId_ == 0) {
       // AAVE v3 USDC
       uint256 amountToWithdraw = amountCapitalUnderlying_ +
@@ -426,16 +449,6 @@ contract StrategyManagerMorpho is IStrategyManager, Ownable {
       amountToWithdraw -= daoShare;
 
       aaveLendingPool.withdraw(USDC, amountToWithdraw, account_);
-    } else if (strategyId_ == 1 || strategyId_ == 2) {
-      // Amphor Restaked ETH & Amphor Symbiotic LRT
-      return
-        withdrawWrappedFromStrategy(
-          strategyId_,
-          underlyingToWrapped(strategyId_, amountCapitalUnderlying_),
-          underlyingToWrapped(strategyId_, amountRewardsUnderlying_),
-          account_,
-          yieldBonus_
-        );
     } else if (strategyId_ == 3) {
       uint256 amountToWithdraw = amountCapitalUnderlying_ +
         amountRewardsUnderlying_;
@@ -449,14 +462,44 @@ contract StrategyManagerMorpho is IStrategyManager, Ownable {
       amountToWithdraw -= daoShare;
 
       // Convert underlying amount to shares
-      uint256 sharesToWithdraw = IERC4626(morphoMevVault)
-        .convertToShares(amountToWithdraw);
+      uint256 sharesToWithdraw = underlyingToWrapped(
+        strategyId_,
+        amountToWithdraw
+      );
       IERC4626(morphoMevVault).redeem(
         sharesToWithdraw,
         account_,
         address(this)
       );
+    } else {
+      // Fall back to wrapped for other strategies incompatible with underlying
+      withdrawWrappedFromStrategy(
+        strategyId_,
+        amountCapitalUnderlying_,
+        amountRewardsUnderlying_,
+        account_,
+        yieldBonus_
+      );
     }
+  }
+
+  /**
+   * @notice See {_withdrawFromStrategy}
+   */
+  function withdrawFromStrategy(
+    uint256 strategyId_,
+    uint256 amountCapitalUnderlying_,
+    uint256 amountRewardsUnderlying_,
+    address account_,
+    uint256 yieldBonus_
+  ) external checkId(strategyId_) onlyLiquidityManager {
+    _withdrawFromStrategy(
+      strategyId_,
+      amountCapitalUnderlying_,
+      amountRewardsUnderlying_,
+      account_,
+      yieldBonus_
+    );
   }
 
   /**
@@ -505,30 +548,30 @@ contract StrategyManagerMorpho is IStrategyManager, Ownable {
     uint256 amountUnderlying_,
     address account_
   ) external checkId(strategyId_) onlyLiquidityManager {
-    uint256 deductible = (amountUnderlying_ * payoutDeductibleRate) /
-      HUNDRED_PERCENT;
+    uint256 amountDeductible = (amountUnderlying_ *
+      payoutDeductibleRate) / HUNDRED_PERCENT;
 
-    // @dev No need to approve aToken since they are burned in pool
-    uint256 amountToPayout = (amountUnderlying_ - deductible);
-
-    if (strategyId_ == 0) {
-      // AAVE v3 USDC
-
-      // If there is a deductible, withdraw it from the pool to buy back & burn wallet
-      if (0 < deductible)
-        aaveLendingPool.withdraw(USDC, deductible, buybackWallet);
-
-      aaveLendingPool.withdraw(USDC, amountToPayout, account_);
-    } else {
-      // Amphor Restaked ETH & Amphor Symbiotic LRT
-      address asset = wrappedAsset(strategyId_);
-
-      // If there is a deductible, withdraw it from the pool to buy back & burn wallet
-      if (0 < deductible)
-        IERC20(asset).safeTransfer(buybackWallet, deductible);
-
-      IERC20(asset).safeTransfer(account_, amountToPayout);
+    // If there is a deductible, withdraw it from the pool to buy back & burn wallet
+    if (0 < amountDeductible) {
+      _withdrawFromStrategy(
+        strategyId_,
+        amountDeductible,
+        0,
+        buybackWallet,
+        0
+      );
     }
+
+    uint256 amountToPayout = amountUnderlying_ - amountDeductible;
+
+    // Pay cover claim with strategy funds
+    _withdrawFromStrategy(
+      strategyId_,
+      amountToPayout,
+      0,
+      account_,
+      0
+    );
   }
 
   //======== ADMIN ========//
