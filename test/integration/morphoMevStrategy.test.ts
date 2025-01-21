@@ -5,12 +5,18 @@ import {
   getConnectedProtocolContracts,
   MorphoConnectedProtocolContracts,
 } from "../helpers/contracts-getters";
-import { getDefaultProtocolConfig } from "../../scripts/verificationData/deployParams";
+import {
+  getDefaultProtocolConfig,
+  AmphorStrategyParams,
+} from "../../scripts/verificationData/deployParams";
 import {
   deployAllContractsAndInitializeProtocolMorpho,
   MorphoProtocolContracts,
 } from "../helpers/deployersMorpho";
-import { deployStrategyManagerMorpho } from "../helpers/deployers";
+import {
+  deployStrategyManagerEthereum,
+  ProtocolConfig,
+} from "../helpers/deployers";
 import {
   aaveLendingPoolV3Address,
   usdcTokenAddress,
@@ -33,6 +39,7 @@ const DAY_SECONDS = 24 * 60 * 60;
 
 interface Arguments extends Mocha.Context {
   customEnv: {
+    protocolConfig: ProtocolConfig & AmphorStrategyParams;
     contracts: MorphoProtocolContracts | MorphoConnectedProtocolContracts;
     helpers: TestHelper;
   };
@@ -55,12 +62,12 @@ interface Arguments extends Mocha.Context {
   };
 }
 
-export function MorphoStrategyTest() {
-  context("Morpho Strategy Test", function () {
+export function EthereumStrategyTest() {
+  context("Ethereum Strategy Test", function () {
     this.timeout(120_000);
 
     before(async function (this: Arguments) {
-      this.protocolConfig = getDefaultProtocolConfig("amphor");
+      const protocolConfig = getDefaultProtocolConfig("mainnet");
       const chainId = await entityProviderChainId(this.signers.deployer);
 
       if (chainId !== 1) {
@@ -74,29 +81,30 @@ export function MorphoStrategyTest() {
       );
       // const contracts = await deployAllContractsAndInitializeProtocolMorpho(
       //   this.signers.deployer,
-      //   this.protocolConfig,
+      //   this.customEnv.protocolConfig,
       // );
 
-      const strategyManagerMorpho = await deployStrategyManagerMorpho(
+      const strategyManagerEthereum = await deployStrategyManagerEthereum(
         this.signers.deployer,
         [
           contracts.LiquidityManager.address,
           this.signers.deployer.address, // EcclesiaDao
           aaveLendingPoolV3Address(chainId),
           usdcTokenAddress(chainId),
-          this.protocolConfig.buybackWallet.address,
-          this.protocolConfig.payoutDeductibleRate,
-          this.protocolConfig.strategyFeeRate,
-          this.protocolConfig.wstETH as string,
-          this.protocolConfig.amphrETH as string,
-          this.protocolConfig.amphrLRT as string,
-          this.protocolConfig.morphoMevVault as string,
+          protocolConfig.buybackWallet.address,
+          protocolConfig.payoutDeductibleRate,
+          protocolConfig.strategyFeeRate,
+          protocolConfig.wstETH,
+          protocolConfig.amphrETH,
+          protocolConfig.amphrLRT,
+          protocolConfig.morphoMevVault,
+          protocolConfig.inceptionVault,
         ],
       );
 
       const upgradedContracts = {
         ...contracts,
-        StrategyManager: strategyManagerMorpho,
+        StrategyManager: strategyManagerEthereum,
       };
       // const upgradedContracts =  contracts
 
@@ -106,6 +114,7 @@ export function MorphoStrategyTest() {
       );
 
       this.customEnv = {
+        protocolConfig,
         contracts: upgradedContracts,
         helpers: veHelpers,
       };
@@ -138,9 +147,9 @@ export function MorphoStrategyTest() {
             this.customEnv.contracts.StrategyManager.address, // strategyManager
             this.customEnv.contracts.ClaimManager.address, // claimManager
             this.signers.deployer.address, // yieldRewarder
-            this.protocolConfig.withdrawDelay, // withdrawDelay
-            this.protocolConfig.maxLeverage, // maxLeverage
-            this.protocolConfig.leverageFeePerPool, // leverageFeePerPool
+            this.customEnv.protocolConfig.withdrawDelay, // withdrawDelay
+            this.customEnv.protocolConfig.maxLeverage, // maxLeverage
+            this.customEnv.protocolConfig.leverageFeePerPool, // leverageFeePerPool
           ),
         ),
       ).to.not.throw;
@@ -153,7 +162,7 @@ export function MorphoStrategyTest() {
       this.args.morphoPoolId = poolId;
 
       const { uOptimal, r0, rSlope1, rSlope2 } =
-        this.protocolConfig.poolFormula;
+        this.customEnv.protocolConfig.poolFormula;
 
       expect(
         await postTxHandler(
@@ -234,7 +243,7 @@ export function MorphoStrategyTest() {
       expect(
         await postTxHandler(
           this.customEnv.contracts.LiquidityManager.takeInterests(
-          this.args.positionId,
+            this.args.positionId,
           ),
         ),
       ).to.not.throw;
