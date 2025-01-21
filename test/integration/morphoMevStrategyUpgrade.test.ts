@@ -11,7 +11,7 @@ import {
   MorphoProtocolContracts,
 } from "../helpers/deployersMorpho";
 import {
-  deployStrategyManagerMorpho,
+  deployStrategyManagerEthereum,
   deployStrategyManagerVE,
   deployBasicProxy,
 } from "../helpers/deployers";
@@ -37,7 +37,7 @@ import {
   BasicProxy,
   BasicProxy__factory,
   ProxyAdmin__factory,
-  StrategyManagerMorpho__factory,
+  StrategyManagerEthereum__factory,
   StrategyManagerVE__factory,
 } from "../../typechain";
 
@@ -88,7 +88,7 @@ export function MorphoStrategyUpgradeTest() {
     this.timeout(120_000);
 
     before(async function (this: Arguments) {
-      this.protocolConfig = getDefaultProtocolConfig("amphor");
+      this.protocolConfig = getDefaultProtocolConfig("mainnet");
       const chainId = await entityProviderChainId(this.signers.deployer);
 
       if (chainId !== 1) {
@@ -177,7 +177,7 @@ export function MorphoStrategyUpgradeTest() {
         if (proxy.address === ethers.constants.AddressZero)
           throw Error("Proxy contract not initialized");
 
-        const strategyManager = StrategyManagerMorpho__factory.connect(
+        const strategyManager = StrategyManagerEthereum__factory.connect(
           proxy.address,
           this.signers.deployer,
         );

@@ -36,8 +36,8 @@ import {
   PoolMath__factory,
   RewardManager__factory,
   Staking__factory,
-  StrategyManagerMorpho,
-  StrategyManagerMorpho__factory,
+  StrategyManagerEthereum,
+  StrategyManagerEthereum__factory,
   // Other
   TetherToken__factory,
   VirtualPool__factory,
@@ -53,7 +53,7 @@ import {
   deployLiquidityManager,
   deployPoolMath,
   deployRewardManager,
-  deployStrategyManagerMorpho,
+  deployStrategyManagerEthereum,
   deployVirtualPool,
   deployBasicProxy,
   deployWrappedTokenGateway,
@@ -89,7 +89,7 @@ export const deploymentOrder: Partial<keyof ProtocolContracts | "_approve">[] =
   ];
 
 export type MorphoProtocolContracts = ProtocolContracts & {
-  StrategyManager: StrategyManagerMorpho;
+  StrategyManager: StrategyManagerEthereum;
 };
 
 export async function deployAllContractsAndInitializeProtocolMorpho(
@@ -259,7 +259,7 @@ export async function deployAllContractsAndInitializeProtocolMorpho(
     }
 
     deployExecutors.push(() =>
-      deployStrategyManagerMorpho(deployer, [
+      deployStrategyManagerEthereum(deployer, [
         deployedAt.LiquidityManager,
         deployer.address, // EcclesiaDao
         aaveLendingPoolV3Address(chainId),
@@ -430,7 +430,7 @@ export async function deployAllContractsAndInitializeProtocolMorpho(
     deployedAt.LiquidityManager || ADDRESS_ZERO,
     deployer,
   );
-  const StrategyManager = StrategyManagerMorpho__factory.connect(
+  const StrategyManager = StrategyManagerEthereum__factory.connect(
     deployedAt.StrategyManager || ADDRESS_ZERO,
     deployer,
   );

@@ -27,7 +27,7 @@ import {
   StrategyManager__factory,
   StrategyManagerVE__factory,
   StrategyManagerVL__factory,
-  StrategyManagerMorpho__factory,
+  StrategyManagerEthereum__factory,
   VirtualPool__factory,
   BasicProxy__factory,
   WrappedTokenGateway__factory,
@@ -353,11 +353,12 @@ async function main() {
         !config.wstETH ||
         !config.amphrETH ||
         !config.amphrLRT ||
-        !config.morphoMevVault
+        !config.morphoMevVault ||
+        !config.inceptionVault
       )
         throw Error("Missing morpho version strategy params");
 
-      await verifyEtherscanContract<StrategyManagerMorpho__factory>(
+      await verifyEtherscanContract<StrategyManagerEthereum__factory>(
         StrategyManager,
         [
           LiquidityManager,
@@ -371,6 +372,7 @@ async function main() {
           config.amphrETH, // amphrETH
           config.amphrLRT, // amphrL
           config.morphoMevVault,
+          config.inceptionVault,
         ],
       );
     } else {

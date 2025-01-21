@@ -16,8 +16,8 @@ import {
   StrategyManager__factory,
   StrategyManagerVE,
   StrategyManagerVE__factory,
-  StrategyManagerMorpho,
-  StrategyManagerMorpho__factory,
+  StrategyManagerEthereum,
+  StrategyManagerEthereum__factory,
   StrategyManagerVL,
   StrategyManagerVL__factory,
   StrategyManagerCore,
@@ -100,8 +100,8 @@ export async function getStrategyManager(address: string) {
 export async function getStrategyManagerVE(address: string) {
   return connectWrapper(StrategyManagerVE__factory, address);
 }
-export async function getStrategyManagerMorpho(address: string) {
-  return connectWrapper(StrategyManagerMorpho__factory, address);
+export async function getStrategyManagerEthereum(address: string) {
+  return connectWrapper(StrategyManagerEthereum__factory, address);
 }
 export async function getStrategyManagerVL(address: string) {
   return connectWrapper(StrategyManagerVL__factory, address);
@@ -170,7 +170,7 @@ export type ConnectedProtocolContracts = {
   StrategyManager:
     | ConnectWithAddress<StrategyManager>
     | ConnectWithAddress<StrategyManagerVE>
-    | ConnectWithAddress<StrategyManagerMorpho>
+    | ConnectWithAddress<StrategyManagerEthereum>
     | ConnectWithAddress<StrategyManagerVL>
     | ConnectWithAddress<StrategyManagerCore>;
   FarmingRange: ConnectWithAddress<FarmingRange>;
@@ -190,7 +190,8 @@ export type VEConnectedProtocolContracts = ConnectedProtocolContracts & {
   StrategyManager: ConnectWithAddress<StrategyManagerVE>;
 };
 export type MorphoConnectedProtocolContracts = ConnectedProtocolContracts & {
-  StrategyManager: ConnectWithAddress<StrategyManagerMorpho>;
+  StrategyManager: ConnectWithAddress<StrategyManagerEthereum>;
+  ProxyStrategyManager: ConnectWithAddress<StrategyManager>;
 };
 export type VLConnectedProtocolContracts = ConnectedProtocolContracts & {
   StrategyManager: ConnectWithAddress<StrategyManagerVL>;
@@ -231,13 +232,13 @@ export async function getConnectedProtocolContracts(
   let stratManagerGetter:
     | typeof getStrategyManager
     | typeof getStrategyManagerVE
-    | typeof getStrategyManagerMorpho
+    | typeof getStrategyManagerEthereum
     | typeof getStrategyManagerVL
     | typeof getStrategyManagerCore = getStrategyManager;
 
   if (version === "ethereum-amphor") stratManagerGetter = getStrategyManagerVE;
   if (version === "ethereum-morpho")
-    stratManagerGetter = getStrategyManagerMorpho;
+    stratManagerGetter = getStrategyManagerEthereum;
   if (version === "lisk") stratManagerGetter = getStrategyManagerVL;
   if (version === "core") stratManagerGetter = getStrategyManagerCore;
 

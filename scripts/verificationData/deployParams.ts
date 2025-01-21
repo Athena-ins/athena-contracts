@@ -15,20 +15,21 @@ const { parseEther, parseUnits } = ethers.utils;
 
 const DAY_SECONDS = 24 * 60 * 60;
 
-type AmphorStrategyParams = {
+export type AmphorStrategyParams = {
   wstETH: string;
   amphrETH: string;
   amphrLRT: string;
   weth: string;
   morphoMevVault: string;
+  inceptionVault: string;
 };
 
-type LiskStrategyParams = {
+export type LiskStrategyParams = {
   usdt: string;
   lsk: string;
 };
 
-type CoreDaoStrategyParams = {
+export type CoreDaoStrategyParams = {
   colendLendingPool: string;
   USDC: string;
   sUSDC: string;
@@ -46,6 +47,8 @@ export const mainnetStrategyParams: AmphorStrategyParams = {
   // (((Strategy 3))) - Morpho MEV Vault
   weth: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
   morphoMevVault: "0x9a8bC3B04b7f3D87cfC09ba407dCED575f2d61D8",
+  // (((Strategy 4))) - Inception Symboitic LRT
+  inceptionVault: "0xf9D9F828989A624423C48b95BC04E9Ae0ef5Ec97",
 };
 
 export const liskStrategyParams: LiskStrategyParams = {
@@ -243,7 +246,8 @@ export function getDefaultProtocolConfig(
 export function getDefaultProtocolConfig(
   extraParams?: "mainnet" | "lisk" | "core_dao",
   overrides: Partial<ProtocolConfig> = {},
-) {
+): ProtocolConfig &
+  ({} | AmphorStrategyParams | LiskStrategyParams | CoreDaoStrategyParams) {
   let extraChainParams = {};
 
   if (extraParams === "mainnet") {
