@@ -77,7 +77,11 @@ export function fromFork() {
   return forkTarget;
 }
 
-export async function postTxHandler(txPromise: Promise<ContractTransaction>) {
+export async function postTxHandler(
+  txPromise: Promise<ContractTransaction> | undefined,
+) {
+  if (!txPromise) throw Error("No transaction provided to handler");
+
   return txPromise
     .then((tx) => tx.wait())
     .catch((err) => {
