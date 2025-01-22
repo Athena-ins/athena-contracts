@@ -127,9 +127,13 @@ const protocolNames = [
   "Stake DAO FRAX/crvUSD",
   "Stake DAO ETH/ETHx",
   "Stake DAO USDC/crvUSD",
+  "Inception Symbiotic Restaked wstETH",
 ] as const;
 
-type ProtocolName = (typeof protocolNames)[number];
+// Either with strategy ID or only cover name
+type ProtocolName =
+  | (typeof protocolNames)[number]
+  | `${number} - ${(typeof protocolNames)[number]}`;
 
 type PoolParams = {
   paymentAsset: string;
@@ -143,7 +147,9 @@ type PoolParams = {
 };
 
 const deployParams: {
-  [key in NetworkName]?: { [coverName in ProtocolName]?: PoolParams };
+  [key in NetworkName]?: {
+    [coverName in ProtocolName]?: PoolParams;
+  };
 } = {
   mainnet: {
     "Amphor Restaked ETH": {
@@ -160,6 +166,16 @@ const deployParams: {
         "Stake DAO FRAX/crvUSD",
         "Stake DAO ETH/ETHx",
         "Stake DAO USDC/crvUSD",
+        "4 - Stake DAO USDT/crvUSD",
+        "4 - Stake DAO crvUSD/tBTC/wstETH",
+        "4 - Stake DAO crvUSD Leverage (WETH collat)",
+        "4 - Stake DAO crvUSD Leverage (wstETH collat)",
+        "4 - Stake DAO crvUSD Leverage (WBTC collat)",
+        "4 - Stake DAO crvUSD/WETH/CRV",
+        "4 - Stake DAO FRAX/crvUSD",
+        "4 - Stake DAO ETH/ETHx",
+        "4 - Stake DAO USDC/crvUSD",
+        "4 - Inception Symbiotic Restaked wstETH",
       ],
       ...formulaConfig.G,
     },
@@ -177,64 +193,388 @@ const deployParams: {
         "Stake DAO FRAX/crvUSD",
         "Stake DAO ETH/ETHx",
         "Stake DAO USDC/crvUSD",
+        "4 - Stake DAO USDT/crvUSD",
+        "4 - Stake DAO crvUSD/tBTC/wstETH",
+        "4 - Stake DAO crvUSD Leverage (WETH collat)",
+        "4 - Stake DAO crvUSD Leverage (wstETH collat)",
+        "4 - Stake DAO crvUSD Leverage (WBTC collat)",
+        "4 - Stake DAO crvUSD/WETH/CRV",
+        "4 - Stake DAO FRAX/crvUSD",
+        "4 - Stake DAO ETH/ETHx",
+        "4 - Stake DAO USDC/crvUSD",
+        "4 - Inception Symbiotic Restaked wstETH",
       ],
       ...formulaConfig.H,
     },
-    //=========//
     //=== K ===//
-    //=========//
     "Stake DAO USDT/crvUSD": {
       paymentAsset: mainnetStrategyParams.weth,
       strategyId: 3,
-      incompatiblePools: ["Amphor Restaked ETH", "Amphor Symbiotic LRT Vault"],
+      incompatiblePools: [
+        "Amphor Restaked ETH",
+        "Amphor Symbiotic LRT Vault",
+        "4 - Stake DAO USDT/crvUSD",
+        "4 - Stake DAO crvUSD/tBTC/wstETH",
+        "4 - Stake DAO crvUSD Leverage (WETH collat)",
+        "4 - Stake DAO crvUSD Leverage (wstETH collat)",
+        "4 - Stake DAO crvUSD Leverage (WBTC collat)",
+        "4 - Stake DAO crvUSD/WETH/CRV",
+        "4 - Stake DAO FRAX/crvUSD",
+        "4 - Stake DAO ETH/ETHx",
+        "4 - Stake DAO USDC/crvUSD",
+        "4 - Inception Symbiotic Restaked wstETH",
+      ],
       ...formulaConfig.K,
     },
     "Stake DAO crvUSD/tBTC/wstETH": {
       paymentAsset: mainnetStrategyParams.weth,
       strategyId: 3,
-      incompatiblePools: ["Amphor Restaked ETH", "Amphor Symbiotic LRT Vault"],
+      incompatiblePools: [
+        "Amphor Restaked ETH",
+        "Amphor Symbiotic LRT Vault",
+        "4 - Stake DAO USDT/crvUSD",
+        "4 - Stake DAO crvUSD/tBTC/wstETH",
+        "4 - Stake DAO crvUSD Leverage (WETH collat)",
+        "4 - Stake DAO crvUSD Leverage (wstETH collat)",
+        "4 - Stake DAO crvUSD Leverage (WBTC collat)",
+        "4 - Stake DAO crvUSD/WETH/CRV",
+        "4 - Stake DAO FRAX/crvUSD",
+        "4 - Stake DAO ETH/ETHx",
+        "4 - Stake DAO USDC/crvUSD",
+        "4 - Inception Symbiotic Restaked wstETH",
+      ],
       ...formulaConfig.K,
     },
     "Stake DAO crvUSD Leverage (WETH collat)": {
       paymentAsset: mainnetStrategyParams.weth,
       strategyId: 3,
-      incompatiblePools: ["Amphor Restaked ETH", "Amphor Symbiotic LRT Vault"],
+      incompatiblePools: [
+        "Amphor Restaked ETH",
+        "Amphor Symbiotic LRT Vault",
+        "4 - Stake DAO USDT/crvUSD",
+        "4 - Stake DAO crvUSD/tBTC/wstETH",
+        "4 - Stake DAO crvUSD Leverage (WETH collat)",
+        "4 - Stake DAO crvUSD Leverage (wstETH collat)",
+        "4 - Stake DAO crvUSD Leverage (WBTC collat)",
+        "4 - Stake DAO crvUSD/WETH/CRV",
+        "4 - Stake DAO FRAX/crvUSD",
+        "4 - Stake DAO ETH/ETHx",
+        "4 - Stake DAO USDC/crvUSD",
+        "4 - Inception Symbiotic Restaked wstETH",
+      ],
       ...formulaConfig.K,
     },
     "Stake DAO crvUSD Leverage (wstETH collat)": {
       paymentAsset: mainnetStrategyParams.weth,
       strategyId: 3,
-      incompatiblePools: ["Amphor Restaked ETH", "Amphor Symbiotic LRT Vault"],
+      incompatiblePools: [
+        "Amphor Restaked ETH",
+        "Amphor Symbiotic LRT Vault",
+        "4 - Stake DAO USDT/crvUSD",
+        "4 - Stake DAO crvUSD/tBTC/wstETH",
+        "4 - Stake DAO crvUSD Leverage (WETH collat)",
+        "4 - Stake DAO crvUSD Leverage (wstETH collat)",
+        "4 - Stake DAO crvUSD Leverage (WBTC collat)",
+        "4 - Stake DAO crvUSD/WETH/CRV",
+        "4 - Stake DAO FRAX/crvUSD",
+        "4 - Stake DAO ETH/ETHx",
+        "4 - Stake DAO USDC/crvUSD",
+        "4 - Inception Symbiotic Restaked wstETH",
+      ],
       ...formulaConfig.K,
     },
     "Stake DAO crvUSD Leverage (WBTC collat)": {
       paymentAsset: mainnetStrategyParams.weth,
       strategyId: 3,
-      incompatiblePools: ["Amphor Restaked ETH", "Amphor Symbiotic LRT Vault"],
+      incompatiblePools: [
+        "Amphor Restaked ETH",
+        "Amphor Symbiotic LRT Vault",
+        "4 - Stake DAO USDT/crvUSD",
+        "4 - Stake DAO crvUSD/tBTC/wstETH",
+        "4 - Stake DAO crvUSD Leverage (WETH collat)",
+        "4 - Stake DAO crvUSD Leverage (wstETH collat)",
+        "4 - Stake DAO crvUSD Leverage (WBTC collat)",
+        "4 - Stake DAO crvUSD/WETH/CRV",
+        "4 - Stake DAO FRAX/crvUSD",
+        "4 - Stake DAO ETH/ETHx",
+        "4 - Stake DAO USDC/crvUSD",
+        "4 - Inception Symbiotic Restaked wstETH",
+      ],
       ...formulaConfig.K,
     },
     "Stake DAO crvUSD/WETH/CRV": {
       paymentAsset: mainnetStrategyParams.weth,
       strategyId: 3,
-      incompatiblePools: ["Amphor Restaked ETH", "Amphor Symbiotic LRT Vault"],
+      incompatiblePools: [
+        "Amphor Restaked ETH",
+        "Amphor Symbiotic LRT Vault",
+        "4 - Stake DAO USDT/crvUSD",
+        "4 - Stake DAO crvUSD/tBTC/wstETH",
+        "4 - Stake DAO crvUSD Leverage (WETH collat)",
+        "4 - Stake DAO crvUSD Leverage (wstETH collat)",
+        "4 - Stake DAO crvUSD Leverage (WBTC collat)",
+        "4 - Stake DAO crvUSD/WETH/CRV",
+        "4 - Stake DAO FRAX/crvUSD",
+        "4 - Stake DAO ETH/ETHx",
+        "4 - Stake DAO USDC/crvUSD",
+        "4 - Inception Symbiotic Restaked wstETH",
+      ],
       ...formulaConfig.K,
     },
     "Stake DAO FRAX/crvUSD": {
       paymentAsset: mainnetStrategyParams.weth,
       strategyId: 3,
-      incompatiblePools: ["Amphor Restaked ETH", "Amphor Symbiotic LRT Vault"],
+      incompatiblePools: [
+        "Amphor Restaked ETH",
+        "Amphor Symbiotic LRT Vault",
+        "4 - Stake DAO USDT/crvUSD",
+        "4 - Stake DAO crvUSD/tBTC/wstETH",
+        "4 - Stake DAO crvUSD Leverage (WETH collat)",
+        "4 - Stake DAO crvUSD Leverage (wstETH collat)",
+        "4 - Stake DAO crvUSD Leverage (WBTC collat)",
+        "4 - Stake DAO crvUSD/WETH/CRV",
+        "4 - Stake DAO FRAX/crvUSD",
+        "4 - Stake DAO ETH/ETHx",
+        "4 - Stake DAO USDC/crvUSD",
+        "4 - Inception Symbiotic Restaked wstETH",
+      ],
       ...formulaConfig.K,
     },
     "Stake DAO ETH/ETHx": {
       paymentAsset: mainnetStrategyParams.weth,
       strategyId: 3,
-      incompatiblePools: ["Amphor Restaked ETH", "Amphor Symbiotic LRT Vault"],
+      incompatiblePools: [
+        "Amphor Restaked ETH",
+        "Amphor Symbiotic LRT Vault",
+        "4 - Stake DAO USDT/crvUSD",
+        "4 - Stake DAO crvUSD/tBTC/wstETH",
+        "4 - Stake DAO crvUSD Leverage (WETH collat)",
+        "4 - Stake DAO crvUSD Leverage (wstETH collat)",
+        "4 - Stake DAO crvUSD Leverage (WBTC collat)",
+        "4 - Stake DAO crvUSD/WETH/CRV",
+        "4 - Stake DAO FRAX/crvUSD",
+        "4 - Stake DAO ETH/ETHx",
+        "4 - Stake DAO USDC/crvUSD",
+        "4 - Inception Symbiotic Restaked wstETH",
+      ],
       ...formulaConfig.K,
     },
     "Stake DAO USDC/crvUSD": {
       paymentAsset: mainnetStrategyParams.weth,
       strategyId: 3,
-      incompatiblePools: ["Amphor Restaked ETH", "Amphor Symbiotic LRT Vault"],
+      incompatiblePools: [
+        "Amphor Restaked ETH",
+        "Amphor Symbiotic LRT Vault",
+        "4 - Stake DAO USDT/crvUSD",
+        "4 - Stake DAO crvUSD/tBTC/wstETH",
+        "4 - Stake DAO crvUSD Leverage (WETH collat)",
+        "4 - Stake DAO crvUSD Leverage (wstETH collat)",
+        "4 - Stake DAO crvUSD Leverage (WBTC collat)",
+        "4 - Stake DAO crvUSD/WETH/CRV",
+        "4 - Stake DAO FRAX/crvUSD",
+        "4 - Stake DAO ETH/ETHx",
+        "4 - Stake DAO USDC/crvUSD",
+        "4 - Inception Symbiotic Restaked wstETH",
+      ],
+      ...formulaConfig.K,
+    },
+    // ======= STRATEGY 4 REDEPLOYMENT ====== //
+    "4 - Stake DAO USDT/crvUSD": {
+      paymentAsset: mainnetStrategyParams.weth,
+      strategyId: 4,
+      incompatiblePools: [
+        "Amphor Restaked ETH",
+        "Amphor Symbiotic LRT Vault",
+        "Stake DAO USDT/crvUSD",
+        "Stake DAO crvUSD/tBTC/wstETH",
+        "Stake DAO crvUSD Leverage (WETH collat)",
+        "Stake DAO crvUSD Leverage (wstETH collat)",
+        "Stake DAO crvUSD Leverage (WBTC collat)",
+        "Stake DAO crvUSD/WETH/CRV",
+        "Stake DAO FRAX/crvUSD",
+        "Stake DAO ETH/ETHx",
+        "Stake DAO USDC/crvUSD",
+        "4 - Inception Symbiotic Restaked wstETH",
+      ],
+      ...formulaConfig.K,
+    },
+    "4 - Stake DAO crvUSD/tBTC/wstETH": {
+      paymentAsset: mainnetStrategyParams.weth,
+      strategyId: 4,
+      incompatiblePools: [
+        "Amphor Restaked ETH",
+        "Amphor Symbiotic LRT Vault",
+        "Stake DAO USDT/crvUSD",
+        "Stake DAO crvUSD/tBTC/wstETH",
+        "Stake DAO crvUSD Leverage (WETH collat)",
+        "Stake DAO crvUSD Leverage (wstETH collat)",
+        "Stake DAO crvUSD Leverage (WBTC collat)",
+        "Stake DAO crvUSD/WETH/CRV",
+        "Stake DAO FRAX/crvUSD",
+        "Stake DAO ETH/ETHx",
+        "Stake DAO USDC/crvUSD",
+        "4 - Inception Symbiotic Restaked wstETH",
+      ],
+      ...formulaConfig.K,
+    },
+    "4 - Stake DAO crvUSD Leverage (WETH collat)": {
+      paymentAsset: mainnetStrategyParams.weth,
+      strategyId: 4,
+      incompatiblePools: [
+        "Amphor Restaked ETH",
+        "Amphor Symbiotic LRT Vault",
+        "Stake DAO USDT/crvUSD",
+        "Stake DAO crvUSD/tBTC/wstETH",
+        "Stake DAO crvUSD Leverage (WETH collat)",
+        "Stake DAO crvUSD Leverage (wstETH collat)",
+        "Stake DAO crvUSD Leverage (WBTC collat)",
+        "Stake DAO crvUSD/WETH/CRV",
+        "Stake DAO FRAX/crvUSD",
+        "Stake DAO ETH/ETHx",
+        "Stake DAO USDC/crvUSD",
+        "4 - Inception Symbiotic Restaked wstETH",
+      ],
+      ...formulaConfig.K,
+    },
+    "4 - Stake DAO crvUSD Leverage (wstETH collat)": {
+      paymentAsset: mainnetStrategyParams.weth,
+      strategyId: 4,
+      incompatiblePools: [
+        "Amphor Restaked ETH",
+        "Amphor Symbiotic LRT Vault",
+        "Stake DAO USDT/crvUSD",
+        "Stake DAO crvUSD/tBTC/wstETH",
+        "Stake DAO crvUSD Leverage (WETH collat)",
+        "Stake DAO crvUSD Leverage (wstETH collat)",
+        "Stake DAO crvUSD Leverage (WBTC collat)",
+        "Stake DAO crvUSD/WETH/CRV",
+        "Stake DAO FRAX/crvUSD",
+        "Stake DAO ETH/ETHx",
+        "Stake DAO USDC/crvUSD",
+        "4 - Inception Symbiotic Restaked wstETH",
+      ],
+      ...formulaConfig.K,
+    },
+    "4 - Stake DAO crvUSD Leverage (WBTC collat)": {
+      paymentAsset: mainnetStrategyParams.weth,
+      strategyId: 4,
+      incompatiblePools: [
+        "Amphor Restaked ETH",
+        "Amphor Symbiotic LRT Vault",
+        "Stake DAO USDT/crvUSD",
+        "Stake DAO crvUSD/tBTC/wstETH",
+        "Stake DAO crvUSD Leverage (WETH collat)",
+        "Stake DAO crvUSD Leverage (wstETH collat)",
+        "Stake DAO crvUSD Leverage (WBTC collat)",
+        "Stake DAO crvUSD/WETH/CRV",
+        "Stake DAO FRAX/crvUSD",
+        "Stake DAO ETH/ETHx",
+        "Stake DAO USDC/crvUSD",
+        "4 - Inception Symbiotic Restaked wstETH",
+      ],
+      ...formulaConfig.K,
+    },
+    "4 - Stake DAO crvUSD/WETH/CRV": {
+      paymentAsset: mainnetStrategyParams.weth,
+      strategyId: 4,
+      incompatiblePools: [
+        "Amphor Restaked ETH",
+        "Amphor Symbiotic LRT Vault",
+        "Stake DAO USDT/crvUSD",
+        "Stake DAO crvUSD/tBTC/wstETH",
+        "Stake DAO crvUSD Leverage (WETH collat)",
+        "Stake DAO crvUSD Leverage (wstETH collat)",
+        "Stake DAO crvUSD Leverage (WBTC collat)",
+        "Stake DAO crvUSD/WETH/CRV",
+        "Stake DAO FRAX/crvUSD",
+        "Stake DAO ETH/ETHx",
+        "Stake DAO USDC/crvUSD",
+        "4 - Inception Symbiotic Restaked wstETH",
+      ],
+      ...formulaConfig.K,
+    },
+    "4 - Stake DAO FRAX/crvUSD": {
+      paymentAsset: mainnetStrategyParams.weth,
+      strategyId: 4,
+      incompatiblePools: [
+        "Amphor Restaked ETH",
+        "Amphor Symbiotic LRT Vault",
+        "Stake DAO USDT/crvUSD",
+        "Stake DAO crvUSD/tBTC/wstETH",
+        "Stake DAO crvUSD Leverage (WETH collat)",
+        "Stake DAO crvUSD Leverage (wstETH collat)",
+        "Stake DAO crvUSD Leverage (WBTC collat)",
+        "Stake DAO crvUSD/WETH/CRV",
+        "Stake DAO FRAX/crvUSD",
+        "Stake DAO ETH/ETHx",
+        "Stake DAO USDC/crvUSD",
+        "4 - Inception Symbiotic Restaked wstETH",
+      ],
+      ...formulaConfig.K,
+    },
+    "4 - Stake DAO ETH/ETHx": {
+      paymentAsset: mainnetStrategyParams.weth,
+      strategyId: 4,
+      incompatiblePools: [
+        "Amphor Restaked ETH",
+        "Amphor Symbiotic LRT Vault",
+        "Stake DAO USDT/crvUSD",
+        "Stake DAO crvUSD/tBTC/wstETH",
+        "Stake DAO crvUSD Leverage (WETH collat)",
+        "Stake DAO crvUSD Leverage (wstETH collat)",
+        "Stake DAO crvUSD Leverage (WBTC collat)",
+        "Stake DAO crvUSD/WETH/CRV",
+        "Stake DAO FRAX/crvUSD",
+        "Stake DAO ETH/ETHx",
+        "Stake DAO USDC/crvUSD",
+        "4 - Inception Symbiotic Restaked wstETH",
+      ],
+      ...formulaConfig.K,
+    },
+    "4 - Stake DAO USDC/crvUSD": {
+      paymentAsset: mainnetStrategyParams.weth,
+      strategyId: 4,
+      incompatiblePools: [
+        "Amphor Restaked ETH",
+        "Amphor Symbiotic LRT Vault",
+        "Stake DAO USDT/crvUSD",
+        "Stake DAO crvUSD/tBTC/wstETH",
+        "Stake DAO crvUSD Leverage (WETH collat)",
+        "Stake DAO crvUSD Leverage (wstETH collat)",
+        "Stake DAO crvUSD Leverage (WBTC collat)",
+        "Stake DAO crvUSD/WETH/CRV",
+        "Stake DAO FRAX/crvUSD",
+        "Stake DAO ETH/ETHx",
+        "Stake DAO USDC/crvUSD",
+        "4 - Inception Symbiotic Restaked wstETH",
+      ],
+      ...formulaConfig.K,
+    },
+    "4 - Inception Symbiotic Restaked wstETH": {
+      paymentAsset: mainnetStrategyParams.weth,
+      strategyId: 4,
+      incompatiblePools: [
+        "Amphor Restaked ETH",
+        "Amphor Symbiotic LRT Vault",
+        "Stake DAO USDT/crvUSD",
+        "Stake DAO crvUSD/tBTC/wstETH",
+        "Stake DAO crvUSD Leverage (WETH collat)",
+        "Stake DAO crvUSD Leverage (wstETH collat)",
+        "Stake DAO crvUSD Leverage (WBTC collat)",
+        "Stake DAO crvUSD/WETH/CRV",
+        "Stake DAO FRAX/crvUSD",
+        "Stake DAO ETH/ETHx",
+        "Stake DAO USDC/crvUSD",
+        "4 - Stake DAO USDT/crvUSD",
+        "4 - Stake DAO crvUSD/tBTC/wstETH",
+        "4 - Stake DAO crvUSD Leverage (WETH collat)",
+        "4 - Stake DAO crvUSD Leverage (wstETH collat)",
+        "4 - Stake DAO crvUSD Leverage (WBTC collat)",
+        "4 - Stake DAO crvUSD/WETH/CRV",
+        "4 - Stake DAO FRAX/crvUSD",
+        "4 - Stake DAO ETH/ETHx",
+        "4 - Stake DAO USDC/crvUSD",
+      ],
       ...formulaConfig.K,
     },
   },
@@ -497,36 +837,40 @@ type FormattedPoolParams = PoolParams & {
 };
 
 function formatCompatiblePools(networkPools: {
-  [coverName in ProtocolName]?: PoolParams;
+  [key in ProtocolName]?: PoolParams;
 }): FormattedPoolParams[] {
-  const poolNames = Object.keys(networkPools) as ProtocolName[];
-  const poolParams = Object.values(networkPools);
+  const networkPoolEntries = Object.entries(networkPools) as [
+    ProtocolName,
+    PoolParams,
+  ][];
 
-  const nbPools = poolNames.length;
+  const nbPools = networkPoolEntries.length;
   const allPoolIds = Array.from({ length: nbPools }, (_, i) => i);
 
   const errors = [];
   // For each pool
-  for (const [i, pool] of poolParams.entries()) {
+  for (const poolEntry of networkPoolEntries) {
+    const name = poolEntry[0];
+    const pool = poolEntry[1];
+
     // Check each incompatible pool
     for (const incompatiblePool of pool.incompatiblePools) {
-      // If the pool is not being deployed it is not necessary to check
+      // If there is no entry for the incompatible pool then it can be skipped
       if (!networkPools[incompatiblePool]) {
         console.log(
-          `\n>> WARN Must update pool ${incompatiblePool} with new incompatible pool ${poolNames[i]}`,
+          `\n>> WARN Must update pool "${incompatiblePool}" with new incompatible pool "${name}"`,
         );
         continue;
       }
 
       // To see if the other pool has the current pool as incompatible
-      const hasMirror = networkPools?.[
-        incompatiblePool
-      ]?.incompatiblePools.includes(poolNames[i]);
+      const hasMirror =
+        networkPools?.[incompatiblePool]?.incompatiblePools.includes(name);
 
       // If push to throw once all incompatible pools have been checked
       if (!hasMirror) {
         errors.push(
-          `\n>> Pool ${poolNames[i]} is missing in incompatible pool list of ${incompatiblePool}`,
+          `\n>> Pool "${name}" is missing in incompatible pool list of "${incompatiblePool}"`,
         );
       }
     }
@@ -534,18 +878,24 @@ function formatCompatiblePools(networkPools: {
 
   if (errors.length) throw new Error(errors.join("\n"));
 
-  return poolParams.map((params, i) => {
+  return networkPoolEntries.map((poolEntry, i) => {
+    const name = poolEntry[0];
+    const pool = poolEntry[1];
+
     const compatiblePools = allPoolIds
       // Remove own pool
       .filter((id) => id !== i)
       // Remove incompatible pools
-      .filter((id) => !params.incompatiblePools.includes(poolNames[id]))
+      .filter((id) => {
+        const incompatiblePoolName = networkPoolEntries[id][0];
+        return !pool.incompatiblePools.includes(incompatiblePoolName);
+      })
       // Remove any ID greater than the current on to avoid redundant registration
       .filter((id) => id < i);
 
     return {
-      ...params,
-      name: poolNames[i],
+      ...pool,
+      name,
       compatiblePools,
     };
   });
