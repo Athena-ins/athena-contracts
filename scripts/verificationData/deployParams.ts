@@ -37,6 +37,9 @@ export type CoreDaoStrategyParams = {
   stCORE: string;
 };
 
+type ProtocolConfigWithOptions = ProtocolConfig &
+  ({} | AmphorStrategyParams | LiskStrategyParams | CoreDaoStrategyParams);
+
 export const mainnetStrategyParams: AmphorStrategyParams = {
   // Lido LST Token
   wstETH: "0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0".toLowerCase(),
@@ -246,8 +249,7 @@ export function getDefaultProtocolConfig(
 export function getDefaultProtocolConfig(
   extraParams?: "mainnet" | "lisk" | "core_dao",
   overrides: Partial<ProtocolConfig> = {},
-): ProtocolConfig &
-  ({} | AmphorStrategyParams | LiskStrategyParams | CoreDaoStrategyParams) {
+): ProtocolConfigWithOptions {
   let extraChainParams = {};
 
   if (extraParams === "mainnet") {

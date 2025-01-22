@@ -26,6 +26,6 @@ export async function countdown(seconds = 10) {
   console.log("\n");
 }
 
-export function makeIdArray(length: number) {
-  return [...Array(length).keys()];
+export function makeIdArray(length: number, startId?: number): number[] {
+  return [...Array(length).keys()].map((_, i) => (startId ? i + startId : i));
 }

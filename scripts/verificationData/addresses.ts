@@ -27,7 +27,7 @@ const networkAddresses: {
     AthenaArbitrator: "0xf519b11948ffec6c2a2b7a38bc9ff4bd6533bf24",
     ClaimManager: "0x8a440da566b74c811e6ad1df6d36f888db451a31",
     LiquidityManager: "0xbc69d8d072fa7f7b2d6a3773f915e497917a22d9",
-    StrategyManager: "0xFE0C098968627361aF5785a702545aa5DE09e649",
+    StrategyManager: "0x4344ed02d38f3f0037a1068987fD6493936Cf2C6",
     RewardManager: "0x0000000000000000000000000000000000000000",
     FarmingRange: "0x0000000000000000000000000000000000000000",
     Staking: "0x0000000000000000000000000000000000000000",
@@ -36,7 +36,7 @@ const networkAddresses: {
     AthenaDataProvider: "0x6affa1c136dfaa81c980724130056fa8b7b7daf1",
     ProxyStrategyManager: "0x3f80B7b8065E5CA1Cb5dB0B4360f722965e65571",
     WrappedTokenGateway: "0x1e5DE7180E79D0dbb3BB30520D3e5D806C27e379",
-    PoolManager: "0x0000000000000000000000000000000000000000",
+    PoolManager: "0x06683D1Fbbcda32D8Ccb8372884471A8265e5998",
   },
   // === Production addresses === //
   // arbitrum: {

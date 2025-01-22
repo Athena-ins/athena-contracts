@@ -207,7 +207,7 @@ function makeForkConfig(): HardhatNetworkUserConfig {
   const networkConfig = {
     chainId,
     // This is applied even if not reflected by getGasPrice on the forked node
-    gasPrice: utils.parseUnits("8", "gwei").toNumber(),
+    // gasPrice: utils.parseUnits("16", "gwei").toNumber(),
     allowUnlimitedContractSize: true,
     forking: {
       url: rpcUrl,
