@@ -28,6 +28,7 @@ import {
   StrategyManagerVE__factory,
   StrategyManagerVL__factory,
   StrategyManagerEthereum__factory,
+  PoolManager__factory,
   VirtualPool__factory,
   BasicProxy__factory,
   WrappedTokenGateway__factory,
@@ -71,6 +72,7 @@ const shouldVerify: Partial<keyof ProtocolContracts>[] = [
   // "EcclesiaDao",
   // "ProxyStrategyManager",
   "WrappedTokenGateway",
+  "PoolManager",
 ];
 
 const execPromise = promisify(exec);
@@ -233,6 +235,7 @@ async function main() {
     AthenaDataProvider,
     ProxyStrategyManager,
     WrappedTokenGateway,
+    PoolManager,
     WethToken,
   } = deployedAt;
 
@@ -471,6 +474,15 @@ async function main() {
       [WethToken, LiquidityManager, AthenaPositionToken, AthenaCoverToken],
     );
     console.log("==> Verification processed for WrappedTokenGateway");
+  }
+
+  if (shouldVerify.includes("PoolManager")) {
+    if (!PoolManager) throw Error("PoolManager address is missing");
+
+    await verifyEtherscanContract<PoolManager__factory>(PoolManager, [
+      LiquidityManager,
+    ]);
+    console.log("==> Verification processed for PoolManager");
   }
 
   // ======= Proxies ======= //

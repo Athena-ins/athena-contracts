@@ -36,6 +36,7 @@ const networkAddresses: {
     AthenaDataProvider: "0x6affa1c136dfaa81c980724130056fa8b7b7daf1",
     ProxyStrategyManager: "0x3f80B7b8065E5CA1Cb5dB0B4360f722965e65571",
     WrappedTokenGateway: "0x1e5DE7180E79D0dbb3BB30520D3e5D806C27e379",
+    PoolManager: "0x0000000000000000000000000000000000000000",
   },
   // === Production addresses === //
   // arbitrum: {
@@ -57,6 +58,7 @@ const networkAddresses: {
   //   VirtualPool: "0x7c0ca0e6d4ad499706a7433fa4b69bc969294282",
   //   AthenaDataProvider: "0x6affa1c136dfaa81c980724130056fa8b7b7daf1",
   //   WrappedTokenGateway: "0x0000000000000000000000000000000000000000",
+  //   PoolManager: '0x0000000000000000000000000000000000000000'
   // },
   // === Dev addresses === //
   arbitrum: {
@@ -78,6 +80,7 @@ const networkAddresses: {
     VirtualPool: "0x882bab766ed86fec56e583c07d319eeb9474e3c7",
     AthenaDataProvider: "0x2303b1c8135016a521aaea8b52a17047c8a52963",
     WrappedTokenGateway: "0x0000000000000000000000000000000000000000",
+    PoolManager: "0x0000000000000000000000000000000000000000",
   },
   // === Dev addresses === //
   lisk_sepolia: {
@@ -99,6 +102,7 @@ const networkAddresses: {
     VirtualPool: "0x9d162e2dd7fc8f5008cc268d44701d7880c423b4",
     AthenaDataProvider: "0x87d786c5ed25c58b6401f42593dee8da1f234585",
     WrappedTokenGateway: "0x0000000000000000000000000000000000000000",
+    PoolManager: "0x0000000000000000000000000000000000000000",
   },
   // === Dev addresses === //
   core_dao: {
@@ -120,6 +124,7 @@ const networkAddresses: {
     VirtualPool: "0x0000000000000000000000000000000000000000",
     AthenaDataProvider: "0x0000000000000000000000000000000000000000",
     WrappedTokenGateway: "0x0000000000000000000000000000000000000000",
+    PoolManager: "0x0000000000000000000000000000000000000000",
   },
   core_dao_testnet: {
     TetherToken: "0x0000000000000000000000000000000000000000", // USDT
@@ -140,6 +145,7 @@ const networkAddresses: {
     VirtualPool: "0x0000000000000000000000000000000000000000",
     AthenaDataProvider: "0x0000000000000000000000000000000000000000",
     WrappedTokenGateway: "0x0000000000000000000000000000000000000000",
+    PoolManager: "0x0000000000000000000000000000000000000000",
   },
 };
 

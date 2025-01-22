@@ -1,4 +1,5 @@
 import hre from "hardhat";
+import { constants } from "ethers";
 // typechain
 import {
   // Dao
@@ -41,6 +42,8 @@ import {
   WrappedTokenGateway__factory,
   BasicProxy,
   BasicProxy__factory,
+  PoolManager,
+  PoolManager__factory,
   // Libs
   PoolMath,
   PoolMath__factory,
@@ -58,7 +61,6 @@ import {
 } from "../../typechain/";
 import { ProtocolContracts } from "./deployers";
 import { NetworkAddressDirectory } from "../../scripts/verificationData/addresses";
-import { get } from "http";
 
 export type ConnectWithAddress<F> = F extends {
   connect: (...args: any[]) => infer R;
@@ -148,6 +150,9 @@ export async function getERC20(address: string) {
 export async function getWrappedTokenGateway(address: string) {
   return connectWrapper(WrappedTokenGateway__factory, address);
 }
+export async function getPoolManager(address: string) {
+  return connectWrapper(PoolManager__factory, address);
+}
 export async function getBasicProxy(address: string) {
   return connectWrapper(BasicProxy__factory, address);
 }
@@ -184,6 +189,7 @@ export type ConnectedProtocolContracts = {
   AthenaDataProvider: ConnectWithAddress<AthenaDataProvider>;
   WrappedTokenGateway: ConnectWithAddress<WrappedTokenGateway>;
   ProxyStrategyManager?: ConnectWithAddress<StrategyManager>;
+  PoolManager?: ConnectWithAddress<PoolManager>;
 };
 
 export type DefaultConnectedProtocolContracts = ConnectedProtocolContracts & {
@@ -264,6 +270,7 @@ export async function getConnectedProtocolContracts(
     CircleToken,
     WethToken,
     WrappedTokenGateway,
+    PoolManager,
     ProxyStrategyManager,
   ] = await Promise.all([
     getEcclesiaDao(addresses.EcclesiaDao),
@@ -284,6 +291,7 @@ export async function getConnectedProtocolContracts(
     getERC20(addresses.CircleToken),
     getWETH(addresses.WethToken),
     getWrappedTokenGateway(addresses.WrappedTokenGateway),
+    getPoolManager(addresses.PoolManager || constants.AddressZero),
     getProxyStrategyManager(
       addresses.ProxyStrategyManager || addresses.StrategyManager,
     ),

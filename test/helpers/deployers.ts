@@ -65,6 +65,8 @@ import {
   // Other
   WrappedTokenGateway__factory,
   WrappedTokenGateway,
+  PoolManager__factory,
+  PoolManager,
   BasicProxy__factory,
   BasicProxy,
   TetherToken__factory,
@@ -323,6 +325,15 @@ export async function deployWrappedTokenGateway(
     });
 }
 
+export async function deployPoolManager(
+  signer: Signer,
+  args: Parameters<PoolManager__factory["deploy"]>,
+): Promise<WithAddress<PoolManager>> {
+  return new PoolManager__factory(signer).deploy(...args).catch((err) => {
+    throw Error(`Deploy PoolManager:\n${err}`);
+  });
+}
+
 // ======================= //
 // === Deploy protocol === //
 // ======================= //
@@ -392,6 +403,7 @@ export type DeployedProtocolContracts = {
   AthenaDataProvider: WithAddress<AthenaDataProvider>;
   WrappedTokenGateway: WithAddress<WrappedTokenGateway>;
   ProxyStrategyManager?: WithAddress<StrategyManager>;
+  PoolManager?: WithAddress<PoolManager>;
 };
 
 export type ProtocolContracts =
@@ -632,6 +644,15 @@ export async function deployAllContractsAndInitializeProtocol(
         deployedAt.LiquidityManager, // liquidityManager
         deployedAt.AthenaPositionToken, // positionToken
         deployedAt.AthenaCoverToken, // coverToken
+      ]),
+    );
+    txCount++;
+  }
+
+  if (deploymentOrder[txCount] === "PoolManager") {
+    deployExecutors.push(async () =>
+      deployPoolManager(deployer, [
+        deployedAt.LiquidityManager, // liquidityManager
       ]),
     );
     txCount++;
