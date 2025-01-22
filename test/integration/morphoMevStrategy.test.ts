@@ -170,6 +170,27 @@ export function EthereumStrategyTest() {
         await getProxyImplementation(strategyManagerProxy);
       expect(currentImplementation).to.equal(newImplementation.address);
       expect(currentImplementation).to.not.equal(oldImplementationAddress);
+
+      expect(
+        await postTxHandler(
+          this.customEnv.contracts.LiquidityManager.updateConfig(
+            this.signers.deployer.address, // ecclesiaDao
+            strategyManagerProxy.address, // strategyManager
+            this.customEnv.contracts.ClaimManager.address, // claimManager
+            this.signers.deployer.address, // yieldRewarder
+            this.protocolConfig.withdrawDelay, // withdrawDelay
+            this.protocolConfig.maxLeverage, // maxLeverage
+            this.protocolConfig.leverageFeePerPool, // leverageFeePerPool
+          ),
+        ),
+      ).to.not.throw;
+
+      const strategyManager =
+        await this.customEnv.contracts.LiquidityManager.strategyManager();
+      expect(strategyManager).to.equal(strategyManagerProxy?.address);
+
+      // Update environment for subsequent tests
+      this.customEnv.contracts.StrategyManager = newImplementation;
     });
 
     describe("Morpho MEV Strategy Tests", function () {
@@ -200,31 +221,6 @@ export function EthereumStrategyTest() {
         const poolInfo =
           await this.customEnv.contracts.LiquidityManager.poolInfo(poolId);
         expect(poolInfo.strategyId).to.equal(this.args.morphoStrategyId);
-      });
-
-      it("accepts LP position", async function (this: Arguments) {
-        const positionId = (
-          await this.customEnv.contracts.AthenaPositionToken.nextPositionId()
-        ).toNumber();
-        this.args.positionId = positionId;
-
-        expect(
-          await this.customEnv.helpers.openPosition(
-            this.signers.deployer,
-            this.args.lpAmount,
-            false,
-            [this.args.morphoPoolId],
-          ),
-        ).to.not.throw;
-
-        const position =
-          await this.customEnv.contracts.LiquidityManager.positionInfo(
-            positionId,
-          );
-
-        expect(position.supplied).to.equal(this.args.lpAmount);
-        expect(position.poolIds.length).to.equal(1);
-        expect(position.poolIds[0]).to.equal(this.args.morphoPoolId);
       });
 
       it("accepts LP position", async function (this: Arguments) {
@@ -718,10 +714,14 @@ export function EthereumStrategyTest() {
             await this.customEnv.contracts.StrategyManager.assets(
               this.args.inceptionStrategyId,
             );
-          expect(underlying).to.equal(this.customEnv.protocolConfig.wstETH);
-          expect(wrapped).to.equal(
-            this.customEnv.contracts.StrategyManager.inwstETHs(),
+
+          const inwstETHs =
+            await this.customEnv.contracts.StrategyManager.inwstETHs();
+
+          expect(underlying.toLowerCase()).to.equal(
+            this.customEnv.protocolConfig.wstETH,
           );
+          expect(wrapped.toLowerCase()).to.equal(inwstETHs.toLowerCase());
         });
       });
     });
