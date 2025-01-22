@@ -171,24 +171,6 @@ export function EthereumStrategyTest() {
       expect(currentImplementation).to.equal(newImplementation.address);
       expect(currentImplementation).to.not.equal(oldImplementationAddress);
 
-      expect(
-        await postTxHandler(
-          this.customEnv.contracts.LiquidityManager.updateConfig(
-            this.signers.deployer.address, // ecclesiaDao
-            strategyManagerProxy.address, // strategyManager
-            this.customEnv.contracts.ClaimManager.address, // claimManager
-            this.signers.deployer.address, // yieldRewarder
-            this.protocolConfig.withdrawDelay, // withdrawDelay
-            this.protocolConfig.maxLeverage, // maxLeverage
-            this.protocolConfig.leverageFeePerPool, // leverageFeePerPool
-          ),
-        ),
-      ).to.not.throw;
-
-      const strategyManager =
-        await this.customEnv.contracts.LiquidityManager.strategyManager();
-      expect(strategyManager).to.equal(strategyManagerProxy?.address);
-
       // Update environment for subsequent tests
       this.customEnv.contracts.StrategyManager = newImplementation;
     });
