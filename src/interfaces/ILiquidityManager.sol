@@ -178,6 +178,18 @@ interface ILiquidityManager {
   ) external;
 
   // Admin Functions
+
+  function createPool(
+    address paymentAsset_,
+    uint256 strategyId_,
+    uint256 feeRate_,
+    uint256 uOptimal_,
+    uint256 r0_,
+    uint256 rSlope1_,
+    uint256 rSlope2_,
+    uint64[] calldata compatiblePools_
+  ) external;
+
   function pausePool(uint64 poolId, bool isPaused) external;
 
   function freezeProtocol(bool isFrozen) external;
