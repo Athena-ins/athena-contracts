@@ -1,8 +1,8 @@
 import { Wallet } from "ethers";
 import hre, { ethers } from "hardhat";
-import { getConnectedProtocolContracts } from "../test/helpers/contracts-getters";
-import { fromFork } from "../test/helpers/hardhat";
-import { getNetworkAddresses } from "./verificationData/addresses";
+import { getConnectedProtocolContracts } from "../../test/helpers/contracts-getters";
+import { fromFork } from "../../test/helpers/hardhat";
+import { getNetworkAddresses } from "../verificationData/addresses";
 
 const { formatEther } = ethers.utils;
 
