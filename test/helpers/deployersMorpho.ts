@@ -248,8 +248,14 @@ export async function deployAllContractsAndInitializeProtocolMorpho(
   }
 
   if (deploymentOrder[txCount] === "StrategyManager") {
-    if (!config.wstETH || !config.amphrETH || !config.amphrLRT)
-      throw Error("Missing amphor strategy params");
+    if (
+      !config.wstETH ||
+      !config.amphrETH ||
+      !config.amphrLRT ||
+      !config.morphoMevVault ||
+      !config.inceptionVault
+    )
+      throw Error("Missing strategy params");
 
     if (
       !isNonNullAddress(deployedAt.LiquidityManager) ||
@@ -271,6 +277,7 @@ export async function deployAllContractsAndInitializeProtocolMorpho(
         config.amphrETH as string,
         config.amphrLRT as string,
         config.morphoMevVault as string,
+        config.inceptionVault as string,
       ]),
     );
     txCount++;

@@ -335,7 +335,9 @@ async function tryExactOutputSingle(
       );
       return result;
     } catch (error) {
-      console.warn(`Failed with fee ${fee}:`, error);
+      // console.warn(
+      //   `Failed to swap with fee ${fee} to get token ${params.tokenOut}`,
+      // );
     }
   }
 

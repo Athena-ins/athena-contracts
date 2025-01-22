@@ -151,6 +151,9 @@ export async function getWrappedTokenGateway(address: string) {
 export async function getBasicProxy(address: string) {
   return connectWrapper(BasicProxy__factory, address);
 }
+export async function getProxyStrategyManager(address: string) {
+  return connectWrapper(StrategyManager__factory, address);
+}
 
 //==================//
 //==== PROTOCOL ====//
@@ -261,6 +264,7 @@ export async function getConnectedProtocolContracts(
     CircleToken,
     WethToken,
     WrappedTokenGateway,
+    ProxyStrategyManager,
   ] = await Promise.all([
     getEcclesiaDao(addresses.EcclesiaDao),
     getAthenaArbitrator(addresses.AthenaArbitrator),
@@ -280,6 +284,9 @@ export async function getConnectedProtocolContracts(
     getERC20(addresses.CircleToken),
     getWETH(addresses.WethToken),
     getWrappedTokenGateway(addresses.WrappedTokenGateway),
+    getProxyStrategyManager(
+      addresses.ProxyStrategyManager || addresses.StrategyManager,
+    ),
   ]);
 
   return {
@@ -301,6 +308,7 @@ export async function getConnectedProtocolContracts(
     CircleToken,
     WethToken,
     WrappedTokenGateway,
+    ProxyStrategyManager,
   };
 }
 
