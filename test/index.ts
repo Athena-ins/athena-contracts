@@ -39,7 +39,7 @@ baseContext("Test Athena Protocol", function () {
   //
   CoreStrategyTest();
   AmphorStrategiesTest();
-  MorphoStrategyTest();
+  EthereumStrategyTest();
   MorphoStrategyUpgradeTest();
   //
   //=== Scenarios ===//
