@@ -58,7 +58,6 @@ async function main() {
     console.log("\nPOOLS_TO_PAUSE: ", POOLS_TO_PAUSE);
     console.log("IS_PAUSED: ", IS_PAUSED);
 
-    // @bw addresses address typo
     const PoolManager = await getPoolManager(addresses.PoolManager);
 
     await postTxHandler(PoolManager.batchPausePool(POOLS_TO_PAUSE, IS_PAUSED));

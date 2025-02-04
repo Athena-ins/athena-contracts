@@ -108,11 +108,3 @@ npm run verify:sepolia
 # Performance optimizations
 
 For faster runs of your tests and scripts, consider setting `parallel` to `true` in the `hardhat.config.ts` file. Be aware than parallel testing can have undesired sequentiality effects on logs.
-
-#
-
-# DEPLOYMENTS
-
-```
-// @bw add addresses
-```

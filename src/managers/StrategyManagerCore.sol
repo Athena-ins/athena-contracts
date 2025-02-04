@@ -364,10 +364,8 @@ contract StrategyManagerCore is IStrategyManager, Ownable {
         amountRewardsUnderlying_ != 0 &&
         yieldBonus_ < strategyFeeRate
       ) {
-        // @bw simplify by deduction bonus from fee rate ?
-        uint256 daoShare = ((amountRewardsUnderlying_ *
-          strategyFeeRate) -
-          (amountRewardsUnderlying_ * yieldBonus_)) / HUNDRED_PERCENT;
+        uint256 daoShare = (amountRewardsUnderlying_ *
+          (strategyFeeRate - yieldBonus_)) / HUNDRED_PERCENT;
 
         if (daoShare != 0) {
           // Deduct the daoShare from the amount to withdraw

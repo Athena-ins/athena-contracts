@@ -38,6 +38,7 @@ export type Scenario = {
 };
 
 export async function executeAction(this: Mocha.Context, action: Action) {
+  //======= WAIT ACTION =======//
   if (action.name === "wait") {
     return await waitFor(action.timeTravel);
   }
@@ -62,6 +63,10 @@ export async function executeAction(this: Mocha.Context, action: Action) {
   }
 
   switch (name) {
+    //=====================================//
+    //======= TOKEN/POOL MANAGEMENT =======//
+    //=====================================//
+
     case "getTokens": {
       const { tokenSymbol, amount } = args;
 
@@ -121,6 +126,10 @@ export async function executeAction(this: Mocha.Context, action: Action) {
 
       break;
     }
+
+    //================================//
+    //======= COVER MANAGEMENT =======//
+    //================================//
 
     case "openCover": {
       const {
@@ -201,6 +210,10 @@ export async function executeAction(this: Mocha.Context, action: Action) {
 
       break;
     }
+
+    //===================================//
+    //======= POSITION MANAGEMENT =======//
+    //===================================//
 
     case "openPosition": {
       const { amount, tokenSymbol, isWrapped, poolIds } = args;
