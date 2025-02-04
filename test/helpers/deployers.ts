@@ -24,6 +24,7 @@ import {
   EcclesiaDao__factory,
   EcclesiaDao,
   // Claims
+  IArbitrator,
   AthenaArbitrator__factory,
   AthenaArbitrator,
   // Managers
@@ -404,6 +405,7 @@ export type DeployedProtocolContracts = {
   WrappedTokenGateway: WithAddress<WrappedTokenGateway>;
   ProxyStrategyManager?: WithAddress<StrategyManager>;
   PoolManager?: WithAddress<PoolManager>;
+  KlerosLiquid?: WithAddress<IArbitrator>;
 };
 
 export type ProtocolContracts =

@@ -90,7 +90,7 @@ const defaultProtocolConfig: ProtocolConfig = {
   payoutDeductibleRate: toRay(10), // 10%
   strategyFeeRate: toRay(5), // 5%
   //==== Claim Manager Config ====//
-  subcourtId: 2,
+  subcourtId: 2, // View https://klerosboard.com/1/courts/2
   nbOfJurors: 4,
   challengePeriod: 10 * DAY_SECONDS, // days seconds
   overrulePeriod: 4 * DAY_SECONDS, // days seconds

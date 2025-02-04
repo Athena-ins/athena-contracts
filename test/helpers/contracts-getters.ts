@@ -6,6 +6,8 @@ import {
   EcclesiaDao,
   EcclesiaDao__factory,
   // Claims
+  IArbitrator,
+  IArbitrator__factory,
   AthenaArbitrator,
   AthenaArbitrator__factory,
   // Managers
@@ -159,6 +161,9 @@ export async function getBasicProxy(address: string) {
 export async function getProxyStrategyManager(address: string) {
   return connectWrapper(StrategyManager__factory, address);
 }
+export async function getArbitrator(address: string) {
+  return connectWrapper(IArbitrator__factory, address);
+}
 
 //==================//
 //==== PROTOCOL ====//
@@ -190,6 +195,7 @@ export type ConnectedProtocolContracts = {
   WrappedTokenGateway: ConnectWithAddress<WrappedTokenGateway>;
   ProxyStrategyManager?: ConnectWithAddress<StrategyManager>;
   PoolManager?: ConnectWithAddress<PoolManager>;
+  KlerosLiquid?: ConnectWithAddress<IArbitrator>;
 };
 
 export type DefaultConnectedProtocolContracts = ConnectedProtocolContracts & {
@@ -272,6 +278,7 @@ export async function getConnectedProtocolContracts(
     WrappedTokenGateway,
     PoolManager,
     ProxyStrategyManager,
+    KlerosLiquid,
   ] = await Promise.all([
     getEcclesiaDao(addresses.EcclesiaDao),
     getAthenaArbitrator(addresses.AthenaArbitrator),
@@ -295,11 +302,13 @@ export async function getConnectedProtocolContracts(
     getProxyStrategyManager(
       addresses.ProxyStrategyManager || addresses.StrategyManager,
     ),
+    getArbitrator(addresses.KlerosLiquid || constants.AddressZero),
   ]);
 
   return {
     EcclesiaDao,
     AthenaArbitrator,
+    KlerosLiquid,
     ClaimManager,
     LiquidityManager,
     StrategyManager,
