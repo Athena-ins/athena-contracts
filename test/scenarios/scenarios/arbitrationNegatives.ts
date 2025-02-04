@@ -1,6 +1,6 @@
 import { Scenario } from "../utils/actionEngine";
 
-export const claimingAndPayout: Scenario = {
+export const arbitrationNegatives: Scenario = {
   title: "make claims and payout compensations",
   stories: [
     {
