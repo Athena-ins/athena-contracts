@@ -73,7 +73,9 @@ export async function executeAction(this: Mocha.Context, action: Action) {
       {
         const { spender, tokenSymbol, amount } = args;
 
-        const spenderAddress = this.contracts[spender].address;
+        const spenderAddress = this.contracts?.[spender]?.address;
+        if (!spenderAddress)
+          throw Error(`Cannot find spender ${spender} among context contracts`);
 
         await approveTokens(this, tokenSymbol, signer, spenderAddress, amount);
       }
