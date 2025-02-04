@@ -62,345 +62,329 @@ export async function executeAction(this: Mocha.Context, action: Action) {
   }
 
   switch (name) {
-    case "getTokens":
-      {
-        const { tokenSymbol, amount } = args;
+    case "getTokens": {
+      const { tokenSymbol, amount } = args;
 
-        await getTokens(this, tokenSymbol, signer, amount);
-      }
+      await getTokens(this, tokenSymbol, signer, amount);
+
       break;
-    case "approveTokens":
-      {
-        const { spender, tokenSymbol, amount } = args;
+    }
 
-        const spenderAddress = this.contracts?.[spender]?.address;
-        if (!spenderAddress)
-          throw Error(`Cannot find spender ${spender} among context contracts`);
+    case "approveTokens": {
+      const { spender, tokenSymbol, amount } = args;
 
-        await approveTokens(this, tokenSymbol, signer, spenderAddress, amount);
-      }
+      const spenderAddress = this.contracts?.[spender]?.address;
+      if (!spenderAddress)
+        throw Error(`Cannot find spender ${spender} among context contracts`);
+
+      await approveTokens(this, tokenSymbol, signer, spenderAddress, amount);
+
       break;
-    case "createPool":
-      {
-        const { paymentAssetSymbol, strategyId, compatiblePools } = args;
-        const { poolFormula } = this.protocolConfig;
+    }
 
-        const paymentAsset = getTokenAddressBySymbol(
-          this.contracts,
-          paymentAssetSymbol,
-          this.chainId,
-        );
+    case "createPool": {
+      const { paymentAssetSymbol, strategyId, compatiblePools } = args;
+      const { poolFormula } = this.protocolConfig;
 
-        const feeRate =
-          args.feeRate !== undefined
-            ? toRay(args.feeRate)
-            : poolFormula.feeRate;
-        const uOptimal =
-          args.uOptimal !== undefined
-            ? toRay(args.uOptimal)
-            : poolFormula.uOptimal;
-        const r0 = args.r0 !== undefined ? toRay(args.r0) : poolFormula.r0;
-        const rSlope1 =
-          args.rSlope1 !== undefined
-            ? toRay(args.rSlope1)
-            : poolFormula.rSlope1;
-        const rSlope2 =
-          args.rSlope2 !== undefined
-            ? toRay(args.rSlope2)
-            : poolFormula.rSlope2;
+      const paymentAsset = getTokenAddressBySymbol(
+        this.contracts,
+        paymentAssetSymbol,
+        this.chainId,
+      );
 
-        await createPool(
-          this,
-          signer,
-          paymentAsset,
-          strategyId,
-          feeRate,
-          uOptimal,
-          r0,
-          rSlope1,
-          rSlope2,
-          compatiblePools,
-          expected,
-          revertMessage,
-        );
-      }
+      const feeRate =
+        args.feeRate !== undefined ? toRay(args.feeRate) : poolFormula.feeRate;
+      const uOptimal =
+        args.uOptimal !== undefined
+          ? toRay(args.uOptimal)
+          : poolFormula.uOptimal;
+      const r0 = args.r0 !== undefined ? toRay(args.r0) : poolFormula.r0;
+      const rSlope1 =
+        args.rSlope1 !== undefined ? toRay(args.rSlope1) : poolFormula.rSlope1;
+      const rSlope2 =
+        args.rSlope2 !== undefined ? toRay(args.rSlope2) : poolFormula.rSlope2;
+
+      await createPool(
+        this,
+        signer,
+        paymentAsset,
+        strategyId,
+        feeRate,
+        uOptimal,
+        r0,
+        rSlope1,
+        rSlope2,
+        compatiblePools,
+        expected,
+        revertMessage,
+      );
+
       break;
-    case "openCover":
-      {
-        const {
-          poolId,
-          coverTokenSymbol,
-          coverAmount,
-          premiumTokenSymbol,
-          premiumAmount,
-        } = args;
+    }
 
-        const coverToken = getTokenAddressBySymbol(
-          this.contracts,
-          coverTokenSymbol,
-          this.chainId,
-        );
+    case "openCover": {
+      const {
+        poolId,
+        coverTokenSymbol,
+        coverAmount,
+        premiumTokenSymbol,
+        premiumAmount,
+      } = args;
 
-        const premiumToken = getTokenAddressBySymbol(
-          this.contracts,
-          premiumTokenSymbol,
-          this.chainId,
-        );
+      const coverToken = getTokenAddressBySymbol(
+        this.contracts,
+        coverTokenSymbol,
+        this.chainId,
+      );
 
-        await openCover(
-          this,
-          signer,
-          poolId,
-          coverToken,
-          coverAmount,
-          premiumToken,
-          premiumAmount,
-          expected,
-          revertMessage,
-          timeTravel,
-          skipTokenCheck,
-        );
-      }
+      const premiumToken = getTokenAddressBySymbol(
+        this.contracts,
+        premiumTokenSymbol,
+        this.chainId,
+      );
+
+      await openCover(
+        this,
+        signer,
+        poolId,
+        coverToken,
+        coverAmount,
+        premiumToken,
+        premiumAmount,
+        expected,
+        revertMessage,
+        timeTravel,
+        skipTokenCheck,
+      );
+
       break;
+    }
 
-    case "updateCover":
-      {
-        const {
-          coverId,
-          coverTokenSymbol,
-          coverToAdd,
-          coverToRemove,
-          premiumTokenSymbol,
-          premiumToAdd,
-          premiumToRemove,
-        } = args;
+    case "updateCover": {
+      const {
+        coverId,
+        coverTokenSymbol,
+        coverToAdd,
+        coverToRemove,
+        premiumTokenSymbol,
+        premiumToAdd,
+        premiumToRemove,
+      } = args;
 
-        const coverToken = getTokenAddressBySymbol(
-          this.contracts,
-          coverTokenSymbol,
-          this.chainId,
-        );
+      const coverToken = getTokenAddressBySymbol(
+        this.contracts,
+        coverTokenSymbol,
+        this.chainId,
+      );
 
-        const premiumToken = getTokenAddressBySymbol(
-          this.contracts,
-          premiumTokenSymbol,
-          this.chainId,
-        );
+      const premiumToken = getTokenAddressBySymbol(
+        this.contracts,
+        premiumTokenSymbol,
+        this.chainId,
+      );
 
-        await updateCover(
-          this,
-          signer,
-          coverId,
-          coverToken,
-          coverToAdd,
-          coverToRemove,
-          premiumToken,
-          premiumToAdd,
-          premiumToRemove,
-          expected,
-          revertMessage,
-          timeTravel,
-          skipTokenCheck,
-        );
-      }
+      await updateCover(
+        this,
+        signer,
+        coverId,
+        coverToken,
+        coverToAdd,
+        coverToRemove,
+        premiumToken,
+        premiumToAdd,
+        premiumToRemove,
+        expected,
+        revertMessage,
+        timeTravel,
+        skipTokenCheck,
+      );
+
       break;
+    }
 
-    case "openPosition":
-      {
-        const { amount, tokenSymbol, isWrapped, poolIds } = args;
+    case "openPosition": {
+      const { amount, tokenSymbol, isWrapped, poolIds } = args;
 
-        const depositToken = getTokenAddressBySymbol(
-          this.contracts,
-          tokenSymbol,
-          this.chainId,
-        );
+      const depositToken = getTokenAddressBySymbol(
+        this.contracts,
+        tokenSymbol,
+        this.chainId,
+      );
 
-        await openPosition(
-          this,
-          signer,
-          depositToken,
-          amount,
-          isWrapped,
-          poolIds,
-          expected,
-          revertMessage,
-          timeTravel,
-          skipTokenCheck,
-        );
-      }
+      await openPosition(
+        this,
+        signer,
+        depositToken,
+        amount,
+        isWrapped,
+        poolIds,
+        expected,
+        revertMessage,
+        timeTravel,
+        skipTokenCheck,
+      );
+
       break;
+    }
 
-    case "addLiquidity":
-      {
-        const { positionId, tokenSymbol, amount, isWrapped } = args;
+    case "addLiquidity": {
+      const { positionId, tokenSymbol, amount, isWrapped } = args;
 
-        const depositToken = getTokenAddressBySymbol(
-          this.contracts,
-          tokenSymbol,
-          this.chainId,
-        );
+      const depositToken = getTokenAddressBySymbol(
+        this.contracts,
+        tokenSymbol,
+        this.chainId,
+      );
 
-        await addLiquidity(
-          this,
-          signer,
-          positionId,
-          depositToken,
-          amount,
-          isWrapped,
-          expected,
-          revertMessage,
-          timeTravel,
-          skipTokenCheck,
-        );
-      }
+      await addLiquidity(
+        this,
+        signer,
+        positionId,
+        depositToken,
+        amount,
+        isWrapped,
+        expected,
+        revertMessage,
+        timeTravel,
+        skipTokenCheck,
+      );
+
       break;
+    }
 
-    case "commitRemoveLiquidity":
-      {
-        const { positionId } = args;
+    case "commitRemoveLiquidity": {
+      const { positionId } = args;
 
-        await commitRemoveLiquidity(
-          this,
-          signer,
-          positionId,
-          expected,
-          revertMessage,
-          timeTravel,
-          skipTokenCheck,
-        );
-      }
+      await commitRemoveLiquidity(
+        this,
+        signer,
+        positionId,
+        expected,
+        revertMessage,
+        timeTravel,
+        skipTokenCheck,
+      );
+
       break;
+    }
 
-    case "uncommitRemoveLiquidity":
-      {
-        const { positionId } = args;
+    case "uncommitRemoveLiquidity": {
+      const { positionId } = args;
 
-        await uncommitRemoveLiquidity(
-          this,
-          signer,
-          positionId,
-          expected,
-          revertMessage,
-          timeTravel,
-          skipTokenCheck,
-        );
-      }
+      await uncommitRemoveLiquidity(
+        this,
+        signer,
+        positionId,
+        expected,
+        revertMessage,
+        timeTravel,
+        skipTokenCheck,
+      );
+
       break;
+    }
 
-    case "removeLiquidity":
-      {
-        const { positionId, tokenSymbol, amount, keepWrapped } = args;
+    case "removeLiquidity": {
+      const { positionId, tokenSymbol, amount, keepWrapped } = args;
 
-        const withdrawnToken = getTokenAddressBySymbol(
-          this.contracts,
-          tokenSymbol,
-          this.chainId,
-        );
+      const withdrawnToken = getTokenAddressBySymbol(
+        this.contracts,
+        tokenSymbol,
+        this.chainId,
+      );
 
-        await removeLiquidity(
-          this,
-          signer,
-          positionId,
-          withdrawnToken,
-          amount,
-          keepWrapped,
-          expected,
-          revertMessage,
-          timeTravel,
-          skipTokenCheck,
-        );
-      }
+      await removeLiquidity(
+        this,
+        signer,
+        positionId,
+        withdrawnToken,
+        amount,
+        keepWrapped,
+        expected,
+        revertMessage,
+        timeTravel,
+        skipTokenCheck,
+      );
+
       break;
+    }
 
-    case "takeInterests":
-      {
-        const { positionId } = args;
+    case "takeInterests": {
+      const { positionId } = args;
 
-        await takeInterests(
-          this,
-          signer,
-          positionId,
-          expected,
-          revertMessage,
-          timeTravel,
-          skipTokenCheck,
-        );
-      }
+      await takeInterests(
+        this,
+        signer,
+        positionId,
+        expected,
+        revertMessage,
+        timeTravel,
+        skipTokenCheck,
+      );
+
       break;
+    }
 
-    case "initiateClaim":
-      {
-        const {
-          coverId,
-          tokenSymbol,
-          amountClaimed,
-          ipfsMetaEvidenceCid,
-          signature,
-          valueSent,
-        } = args;
+    //================================//
+    //======= CLAIM MANAGEMENT =======//
+    //================================//
 
-        // @dev Remove usage of signature authentication
-        const { ipfsCid, cidSignature } =
-          await getTestingCidAndSig(ipfsMetaEvidenceCid);
+    case "initiateClaim": {
+      const {
+        coverId,
+        tokenSymbol,
+        amountClaimed,
+        ipfsMetaEvidenceCid,
+        signature,
+        valueSent,
+      } = args;
 
-        const tokenClaimed = getTokenAddressBySymbol(
-          this.contracts,
-          tokenSymbol,
-          this.chainId,
-        );
+      // @dev Remove usage of signature authentication
+      const { ipfsCid, cidSignature } =
+        await getTestingCidAndSig(ipfsMetaEvidenceCid);
 
-        await initiateClaim(
-          this,
-          signer,
-          coverId,
-          tokenClaimed,
-          amountClaimed,
-          ipfsCid ?? ipfsMetaEvidenceCid,
-          cidSignature ?? signature,
-          valueSent,
-          expected,
-          revertMessage,
-          timeTravel,
-          skipTokenCheck,
-        );
-      }
+      const tokenClaimed = getTokenAddressBySymbol(
+        this.contracts,
+        tokenSymbol,
+        this.chainId,
+      );
+
+      await initiateClaim(
+        this,
+        signer,
+        coverId,
+        tokenClaimed,
+        amountClaimed,
+        ipfsCid ?? ipfsMetaEvidenceCid,
+        cidSignature ?? signature,
+        valueSent,
+        expected,
+        revertMessage,
+        timeTravel,
+        skipTokenCheck,
+      );
+
       break;
+    }
 
-    case "withdrawCompensation":
-      {
-        const { claimId } = args;
+    case "withdrawCompensation": {
+      const { claimId } = args;
 
-        await withdrawCompensation(
-          this,
-          signer,
-          claimId,
-          expected,
-          revertMessage,
-          timeTravel,
-          skipTokenCheck,
-        );
-      }
+      await withdrawCompensation(
+        this,
+        signer,
+        claimId,
+        expected,
+        revertMessage,
+        timeTravel,
+        skipTokenCheck,
+      );
+
       break;
+    }
 
-    default:
+    default: {
       throw `Invalid action requested: ${name}`;
-
-    // case "disputeClaim":
-    //   {
-    //     await disputeClaim(this, signer);
-    //   }
-    //   break;
-
-    // case "rule":
-    //   {
-    //     await rule(this, signer);
-    //   }
-    //   break;
-
-    // case "overrule":
-    //   {
-    //     await overrule(this, signer);
-    //   }
-    //   break;
+    }
   }
 }
