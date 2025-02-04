@@ -10,6 +10,7 @@ import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 
 // Interfaces
 import { IArbitrator } from "../interfaces/IArbitrator.sol";
+import { IArbitrable } from "../interfaces/IArbitrable.sol";
 import { IClaimManager } from "../interfaces/IClaimManager.sol";
 import { ILiquidityManager } from "../interfaces/ILiquidityManager.sol";
 import { IAthenaCoverToken } from "../interfaces/IAthenaCoverToken.sol";
@@ -181,44 +182,6 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
     uint256 claimId,
     uint256 disputeId,
     uint256 ruling
-  );
-
-  /**
-   * @dev To be emitted when meta-evidence is submitted.
-   * @param metaEvidenceID_ Unique identifier of meta-evidence.
-   * @param evidence_ IPFS path to metaevidence, example: '/ipfs/Qmarwkf7C9RuzDEJNnarT3WZ7kem5bk8DZAzx78acJjMFH/metaevidence.json'
-   */
-  event MetaEvidence(
-    uint256 indexed metaEvidenceID_,
-    string evidence_
-  );
-
-  /**
-   * @dev To be raised when evidence is submitted. Should point to the resource (evidences are not to be stored on chain due to gas considerations).
-   * @param arbitrator_ The arbitrator of the contract.
-   * @param evidenceGroupID_ Unique identifier of the evidence group the evidence belongs to.
-   * @param party_ The address of the party submiting the evidence. Note that 0x0 refers to evidence not submitted by any party.
-   * @param evidence_ IPFS path to evidence, example: '/ipfs/Qmarwkf7C9RuzDEJNnarT3WZ7kem5bk8DZAzx78acJjMFH/evidence.json'
-   */
-  event Evidence(
-    IArbitrator indexed arbitrator_,
-    uint256 indexed evidenceGroupID_,
-    address indexed party_,
-    string evidence_
-  );
-
-  /**
-   * @dev To be emitted when a dispute is created to link the correct meta-evidence to the disputeID.
-   * @param arbitrator_ The arbitrator of the contract.
-   * @param disputeID_ ID of the dispute in the Arbitrator contract.
-   * @param metaEvidenceID_ Unique identifier of meta-evidence.
-   * @param evidenceGroupID_ Unique identifier of the evidence group that is linked to this dispute.
-   */
-  event Dispute(
-    IArbitrator indexed arbitrator_,
-    uint256 indexed disputeID_,
-    uint256 metaEvidenceID_,
-    uint256 evidenceGroupID_
   );
 
   // ======= MODIFIERS ======= //
