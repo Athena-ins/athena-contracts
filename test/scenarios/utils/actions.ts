@@ -24,6 +24,8 @@ import {
   calcExpectedPositionDataAfterUncommitRemoveLiquidity,
   calcExpectedPositionDataAfterTakeInterests,
   calcExpectedPositionDataAfterRemoveLiquidity,
+  //
+  calcExpectedClaimDataAfterSubmitEvidence,
 } from "../../helpers/utils/calculations";
 import {
   getCurrentTime,
@@ -42,7 +44,7 @@ import {
   PoolInfo,
   PositionInfoObject,
   CoverInfoObject,
-  ClaimInfo,
+  ClaimInfoObject,
   PoolInfoObject,
 } from "../../helpers/types";
 // Types
@@ -75,9 +77,20 @@ export const getTxCostAndTimestamp = async (tx: ContractReceipt) => {
 
 type ContractsDataState = {
   poolData: PoolInfoObject[];
-  tokenData: PositionInfoObject | CoverInfoObject;
+  tokenData: PositionInfoObject | CoverInfoObject | ClaimInfoObject;
   timestamp: number;
 };
+
+export async function getContractsData(
+  testEnv: TestEnv,
+  poolIds: BigNumberish[],
+  tokenId: BigNumberish,
+  tokenType: "claim",
+): Promise<
+  ContractsDataState & {
+    tokenData: ClaimInfoObject;
+  }
+>;
 
 export async function getContractsData(
   testEnv: TestEnv,
@@ -105,23 +118,35 @@ export async function getContractsData(
   testEnv: TestEnv,
   poolIds: BigNumberish[],
   tokenId: BigNumberish,
-  tokenType: "cover" | "position",
+  tokenType: "cover" | "position" | "claim",
 ): Promise<ContractsDataState> {
-  const { LiquidityManager } = testEnv.contracts;
+  const { LiquidityManager, ClaimManager } = testEnv.contracts;
 
   const poolData = await Promise.all(
     poolIds.map((poolId) =>
       LiquidityManager.poolInfo(poolId).then((data) => poolInfoFormat(data)),
     ),
   );
-  const [tokenData, timestamp] = await Promise.all([
-    tokenType === "cover"
-      ? LiquidityManager.coverInfo(tokenId).then((data) =>
+
+  let tokenDataPromise: Promise<
+    PositionInfoObject | CoverInfoObject | ClaimInfoObject
+  >;
+  if (tokenType === "cover") {
+    tokenDataPromise = LiquidityManager.coverInfo(tokenId).then((data) =>
           coverInfoFormat(data),
-        )
-      : LiquidityManager.positionInfo(tokenId).then((data) =>
+    );
+  } else if (tokenType === "position") {
+    tokenDataPromise = LiquidityManager.positionInfo(tokenId).then((data) =>
           positionInfoFormat(data),
-        ),
+    );
+  } else {
+    tokenDataPromise = ClaimManager.claimInfo(tokenId).then((data) =>
+      claimInfoFormat(data),
+    );
+  }
+
+  const [tokenData, timestamp] = await Promise.all([
+    tokenDataPromise,
     getCurrentTime(),
   ]);
 
@@ -994,6 +1019,77 @@ export async function updateCover(
         coverToRemoveAmount,
         premiumsToAddAmount,
         premiumsToRemoveAmount,
+      ),
+    ).to.revertTransactionWith(revertMessage);
+  }
+}
+
+//================================//
+//======= CLAIM MANAGEMENT =======//
+//================================//
+
+export async function submitEvidenceForClaim(
+  testEnv: TestEnv,
+  user: Wallet,
+  claimId: number,
+  ipfsEvidenceCids: string[],
+  party: "claimant" | "prosecutor",
+  expectedResult: "success" | "revert",
+  revertMessage?: string,
+  timeTravel?: TimeTravelOptions,
+) {
+  const { ClaimManager, LiquidityManager } = testEnv.contracts;
+
+  if (expectedResult === "success") {
+    const claimInfoBefore = await ClaimManager.claimInfo(claimId).then((data) =>
+      claimInfoFormat(data),
+    );
+    const tokenDataBefore = await LiquidityManager.coverInfo(
+      claimInfoBefore.coverId,
+    ).then((data) => coverInfoFormat(data));
+    const poolDataBefore = await LiquidityManager.poolInfo(
+      tokenDataBefore.poolId,
+    ).then((data) => poolInfoFormat(data));
+
+    const txResult = await postTxHandler(
+      ClaimManager.connect(user).submitEvidenceForClaim(
+        claimId,
+        ipfsEvidenceCids,
+      ),
+    );
+
+    const { txTimestamp } = await getTxCostAndTimestamp(txResult);
+
+    if (timeTravel) {
+      await setNextBlockTimestamp(timeTravel);
+    }
+
+    const {
+      poolData: [poolDataAfter],
+      tokenData: claimDataAfter,
+      timestamp,
+    } = await getContractsData(
+      testEnv,
+      [tokenDataBefore.poolId],
+      claimId,
+      "claim",
+    );
+
+    const expectedClaimData = calcExpectedClaimDataAfterSubmitEvidence(
+      ipfsEvidenceCids,
+      party,
+      claimInfoBefore,
+      txTimestamp,
+      timestamp,
+    );
+
+    expectEqual(poolDataAfter, poolDataBefore);
+    expectEqual(claimDataAfter, expectedClaimData);
+  } else if (expectedResult === "revert") {
+    await expect(
+      ClaimManager.connect(user).submitEvidenceForClaim(
+        claimId,
+        ipfsEvidenceCids,
       ),
     ).to.revertTransactionWith(revertMessage);
   }

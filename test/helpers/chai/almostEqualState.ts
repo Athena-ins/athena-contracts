@@ -1,14 +1,16 @@
 import chai from "chai";
 import { BigNumber } from "ethers";
 // Types
-import { PoolInfo, PositionInfo, CoverInfo } from "../types";
+import { PoolInfo, PositionInfo, CoverInfo, ClaimInfo } from "../types";
 
 const { expect } = chai;
+
+type StructuredAthenaData = PoolInfo | PositionInfo | CoverInfo | ClaimInfo;
 
 declare global {
   export namespace Chai {
     interface Assertion {
-      almostEqualState(input: PoolInfo | PositionInfo | CoverInfo): void;
+      almostEqualState(input: StructuredAthenaData): void;
     }
   }
 }
@@ -17,7 +19,7 @@ const DEVIATION_BASE = 100_000000;
 
 function checkKey(
   this: Chai.AssertionStatic & {
-    _obj: PoolInfo | PositionInfo | CoverInfo;
+    _obj: StructuredAthenaData;
   },
   key: string,
   path: any,
@@ -169,9 +171,9 @@ chai.use(function (chai, utils) {
     "almostEqualState",
     function (
       this: Chai.AssertionStatic & {
-        _obj: PoolInfo | PositionInfo | CoverInfo;
+        _obj: StructuredAthenaData;
       },
-      input: PoolInfo | PositionInfo | CoverInfo,
+      input: StructuredAthenaData,
     ) {
       const checkKeyContext = checkKey.bind(this);
 
@@ -232,8 +234,8 @@ chai.use(function (chai, utils) {
 });
 
 export const expectEqual = (
-  actual: PoolInfo | PositionInfo | CoverInfo,
-  expected: PoolInfo | PositionInfo | CoverInfo,
+  actual: StructuredAthenaData,
+  expected: StructuredAthenaData,
 ) => {
   expect(actual).to.be.almostEqualState(expected);
 };

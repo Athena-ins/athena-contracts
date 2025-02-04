@@ -1285,3 +1285,24 @@ export function calcExpectedCoverDataAfterWithdrawCompensation(
     premiumsLeft,
   };
 }
+
+export function calcExpectedClaimDataAfterSubmitEvidence(
+  ipfsEvidenceCids: string[],
+  party: "claimant" | "prosecutor",
+  claimInfoBefore: ClaimInfoObject,
+  txTimestamp: number,
+  timestamp: number,
+): ClaimInfoObject {
+  return party === "claimant"
+    ? {
+        ...claimInfoBefore,
+        evidence: [...claimInfoBefore.evidence, ...ipfsEvidenceCids],
+      }
+    : {
+        ...claimInfoBefore,
+        counterEvidence: [
+          ...claimInfoBefore.counterEvidence,
+          ...ipfsEvidenceCids,
+        ],
+      };
+}
