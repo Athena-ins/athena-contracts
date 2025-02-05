@@ -1309,62 +1309,192 @@ export function calcExpectedClaimDataAfterSubmitEvidence(
 
 export function calcExpectedClaimDataAfterInitiateClaim(
   amountClaimedAmount: BigNumber,
+  coverId: number,
+  claimInfoBefore: ClaimInfoObject,
+  poolInfo: PoolInfoObject,
+  claimant: string,
+  deposit: BigNumber,
   txTimestamp: number,
   timestamp: number,
-) {}
+): ClaimInfoObject {
+  return {
+    ...claimInfoBefore,
+    claimant,
+    coverId,
+    poolId: poolInfo.poolId,
+    claimId: claimInfoBefore.claimId,
+    disputeId: 0,
+    status: 0, // Initiated
+    createdAt: txTimestamp,
+    amount: amountClaimedAmount,
+    prosecutor: "0x0000000000000000000000000000000000000000",
+    deposit,
+    evidence: [],
+    counterEvidence: [],
+    metaEvidenceURI: claimInfoBefore.metaEvidenceURI,
+    rulingTimestamp: 0,
+  };
+}
+
 export function calcExpectedClaimDataAfterWithdrawCompensation(
-  amountClaimedAmount: BigNumber,
-  tokenDataBefore: ClaimInfoObject,
+  claimInfoBefore: ClaimInfoObject,
   txTimestamp: number,
   timestamp: number,
-) {}
+): ClaimInfoObject {
+  return {
+    ...claimInfoBefore,
+    status: claimInfoBefore.status === 0 ? 2 : 8, // Compensated or CompensatedAfterDispute
+  };
+}
 
 export function calcExpectedClaimDataAfterDisputeClaim(
-  tokenDataBefore: ClaimInfoObject,
+  claimInfoBefore: ClaimInfoObject,
+  prosecutor: string,
+  disputeId: number,
   txTimestamp: number,
   timestamp: number,
-) {}
+): ClaimInfoObject {
+  return {
+    ...claimInfoBefore,
+    status: 3, // Disputed
+    prosecutor,
+    disputeId,
+    rulingTimestamp: 0,
+  };
+}
+
 export function calcExpectedClaimDataAfterRuleClaim(
-  tokenDataBefore: ClaimInfoObject,
+  claimInfoBefore: ClaimInfoObject,
+  ruling: number,
   txTimestamp: number,
   timestamp: number,
-) {}
+): ClaimInfoObject {
+  let newStatus;
+  switch (ruling) {
+    case 0: // RefusedToArbitrate
+      newStatus = 5;
+      break;
+    case 1: // PayClaimant
+      newStatus = 7;
+      break;
+    case 2: // RejectClaim
+      newStatus = 6;
+      break;
+    default:
+      throw new Error("Invalid ruling");
+  }
+
+  return {
+    ...claimInfoBefore,
+    status: newStatus,
+    rulingTimestamp: txTimestamp,
+  };
+}
+
 export function calcExpectedClaimDataAfterOverruleRuling(
-  tokenDataBefore: ClaimInfoObject,
+  claimInfoBefore: ClaimInfoObject,
   txTimestamp: number,
   timestamp: number,
-) {}
+): ClaimInfoObject {
+  return {
+    ...claimInfoBefore,
+    status: 4, // RejectedByOverrule
+  };
+}
 
 export function calcExpectedCoverDataAfterDisputeClaim(
   tokenDataBefore: CoverInfoObject,
   txTimestamp: number,
   timestamp: number,
-) {}
+): CoverInfoObject {
+  // Cover data remains unchanged after dispute
+  return tokenDataBefore;
+}
+
 export function calcExpectedCoverDataAfterRuleClaim(
   tokenDataBefore: CoverInfoObject,
   txTimestamp: number,
   timestamp: number,
-) {}
+): CoverInfoObject {
+  // Cover data remains unchanged after ruling until compensation is withdrawn
+  return tokenDataBefore;
+}
+
 export function calcExpectedCoverDataAfterOverruleRuling(
   tokenDataBefore: CoverInfoObject,
   txTimestamp: number,
   timestamp: number,
-) {}
+): CoverInfoObject {
+  // Cover data remains unchanged after overrule
+  return tokenDataBefore;
+}
 
 export function calcExpectedPoolDataAfterDisputeClaim(
   poolDataBefore: PoolInfoObject,
   txTimestamp: number,
   timestamp: number,
-) {}
+): PoolInfoObject {
+  return poolDataBefore;
+}
+
 export function calcExpectedPoolDataAfterRuleClaim(
   poolDataBefore: PoolInfoObject,
-  tokenDataBefore: CoverInfoObject,
-  expectedTokenData: CoverInfoObject,
   txTimestamp: number,
   timestamp: number,
-) {}
+): PoolInfoObject {
+  const expect = deepCopy(poolDataBefore);
+
+  expect.ongoingClaims = poolDataBefore.ongoingClaims - 1;
+  if (expect.ongoingClaims < 0)
+    throw Error("Ongoing claims cannot be negative");
+
+  // Update time-based calculations
+  const timeElapsed = timestamp - poolDataBefore.slot0.lastUpdateTimestamp;
+  const ignoredDuration = timeElapsed % expect.slot0.secondsPerTick;
+
+  const oldPremiumRate = getPremiumRate(
+    poolDataBefore,
+    poolDataBefore.utilizationRate,
+  );
+  const newPremiumRate = getPremiumRate(expect, expect.utilizationRate);
+
+  expect.slot0.secondsPerTick = secondsPerTick(
+    poolDataBefore.slot0.secondsPerTick,
+    oldPremiumRate,
+    newPremiumRate,
+  ).toNumber();
+
+  expect.slot0.tick =
+    poolDataBefore.slot0.tick +
+    Math.floor(timeElapsed / expect.slot0.secondsPerTick);
+
+  expect.premiumRate = getPremiumRate(expect, expect.utilizationRate);
+  expect.liquidityIndexLead = computeLiquidityIndex(
+    expect.utilizationRate,
+    newPremiumRate,
+    ignoredDuration,
+  );
+
+  if (expect.slot0.tick === poolDataBefore.slot0.tick) {
+    expect.slot0.lastUpdateTimestamp = poolDataBefore.slot0.lastUpdateTimestamp;
+  } else {
+    expect.slot0.lastUpdateTimestamp = timestamp - ignoredDuration;
+    expect.slot0.liquidityIndex = poolDataBefore.slot0.liquidityIndex.add(
+      computeLiquidityIndex(
+        expect.utilizationRate,
+        newPremiumRate,
+        timeElapsed - ignoredDuration,
+      ),
+    );
+  }
+
+  return expect;
+}
+
 export function calcExpectedPoolDataAfterOverruleRuling(
   poolDataBefore: PoolInfoObject,
   txTimestamp: number,
   timestamp: number,
-) {}
+): PoolInfoObject {
+  return poolDataBefore;
+}
