@@ -93,7 +93,7 @@ export function claimInfoFormat(
     deposit: data.deposit,
     evidence: data.evidence,
     counterEvidence: data.counterEvidence,
-    metaEvidence: data.metaEvidence,
+    metaEvidenceURI: data.metaEvidenceURI,
     rulingTimestamp: data.rulingTimestamp.toNumber(),
   };
 }

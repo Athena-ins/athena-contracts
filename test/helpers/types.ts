@@ -73,7 +73,7 @@ export type ClaimInfoObject = {
   deposit: BigNumber;
   evidence: string[];
   counterEvidence: string[];
-  metaEvidence: string;
+  metaEvidenceURI: string;
   rulingTimestamp: number;
 };
 
