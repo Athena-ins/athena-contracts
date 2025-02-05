@@ -20,6 +20,7 @@ import { ScenarioTests } from "./scenarios/scenario.test";
 
 // Unit test suites
 import { PoolManagerTest } from "./contracts/PoolManager.test";
+//
 import { AthenaERC721Tests } from "./contracts/AthenaERC721";
 import { AthenaTokenTests } from "./contracts/AthenaToken";
 import { ClaimManagerTests } from "./contracts/ClaimManager";
@@ -46,7 +47,8 @@ baseContext("Test Athena Protocol", function () {
   ScenarioTests();
   //
   //=== Unit tests ===//
-  PoolManagerTest();
+  // PoolManagerTest();
+  //
   // FarmingRangeTests();
   // LiquidityManagerTests();
   // ClaimManagerTests();

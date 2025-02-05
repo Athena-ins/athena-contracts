@@ -637,14 +637,31 @@ export const liquidityNegatives: Scenario = {
       ],
     },
     {
-      description:
-        "user0 cannot commit withdraw from position 0 because of claim",
+      description: "user0 commits to withdraw from position 0",
       actions: [
         {
           userName: "user0",
           name: "commitRemoveLiquidity",
           args: {
             positionId: 0,
+          },
+          expected: "success",
+          timeTravel: { days: 15 },
+          skipTokenCheck: true,
+        },
+      ],
+    },
+    {
+      description: "user0 cannot withdraw from position 0 because of claim",
+      actions: [
+        {
+          userName: "user0",
+          name: "removeLiquidity",
+          args: {
+            positionId: 0,
+            tokenSymbol: "USDC",
+            amount: 2_000,
+            keepWrapped: false,
           },
           expected: "revert",
           revertMessage: "PoolHasOnGoingClaims",
@@ -661,21 +678,6 @@ export const liquidityNegatives: Scenario = {
             claimId: 0,
           },
           expected: "success",
-        },
-      ],
-    },
-    {
-      description: "user0 commits to withdraw from position 0",
-      actions: [
-        {
-          userName: "user0",
-          name: "commitRemoveLiquidity",
-          args: {
-            positionId: 0,
-          },
-          expected: "success",
-          timeTravel: { days: 15 },
-          skipTokenCheck: true,
         },
       ],
     },
