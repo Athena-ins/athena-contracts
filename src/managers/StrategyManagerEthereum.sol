@@ -71,7 +71,7 @@ contract StrategyManagerEthereum is IStrategyManager, Ownable {
   // (((Strategy 2))) - Amphor Symbiotic LRT
   address public immutable amphrLRT; // 0x06824c27c8a0dbde5f72f770ec82e3c0fd4dcec3
   // (((Strategy 3))) - Metamorpho MEV Capital wETH
-  address public immutable morphoMevVaultUnderlying; // 
+  address public immutable morphoMevVaultUnderlying; //
   address public immutable morphoMevVault;
   // (((Strategy 4))) - Inception Symbiotic Restaked wstETH
   address public immutable inwstETHs;
@@ -448,6 +448,9 @@ contract StrategyManagerEthereum is IStrategyManager, Ownable {
       );
       amountToWithdraw -= daoShare;
 
+      // Avoid running a 0 amount withdrawal
+      if (amountToWithdraw == 0) return;
+
       aaveLendingPool.withdraw(USDC, amountToWithdraw, account_);
     } else if (strategyId_ == 3) {
       uint256 amountToWithdraw = amountCapitalUnderlying_ +
@@ -466,6 +469,10 @@ contract StrategyManagerEthereum is IStrategyManager, Ownable {
         strategyId_,
         amountToWithdraw
       );
+
+      // Avoid running a 0 amount withdrawal
+      if (sharesToWithdraw == 0) return;
+
       IERC4626(morphoMevVault).redeem(
         sharesToWithdraw,
         account_,
@@ -530,6 +537,9 @@ contract StrategyManagerEthereum is IStrategyManager, Ownable {
       yieldBonus_
     );
     amountToWithdraw -= daoShare;
+
+    // Avoid running a 0 amount withdrawal
+    if (amountToWithdraw == 0) return;
 
     address wrapped = wrappedAsset(strategyId_);
     IERC20(wrapped).safeTransfer(account_, amountToWithdraw);
