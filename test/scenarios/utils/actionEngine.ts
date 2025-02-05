@@ -13,9 +13,10 @@ import {
   updateCover,
   initiateClaim,
   withdrawCompensation,
-  // disputeClaim,
-  // rule,
-  // overrule,
+  submitEvidenceForClaim,
+  disputeClaim,
+  rule,
+  overrule,
   //
   // need dao, farming, staking, claim
 } from "./actions";
@@ -396,7 +397,81 @@ export async function executeAction(this: Mocha.Context, action: Action) {
       break;
     }
 
+    case "submitEvidence": {
+      const { claimId, ipfsEvidenceCids, party } = args;
+
+      await submitEvidenceForClaim(
+        this,
+        signer,
+        claimId,
+        ipfsEvidenceCids,
+        party,
+        expected,
+        revertMessage,
+        timeTravel,
+      );
+
+      break;
+    }
+
+    case "disputeClaim": {
+      const { claimId, valueSent } = args;
+
+      await disputeClaim(
+        this,
+        signer,
+        claimId,
+        valueSent,
+        expected,
+        revertMessage,
+        timeTravel,
+        skipTokenCheck,
+      );
+
+      break;
+    }
+
+    case "rule": {
+      const { claimId, ruling } = args;
+
+      await rule(
+        this,
+        signer,
+        claimId,
+        ruling,
+        expected,
+        revertMessage,
+        timeTravel,
+        skipTokenCheck,
+      );
+
+      break;
+    }
+
+    case "overrule": {
+      const { claimId, punish } = args;
+
+      await overrule(
+        this,
+        signer,
+        claimId,
+        punish,
+        expected,
+        revertMessage,
+        timeTravel,
+        skipTokenCheck,
+      );
+
+      break;
+    }
+
+    //=======================//
+    //======= DEFAULT =======//
+    //=======================//
+
     default: {
+      // @dev If all cases are covered then name is type never
+      const exhaustiveCheck: never = name;
       throw `Invalid action requested: ${name}`;
     }
   }
