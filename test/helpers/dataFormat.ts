@@ -4,7 +4,29 @@ import {
   PositionInfoObject,
   CoverInfoObject,
   ClaimInfoObject,
+  ClaimStatus,
 } from "./types";
+
+const claimStatusIndex = {
+  0: "Initiated",
+  // Virtual status
+  1: "Accepted",
+  2: "Compensated",
+  // Statuses below are only used when a claim is disputed
+  3: "Disputed",
+  4: "RejectedByOverrule",
+  5: "RejectedByRefusalToArbitrate",
+  6: "RejectedByCourtDecision",
+  7: "AcceptedByCourtDecision",
+  8: "CompensatedAfterDispute",
+} as const;
+
+export function getClaimStatus(index: number): ClaimStatus {
+  const status = claimStatusIndex[index as keyof typeof claimStatusIndex];
+  if (!status) throw new Error(`Unknown claim status: ${index}`);
+
+  return status;
+}
 
 export function poolInfoFormat(
   data: Awaited<ReturnType<LiquidityManager["poolInfo"]>>,

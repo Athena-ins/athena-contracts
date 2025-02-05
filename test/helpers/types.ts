@@ -1,6 +1,17 @@
 import { BigNumber } from "ethers";
 import { LiquidityManager, ClaimManager } from "../../typechain";
 
+export type ClaimStatus =
+  | "Initiated"
+  | "Accepted"
+  | "Compensated"
+  | "Disputed"
+  | "RejectedByOverrule"
+  | "RejectedByRefusalToArbitrate"
+  | "RejectedByCourtDecision"
+  | "AcceptedByCourtDecision"
+  | "CompensatedAfterDispute";
+
 export type PoolInfoObject = {
   poolId: number;
   feeRate: BigNumber;
