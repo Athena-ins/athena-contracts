@@ -1306,3 +1306,65 @@ export function calcExpectedClaimDataAfterSubmitEvidence(
         ],
       };
 }
+
+export function calcExpectedClaimDataAfterInitiateClaim(
+  amountClaimedAmount: BigNumber,
+  txTimestamp: number,
+  timestamp: number,
+) {}
+export function calcExpectedClaimDataAfterWithdrawCompensation(
+  amountClaimedAmount: BigNumber,
+  tokenDataBefore: ClaimInfoObject,
+  txTimestamp: number,
+  timestamp: number,
+) {}
+
+export function calcExpectedClaimDataAfterDisputeClaim(
+  tokenDataBefore: ClaimInfoObject,
+  txTimestamp: number,
+  timestamp: number,
+) {}
+export function calcExpectedClaimDataAfterRuleClaim(
+  tokenDataBefore: ClaimInfoObject,
+  txTimestamp: number,
+  timestamp: number,
+) {}
+export function calcExpectedClaimDataAfterOverruleRuling(
+  tokenDataBefore: ClaimInfoObject,
+  txTimestamp: number,
+  timestamp: number,
+) {}
+
+export function calcExpectedCoverDataAfterDisputeClaim(
+  tokenDataBefore: CoverInfoObject,
+  txTimestamp: number,
+  timestamp: number,
+) {}
+export function calcExpectedCoverDataAfterRuleClaim(
+  tokenDataBefore: CoverInfoObject,
+  txTimestamp: number,
+  timestamp: number,
+) {}
+export function calcExpectedCoverDataAfterOverruleRuling(
+  tokenDataBefore: CoverInfoObject,
+  txTimestamp: number,
+  timestamp: number,
+) {}
+
+export function calcExpectedPoolDataAfterDisputeClaim(
+  poolDataBefore: PoolInfoObject,
+  txTimestamp: number,
+  timestamp: number,
+) {}
+export function calcExpectedPoolDataAfterRuleClaim(
+  poolDataBefore: PoolInfoObject,
+  tokenDataBefore: CoverInfoObject,
+  expectedTokenData: CoverInfoObject,
+  txTimestamp: number,
+  timestamp: number,
+) {}
+export function calcExpectedPoolDataAfterOverruleRuling(
+  poolDataBefore: PoolInfoObject,
+  txTimestamp: number,
+  timestamp: number,
+) {}
