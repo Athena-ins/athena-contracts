@@ -257,6 +257,208 @@ export async function withdrawCompensation(
   }
 }
 
-export async function disputeClaim() {}
-export async function rule() {}
-export async function overrule() {}
+export async function disputeClaim(
+  testEnv: TestEnv,
+  user: Wallet,
+  claimId: number,
+  valueSent: BigNumberish | undefined,
+  expectedResult: "success" | "revert",
+  revertMessage?: string,
+  timeTravel?: TimeTravelOptions,
+  skipTokenCheck?: boolean,
+) {
+  const { ClaimManager, LiquidityManager } = testEnv.contracts;
+
+  const messageValue: BigNumberish =
+    valueSent || (await ClaimManager.arbitrationCost());
+
+  if (expectedResult === "success") {
+    const claimInfoBefore = await ClaimManager.claimInfo(claimId).then((data) =>
+      claimInfoFormat(data),
+    );
+    const tokenDataBefore = await LiquidityManager.coverInfo(
+      claimInfoBefore.coverId,
+    ).then((data) => coverInfoFormat(data));
+    const poolDataBefore = await LiquidityManager.poolInfo(
+      tokenDataBefore.poolId,
+    ).then((data) => poolInfoFormat(data));
+
+ await postTxHandler(
+      ClaimManager.connect(user).disputeClaim(claimId, {
+        value: messageValue,
+      }),
+    );
+
+ 
+
+    if (timeTravel) {
+      await setNextBlockTimestamp(timeTravel);
+    }
+
+    const {
+      poolData: [poolDataAfter],
+      tokenData: tokenDataAfter,
+      timestamp,
+    } = await getContractsData(
+      testEnv,
+      [tokenDataBefore.poolId],
+      claimInfoBefore.coverId,
+      "cover",
+    );
+
+    expectEqual(poolDataAfter, poolDataBefore);
+    if (!skipTokenCheck) expectEqual(tokenDataAfter, tokenDataBefore);
+  } else if (expectedResult === "revert") {
+    await expect(
+      ClaimManager.connect(user).disputeClaim(claimId, {
+        value: messageValue,
+      }),
+    ).to.revertTransactionWith(revertMessage);
+  }
+}
+
+export async function rule(
+  testEnv: TestEnv,
+  user: Wallet,
+  claimId: number,
+  ruling: "RefusedToArbitrate" | "PayClaimant" | "RejectClaim",
+  expectedResult: "success" | "revert",
+  revertMessage?: string,
+  timeTravel?: TimeTravelOptions,
+  skipTokenCheck?: boolean,
+) {
+  const { ClaimManager, LiquidityManager } = testEnv.contracts;
+
+  if (expectedResult === "success") {
+    const claimInfoBefore = await ClaimManager.claimInfo(claimId).then((data) =>
+      claimInfoFormat(data),
+    );
+    const tokenDataBefore = await LiquidityManager.coverInfo(
+      claimInfoBefore.coverId,
+    ).then((data) => coverInfoFormat(data));
+    const poolDataBefore = await LiquidityManager.poolInfo(
+      tokenDataBefore.poolId,
+    ).then((data) => poolInfoFormat(data));
+
+    let rulingValue: number;
+    switch (ruling) {
+      case "RefusedToArbitrate":
+        rulingValue = 0;
+        break;
+      case "PayClaimant":
+        rulingValue = 1;
+        break;
+      case "RejectClaim":
+        rulingValue = 2;
+        break;
+    }
+
+    const txResult = await postTxHandler(
+      ClaimManager.connect(user).rule(claimId, rulingValue),
+    );
+
+    const { txTimestamp } = await getTxCostAndTimestamp(txResult);
+
+    if (timeTravel) {
+      await setNextBlockTimestamp(timeTravel);
+    }
+
+    const {
+      poolData: [poolDataAfter],
+      tokenData: tokenDataAfter,
+      timestamp,
+    } = await getContractsData(
+      testEnv,
+      [tokenDataBefore.poolId],
+      claimInfoBefore.coverId,
+      "cover",
+    );
+
+    // Additional checks based on ruling type could be added here
+    if (!skipTokenCheck) {
+      if (ruling === "PayClaimant") {
+        // Add specific validation for PayClaimant case
+      } else if (ruling === "RejectClaim") {
+        // Add specific validation for RejectClaim case
+      }
+    }
+
+    expectEqual(poolDataAfter, poolDataBefore);
+    if (!skipTokenCheck) expectEqual(tokenDataAfter, tokenDataBefore);
+  } else if (expectedResult === "revert") {
+    let rulingValue: number;
+    switch (ruling) {
+      case "RefusedToArbitrate":
+        rulingValue = 0;
+        break;
+      case "PayClaimant":
+        rulingValue = 1;
+        break;
+      case "RejectClaim":
+        rulingValue = 2;
+        break;
+    }
+
+    await expect(
+      ClaimManager.connect(user).rule(claimId, rulingValue),
+    ).to.revertTransactionWith(revertMessage);
+  }
+}
+
+export async function overrule(
+  testEnv: TestEnv,
+  user: Wallet,
+  claimId: number,
+  punish: boolean,
+  expectedResult: "success" | "revert",
+  revertMessage?: string,
+  timeTravel?: TimeTravelOptions,
+  skipTokenCheck?: boolean,
+) {
+  const { ClaimManager, LiquidityManager } = testEnv.contracts;
+
+  if (expectedResult === "success") {
+    const claimInfoBefore = await ClaimManager.claimInfo(claimId).then((data) =>
+      claimInfoFormat(data),
+    );
+    const tokenDataBefore = await LiquidityManager.coverInfo(
+      claimInfoBefore.coverId,
+    ).then((data) => coverInfoFormat(data));
+    const poolDataBefore = await LiquidityManager.poolInfo(
+      tokenDataBefore.poolId,
+    ).then((data) => poolInfoFormat(data));
+
+    const txResult = await postTxHandler(
+      ClaimManager.connect(user).overrule(claimId, punish),
+    );
+
+    const { txTimestamp } = await getTxCostAndTimestamp(txResult);
+
+    if (timeTravel) {
+      await setNextBlockTimestamp(timeTravel);
+    }
+
+    const {
+      poolData: [poolDataAfter],
+      tokenData: tokenDataAfter,
+      timestamp,
+    } = await getContractsData(
+      testEnv,
+      [tokenDataBefore.poolId],
+      claimInfoBefore.coverId,
+      "cover",
+    );
+
+    // Additional checks could be added here based on punish parameter
+    if (!skipTokenCheck && punish) {
+      // Add specific validation for punish case
+    }
+
+    expectEqual(poolDataAfter, poolDataBefore);
+    if (!skipTokenCheck) expectEqual(tokenDataAfter, tokenDataBefore);
+  } else if (expectedResult === "revert") {
+    await expect(
+      ClaimManager.connect(user).overrule(claimId, punish),
+    ).to.revertTransactionWith(revertMessage);
+  }
+}
