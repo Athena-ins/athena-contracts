@@ -25,7 +25,7 @@ import {
   calcExpectedPositionDataAfterTakeInterests,
   calcExpectedPositionDataAfterUncommitRemoveLiquidity,
 } from "../../../helpers/utils/calculations";
-import { getTxCostAndTimestamp, getContractsData } from "./helpers";
+import { getTxCostAndTimestamp, getEntityData } from "./helpers";
 // Types
 import { BigNumber, BigNumberish, Wallet } from "ethers";
 import { ERC20__factory } from "../../../../typechain";
@@ -84,9 +84,11 @@ export async function openPosition(
 
     const {
       poolData: poolDataAfter,
-      tokenData: tokenDataAfter,
+      entityDatas: [tokenDataAfter],
       timestamp,
-    } = await getContractsData(testEnv, poolIds, positionId, "position");
+    } = await getEntityData(testEnv, poolIds, [
+      { id: positionId, type: "position" },
+    ]);
 
     const expectedPoolData = calcExpectedPoolDataAfterOpenPosition(
       positionAmount,
@@ -169,14 +171,11 @@ export async function addLiquidity(
 
     const {
       poolData: poolDataAfter,
-      tokenData: tokenDataAfter,
+      entityDatas: [tokenDataAfter],
       timestamp,
-    } = await getContractsData(
-      testEnv,
-      tokenDataBefore.poolIds,
-      positionId,
-      "position",
-    );
+    } = await getEntityData(testEnv, tokenDataBefore.poolIds, [
+      { id: positionId, type: "position" },
+    ]);
 
     const expectedPoolData = calcExpectedPoolDataAfterAddLiquidity(
       amountToAdd,
@@ -275,14 +274,11 @@ export async function commitRemoveLiquidity(
 
     const {
       poolData: poolDataAfter,
-      tokenData: tokenDataAfter,
+      entityDatas: [tokenDataAfter],
       timestamp,
-    } = await getContractsData(
-      testEnv,
-      tokenDataBefore.poolIds,
-      positionId,
-      "position",
-    );
+    } = await getEntityData(testEnv, tokenDataBefore.poolIds, [
+      { id: positionId, type: "position" },
+    ]);
 
     const expectedPoolData = calcExpectedPoolDataAfterCommitRemoveLiquidity(
       poolDataBefore,
@@ -355,14 +351,11 @@ export async function uncommitRemoveLiquidity(
 
     const {
       poolData: poolDataAfter,
-      tokenData: tokenDataAfter,
+      entityDatas: [tokenDataAfter],
       timestamp,
-    } = await getContractsData(
-      testEnv,
-      tokenDataBefore.poolIds,
-      positionId,
-      "position",
-    );
+    } = await getEntityData(testEnv, tokenDataBefore.poolIds, [
+      { id: positionId, type: "position" },
+    ]);
 
     const expectedPoolData = calcExpectedPoolDataAfterUncommitRemoveLiquidity(
       poolDataBefore,
@@ -424,14 +417,11 @@ export async function takeInterests(
 
     const {
       poolData: poolDataAfter,
-      tokenData: tokenDataAfter,
+      entityDatas: [tokenDataAfter],
       timestamp,
-    } = await getContractsData(
-      testEnv,
-      tokenDataBefore.poolIds,
-      positionId,
-      "position",
-    );
+    } = await getEntityData(testEnv, tokenDataBefore.poolIds, [
+      { id: positionId, type: "position" },
+    ]);
 
     const expectedPoolData = calcExpectedPoolDataAfterTakeInterests(
       poolDataBefore,
@@ -502,14 +492,11 @@ export async function removeLiquidity(
 
     const {
       poolData: poolDataAfter,
-      tokenData: tokenDataAfter,
+      entityDatas: [tokenDataAfter],
       timestamp,
-    } = await getContractsData(
-      testEnv,
-      tokenDataBefore.poolIds,
-      positionId,
-      "position",
-    );
+    } = await getEntityData(testEnv, tokenDataBefore.poolIds, [
+      { id: positionId, type: "position" },
+    ]);
 
     const expectedPoolData = calcExpectedPoolDataAfterRemoveLiquidity(
       amountToRemove,

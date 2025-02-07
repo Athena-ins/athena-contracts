@@ -18,7 +18,7 @@ import {
   calcExpectedPoolDataAfterInitiateClaim,
   calcExpectedPoolDataAfterWithdrawCompensation,
 } from "../../../helpers/utils/calculations";
-import { getTxCostAndTimestamp, getContractsData } from "./helpers";
+import { getTxCostAndTimestamp, getEntityData } from "./helpers";
 // Types
 import { BigNumber, BigNumberish, Wallet } from "ethers";
 import { TestEnv } from "../../../context";
@@ -64,13 +64,15 @@ export async function submitEvidenceForClaim(
 
     const {
       poolData: [poolDataAfter],
-      tokenData: claimDataAfter,
+      entityDatas: [claimDataAfter, coverDataAfter],
       timestamp,
-    } = await getContractsData(
+    } = await getEntityData(
       testEnv,
-      [tokenDataBefore.poolId],
-      claimId,
-      "claim",
+      [coverDataBefore.poolId],
+      [
+        { id: claimId, type: "claim" },
+        { id: claimInfoBefore.coverId, type: "cover" },
+      ],
     );
 
     const expectedClaimData = calcExpectedClaimDataAfterSubmitEvidence(

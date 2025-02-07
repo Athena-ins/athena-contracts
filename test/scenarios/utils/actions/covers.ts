@@ -12,7 +12,7 @@ import {
   calcExpectedPoolDataAfterOpenCover,
   calcExpectedPoolDataAfterUpdateCover,
 } from "../../../helpers/utils/calculations";
-import { getTxCostAndTimestamp, getContractsData } from "./helpers";
+import { getTxCostAndTimestamp, getEntityData } from "./helpers";
 // Types
 import { BigNumberish, Wallet, constants } from "ethers";
 import { ERC20__factory } from "../../../../typechain";
@@ -72,9 +72,13 @@ export async function openCover(
 
     const {
       poolData: [poolDataAfter],
-      tokenData: tokenDataAfter,
+      entityDatas: [tokenDataAfter],
       timestamp,
-    } = await getContractsData(testEnv, [poolId], coverId, "cover");
+    } = await getEntityData(
+      testEnv,
+      [poolId],
+      [{ id: coverId, type: "cover" }],
+    );
 
     const expectedPoolData = calcExpectedPoolDataAfterOpenCover(
       amount,
@@ -169,13 +173,12 @@ export async function updateCover(
 
     const {
       poolData: [poolDataAfter],
-      tokenData: tokenDataAfter,
+      entityDatas: [tokenDataAfter],
       timestamp,
-    } = await getContractsData(
+    } = await getEntityData(
       testEnv,
       [tokenDataBefore.poolId],
-      coverId,
-      "cover",
+      [{ id: coverId, type: "cover" }],
     );
 
     const expectedPoolData = calcExpectedPoolDataAfterUpdateCover(
