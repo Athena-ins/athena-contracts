@@ -1055,7 +1055,8 @@ export function calcExpectedClaimDataAfterSubmitEvidence(
 export function calcExpectedClaimDataAfterInitiateClaim(
   amountClaimedAmount: BigNumber,
   coverId: number,
-  claimInfoBefore: ClaimInfoObject,
+  expectedClaimId: number,
+  metaEvidenceURI: string,
   poolInfo: PoolInfoObject,
   claimant: string,
   deposit: BigNumber,
@@ -1063,11 +1064,10 @@ export function calcExpectedClaimDataAfterInitiateClaim(
   timestamp: number,
 ): ClaimInfoObject {
   return {
-    ...claimInfoBefore,
     claimant,
     coverId,
     poolId: poolInfo.poolId,
-    claimId: claimInfoBefore.claimId,
+    claimId: expectedClaimId,
     disputeId: 0,
     status: 0, // Initiated
     createdAt: txTimestamp,
@@ -1076,7 +1076,7 @@ export function calcExpectedClaimDataAfterInitiateClaim(
     deposit,
     evidence: [],
     counterEvidence: [],
-    metaEvidenceURI: claimInfoBefore.metaEvidenceURI,
+    metaEvidenceURI: metaEvidenceURI,
     rulingTimestamp: 0,
   };
 }
