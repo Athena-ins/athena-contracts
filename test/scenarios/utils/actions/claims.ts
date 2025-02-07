@@ -125,7 +125,7 @@ export async function submitEvidenceForClaim(
 export async function initiateClaim(
   testEnv: TestEnv,
   user: Wallet,
-  coverId: BigNumberish,
+  coverId: number,
   tokenClaimed: string,
   amountClaimed: BigNumberish,
   ipfsMetaEvidenceCid: string,
@@ -143,8 +143,8 @@ export async function initiateClaim(
     amountClaimed,
   );
 
-  const messageValue: BigNumberish =
-    valueSent ||
+  const messageValue =
+    BigNumber.from(valueSent) ||
     (await Promise.all([
       ClaimManager.claimCollateral(),
       ClaimManager.arbitrationCost(),
@@ -160,6 +160,9 @@ export async function initiateClaim(
       coverDataBefore.poolId,
     ).then((data) => poolInfoFormat(data));
 
+    const expectedClaimId = Number(await ClaimManager.nextClaimId());
+    const metaEvidenceURI = await ClaimManager.metaEvidenceURI(expectedClaimId);
+
     const txResult = await postTxHandler(
       ClaimManager.connect(user).initiateClaim(coverId, amountClaimedAmount, {
         value: messageValue,
@@ -174,15 +177,28 @@ export async function initiateClaim(
 
     const {
       poolData: [poolDataAfter],
-      tokenData: tokenDataAfter,
+      entityDatas: [claimDataAfter, coverDataAfter],
       timestamp,
     } = await getEntityData(
       testEnv,
       [coverDataBefore.poolId],
-      coverId,
-      "cover",
+      [
+        { id: expectedClaimId, type: "claim" },
+        { id: coverId, type: "cover" },
+      ],
     );
 
+    const expectedClaimData = calcExpectedClaimDataAfterInitiateClaim(
+      amountClaimedAmount,
+      coverId,
+      expectedClaimId,
+      metaEvidenceURI,
+      poolDataBefore,
+      user.address,
+      messageValue,
+      txTimestamp,
+      timestamp,
+    );
     const expectedPoolData = calcExpectedPoolDataAfterInitiateClaim(
       amountClaimedAmount,
       poolDataBefore,
@@ -190,8 +206,7 @@ export async function initiateClaim(
       txTimestamp,
       timestamp,
     );
-
-    const expectedTokenData = calcExpectedCoverDataAfterInitiateClaim(
+    const expectedCoverData = calcExpectedCoverDataAfterInitiateClaim(
       amountClaimedAmount,
       poolDataBefore,
       expectedPoolData,
@@ -201,7 +216,8 @@ export async function initiateClaim(
     );
 
     expectEqual(poolDataAfter, expectedPoolData);
-    if (!skipTokenCheck) expectEqual(tokenDataAfter, expectedTokenData);
+    expectEqual(claimDataAfter, expectedClaimData);
+    if (!skipTokenCheck) expectEqual(coverDataAfter, expectedCoverData);
   } else if (expectedResult === "revert") {
     await expect(
       ClaimManager.connect(user).initiateClaim(coverId, amountClaimedAmount, {
@@ -229,12 +245,11 @@ export async function withdrawCompensation(
 
     const {
       poolData: [poolDataBefore],
-      tokenData: coverDataBefore,
+      entityDatas: [coverDataBefore],
     } = await getEntityData(
       testEnv,
       [claimInfoBefore.poolId],
-      claimInfoBefore.coverId,
-      "cover",
+      [{ id: claimInfoBefore.coverId, type: "cover" }],
     );
 
     const txResult = await postTxHandler(
@@ -249,13 +264,21 @@ export async function withdrawCompensation(
 
     const {
       poolData: [poolDataAfter],
-      tokenData: tokenDataAfter,
+      entityDatas: [coverDataAfter, claimDataAfter],
       timestamp,
     } = await getEntityData(
       testEnv,
       [claimInfoBefore.poolId],
-      claimInfoBefore.coverId,
-      "cover",
+      [
+        { id: claimInfoBefore.coverId, type: "cover" },
+        { id: claimId, type: "claim" },
+      ],
+    );
+
+    const expectedClaimData = calcExpectedClaimDataAfterWithdrawCompensation(
+      claimInfoBefore,
+      txTimestamp,
+      timestamp,
     );
 
     const expectedPoolData = calcExpectedPoolDataAfterWithdrawCompensation(
@@ -268,7 +291,7 @@ export async function withdrawCompensation(
       timestamp,
     );
 
-    const expectedTokenData = calcExpectedCoverDataAfterWithdrawCompensation(
+    const expectedCoverData = calcExpectedCoverDataAfterWithdrawCompensation(
       claimInfoBefore,
       poolDataBefore,
       expectedPoolData,
@@ -277,8 +300,9 @@ export async function withdrawCompensation(
       timestamp,
     );
 
+    expectEqual(claimDataAfter, expectedClaimData);
     expectEqual(poolDataAfter, expectedPoolData);
-    if (!skipTokenCheck) expectEqual(tokenDataAfter, expectedTokenData);
+    if (!skipTokenCheck) expectEqual(coverDataAfter, expectedCoverData);
   } else if (expectedResult === "revert") {
     await expect(
       ClaimManager.connect(user).withdrawCompensation(claimId),
@@ -298,8 +322,8 @@ export async function disputeClaim(
 ) {
   const { ClaimManager, LiquidityManager } = testEnv.contracts;
 
-  const messageValue: BigNumberish =
-    valueSent || (await ClaimManager.arbitrationCost());
+  const messageValue =
+    BigNumber.from(valueSent) || (await ClaimManager.arbitrationCost());
 
   if (expectedResult === "success") {
     const claimInfoBefore = await ClaimManager.claimInfo(claimId).then((data) =>
@@ -312,11 +336,13 @@ export async function disputeClaim(
       coverDataBefore.poolId,
     ).then((data) => poolInfoFormat(data));
 
-    await postTxHandler(
+    const txResult = await postTxHandler(
       ClaimManager.connect(user).disputeClaim(claimId, {
         value: messageValue,
       }),
     );
+
+    const { txTimestamp } = await getTxCostAndTimestamp(txResult);
 
     if (timeTravel) {
       await setNextBlockTimestamp(timeTravel);
@@ -324,17 +350,40 @@ export async function disputeClaim(
 
     const {
       poolData: [poolDataAfter],
-      tokenData: tokenDataAfter,
+      entityDatas: [coverDataAfter, claimDataAfter],
       timestamp,
     } = await getEntityData(
       testEnv,
-      [coverDataBefore.poolId],
-      claimInfoBefore.coverId,
-      "cover",
+      [claimInfoBefore.poolId],
+      [
+        { id: claimInfoBefore.coverId, type: "cover" },
+        { id: claimId, type: "claim" },
+      ],
     );
 
-    expectEqual(poolDataAfter, poolDataBefore);
-    if (!skipTokenCheck) expectEqual(tokenDataAfter, coverDataBefore);
+    const expectedClaimData = calcExpectedClaimDataAfterDisputeClaim(
+      claimInfoBefore,
+      user.address,
+      claimDataAfter.disputeId,
+      txTimestamp,
+      timestamp,
+    );
+
+    const expectedPoolData = calcExpectedPoolDataAfterDisputeClaim(
+      poolDataBefore,
+      txTimestamp,
+      timestamp,
+    );
+
+    const expectedCoverData = calcExpectedCoverDataAfterDisputeClaim(
+      coverDataBefore,
+      txTimestamp,
+      timestamp,
+    );
+
+    expectEqual(claimDataAfter, expectedClaimData);
+    expectEqual(poolDataAfter, expectedPoolData);
+    if (!skipTokenCheck) expectEqual(coverDataAfter, expectedCoverData);
   } else if (expectedResult === "revert") {
     await expect(
       ClaimManager.connect(user).disputeClaim(claimId, {
@@ -356,6 +405,19 @@ export async function rule(
 ) {
   const { ClaimManager, LiquidityManager } = testEnv.contracts;
 
+  let rulingValue: number;
+  switch (ruling) {
+    case "RefusedToArbitrate":
+      rulingValue = 0;
+      break;
+    case "PayClaimant":
+      rulingValue = 1;
+      break;
+    case "RejectClaim":
+      rulingValue = 2;
+      break;
+  }
+
   if (expectedResult === "success") {
     const claimInfoBefore = await ClaimManager.claimInfo(claimId).then((data) =>
       claimInfoFormat(data),
@@ -366,19 +428,6 @@ export async function rule(
     const poolDataBefore = await LiquidityManager.poolInfo(
       coverDataBefore.poolId,
     ).then((data) => poolInfoFormat(data));
-
-    let rulingValue: number;
-    switch (ruling) {
-      case "RefusedToArbitrate":
-        rulingValue = 0;
-        break;
-      case "PayClaimant":
-        rulingValue = 1;
-        break;
-      case "RejectClaim":
-        rulingValue = 2;
-        break;
-    }
 
     const txResult = await postTxHandler(
       ClaimManager.connect(user).rule(claimId, rulingValue),
@@ -392,40 +441,48 @@ export async function rule(
 
     const {
       poolData: [poolDataAfter],
-      tokenData: tokenDataAfter,
+      entityDatas: [coverDataAfter, claimDataAfter],
       timestamp,
     } = await getEntityData(
       testEnv,
-      [coverDataBefore.poolId],
-      claimInfoBefore.coverId,
-      "cover",
+      [claimInfoBefore.poolId],
+      [
+        { id: claimInfoBefore.coverId, type: "cover" },
+        { id: claimId, type: "claim" },
+      ],
     );
 
-    // Additional checks based on ruling type could be added here
     if (!skipTokenCheck) {
       if (ruling === "PayClaimant") {
-        // Add specific validation for PayClaimant case
+        // @bw Add specific validation for PayClaimant case
       } else if (ruling === "RejectClaim") {
-        // Add specific validation for RejectClaim case
+        // @bw Add specific validation for RejectClaim case
       }
     }
 
-    expectEqual(poolDataAfter, poolDataBefore);
-    if (!skipTokenCheck) expectEqual(tokenDataAfter, coverDataBefore);
-  } else if (expectedResult === "revert") {
-    let rulingValue: number;
-    switch (ruling) {
-      case "RefusedToArbitrate":
-        rulingValue = 0;
-        break;
-      case "PayClaimant":
-        rulingValue = 1;
-        break;
-      case "RejectClaim":
-        rulingValue = 2;
-        break;
-    }
+    const expectedClaimData = calcExpectedClaimDataAfterRuleClaim(
+      claimInfoBefore,
+      rulingValue,
+      txTimestamp,
+      timestamp,
+    );
 
+    const expectedPoolData = calcExpectedPoolDataAfterRuleClaim(
+      poolDataBefore,
+      txTimestamp,
+      timestamp,
+    );
+
+    const expectedCoverData = calcExpectedCoverDataAfterRuleClaim(
+      coverDataBefore,
+      txTimestamp,
+      timestamp,
+    );
+
+    expectEqual(claimDataAfter, expectedClaimData);
+    expectEqual(poolDataAfter, expectedPoolData);
+    if (!skipTokenCheck) expectEqual(coverDataAfter, expectedCoverData);
+  } else if (expectedResult === "revert") {
     await expect(
       ClaimManager.connect(user).rule(claimId, rulingValue),
     ).to.revertTransactionWith(revertMessage);
@@ -467,22 +524,42 @@ export async function overrule(
 
     const {
       poolData: [poolDataAfter],
-      tokenData: tokenDataAfter,
+      entityDatas: [coverDataAfter, claimDataAfter],
       timestamp,
     } = await getEntityData(
       testEnv,
-      [coverDataBefore.poolId],
-      claimInfoBefore.coverId,
-      "cover",
+      [claimInfoBefore.poolId],
+      [
+        { id: claimInfoBefore.coverId, type: "cover" },
+        { id: claimId, type: "claim" },
+      ],
     );
 
-    // Additional checks could be added here based on punish parameter
     if (!skipTokenCheck && punish) {
-      // Add specific validation for punish case
+      // @bw Add specific validation for punish case
     }
 
-    expectEqual(poolDataAfter, poolDataBefore);
-    if (!skipTokenCheck) expectEqual(tokenDataAfter, coverDataBefore);
+    const expectedClaimData = calcExpectedClaimDataAfterOverruleRuling(
+      claimInfoBefore,
+      txTimestamp,
+      timestamp,
+    );
+
+    const expectedPoolData = calcExpectedPoolDataAfterOverruleRuling(
+      poolDataBefore,
+      txTimestamp,
+      timestamp,
+    );
+
+    const expectedCoverData = calcExpectedCoverDataAfterOverruleRuling(
+      coverDataBefore,
+      txTimestamp,
+      timestamp,
+    );
+
+    expectEqual(claimDataAfter, expectedClaimData);
+    expectEqual(poolDataAfter, expectedPoolData);
+    if (!skipTokenCheck) expectEqual(coverDataAfter, expectedCoverData);
   } else if (expectedResult === "revert") {
     await expect(
       ClaimManager.connect(user).overrule(claimId, punish),
