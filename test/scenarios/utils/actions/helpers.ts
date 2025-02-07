@@ -32,51 +32,28 @@ export const getTxCostAndTimestamp = async (tx: ContractReceipt) => {
   return { txCost, txTimestamp };
 };
 
-type ContractsDataState = {
+type EntityInfo = {
+  id: BigNumberish;
+  type: "cover" | "position" | "claim";
+};
+
+type EntityDataMap = {
+  cover: CoverInfoObject;
+  position: PositionInfoObject;
+  claim: ClaimInfoObject;
+};
+
+type ContractsDataStateMulti<T extends EntityInfo[]> = {
   poolData: PoolInfoObject[];
-  tokenData: PositionInfoObject | CoverInfoObject | ClaimInfoObject;
+  entityDatas: { [K in keyof T]: EntityDataMap[T[K]["type"]] };
   timestamp: number;
 };
 
-export async function getContractsData(
+export async function getEntityData<T extends EntityInfo[]>(
   testEnv: TestEnv,
   poolIds: BigNumberish[],
-  tokenId: BigNumberish,
-  tokenType: "claim",
-): Promise<
-  ContractsDataState & {
-    tokenData: ClaimInfoObject;
-  }
->;
-
-export async function getContractsData(
-  testEnv: TestEnv,
-  poolIds: BigNumberish[],
-  tokenId: BigNumberish,
-  tokenType: "position",
-): Promise<
-  ContractsDataState & {
-    tokenData: PositionInfoObject;
-  }
->;
-
-export async function getContractsData(
-  testEnv: TestEnv,
-  poolIds: BigNumberish[],
-  tokenId: BigNumberish,
-  tokenType: "cover",
-): Promise<
-  ContractsDataState & {
-    tokenData: CoverInfoObject;
-  }
->;
-
-export async function getContractsData(
-  testEnv: TestEnv,
-  poolIds: BigNumberish[],
-  tokenId: BigNumberish,
-  tokenType: "cover" | "position" | "claim",
-): Promise<ContractsDataState> {
+  entities: [...T],
+): Promise<ContractsDataStateMulti<T>> {
   const { LiquidityManager, ClaimManager } = testEnv.contracts;
 
   const poolData = await Promise.all(
@@ -85,31 +62,28 @@ export async function getContractsData(
     ),
   );
 
-  let tokenDataPromise: Promise<
-    PositionInfoObject | CoverInfoObject | ClaimInfoObject
-  >;
-  if (tokenType === "cover") {
-    tokenDataPromise = LiquidityManager.coverInfo(tokenId).then((data) =>
-      coverInfoFormat(data),
-    );
-  } else if (tokenType === "position") {
-    tokenDataPromise = LiquidityManager.positionInfo(tokenId).then((data) =>
-      positionInfoFormat(data),
-    );
-  } else {
-    tokenDataPromise = ClaimManager.claimInfo(tokenId).then((data) =>
-      claimInfoFormat(data),
-    );
-  }
+  const entityDataPromises = entities.map(async ({ id, type }) => {
+    if (type === "cover") {
+      return LiquidityManager.coverInfo(id).then((data) =>
+        coverInfoFormat(data),
+      );
+    } else if (type === "position") {
+      return LiquidityManager.positionInfo(id).then((data) =>
+        positionInfoFormat(data),
+      );
+    } else {
+      return ClaimManager.claimInfo(id).then((data) => claimInfoFormat(data));
+    }
+  });
 
-  const [tokenData, timestamp] = await Promise.all([
-    tokenDataPromise,
+  const [entityDatas, timestamp] = await Promise.all([
+    Promise.all(entityDataPromises),
     getCurrentTime(),
   ]);
 
   return {
     poolData,
-    tokenData,
+    entityDatas: entityDatas as { [K in keyof T]: EntityDataMap[T[K]["type"]] },
     timestamp,
   };
 }
