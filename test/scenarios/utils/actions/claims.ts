@@ -99,6 +99,7 @@ export async function submitEvidenceForClaim(
     );
     const expectedPoolData = calcExpectedPoolDataAfterSubmitEvidence(
       poolDataBefore,
+      poolDataAfter.strategyRewardIndex,
       txTimestamp,
       timestamp,
     );
@@ -143,14 +144,14 @@ export async function initiateClaim(
     amountClaimed,
   );
 
-  const messageValue =
-    BigNumber.from(valueSent) ||
-    (await Promise.all([
-      ClaimManager.claimCollateral(),
-      ClaimManager.arbitrationCost(),
-    ]).then((prices) =>
-      prices.reduce((acc, el) => acc.add(el), BigNumber.from(0)),
-    ));
+  const messageValue = valueSent
+    ? BigNumber.from(valueSent)
+    : await Promise.all([
+        ClaimManager.claimCollateral(),
+        ClaimManager.arbitrationCost(),
+      ]).then((prices) =>
+        prices.reduce((acc, el) => acc.add(el), BigNumber.from(0)),
+      );
 
   if (expectedResult === "success") {
     const coverDataBefore = await LiquidityManager.coverInfo(coverId).then(
@@ -322,8 +323,9 @@ export async function disputeClaim(
 ) {
   const { ClaimManager, LiquidityManager } = testEnv.contracts;
 
-  const messageValue =
-    BigNumber.from(valueSent) || (await ClaimManager.arbitrationCost());
+  const messageValue = valueSent
+    ? BigNumber.from(valueSent)
+    : await ClaimManager.arbitrationCost();
 
   if (expectedResult === "success") {
     const claimInfoBefore = await ClaimManager.claimInfo(claimId).then((data) =>
@@ -371,6 +373,7 @@ export async function disputeClaim(
 
     const expectedPoolData = calcExpectedPoolDataAfterDisputeClaim(
       poolDataBefore,
+      poolDataAfter.strategyRewardIndex,
       txTimestamp,
       timestamp,
     );
@@ -469,6 +472,7 @@ export async function rule(
 
     const expectedPoolData = calcExpectedPoolDataAfterRuleClaim(
       poolDataBefore,
+      poolDataAfter.strategyRewardIndex,
       txTimestamp,
       timestamp,
     );
@@ -547,6 +551,7 @@ export async function overrule(
 
     const expectedPoolData = calcExpectedPoolDataAfterOverruleRuling(
       poolDataBefore,
+      poolDataAfter.strategyRewardIndex,
       txTimestamp,
       timestamp,
     );

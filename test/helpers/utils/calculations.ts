@@ -1088,7 +1088,8 @@ export function calcExpectedClaimDataAfterWithdrawCompensation(
 ): ClaimInfoObject {
   return {
     ...claimInfoBefore,
-    status: claimInfoBefore.status === 0 ? 2 : 8, // Compensated or CompensatedAfterDispute
+    // If status is 'Accepted' then it should be 'Compensated' otherwise 'CompensatedAfterDispute'
+    status: claimInfoBefore.status === 1 ? 2 : 8,
   };
 }
 
@@ -1176,20 +1177,26 @@ export function calcExpectedCoverDataAfterOverruleRuling(
 
 export function calcExpectedPoolDataAfterSubmitEvidence(
   poolDataBefore: PoolInfoObject,
+  strategyRewardIndex: BigNumber,
   txTimestamp: number,
   timestamp: number,
 ): PoolInfoObject {
   const expect = deepCopy(poolDataBefore);
+
+  expect.strategyRewardIndex = strategyRewardIndex;
 
   return updatePoolTimeBasedState(poolDataBefore, expect, timestamp);
 }
 
 export function calcExpectedPoolDataAfterDisputeClaim(
   poolDataBefore: PoolInfoObject,
+  strategyRewardIndex: BigNumber,
   txTimestamp: number,
   timestamp: number,
 ): PoolInfoObject {
   const expect = deepCopy(poolDataBefore);
+
+  expect.strategyRewardIndex = strategyRewardIndex;
 
   expect.ongoingClaims = poolDataBefore.ongoingClaims - 1;
   if (expect.ongoingClaims < 0)
@@ -1200,10 +1207,13 @@ export function calcExpectedPoolDataAfterDisputeClaim(
 
 export function calcExpectedPoolDataAfterRuleClaim(
   poolDataBefore: PoolInfoObject,
+  strategyRewardIndex: BigNumber,
   txTimestamp: number,
   timestamp: number,
 ): PoolInfoObject {
   const expect = deepCopy(poolDataBefore);
+
+  expect.strategyRewardIndex = strategyRewardIndex;
 
   expect.ongoingClaims = poolDataBefore.ongoingClaims - 1;
   if (expect.ongoingClaims < 0)
@@ -1214,10 +1224,13 @@ export function calcExpectedPoolDataAfterRuleClaim(
 
 export function calcExpectedPoolDataAfterOverruleRuling(
   poolDataBefore: PoolInfoObject,
+  strategyRewardIndex: BigNumber,
   txTimestamp: number,
   timestamp: number,
 ): PoolInfoObject {
   const expect = deepCopy(poolDataBefore);
+
+  expect.strategyRewardIndex = strategyRewardIndex;
 
   expect.ongoingClaims = poolDataBefore.ongoingClaims - 1;
   if (expect.ongoingClaims < 0)
