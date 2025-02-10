@@ -409,10 +409,11 @@ export function calcExpectedPoolDataAfterWithdrawCompensation(
   expect.ongoingClaims--;
   expect.compensationIds = [...pool.compensationIds, claimId];
 
-  if (
+  const shouldCloseCover =
     claimAmount.eq(tokenDataBefore.coverAmount) ||
-    expect.availableLiquidity.lt(claimAmount)
-  ) {
+    poolDataBefore.totalLiquidity.lt(poolDataBefore.slot0.coveredCapital);
+
+  if (shouldCloseCover) {
     expect.slot0.coveredCapital = pool.slot0.coveredCapital.sub(
       tokenDataBefore.coverAmount.sub(claimAmount),
     );
@@ -945,90 +946,67 @@ export function calcExpectedCoverDataAfterWithdrawCompensation(
   txTimestamp: number,
   timestamp: number,
 ): CoverInfoObject {
+  const expect = {
+    coverId: tokenDataBefore.coverId,
+    poolId: tokenDataBefore.poolId,
+    isActive: true,
+  } as CoverInfoObject;
+
   const claimAmount = claimInfoBefore.amount;
 
-  const coverId = tokenDataBefore.coverId;
-  const coverAmount = tokenDataBefore.coverAmount.sub(claimAmount);
-  const poolId = tokenDataBefore.poolId;
-
+  // If the claimed amount is the total cover or if the pool is overutilized
   const shouldCloseCover =
     claimAmount.eq(tokenDataBefore.coverAmount) ||
-    poolDataBefore.availableLiquidity.lt(claimAmount);
+    poolDataBefore.totalLiquidity.lt(poolDataBefore.slot0.coveredCapital);
 
-  const { newPremiumRate: beginPremiumRate } = updatedPremiumRate(
-    poolDataBefore,
-    0,
-    shouldCloseCover ? tokenDataBefore.coverAmount : claimAmount,
-  );
+  if (shouldCloseCover) {
+    // If we close the cover we do not reduce the cover amount
+    expect.coverAmount = tokenDataBefore.coverAmount;
+    expect.premiumRate = BigNumber.from(0);
+    expect.dailyCost = BigNumber.from(0);
+    expect.premiumsLeft = BigNumber.from(0);
+    expect.isActive = false;
+    expect.lastTick = poolDataBefore.slot0.tick - 1;
+  } else {
+    expect.coverAmount = tokenDataBefore.coverAmount.sub(claimAmount);
 
-  const premiumRate = getPremiumRate(
-    expectedPoolData,
-    expectedPoolData.utilizationRate,
-  );
+    expect.premiumRate = getPremiumRate(
+      expectedPoolData,
+      expectedPoolData.utilizationRate,
+    );
 
-  let dailyCost = currentDailyCost(coverAmount, beginPremiumRate, premiumRate);
-  let premiumsLeft = tokenDataBefore.premiumsLeft.sub(
-    dailyCost.mul(timestamp - txTimestamp).div(24 * 60 * 60),
-  );
-  let isActive = true;
-
-  if (
-    claimAmount.eq(tokenDataBefore.coverAmount) ||
-    poolDataBefore.availableLiquidity.lt(claimAmount)
-  ) {
-    dailyCost = BigNumber.from(0);
-    premiumsLeft = BigNumber.from(0);
-    isActive = false;
-  }
-
-  let lastTick = poolDataBefore.slot0.tick - 1;
-
-  if (!shouldCloseCover) {
     const { newPremiumRate: beginPremiumRate } = updatedPremiumRate(
       expectedPoolData,
       0,
       0,
     );
 
-    const premiumRate = getPremiumRate(
-      expectedPoolData,
-      expectedPoolData.utilizationRate,
-    );
-    const dailyCost = currentDailyCost(
-      coverAmount,
+    expect.dailyCost = currentDailyCost(
+      expect.coverAmount,
       beginPremiumRate,
-      premiumRate,
+      expect.premiumRate,
     );
 
     const timeElapsed =
       (expectedPoolData.slot0.tick - poolDataBefore.slot0.tick) *
       expectedPoolData.slot0.secondsPerTick;
-    const premiumsSpent = dailyCost.mul(timeElapsed).div(24 * 60 * 60);
+    const premiumsSpent = expect.dailyCost.mul(timeElapsed).div(24 * 60 * 60);
 
-    const premiumsLeft = tokenDataBefore.premiumsLeft.sub(premiumsSpent);
+    expect.premiumsLeft = tokenDataBefore.premiumsLeft.sub(premiumsSpent);
 
     const durationInSeconds = RayInt.from(
-      premiumsLeft.mul(constants.YEAR).mul(constants.PERCENTAGE_BASE),
+      expect.premiumsLeft.mul(constants.YEAR).mul(constants.PERCENTAGE_BASE),
     )
-      .rayDiv(premiumRate)
-      .div(coverAmount)
+      .rayDiv(expect.premiumRate)
+      .div(expect.coverAmount)
       .toNumber();
 
-    lastTick =
+    expect.lastTick =
       poolDataBefore.slot0.tick +
       Math.floor(durationInSeconds / expectedPoolData.slot0.secondsPerTick);
   }
 
-  return {
-    coverId,
-    coverAmount,
-    poolId,
-    isActive,
-    lastTick,
-    premiumRate,
-    dailyCost,
-    premiumsLeft,
-  };
+  return expect;
 }
 
 export function calcExpectedClaimDataAfterSubmitEvidence(
@@ -1231,10 +1209,6 @@ export function calcExpectedPoolDataAfterOverruleRuling(
   const expect = deepCopy(poolDataBefore);
 
   expect.strategyRewardIndex = strategyRewardIndex;
-
-  expect.ongoingClaims = poolDataBefore.ongoingClaims - 1;
-  if (expect.ongoingClaims < 0)
-    throw Error("Ongoing claims cannot be negative");
 
   return updatePoolTimeBasedState(poolDataBefore, expect, timestamp);
 }

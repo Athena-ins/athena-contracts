@@ -406,7 +406,8 @@ export async function rule(
   timeTravel?: TimeTravelOptions,
   skipTokenCheck?: boolean,
 ) {
-  const { ClaimManager, LiquidityManager } = testEnv.contracts;
+  const { ClaimManager, LiquidityManager, AthenaArbitrator } =
+    testEnv.contracts;
 
   let rulingValue: number;
   switch (ruling) {
@@ -433,7 +434,10 @@ export async function rule(
     ).then((data) => poolInfoFormat(data));
 
     const txResult = await postTxHandler(
-      ClaimManager.connect(user).rule(claimId, rulingValue),
+      AthenaArbitrator.connect(user).giveRuling(
+        claimInfoBefore.disputeId,
+        rulingValue,
+      ),
     );
 
     const { txTimestamp } = await getTxCostAndTimestamp(txResult);
