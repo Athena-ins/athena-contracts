@@ -15,7 +15,7 @@ type PoolUpdateParams = Parameters<
   PoolManager["batchUpdatePoolConfig"]
 >[0][number];
 
-const { formatEther } = ethers.utils;
+const { formatEther, formatUnits } = ethers.utils;
 
 const addresses = getNetworkAddresses();
 const poolParams = getDeployPoolConfig();
@@ -36,7 +36,7 @@ const POOLS_TO_UPDATE: ProtocolName[] = [
   "4 - Stake DAO eUSD/USDC",
 ];
 const POOL_CONFIG: Partial<Omit<PoolUpdateParams, "poolId">> = {
-  feeRate: toRay(1),
+  feeRate: toRay(1).toString(),
 };
 
 async function main() {
@@ -75,30 +75,42 @@ async function main() {
 
     // ===================================== //
 
+    console.log("POOLS_TO_UPDATE: ", POOLS_TO_UPDATE);
+
     const poolIds = POOLS_TO_UPDATE.map((poolName) => {
       const index = poolParams.findIndex((pool) => pool.name === poolName);
       if (index === -1) throw Error(`Pool ${poolName} not found`);
       return index;
     });
+    console.log(`=> Pool Ids (${poolIds.length}): `, poolIds);
+
+    console.log("=> Fetching current pool configs");
     const currentParams = await LiquidityManager.poolInfos(poolIds);
 
     const updatedParams: PoolUpdateParams[] = currentParams.map((params) => {
       const previous = {
-        feeRate: params.feeRate,
-        uOptimal: params.formula.uOptimal,
-        r0: params.formula.r0,
-        rSlope1: params.formula.rSlope1,
-        rSlope2: params.formula.rSlope2,
+        ...params.formula,
+        feeRate: params.feeRate.toString(),
       };
 
       return {
-        poolId: params.poolId,
         ...previous,
         ...POOL_CONFIG,
+        poolId: params.poolId,
       };
     });
 
-    console.log("=> UPDATED_CONFIGS: ", updatedParams);
+    console.log(
+      "=> UPDATED_CONFIGS (formatted rays): ",
+      updatedParams.map((params) => ({
+        poolId: Number(params.poolId),
+        feeRate: formatUnits(params.feeRate, 27),
+        uOptimal: formatUnits(params.uOptimal, 27),
+        r0: formatUnits(params.r0, 27),
+        rSlope1: formatUnits(params.rSlope1, 27),
+        rSlope2: formatUnits(params.rSlope2, 27),
+      })),
+    );
 
     const PoolManager = await getPoolManager(addresses.PoolManager);
 
