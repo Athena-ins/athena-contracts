@@ -36,7 +36,7 @@ export const arbitration: Scenario = {
           name: "getTokens",
           args: {
             tokenSymbol: "USDC",
-            amount: 10_000,
+            amount: 25_000,
           },
           expected: "success",
         },
@@ -46,7 +46,7 @@ export const arbitration: Scenario = {
           args: {
             spender: "LiquidityManager",
             tokenSymbol: "USDC",
-            amount: 10_000,
+            amount: 25_000,
           },
           expected: "success",
         },
@@ -54,7 +54,7 @@ export const arbitration: Scenario = {
           userName: "user0",
           name: "openPosition",
           args: {
-            amount: 10_000,
+            amount: 25_000,
             tokenSymbol: "USDC",
             isWrapped: false,
             poolIds: [0],
@@ -91,7 +91,7 @@ export const arbitration: Scenario = {
           args: {
             poolId: 0,
             coverTokenSymbol: "USDC",
-            coverAmount: 5_000,
+            coverAmount: 2_000,
             premiumTokenSymbol: "USDC",
             premiumAmount: 500,
           },
@@ -288,7 +288,7 @@ export const arbitration: Scenario = {
           args: {
             poolId: 0,
             coverTokenSymbol: "USDC",
-            coverAmount: 5_000,
+            coverAmount: 2_000,
             premiumTokenSymbol: "USDC",
             premiumAmount: 500,
           },
