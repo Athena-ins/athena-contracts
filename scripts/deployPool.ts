@@ -2,6 +2,7 @@ import hre, { ethers } from "hardhat";
 import { postTxHandler, fromFork } from "../test/helpers/hardhat";
 import { getNetworkAddresses } from "./verificationData/addresses";
 import { getDeployConfig } from "./verificationData/deployParams";
+import { checkPoolCompatibility } from "./helpers/checkPoolCompatibility";
 import { getDeployPoolConfig } from "./verificationData/deployPoolParams";
 //
 import { BigNumberish } from "ethers";
@@ -40,7 +41,9 @@ async function main() {
     for (const [i, params] of poolParams.entries()) {
       // Skip already deployed pools
       if (i < nextPoolId.toNumber()) {
-        console.log(`==> Pool ${i} (${params.name}) already deployed`);
+        console.log(
+          `==> ⏭️  Skiped ${i}/${poolParams.length - 1}\n${params.name}`,
+        );
         continue;
       }
 
@@ -57,7 +60,18 @@ async function main() {
         ),
       );
 
-      console.log(`==> Deployed pool ${params.name} - ${i + 1}/${nbPools}`);
+      console.log(
+        `==> ✅ Deploy ${i}/${poolParams.length - 1}\n${params.name}`,
+      );
+    }
+
+    console.log("\n==> Checking pool compatibilities");
+    const updates = await checkPoolCompatibility(LiquidityManager);
+
+    if (updates.poolIds.length === 0) {
+      console.log("==> ⏭️  All pool compatibilities are up to date");
+    } else {
+      console.log("==> ⚠️  Updates required for pools:", updates.poolIds);
     }
 
     const [balanceAfter, gasPrice] = await Promise.all([

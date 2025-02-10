@@ -23,7 +23,7 @@ async function main() {
   try {
     const networkName = hre.network.name.toUpperCase();
     const forkTarget = networkName === "HARDHAT" ? ` (${fromFork()})` : "";
-    console.log(`\n== CREATE POOL ON ${networkName}${forkTarget} ==\n`);
+    console.log(`\n== PAUSE POOLS ON ${networkName}${forkTarget} ==\n`);
 
     const deployer = (await ethers.getSigners())[0];
     console.log("deployer: ", deployer.address);
