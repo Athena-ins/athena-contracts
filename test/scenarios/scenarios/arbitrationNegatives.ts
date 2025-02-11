@@ -1,4 +1,7 @@
 import { Scenario } from "../utils/actionEngine";
+import { getDefaultProtocolConfig } from "../../../scripts/verificationData/deployParams";
+
+const protocolConfig = getDefaultProtocolConfig();
 
 export const arbitrationNegatives: Scenario = {
   title: "handle negatives in context of claim arbitration",
@@ -26,7 +29,7 @@ export const arbitrationNegatives: Scenario = {
           name: "getTokens",
           args: {
             tokenSymbol: "USDC",
-            amount: 10_000,
+            amount: 25_000,
           },
           expected: "success",
         },
@@ -36,7 +39,7 @@ export const arbitrationNegatives: Scenario = {
           args: {
             spender: "LiquidityManager",
             tokenSymbol: "USDC",
-            amount: 10_000,
+            amount: 25_000,
           },
           expected: "success",
         },
@@ -44,7 +47,7 @@ export const arbitrationNegatives: Scenario = {
           userName: "user0",
           name: "openPosition",
           args: {
-            amount: 10_000,
+            amount: 25_000,
             tokenSymbol: "USDC",
             isWrapped: false,
             poolIds: [0],
@@ -286,7 +289,7 @@ export const arbitrationNegatives: Scenario = {
           args: {
             poolId: 0,
             coverTokenSymbol: "USDC",
-            coverAmount: 5_000,
+            coverAmount: 2_000,
             premiumTokenSymbol: "USDC",
             premiumAmount: 500,
           },
@@ -361,7 +364,7 @@ export const arbitrationNegatives: Scenario = {
             claimId: 2,
           },
           expected: "revert",
-          revertMessage: "ClaimAlreadyChallenged",
+          revertMessage: "ClaimNotChallengeable",
         },
       ],
     },
@@ -417,28 +420,30 @@ export const arbitrationNegatives: Scenario = {
       ],
     },
     {
-      description: "user2 fails to rule on claim 3 as non-arbitrator",
+      description:
+        "user2 fails to rule on dispute 3 of claim 3 as non-arbitrator",
       actions: [
         {
           userName: "user2",
           name: "rule",
           args: {
-            claimId: 3,
+            disputeId: 3,
             ruling: "PayClaimant",
           },
           expected: "revert",
-          revertMessage: "OnlyArbitrator",
+          revertMessage: "OwnableUnauthorizedAccount",
         },
       ],
     },
     {
-      description: "arbitrator fails to rule on undisputed claim 3",
+      description:
+        "arbitrator fails to rule on undisputed dispute 3 of claim 3",
       actions: [
         {
-          userName: "user4",
+          userName: "deployer",
           name: "rule",
           args: {
-            claimId: 3,
+            disputeId: 3,
             ruling: "PayClaimant",
           },
           expected: "revert",
@@ -474,13 +479,13 @@ export const arbitrationNegatives: Scenario = {
       ],
     },
     {
-      description: "arbitrator accepts claim 3",
+      description: "arbitrator accepts dispute 2 of claim 3",
       actions: [
         {
-          userName: "user4",
+          userName: "deployer",
           name: "rule",
           args: {
-            claimId: 3,
+            disputeId: 2,
             ruling: "PayClaimant",
           },
           expected: "success",
@@ -557,7 +562,7 @@ export const arbitrationNegatives: Scenario = {
           args: {
             poolId: 0,
             coverTokenSymbol: "USDC",
-            coverAmount: 5_000,
+            coverAmount: 2_000,
             premiumTokenSymbol: "USDC",
             premiumAmount: 500,
           },
@@ -594,13 +599,13 @@ export const arbitrationNegatives: Scenario = {
       ],
     },
     {
-      description: "arbitrator accepts claim 4",
+      description: "arbitrator accepts dispute 3 of claim 4",
       actions: [
         {
-          userName: "user4",
+          userName: "deployer",
           name: "rule",
           args: {
-            claimId: 4,
+            disputeId: 3,
             ruling: "PayClaimant",
           },
           expected: "success",
@@ -618,7 +623,7 @@ export const arbitrationNegatives: Scenario = {
             punish: false,
           },
           expected: "revert",
-          revertMessage: "Ownable: caller is not the owner",
+          revertMessage: "OwnableUnauthorizedAccount",
         },
       ],
     },
@@ -660,7 +665,7 @@ export const arbitrationNegatives: Scenario = {
     },
 
     {
-      description: "user1 opens cover 5 for ETH tests", // Was cover 1
+      description: "user1 opens cover 5 for ETH tests",
       actions: [
         {
           userName: "user1",
@@ -702,7 +707,7 @@ export const arbitrationNegatives: Scenario = {
           userName: "user1",
           name: "initiateClaim",
           args: {
-            coverId: 5, // Was 1
+            coverId: 5,
             tokenSymbol: "USDC",
             amountClaimed: 2_000,
             valueSent: "0",
@@ -720,10 +725,10 @@ export const arbitrationNegatives: Scenario = {
           userName: "user1",
           name: "initiateClaim",
           args: {
-            coverId: 5, // Was 1
+            coverId: 5,
             tokenSymbol: "USDC",
             amountClaimed: 2_000,
-            valueSent: "arbitrationCost",
+            valueSent: protocolConfig.arbitrationCost.toString(),
           },
           expected: "revert",
           revertMessage: "InsufficientDeposit",
@@ -738,10 +743,10 @@ export const arbitrationNegatives: Scenario = {
           userName: "user1",
           name: "initiateClaim",
           args: {
-            coverId: 5, // Was 1
+            coverId: 5,
             tokenSymbol: "USDC",
             amountClaimed: 2_000,
-            valueSent: "claimCollateral",
+            valueSent: protocolConfig.claimCollateral.toString(),
           },
           expected: "revert",
           revertMessage: "InsufficientDeposit",
@@ -755,7 +760,7 @@ export const arbitrationNegatives: Scenario = {
           userName: "user1",
           name: "initiateClaim",
           args: {
-            coverId: 5, // Was 1
+            coverId: 5,
             tokenSymbol: "USDC",
             amountClaimed: 2_000,
           },
@@ -770,7 +775,7 @@ export const arbitrationNegatives: Scenario = {
           userName: "user2",
           name: "disputeClaim",
           args: {
-            claimId: 5, // Was 0
+            claimId: 5,
             valueSent: "0",
           },
           expected: "revert",
@@ -786,8 +791,8 @@ export const arbitrationNegatives: Scenario = {
           userName: "user2",
           name: "disputeClaim",
           args: {
-            claimId: 5, // Was 0
-            valueSent: "halfArbitrationCost",
+            claimId: 5,
+            valueSent: protocolConfig.arbitrationCost.sub(1).toString(),
           },
           expected: "revert",
           revertMessage: "MustDepositArbitrationCost",

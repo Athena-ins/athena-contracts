@@ -19,8 +19,8 @@ const scenarios = [
   liquidityNegatives,
   coverProtection,
   coverNegatives,
-  // arbitration,
-  // arbitrationNegatives,
+  arbitration,
+  arbitrationNegatives,
   //
   // poolNegatives,
   // multiplePools,

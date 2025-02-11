@@ -228,13 +228,13 @@ export const arbitration: Scenario = {
       ],
     },
     {
-      description: "arbitrator rules in favor of claimant",
+      description: "arbitrator rules in favor of claimant dispute 0 of claim 1",
       actions: [
         {
           userName: "deployer",
           name: "rule",
           args: {
-            claimId: 1,
+            disputeId: 0,
             ruling: "PayClaimant",
           },
           expected: "success",
@@ -345,13 +345,13 @@ export const arbitration: Scenario = {
       ],
     },
     {
-      description: "arbitrator rejects claim 2",
+      description: "arbitrator rejects dispute 1 of claim 2",
       actions: [
         {
           userName: "deployer",
           name: "rule",
           args: {
-            claimId: 2,
+            disputeId: 1,
             ruling: "RejectClaim",
           },
           expected: "success",
@@ -424,13 +424,13 @@ export const arbitration: Scenario = {
       ],
     },
     {
-      description: "arbitrator refuses to rule on claim 3",
+      description: "arbitrator refuses to rule on dispute 2 of claim 3",
       actions: [
         {
           userName: "deployer",
           name: "rule",
           args: {
-            claimId: 3,
+            disputeId: 2,
             ruling: "RefusedToArbitrate",
           },
           expected: "success",
@@ -503,13 +503,13 @@ export const arbitration: Scenario = {
       ],
     },
     {
-      description: "arbitrator accepts claim 4",
+      description: "arbitrator accepts dispute 3 of claim 4",
       actions: [
         {
           userName: "deployer",
           name: "rule",
           args: {
-            claimId: 4,
+            disputeId: 3,
             ruling: "PayClaimant",
           },
           expected: "success",
@@ -596,13 +596,13 @@ export const arbitration: Scenario = {
       ],
     },
     {
-      description: "arbitrator accepts claim 5",
+      description: "arbitrator accepts dispute 4 of claim 5",
       actions: [
         {
           userName: "deployer",
           name: "rule",
           args: {
-            claimId: 5,
+            disputeId: 4,
             ruling: "PayClaimant",
           },
           expected: "success",
