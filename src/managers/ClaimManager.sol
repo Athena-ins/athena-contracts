@@ -598,8 +598,11 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
     Claim storage claim = claims[claimId];
 
     // Check the status of the claim
-    if (claim.status != ClaimStatus.Disputed)
-      revert ClaimNotInDispute();
+    // @dev Also covers a rare edgecase where it targets claim ID 0 with a bad dispute ID
+    if (
+      claim.status != ClaimStatus.Disputed ||
+      claim.disputeId != disputeId_
+    ) revert ClaimNotInDispute();
     if (numberOfRulingOptions < ruling_) revert InvalidRuling();
 
     // Save timestamp to initiate overrule period if validated
