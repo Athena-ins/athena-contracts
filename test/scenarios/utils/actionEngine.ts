@@ -432,12 +432,12 @@ export async function executeAction(this: Mocha.Context, action: Action) {
     }
 
     case "rule": {
-      const { claimId, ruling } = args;
+      const { disputeId, ruling } = args;
 
       await rule(
         this,
         signer,
-        claimId,
+        disputeId,
         ruling,
         expected,
         revertMessage,

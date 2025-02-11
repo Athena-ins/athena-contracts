@@ -212,7 +212,7 @@ type ActionDisputeClaim = BaseAction & {
 type ActionRuleClaim = BaseAction & {
   name: "rule";
   args: {
-    claimId: number;
+    disputeId: number;
     ruling: "RefusedToArbitrate" | "PayClaimant" | "RejectClaim";
   };
 };

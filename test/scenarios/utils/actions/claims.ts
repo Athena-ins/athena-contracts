@@ -399,7 +399,7 @@ export async function disputeClaim(
 export async function rule(
   testEnv: TestEnv,
   user: Wallet,
-  claimId: number,
+  disputeId: number,
   ruling: "RefusedToArbitrate" | "PayClaimant" | "RejectClaim",
   expectedResult: "success" | "revert",
   revertMessage?: string,
@@ -423,9 +423,14 @@ export async function rule(
   }
 
   if (expectedResult === "success") {
+    const claimId = await ClaimManager.disputeIdToClaimId(disputeId);
     const claimInfoBefore = await ClaimManager.claimInfo(claimId).then((data) =>
       claimInfoFormat(data),
     );
+
+    // Sanity check to make sure it is the correct claim
+    expect(claimInfoBefore.disputeId).to.equal(disputeId);
+
     const coverDataBefore = await LiquidityManager.coverInfo(
       claimInfoBefore.coverId,
     ).then((data) => coverInfoFormat(data));
@@ -492,7 +497,7 @@ export async function rule(
     if (!skipTokenCheck) expectEqual(coverDataAfter, expectedCoverData);
   } else if (expectedResult === "revert") {
     await expect(
-      ClaimManager.connect(user).rule(claimId, rulingValue),
+      AthenaArbitrator.connect(user).giveRuling(disputeId, rulingValue),
     ).to.revertTransactionWith(revertMessage);
   }
 }
