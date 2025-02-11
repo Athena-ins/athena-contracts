@@ -263,7 +263,7 @@ export function DeployProtocolTest() {
           this.protocolConfig,
         );
 
-        expect(Object.keys(contracts).length).to.equal(17);
+        expect(Object.keys(contracts).length).to.equal(18);
 
         for (const contract of Object.values(contracts)) {
           expect((await ethers.provider.getCode(contract.address)).length).gt(

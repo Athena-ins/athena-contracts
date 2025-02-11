@@ -63,7 +63,7 @@ export function AmphorStrategiesTest() {
 
     before(async function (this: Arguments) {
       const chainId = await entityProviderChainId(this.signers.deployer);
-      this.protocolConfig = getDefaultProtocolConfig("amphor");
+      this.protocolConfig = getDefaultProtocolConfig("mainnet");
 
       if (chainId !== 1) {
         console.warn("\n\nTest is disabled for non-mainnet network\n\n");

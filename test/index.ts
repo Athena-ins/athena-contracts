@@ -47,7 +47,7 @@ baseContext("Test Athena Protocol", function () {
   ScenarioTests();
   //
   //=== Unit tests ===//
-  // PoolManagerTest();
+  PoolManagerTest();
   //
   // FarmingRangeTests();
   // LiquidityManagerTests();
