@@ -39,6 +39,8 @@ import {
   // Other
   TetherToken__factory,
   VirtualPool__factory,
+  WrappedTokenGateway__factory,
+  PoolManager__factory,
 } from "../../typechain";
 import {
   deployAthenaArbitrator,
@@ -53,6 +55,8 @@ import {
   deployRewardManager,
   deployStrategyManagerVE,
   deployVirtualPool,
+  deployWrappedTokenGateway,
+  deployPoolManager,
 } from "./deployers";
 // Types
 import { Wallet } from "ethers";
@@ -369,6 +373,33 @@ export async function deployAllContractsAndInitializeProtocolVE(
     txCount++;
   }
 
+  // ======= MISC ======= //
+
+  if (deploymentOrder[txCount] === "WrappedTokenGateway") {
+    if (!config.wstETH)
+      throw Error("Missing Lido wrapped staked ETH addresses");
+
+    deployExecutors.push(async () =>
+      deployWrappedTokenGateway(deployer, [
+        wethAddress, // weth
+        config.wstETH as string, // wsteth
+        deployedAt.LiquidityManager, // liquidityManager
+        deployedAt.AthenaPositionToken, // positionToken
+        deployedAt.AthenaCoverToken, // coverToken
+      ]),
+    );
+    txCount++;
+  }
+
+  if (deploymentOrder[txCount] === "PoolManager") {
+    deployExecutors.push(async () =>
+      deployPoolManager(deployer, [
+        deployedAt.LiquidityManager, // liquidityManager
+      ]),
+    );
+    txCount++;
+  }
+
   // Check that deploy order matches expected deployment count
   if (
     deploymentOrder.length !== deployExecutors.length ||
@@ -440,6 +471,16 @@ export async function deployAllContractsAndInitializeProtocolVE(
     deployer,
   );
 
+  const WrappedTokenGateway = WrappedTokenGateway__factory.connect(
+    deployedAt.WrappedTokenGateway || ADDRESS_ZERO,
+    deployer,
+  );
+
+  const PoolManager = PoolManager__factory.connect(
+    deployedAt.PoolManager || ADDRESS_ZERO,
+    deployer,
+  );
+
   const contracts = {
     TetherToken,
     CircleToken,
@@ -458,6 +499,8 @@ export async function deployAllContractsAndInitializeProtocolVE(
     PoolMath,
     VirtualPool,
     AthenaDataProvider,
+    WrappedTokenGateway,
+    PoolManager,
   };
 
   if (logAddresses) {

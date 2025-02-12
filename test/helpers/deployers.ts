@@ -640,9 +640,13 @@ export async function deployAllContractsAndInitializeProtocol(
   // ======= MISC ======= //
 
   if (deploymentOrder[txCount] === "WrappedTokenGateway") {
+    if (!config.wstETH)
+      throw Error("Missing Lido wrapped staked ETH addresses");
+
     deployExecutors.push(async () =>
       deployWrappedTokenGateway(deployer, [
         wethAddress, // weth
+        config.wstETH as string, // wsteth
         deployedAt.LiquidityManager, // liquidityManager
         deployedAt.AthenaPositionToken, // positionToken
         deployedAt.AthenaCoverToken, // coverToken
@@ -735,6 +739,11 @@ export async function deployAllContractsAndInitializeProtocol(
     deployer,
   );
 
+  const PoolManager = PoolManager__factory.connect(
+    deployedAt.PoolManager || ADDRESS_ZERO,
+    deployer,
+  );
+
   const contracts = {
     TetherToken,
     CircleToken,
@@ -754,6 +763,7 @@ export async function deployAllContractsAndInitializeProtocol(
     VirtualPool,
     AthenaDataProvider,
     WrappedTokenGateway,
+    PoolManager,
   };
 
   if (logAddresses) {
