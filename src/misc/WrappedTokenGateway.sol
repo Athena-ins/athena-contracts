@@ -18,7 +18,7 @@ import { ILiquidityManager } from "../interfaces/ILiquidityManager.sol";
 import { IAthenaPositionToken } from "../interfaces/IAthenaPositionToken.sol";
 import { IAthenaCoverToken } from "../interfaces/IAthenaCoverToken.sol";
 
-error InsufficientETHSent();
+error WrongEthAmountSent();
 error ETHTransferFailed();
 error DirectETHTransfersNotAllowed();
 error OnlyWETHCanSendETH();
@@ -125,6 +125,19 @@ contract WrappedTokenGateway is Ownable, ReentrancyGuard {
     COVER_TOKEN.transferFrom(address(this), msg.sender, coverId);
   }
 
+  /**
+   * @notice Modifier to handle sending earned rewards to user after operations
+   */
+  modifier sendReceivedWethToUser() {
+    _;
+    // Convert any earned WETH to ETH and send to user
+    uint256 wethBalance = WETH.balanceOf(address(this));
+    if (wethBalance > 0) {
+      WETH.withdraw(wethBalance);
+      _safeTransferETH(msg.sender, wethBalance);
+    }
+  }
+
   /// ======= INTERNAL ======= ///
 
   /**
@@ -179,7 +192,6 @@ contract WrappedTokenGateway is Ownable, ReentrancyGuard {
   {
     // Convert ETH to wstETH
     uint256 wstETHAmount = _convertEthToWrappedLidoETH(amount);
-
     // Open position with wstETH
     LIQUIDITY_MANAGER.openPosition(wstETHAmount, isWrapped, poolIds);
   }
@@ -202,7 +214,6 @@ contract WrappedTokenGateway is Ownable, ReentrancyGuard {
   {
     // Convert ETH to wstETH
     uint256 wstETHAmount = _convertEthToWrappedLidoETH(amount);
-
     // Add liquidity using wstETH
     LIQUIDITY_MANAGER.addLiquidity(
       positionId,
@@ -256,16 +267,14 @@ contract WrappedTokenGateway is Ownable, ReentrancyGuard {
    */
   function takeInterestsETH(
     uint256 positionId
-  ) external nonReentrant borrowPositionFromUser(positionId, false) {
+  )
+    external
+    nonReentrant
+    borrowPositionFromUser(positionId, false)
+    sendReceivedWethToUser
+  {
     // Take interests using the LiquidityManager
     LIQUIDITY_MANAGER.takeInterests(positionId);
-
-    // Convert any earned WETH to ETH and send to user
-    uint256 wethBalance = WETH.balanceOf(address(this));
-    if (wethBalance > 0) {
-      WETH.withdraw(wethBalance);
-      _safeTransferETH(msg.sender, wethBalance);
-    }
   }
 
   /**
@@ -274,7 +283,12 @@ contract WrappedTokenGateway is Ownable, ReentrancyGuard {
    */
   function commitRemoveLiquidityETH(
     uint256 positionId
-  ) external nonReentrant borrowPositionFromUser(positionId, false) {
+  )
+    external
+    nonReentrant
+    borrowPositionFromUser(positionId, false)
+    sendReceivedWethToUser
+  {
     // Commit to remove liquidity using the LiquidityManager
     LIQUIDITY_MANAGER.commitRemoveLiquidity(positionId);
   }
@@ -285,7 +299,12 @@ contract WrappedTokenGateway is Ownable, ReentrancyGuard {
    */
   function uncommitRemoveLiquidityETH(
     uint256 positionId
-  ) external nonReentrant borrowPositionFromUser(positionId, false) {
+  )
+    external
+    nonReentrant
+    borrowPositionFromUser(positionId, false)
+    sendReceivedWethToUser
+  {
     // Uncommit liquidity removal using the LiquidityManager
     LIQUIDITY_MANAGER.uncommitRemoveLiquidity(positionId);
   }
@@ -298,13 +317,14 @@ contract WrappedTokenGateway is Ownable, ReentrancyGuard {
   function removeLiquidityETH(
     uint256 positionId,
     uint256 amount
-  ) external nonReentrant borrowPositionFromUser(positionId, false) {
+  )
+    external
+    nonReentrant
+    borrowPositionFromUser(positionId, false)
+    sendReceivedWethToUser
+  {
     // Remove liquidity and get WETH
     LIQUIDITY_MANAGER.removeLiquidity(positionId, amount, false);
-
-    // Convert WETH to ETH and send to user
-    WETH.withdraw(amount);
-    _safeTransferETH(msg.sender, amount);
   }
 
   /// ======= COVERS ======= ///
@@ -325,18 +345,13 @@ contract WrappedTokenGateway is Ownable, ReentrancyGuard {
     nonReentrant
     borrowCoverFromUser(COVER_TOKEN.nextCoverId(), true)
   {
-    if (msg.value < premiums) revert InsufficientETHSent();
+    if (msg.value != premiums) revert WrongEthAmountSent();
 
     // Convert ETH to WETH
     WETH.deposit{ value: premiums }();
 
     // Buy cover with WETH
     LIQUIDITY_MANAGER.openCover(poolId, coverAmount, premiums);
-
-    // Return excess ETH if any
-    if (msg.value > premiums) {
-      _safeTransferETH(msg.sender, msg.value - premiums);
-    }
   }
 
   /**
@@ -358,8 +373,9 @@ contract WrappedTokenGateway is Ownable, ReentrancyGuard {
     payable
     nonReentrant
     borrowCoverFromUser(coverId, false)
+    sendReceivedWethToUser
   {
-    if (msg.value < premiumsToAdd) revert InsufficientETHSent();
+    if (msg.value != premiumsToAdd) revert WrongEthAmountSent();
 
     // Convert ETH to WETH if adding premiums
     if (premiumsToAdd > 0) {
@@ -374,20 +390,6 @@ contract WrappedTokenGateway is Ownable, ReentrancyGuard {
       premiumsToAdd,
       premiumsToRemove
     );
-
-    // Return excess ETH if any
-    if (msg.value > premiumsToAdd) {
-      _safeTransferETH(msg.sender, msg.value - premiumsToAdd);
-    }
-
-    // If removing premiums, convert returned WETH to ETH and send to user
-    if (premiumsToRemove > 0) {
-      // Read from balance since we close covers with type(uint256).max
-      uint256 wethBalance = WETH.balanceOf(address(this));
-
-      WETH.withdraw(wethBalance);
-      _safeTransferETH(msg.sender, wethBalance);
-    }
   }
 
   /// ======= ADMIN ======= ///
