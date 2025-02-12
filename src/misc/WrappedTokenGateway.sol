@@ -12,6 +12,8 @@ import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.s
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import { IWETH } from "../interfaces/IWETH.sol";
+import { IStETH } from "../interfaces/IStETH.sol";
+import { IWstETH } from "../interfaces/IWstETH.sol";
 import { ILiquidityManager } from "../interfaces/ILiquidityManager.sol";
 import { IAthenaPositionToken } from "../interfaces/IAthenaPositionToken.sol";
 import { IAthenaCoverToken } from "../interfaces/IAthenaCoverToken.sol";
@@ -34,6 +36,8 @@ contract WrappedTokenGateway is Ownable, ReentrancyGuard {
 
   // Immutable addresses
   IWETH public immutable WETH;
+  IStETH public immutable STETH;
+  IWstETH public immutable WSTETH;
   ILiquidityManager public immutable LIQUIDITY_MANAGER;
   IAthenaPositionToken public immutable POSITION_TOKEN;
   IAthenaCoverToken public immutable COVER_TOKEN;
@@ -41,25 +45,34 @@ contract WrappedTokenGateway is Ownable, ReentrancyGuard {
   /// ======= CONSTRUCTOR ======= ///
 
   /**
-   * @notice Sets the WETH address and the LiquidityManager address
+   * @notice Sets the token and manager addresses
    * @param weth Address of the Wrapped Ether contract
+   * @param wsteth Address of the Lido wstETH contract
    * @param liquidityManager Address of the LiquidityManager contract
    * @param positionToken Address of the Position NFT contract
    * @param coverToken Address of the Cover NFT contract
    */
   constructor(
     address weth,
+    address wsteth,
     address liquidityManager,
     address positionToken,
     address coverToken
   ) Ownable(msg.sender) {
     WETH = IWETH(weth);
+    WSTETH = IWstETH(wsteth);
+    // Fetch address of the Lido stETH contract from wstETH
+    address steth = WSTETH.stETH();
+    STETH = IStETH(steth);
+
     LIQUIDITY_MANAGER = ILiquidityManager(liquidityManager);
     POSITION_TOKEN = IAthenaPositionToken(positionToken);
     COVER_TOKEN = IAthenaCoverToken(coverToken);
 
-    // Approve WETH for LiquidityManager
+    // Approve tokens for LiquidityManager
     IWETH(weth).approve(liquidityManager, type(uint256).max);
+    IERC20(wsteth).approve(liquidityManager, type(uint256).max);
+    IERC20(steth).approve(wsteth, type(uint256).max);
   }
 
   /// ======= DEFAULTS ======= ///
@@ -124,7 +137,79 @@ contract WrappedTokenGateway is Ownable, ReentrancyGuard {
     if (!success) revert ETHTransferFailed();
   }
 
+  /**
+   * @dev Converts ETH to wstETH through stETH
+   * @param amount Amount of ETH to convert
+   * @return Amount of wstETH received
+   */
+  function _convertEthToWrappedLidoETH(
+    uint256 amount
+  ) internal returns (uint256) {
+    bool isEth = 0 < msg.value;
+    uint256 selectedAmount = isEth ? msg.value : amount;
+
+    if (!isEth) {
+      WETH.transferFrom(msg.sender, address(this), selectedAmount);
+      WETH.withdraw(selectedAmount);
+    }
+
+    // Submit ETH to Lido and receive stETH
+    uint256 stETHAmount = STETH.submit{ value: amount }(address(0));
+    // Wrap stETH to wstETH
+    return WSTETH.wrap(stETHAmount);
+  }
+
   /// ======= POSITIONS ======= ///
+
+  /**
+   * @notice Opens a new position using ETH, converting to wstETH
+   * @param amount The amount of WETH to add (ignored if sending ETH)
+   * @param isWrapped Whether the position is using the wrapped asset
+   * @param poolIds The IDs of the pools to provide liquidity to
+   */
+  function openPositionETHToWstETH(
+    uint256 amount,
+    bool isWrapped,
+    uint64[] calldata poolIds
+  )
+    external
+    payable
+    nonReentrant
+    borrowPositionFromUser(POSITION_TOKEN.nextPositionId(), true)
+  {
+    // Convert ETH to wstETH
+    uint256 wstETHAmount = _convertEthToWrappedLidoETH(amount);
+
+    // Open position with wstETH
+    LIQUIDITY_MANAGER.openPosition(wstETHAmount, isWrapped, poolIds);
+  }
+
+  /**
+   * @notice Adds liquidity to an existing position using ETH, converting to wstETH
+   * @param positionId The ID of the position
+   * @param amount The amount of WETH to add (ignored if sending ETH)
+   * @param isWrapped Whether the position is using the wrapped asset
+   */
+  function addLiquidityETHToWstETH(
+    uint256 positionId,
+    uint256 amount,
+    bool isWrapped
+  )
+    external
+    payable
+    nonReentrant
+    borrowPositionFromUser(positionId, false)
+  {
+    // Convert ETH to wstETH
+    uint256 wstETHAmount = _convertEthToWrappedLidoETH(amount);
+
+    // Add liquidity using wstETH
+    LIQUIDITY_MANAGER.addLiquidity(
+      positionId,
+      wstETHAmount,
+      isWrapped
+    );
+  }
 
   /**
    * @notice Opens a new position using ETH
