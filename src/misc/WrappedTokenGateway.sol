@@ -148,6 +148,10 @@ contract WrappedTokenGateway is Ownable, ReentrancyGuard {
     }
   }
 
+  /**
+   * @notice Modifier to handle sending earned rewards to user after operations
+   * @param positionId The ID of the position
+   */
   modifier sendReceivedRewardsToUser(uint256 positionId) {
     _;
     uint64 poolIdZero = LIQUIDITY_MANAGER
@@ -216,7 +220,7 @@ contract WrappedTokenGateway is Ownable, ReentrancyGuard {
     return WSTETH.wrap(stETHAmount);
   }
 
-  /// ======= POSITIONS ======= ///
+  /// ======= POSITIONS WSTETH ======= ///
 
   /**
    * @notice Opens a new position using ETH, converting to wstETH
@@ -267,6 +271,8 @@ contract WrappedTokenGateway is Ownable, ReentrancyGuard {
       isWrapped
     );
   }
+
+  /// ======= POSITIONS ETH ======= ///
 
   /**
    * @notice Opens a new position using ETH
