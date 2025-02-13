@@ -167,7 +167,9 @@ contract WrappedTokenGateway is Ownable, ReentrancyGuard {
     }
 
     // Submit ETH to Lido and receive stETH
-    uint256 stETHAmount = STETH.submit{ value: amount }(address(0));
+    uint256 stETHAmount = STETH.submit{ value: selectedAmount }(
+      address(0)
+    );
     // Wrap stETH to wstETH
     return WSTETH.wrap(stETHAmount);
   }
