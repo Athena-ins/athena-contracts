@@ -35,7 +35,7 @@ const networkAddresses: {
     VirtualPool: "0x7c0ca0e6d4ad499706a7433fa4b69bc969294282",
     AthenaDataProvider: "0x6affa1c136dfaa81c980724130056fa8b7b7daf1",
     ProxyStrategyManager: "0x3f80B7b8065E5CA1Cb5dB0B4360f722965e65571",
-    WrappedTokenGateway: "0x1e5DE7180E79D0dbb3BB30520D3e5D806C27e379",
+    WrappedTokenGateway: "0x624dc86874d5376dDE0fBBcBee3f3140062840E9",
     PoolManager: "0x06683D1Fbbcda32D8Ccb8372884471A8265e5998",
     KlerosLiquid: "0x988b3A538b618C7A603e1c11Ab82Cd16dbE28069",
   },
