@@ -17,6 +17,7 @@ import { IWstETH } from "../interfaces/IWstETH.sol";
 import { ILiquidityManager } from "../interfaces/ILiquidityManager.sol";
 import { IAthenaPositionToken } from "../interfaces/IAthenaPositionToken.sol";
 import { IAthenaCoverToken } from "../interfaces/IAthenaCoverToken.sol";
+import { IStrategyManager } from "../interfaces/IStrategyManager.sol";
 
 error WrongEthAmountSent();
 error ETHTransferFailed();
@@ -38,9 +39,14 @@ contract WrappedTokenGateway is Ownable, ReentrancyGuard {
   IWETH public immutable WETH;
   IStETH public immutable STETH;
   IWstETH public immutable WSTETH;
-  ILiquidityManager public immutable LIQUIDITY_MANAGER;
+  ILiquidityManager public LIQUIDITY_MANAGER;
+  IStrategyManager public STRATEGY_MANAGER;
   IAthenaPositionToken public immutable POSITION_TOKEN;
   IAthenaCoverToken public immutable COVER_TOKEN;
+
+  // @dev We add 1 to the strategy ID to know if the value is set
+  mapping(uint256 poolId => uint256 strategyIdPlusOne)
+    private _poolIdToStrategyIdPlusOne;
 
   /// ======= CONSTRUCTOR ======= ///
 
@@ -66,12 +72,16 @@ contract WrappedTokenGateway is Ownable, ReentrancyGuard {
     STETH = IStETH(steth);
 
     LIQUIDITY_MANAGER = ILiquidityManager(liquidityManager);
+    STRATEGY_MANAGER = IStrategyManager(
+      LIQUIDITY_MANAGER.strategyManager()
+    );
     POSITION_TOKEN = IAthenaPositionToken(positionToken);
     COVER_TOKEN = IAthenaCoverToken(coverToken);
 
     // Approve tokens for LiquidityManager
     IWETH(weth).approve(liquidityManager, type(uint256).max);
     IERC20(wsteth).approve(liquidityManager, type(uint256).max);
+    IERC20(steth).approve(liquidityManager, type(uint256).max);
     IERC20(steth).approve(wsteth, type(uint256).max);
   }
 
@@ -135,6 +145,38 @@ contract WrappedTokenGateway is Ownable, ReentrancyGuard {
     if (wethBalance > 0) {
       WETH.withdraw(wethBalance);
       _safeTransferETH(msg.sender, wethBalance);
+    }
+  }
+
+  modifier sendReceivedRewardsToUser(uint256 positionId) {
+    _;
+    uint64 poolIdZero = LIQUIDITY_MANAGER
+      .positions(positionId)
+      .poolIds[0];
+
+    uint256 strategyId;
+
+    if (_poolIdToStrategyIdPlusOne[poolIdZero] != 0) {
+      strategyId = _poolIdToStrategyIdPlusOne[poolIdZero] - 1;
+    } else {
+      strategyId = LIQUIDITY_MANAGER.poolInfo(poolIdZero).strategyId;
+      _poolIdToStrategyIdPlusOne[poolIdZero] = strategyId + 1;
+    }
+
+    (address underlying, address wrapped) = STRATEGY_MANAGER.assets(
+      strategyId
+    );
+
+    uint256 underlyingBalance = underlying == address(WETH)
+      ? 0
+      : IERC20(underlying).balanceOf(address(this));
+    uint256 wrappedBalance = IERC20(wrapped).balanceOf(address(this));
+
+    if (0 < underlyingBalance) {
+      IERC20(underlying).safeTransfer(msg.sender, underlyingBalance);
+    }
+    if (0 < wrappedBalance) {
+      IERC20(wrapped).safeTransfer(msg.sender, wrappedBalance);
     }
   }
 
@@ -213,6 +255,8 @@ contract WrappedTokenGateway is Ownable, ReentrancyGuard {
     payable
     nonReentrant
     borrowPositionFromUser(positionId, false)
+    sendReceivedWethToUser
+    sendReceivedRewardsToUser(positionId)
   {
     // Convert ETH to wstETH
     uint256 wstETHAmount = _convertEthToWrappedLidoETH(amount);
@@ -254,6 +298,8 @@ contract WrappedTokenGateway is Ownable, ReentrancyGuard {
     payable
     nonReentrant
     borrowPositionFromUser(positionId, false)
+    sendReceivedWethToUser
+    sendReceivedRewardsToUser(positionId)
   {
     // Convert ETH to WETH
     WETH.deposit{ value: msg.value }();
@@ -274,6 +320,7 @@ contract WrappedTokenGateway is Ownable, ReentrancyGuard {
     nonReentrant
     borrowPositionFromUser(positionId, false)
     sendReceivedWethToUser
+    sendReceivedRewardsToUser(positionId)
   {
     // Take interests using the LiquidityManager
     LIQUIDITY_MANAGER.takeInterests(positionId);
@@ -290,6 +337,7 @@ contract WrappedTokenGateway is Ownable, ReentrancyGuard {
     nonReentrant
     borrowPositionFromUser(positionId, false)
     sendReceivedWethToUser
+    sendReceivedRewardsToUser(positionId)
   {
     // Commit to remove liquidity using the LiquidityManager
     LIQUIDITY_MANAGER.commitRemoveLiquidity(positionId);
@@ -306,6 +354,7 @@ contract WrappedTokenGateway is Ownable, ReentrancyGuard {
     nonReentrant
     borrowPositionFromUser(positionId, false)
     sendReceivedWethToUser
+    sendReceivedRewardsToUser(positionId)
   {
     // Uncommit liquidity removal using the LiquidityManager
     LIQUIDITY_MANAGER.uncommitRemoveLiquidity(positionId);
@@ -324,6 +373,7 @@ contract WrappedTokenGateway is Ownable, ReentrancyGuard {
     nonReentrant
     borrowPositionFromUser(positionId, false)
     sendReceivedWethToUser
+    sendReceivedRewardsToUser(positionId)
   {
     // Remove liquidity and get WETH
     LIQUIDITY_MANAGER.removeLiquidity(positionId, amount, false);
@@ -426,5 +476,25 @@ contract WrappedTokenGateway is Ownable, ReentrancyGuard {
     uint256 tokenId
   ) external onlyOwner {
     IERC721(token).safeTransferFrom(address(this), to, tokenId);
+  }
+
+  /**
+   * @notice Updates the LiquidityManager contract address
+   * @param newLiquidityManager Address of the new LiquidityManager contract
+   */
+  function updateLiquidityManager(
+    address newLiquidityManager
+  ) external onlyOwner {
+    LIQUIDITY_MANAGER = ILiquidityManager(newLiquidityManager);
+  }
+
+  /**
+   * @notice Updates the StrategyManager contract address
+   * @param newStrategyManager Address of the new StrategyManager contract
+   */
+  function updateStrategyManager(
+    address newStrategyManager
+  ) external onlyOwner {
+    STRATEGY_MANAGER = IStrategyManager(newStrategyManager);
   }
 }
