@@ -6,8 +6,8 @@ import {
   EcclesiaDao,
   EcclesiaDao__factory,
   // Claims
-  IArbitrator,
-  IArbitrator__factory,
+  IKlerosLiquid,
+  IKlerosLiquid__factory,
   AthenaArbitrator,
   AthenaArbitrator__factory,
   // Managers
@@ -161,8 +161,8 @@ export async function getBasicProxy(address: string) {
 export async function getProxyStrategyManager(address: string) {
   return connectWrapper(StrategyManager__factory, address);
 }
-export async function getArbitrator(address: string) {
-  return connectWrapper(IArbitrator__factory, address);
+export async function getKlerosLiquid(address: string) {
+  return connectWrapper(IKlerosLiquid__factory, address);
 }
 
 //==================//
@@ -195,7 +195,7 @@ export type ConnectedProtocolContracts = {
   WrappedTokenGateway: ConnectWithAddress<WrappedTokenGateway>;
   ProxyStrategyManager?: ConnectWithAddress<StrategyManager>;
   PoolManager?: ConnectWithAddress<PoolManager>;
-  KlerosLiquid?: ConnectWithAddress<IArbitrator>;
+  KlerosLiquid?: ConnectWithAddress<IKlerosLiquid>;
 };
 
 export type DefaultConnectedProtocolContracts = ConnectedProtocolContracts & {
@@ -302,7 +302,7 @@ export async function getConnectedProtocolContracts(
     getProxyStrategyManager(
       addresses.ProxyStrategyManager || addresses.StrategyManager,
     ),
-    getArbitrator(addresses.KlerosLiquid || constants.AddressZero),
+    getKlerosLiquid(addresses.KlerosLiquid || constants.AddressZero),
   ]);
 
   return {

@@ -346,9 +346,17 @@ async function main() {
   // ======= Misc ======= //
 
   if (shouldVerify.includes("WrappedTokenGateway")) {
+    if (!config.wstETH) throw Error("wstETH address is missing");
+
     await verifyEtherscanContract<WrappedTokenGateway__factory>(
       WrappedTokenGateway,
-      [WethToken, LiquidityManager, AthenaPositionToken, AthenaCoverToken],
+      [
+        WethToken,
+        config.wstETH,
+        LiquidityManager,
+        AthenaPositionToken,
+        AthenaCoverToken,
+      ],
     );
     console.log("==> Verification processed for WrappedTokenGateway");
   }
