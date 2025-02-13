@@ -385,9 +385,13 @@ export async function deployAllContractsAndInitializeProtocolMorpho(
   // ======= MISC ======= //
 
   if (deploymentOrder[txCount] === "WrappedTokenGateway") {
+    if (!config.wstETH)
+      throw Error("Missing Lido wrapped staked ETH addresses");
+
     deployExecutors.push(async () =>
       deployWrappedTokenGateway(deployer, [
         wethAddress, // weth
+        config.wstETH as string, // wsteth
         deployedAt.LiquidityManager, // liquidityManager
         deployedAt.AthenaPositionToken, // positionToken
         deployedAt.AthenaCoverToken, // coverToken
