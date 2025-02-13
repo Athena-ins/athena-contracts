@@ -10,6 +10,7 @@ import { baseContext } from "./context";
 import { DeployProtocolTest } from "./integration/deployProtocol.test";
 import { SanityTest } from "./integration/sanity.test";
 import { WrappedTokenGatewayTest } from "./integration/wrappedGateway.test";
+import { KlerosArbitrationTest } from "./integration/klerosArbitration.test";
 import { CoreStrategyTest } from "./integration/coreStrategies.test";
 import { AmphorStrategiesTest } from "./integration/amphorStrategies.test";
 import { EthereumStrategyTest } from "./integration/morphoMevStrategy.test";
@@ -37,6 +38,7 @@ baseContext("Test Athena Protocol", function () {
   DeployProtocolTest();
   SanityTest();
   WrappedTokenGatewayTest();
+  KlerosArbitrationTest();
   //
   CoreStrategyTest();
   AmphorStrategiesTest();
