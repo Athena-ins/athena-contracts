@@ -90,8 +90,8 @@ const defaultProtocolConfig: ProtocolConfig = {
   payoutDeductibleRate: toRay(10), // 10%
   strategyFeeRate: toRay(5), // 5%
   //==== Claim Manager Config ====//
-  subcourtId: 2, // View https://klerosboard.com/1/courts/2
-  nbOfJurors: 4,
+  subcourtId: 4, // View https://klerosboard.com/1/courts/4
+  nbOfJurors: 3,
   challengePeriod: 10 * DAY_SECONDS, // days seconds
   overrulePeriod: 4 * DAY_SECONDS, // days seconds
   evidenceUploadPeriod: 2 * DAY_SECONDS, // days seconds
@@ -123,8 +123,8 @@ const deployParams: {
   core_dao_testnet?: ProtocolConfig & CoreDaoStrategyParams;
 } = {
   mainnet: {
-    subcourtId: 2,
-    nbOfJurors: 4,
+    subcourtId: 4, // View https://klerosboard.com/1/courts/4
+    nbOfJurors: 3,
     challengePeriod: 182 * DAY_SECONDS,
     overrulePeriod: 4 * DAY_SECONDS,
     evidenceUploadPeriod: 2 * DAY_SECONDS,
@@ -162,8 +162,8 @@ const deployParams: {
   },
 
   arbitrum: {
-    subcourtId: 2,
-    nbOfJurors: 4,
+    subcourtId: 4, // View https://klerosboard.com/1/courts/4
+    nbOfJurors: 3,
     challengePeriod: 182 * DAY_SECONDS,
     overrulePeriod: 4 * DAY_SECONDS,
     evidenceUploadPeriod: 2 * DAY_SECONDS,
