@@ -75,5 +75,9 @@
     "typechain": "^5.2.0",
     "typescript": "^5.4.5"
   },
-  "overrides": {}
+  "overrides": {},
+  "dependencies": {
+    "@kleros/kleros-interaction": "^0.10.0",
+    "minimetoken": "^0.2.0"
+  }
 }

@@ -274,6 +274,9 @@ const config: HardhatUserConfig & {
           evmVersion,
         },
       },
+      {
+        version: "0.4.24",
+      },
     ],
   },
 
