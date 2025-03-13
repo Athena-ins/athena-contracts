@@ -30,12 +30,15 @@ contract AthenaArbitrator is IArbitrator, Ownable {
   IClaimManager public claimManager;
 
   uint256 private _arbitrationPrice;
+  uint256 private _appealPrice;
   uint256 public immutable choices = 2;
+  uint256 public appealPeriodDuration = 3 days;
 
   struct Dispute {
     uint256 fee;
     uint256 ruling;
     DisputeStatus status;
+    uint256 rulingTime;
   }
 
   uint256 public nextDisputeID;
@@ -48,10 +51,12 @@ contract AthenaArbitrator is IArbitrator, Ownable {
    */
   constructor(
     IClaimManager claimManager_,
-    uint256 arbitrationPrice_
+    uint256 arbitrationPrice_,
+    uint256 appealPrice_
   ) Ownable(msg.sender) {
     claimManager = claimManager_;
     _arbitrationPrice = arbitrationPrice_;
+    _appealPrice = appealPrice_;
   }
 
   // ======= VIEW ======= //
@@ -85,6 +90,33 @@ contract AthenaArbitrator is IArbitrator, Ownable {
     return disputes[disputeID_].ruling;
   }
 
+  /** @dev Compute the cost of appeal. It is recommended not to increase it often, as it can be higly time and gas consuming for the arbitrated contracts to cope with fee augmentation.
+   *  @return fee Amount to be paid.
+   */
+  function appealCost(
+    uint256 /* _disputeID */,
+    bytes memory /* _extraData */
+  ) external view returns (uint256 fee) {
+    return _appealPrice;
+  }
+
+  /** @dev Compute the start and end of the dispute's current or next appeal period, if possible.
+   *  @param _disputeID ID of the dispute.
+   *  @return start The start of the period.
+   *  @return end The end of the period.
+   */
+  function appealPeriod(
+    uint256 _disputeID
+  ) external view returns (uint256 start, uint256 end) {
+    Dispute storage dispute = disputes[_disputeID];
+    if (dispute.status != DisputeStatus.Waiting) return (0, 0);
+
+    return (
+      dispute.rulingTime,
+      dispute.rulingTime + appealPeriodDuration
+    );
+  }
+
   // ======= WRITE ======= //
 
   /** @dev Create a dispute. Must be called by the arbitrable contract.
@@ -109,10 +141,31 @@ contract AthenaArbitrator is IArbitrator, Ownable {
     disputes[disputeID] = Dispute({
       fee: msg.value,
       ruling: 0,
-      status: DisputeStatus.Waiting
+      status: DisputeStatus.Waiting,
+      rulingTime: 0
     });
 
     emit DisputeCreation(disputeID, IArbitrable(msg.sender));
+  }
+
+  /** @dev Appeal a ruling. Note that it has to be called before the arbitrator contract calls rule.
+   *  @param _disputeID ID of the dispute to be appealed.
+   */
+  function appeal(
+    uint256 _disputeID,
+    bytes memory /* _extraData */
+  ) external payable {
+    if (msg.sender != address(claimManager))
+      revert OnlyClaimManager();
+    if (msg.value < _appealPrice)
+      revert NotEnoughETHToCoverArbitrationCosts();
+
+    disputes[_disputeID] = Dispute({
+      fee: msg.value,
+      ruling: 0,
+      status: DisputeStatus.Waiting,
+      rulingTime: 0
+    });
   }
 
   // ======= ADMIN ======= //
@@ -133,6 +186,7 @@ contract AthenaArbitrator is IArbitrator, Ownable {
 
     dispute.ruling = ruling_;
     dispute.status = DisputeStatus.Solved;
+    dispute.rulingTime = block.timestamp;
 
     payable(msg.sender).transfer(dispute.fee); // Avoid blocking.
 
@@ -140,11 +194,17 @@ contract AthenaArbitrator is IArbitrator, Ownable {
   }
 
   /** @dev Set the arbitration price. Only callable by the owner.
-   *  @param arbitrationPrice_ Amount to be paid for arbitration.
+   * @param arbitrationPrice_ Amount to be paid for arbitration.
+   * @param appealPrice_ Amount to be paid for appeal.
+   * @param appealPeriodDuration_ The time in seconds parties have to appeal.
    */
-  function setArbitrationPrice(
-    uint256 arbitrationPrice_
+  function setConfiguration(
+    uint256 arbitrationPrice_,
+    uint256 appealPrice_,
+    uint256 appealPeriodDuration_
   ) public onlyOwner {
     _arbitrationPrice = arbitrationPrice_;
+    _appealPrice = appealPrice_;
+    appealPeriodDuration = appealPeriodDuration_;
   }
 }

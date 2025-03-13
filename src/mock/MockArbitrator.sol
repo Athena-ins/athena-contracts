@@ -20,6 +20,8 @@ import { IArbitrator } from "../interfaces/IArbitrator.sol";
 contract MockArbitrator is IArbitrator {
   address public owner = msg.sender;
   uint256 private _arbitrationPrice; // Not public because arbitrationCost already acts as an accessor.
+  uint256 private _appealPrice;
+  uint256 public appealPeriodDuration = 3 days;
 
   struct DisputeStruct {
     IArbitrable arbitrated;
@@ -27,6 +29,7 @@ contract MockArbitrator is IArbitrator {
     uint256 fee;
     uint256 ruling;
     DisputeStatus status;
+    uint256 rulingTime;
   }
 
   modifier requireArbitrationFee(bytes calldata _extraData) {
@@ -47,8 +50,9 @@ contract MockArbitrator is IArbitrator {
   /** @dev Constructor. Set the initial arbitration price.
    *  @param arbitrationPrice_ Amount to be paid for arbitration.
    */
-  constructor(uint256 arbitrationPrice_) {
+  constructor(uint256 arbitrationPrice_, uint256 appealPrice_) {
     _arbitrationPrice = arbitrationPrice_;
+    _appealPrice = appealPrice_;
   }
 
   /** @dev Set the arbitration price. Only callable by the owner.
@@ -67,6 +71,33 @@ contract MockArbitrator is IArbitrator {
     bytes calldata /* _extraData */
   ) public view override returns (uint256 fee) {
     return _arbitrationPrice;
+  }
+
+  /** @dev Compute the cost of appeal. It is recommended not to increase it often, as it can be higly time and gas consuming for the arbitrated contracts to cope with fee augmentation.
+   *  @return fee Amount to be paid.
+   */
+  function appealCost(
+    uint256 /* _disputeID */,
+    bytes memory /* _extraData */
+  ) external view returns (uint256 fee) {
+    return _appealPrice;
+  }
+
+  /** @dev Compute the start and end of the dispute's current or next appeal period, if possible.
+   *  @param _disputeID ID of the dispute.
+   *  @return start The start of the period.
+   *  @return end The end of the period.
+   */
+  function appealPeriod(
+    uint256 _disputeID
+  ) external view returns (uint256 start, uint256 end) {
+    DisputeStruct storage dispute = disputes[_disputeID];
+    if (dispute.status != DisputeStatus.Waiting) return (0, 0);
+
+    return (
+      dispute.rulingTime,
+      dispute.rulingTime + appealPeriodDuration
+    );
   }
 
   /** @dev Create a dispute. Must be called by the arbitrable contract.
@@ -91,11 +122,29 @@ contract MockArbitrator is IArbitrator {
         choices: _choices,
         fee: msg.value,
         ruling: 0,
-        status: DisputeStatus.Waiting
+        status: DisputeStatus.Waiting,
+        rulingTime: 0
       })
     ); // Create the dispute and return its number.
     disputeID = disputes.length - 1;
     emit DisputeCreation(disputeID, IArbitrable(msg.sender));
+  }
+
+  /** @dev Appeal a ruling. Note that it has to be called before the arbitrator contract calls rule.
+   *  @param _disputeID ID of the dispute to be appealed.
+   */
+  function appeal(
+    uint256 _disputeID,
+    bytes memory /* _extraData */
+  ) external payable {
+    disputes[_disputeID] = DisputeStruct({
+      arbitrated: IArbitrable(msg.sender),
+      choices: disputes[_disputeID].choices,
+      fee: msg.value,
+      ruling: 0,
+      status: DisputeStatus.Waiting,
+      rulingTime: 0
+    });
   }
 
   /** @dev Give a ruling. UNTRUSTED.
@@ -112,6 +161,7 @@ contract MockArbitrator is IArbitrator {
 
     dispute.ruling = _ruling;
     dispute.status = DisputeStatus.Solved;
+    dispute.rulingTime = block.timestamp;
 
     payable(msg.sender).transfer(dispute.fee); // Avoid blocking.
     dispute.arbitrated.rule(_disputeID, _ruling);

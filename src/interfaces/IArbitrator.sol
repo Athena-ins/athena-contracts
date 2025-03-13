@@ -103,7 +103,7 @@ interface IArbitrator {
   function appeal(
     uint256 _disputeID,
     bytes memory _extraData
-  ) external;
+  ) external payable;
 
   /** @dev Compute the cost of appeal. It is recommended not to increase it often, as it can be higly time and gas consuming for the arbitrated contracts to cope with fee augmentation.
    *  @param _disputeID ID of the dispute to be appealed.
