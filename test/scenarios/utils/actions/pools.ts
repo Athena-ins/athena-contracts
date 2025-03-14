@@ -2,7 +2,7 @@ import { expect } from "chai";
 import { expectEqual } from "../../../helpers/chai/almostEqualState";
 import { poolInfoFormat } from "../../../helpers/dataFormat";
 import { postTxHandler } from "../../../helpers/hardhat";
-import { calcExpectedPoolDataAfterCreatePool } from "../../../helpers/utils/calculations";
+import { calcExpectedPoolDataAfterCreatePool } from "../../../helpers/calculations";
 import { getTxCostAndTimestamp } from "./helpers";
 // Types
 import { BigNumber, Wallet } from "ethers";

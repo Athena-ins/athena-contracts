@@ -31,7 +31,7 @@ import {
   calcExpectedPoolDataAfterDisputeClaim,
   calcExpectedPoolDataAfterRuleClaim,
   calcExpectedPoolDataAfterOverruleRuling,
-} from "../../../helpers/utils/calculations";
+} from "../../../helpers/calculations";
 import { getTxCostAndTimestamp, getEntityData } from "./helpers";
 // Types
 import { BigNumber, BigNumberish, Wallet } from "ethers";

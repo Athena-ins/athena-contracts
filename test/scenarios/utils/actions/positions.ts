@@ -24,7 +24,7 @@ import {
   calcExpectedPositionDataAfterRemoveLiquidity,
   calcExpectedPositionDataAfterTakeInterests,
   calcExpectedPositionDataAfterUncommitRemoveLiquidity,
-} from "../../../helpers/utils/calculations";
+} from "../../../helpers/calculations";
 import { getTxCostAndTimestamp, getEntityData } from "./helpers";
 // Types
 import { BigNumber, BigNumberish, Wallet } from "ethers";

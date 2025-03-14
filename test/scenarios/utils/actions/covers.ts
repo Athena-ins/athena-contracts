@@ -11,7 +11,7 @@ import {
   calcExpectedCoverDataAfterUpdateCover,
   calcExpectedPoolDataAfterOpenCover,
   calcExpectedPoolDataAfterUpdateCover,
-} from "../../../helpers/utils/calculations";
+} from "../../../helpers/calculations";
 import { getTxCostAndTimestamp, getEntityData } from "./helpers";
 // Types
 import { BigNumberish, Wallet, constants } from "ethers";
