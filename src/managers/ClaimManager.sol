@@ -32,6 +32,8 @@ error InvalidRuling();
 error PeriodNotElapsed();
 error GuardianSetToAddressZero();
 error OverrulePeriodEnded();
+error AppealPeriodEnded();
+error AppealPeriodOngoing();
 error EvidenceUploadPeriodEnded();
 error ClaimDoesNotExist();
 error CourtClosed();
@@ -50,8 +52,8 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
     Compensated,
     // Statuses below are only used when a claim is disputed
     Disputed,
+    Appealed,
     RejectedByOverrule,
-    RejectedByRefusalToArbitrate,
     RejectedByCourtDecision,
     AcceptedByCourtDecision,
     CompensatedAfterDispute
@@ -84,6 +86,8 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
     uint256 amount;
     address prosecutor;
     uint256 deposit;
+    uint256 collateral;
+    Appeal[] appeals;
   }
 
   struct Claim {
@@ -97,6 +101,12 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
     address claimant;
     address prosecutor;
     uint256 deposit;
+    uint256 collateral;
+  }
+
+  struct Appeal {
+    uint64 appealTimestamp;
+    address appellant;
   }
 
   // ======= STORAGE ======= //
@@ -120,6 +130,9 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
   // Maps a Kleros dispute ID to its claim ID
   mapping(uint256 _disputeId => uint256 _claimId)
     public disputeIdToClaimId;
+  // Maps a claim ID to its appeals
+  mapping(uint256 _claimId => Appeal[] _appeals)
+    public claimIdToAppeals;
 
   // Maps a claim ID to its submited evidence
   mapping(uint256 _claimId => string[] _cids)
@@ -130,6 +143,7 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
   uint256 public claimCollateral;
   // The params for Kleros specifying the subcourt ID and the number of jurors
   bytes public klerosExtraData;
+
   uint64 public challengePeriod;
   uint64 public overrulePeriod;
   uint64 public evidenceUploadPeriod;
@@ -184,6 +198,16 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
     uint256 ruling
   );
 
+  // Emitted when a claim is appealed
+  event RulingAppealed(
+    uint256 claimId,
+    uint256 disputeId,
+    address appellant
+  );
+
+  // Emitted when the prosecutor claims the collateral
+  event ProsecutorPaid(uint256 claimId, uint256 amount);
+
   // ======= MODIFIERS ======= //
 
   /**
@@ -221,6 +245,16 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
    */
   function arbitrationCost() public view returns (uint256) {
     return arbitrator.arbitrationCost(klerosExtraData);
+  }
+
+  /**
+   * @notice Returns the cost of arbitration for a Kleros dispute.
+   * @return _ the arbitration cost
+   */
+  function appealCost(
+    uint256 disputeId_
+  ) public view returns (uint256) {
+    return arbitrator.appealCost(disputeId_, klerosExtraData);
   }
 
   /**
@@ -274,6 +308,8 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
 
     uint64 poolId = liquidityManager.coverToPool(claim.coverId);
 
+    Appeal[] storage appeals = claimIdToAppeals[claimId_];
+
     claimData = ClaimRead({
       claimId: claimId_,
       poolId: poolId,
@@ -294,9 +330,16 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
       claimant: claim.claimant,
       prosecutor: claim.prosecutor,
       deposit: claim.deposit,
+      collateral: claim.collateral,
       rulingTimestamp: claim.rulingTimestamp,
-      challengedTimestamp: claim.challengedTimestamp
+      challengedTimestamp: claim.challengedTimestamp,
+      appeals: new Appeal[](appeals.length)
     });
+
+    // Fill the created claim data array with the appeals
+    for (uint256 i; i < appeals.length; i++) {
+      claimData.appeals[i] = appeals[i];
+    }
 
     // We should check if the claim is available for compensation
     if (
@@ -408,6 +451,20 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
   // ======= HELPERS ======= //
 
   /**
+   * @notice Get the latest appeal for a claim.
+   * @param claimId_ The claim ID
+   * @return appeal The latest appeal data
+   */
+  function _getLatestAppeal(
+    uint256 claimId_
+  ) internal view claimsExists(claimId_) returns (Appeal memory) {
+    return
+      claimIdToAppeals[claimId_][
+        claimIdToAppeals[claimId_].length - 1
+      ];
+  }
+
+  /**
    * @notice Sends value to an address.
    * @param to_ The address to send value to
    * @param value_ The amount of ETH to send
@@ -437,7 +494,8 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
 
     if (
       claim.status != ClaimStatus.Initiated &&
-      claim.status != ClaimStatus.Disputed
+      claim.status != ClaimStatus.Disputed &&
+      claim.status != ClaimStatus.Appealed
     ) revert WrongClaimStatus();
 
     bool isClaimant = msg.sender == claim.claimant;
@@ -449,12 +507,25 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
     ) revert InvalidParty();
 
     // Check the evidence upload period has not ended
+    bool delayOk = true;
     if (
       claim.status == ClaimStatus.Disputed &&
       claim.challengedTimestamp + evidenceUploadPeriod <
-      block.timestamp &&
-      msg.sender != evidenceGuardian
-    ) revert EvidenceUploadPeriodEnded();
+      block.timestamp
+    ) {
+      delayOk = false;
+    } else if (
+      claim.status == ClaimStatus.Appealed &&
+      _getLatestAppeal(claimId_).appealTimestamp +
+        evidenceUploadPeriod <
+      block.timestamp
+    ) {
+      delayOk = false;
+    }
+    /// @dev Override the delay for the evidence guardian
+    if (msg.sender == evidenceGuardian) delayOk = true;
+
+    if (!delayOk) revert EvidenceUploadPeriodEnded();
 
     string[] storage evidence = isClaimant
       ? claimIdToEvidence[claimId_]
@@ -512,7 +583,8 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
       // Only allow for a new claim if it is not initiated or disputed
       if (
         prevClaim.status == ClaimStatus.Initiated ||
-        prevClaim.status == ClaimStatus.Disputed
+        prevClaim.status == ClaimStatus.Disputed ||
+        prevClaim.status == ClaimStatus.Appealed
       ) revert PreviousClaimStillOngoing();
     }
 
@@ -528,6 +600,7 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
     claim.amount = amountClaimed_;
     claim.createdAt = uint64(block.timestamp);
     claim.deposit = msg.value;
+    claim.collateral = claimCollateral;
     claim.status = ClaimStatus.Initiated;
 
     // Emit Athena claim creation event
@@ -598,11 +671,12 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
     Claim storage claim = claims[claimId];
 
     // Check the status of the claim
-    // @dev Also covers a rare edgecase where it targets claim ID 0 with a bad dispute ID
     if (
-      claim.status != ClaimStatus.Disputed ||
-      claim.disputeId != disputeId_
+      claim.status != ClaimStatus.Appealed &&
+      claim.status != ClaimStatus.Disputed
     ) revert ClaimNotInDispute();
+    // @dev Rare edgecase where it targets claim ID 0 with a bad dispute ID
+    if (claim.disputeId != disputeId_) revert ClaimDoesNotExist();
     if (numberOfRulingOptions < ruling_) revert InvalidRuling();
 
     // Save timestamp to initiate overrule period if validated
@@ -613,25 +687,16 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
       claim.status = ClaimStatus.AcceptedByCourtDecision;
 
       /// @dev The refund of the claimant deposit is made in the withdrawCompensation function
-    } else if (ruling_ == uint256(RulingOptions.RejectClaim)) {
+    } else {
+      /// @dev Both RulingOptions.RejectClaim and RulingOptions.RefusedToArbitrate considered rejected
       claim.status = ClaimStatus.RejectedByCourtDecision;
 
-      // Refund arbitration cost to the prosecutor and pay them with collateral
-      _sendValue(claim.prosecutor, claim.deposit);
-    } else {
-      // This is the case where the arbitrator refuses to rule
-      claim.status = ClaimStatus.RejectedByRefusalToArbitrate;
+      // Refund arbitration cost to the prosecutor
+      uint256 arbitrationFee = claim.deposit - claim.collateral;
+      _sendValue(claim.prosecutor, arbitrationFee);
 
-      uint256 halfArbitrationCost = arbitrationCost() / 2;
-
-      // Send back the collateral and half the arbitration cost to the claimant
-      _sendValue(claim.claimant, claim.deposit - halfArbitrationCost);
-      // Send back half the arbitration cost to the prosecutor
-      _sendValue(claim.prosecutor, halfArbitrationCost);
+      /// @dev The prosecutor is paid the collateral with withdrawProsecutionReward if there is no appeal
     }
-
-    // Remove claims from pool to unblock withdrawals
-    liquidityManager.removeClaimFromPool(claim.coverId);
 
     emit DisputeResolved({
       claimId: claimId,
@@ -659,27 +724,123 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
       if (block.timestamp < claim.createdAt + challengePeriod)
         revert PeriodNotElapsed();
 
-      // Remove claims from pool to unblock withdrawals
-      liquidityManager.removeClaimFromPool(claim.coverId);
-
       claim.status = ClaimStatus.Compensated;
     } else if (claim.status == ClaimStatus.AcceptedByCourtDecision) {
       // Check the ruling has passed the overrule period
       if (block.timestamp < claim.rulingTimestamp + overrulePeriod)
         revert PeriodNotElapsed();
 
-      /// @dev The claim has been removed from the pool in the rule function
-
       claim.status = ClaimStatus.CompensatedAfterDispute;
     } else {
       revert WrongClaimStatus();
     }
 
-    // Send back the collateral and arbitration cost to the claimant
-    _sendValue(claim.claimant, claim.deposit);
-
+    // Remove claims from pool to unblock withdrawals
+    liquidityManager.removeClaimFromPool(claim.coverId);
     // Call Athena core to pay the compensation
     liquidityManager.payoutClaim(claim.coverId, claim.amount);
+
+    // Send back the collateral and arbitration cost to the claimant
+    _sendValue(claim.claimant, claim.deposit);
+  }
+
+  /**
+   * @notice Allows the prosecutor to withdraw the collateral after a dispute has been resolved in their favor.
+   * @param claimId_ The claim ID
+   *
+   * @dev Intentionally public to prevent prosecutor from indefinitely blocking withdrawals
+   * from a pool by not executing the claims ruling.
+   */
+  function withdrawProsecutionReward(
+    uint256 claimId_
+  ) external claimsExists(claimId_) nonReentrant {
+    Claim storage claim = claims[claimId_];
+
+    if (claim.status != ClaimStatus.RejectedByCourtDecision)
+      revert WrongClaimStatus();
+
+    uint256 disputeId = claim.disputeId;
+    IArbitrator.DisputeStatus disputeStatus = arbitrator
+      .disputeStatus(disputeId);
+
+    if (disputeStatus == IArbitrator.DisputeStatus.Appealable)
+      revert AppealPeriodOngoing();
+
+    address appealProsecutor = _getLatestAppeal(claimId_).appellant;
+
+    // Ensure this is not the claimant trying to get his collateral after a loss
+    if (appealProsecutor == claim.claimant) revert InvalidParty();
+
+    // Get address depending with priority to the appeal prosecutor
+    address collateralBeneficiary = appealProsecutor == address(0)
+      ? claim.prosecutor
+      : appealProsecutor;
+
+    // Remove claims from pool to unblock withdrawals
+    liquidityManager.removeClaimFromPool(claim.coverId);
+
+    // Pay the collateral to the prosecutor
+    _sendValue(collateralBeneficiary, claim.collateral);
+
+    emit ProsecutorPaid(claimId_, claim.collateral);
+  }
+
+  // ======= APPEAL ======= //
+
+  /**
+   * @notice Allows a party to appeal a court decision after the appeal wait period
+   * @param claimId_ The claim ID
+   */
+  function appeal(
+    uint256 claimId_
+  ) external payable claimsExists(claimId_) nonReentrant {
+    Claim storage claim = claims[claimId_];
+
+    // Check the claim is in an appealable status
+    if (
+      claim.status != ClaimStatus.RejectedByCourtDecision &&
+      claim.status != ClaimStatus.AcceptedByCourtDecision
+    ) revert WrongClaimStatus();
+
+    /**
+     * Only the claimant may appeal a rejected claim to avoid:
+     * - prosecutors trying to retrial a lost case to get the collateral
+     * - the claimant trying to appeal a lost case to get the collateral
+     */
+    if (
+      claim.status == ClaimStatus.RejectedByCourtDecision &&
+      msg.sender != claim.claimant
+    ) revert InvalidParty();
+
+    uint256 disputeId = claim.disputeId;
+    IArbitrator.DisputeStatus disputeStatus = arbitrator
+      .disputeStatus(disputeId);
+
+    if (disputeStatus != IArbitrator.DisputeStatus.Appealable)
+      revert AppealPeriodEnded();
+
+    // Check deposit covers appeal cost
+    uint256 appealFee = arbitrator.appealCost(
+      disputeId,
+      klerosExtraData
+    );
+    if (msg.value < appealFee) revert InsufficientDeposit();
+
+    // Create the appeal with Kleros
+    arbitrator.appeal{ value: appealFee }(disputeId, klerosExtraData);
+
+    // Create and store appeal data
+    claimIdToAppeals[claimId_].push(
+      Appeal({
+        appealTimestamp: uint64(block.timestamp),
+        appellant: msg.sender
+      })
+    );
+
+    // Update claim status & timestamp
+    claim.status = ClaimStatus.Appealed;
+
+    emit RulingAppealed(claimId_, disputeId, msg.sender);
   }
 
   // ======= ADMIN ======= //
