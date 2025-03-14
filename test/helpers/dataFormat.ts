@@ -14,11 +14,12 @@ const claimStatusIndex = {
   2: "Compensated",
   // Statuses below are only used when a claim is disputed
   3: "Disputed",
-  4: "RejectedByOverrule",
-  5: "RejectedByRefusalToArbitrate",
+  4: "Appealed",
+  5: "RejectedByOverrule",
   6: "RejectedByCourtDecision",
   7: "AcceptedByCourtDecision",
   8: "CompensatedAfterDispute",
+  9: "ProsecutorPaid",
 } as const;
 
 export function getClaimStatus(index: number): ClaimStatus {
@@ -113,9 +114,14 @@ export function claimInfoFormat(
     amount: data.amount,
     prosecutor: data.prosecutor,
     deposit: data.deposit,
+    collateral: data.collateral,
     evidence: data.evidence,
     counterEvidence: data.counterEvidence,
     metaEvidenceURI: data.metaEvidenceURI,
     rulingTimestamp: data.rulingTimestamp.toNumber(),
+    appeals: data.appeals.map((val) => ({
+      appealTimestamp: val.appealTimestamp.toNumber(),
+      appellant: val.appellant,
+    })),
   };
 }

@@ -6,11 +6,12 @@ export type ClaimStatus =
   | "Accepted"
   | "Compensated"
   | "Disputed"
+  | "Appealed"
   | "RejectedByOverrule"
-  | "RejectedByRefusalToArbitrate"
   | "RejectedByCourtDecision"
   | "AcceptedByCourtDecision"
-  | "CompensatedAfterDispute";
+  | "CompensatedAfterDispute"
+  | "ProsecutorPaid";
 
 export type PoolInfoObject = {
   poolId: number;
@@ -82,10 +83,15 @@ export type ClaimInfoObject = {
   amount: BigNumber;
   prosecutor: string;
   deposit: BigNumber;
+  collateral: BigNumber;
   evidence: string[];
   counterEvidence: string[];
   metaEvidenceURI: string;
   rulingTimestamp: number;
+  appeals: {
+    appealTimestamp: number;
+    appellant: string;
+  }[];
 };
 
 export type PoolInfo =
