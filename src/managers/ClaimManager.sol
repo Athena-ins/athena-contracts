@@ -56,7 +56,8 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
     RejectedByOverrule,
     RejectedByCourtDecision,
     AcceptedByCourtDecision,
-    CompensatedAfterDispute
+    CompensatedAfterDispute,
+    ProsecutorPaid
   }
 
   /// @dev The neutral "refuse to arbitrate" option MUST ALWAYS be 0
@@ -778,6 +779,8 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
 
     // Remove claims from pool to unblock withdrawals
     liquidityManager.removeClaimFromPool(claim.coverId);
+    // Register the payment of the collateral
+    claim.status = ClaimStatus.ProsecutorPaid;
 
     // Pay the collateral to the prosecutor
     _sendValue(collateralBeneficiary, claim.collateral);
@@ -864,6 +867,9 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
       revert OverrulePeriodEnded();
 
     claim.status = ClaimStatus.RejectedByOverrule;
+
+    // Remove claims from pool to unblock withdrawals
+    liquidityManager.removeClaimFromPool(claim.coverId);
 
     if (punishClaimant_) {
       // In case of blatant attacks on the claim process then punish the offender
