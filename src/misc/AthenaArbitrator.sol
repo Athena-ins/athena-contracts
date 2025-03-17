@@ -77,6 +77,14 @@ contract AthenaArbitrator is IArbitrator, Ownable {
   function disputeStatus(
     uint256 disputeID_
   ) public view override returns (DisputeStatus status) {
+    if (
+      disputes[disputeID_].status == DisputeStatus.Appealable &&
+      disputes[disputeID_].rulingTime + appealPeriodDuration <
+      block.timestamp
+    ) {
+      return DisputeStatus.Solved;
+    }
+
     return disputes[disputeID_].status;
   }
 
@@ -181,11 +189,11 @@ contract AthenaArbitrator is IArbitrator, Ownable {
     Dispute storage dispute = disputes[disputeID_];
 
     if (choices < ruling_) revert InvalidRuling();
-    if (dispute.status == DisputeStatus.Solved)
+    if (dispute.status == DisputeStatus.Appealable)
       revert DisputeAlreadyResolved();
 
     dispute.ruling = ruling_;
-    dispute.status = DisputeStatus.Solved;
+    dispute.status = DisputeStatus.Appealable;
     dispute.rulingTime = block.timestamp;
 
     payable(msg.sender).transfer(dispute.fee); // Avoid blocking.

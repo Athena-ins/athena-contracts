@@ -155,12 +155,12 @@ contract MockArbitrator is IArbitrator {
     DisputeStruct storage dispute = disputes[_disputeID];
     require(_ruling <= dispute.choices, "Invalid ruling.");
     require(
-      dispute.status != DisputeStatus.Solved,
+      dispute.status != DisputeStatus.Appealable,
       "The dispute must not be solved already."
     );
 
     dispute.ruling = _ruling;
-    dispute.status = DisputeStatus.Solved;
+    dispute.status = DisputeStatus.Appealable;
     dispute.rulingTime = block.timestamp;
 
     payable(msg.sender).transfer(dispute.fee); // Avoid blocking.
@@ -185,6 +185,14 @@ contract MockArbitrator is IArbitrator {
   function disputeStatus(
     uint256 _disputeID
   ) public view override returns (DisputeStatus status) {
+    if (
+      disputes[_disputeID].status == DisputeStatus.Appealable &&
+      disputes[_disputeID].rulingTime + appealPeriodDuration <
+      block.timestamp
+    ) {
+      return DisputeStatus.Solved;
+    }
+
     return disputes[_disputeID].status;
   }
 
