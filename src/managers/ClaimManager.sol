@@ -88,7 +88,7 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
     address prosecutor;
     uint256 deposit;
     uint256 collateral;
-    Appeal[] appeals;
+    uint64[] appeals;
   }
 
   struct Claim {
@@ -103,11 +103,7 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
     address prosecutor;
     uint256 deposit;
     uint256 collateral;
-  }
-
-  struct Appeal {
-    uint64 appealTimestamp;
-    address appellant;
+    uint64[] appeals;
   }
 
   // ======= STORAGE ======= //
@@ -131,9 +127,6 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
   // Maps a Kleros dispute ID to its claim ID
   mapping(uint256 _disputeId => uint256 _claimId)
     public disputeIdToClaimId;
-  // Maps a claim ID to its appeals
-  mapping(uint256 _claimId => Appeal[] _appeals)
-    public claimIdToAppeals;
 
   // Maps a claim ID to its submited evidence
   mapping(uint256 _claimId => string[] _cids)
@@ -194,16 +187,17 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
 
   // Emit when a dispute is resolved
   event DisputeResolved(
-    uint256 claimId,
-    uint256 disputeId,
-    uint256 ruling
+    uint256 indexed ruling,
+    uint256 indexed claimId,
+    uint256 disputeId
   );
 
   // Emitted when a claim is appealed
   event RulingAppealed(
-    uint256 claimId,
+    address indexed prosecutor,
+    uint256 indexed claimId,
     uint256 disputeId,
-    address appellant
+    bool isClaimant
   );
 
   // Emitted when the prosecutor claims the collateral
@@ -309,8 +303,6 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
 
     uint64 poolId = liquidityManager.coverToPool(claim.coverId);
 
-    Appeal[] storage appeals = claimIdToAppeals[claimId_];
-
     claimData = ClaimRead({
       claimId: claimId_,
       poolId: poolId,
@@ -334,13 +326,8 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
       collateral: claim.collateral,
       rulingTimestamp: claim.rulingTimestamp,
       challengedTimestamp: claim.challengedTimestamp,
-      appeals: new Appeal[](appeals.length)
+      appeals: claim.appeals
     });
-
-    // Fill the created claim data array with the appeals
-    for (uint256 i; i < appeals.length; i++) {
-      claimData.appeals[i] = appeals[i];
-    }
 
     // We should check if the claim is available for compensation
     if (
@@ -452,17 +439,15 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
   // ======= HELPERS ======= //
 
   /**
-   * @notice Get the latest appeal for a claim.
+   * @notice Get the latest appeal timestamp for a claim.
    * @param claimId_ The claim ID
    * @return appeal The latest appeal data
    */
-  function _getLatestAppeal(
+  function _getLatestAppealTimestamp(
     uint256 claimId_
-  ) internal view claimsExists(claimId_) returns (Appeal memory) {
-    return
-      claimIdToAppeals[claimId_][
-        claimIdToAppeals[claimId_].length - 1
-      ];
+  ) internal view claimsExists(claimId_) returns (uint64) {
+    Claim storage claim = claims[claimId_];
+    return claim.appeals[claim.appeals.length - 1];
   }
 
   /**
@@ -517,8 +502,7 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
       delayOk = false;
     } else if (
       claim.status == ClaimStatus.Appealed &&
-      _getLatestAppeal(claimId_).appealTimestamp +
-        evidenceUploadPeriod <
+      _getLatestAppealTimestamp(claimId_) + evidenceUploadPeriod <
       block.timestamp
     ) {
       delayOk = false;
@@ -537,12 +521,12 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
       evidence.push(ipfsEvidenceCids_[i]);
 
       // Emit event for Kleros to pick up the evidence
-      emit Evidence(
-        arbitrator, // IArbitrator indexed _arbitrator
-        claimId_, // uint256 indexed _evidenceGroupID
-        msg.sender, // address indexed _party
-        ipfsEvidenceCids_[i] // string _evidence
-      );
+      emit Evidence({
+        arbitrator_: arbitrator,
+        evidenceGroupID_: claimId_,
+        party_: msg.sender,
+        evidence_: ipfsEvidenceCids_[i]
+      });
     }
   }
 
@@ -605,8 +589,15 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
     claim.status = ClaimStatus.Initiated;
 
     // Emit Athena claim creation event
-    emit ClaimCreated(msg.sender, coverId_, claimId);
-    emit MetaEvidence(claimId, metaEvidenceURI(claimId));
+    emit ClaimCreated({
+      claimant: msg.sender,
+      coverId: coverId_,
+      claimId: claimId
+    });
+    emit MetaEvidence({
+      _metaEvidenceID: claimId,
+      _evidence: metaEvidenceURI(claimId)
+    });
   }
 
   // ======= DISPUTE ======= //
@@ -654,7 +645,12 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
     disputeIdToClaimId[disputeId] = claimId_;
 
     // Emit Kleros event for dispute creation and meta-evidence association
-    emit Dispute(arbitrator, disputeId, claimId_, claimId_);
+    emit Dispute({
+      arbitrator_: arbitrator,
+      disputeID_: disputeId,
+      metaEvidenceID_: claimId_,
+      evidenceGroupID_: claimId_
+    });
   }
 
   // ======= RESOLUTION ======= //
@@ -767,25 +763,18 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
     if (disputeStatus == IArbitrator.DisputeStatus.Appealable)
       revert AppealPeriodOngoing();
 
-    address appealProsecutor = _getLatestAppeal(claimId_).appellant;
-
-    // Ensure this is not the claimant trying to get his collateral after a loss
-    if (appealProsecutor == claim.claimant) revert InvalidParty();
-
-    // Get address depending with priority to the appeal prosecutor
-    address collateralBeneficiary = appealProsecutor == address(0)
-      ? claim.prosecutor
-      : appealProsecutor;
-
     // Remove claims from pool to unblock withdrawals
     liquidityManager.removeClaimFromPool(claim.coverId);
     // Register the payment of the collateral
     claim.status = ClaimStatus.ProsecutorPaid;
 
     // Pay the collateral to the prosecutor
-    _sendValue(collateralBeneficiary, claim.collateral);
+    _sendValue(claim.prosecutor, claim.collateral);
 
-    emit ProsecutorPaid(claimId_, claim.collateral);
+    emit ProsecutorPaid({
+      claimId: claimId_,
+      amount: claim.collateral
+    });
   }
 
   // ======= APPEAL ======= //
@@ -798,6 +787,7 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
     uint256 claimId_
   ) external payable claimsExists(claimId_) nonReentrant {
     Claim storage claim = claims[claimId_];
+    bool isClaimant = msg.sender == claim.claimant;
 
     // Check the claim is in an appealable status
     if (
@@ -812,7 +802,7 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
      */
     if (
       claim.status == ClaimStatus.RejectedByCourtDecision &&
-      msg.sender != claim.claimant
+      !isClaimant
     ) revert InvalidParty();
 
     uint256 disputeId = claim.disputeId;
@@ -833,17 +823,18 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
     arbitrator.appeal{ value: appealFee }(disputeId, klerosExtraData);
 
     // Create and store appeal data
-    claimIdToAppeals[claimId_].push(
-      Appeal({
-        appealTimestamp: uint64(block.timestamp),
-        appellant: msg.sender
-      })
-    );
-
+    claim.appeals.push(uint64(block.timestamp));
+    // Update the prosecutor if it is not the claimant appealing
+    if (!isClaimant) claim.prosecutor = msg.sender;
     // Update claim status & timestamp
     claim.status = ClaimStatus.Appealed;
 
-    emit RulingAppealed(claimId_, disputeId, msg.sender);
+    emit RulingAppealed({
+      prosecutor: claim.prosecutor,
+      claimId: claimId_,
+      disputeId: disputeId,
+      isClaimant: isClaimant
+    });
   }
 
   // ======= ADMIN ======= //
