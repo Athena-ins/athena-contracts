@@ -13,8 +13,10 @@ import {
   updateCover,
   initiateClaim,
   withdrawCompensation,
+  withdrawProsecutionReward,
   submitEvidenceForClaim,
   disputeClaim,
+  appeal,
   rule,
   overrule,
   //
@@ -397,6 +399,22 @@ export async function executeAction(this: Mocha.Context, action: Action) {
       break;
     }
 
+    case "withdrawProsecutionReward": {
+      const { claimId } = args;
+
+      await withdrawProsecutionReward(
+        this,
+        signer,
+        claimId,
+        expected,
+        revertMessage,
+        timeTravel,
+        skipTokenCheck,
+      );
+
+      break;
+    }
+
     case "submitEvidence": {
       const { claimId, ipfsEvidenceCids, party } = args;
 
@@ -418,6 +436,23 @@ export async function executeAction(this: Mocha.Context, action: Action) {
       const { claimId, valueSent } = args;
 
       await disputeClaim(
+        this,
+        signer,
+        claimId,
+        valueSent,
+        expected,
+        revertMessage,
+        timeTravel,
+        skipTokenCheck,
+      );
+
+      break;
+    }
+
+    case "appeal": {
+      const { claimId, valueSent } = args;
+
+      await appeal(
         this,
         signer,
         claimId,

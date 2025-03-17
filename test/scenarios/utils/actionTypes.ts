@@ -37,8 +37,10 @@ export type Action =
   | ActionTakeInterests
   | ActionInitiateClaim
   | ActionWithdrawCompensation
+  | ActionWithdrawProsecutionReward
   | ActionSubmitEvidence
   | ActionDisputeClaim
+  | ActionAppeal
   | ActionRuleClaim
   | ActionOverruleRuling;
 
@@ -192,6 +194,13 @@ type ActionWithdrawCompensation = BaseAction & {
   };
 };
 
+type ActionWithdrawProsecutionReward = BaseAction & {
+  name: "withdrawProsecutionReward";
+  args: {
+    claimId: number;
+  };
+};
+
 type ActionSubmitEvidence = BaseAction & {
   name: "submitEvidence";
   args: {
@@ -203,6 +212,14 @@ type ActionSubmitEvidence = BaseAction & {
 
 type ActionDisputeClaim = BaseAction & {
   name: "disputeClaim";
+  args: {
+    claimId: number;
+    valueSent?: string;
+  };
+};
+
+type ActionAppeal = BaseAction & {
+  name: "appeal";
   args: {
     claimId: number;
     valueSent?: string;

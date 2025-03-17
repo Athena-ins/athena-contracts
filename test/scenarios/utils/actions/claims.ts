@@ -17,6 +17,8 @@ import {
   calcExpectedClaimDataAfterDisputeClaim,
   calcExpectedClaimDataAfterRuleClaim,
   calcExpectedClaimDataAfterOverruleRuling,
+  calcExpectedClaimDataAfterAppeal,
+  calcExpectedClaimDataAfterWithdrawProsecutionReward,
   //
   calcExpectedCoverDataAfterSubmitEvidence,
   calcExpectedCoverDataAfterInitiateClaim,
@@ -24,6 +26,8 @@ import {
   calcExpectedCoverDataAfterDisputeClaim,
   calcExpectedCoverDataAfterRuleClaim,
   calcExpectedCoverDataAfterOverruleRuling,
+  calcExpectedCoverDataAfterAppeal,
+  calcExpectedCoverDataAfterWithdrawProsecutionReward,
   //
   calcExpectedPoolDataAfterSubmitEvidence,
   calcExpectedPoolDataAfterInitiateClaim,
@@ -31,6 +35,8 @@ import {
   calcExpectedPoolDataAfterDisputeClaim,
   calcExpectedPoolDataAfterRuleClaim,
   calcExpectedPoolDataAfterOverruleRuling,
+  calcExpectedPoolDataAfterAppeal,
+  calcExpectedPoolDataAfterWithdrawProsecutionReward,
 } from "../../../helpers/calculations";
 import { getTxCostAndTimestamp, getEntityData } from "./helpers";
 // Types
@@ -144,14 +150,14 @@ export async function initiateClaim(
     amountClaimed,
   );
 
-  const messageValue = valueSent
-    ? BigNumber.from(valueSent)
+  const [arbitrationCost, claimCollateral] = valueSent
+    ? [BigNumber.from(valueSent), BigNumber.from(0)]
     : await Promise.all([
         ClaimManager.claimCollateral(),
         ClaimManager.arbitrationCost(),
-      ]).then((prices) =>
-        prices.reduce((acc, el) => acc.add(el), BigNumber.from(0)),
-      );
+      ]);
+
+  const messageValue = arbitrationCost.add(claimCollateral);
 
   if (expectedResult === "success") {
     const coverDataBefore = await LiquidityManager.coverInfo(coverId).then(
@@ -197,6 +203,7 @@ export async function initiateClaim(
       poolDataBefore,
       user.address,
       messageValue,
+      claimCollateral,
       txTimestamp,
       timestamp,
     );
@@ -577,6 +584,172 @@ export async function overrule(
   } else if (expectedResult === "revert") {
     await expect(
       ClaimManager.connect(user).overrule(claimId, punish),
+    ).to.revertTransactionWith(revertMessage);
+  }
+}
+
+export async function appeal(
+  testEnv: TestEnv,
+  user: Wallet,
+  claimId: number,
+  valueSent: BigNumberish | undefined,
+  expectedResult: "success" | "revert",
+  revertMessage?: string,
+  timeTravel?: TimeTravelOptions,
+  skipTokenCheck?: boolean,
+) {
+  const { ClaimManager, LiquidityManager } = testEnv.contracts;
+
+  if (expectedResult === "success") {
+    const claimInfoBefore = await ClaimManager.claimInfo(claimId).then((data) =>
+      claimInfoFormat(data),
+    );
+
+    // Get appeal cost for this dispute
+    const messageValue = valueSent
+      ? BigNumber.from(valueSent)
+      : await ClaimManager.appealCost(claimInfoBefore.disputeId);
+
+    const coverDataBefore = await LiquidityManager.coverInfo(
+      claimInfoBefore.coverId,
+    ).then((data) => coverInfoFormat(data));
+
+    const poolDataBefore = await LiquidityManager.poolInfo(
+      coverDataBefore.poolId,
+    ).then((data) => poolInfoFormat(data));
+
+    const txResult = await postTxHandler(
+      ClaimManager.connect(user).appeal(claimId, {
+        value: messageValue,
+      }),
+    );
+
+    const { txTimestamp } = await getTxCostAndTimestamp(txResult);
+
+    if (timeTravel) {
+      await setNextBlockTimestamp(timeTravel);
+    }
+
+    const {
+      poolData: [poolDataAfter],
+      entityDatas: [coverDataAfter, claimDataAfter],
+      timestamp,
+    } = await getEntityData(
+      testEnv,
+      [claimInfoBefore.poolId],
+      [
+        { id: claimInfoBefore.coverId, type: "cover" },
+        { id: claimId, type: "claim" },
+      ],
+    );
+
+    const expectedClaimData = calcExpectedClaimDataAfterAppeal(
+      claimInfoBefore,
+      user.address,
+      txTimestamp,
+      timestamp,
+    );
+
+    const expectedPoolData = calcExpectedPoolDataAfterAppeal(
+      poolDataBefore,
+      poolDataAfter.strategyRewardIndex,
+      txTimestamp,
+      timestamp,
+    );
+
+    const expectedCoverData = calcExpectedCoverDataAfterAppeal(
+      coverDataBefore,
+      txTimestamp,
+      timestamp,
+    );
+
+    expectEqual(claimDataAfter, expectedClaimData);
+    expectEqual(poolDataAfter, expectedPoolData);
+    if (!skipTokenCheck) expectEqual(coverDataAfter, expectedCoverData);
+  } else if (expectedResult === "revert") {
+    await expect(
+      ClaimManager.connect(user).appeal(claimId, {
+        value: valueSent ? BigNumber.from(valueSent) : BigNumber.from(0),
+      }),
+    ).to.revertTransactionWith(revertMessage);
+  }
+}
+
+export async function withdrawProsecutionReward(
+  testEnv: TestEnv,
+  user: Wallet,
+  claimId: number,
+  expectedResult: "success" | "revert",
+  revertMessage?: string,
+  timeTravel?: TimeTravelOptions,
+  skipTokenCheck?: boolean,
+) {
+  const { ClaimManager } = testEnv.contracts;
+
+  if (expectedResult === "success") {
+    const claimInfoBefore = await ClaimManager.claimInfo(claimId).then((data) =>
+      claimInfoFormat(data),
+    );
+
+    const {
+      poolData: [poolDataBefore],
+      entityDatas: [coverDataBefore],
+    } = await getEntityData(
+      testEnv,
+      [claimInfoBefore.poolId],
+      [{ id: claimInfoBefore.coverId, type: "cover" }],
+    );
+
+    const txResult = await postTxHandler(
+      ClaimManager.connect(user).withdrawProsecutionReward(claimId),
+    );
+
+    const { txTimestamp } = await getTxCostAndTimestamp(txResult);
+
+    if (timeTravel) {
+      await setNextBlockTimestamp(timeTravel);
+    }
+
+    const {
+      poolData: [poolDataAfter],
+      entityDatas: [coverDataAfter, claimDataAfter],
+      timestamp,
+    } = await getEntityData(
+      testEnv,
+      [claimInfoBefore.poolId],
+      [
+        { id: claimInfoBefore.coverId, type: "cover" },
+        { id: claimId, type: "claim" },
+      ],
+    );
+
+    const expectedClaimData =
+      calcExpectedClaimDataAfterWithdrawProsecutionReward(
+        claimInfoBefore,
+        txTimestamp,
+        timestamp,
+      );
+
+    const expectedPoolData = calcExpectedPoolDataAfterWithdrawProsecutionReward(
+      poolDataBefore,
+      poolDataAfter.strategyRewardIndex,
+      txTimestamp,
+      timestamp,
+    );
+
+    const expectedCoverData =
+      calcExpectedCoverDataAfterWithdrawProsecutionReward(
+        coverDataBefore,
+        txTimestamp,
+        timestamp,
+      );
+
+    expectEqual(claimDataAfter, expectedClaimData);
+    expectEqual(poolDataAfter, expectedPoolData);
+    if (!skipTokenCheck) expectEqual(coverDataAfter, expectedCoverData);
+  } else if (expectedResult === "revert") {
+    await expect(
+      ClaimManager.connect(user).withdrawProsecutionReward(claimId),
     ).to.revertTransactionWith(revertMessage);
   }
 }

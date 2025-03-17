@@ -54,6 +54,7 @@ export function calcExpectedClaimDataAfterInitiateClaim(
   poolInfo: PoolInfoObject,
   claimant: string,
   deposit: BigNumber,
+  collateral: BigNumber,
   txTimestamp: number,
   timestamp: number,
 ): ClaimInfoObject {
@@ -68,6 +69,8 @@ export function calcExpectedClaimDataAfterInitiateClaim(
     amount: amountClaimedAmount,
     prosecutor: "0x0000000000000000000000000000000000000000",
     deposit,
+    collateral,
+    appeals: [],
     evidence: [],
     counterEvidence: [],
     metaEvidenceURI: metaEvidenceURI,
@@ -112,7 +115,7 @@ export function calcExpectedClaimDataAfterRuleClaim(
   let newStatus;
   switch (ruling) {
     case 0: // RefusedToArbitrate
-      newStatus = 5;
+      newStatus = 6;
       break;
     case 1: // PayClaimant
       newStatus = 7;
@@ -138,7 +141,7 @@ export function calcExpectedClaimDataAfterOverruleRuling(
 ): ClaimInfoObject {
   return {
     ...claimInfoBefore,
-    status: 4, // RejectedByOverrule
+    status: 5, // RejectedByOverrule
   };
 }
 
