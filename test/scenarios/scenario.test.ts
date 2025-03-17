@@ -12,8 +12,10 @@ import { arbitrationNegatives } from "./scenarios/arbitrationNegatives";
 //
 import { poolNegatives } from "./scenarios/poolNegatives";
 import { multiplePools } from "./scenarios/multiplePools";
+//
+import { Scenario } from "./utils/actionEngine";
 
-const scenarios = [
+const scenarios: Scenario[] = [
   allActions,
   liquidityProvision,
   liquidityNegatives,
