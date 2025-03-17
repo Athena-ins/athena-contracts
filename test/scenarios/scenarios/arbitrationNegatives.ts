@@ -29,7 +29,7 @@ export const arbitrationNegatives: Scenario = {
           name: "getTokens",
           args: {
             tokenSymbol: "USDC",
-            amount: 25_000,
+            amount: 35_000,
           },
           expected: "success",
         },
@@ -39,7 +39,7 @@ export const arbitrationNegatives: Scenario = {
           args: {
             spender: "LiquidityManager",
             tokenSymbol: "USDC",
-            amount: 25_000,
+            amount: 35_000,
           },
           expected: "success",
         },
@@ -47,7 +47,7 @@ export const arbitrationNegatives: Scenario = {
           userName: "user0",
           name: "openPosition",
           args: {
-            amount: 25_000,
+            amount: 35_000,
             tokenSymbol: "USDC",
             isWrapped: false,
             poolIds: [0],
@@ -447,7 +447,7 @@ export const arbitrationNegatives: Scenario = {
             ruling: "PayClaimant",
           },
           expected: "revert",
-          revertMessage: "ClaimNotInDispute",
+          revertMessage: "ClaimDoesNotExist",
         },
       ],
     },
@@ -796,6 +796,550 @@ export const arbitrationNegatives: Scenario = {
           },
           expected: "revert",
           revertMessage: "MustDepositArbitrationCost",
+        },
+      ],
+    },
+    {
+      description: "user1 opens cover 6 on pool 0 for appeal negatives",
+      actions: [
+        {
+          userName: "user1",
+          name: "getTokens",
+          args: {
+            tokenSymbol: "USDC",
+            amount: 500,
+          },
+          expected: "success",
+        },
+        {
+          userName: "user1",
+          name: "approveTokens",
+          args: {
+            spender: "LiquidityManager",
+            tokenSymbol: "USDC",
+            amount: 500,
+          },
+          expected: "success",
+        },
+        {
+          userName: "user1",
+          name: "openCover",
+          args: {
+            poolId: 0,
+            coverTokenSymbol: "USDC",
+            coverAmount: 2_000,
+            premiumTokenSymbol: "USDC",
+            premiumAmount: 500,
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "user1 creates claim 6 for cover 6",
+      actions: [
+        {
+          userName: "user1",
+          name: "initiateClaim",
+          args: {
+            coverId: 6,
+            tokenSymbol: "USDC",
+            amountClaimed: 2_000,
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "user1 fails to appeal undisputed claim 6",
+      actions: [
+        {
+          userName: "user1",
+          name: "appeal",
+          args: {
+            claimId: 6,
+          },
+          expected: "revert",
+          revertMessage: "WrongClaimStatus",
+        },
+      ],
+    },
+    {
+      description: "user2 disputes claim 6",
+      actions: [
+        {
+          userName: "user2",
+          name: "disputeClaim",
+          args: {
+            claimId: 6,
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "user1 fails to appeal unruled disputed claim 6",
+      actions: [
+        {
+          userName: "user1",
+          name: "appeal",
+          args: {
+            claimId: 6,
+          },
+          expected: "revert",
+          revertMessage: "WrongClaimStatus",
+        },
+      ],
+    },
+    {
+      description: "arbitrator rejects claim 6 (dispute 4)",
+      actions: [
+        {
+          userName: "deployer",
+          name: "rule",
+          args: {
+            disputeId: 4,
+            ruling: "RejectClaim",
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "user3 fails to appeal claim 6 as invalid party",
+      actions: [
+        {
+          userName: "user3",
+          name: "appeal",
+          args: {
+            claimId: 6,
+          },
+          expected: "revert",
+          revertMessage: "InvalidParty",
+        },
+      ],
+    },
+    {
+      description: "user2 fails to appeal a rejected claim 6",
+      actions: [
+        {
+          userName: "user2",
+          name: "appeal",
+          args: {
+            claimId: 6,
+          },
+          expected: "revert",
+          revertMessage: "InvalidParty",
+        },
+      ],
+    },
+    {
+      description: "user1 fails to appeal with insufficient deposit",
+      actions: [
+        {
+          userName: "user1",
+          name: "appeal",
+          args: {
+            claimId: 6,
+            valueSent: "100", // small amount
+          },
+          expected: "revert",
+          revertMessage: "InsufficientDeposit",
+        },
+      ],
+    },
+    {
+      description: "user1 appeals claim 6",
+      actions: [
+        {
+          userName: "user1",
+          name: "appeal",
+          args: {
+            claimId: 6,
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "user1 fails to appeal an already appealed claim 6",
+      actions: [
+        {
+          userName: "user1",
+          name: "appeal",
+          args: {
+            claimId: 6,
+          },
+          expected: "revert",
+          revertMessage: "WrongClaimStatus",
+        },
+      ],
+    },
+    {
+      description: "arbitrator rules in favor of the claimant on appeal",
+      actions: [
+        {
+          userName: "deployer",
+          name: "rule",
+          args: {
+            disputeId: 4,
+            ruling: "PayClaimant",
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description:
+        "user1 fails to withdraw compensation before overrule period",
+      actions: [
+        {
+          userName: "user1",
+          name: "withdrawCompensation",
+          args: {
+            claimId: 6,
+          },
+          expected: "revert",
+          revertMessage: "PeriodNotElapsed",
+        },
+      ],
+    },
+    {
+      description: "user1 successfully withdraws compensation after waiting",
+      actions: [
+        {
+          name: "wait",
+          timeTravel: {
+            days: 10, // Past overrule period
+          },
+        },
+        {
+          userName: "user1",
+          name: "withdrawCompensation",
+          args: {
+            claimId: 6,
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "user1 opens cover 7 in pool 0",
+      actions: [
+        {
+          userName: "user1",
+          name: "getTokens",
+          args: {
+            tokenSymbol: "USDC",
+            amount: 500,
+          },
+          expected: "success",
+        },
+        {
+          userName: "user1",
+          name: "approveTokens",
+          args: {
+            spender: "LiquidityManager",
+            tokenSymbol: "USDC",
+            amount: 500,
+          },
+          expected: "success",
+        },
+        {
+          userName: "user1",
+          name: "openCover",
+          args: {
+            poolId: 0,
+            coverTokenSymbol: "USDC",
+            coverAmount: 4_000,
+            premiumTokenSymbol: "USDC",
+            premiumAmount: 500,
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "user1 creates claim 7 for cover 7",
+      actions: [
+        {
+          userName: "user1",
+          name: "initiateClaim",
+          args: {
+            coverId: 7,
+            tokenSymbol: "USDC",
+            amountClaimed: 2_000,
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "user2 disputes claim 7",
+      actions: [
+        {
+          userName: "user2",
+          name: "disputeClaim",
+          args: {
+            claimId: 7,
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "arbitrator rejects claim 7 (dispute 5)",
+      actions: [
+        {
+          userName: "deployer",
+          name: "rule",
+          args: {
+            disputeId: 5,
+            ruling: "RejectClaim",
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description:
+        "user2 fails to withdraw prosecution reward during appeal period",
+      actions: [
+        {
+          userName: "user2",
+          name: "withdrawProsecutionReward",
+          args: {
+            claimId: 7,
+          },
+          expected: "revert",
+          revertMessage: "AppealPeriodOngoing",
+        },
+      ],
+    },
+    {
+      description: "user1 appeals claim 7",
+      actions: [
+        {
+          userName: "user1",
+          name: "appeal",
+          args: {
+            claimId: 7,
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "user2 fails to withdraw prosecution reward during appeal",
+      actions: [
+        {
+          userName: "user2",
+          name: "withdrawProsecutionReward",
+          args: {
+            claimId: 7,
+          },
+          expected: "revert",
+          revertMessage: "WrongClaimStatus",
+        },
+      ],
+    },
+    {
+      description: "arbitrator rules for the prosecution on appeal",
+      actions: [
+        {
+          userName: "deployer",
+          name: "rule",
+          args: {
+            disputeId: 5,
+            ruling: "RejectClaim",
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description:
+        "user3 withdraws prosecution reward to prosecutor as non-prosecutor",
+      actions: [
+        {
+          name: "wait",
+          timeTravel: {
+            days: 5, // Past appeal period
+          },
+        },
+        {
+          userName: "user3",
+          name: "withdrawProsecutionReward",
+          args: {
+            claimId: 7,
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "user2 fails to withdraw prosecution reward again",
+      actions: [
+        {
+          userName: "user2",
+          name: "withdrawProsecutionReward",
+          args: {
+            claimId: 7,
+          },
+          expected: "revert",
+          revertMessage: "WrongClaimStatus",
+        },
+      ],
+    },
+    {
+      description: "user1 opens cover 8 for overrule tests",
+      actions: [
+        {
+          userName: "user1",
+          name: "getTokens",
+          args: {
+            tokenSymbol: "USDC",
+            amount: 500,
+          },
+          expected: "success",
+        },
+        {
+          userName: "user1",
+          name: "approveTokens",
+          args: {
+            spender: "LiquidityManager",
+            tokenSymbol: "USDC",
+            amount: 500,
+          },
+          expected: "success",
+        },
+        {
+          userName: "user1",
+          name: "openCover",
+          args: {
+            poolId: 0,
+            coverTokenSymbol: "USDC",
+            coverAmount: 3_000,
+            premiumTokenSymbol: "USDC",
+            premiumAmount: 500,
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "user1 creates claim 8 for cover 8",
+      actions: [
+        {
+          userName: "user1",
+          name: "initiateClaim",
+          args: {
+            coverId: 8,
+            tokenSymbol: "USDC",
+            amountClaimed: 2_000,
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "user2 disputes claim 8",
+      actions: [
+        {
+          userName: "user2",
+          name: "disputeClaim",
+          args: {
+            claimId: 8,
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "arbitrator accepts claim 8 (dispute 6)",
+      actions: [
+        {
+          userName: "deployer",
+          name: "rule",
+          args: {
+            disputeId: 6,
+            ruling: "PayClaimant",
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "user2 appeals claim 8",
+      actions: [
+        {
+          userName: "user2",
+          name: "appeal",
+          args: {
+            claimId: 8,
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "arbitrator rules for the claimant on appeal",
+      actions: [
+        {
+          userName: "deployer",
+          name: "rule",
+          args: {
+            disputeId: 6,
+            ruling: "PayClaimant",
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "user1 fails to appeal claim 8 after appeal period ends",
+      actions: [
+        {
+          name: "wait",
+          timeTravel: {
+            days: 10, // Past appeal period
+          },
+        },
+        {
+          userName: "user1",
+          name: "appeal",
+          args: {
+            claimId: 8,
+          },
+          expected: "revert",
+          revertMessage: "AppealPeriodEnded",
+        },
+      ],
+    },
+    {
+      description: "user1 withdraws compensation after appeal period",
+      actions: [
+        {
+          userName: "user1",
+          name: "withdrawCompensation",
+          args: {
+            claimId: 8,
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "user1 fails to withdraw compensation again",
+      actions: [
+        {
+          userName: "user1",
+          name: "withdrawCompensation",
+          args: {
+            claimId: 8,
+          },
+          expected: "revert",
+          revertMessage: "WrongClaimStatus",
         },
       ],
     },

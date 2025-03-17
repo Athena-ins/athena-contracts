@@ -153,8 +153,8 @@ export async function initiateClaim(
   const [arbitrationCost, claimCollateral] = valueSent
     ? [BigNumber.from(valueSent), BigNumber.from(0)]
     : await Promise.all([
-        ClaimManager.claimCollateral(),
         ClaimManager.arbitrationCost(),
+        ClaimManager.claimCollateral(),
       ]);
 
   const messageValue = arbitrationCost.add(claimCollateral);
@@ -244,12 +244,13 @@ export async function withdrawCompensation(
   timeTravel?: TimeTravelOptions,
   skipTokenCheck?: boolean,
 ) {
-  const { ClaimManager } = testEnv.contracts;
+  const { ClaimManager, LiquidityManager } = testEnv.contracts;
 
   if (expectedResult === "success") {
-    const claimInfoBefore = await ClaimManager.claimInfo(claimId).then((data) =>
-      claimInfoFormat(data),
-    );
+    const [claimInfoBefore, nextCompensationId] = await Promise.all([
+      ClaimManager.claimInfo(claimId).then((data) => claimInfoFormat(data)),
+      LiquidityManager.nextCompensationId().then((id) => id.toNumber()),
+    ]);
 
     const {
       poolData: [poolDataBefore],
@@ -291,7 +292,7 @@ export async function withdrawCompensation(
 
     const expectedPoolData = calcExpectedPoolDataAfterWithdrawCompensation(
       claimInfoBefore.amount,
-      claimId,
+      nextCompensationId,
       poolDataBefore,
       coverDataBefore,
       poolDataAfter.strategyRewardIndex,
