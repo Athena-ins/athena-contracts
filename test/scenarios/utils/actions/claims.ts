@@ -645,7 +645,6 @@ export async function appeal(
 
     const expectedClaimData = calcExpectedClaimDataAfterAppeal(
       claimInfoBefore,
-      user.address,
       txTimestamp,
       timestamp,
     );

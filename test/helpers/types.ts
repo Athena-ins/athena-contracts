@@ -72,11 +72,6 @@ export type CoverInfoObject = {
   lastTick: number;
 };
 
-export type AppealDataObject = {
-  appealTimestamp: number;
-  appellant: string;
-};
-
 export type ClaimInfoObject = {
   claimant: string;
   coverId: number;
@@ -93,7 +88,7 @@ export type ClaimInfoObject = {
   counterEvidence: string[];
   metaEvidenceURI: string;
   rulingTimestamp: number;
-  appeals: AppealDataObject[];
+  appeals: number[];
 };
 
 export type PoolInfo =

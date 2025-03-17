@@ -147,20 +147,13 @@ export function calcExpectedClaimDataAfterOverruleRuling(
 
 export function calcExpectedClaimDataAfterAppeal(
   claimInfoBefore: ClaimInfoObject,
-  appellant: string,
   txTimestamp: number,
   timestamp: number,
 ): ClaimInfoObject {
   return {
     ...claimInfoBefore,
     status: 4, // Appealed
-    appeals: [
-      ...(claimInfoBefore.appeals || []),
-      {
-        appealTimestamp: txTimestamp,
-        appellant: appellant,
-      },
-    ],
+    appeals: [...(claimInfoBefore.appeals || []), txTimestamp],
   };
 }
 

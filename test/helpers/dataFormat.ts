@@ -119,9 +119,6 @@ export function claimInfoFormat(
     counterEvidence: data.counterEvidence,
     metaEvidenceURI: data.metaEvidenceURI,
     rulingTimestamp: data.rulingTimestamp.toNumber(),
-    appeals: data.appeals.map((val) => ({
-      appealTimestamp: val.appealTimestamp.toNumber(),
-      appellant: val.appellant,
-    })),
+    appeals: data.appeals.map((val) => val.toNumber()),
   };
 }

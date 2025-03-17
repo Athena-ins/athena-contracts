@@ -394,7 +394,7 @@ export function calcExpectedPoolDataAfterInitiateClaim(
 
 export function calcExpectedPoolDataAfterWithdrawCompensation(
   claimAmount: BigNumber,
-  claimId: number,
+  compensationId: number,
   poolDataBefore: PoolInfoObject,
   tokenDataBefore: CoverInfoObject,
   strategyRewardIndex: BigNumber,
@@ -407,7 +407,7 @@ export function calcExpectedPoolDataAfterWithdrawCompensation(
   expect.strategyRewardIndex = strategyRewardIndex;
 
   expect.ongoingClaims--;
-  expect.compensationIds = [...pool.compensationIds, claimId];
+  expect.compensationIds = [...pool.compensationIds, compensationId];
 
   const shouldCloseCover =
     claimAmount.eq(tokenDataBefore.coverAmount) ||
