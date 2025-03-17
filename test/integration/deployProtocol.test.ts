@@ -248,6 +248,7 @@ export function DeployProtocolTest() {
         await deployAthenaArbitrator(this.signers.deployer, [
           this.args.deployedAt.ClaimManager,
           this.protocolConfig.arbitrationCost,
+          this.protocolConfig.appealCost,
         ]).then((contract) =>
           postDeployCheck(contract, this.args.deployedAt.AthenaArbitrator),
         );

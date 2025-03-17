@@ -295,6 +295,7 @@ export async function deployAllContractsAndInitializeProtocolCore(
       deployAthenaArbitrator(deployer, [
         deployedAt.ClaimManager,
         config.arbitrationCost,
+        config.appealCost,
       ]),
     );
     txCount++;

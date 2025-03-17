@@ -377,6 +377,7 @@ export async function deployAllContractsAndInitializeProtocolMorpho(
       deployAthenaArbitrator(deployer, [
         deployedAt.ClaimManager,
         config.arbitrationCost,
+        config.appealCost,
       ]),
     );
     txCount++;
@@ -470,7 +471,7 @@ export async function deployAllContractsAndInitializeProtocolMorpho(
     deployedAt.AthenaDataProvider || ADDRESS_ZERO,
     deployer,
   );
-  const WrappedTokenGateway = await WrappedTokenGateway__factory.connect(
+  const WrappedTokenGateway = WrappedTokenGateway__factory.connect(
     deployedAt.WrappedTokenGateway || ADDRESS_ZERO,
     deployer,
   );

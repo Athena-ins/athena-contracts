@@ -319,6 +319,7 @@ export async function deployAllContractsAndInitializeProtocolVL(
       deployAthenaArbitrator(deployer, [
         deployedAt.ClaimManager,
         config.arbitrationCost,
+        config.appealCost,
       ]),
     );
     txCount++;

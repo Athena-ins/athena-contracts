@@ -348,6 +348,7 @@ export type ProtocolConfig = {
   baseMetaEvidenceURI: string;
   claimCollateral: BigNumber;
   arbitrationCost: BigNumber; // in ETH for centralized AthenaArbitrator
+  appealCost: BigNumber; // in ETH for centralized AthenaArbitrator
   evidenceGuardian: Wallet;
   buybackWallet: Wallet;
   treasuryWallet: Wallet;
@@ -632,6 +633,7 @@ export async function deployAllContractsAndInitializeProtocol(
       deployAthenaArbitrator(deployer, [
         deployedAt.ClaimManager,
         config.arbitrationCost,
+        config.appealCost,
       ]),
     );
     txCount++;

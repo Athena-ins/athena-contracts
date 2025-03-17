@@ -98,6 +98,7 @@ const defaultProtocolConfig: ProtocolConfig = {
   baseMetaEvidenceURI: "https://api.athenains.io/metaevidence",
   claimCollateral: parseEther("0.0002"), // in ETH
   arbitrationCost: parseEther("0.00012"), // in ETH
+  appealCost: parseEther("0.00024"), // in ETH
   //==== Rewards Manager Config ====//
   farmingBlockStart: 0, // leave 0 for dynamic
   yieldBonuses: [
@@ -130,6 +131,7 @@ const deployParams: {
     evidenceUploadPeriod: 2 * DAY_SECONDS,
     claimCollateral: parseEther("0.0002"),
     arbitrationCost: parseEther("0.00012"), // in ETH for centralized AthenaArbitrator
+    appealCost: parseEther("0.00024"), // in ETH
     evidenceGuardian: evidenceGuardianWallet(),
     baseMetaEvidenceURI: "https://api.athenains.io/metaevidence",
     //
@@ -169,6 +171,7 @@ const deployParams: {
     evidenceUploadPeriod: 2 * DAY_SECONDS,
     claimCollateral: parseEther("0.0002"),
     arbitrationCost: parseEther("0.00012"), // in ETH for centralized AthenaArbitrator
+    appealCost: parseEther("0.00024"), // in ETH
     evidenceGuardian: evidenceGuardianWallet(),
     baseMetaEvidenceURI: "https://api.athenains.io/metaevidence",
     //

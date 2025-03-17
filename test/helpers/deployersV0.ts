@@ -37,6 +37,7 @@ import {
   // Other
   TetherToken__factory,
   VirtualPool__factory,
+  WrappedTokenGateway__factory,
 } from "../../typechain";
 import {
   deployAthenaArbitrator,
@@ -51,6 +52,7 @@ import {
   deployRewardManager,
   deployStrategyManager,
   deployVirtualPool,
+  deployWrappedTokenGateway,
 } from "./deployers";
 // Types
 import { Wallet } from "ethers";
@@ -277,6 +279,25 @@ export async function deployAllContractsAndInitializeProtocolV0(
       deployAthenaArbitrator(deployer, [
         deployedAt.ClaimManager,
         config.arbitrationCost,
+        config.appealCost,
+      ]),
+    );
+    txCount++;
+  }
+
+  // ======= MISC ======= //
+
+  if (deploymentOrder[txCount] === "WrappedTokenGateway") {
+    if (!config.wstETH)
+      throw Error("Missing Lido wrapped staked ETH addresses");
+
+    deployExecutors.push(async () =>
+      deployWrappedTokenGateway(deployer, [
+        wethAddress, // weth
+        config.wstETH as string, // wsteth
+        deployedAt.LiquidityManager, // liquidityManager
+        deployedAt.AthenaPositionToken, // positionToken
+        deployedAt.AthenaCoverToken, // coverToken
       ]),
     );
     txCount++;
@@ -352,6 +373,10 @@ export async function deployAllContractsAndInitializeProtocolV0(
     deployedAt.AthenaDataProvider || ADDRESS_ZERO,
     deployer,
   );
+  const WrappedTokenGateway = WrappedTokenGateway__factory.connect(
+    deployedAt.WrappedTokenGateway || ADDRESS_ZERO,
+    deployer,
+  );
 
   const contracts = {
     TetherToken,
@@ -371,6 +396,7 @@ export async function deployAllContractsAndInitializeProtocolV0(
     PoolMath,
     VirtualPool,
     AthenaDataProvider,
+    WrappedTokenGateway,
   };
 
   if (logAddresses) {
