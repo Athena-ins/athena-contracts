@@ -392,7 +392,7 @@ export async function getTokens(
   }
 
   /// @dev for Core the token is lower in value
-  const amountIn = chainId === 1116 ? parseEther("10000") : parseEther("500");
+  const amountIn = chainId === 1116 ? parseEther("10000") : parseEther("300");
 
   await postTxHandler(weth.approve(routerAddress, amountIn));
 
@@ -434,7 +434,7 @@ export async function getTokens(
     recipient: to,
     deadline: 9999999999,
     amountOut: amount,
-    amountInMaximum: parseEther("500"),
+    amountInMaximum: amountIn,
     sqrtPriceLimitX96: 0,
   };
 
