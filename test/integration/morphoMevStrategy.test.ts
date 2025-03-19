@@ -295,7 +295,7 @@ export function EthereumStrategyTest() {
         ).to.not.throw;
 
         const claim =
-          await this.customEnv.contracts.ClaimManager.claims(claimId);
+          await this.customEnv.contracts.ClaimManager.claimInfo(claimId);
         expect(claim.status).to.equal(0);
         expect(claim.amount).to.equal(this.args.claimAmount);
 
@@ -517,7 +517,7 @@ export function EthereumStrategyTest() {
         ).to.not.throw;
 
         const claim =
-          await this.customEnv.contracts.ClaimManager.claims(claimId);
+          await this.customEnv.contracts.ClaimManager.claimInfo(claimId);
         expect(claim.status).to.equal(0);
         expect(claim.amount).to.equal(this.args.claimAmount);
 

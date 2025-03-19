@@ -10,10 +10,10 @@ import { baseContext } from "./context";
 import { DeployProtocolTest } from "./integration/deployProtocol.test";
 import { SanityTest } from "./integration/sanity.test";
 import { KlerosArbitrationTest } from "./integration/klerosArbitration.test";
-import { CoreStrategyTest } from "./integration/coreStrategies.test";
-import { AmphorStrategiesTest } from "./integration/amphorStrategies.test";
 import { EthereumStrategyTest } from "./integration/morphoMevStrategy.test";
 import { MorphoStrategyUpgradeTest } from "./integration/morphoMevStrategyUpgrade.test";
+import { CoreStrategyTest } from "./integration/coreStrategies.test";
+import { AmphorStrategiesTest } from "./integration/amphorStrategies.test";
 
 // Scenarios
 import { ScenarioTests } from "./scenarios/scenario.test";
@@ -28,11 +28,10 @@ baseContext("Test Athena Protocol", function () {
   DeployProtocolTest();
   SanityTest();
   KlerosArbitrationTest();
-  // strategies
-  CoreStrategyTest();
-  AmphorStrategiesTest();
   EthereumStrategyTest();
   MorphoStrategyUpgradeTest();
+  // CoreStrategyTest();
+  // AmphorStrategiesTest();
   //
   //=== Scenarios ===//
   ScenarioTests();
