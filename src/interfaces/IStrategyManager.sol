@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.25;
 
+import { ILiquidityManager } from "./ILiquidityManager.sol";
+import { IEcclesiaDao } from "./IEcclesiaDao.sol";
+
 interface IStrategyManager {
   function getRewardIndex(
     uint256 strategyId
@@ -14,6 +17,10 @@ interface IStrategyManager {
     uint256 strategyId_
   ) external view returns (address);
 
+  function wrappedAsset(
+    uint256 strategyId_
+  ) external view returns (address);
+
   function assets(
     uint256 strategyId_
   ) external view returns (address underlying, address wrapped);
@@ -21,6 +28,11 @@ interface IStrategyManager {
   function wrappedToUnderlying(
     uint256 strategyId_,
     uint256 amountWrapped_
+  ) external view returns (uint256);
+
+  function underlyingToWrapped(
+    uint256 strategyId_,
+    uint256 amountUnderlying_
   ) external view returns (uint256);
 
   function depositToStrategy(
@@ -62,4 +74,24 @@ interface IStrategyManager {
   function itCompounds(
     uint256 strategyId_
   ) external pure returns (bool);
+
+  function updateAddressList(
+    ILiquidityManager liquidityManager_,
+    IEcclesiaDao ecclesiaDao_,
+    address buybackWallet_
+  ) external;
+
+  function updateStrategyFeeRate(
+    uint256 rate_ // in rays
+  ) external;
+
+  function updatePayoutDeductibleRate(
+    uint256 rate_ // in rays
+  ) external;
+
+  function rescueTokens(
+    address token,
+    address to,
+    uint256 amount
+  ) external;
 }

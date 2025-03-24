@@ -80,6 +80,8 @@ interface ILiquidityManager {
   // View Functions
   function strategyManager() external view returns (IStrategyManager);
 
+  function yieldRewarder() external view returns (address);
+
   function coverToPool(
     uint256 coverId
   ) external view returns (uint64);
