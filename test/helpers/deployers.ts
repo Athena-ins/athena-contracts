@@ -450,7 +450,7 @@ export async function deployAllContractsAndInitializeProtocol(
   await Promise.all(
     deploymentOrder.map((name, i) =>
       genContractAddress(deployer, i).then((address: string) => {
-        deployedAt[name] = address;
+        if (name !== "_approve") deployedAt[name] = address;
       }),
     ),
   );

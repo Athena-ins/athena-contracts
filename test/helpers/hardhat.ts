@@ -104,10 +104,6 @@ export async function getCurrentBlockNumber() {
   return (await ethers.provider.getBlock("latest")).number;
 }
 
-export async function getTxCount(address: string): Promise<number> {
-  return ethers.provider.getTransactionCount(address);
-}
-
 export function entityProviderChainId(
   entity: Signer | BaseContract,
 ): Promise<number> {
@@ -228,31 +224,13 @@ export async function genContractAddress(
 ): Promise<string> {
   const [fromUnsigned, nonce] =
     typeof signer === "string"
-      ? [signer, await getTxCount(signer)]
+      ? [signer, await ethers.provider.getTransactionCount(signer)]
       : [signer.address, await signer.getTransactionCount()];
 
-  const formatedNonce = formatNonce(nonce + nonceAdd);
-
-  // Handle the special case for nonce 0
-  if (formatedNonce === "00") {
-    return `0x${keccak256(`0xd694${fromUnsigned.slice(2)}80`).slice(-40)}`;
-  }
-
-  let nonceLength = "";
-  if (parseInt(nonce.toString(), 16) > 127) {
-    nonceLength = (128 + formatedNonce.length / 2).toString(16);
-  }
-
-  let totalLength = (
-    192 + // base value of 0xc0
-    21 + // nb bytes for address length + address
-    nonceLength.length / 2 +
-    formatedNonce.length / 2
-  ).toString(16);
-
-  return `0x${keccak256(
-    `0x${totalLength}94${fromUnsigned.slice(2)}${nonceLength}${formatedNonce}`,
-  ).slice(-40)}`;
+  return utils.getContractAddress({
+    from: fromUnsigned,
+    nonce: nonce + nonceAdd,
+  });
 }
 
 export function genCreate2Address(
