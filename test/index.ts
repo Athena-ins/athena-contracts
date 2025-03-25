@@ -21,6 +21,7 @@ import { ScenarioTests } from "./scenarios/scenario.test";
 // Unit test suites
 import { WrappedTokenGatewayTest } from "./unit/WrappedTokenGateway.test";
 import { PoolManagerTest } from "./unit/PoolManager.test";
+import { ClaimManagerTest } from "./unit/ClaimManager.test";
 
 baseContext("Test Athena Protocol", function () {
   //=== Integration tests ===//
@@ -39,4 +40,5 @@ baseContext("Test Athena Protocol", function () {
   //=== Unit tests ===//
   PoolManagerTest();
   WrappedTokenGatewayTest();
+  ClaimManagerTest();
 });
