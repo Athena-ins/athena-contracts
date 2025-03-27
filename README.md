@@ -57,6 +57,22 @@ Before deploying make sure to have `> 90% coverage`
 npx hardhat coverage
 ```
 
+# Security Analysis
+
+To generate a security report with [Slither](https://github.com/crytic/slither):
+
+```bash
+npm run audit:slither
+```
+
+**Note:** Before running this command, temporarily remove the `src/dependencies` directory due to compatibility issues with older Solidity versions used by Kleros:
+
+```bash
+mv src/dependencies src/dependencies_temp  # Before analysis
+npm run audit:slither
+mv src/dependencies_temp src/dependencies  # After analysis
+```
+
 # Deploy
 
 Before deploying the protocol you must set your configuration for the protocol in the `scripts/verificationData/deployParams.ts` file.
