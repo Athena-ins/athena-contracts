@@ -8,6 +8,7 @@
   "scripts": {
     "compile": "npx hardhat compile",
     "test": "npx hardhat test ./test/index.ts --network hardhat",
+    "audit:slither": "slither . --checklist > ./audit/slither/report.md",
     "prettier:check": "prettier -c --plugin=prettier-plugin-solidity .",
     "prettier:write": "prettier -w --plugin=prettier-plugin-solidity .",
     "deploy:fork": "npx hardhat run scripts/deploy.ts --network hardhat",

@@ -819,15 +819,15 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
     );
     if (msg.value < appealFee) revert InsufficientDeposit();
 
-    // Create the appeal with Kleros
-    arbitrator.appeal{ value: appealFee }(disputeId, klerosExtraData);
-
     // Create and store appeal data
     claim.appeals.push(uint64(block.timestamp));
     // Update the prosecutor if it is not the claimant appealing
     if (!isClaimant) claim.prosecutor = msg.sender;
     // Update claim status & timestamp
     claim.status = ClaimStatus.Appealed;
+
+    // Create the appeal with Kleros
+    arbitrator.appeal{ value: appealFee }(disputeId, klerosExtraData);
 
     emit RulingAppealed({
       prosecutor: claim.prosecutor,
