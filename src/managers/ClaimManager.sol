@@ -42,70 +42,6 @@ error CannotChallengeYourOwnClaim();
 contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
   using Strings for uint256;
 
-  // ======= MODELS ======= //
-
-  // @dev the 'Accepted' status is virtual as it is never written to the blockchain
-  // It enables view functions to display the adequate state of the claim
-  enum ClaimStatus {
-    Initiated,
-    Accepted, // Virtual status
-    Compensated,
-    // Statuses below are only used when a claim is disputed
-    Disputed,
-    Appealed,
-    RejectedByOverrule,
-    RejectedByCourtDecision,
-    AcceptedByCourtDecision,
-    CompensatedAfterDispute,
-    ProsecutorPaid
-  }
-
-  /// @dev The neutral "refuse to arbitrate" option MUST ALWAYS be 0
-  enum RulingOptions {
-    RefusedToArbitrate,
-    PayClaimant,
-    RejectClaim
-  }
-
-  struct ClaimRead {
-    uint256 claimId;
-    address claimant;
-    string[] evidence;
-    string[] counterEvidence;
-    uint256[] relatedClaimIds;
-    uint64 poolId;
-    uint256 coverAmount;
-    bool isCoverActive;
-    //
-    uint64 createdAt;
-    uint64 rulingTimestamp;
-    uint64 challengedTimestamp;
-    ClaimStatus status;
-    uint256 coverId;
-    uint256 disputeId;
-    string metaEvidenceURI;
-    uint256 amount;
-    address prosecutor;
-    uint256 deposit;
-    uint256 collateral;
-    uint64[] appeals;
-  }
-
-  struct Claim {
-    uint64 createdAt;
-    uint64 rulingTimestamp;
-    uint64 challengedTimestamp;
-    ClaimStatus status;
-    uint256 coverId;
-    uint256 disputeId;
-    uint256 amount;
-    address claimant;
-    address prosecutor;
-    uint256 deposit;
-    uint256 collateral;
-    uint64[] appeals;
-  }
-
   // ======= STORAGE ======= //
 
   string public baseMetaEvidenceURI;
@@ -116,7 +52,6 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
   IArbitrator public arbitrator;
 
   address public evidenceGuardian;
-  address public overruleGuardian;
 
   uint256 public nextClaimId;
   // Maps a claim ID to a claim's data
@@ -129,9 +64,9 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
     public disputeIdToClaimId;
 
   // Maps a claim ID to its submited evidence
-  mapping(uint256 _claimId => string[] _cids)
+  mapping(uint256 _claimId => string[] _URIs)
     public claimIdToEvidence;
-  mapping(uint256 _claimId => string[] _cids)
+  mapping(uint256 _claimId => string[] _URIs)
     public claimIdToCounterEvidence;
 
   uint256 public claimCollateral;
@@ -175,33 +110,6 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
     );
     setKlerosConfiguration(arbitrator_, subcourtId_, nbOfJurors_);
   }
-
-  // ======= EVENTS ======= //
-
-  // Emitted upon claim creation
-  event ClaimCreated(
-    address indexed claimant,
-    uint256 indexed coverId,
-    uint256 claimId
-  );
-
-  // Emit when a dispute is resolved
-  event DisputeResolved(
-    uint256 indexed ruling,
-    uint256 indexed claimId,
-    uint256 disputeId
-  );
-
-  // Emitted when a claim is appealed
-  event RulingAppealed(
-    address indexed prosecutor,
-    uint256 indexed claimId,
-    uint256 disputeId,
-    bool isClaimant
-  );
-
-  // Emitted when the prosecutor claims the collateral
-  event ProsecutorPaid(uint256 claimId, uint256 amount);
 
   // ======= MODIFIERS ======= //
 
@@ -417,7 +325,7 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
   /**
    * @notice Returns the evidence submitted by claimant for a claim.
    * @param claimId_ The claim ID
-   * @return _ The evidence CIDs
+   * @return _ The evidence URIs
    */
   function getClaimEvidence(
     uint256 claimId_
@@ -428,7 +336,7 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
   /**
    * @notice Returns the counter-evidence submitted by prosecutor or Athena for a claim.
    * @param claimId_ The claim ID
-   * @return _ The counter-evidence CIDs
+   * @return _ The counter-evidence URIs
    */
   function getClaimCounterEvidence(
     uint256 claimId_
@@ -468,9 +376,9 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
 
   /**
    * @notice
-   * Adds evidence IPFS CIDs for a claim.
+   * Adds evidence URIs for a claim.
    * @param claimId_ The claim ID
-   * @param ipfsEvidenceCids_ The IPFS CIDs of the evidence
+   * @param ipfsEvidenceCids_ The URIs of the evidence
    */
   function submitEvidenceForClaim(
     uint256 claimId_,
