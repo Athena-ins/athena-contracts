@@ -279,12 +279,24 @@ export async function getConnectedProtocolContracts(
   if (version === "lisk") stratManagerGetter = getStrategyManagerVL;
   if (version === "core") stratManagerGetter = getStrategyManagerCore;
 
+  const addressPoolManager = addresses.PoolManager || constants.AddressZero;
+  const addressProxyStrategyManager =
+    addresses.ProxyStrategyManager || constants.AddressZero;
+  const addressKlerosLiquid = addresses.KlerosLiquid || constants.AddressZero;
+  const addressAthenaMultisig =
+    addresses.AthenaMultisig || constants.AddressZero;
+  const addressProtocolManager =
+    addresses.ProtocolManager || constants.AddressZero;
+  const addressGnosisSafeWallet =
+    addresses.GnosisSafeWallet || constants.AddressZero;
+
   const [
+    StrategyManager,
+    //
     EcclesiaDao,
     AthenaArbitrator,
     ClaimManager,
     LiquidityManager,
-    StrategyManager,
     FarmingRange,
     RewardManager,
     Staking,
@@ -298,6 +310,7 @@ export async function getConnectedProtocolContracts(
     CircleToken,
     WethToken,
     WrappedTokenGateway,
+    //
     PoolManager,
     ProxyStrategyManager,
     KlerosLiquid,
@@ -305,11 +318,12 @@ export async function getConnectedProtocolContracts(
     ProtocolManager,
     GnosisSafeWallet,
   ] = await Promise.all([
+    stratManagerGetter(addresses.StrategyManager),
+    //
     getEcclesiaDao(addresses.EcclesiaDao),
     getAthenaArbitrator(addresses.AthenaArbitrator),
     getClaimManager(addresses.ClaimManager),
     getLiquidityManager(addresses.LiquidityManager),
-    stratManagerGetter(addresses.StrategyManager),
     getFarmingRange(addresses.FarmingRange),
     getRewardManager(addresses.RewardManager),
     getStaking(addresses.Staking),
@@ -323,14 +337,13 @@ export async function getConnectedProtocolContracts(
     getERC20(addresses.CircleToken),
     getWETH(addresses.WethToken),
     getWrappedTokenGateway(addresses.WrappedTokenGateway),
-    getPoolManager(addresses.PoolManager || constants.AddressZero),
-    getProxyStrategyManager(
-      addresses.ProxyStrategyManager || addresses.StrategyManager,
-    ),
-    getKlerosLiquid(addresses.KlerosLiquid || constants.AddressZero),
-    getAthenaMultisig(addresses.AthenaMultisig || constants.AddressZero),
-    getProtocolManager(addresses.ProtocolManager || constants.AddressZero),
-    getGnosisSafeWallet(addresses.ProtocolManager || constants.AddressZero),
+    //
+    getPoolManager(addressPoolManager),
+    getProxyStrategyManager(addressProxyStrategyManager),
+    getKlerosLiquid(addressKlerosLiquid),
+    getAthenaMultisig(addressAthenaMultisig),
+    getProtocolManager(addressProtocolManager),
+    getGnosisSafeWallet(addressGnosisSafeWallet),
   ]);
 
   return {
@@ -355,6 +368,7 @@ export async function getConnectedProtocolContracts(
     WrappedTokenGateway,
     ProxyStrategyManager,
     AthenaMultisig,
+    PoolManager,
     ProtocolManager,
     GnosisSafeWallet,
   };
