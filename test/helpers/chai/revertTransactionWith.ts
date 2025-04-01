@@ -30,6 +30,13 @@ export async function getCustomError(
       return stringError.slice(start, end);
     }
 
+    if (stringError.includes("return data:")) {
+      const match = stringError.match(/return data: (0x[0-9a-fA-F]+)/);
+      if (match && match[1]) {
+        return match[1];
+      }
+    }
+
     if (allowRevertWithoutReason) {
       return "Transaction reverted without a reason string";
     }
