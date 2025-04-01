@@ -188,11 +188,9 @@ export function ProtocolManagerTest() {
       const poolInfos =
         await this.customEnv.contracts.LiquidityManager.poolInfos(poolIds);
       for (let i = 0; i < poolCount; i++) {
-        console.log("i: ", i);
         expect(poolInfos[i].isPaused).to.be.true;
       }
 
-      console.log(": ");
       // Unpause pools
       expect(
         await postTxHandler(
@@ -200,16 +198,12 @@ export function ProtocolManagerTest() {
         ),
       ).to.not.throw;
 
-      console.log(": ");
       // Verify pools are unpaused
       for (let i = 0; i < poolCount; i++) {
-        console.log("i: ", i);
         const poolInfo =
           await this.customEnv.contracts.LiquidityManager.poolInfo(i);
         expect(poolInfo.isPaused).to.be.false;
       }
-
-      console.log(": ");
     });
 
     it("batch updates pool config", async function (this: Arguments) {
@@ -262,13 +256,6 @@ export function ProtocolManagerTest() {
           originalConfigs[i].feeRate.add(ethers.utils.parseUnits("0.01", 18)),
         );
       }
-
-      // Restore original configurations
-      expect(
-        await postTxHandler(
-          this.customEnv.ProtocolManager.batchUpdatePoolConfig(originalConfigs),
-        ),
-      ).to.not.throw;
     });
 
     it("updates LiquidityManager config", async function (this: Arguments) {
@@ -313,17 +300,6 @@ export function ProtocolManagerTest() {
       expect(updatedWithdrawDelay).to.equal(newWithdrawDelay);
       expect(updatedMaxLeverage).to.equal(newMaxLeverage);
       expect(updatedLeverageFeePerPool).to.equal(newLeverageFeePerPool);
-
-      // Restore original config
-      expect(
-        await postTxHandler(
-          this.customEnv.ProtocolManager.updateLiquidityManagerConfig(
-            originalWithdrawDelay,
-            originalMaxLeverage,
-            originalLeverageFeePerPool,
-          ),
-        ),
-      ).to.not.throw;
     });
 
     it("updates StrategyManager configs", async function (this: Arguments) {
@@ -366,16 +342,6 @@ export function ProtocolManagerTest() {
       expect(
         await this.customEnv.contracts.StrategyManager.payoutDeductibleRate(),
       ).to.equal(newDeductibleRate);
-
-      // Restore original values
-      await postTxHandler(
-        this.customEnv.ProtocolManager.updateStrategyFeeRate(originalFeeRate),
-      );
-      await postTxHandler(
-        this.customEnv.ProtocolManager.updatePayoutDeductibleRate(
-          originalDeductibleRate,
-        ),
-      );
     });
 
     it("updates ClaimManager periods", async function (this: Arguments) {
@@ -415,15 +381,6 @@ export function ProtocolManagerTest() {
       expect(
         await this.customEnv.contracts.ClaimManager.evidenceUploadPeriod(),
       ).to.equal(newEvidenceUploadPeriod);
-
-      // Restore original values
-      await postTxHandler(
-        this.customEnv.ProtocolManager.setPeriods(
-          originalChallengePeriod,
-          originalOverrulePeriod,
-          originalEvidenceUploadPeriod,
-        ),
-      );
     });
 
     it("sets address updates with setAddresses", async function (this: Arguments) {
@@ -462,27 +419,13 @@ export function ProtocolManagerTest() {
       ).to.equal(
         this.customEnv.contracts.AthenaPositionToken.address.toLowerCase(),
       );
-
-      // Restore original values
-      await postTxHandler(
-        this.customEnv.ProtocolManager.setAddresses(
-          ethers.constants.AddressZero, // positionToken
-          ethers.constants.AddressZero, // coverToken
-          ethers.constants.AddressZero, // liquidityManager
-          ethers.constants.AddressZero, // strategyManager
-          ethers.constants.AddressZero, // claimManager
-          ethers.constants.AddressZero, // ecclesiaDao
-          originalYieldRewarder, // yieldRewarder
-          ethers.constants.AddressZero, // buybackWallet
-          ethers.constants.AddressZero, // evidenceGuardian
-        ),
-      );
     });
 
     it("can freeze and unfreeze the protocol", async function (this: Arguments) {
       // Get original frozen state
-      const originalIsFrozen =
-        await this.customEnv.contracts.LiquidityManager.isFrozen();
+      expect(
+        this.customEnv.contracts.LiquidityManager.openPosition(0, false, [0]),
+      ).to.revertTransactionWith("0x701c25de");
 
       // Freeze protocol
       expect(
@@ -492,8 +435,9 @@ export function ProtocolManagerTest() {
       ).to.not.throw;
 
       // Verify protocol is frozen
-      expect(await this.customEnv.contracts.LiquidityManager.isFrozen()).to.be
-        .true;
+      expect(
+        this.customEnv.contracts.LiquidityManager.openPosition(0, false, [0]),
+      ).to.revertTransactionWith("ProtocolIsFrozen");
 
       // Unfreeze protocol
       expect(
@@ -503,15 +447,9 @@ export function ProtocolManagerTest() {
       ).to.not.throw;
 
       // Verify protocol is unfrozen
-      expect(await this.customEnv.contracts.LiquidityManager.isFrozen()).to.be
-        .false;
-
-      // Restore original state if needed
-      if (originalIsFrozen) {
-        await postTxHandler(
-          this.customEnv.ProtocolManager.freezeProtocol(true),
-        );
-      }
+      expect(
+        this.customEnv.contracts.LiquidityManager.openPosition(0, false, [0]),
+      ).to.revertTransactionWith("0x701c25de");
     });
 
     it("allows transferring ownership of multiple contracts at once", async function (this: Arguments) {
