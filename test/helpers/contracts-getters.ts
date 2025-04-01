@@ -46,6 +46,12 @@ import {
   BasicProxy__factory,
   PoolManager,
   PoolManager__factory,
+  ProtocolManager,
+  ProtocolManager__factory,
+  IGnosisSafeWallet,
+  IGnosisSafeWallet__factory,
+  SafeProxy,
+  SafeProxy__factory,
   // Libs
   PoolMath,
   PoolMath__factory,
@@ -164,6 +170,18 @@ export async function getProxyStrategyManager(address: string) {
 export async function getKlerosLiquid(address: string) {
   return connectWrapper(IKlerosLiquid__factory, address);
 }
+export async function getAthenaMultisig(address: string) {
+  return connectWrapper(IGnosisSafeWallet__factory, address);
+}
+export async function getProtocolManager(address: string) {
+  return connectWrapper(ProtocolManager__factory, address);
+}
+export async function getSafeProxy(address: string) {
+  return connectWrapper(SafeProxy__factory, address);
+}
+export async function getGnosisSafeWallet(address: string) {
+  return connectWrapper(IGnosisSafeWallet__factory, address);
+}
 
 //==================//
 //==== PROTOCOL ====//
@@ -196,6 +214,9 @@ export type ConnectedProtocolContracts = {
   ProxyStrategyManager?: ConnectWithAddress<StrategyManager>;
   PoolManager?: ConnectWithAddress<PoolManager>;
   KlerosLiquid?: ConnectWithAddress<IKlerosLiquid>;
+  GnosisSafeWallet?: ConnectWithAddress<IGnosisSafeWallet>;
+  AthenaMultisig?: ConnectWithAddress<SafeProxy>;
+  ProtocolManager?: ConnectWithAddress<ProtocolManager>;
 };
 
 export type DefaultConnectedProtocolContracts = ConnectedProtocolContracts & {
@@ -207,6 +228,7 @@ export type VEConnectedProtocolContracts = ConnectedProtocolContracts & {
 export type MorphoConnectedProtocolContracts = ConnectedProtocolContracts & {
   StrategyManager: ConnectWithAddress<StrategyManagerEthereum>;
   ProxyStrategyManager: ConnectWithAddress<StrategyManager>;
+  AthenaMultisig: ConnectWithAddress<IGnosisSafeWallet>;
 };
 export type VLConnectedProtocolContracts = ConnectedProtocolContracts & {
   StrategyManager: ConnectWithAddress<StrategyManagerVL>;
@@ -279,6 +301,9 @@ export async function getConnectedProtocolContracts(
     PoolManager,
     ProxyStrategyManager,
     KlerosLiquid,
+    AthenaMultisig,
+    ProtocolManager,
+    GnosisSafeWallet,
   ] = await Promise.all([
     getEcclesiaDao(addresses.EcclesiaDao),
     getAthenaArbitrator(addresses.AthenaArbitrator),
@@ -303,6 +328,9 @@ export async function getConnectedProtocolContracts(
       addresses.ProxyStrategyManager || addresses.StrategyManager,
     ),
     getKlerosLiquid(addresses.KlerosLiquid || constants.AddressZero),
+    getAthenaMultisig(addresses.AthenaMultisig || constants.AddressZero),
+    getProtocolManager(addresses.ProtocolManager || constants.AddressZero),
+    getGnosisSafeWallet(addresses.ProtocolManager || constants.AddressZero),
   ]);
 
   return {
@@ -326,6 +354,9 @@ export async function getConnectedProtocolContracts(
     WethToken,
     WrappedTokenGateway,
     ProxyStrategyManager,
+    AthenaMultisig,
+    ProtocolManager,
+    GnosisSafeWallet,
   };
 }
 

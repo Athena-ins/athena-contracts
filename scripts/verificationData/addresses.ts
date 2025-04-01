@@ -38,6 +38,9 @@ const networkAddresses: {
     WrappedTokenGateway: "0x624dc86874d5376dDE0fBBcBee3f3140062840E9",
     PoolManager: "0x06683D1Fbbcda32D8Ccb8372884471A8265e5998",
     KlerosLiquid: "0x988b3A538b618C7A603e1c11Ab82Cd16dbE28069",
+    AthenaMultisig: "0xdb9141FCeb05034F4042D7c38FB60B537A5f60a4",
+    GnosisSafeWallet: "0x41675C099F32341bf84BFc5382aF534df5C7461a",
+    ProtocolManager: "0x0000000000000000000000000000000000000000",
   },
   // === Production addresses === //
   // arbitrum: {
@@ -60,6 +63,7 @@ const networkAddresses: {
   //   AthenaDataProvider: "0x6affa1c136dfaa81c980724130056fa8b7b7daf1",
   //   WrappedTokenGateway: "0x0000000000000000000000000000000000000000",
   //   PoolManager: '0x0000000000000000000000000000000000000000'
+  //   SafeWallet: "0xdb9141FCeb05034F4042D7c38FB60B537A5f60a4"
   // },
   // === Dev addresses === //
   arbitrum: {

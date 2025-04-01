@@ -11,13 +11,6 @@ import {
   wethTokenAddress,
   aaveLendingPoolV3Address,
 } from "./protocol";
-import {
-  evidenceGuardianWallet,
-  buybackWallet,
-  treasuryWallet,
-  leverageRiskWallet,
-} from "./hardhat";
-import { toRay } from "./utils/poolRayMath";
 // typechain
 import {
   // Dao
@@ -64,10 +57,15 @@ import {
   AthenaDataProvider__factory,
   AthenaDataProvider,
   // Other
+  IGnosisSafeWallet,
+  SafeProxy__factory,
+  SafeProxy,
   WrappedTokenGateway__factory,
   WrappedTokenGateway,
   PoolManager__factory,
   PoolManager,
+  ProtocolManager__factory,
+  ProtocolManager,
   BasicProxy__factory,
   BasicProxy,
   TetherToken__factory,
@@ -83,10 +81,7 @@ import {
 import { BigNumber, Wallet, Signer } from "ethers";
 import { ConnectedProtocolContracts } from "./contracts-getters";
 
-const { parseUnits } = utils;
-
 const ADDRESS_ZERO = "0x0000000000000000000000000000000000000000";
-const DAY_SECONDS = 24 * 60 * 60;
 
 // ================================= //
 // === Deploy contract functions === //
@@ -335,6 +330,24 @@ export async function deployPoolManager(
   });
 }
 
+export async function deployProtocolManager(
+  signer: Signer,
+  args: Parameters<ProtocolManager__factory["deploy"]>,
+): Promise<WithAddress<ProtocolManager>> {
+  return new ProtocolManager__factory(signer).deploy(...args).catch((err) => {
+    throw Error(`Deploy ProtocolManager:\n${err}`);
+  });
+}
+
+export async function deploySafeProxy(
+  signer: Signer,
+  args: Parameters<SafeProxy__factory["deploy"]>,
+): Promise<WithAddress<SafeProxy>> {
+  return new SafeProxy__factory(signer).deploy(...args).catch((err) => {
+    throw Error(`Deploy SafeProxy:\n${err}`);
+  });
+}
+
 // ======================= //
 // === Deploy protocol === //
 // ======================= //
@@ -407,6 +420,9 @@ export type DeployedProtocolContracts = {
   ProxyStrategyManager?: WithAddress<StrategyManager>;
   PoolManager?: WithAddress<PoolManager>;
   KlerosLiquid?: WithAddress<IKlerosLiquid>;
+  GnosisSafeWallet?: WithAddress<IGnosisSafeWallet>;
+  AthenaMultisig?: WithAddress<SafeProxy>;
+  ProtocolManager?: WithAddress<ProtocolManager>;
 };
 
 export type ProtocolContracts =
