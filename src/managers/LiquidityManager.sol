@@ -93,7 +93,7 @@ contract LiquidityManager is
 
   /// Wether the contract is frozen or not
   /// @dev all operations are paused when the contract is frozen
-  bool isFrozen;
+  bool public isFrozen;
 
   // ======= CONSTRUCTOR ======= //
 
