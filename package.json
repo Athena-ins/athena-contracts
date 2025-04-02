@@ -79,7 +79,7 @@
   "overrides": {},
   "dependencies": {
     "@kleros/kleros-interaction": "^0.10.0",
-    "@safe-global/protocol-kit": "^6.0.2",
+    "@safe-global/types-kit": "^2.0.1",
     "minimetoken": "^0.2.0"
   }
 }
