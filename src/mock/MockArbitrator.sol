@@ -11,8 +11,7 @@
 pragma solidity 0.8.25;
 
 // Interfaces
-import { IArbitrable } from "../interfaces/IArbitrable.sol";
-import { IArbitrator } from "../interfaces/IArbitrator.sol";
+import { IArbitrable, IArbitrator } from "@kleros/dispute-resolver-interface-contract/contracts/IDisputeResolver.sol";
 
 /** @title Mock Arbitrator (aka Centralized Arbitrator)
  *  @dev This is a centralized arbitrator deciding alone on the result of disputes. No appeals are possible.
