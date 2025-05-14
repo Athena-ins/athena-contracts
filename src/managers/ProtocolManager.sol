@@ -12,7 +12,7 @@ import { ILiquidityManager } from "../interfaces/ILiquidityManager.sol";
 import { IStrategyManager } from "../interfaces/IStrategyManager.sol";
 import { IClaimManager } from "../interfaces/IClaimManager.sol";
 import { IEcclesiaDao } from "../interfaces/IEcclesiaDao.sol";
-import { IArbitrator } from "../interfaces/IArbitrator.sol";
+import { IArbitrator } from "@kleros/dispute-resolver-interface-contract/contracts/IDisputeResolver.sol";
 
 /**
  * @title Protocol Manager

@@ -6,9 +6,7 @@ pragma solidity 0.8.25;
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
 // Interfaces
-import { IArbitrable } from "../interfaces/IArbitrable.sol";
-import { IArbitrator } from "../interfaces/IArbitrator.sol";
-import { IClaimManager } from "../interfaces/IClaimManager.sol";
+import { IArbitrable, IArbitrator } from "@kleros/dispute-resolver-interface-contract/contracts/IDisputeResolver.sol";
 
 error NotOwner();
 error NotEnoughETHToCoverArbitrationCosts();
@@ -27,7 +25,7 @@ error OnlyClaimManager();
 contract AthenaArbitrator is IArbitrator, Ownable {
   // ======= STORAGE ======= //
 
-  IClaimManager public claimManager;
+  IArbitrable public claimManager;
 
   uint256 private _arbitrationPrice;
   uint256 private _appealPrice;
@@ -50,7 +48,7 @@ contract AthenaArbitrator is IArbitrator, Ownable {
    *  @param arbitrationPrice_ Amount to be paid for arbitration.
    */
   constructor(
-    IClaimManager claimManager_,
+    IArbitrable claimManager_,
     uint256 arbitrationPrice_,
     uint256 appealPrice_
   ) Ownable(msg.sender) {

@@ -1,11 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
+import { IArbitrator } from "@kleros/dispute-resolver-interface-contract/contracts/IDisputeResolver.sol";
 
-// Interfaces
-import { IArbitrable } from "./IArbitrable.sol";
-import { IArbitrator } from "./IArbitrator.sol";
-
-interface IClaimManager is IArbitrable {
+interface IClaimManager {
   // ======= ENUMS ======= //
 
   // @dev the 'Accepted' status is virtual as it is never written to the blockchain
@@ -16,7 +13,6 @@ interface IClaimManager is IArbitrable {
     Compensated,
     // Statuses below are only used when a claim is disputed
     Disputed,
-    Appealed,
     RejectedByOverrule,
     RejectedByCourtDecision,
     AcceptedByCourtDecision,
@@ -54,7 +50,7 @@ interface IClaimManager is IArbitrable {
     address prosecutor;
     uint256 deposit;
     uint256 collateral;
-    uint64[] appeals;
+    RulingOptions ruling;
   }
 
   struct Claim {
@@ -69,7 +65,7 @@ interface IClaimManager is IArbitrable {
     address prosecutor;
     uint256 deposit;
     uint256 collateral;
-    uint64[] appeals;
+    RulingOptions ruling;
   }
 
   // ======= EVENTS ======= //
@@ -88,23 +84,12 @@ interface IClaimManager is IArbitrable {
     uint256 disputeId
   );
 
-  // Emitted when a claim is appealed
-  event RulingAppealed(
-    address indexed prosecutor,
-    uint256 indexed claimId,
-    uint256 disputeId,
-    bool isClaimant
-  );
-
   // Emitted when the prosecutor claims the collateral
   event ProsecutorPaid(uint256 claimId, uint256 amount);
 
   // View functions
   function arbitrationCost() external view returns (uint256);
 
-  function appealCost(
-    uint256 disputeId_
-  ) external view returns (uint256);
 
   function metaEvidenceURI(
     uint256 claimId
@@ -138,12 +123,6 @@ interface IClaimManager is IArbitrable {
     uint256 claimId_
   ) external view returns (string[] memory);
 
-  // State changing functions
-  function submitEvidenceForClaim(
-    uint256 claimId_,
-    string[] calldata ipfsEvidenceCids_
-  ) external;
-
   function initiateClaim(
     uint256 coverId_,
     uint256 amountClaimed_
@@ -151,13 +130,9 @@ interface IClaimManager is IArbitrable {
 
   function disputeClaim(uint256 claimId_) external payable;
 
-  function rule(uint256 disputeId_, uint256 ruling_) external;
-
   function withdrawCompensation(uint256 claimId_) external;
 
   function withdrawProsecutionReward(uint256 claimId_) external;
-
-  function appeal(uint256 claimId_) external payable;
 
   // Admin functions
   function overrule(uint256 claimId_, bool punishClaimant_) external;
