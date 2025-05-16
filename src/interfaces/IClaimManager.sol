@@ -13,11 +13,12 @@ interface IClaimManager {
     Compensated,
     // Statuses below are only used when a claim is disputed
     Disputed,
+    Appealed,
     RejectedByOverrule,
     RejectedByCourtDecision,
     AcceptedByCourtDecision,
     CompensatedAfterDispute,
-    ProsecutorPaid
+    ProsecutionResolved
   }
 
   /// @dev The neutral "refuse to arbitrate" option MUST ALWAYS be 0
@@ -43,6 +44,7 @@ interface IClaimManager {
     uint64 rulingTimestamp;
     uint64 challengedTimestamp;
     ClaimStatus status;
+    RulingOptions ruling;
     uint256 coverId;
     uint256 disputeId;
     string metaEvidenceURI;
@@ -50,7 +52,8 @@ interface IClaimManager {
     address prosecutor;
     uint256 deposit;
     uint256 collateral;
-    RulingOptions ruling;
+    uint64[] appeals;
+    RoundRead[] appealRounds;
   }
 
   struct Claim {
@@ -65,7 +68,29 @@ interface IClaimManager {
     address prosecutor;
     uint256 deposit;
     uint256 collateral;
+    uint64[] appeals;
     RulingOptions ruling;
+  }
+
+  /** @dev Struct to return round data since mappings can't be returned directly
+   */
+  struct RoundRead {
+    uint256[3] paidFees;
+    bool[3] hasPaid;
+    uint256 feeRewards;
+    uint256[] fundedSides;
+  }
+
+  // Round struct stores the contributions made to particular sides.
+  // - 0 side for `RulingOptions.RefusedToArbitrate`.
+  // - 1 side for `RulingOptions.PayClaimant`.
+  // - 2 side for `RulingOptions.RejectClaim`.
+  struct Round {
+    uint256[3] paidFees; // Tracks the fees paid in this round in the form paidFees[side].
+    bool[3] hasPaid; // True if the fees for this particular side have been fully paid in the form hasPaid[side].
+    mapping(address => uint256[3]) contributions; // Maps contributors to their contributions for each side in the form contributions[address][side].
+    uint256 feeRewards; // Sum of reimbursable appeal fees available to the parties that made contributions to the side that ultimately wins a dispute.
+    uint256[] fundedSides; // Stores the sides that are fully funded.
   }
 
   // ======= EVENTS ======= //
@@ -89,7 +114,6 @@ interface IClaimManager {
 
   // View functions
   function arbitrationCost() external view returns (uint256);
-
 
   function metaEvidenceURI(
     uint256 claimId
@@ -132,8 +156,6 @@ interface IClaimManager {
 
   function withdrawCompensation(uint256 claimId_) external;
 
-  function withdrawProsecutionReward(uint256 claimId_) external;
-
   // Admin functions
   function overrule(uint256 claimId_, bool punishClaimant_) external;
 
@@ -147,7 +169,6 @@ interface IClaimManager {
 
   function setPeriods(
     uint64 challengePeriod_,
-    uint64 overrulePeriod_,
     uint64 evidenceUploadPeriod_
   ) external;
 

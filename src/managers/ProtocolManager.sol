@@ -369,19 +369,13 @@ contract ProtocolManager is Ownable {
   /**
    * @notice Changes the periods for challenging and overruling a claim.
    * @param challengePeriod_ The new challenge period.
-   * @param overrulePeriod_ The new overrule period.
    * @param evidenceUploadPeriod_ The new evidence upload period.
    */
   function setPeriods(
     uint64 challengePeriod_,
-    uint64 overrulePeriod_,
     uint64 evidenceUploadPeriod_
   ) external onlyOwner {
-    claimManager.setPeriods(
-      challengePeriod_,
-      overrulePeriod_,
-      evidenceUploadPeriod_
-    );
+    claimManager.setPeriods(challengePeriod_, evidenceUploadPeriod_);
   }
 
   /**
