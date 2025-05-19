@@ -387,9 +387,11 @@ contract ClaimManager is
       appealRounds: appealRounds
     });
 
-    // We should check if the claim is available for compensation
-    bool isResolved = hasResolved(claimId_);
-    if (isResolved) claimData.status = ClaimStatus.Accepted;
+    // We check if a claim has passed the challenge period
+    if (claimData.status == ClaimStatus.Initiated) {
+      bool isResolved = hasResolved(claimId_);
+      if (isResolved) claimData.status = ClaimStatus.Accepted;
+    }
   }
 
   /**
@@ -792,10 +794,8 @@ contract ClaimManager is
     Claim storage claim = claims[claimId_];
 
     // Check the claim is in the appropriate status and challenge is within period
-    if (
-      claim.status != ClaimStatus.Initiated ||
-      claim.createdAt + challengePeriod <= block.timestamp
-    ) revert ClaimNotChallengeable();
+    bool isResolved = hasResolved(claimId_);
+    if (isResolved) revert ClaimNotChallengeable();
 
     // Check the claim is not already disputed
     if (claim.prosecutor != address(0))
@@ -1025,9 +1025,9 @@ contract ClaimManager is
       if (1 < round.fundedSides.length) {
         // Reset ruling to lock actions before new ruling
         claim.rulingTimestamp = 0;
-        claim.status = ClaimStatus.Appealed;
-        // At least two sides are fully funded.
         claim.appeals.push(uint64(block.timestamp));
+        claim.status = ClaimStatus.Appealed;
+
         // Push new entity to track next round ID
         claimIdtoRoundArray[claimId_].push();
 
@@ -1163,7 +1163,7 @@ contract ClaimManager is
    * @notice
    * Changes the amount of collateral required when opening a claim.
    * @dev The collateral is paid to the prosecutor if the claim is disputed and rejected.
-   * @param amount_ The new amount of collateral.
+   * @param amount_ The new amount of collateral in ETH.
    */
   function setRequiredCollateral(uint256 amount_) public onlyOwner {
     claimCollateral = amount_;
