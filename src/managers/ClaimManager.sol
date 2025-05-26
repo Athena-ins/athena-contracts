@@ -29,12 +29,14 @@ error ClaimNotInDispute();
 error InvalidRuling();
 error GuardianSetToAddressZero();
 error OverrulePeriodEnded();
+error WithdrawConditionsNotMet();
 error EvidenceUploadPeriodEnded();
 error ClaimDoesNotExist();
 error CourtClosed();
 error CannotChallengeYourOwnClaim();
 error OutOfAppealPeriodBounds();
 error AppealFeeAlreadyPaid();
+error DisputeAlreadyResolved();
 error DisputeNotResolved();
 error InvalidRoundId();
 
@@ -90,6 +92,7 @@ contract ClaimManager is
 
   uint64 public challengePeriod;
   uint64 public evidenceUploadPeriod;
+  uint64 public overrulePeriod;
 
   bool public courtClosed;
 
@@ -104,7 +107,7 @@ contract ClaimManager is
    *  @param nbOfJurors_ The number of jurors to use for disputes
    *  @param claimCollateral_ The amount of collateral required to submit a claim
    *  @param baseMetaEvidenceURI_ The base URI for meta-evidence
-   *  @param periods_ Array containing [challengePeriod, evidenceUploadPeriod] in seconds
+   *  @param periods_ Array containing [challengePeriod, evidenceUploadPeriod, overrulePeriod] in seconds
    *  @param multipliers_ Array containing [winnerMultiplier, loserMultiplier, loserAppealPeriodMultiplier] in basis points
    */
   constructor(
@@ -116,7 +119,7 @@ contract ClaimManager is
     uint256 nbOfJurors_,
     uint256 claimCollateral_,
     string memory baseMetaEvidenceURI_,
-    uint64[2] memory periods_, // [challengePeriod, evidenceUploadPeriod]
+    uint64[3] memory periods_, // [challengePeriod, evidenceUploadPeriod, overrulePeriod]
     uint16[3] memory multipliers_ // [winnerMultiplier, loserMultiplier, loserAppealPeriodMultiplier]
   ) Ownable(msg.sender) {
     coverToken = coverToken_;
@@ -128,7 +131,7 @@ contract ClaimManager is
     setRequiredCollateral(claimCollateral_);
     setKlerosConfiguration(arbitrator_, subcourtId_, nbOfJurors_);
 
-    setPeriods(periods_[0], periods_[1]);
+    setPeriods(periods_[0], periods_[1], periods_[2]);
     setMultipliers(multipliers_[0], multipliers_[1], multipliers_[2]);
   }
 
@@ -184,11 +187,11 @@ contract ClaimManager is
     return NUMBER_OF_RULING_OPTIONS;
   }
 
-  /** @dev Checks if a claim has been resolved either by auto-resolution after challenge period or court decision.
+  /** @dev Checks if a claim has auto-resolved due to the challenge period expiring without any dispute.
    *  @param claimId_ The claim ID to check
-   *  @return isResolved True if the claim is resolved, either by auto-resolution or court decision
+   *  @return isResolved True if the claim has auto-resolved due to no dispute within challenge period
    */
-  function hasResolved(
+  function hasAutoResolved(
     uint256 claimId_
   ) public view returns (bool /*isResolved*/) {
     Claim storage claim = claims[claimId_];
@@ -199,18 +202,24 @@ contract ClaimManager is
       claim.createdAt + challengePeriod <= block.timestamp
     ) return true;
 
-    // Case where the claim is disputed/appealed
-    // While there is no ruling, the claim is not resolved
-    if (claim.rulingTimestamp == 0) return false;
+    return false;
+  }
 
-    // Return true if the losing side of an appeal is out of time to appeal
-    (uint256 appealPeriodStart, uint256 appealPeriodEnd) = arbitrator
-      .appealPeriod(claim.disputeId);
-    return
-      ((appealPeriodEnd - appealPeriodStart) *
-        loserAppealPeriodMultiplier) /
-        MULTIPLIER_DIVISOR <=
-      block.timestamp - appealPeriodStart;
+  /** @dev Checks if a claim that was accepted by court decision is now finalized (overrule period has passed).
+   *  @param claimId_ The claim ID to check
+   *  @return isAcceptationFinalized True if the claim was accepted by court decision and overrule period has passed
+   */
+  function hasAcceptationFinalized(
+    uint256 claimId_
+  ) public view returns (bool /*isAcceptationFinalized*/) {
+    Claim storage claim = claims[claimId_];
+
+    if (
+      claim.status == ClaimStatus.AcceptedByCourtDecision &&
+      claim.rulingTimestamp + overrulePeriod <= block.timestamp
+    ) return true;
+
+    return false;
   }
 
   /** @dev Returns stake multipliers.
@@ -252,8 +261,7 @@ contract ClaimManager is
     uint256 side_
   ) public view returns (uint256) {
     // Early return if the claim is not resolved
-    bool isResolved = hasResolved(claimId_);
-    if (!isResolved) return 0;
+    if (claims[claimId_].rulingTimestamp == 0) return 0;
 
     uint256 finalRuling = uint256(claims[claimId_].ruling);
 
@@ -281,8 +289,7 @@ contract ClaimManager is
     uint256 side_
   ) public view override returns (uint256 sum) {
     // Early return if the claim is not resolved
-    bool isResolved = hasResolved(claimId_);
-    if (!isResolved) return 0;
+    if (claims[claimId_].rulingTimestamp == 0) return 0;
 
     uint256 finalRuling = uint256(claims[claimId_].ruling);
 
@@ -387,10 +394,9 @@ contract ClaimManager is
       appealRounds: appealRounds
     });
 
-    // We check if a claim has passed the challenge period
-    if (claimData.status == ClaimStatus.Initiated) {
-      bool isResolved = hasResolved(claimId_);
-      if (isResolved) claimData.status = ClaimStatus.Accepted;
+    // We check if a claim has auto resolved by passing the challenge period
+    if (hasAutoResolved(claimId_)) {
+      claimData.status = ClaimStatus.Accepted;
     }
   }
 
@@ -794,8 +800,8 @@ contract ClaimManager is
     Claim storage claim = claims[claimId_];
 
     // Check the claim is in the appropriate status and challenge is within period
-    bool isResolved = hasResolved(claimId_);
-    if (isResolved) revert ClaimNotChallengeable();
+    bool isAutoResolved = hasAutoResolved(claimId_);
+    if (isAutoResolved) revert ClaimNotChallengeable();
 
     // Check the claim is not already disputed
     if (claim.prosecutor != address(0))
@@ -849,8 +855,10 @@ contract ClaimManager is
     Claim storage claim = claims[claimId];
 
     // Check the status of the claim
-    if (claim.status != ClaimStatus.Disputed)
-      revert ClaimNotInDispute();
+    if (
+      claim.status != ClaimStatus.Disputed &&
+      claim.status != ClaimStatus.Appealed
+    ) revert ClaimNotInDispute();
     // @dev Rare edgecase where it targets claim ID 0 with a bad dispute ID
     if (claim.disputeId != disputeId_) revert ClaimDoesNotExist();
     if (NUMBER_OF_RULING_OPTIONS < ruling_) revert InvalidRuling();
@@ -875,8 +883,7 @@ contract ClaimManager is
   }
 
   /**
-   * @notice Allows the claimant to withdraw the compensation after a dispute has been resolved in
-   * their favor or the challenge period has elapsed.
+   * @notice Allows the claimant to withdraw the compensation after the challenge period has elapsed or after the overrule period for a dispute that has been resolved in their favor.
    * @param claimId_ The claim ID
    *
    * @dev Intentionally public to prevent claimant from indefinitely blocking withdrawals
@@ -887,20 +894,14 @@ contract ClaimManager is
   ) external claimsExists(claimId_) nonReentrant {
     Claim storage claim = claims[claimId_];
 
-    // Check the claim is in the appropriate status
-    if (
-      claim.status != ClaimStatus.Initiated &&
-      claim.status != ClaimStatus.AcceptedByCourtDecision
-    ) revert WrongClaimStatus();
-
-    // Check the claim has either auto resolved or has passed the appeal period
-    bool isResolved = hasResolved(claimId_);
-    if (!isResolved) revert DisputeNotResolved();
-
-    // Update claim status
-    claim.status = claim.status == ClaimStatus.Initiated
-      ? ClaimStatus.Compensated
-      : ClaimStatus.CompensatedAfterDispute;
+    // Check the claim is in the appropriate status & challenge/overrule period has elapsed
+    if (hasAutoResolved(claimId_)) {
+      claim.status = ClaimStatus.Compensated;
+    } else if (hasAcceptationFinalized(claimId_)) {
+      claim.status = ClaimStatus.CompensatedAfterDispute;
+    } else {
+      revert WithdrawConditionsNotMet();
+    }
 
     // Remove claims from pool to unblock withdrawals
     liquidityManager.removeClaimFromPool(claim.coverId);
@@ -920,12 +921,9 @@ contract ClaimManager is
   ) external claimsExists(claimId_) nonReentrant {
     Claim storage claim = claims[claimId_];
 
+    // Check the claim has been ruled for by Kleros
     if (claim.status != ClaimStatus.RejectedByCourtDecision)
       revert WrongClaimStatus();
-
-    // Check the claim has passed the appeal period
-    bool isResolved = hasResolved(claimId_);
-    if (!isResolved) revert DisputeNotResolved();
 
     claim.status = ClaimStatus.ProsecutionResolved;
     // Remove claims from pool to unblock withdrawals
@@ -950,8 +948,8 @@ contract ClaimManager is
     Claim storage claim = claims[claimId_];
 
     if (
-      claim.status != ClaimStatus.AcceptedByCourtDecision &&
-      claim.status != ClaimStatus.RejectedByCourtDecision
+      claim.status != ClaimStatus.Disputed &&
+      claim.status != ClaimStatus.Appealed
     ) revert WrongClaimStatus();
     if (NUMBER_OF_RULING_OPTIONS < side_) revert InvalidRuling();
 
@@ -1023,8 +1021,6 @@ contract ClaimManager is
       round.hasPaid[side_] = true;
 
       if (1 < round.fundedSides.length) {
-        // Reset ruling to lock actions before new ruling
-        claim.rulingTimestamp = 0;
         claim.appeals.push(uint64(block.timestamp));
         claim.status = ClaimStatus.Appealed;
 
@@ -1111,7 +1107,7 @@ contract ClaimManager is
   // ======= ADMIN ======= //
 
   /**
-   * @notice Allows the owner to overrule a claim that has been accepted by the court decision.
+   * @notice Allows the owner to overrule a claim during the challenge period or during the overrule period after it has been accepted by the court decision.
    * @param claimId_ The claim ID
    * @param punishClaimant_ Whether to punish the claimant by taking their deposit
    */
@@ -1127,9 +1123,10 @@ contract ClaimManager is
       claim.status != ClaimStatus.AcceptedByCourtDecision
     ) revert WrongClaimStatus();
 
-    // Check the ruling has not yet resolved
-    bool isResolved = hasResolved(claimId_);
-    if (isResolved) revert OverrulePeriodEnded();
+    // Check the claim has not yet passed the challenge/overrule period
+    if (
+      hasAutoResolved(claimId_) || hasAcceptationFinalized(claimId_)
+    ) revert OverrulePeriodEnded();
 
     claim.status = ClaimStatus.RejectedByOverrule;
     // Remove claims from pool to unblock withdrawals
@@ -1170,16 +1167,19 @@ contract ClaimManager is
   }
 
   /**
-   * @notice Changes the periods for challenging and overruling a claim.
+   * @notice Changes the periods for challenging, evidence upload, and overruling a claim.
    * @param challengePeriod_ The new challenge period.
    * @param evidenceUploadPeriod_ The new evidence upload period.
+   * @param overrulePeriod_ The new overrule period.
    */
   function setPeriods(
     uint64 challengePeriod_,
-    uint64 evidenceUploadPeriod_
+    uint64 evidenceUploadPeriod_,
+    uint64 overrulePeriod_
   ) public onlyOwner {
     challengePeriod = challengePeriod_;
     evidenceUploadPeriod = evidenceUploadPeriod_;
+    overrulePeriod = overrulePeriod_;
   }
 
   /**

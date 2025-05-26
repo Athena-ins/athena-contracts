@@ -169,7 +169,8 @@ interface IClaimManager {
 
   function setPeriods(
     uint64 challengePeriod_,
-    uint64 evidenceUploadPeriod_
+    uint64 evidenceUploadPeriod_,
+    uint64 overrulePeriod_
   ) external;
 
   function setEvidenceGuardian(address evidenceGuardian_) external;
