@@ -944,7 +944,7 @@ contract ClaimManager is
   function fundAppeal(
     uint256 claimId_,
     uint256 side_
-  ) external payable override returns (bool) {
+  ) external payable override nonReentrant returns (bool) {
     Claim storage claim = claims[claimId_];
 
     if (
@@ -1061,7 +1061,7 @@ contract ClaimManager is
     address payable beneficiary_,
     uint256 round_,
     uint256 side_
-  ) public override returns (uint256 reward) {
+  ) public override nonReentrant returns (uint256 reward) {
     reward = getWithdrawableAmount(
       claimId_,
       beneficiary_,
@@ -1096,7 +1096,7 @@ contract ClaimManager is
     uint256 claimId_,
     address payable beneficiary_,
     uint256 side_
-  ) external override {
+  ) external override nonReentrant {
     uint256 nbOfRounds = claimIdtoRoundArray[claimId_].length;
 
     for (uint256 round; round < nbOfRounds; round++) {
