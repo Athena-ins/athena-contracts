@@ -12,7 +12,7 @@ import { ILiquidityManager } from "../interfaces/ILiquidityManager.sol";
 import { IStrategyManager } from "../interfaces/IStrategyManager.sol";
 import { IClaimManager } from "../interfaces/IClaimManager.sol";
 import { IEcclesiaDao } from "../interfaces/IEcclesiaDao.sol";
-import { IArbitrator } from "../interfaces/IArbitrator.sol";
+import { IArbitrator } from "@kleros/dispute-resolver-interface-contract/contracts/IDisputeResolver.sol";
 
 /**
  * @title Protocol Manager
@@ -369,19 +369,13 @@ contract ProtocolManager is Ownable {
   /**
    * @notice Changes the periods for challenging and overruling a claim.
    * @param challengePeriod_ The new challenge period.
-   * @param overrulePeriod_ The new overrule period.
    * @param evidenceUploadPeriod_ The new evidence upload period.
    */
   function setPeriods(
     uint64 challengePeriod_,
-    uint64 overrulePeriod_,
     uint64 evidenceUploadPeriod_
   ) external onlyOwner {
-    claimManager.setPeriods(
-      challengePeriod_,
-      overrulePeriod_,
-      evidenceUploadPeriod_
-    );
+    claimManager.setPeriods(challengePeriod_, evidenceUploadPeriod_);
   }
 
   /**

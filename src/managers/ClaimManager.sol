@@ -9,11 +9,10 @@ import { ReentrancyGuard } from "../libs/ReentrancyGuard.sol";
 import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 
 // Interfaces
-import { IArbitrator } from "../interfaces/IArbitrator.sol";
-import { IArbitrable } from "../interfaces/IArbitrable.sol";
 import { IClaimManager } from "../interfaces/IClaimManager.sol";
 import { ILiquidityManager } from "../interfaces/ILiquidityManager.sol";
 import { IAthenaCoverToken } from "../interfaces/IAthenaCoverToken.sol";
+import { IDisputeResolver, IArbitrator } from "@kleros/dispute-resolver-interface-contract/contracts/IDisputeResolver.sol";
 
 // ======= ERRORS ======= //
 
@@ -22,25 +21,35 @@ error OnlyCoverOwner();
 error WrongClaimStatus();
 error InvalidParty();
 error CannotClaimZero();
-error InsufficientDeposit();
+error IncorrectDeposit();
 error PreviousClaimStillOngoing();
 error ClaimNotChallengeable();
 error ClaimAlreadyChallenged();
-error MustDepositArbitrationCost();
 error ClaimNotInDispute();
 error InvalidRuling();
-error PeriodNotElapsed();
 error GuardianSetToAddressZero();
 error OverrulePeriodEnded();
-error AppealPeriodEnded();
-error AppealPeriodOngoing();
+error WithdrawConditionsNotMet();
 error EvidenceUploadPeriodEnded();
 error ClaimDoesNotExist();
 error CourtClosed();
 error CannotChallengeYourOwnClaim();
+error OutOfAppealPeriodBounds();
+error AppealFeeAlreadyPaid();
+error DisputeAlreadyResolved();
+error DisputeNotResolved();
+error InvalidRoundId();
 
-contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
+contract ClaimManager is
+  IClaimManager,
+  IDisputeResolver,
+  Ownable,
+  ReentrancyGuard
+{
   using Strings for uint256;
+
+  uint256 public constant NUMBER_OF_RULING_OPTIONS = 2; // Number of choices for arbitrator.
+  uint256 public constant MULTIPLIER_DIVISOR = 10_000; // Divisor parameter for multipliers.
 
   // ======= STORAGE ======= //
 
@@ -54,11 +63,13 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
   address public evidenceGuardian;
 
   uint256 public nextClaimId;
-  // Maps a claim ID to a claim's data
-  mapping(uint256 _claimId => Claim) public claims;
   // Maps a coverId to its claim IDs
   mapping(uint256 _coverId => uint256[] _claimIds)
     public _coverIdToClaimIds;
+  // Maps a claim ID to a claim's data
+  mapping(uint256 _claimId => Claim) public claims;
+  // Maps claim IDs to round arrays.
+  mapping(uint256 _claimId => Round[]) public claimIdtoRoundArray;
   // Maps a Kleros dispute ID to its claim ID
   mapping(uint256 _disputeId => uint256 _claimId)
     public disputeIdToClaimId;
@@ -70,19 +81,35 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
     public claimIdToCounterEvidence;
 
   uint256 public claimCollateral;
+
+  // Multipliers are in basis points.
+  uint256 public winnerMultiplier; // Multiplier for calculating the appeal fee that must be paid for the answer that was chosen by the arbitrator in the previous round.
+  uint256 public loserMultiplier; // Multiplier for calculating the appeal fee that must be paid for the answer that the arbitrator didn't rule for in the previous round.
+  uint256 public loserAppealPeriodMultiplier; // Multiplier for calculating the duration of the appeal period for the loser, in basis points.
+
   // The params for Kleros specifying the subcourt ID and the number of jurors
   bytes public klerosExtraData;
 
   uint64 public challengePeriod;
-  uint64 public overrulePeriod;
   uint64 public evidenceUploadPeriod;
-
-  uint64 public immutable numberOfRulingOptions = 2;
+  uint64 public overrulePeriod;
 
   bool public courtClosed;
 
   // ======= CONSTRUCTOR ======= //
 
+  /** @dev Constructor for the ClaimManager contract.
+   *  @param coverToken_ The Athena cover token contract address
+   *  @param liquidityManager_ The liquidity manager contract address
+   *  @param arbitrator_ The Kleros arbitrator contract address
+   *  @param evidenceGuardian_ The address allowed to submit evidence without time restrictions
+   *  @param subcourtId_ The ID of the Kleros subcourt to use
+   *  @param nbOfJurors_ The number of jurors to use for disputes
+   *  @param claimCollateral_ The amount of collateral required to submit a claim
+   *  @param baseMetaEvidenceURI_ The base URI for meta-evidence
+   *  @param periods_ Array containing [challengePeriod, evidenceUploadPeriod, overrulePeriod] in seconds
+   *  @param multipliers_ Array containing [winnerMultiplier, loserMultiplier, loserAppealPeriodMultiplier] in basis points
+   */
   constructor(
     IAthenaCoverToken coverToken_,
     ILiquidityManager liquidityManager_,
@@ -91,10 +118,9 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
     uint256 subcourtId_,
     uint256 nbOfJurors_,
     uint256 claimCollateral_,
-    uint64 challengePeriod_,
-    uint64 overrulePeriod_,
-    uint64 evidenceUploadPeriod_,
-    string memory baseMetaEvidenceURI_
+    string memory baseMetaEvidenceURI_,
+    uint64[3] memory periods_, // [challengePeriod, evidenceUploadPeriod, overrulePeriod]
+    uint16[3] memory multipliers_ // [winnerMultiplier, loserMultiplier, loserAppealPeriodMultiplier]
   ) Ownable(msg.sender) {
     coverToken = coverToken_;
     liquidityManager = liquidityManager_;
@@ -103,12 +129,10 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
     baseMetaEvidenceURI = baseMetaEvidenceURI_;
 
     setRequiredCollateral(claimCollateral_);
-    setPeriods(
-      challengePeriod_,
-      overrulePeriod_,
-      evidenceUploadPeriod_
-    );
     setKlerosConfiguration(arbitrator_, subcourtId_, nbOfJurors_);
+
+    setPeriods(periods_[0], periods_[1], periods_[2]);
+    setMultipliers(multipliers_[0], multipliers_[1], multipliers_[2]);
   }
 
   // ======= MODIFIERS ======= //
@@ -143,21 +167,150 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
   // ======= VIEWS ======= //
 
   /**
-   * @notice Returns the cost of arbitration for a Kleros dispute.
-   * @return _ the arbitration cost
+   * @notice Maps external (arbitrator side) dispute id to local (arbitrable) dispute id.
+   * @param externalDisputeID_ Dispute id as on arbitrator side.
+   * @return Dispute id as in arbitrable contract aka claimID.
    */
-  function arbitrationCost() public view returns (uint256) {
-    return arbitrator.arbitrationCost(klerosExtraData);
+  function externalIDtoLocalID(
+    uint256 externalDisputeID_
+  ) external view override returns (uint256) {
+    return disputeIdToClaimId[externalDisputeID_];
+  }
+
+  /**
+   * @notice Returns number of possible ruling options. Valid rulings are [0, return value].
+   * @return The number of ruling options.
+   */
+  function numberOfRulingOptions(
+    uint256 /* localDisputeID_ */
+  ) external pure override returns (uint256) {
+    return NUMBER_OF_RULING_OPTIONS;
+  }
+
+  /** @dev Checks if a claim has auto-resolved due to the challenge period expiring without any dispute.
+   *  @param claimId_ The claim ID to check
+   *  @return isResolved True if the claim has auto-resolved due to no dispute within challenge period
+   */
+  function hasAutoResolved(
+    uint256 claimId_
+  ) public view returns (bool /*isResolved*/) {
+    Claim storage claim = claims[claimId_];
+
+    // Case where the claim is not disputed
+    if (
+      claim.status == ClaimStatus.Initiated &&
+      claim.createdAt + challengePeriod <= block.timestamp
+    ) return true;
+
+    return false;
+  }
+
+  /** @dev Checks if a claim that was accepted by court decision is now finalized (overrule period has passed).
+   *  @param claimId_ The claim ID to check
+   *  @return isAcceptationFinalized True if the claim was accepted by court decision and overrule period has passed
+   */
+  function hasAcceptationFinalized(
+    uint256 claimId_
+  ) public view returns (bool /*isAcceptationFinalized*/) {
+    Claim storage claim = claims[claimId_];
+
+    if (
+      claim.status == ClaimStatus.AcceptedByCourtDecision &&
+      claim.rulingTimestamp + overrulePeriod <= block.timestamp
+    ) return true;
+
+    return false;
+  }
+
+  /** @dev Returns stake multipliers.
+   *  @return winner Winners stake multiplier.
+   *  @return loser Losers stake multiplier.
+   *  @return loserAppealPeriod Multiplier for calculating an appeal period duration for the losing side.
+   *  @return divisor Multiplier divisor.
+   */
+  function getMultipliers()
+    external
+    view
+    override
+    returns (
+      uint256 winner,
+      uint256 loser,
+      uint256 loserAppealPeriod,
+      uint256 divisor
+    )
+  {
+    return (
+      winnerMultiplier,
+      loserMultiplier,
+      loserAppealPeriodMultiplier,
+      MULTIPLIER_DIVISOR
+    );
+  }
+
+  /** @dev Returns the withdrawable amount for a given round and side.
+   *  @param claimId_ The ID of the claim.
+   *  @param beneficiary_ The contributor for which to query.
+   *  @param round_ The round from which to withdraw.
+   *  @param side_ The ruling to query the reward from.
+   *  @return sum The total amount available to withdraw.
+   */
+  function getWithdrawableAmount(
+    uint256 claimId_,
+    address payable beneficiary_,
+    uint256 round_,
+    uint256 side_
+  ) public view returns (uint256) {
+    // Early return if the claim is not resolved
+    if (claims[claimId_].rulingTimestamp == 0) return 0;
+
+    uint256 finalRuling = uint256(claims[claimId_].ruling);
+
+    return
+      _withdrawableAmount(
+        claimId_,
+        beneficiary_,
+        round_,
+        side_,
+        finalRuling
+      );
+  }
+
+  /** @dev Returns the sum of withdrawable amount.
+   *  @dev This function is O(n) where n is the total number of rounds.
+   *  @dev This could exceed the gas limit, therefore this function should be used only as a utility and not be relied upon by other contracts.
+   *  @param claimId_ The ID of the claim.
+   *  @param beneficiary_ The contributor for which to query.
+   *  @param side_ Side that received contributions from contributor.
+   *  @return sum The total amount available to withdraw.
+   */
+  function getTotalWithdrawableAmount(
+    uint256 claimId_,
+    address payable beneficiary_,
+    uint256 side_
+  ) public view override returns (uint256 sum) {
+    // Early return if the claim is not resolved
+    if (claims[claimId_].rulingTimestamp == 0) return 0;
+
+    uint256 finalRuling = uint256(claims[claimId_].ruling);
+
+    uint256 nbOfRounds = claimIdtoRoundArray[claimId_].length;
+    for (uint256 round; round < nbOfRounds; round++) {
+      sum += _withdrawableAmount(
+        claimId_,
+        beneficiary_,
+        round,
+        side_,
+        finalRuling
+      );
+    }
   }
 
   /**
    * @notice Returns the cost of arbitration for a Kleros dispute.
    * @return _ the arbitration cost
    */
-  function appealCost(
-    uint256 disputeId_
-  ) public view returns (uint256) {
-    return arbitrator.appealCost(disputeId_, klerosExtraData);
+  function arbitrationCost() public view returns (uint256) {
+    return arbitrator.arbitrationCost(klerosExtraData);
   }
 
   /**
@@ -211,6 +364,8 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
 
     uint64 poolId = liquidityManager.coverToPool(claim.coverId);
 
+    RoundRead[] memory appealRounds = roundsDataByClaimId(claimId_);
+
     claimData = ClaimRead({
       claimId: claimId_,
       poolId: poolId,
@@ -226,6 +381,7 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
       disputeId: claim.disputeId,
       metaEvidenceURI: metaEvidenceURI(claimId_),
       status: claim.status,
+      ruling: claim.ruling,
       createdAt: claim.createdAt,
       amount: claim.amount,
       claimant: claim.claimant,
@@ -234,14 +390,12 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
       collateral: claim.collateral,
       rulingTimestamp: claim.rulingTimestamp,
       challengedTimestamp: claim.challengedTimestamp,
-      appeals: claim.appeals
+      appeals: claim.appeals,
+      appealRounds: appealRounds
     });
 
-    // We should check if the claim is available for compensation
-    if (
-      claim.status == ClaimStatus.Initiated &&
-      claim.createdAt + challengePeriod < block.timestamp
-    ) {
+    // We check if a claim has auto resolved by passing the challenge period
+    if (hasAutoResolved(claimId_)) {
       claimData.status = ClaimStatus.Accepted;
     }
   }
@@ -344,18 +498,96 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
     return claimIdToCounterEvidence[claimId_];
   }
 
+  /** @dev Returns all rounds data for a claim
+   *  @param claimId_ The ID of the claim to get rounds for
+   *  @return rounds Array of round data
+   *  @notice The contributions mapping cannot be returned and must be queried separately
+   */
+  function roundsDataByClaimId(
+    uint256 claimId_
+  )
+    public
+    view
+    claimsExists(claimId_)
+    returns (RoundRead[] memory rounds)
+  {
+    Round[] storage claimRounds = claimIdtoRoundArray[claimId_];
+    rounds = new RoundRead[](claimRounds.length);
+
+    for (uint256 i; i < claimRounds.length; i++) {
+      Round storage round = claimRounds[i];
+      rounds[i] = RoundRead({
+        paidFees: round.paidFees,
+        hasPaid: round.hasPaid,
+        feeRewards: round.feeRewards,
+        fundedSides: round.fundedSides
+      });
+    }
+  }
+
+  /** @dev Returns the contributions made by a contributor across all rounds
+   *  @param claimId_ The ID of the claim
+   *  @param contributor_ The address of the contributor
+   *  @return roundContributions Array of contributions for each round, where each element is an array of contributions for each side: [RefusedToArbitrate, PayClaimant, RejectClaim]
+   */
+  function getContributionsByRound(
+    uint256 claimId_,
+    address contributor_
+  )
+    external
+    view
+    claimsExists(claimId_)
+    returns (uint256[3][] memory roundContributions)
+  {
+    Round[] storage claimRounds = claimIdtoRoundArray[claimId_];
+    roundContributions = new uint256[3][](claimRounds.length);
+
+    for (uint256 i; i < claimRounds.length; i++) {
+      Round storage round = claimRounds[i];
+      roundContributions[i] = round.contributions[contributor_];
+    }
+  }
+
   // ======= HELPERS ======= //
 
-  /**
-   * @notice Get the latest appeal timestamp for a claim.
-   * @param claimId_ The claim ID
-   * @return appeal The latest appeal data
+  /** @dev Calculates the withdrawable amount for a given round and side.
+   *  @param claimId_ The ID of the claim
+   *  @param beneficiary_ The contributor to calculate withdrawal for
+   *  @param round_ The round to calculate withdrawal from
+   *  @param side_ The ruling option to calculate withdrawal for
+   *  @param finalRuling The final ruling of the dispute
+   *  @return sum The total amount available to withdraw
    */
-  function _getLatestAppealTimestamp(
-    uint256 claimId_
-  ) internal view claimsExists(claimId_) returns (uint64) {
-    Claim storage claim = claims[claimId_];
-    return claim.appeals[claim.appeals.length - 1];
+  function _withdrawableAmount(
+    uint256 claimId_,
+    address payable beneficiary_,
+    uint256 round_,
+    uint256 side_,
+    uint256 finalRuling
+  ) internal view returns (uint256 sum) {
+    Round storage round = claimIdtoRoundArray[claimId_][round_];
+    uint256 paidFees = round.paidFees[side_];
+
+    if (!round.hasPaid[side_]) {
+      // Allow to reimburse if funding was unsuccessful for this side.
+      sum += round.contributions[beneficiary_][side_];
+    } else if (
+      !round.hasPaid[finalRuling] && 1 < round.fundedSides.length
+    ) {
+      // Reimburse unspent fees proportionally if the ultimate winner didn't pay appeal fees fully.
+      // Note that if only one side is funded it will become a winner and this part of the condition won't be reached.
+      sum +=
+        (round.contributions[beneficiary_][side_] *
+          round.feeRewards) /
+        (round.paidFees[round.fundedSides[0]] +
+          round.paidFees[round.fundedSides[1]]);
+    } else if (finalRuling == side_ && 0 < paidFees) {
+      // Reward the winner.
+      sum +=
+        (round.contributions[beneficiary_][side_] *
+          round.feeRewards) /
+        paidFees;
+    }
   }
 
   /**
@@ -372,18 +604,14 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
     return payable(to_).call{ value: value_, gas: 4600 }("");
   }
 
-  // ======= EVIDENCE ======= //
-
-  /**
-   * @notice
-   * Adds evidence URIs for a claim.
-   * @param claimId_ The claim ID
-   * @param ipfsEvidenceCids_ The URIs of the evidence
+  /** @dev Validates if the caller can upload evidence for a claim.
+   *  @param claimId_ The claim ID to check
+   *  @dev Reverts if:
+   *  - The claim status is not Initiated, Disputed or Appealed
+   *  - The evidence upload period has ended
+   *  - The caller is not the claimant, prosecutor, or a contributor to the case
    */
-  function submitEvidenceForClaim(
-    uint256 claimId_,
-    string[] calldata ipfsEvidenceCids_
-  ) external claimsExists(claimId_) {
+  function _checkCanUploadEvidence(uint256 claimId_) internal view {
     Claim storage claim = claims[claimId_];
 
     if (
@@ -392,48 +620,99 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
       claim.status != ClaimStatus.Appealed
     ) revert WrongClaimStatus();
 
-    bool isClaimant = msg.sender == claim.claimant;
-
-    if (
-      !isClaimant &&
-      msg.sender != claim.prosecutor &&
-      msg.sender != evidenceGuardian
-    ) revert InvalidParty();
+    /// @dev Override the delay for the evidence guardian
+    if (msg.sender == evidenceGuardian) return;
 
     // Check the evidence upload period has not ended
-    bool delayOk = true;
     if (
       claim.status == ClaimStatus.Disputed &&
       claim.challengedTimestamp + evidenceUploadPeriod <
       block.timestamp
     ) {
-      delayOk = false;
+      revert EvidenceUploadPeriodEnded();
     } else if (
       claim.status == ClaimStatus.Appealed &&
-      _getLatestAppealTimestamp(claimId_) + evidenceUploadPeriod <
+      claim.appeals[claim.appeals.length - 1] + evidenceUploadPeriod <
       block.timestamp
     ) {
-      delayOk = false;
+      revert EvidenceUploadPeriodEnded();
     }
-    /// @dev Override the delay for the evidence guardian
-    if (msg.sender == evidenceGuardian) delayOk = true;
 
-    if (!delayOk) revert EvidenceUploadPeriodEnded();
+    /**
+     * @dev Sum of the contributions to sides 0 (refuse to rule) and 2 (reject the claim)
+     * This is to allow contributors to the prosecution side to submit evidence
+     */
+    uint256 roundId = claimIdtoRoundArray[claimId_].length - 1;
+    Round storage round = claimIdtoRoundArray[claimId_][roundId];
+    uint256 contribution = round.contributions[msg.sender][0] +
+      round.contributions[msg.sender][2];
 
-    string[] storage evidence = isClaimant
+    if (
+      msg.sender != claim.claimant &&
+      msg.sender != claim.prosecutor &&
+      contribution == 0
+    ) revert InvalidParty();
+  }
+
+  // ======= EVIDENCE ======= //
+
+  /**
+   * @notice
+   * Adds evidence URIs for a claim.
+   * @param claimId_ The claim ID
+   * @param evidenceURI_ The URI of the evidence
+   */
+  function submitEvidence(
+    uint256 claimId_,
+    string calldata evidenceURI_
+  ) external override claimsExists(claimId_) {
+    /// @dev This will revert if evidence cannot be submitted by the caller
+    _checkCanUploadEvidence(claimId_);
+
+    Claim storage claim = claims[claimId_];
+    string[] storage evidence = msg.sender == claim.claimant
       ? claimIdToEvidence[claimId_]
       : claimIdToCounterEvidence[claimId_];
 
-    for (uint256 i; i < ipfsEvidenceCids_.length; i++) {
+    evidence.push(evidenceURI_);
+
+    // Emit event for Kleros to pick up the evidence
+    emit Evidence({
+      _arbitrator: arbitrator,
+      _evidenceGroupID: claimId_,
+      _party: msg.sender,
+      _evidence: evidenceURI_
+    });
+  }
+
+  /**
+   * @notice
+   * Adds evidence URIs for a claim.
+   * @param claimId_ The claim ID
+   * @param evidenceURIs_ The URIs of the evidence
+   */
+  function submitEvidenceForClaim(
+    uint256 claimId_,
+    string[] calldata evidenceURIs_
+  ) external claimsExists(claimId_) {
+    /// @dev This will revert if evidence cannot be submitted by the caller
+    _checkCanUploadEvidence(claimId_);
+
+    Claim storage claim = claims[claimId_];
+    string[] storage evidence = msg.sender == claim.claimant
+      ? claimIdToEvidence[claimId_]
+      : claimIdToCounterEvidence[claimId_];
+
+    for (uint256 i; i < evidenceURIs_.length; i++) {
       // Save evidence files
-      evidence.push(ipfsEvidenceCids_[i]);
+      evidence.push(evidenceURIs_[i]);
 
       // Emit event for Kleros to pick up the evidence
       emit Evidence({
-        arbitrator_: arbitrator,
-        evidenceGroupID_: claimId_,
-        party_: msg.sender,
-        evidence_: ipfsEvidenceCids_[i]
+        _arbitrator: arbitrator,
+        _evidenceGroupID: claimId_,
+        _party: msg.sender,
+        _evidence: evidenceURIs_[i]
       });
     }
   }
@@ -461,8 +740,8 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
 
     // Check that the user has deposited the collateral & arbitration cost
     uint256 costOfArbitration = arbitrationCost();
-    if (msg.value < costOfArbitration + claimCollateral)
-      revert InsufficientDeposit();
+    if (msg.value != costOfArbitration + claimCollateral)
+      revert IncorrectDeposit();
 
     // Check if there already an ongoing claim related to this cover
     uint256 nbAssociatedClaims = _coverIdToClaimIds[coverId_].length;
@@ -521,10 +800,8 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
     Claim storage claim = claims[claimId_];
 
     // Check the claim is in the appropriate status and challenge is within period
-    if (
-      claim.status != ClaimStatus.Initiated ||
-      claim.createdAt + challengePeriod <= block.timestamp
-    ) revert ClaimNotChallengeable();
+    bool isAutoResolved = hasAutoResolved(claimId_);
+    if (isAutoResolved) revert ClaimNotChallengeable();
 
     // Check the claim is not already disputed
     if (claim.prosecutor != address(0))
@@ -532,8 +809,7 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
 
     // Check that the prosecutor has deposited enough capital for dispute creation
     uint256 costOfArbitration = arbitrationCost();
-    if (msg.value < costOfArbitration)
-      revert MustDepositArbitrationCost();
+    if (msg.value != costOfArbitration) revert IncorrectDeposit();
 
     if (msg.sender == claim.claimant)
       revert CannotChallengeYourOwnClaim();
@@ -541,7 +817,7 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
     // Create the claim and obtain the Kleros dispute ID
     uint256 disputeId = arbitrator.createDispute{
       value: costOfArbitration
-    }(uint256(numberOfRulingOptions), klerosExtraData);
+    }(NUMBER_OF_RULING_OPTIONS, klerosExtraData);
 
     // Update the claim with challenged status and prosecutor address
     claim.status = ClaimStatus.Disputed;
@@ -552,12 +828,15 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
     // Map the new dispute ID to be able to search it after ruling
     disputeIdToClaimId[disputeId] = claimId_;
 
+    // Initialize appeal round since it is complex for fundAppeal() to distinct creation from update
+    claimIdtoRoundArray[claimId_].push();
+
     // Emit Kleros event for dispute creation and meta-evidence association
     emit Dispute({
-      arbitrator_: arbitrator,
-      disputeID_: disputeId,
-      metaEvidenceID_: claimId_,
-      evidenceGroupID_: claimId_
+      _arbitrator: arbitrator,
+      _disputeID: disputeId,
+      _metaEvidenceID: claimId_,
+      _evidenceGroupID: claimId_
     });
   }
 
@@ -571,36 +850,29 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
   function rule(
     uint256 disputeId_,
     uint256 ruling_
-  ) external onlyArbitrator nonReentrant {
+  ) external override onlyArbitrator nonReentrant {
     uint256 claimId = disputeIdToClaimId[disputeId_];
     Claim storage claim = claims[claimId];
 
     // Check the status of the claim
     if (
-      claim.status != ClaimStatus.Appealed &&
-      claim.status != ClaimStatus.Disputed
+      claim.status != ClaimStatus.Disputed &&
+      claim.status != ClaimStatus.Appealed
     ) revert ClaimNotInDispute();
     // @dev Rare edgecase where it targets claim ID 0 with a bad dispute ID
     if (claim.disputeId != disputeId_) revert ClaimDoesNotExist();
-    if (numberOfRulingOptions < ruling_) revert InvalidRuling();
+    if (NUMBER_OF_RULING_OPTIONS < ruling_) revert InvalidRuling();
 
     // Save timestamp to initiate overrule period if validated
     claim.rulingTimestamp = uint64(block.timestamp);
+    claim.ruling = RulingOptions(ruling_);
 
     // Manage ETH for claim creation, claim collateral and dispute creation
     if (ruling_ == uint256(RulingOptions.PayClaimant)) {
       claim.status = ClaimStatus.AcceptedByCourtDecision;
-
-      /// @dev The refund of the claimant deposit is made in the withdrawCompensation function
     } else {
       /// @dev Both RulingOptions.RejectClaim and RulingOptions.RefusedToArbitrate considered rejected
       claim.status = ClaimStatus.RejectedByCourtDecision;
-
-      // Refund arbitration cost to the prosecutor
-      uint256 arbitrationFee = claim.deposit - claim.collateral;
-      _sendValue(claim.prosecutor, arbitrationFee);
-
-      /// @dev The prosecutor is paid the collateral with withdrawProsecutionReward if there is no appeal
     }
 
     emit DisputeResolved({
@@ -611,8 +883,7 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
   }
 
   /**
-   * @notice Allows the claimant to withdraw the compensation after a dispute has been resolved in
-   * their favor or the challenge period has elapsed.
+   * @notice Allows the claimant to withdraw the compensation after the challenge period has elapsed or after the overrule period for a dispute that has been resolved in their favor.
    * @param claimId_ The claim ID
    *
    * @dev Intentionally public to prevent claimant from indefinitely blocking withdrawals
@@ -623,21 +894,13 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
   ) external claimsExists(claimId_) nonReentrant {
     Claim storage claim = claims[claimId_];
 
-    // Check the claim is in the appropriate status
-    if (claim.status == ClaimStatus.Initiated) {
-      // Check the claim has passed the disputable period
-      if (block.timestamp < claim.createdAt + challengePeriod)
-        revert PeriodNotElapsed();
-
+    // Check the claim is in the appropriate status & challenge/overrule period has elapsed
+    if (hasAutoResolved(claimId_)) {
       claim.status = ClaimStatus.Compensated;
-    } else if (claim.status == ClaimStatus.AcceptedByCourtDecision) {
-      // Check the ruling has passed the overrule period
-      if (block.timestamp < claim.rulingTimestamp + overrulePeriod)
-        revert PeriodNotElapsed();
-
+    } else if (hasAcceptationFinalized(claimId_)) {
       claim.status = ClaimStatus.CompensatedAfterDispute;
     } else {
-      revert WrongClaimStatus();
+      revert WithdrawConditionsNotMet();
     }
 
     // Remove claims from pool to unblock withdrawals
@@ -649,106 +912,202 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
     _sendValue(claim.claimant, claim.deposit);
   }
 
-  /**
-   * @notice Allows the prosecutor to withdraw the collateral after a dispute has been resolved in their favor.
-   * @param claimId_ The claim ID
-   *
-   * @dev Intentionally public to prevent prosecutor from indefinitely blocking withdrawals
-   * from a pool by not executing the claims ruling.
+  /** @dev Allows prosecutor to finalize the dispute process and withdraw his reward after winning a dispute.
+   *  @param claimId_ The ID of the claim to resolve
+   *  @dev This function is intentionally public to prevent prosecutor from blocking pool withdrawals
    */
-  function withdrawProsecutionReward(
+  function resolveProsecution(
     uint256 claimId_
   ) external claimsExists(claimId_) nonReentrant {
     Claim storage claim = claims[claimId_];
 
+    // Check the claim has been ruled for by Kleros
     if (claim.status != ClaimStatus.RejectedByCourtDecision)
       revert WrongClaimStatus();
 
-    uint256 disputeId = claim.disputeId;
-    IArbitrator.DisputeStatus disputeStatus = arbitrator
-      .disputeStatus(disputeId);
-
-    if (disputeStatus == IArbitrator.DisputeStatus.Appealable)
-      revert AppealPeriodOngoing();
-
+    claim.status = ClaimStatus.ProsecutionResolved;
     // Remove claims from pool to unblock withdrawals
     liquidityManager.removeClaimFromPool(claim.coverId);
-    // Register the payment of the collateral
-    claim.status = ClaimStatus.ProsecutorPaid;
 
-    // Pay the collateral to the prosecutor
-    _sendValue(claim.prosecutor, claim.collateral);
-
-    emit ProsecutorPaid({
-      claimId: claimId_,
-      amount: claim.collateral
-    });
+    /// @dev The prosecutor is refunded the arbitration fee & paid the collateral
+    _sendValue(claim.prosecutor, claim.deposit);
+    emit ProsecutorPaid({ claimId: claimId_, amount: claim.deposit });
   }
 
   // ======= APPEAL ======= //
 
-  /**
-   * @notice Allows a party to appeal a court decision after the appeal wait period
-   * @param claimId_ The claim ID
+  /** @dev Takes up to the total amount required to fund a side. Reimburses the rest. Creates an appeal if both sides are fully funded.
+   *  @param claimId_ The claim ID.
+   *  @param side_ The ruling option to fund. 0 - refuse to rule, 1 - pay claimant, 2 - reject the claim.
+   *  @return Whether the side was fully funded or not.
    */
-  function appeal(
-    uint256 claimId_
-  ) external payable claimsExists(claimId_) nonReentrant {
+  function fundAppeal(
+    uint256 claimId_,
+    uint256 side_
+  ) external payable override returns (bool) {
     Claim storage claim = claims[claimId_];
-    bool isClaimant = msg.sender == claim.claimant;
 
-    // Check the claim is in an appealable status
     if (
-      claim.status != ClaimStatus.RejectedByCourtDecision &&
-      claim.status != ClaimStatus.AcceptedByCourtDecision
+      claim.status != ClaimStatus.Disputed &&
+      claim.status != ClaimStatus.Appealed
     ) revert WrongClaimStatus();
-
-    /**
-     * Only the claimant may appeal a rejected claim to avoid:
-     * - prosecutors trying to retrial a lost case to get the collateral
-     * - the claimant trying to appeal a lost case to get the collateral
-     */
-    if (
-      claim.status == ClaimStatus.RejectedByCourtDecision &&
-      !isClaimant
-    ) revert InvalidParty();
+    if (NUMBER_OF_RULING_OPTIONS < side_) revert InvalidRuling();
 
     uint256 disputeId = claim.disputeId;
-    IArbitrator.DisputeStatus disputeStatus = arbitrator
-      .disputeStatus(disputeId);
+    uint256 lastRoundWinner = arbitrator.currentRuling(disputeId);
 
-    if (disputeStatus != IArbitrator.DisputeStatus.Appealable)
-      revert AppealPeriodEnded();
+    // Check for appeal periods
+    {
+      (
+        uint256 appealPeriodStart,
+        uint256 appealPeriodEnd
+      ) = arbitrator.appealPeriod(disputeId);
 
-    // Check deposit covers appeal cost
-    uint256 appealFee = arbitrator.appealCost(
+      if (
+        block.timestamp < appealPeriodStart ||
+        appealPeriodEnd <= block.timestamp
+      ) revert OutOfAppealPeriodBounds();
+
+      if (
+        lastRoundWinner != side_ &&
+        ((appealPeriodEnd - appealPeriodStart) *
+          loserAppealPeriodMultiplier) /
+          MULTIPLIER_DIVISOR <=
+        block.timestamp - appealPeriodStart
+      ) revert OutOfAppealPeriodBounds();
+    }
+
+    // Compute appeal costs including incentive
+    uint256 appealCost = arbitrator.appealCost(
       disputeId,
       klerosExtraData
     );
-    if (msg.value < appealFee) revert InsufficientDeposit();
+    uint256 totalCost;
+    {
+      uint256 multiplier = lastRoundWinner == side_
+        ? winnerMultiplier
+        : loserMultiplier;
 
-    // Create and store appeal data
-    claim.appeals.push(uint64(block.timestamp));
-    // Update the prosecutor if it is not the claimant appealing
-    if (!isClaimant) claim.prosecutor = msg.sender;
-    // Update claim status & timestamp
-    claim.status = ClaimStatus.Appealed;
+      totalCost =
+        appealCost +
+        ((appealCost * multiplier) / MULTIPLIER_DIVISOR);
+    }
 
-    // Create the appeal with Kleros
-    arbitrator.appeal{ value: appealFee }(disputeId, klerosExtraData);
+    uint256 roundId = claimIdtoRoundArray[claimId_].length - 1;
+    Round storage round = claimIdtoRoundArray[claimId_][roundId];
 
-    emit RulingAppealed({
-      prosecutor: claim.prosecutor,
-      claimId: claimId_,
-      disputeId: disputeId,
-      isClaimant: isClaimant
+    if (round.hasPaid[side_]) revert AppealFeeAlreadyPaid();
+
+    // Take up to the amount necessary to fund the current round at the current costs.
+    uint256 contribution = msg.value <
+      totalCost - round.paidFees[side_]
+      ? msg.value
+      : totalCost - round.paidFees[side_];
+
+    emit Contribution({
+      _localDisputeID: claimId_,
+      _round: roundId,
+      ruling: side_,
+      _contributor: msg.sender,
+      _amount: contribution
     });
+
+    round.contributions[msg.sender][side_] += contribution;
+    round.paidFees[side_] += contribution;
+
+    if (totalCost <= round.paidFees[side_]) {
+      round.feeRewards += round.paidFees[side_];
+      round.fundedSides.push(side_);
+      round.hasPaid[side_] = true;
+
+      if (1 < round.fundedSides.length) {
+        claim.appeals.push(uint64(block.timestamp));
+        claim.status = ClaimStatus.Appealed;
+
+        // Push new entity to track next round ID
+        claimIdtoRoundArray[claimId_].push();
+
+        round.feeRewards = round.feeRewards - appealCost;
+        arbitrator.appeal{ value: appealCost }(
+          disputeId,
+          klerosExtraData
+        );
+      }
+
+      emit RulingFunded({
+        _localDisputeID: claimId_,
+        _round: roundId,
+        _ruling: side_
+      });
+    }
+
+    // Refund any excess contribution
+    if (contribution < msg.value) {
+      _sendValue(msg.sender, msg.value - contribution);
+    }
+
+    return round.hasPaid[side_];
+  }
+
+  /** @dev Sends the fee stake rewards and reimbursements proportional to the contributions made to the winner of a dispute. Reimburses contributions if there is no winner.
+   *  @param claimId_ The claim ID.
+   *  @param beneficiary_ The address to send reward to.
+   *  @param round_ The round from which to withdraw.
+   *  @param side_ The ruling to query the reward from.
+   *  @return reward The withdrawn amount.
+   */
+  function withdrawFeesAndRewards(
+    uint256 claimId_,
+    address payable beneficiary_,
+    uint256 round_,
+    uint256 side_
+  ) public override returns (uint256 reward) {
+    reward = getWithdrawableAmount(
+      claimId_,
+      beneficiary_,
+      round_,
+      side_
+    );
+
+    if (reward != 0) {
+      Round storage round = claimIdtoRoundArray[claimId_][round_];
+      round.contributions[beneficiary_][side_] = 0;
+
+      _sendValue(beneficiary_, reward);
+
+      emit Withdrawal({
+        _localDisputeID: claimId_,
+        _round: round_,
+        _ruling: side_,
+        _contributor: beneficiary_,
+        _reward: reward
+      });
+    }
+  }
+
+  /** @dev Allows to withdraw any rewards or reimbursable fees for all rounds at once.
+   *  @dev This function is O(n) where n is the total number of rounds. Arbitration cost of subsequent rounds is `A(n) = 2A(n-1) + 1`.
+   *  Thus because of this exponential growth of costs, you can assume n is less than 10 at all times.
+   *  @param claimId_ The claim ID.
+   *  @param beneficiary_ The address to send reward to.
+   *  @param side_ Side that received contributions from contributor.
+   */
+  function withdrawFeesAndRewardsForAllRounds(
+    uint256 claimId_,
+    address payable beneficiary_,
+    uint256 side_
+  ) external override {
+    uint256 nbOfRounds = claimIdtoRoundArray[claimId_].length;
+
+    for (uint256 round; round < nbOfRounds; round++) {
+      withdrawFeesAndRewards(claimId_, beneficiary_, round, side_);
+    }
   }
 
   // ======= ADMIN ======= //
 
   /**
-   * @notice Allows the owner to overrule a claim that has been accepted by the court decision.
+   * @notice Allows the owner to overrule a claim during the challenge period or during the overrule period after it has been accepted by the court decision.
    * @param claimId_ The claim ID
    * @param punishClaimant_ Whether to punish the claimant by taking their deposit
    */
@@ -759,14 +1118,17 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
     Claim storage claim = claims[claimId_];
 
     // Check the claim is in the appropriate status
-    if (claim.status != ClaimStatus.AcceptedByCourtDecision)
-      revert WrongClaimStatus();
-    // Check the ruling has passed the overrule period
-    if (claim.rulingTimestamp + overrulePeriod < block.timestamp)
-      revert OverrulePeriodEnded();
+    if (
+      claim.status != ClaimStatus.Initiated &&
+      claim.status != ClaimStatus.AcceptedByCourtDecision
+    ) revert WrongClaimStatus();
+
+    // Check the claim has not yet passed the challenge/overrule period
+    if (
+      hasAutoResolved(claimId_) || hasAcceptationFinalized(claimId_)
+    ) revert OverrulePeriodEnded();
 
     claim.status = ClaimStatus.RejectedByOverrule;
-
     // Remove claims from pool to unblock withdrawals
     liquidityManager.removeClaimFromPool(claim.coverId);
 
@@ -798,25 +1160,42 @@ contract ClaimManager is IClaimManager, Ownable, ReentrancyGuard {
    * @notice
    * Changes the amount of collateral required when opening a claim.
    * @dev The collateral is paid to the prosecutor if the claim is disputed and rejected.
-   * @param amount_ The new amount of collateral.
+   * @param amount_ The new amount of collateral in ETH.
    */
   function setRequiredCollateral(uint256 amount_) public onlyOwner {
     claimCollateral = amount_;
   }
 
   /**
-   * @notice Changes the periods for challenging and overruling a claim.
+   * @notice Changes the periods for challenging, evidence upload, and overruling a claim.
    * @param challengePeriod_ The new challenge period.
+   * @param evidenceUploadPeriod_ The new evidence upload period.
    * @param overrulePeriod_ The new overrule period.
    */
   function setPeriods(
     uint64 challengePeriod_,
-    uint64 overrulePeriod_,
-    uint64 evidenceUploadPeriod_
+    uint64 evidenceUploadPeriod_,
+    uint64 overrulePeriod_
   ) public onlyOwner {
     challengePeriod = challengePeriod_;
-    overrulePeriod = overrulePeriod_;
     evidenceUploadPeriod = evidenceUploadPeriod_;
+    overrulePeriod = overrulePeriod_;
+  }
+
+  /**
+   * @notice Changes the appeal multipliers.
+   * @param winnerMultiplier_ The new winner multiplier.
+   * @param loserMultiplier_ The new loser multiplier.
+   * @param loserAppealPeriodMultiplier_ The new loserAppealPeriod multiplier.
+   */
+  function setMultipliers(
+    uint256 winnerMultiplier_,
+    uint256 loserMultiplier_,
+    uint256 loserAppealPeriodMultiplier_
+  ) public onlyOwner {
+    winnerMultiplier = winnerMultiplier_;
+    loserMultiplier = loserMultiplier_;
+    loserAppealPeriodMultiplier = loserAppealPeriodMultiplier_;
   }
 
   /**
