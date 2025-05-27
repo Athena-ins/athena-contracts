@@ -373,9 +373,14 @@ contract ProtocolManager is Ownable {
    */
   function setPeriods(
     uint64 challengePeriod_,
-    uint64 evidenceUploadPeriod_
+    uint64 evidenceUploadPeriod_,
+    uint64 overrulePeriod_
   ) external onlyOwner {
-    claimManager.setPeriods(challengePeriod_, evidenceUploadPeriod_);
+    claimManager.setPeriods(
+      challengePeriod_,
+      evidenceUploadPeriod_,
+      overrulePeriod_
+    );
   }
 
   /**
