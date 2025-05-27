@@ -355,13 +355,12 @@ export async function deploySafeProxy(
 export type ProtocolConfig = {
   subcourtId: number;
   nbOfJurors: number;
-  challengePeriod: number;
-  overrulePeriod: number;
-  evidenceUploadPeriod: number;
   baseMetaEvidenceURI: string;
   claimCollateral: BigNumber;
   arbitrationCost: BigNumber; // in ETH for centralized AthenaArbitrator
   appealCost: BigNumber; // in ETH for centralized AthenaArbitrator
+  claimPeriods: [number, number, number]; // in seconds [challengePeriod, evidenceUploadPeriod, overrulePeriod]
+  claimMultipliers: [number, number, number]; // base 10_000 [winnerMultiplier, loserMultiplier, loserAppealPeriodMultiplier]
   evidenceGuardian: Wallet;
   buybackWallet: Wallet;
   treasuryWallet: Wallet;
@@ -564,10 +563,9 @@ export async function deployAllContractsAndInitializeProtocol(
         config.subcourtId, // uint256 subcourtId_
         config.nbOfJurors, // uint256 nbOfJurors_
         config.claimCollateral, // uint256 claimCollateral_
-        config.challengePeriod, // uint256 challengePeriod_
-        config.overrulePeriod, // uint256 overrulePeriod_
-        config.evidenceUploadPeriod, // uint256 evidenceUploadPeriod_
-        config.baseMetaEvidenceURI, // string baseMetaEvidenceURI_
+        config.baseMetaEvidenceURI, // string memory baseMetaEvidenceURI_
+        config.claimPeriods, // uint64[3] memory periods_ // [challengePeriod, evidenceUploadPeriod, overrulePeriod]
+        config.claimMultipliers, // uint16[3] memory multipliers_ // [winnerMultiplier, loserMultiplier, loserAppealPeriodMultiplier]
       ]),
     );
     txCount++;

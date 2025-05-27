@@ -155,10 +155,9 @@ export function DeployProtocolTest() {
           this.protocolConfig.subcourtId, // uint256 subcourtId_
           this.protocolConfig.nbOfJurors, // uint256 nbOfJurors_
           this.protocolConfig.claimCollateral, // uint256 claimCollateral_
-          this.protocolConfig.challengePeriod, // uint256 challengePeriod_
-          this.protocolConfig.overrulePeriod, // uint256 overrulePeriod_
-          this.protocolConfig.evidenceUploadPeriod, // uint256 evidenceUploadPeriod_
-          this.protocolConfig.baseMetaEvidenceURI, // string baseMetaEvidenceURI_
+          this.protocolConfig.baseMetaEvidenceURI, // string memory baseMetaEvidenceURI_
+          this.protocolConfig.claimPeriods, // uint64[3] memory periods_ // [challengePeriod, evidenceUploadPeriod, overrulePeriod]
+          this.protocolConfig.claimMultipliers, // uint16[3] memory multipliers_ // [winnerMultiplier, loserMultiplier, loserAppealPeriodMultiplier]
         ]).then((contract) =>
           postDeployCheck(contract, this.args.deployedAt.ClaimManager),
         );
@@ -264,7 +263,7 @@ export function DeployProtocolTest() {
           this.protocolConfig,
         );
 
-        expect(Object.keys(contracts).length).to.equal(18);
+        expect(Object.keys(contracts).length).to.equal(19);
 
         for (const contract of Object.values(contracts)) {
           expect((await ethers.provider.getCode(contract.address)).length).gt(

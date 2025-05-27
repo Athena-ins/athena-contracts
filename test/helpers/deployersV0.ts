@@ -194,10 +194,9 @@ export async function deployAllContractsAndInitializeProtocolV0(
         config.subcourtId, // uint256 subcourtId_
         config.nbOfJurors, // uint256 nbOfJurors_
         config.claimCollateral, // uint256 claimCollateral_
-        config.challengePeriod, // uint256 challengePeriod_
-        config.overrulePeriod, // uint256 overrulePeriod_
-        config.evidenceUploadPeriod, // uint256 evidenceUploadPeriod_
-        config.baseMetaEvidenceURI, // string baseMetaEvidenceURI_
+        config.baseMetaEvidenceURI, // string memory baseMetaEvidenceURI_
+        config.claimPeriods, // uint64[3] memory periods_ // [challengePeriod, evidenceUploadPeriod, overrulePeriod]
+        config.claimMultipliers, // uint16[3] memory multipliers_ // [winnerMultiplier, loserMultiplier, loserAppealPeriodMultiplier]
       ]),
     );
     txCount++;

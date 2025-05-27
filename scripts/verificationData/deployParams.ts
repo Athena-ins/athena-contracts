@@ -92,9 +92,8 @@ const defaultProtocolConfig: ProtocolConfig = {
   //==== Claim Manager Config ====//
   subcourtId: 4, // View https://klerosboard.com/1/courts/4
   nbOfJurors: 3,
-  challengePeriod: 10 * DAY_SECONDS, // days seconds
-  overrulePeriod: 4 * DAY_SECONDS, // days seconds
-  evidenceUploadPeriod: 2 * DAY_SECONDS, // days seconds
+  claimPeriods: [10 * DAY_SECONDS, 2 * DAY_SECONDS, 4 * DAY_SECONDS], // [challengePeriod, evidenceUploadPeriod, overrulePeriod]
+  claimMultipliers: [3_000, 7_000, 5_000], // [winnerMultiplier, loserMultiplier, loserAppealPeriodMultiplier]
   baseMetaEvidenceURI: "https://api.athenains.io/metaevidence",
   claimCollateral: parseEther("0.0002"), // in ETH
   arbitrationCost: parseEther("0.00012"), // in ETH
@@ -126,9 +125,8 @@ const deployParams: {
   mainnet: {
     subcourtId: 4, // View https://klerosboard.com/1/courts/4
     nbOfJurors: 3,
-    challengePeriod: 182 * DAY_SECONDS,
-    overrulePeriod: 4 * DAY_SECONDS,
-    evidenceUploadPeriod: 2 * DAY_SECONDS,
+    claimPeriods: [182 * DAY_SECONDS, 2 * DAY_SECONDS, 4 * DAY_SECONDS], // [challengePeriod, evidenceUploadPeriod, overrulePeriod]
+    claimMultipliers: [3_000, 7_000, 5_000], // [winnerMultiplier, loserMultiplier, loserAppealPeriodMultiplier]
     claimCollateral: parseEther("0.0002"),
     arbitrationCost: parseEther("0.00012"), // in ETH for centralized AthenaArbitrator
     appealCost: parseEther("0.00024"), // in ETH
@@ -166,9 +164,8 @@ const deployParams: {
   arbitrum: {
     subcourtId: 4, // View https://klerosboard.com/1/courts/4
     nbOfJurors: 3,
-    challengePeriod: 182 * DAY_SECONDS,
-    overrulePeriod: 4 * DAY_SECONDS,
-    evidenceUploadPeriod: 2 * DAY_SECONDS,
+    claimPeriods: [182 * DAY_SECONDS, 2 * DAY_SECONDS, 4 * DAY_SECONDS], // [challengePeriod, evidenceUploadPeriod, overrulePeriod]
+    claimMultipliers: [3_000, 7_000, 5_000], // [winnerMultiplier, loserMultiplier, loserAppealPeriodMultiplier]
     claimCollateral: parseEther("0.0002"),
     arbitrationCost: parseEther("0.00012"), // in ETH for centralized AthenaArbitrator
     appealCost: parseEther("0.00024"), // in ETH
