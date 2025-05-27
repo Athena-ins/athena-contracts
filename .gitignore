@@ -21,3 +21,4 @@ markups
 .DS_Store
 coverage.json
 yarn.lock
+.env.secrets.ts
