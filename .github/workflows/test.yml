@@ -48,17 +48,19 @@ env:
 
   # Test accounts - using default hardhat accounts for CI
   DEPLOYER_PK: "0x0000000000000000000000000000000000000000000000000000000000000001"
-  EVIDENCE_GUARDIAN_PK: "0x0000000000000000000000000000000000000000000000000000000000000001"
-  BUYBACK_PK: "0x0000000000000000000000000000000000000000000000000000000000000001"
-  TREASURY_PK: "0x0000000000000000000000000000000000000000000000000000000000000001"
-  RISK_GUARD_PK: "0x0000000000000000000000000000000000000000000000000000000000000001"
+  EVIDENCE_GUARDIAN_PK: "0x0000000000000000000000000000000000000000000000000000000000000002"
+  BUYBACK_PK: "0x0000000000000000000000000000000000000000000000000000000000000003"
+  TREASURY_PK: "0x0000000000000000000000000000000000000000000000000000000000000004"
+  RISK_GUARD_PK: "0x0000000000000000000000000000000000000000000000000000000000000005"
 
 jobs:
   test:
+    timeout-minutes: 18
     runs-on: ubuntu-latest
     environment: test-env
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
 
       - name: Setup Node.js
         uses: actions/setup-node@v3
@@ -66,8 +68,34 @@ jobs:
           node-version: "18"
           cache: "npm"
 
+      # Calculate hash of package-lock.json to use in cache keys
+      - name: Get npm cache directory
+        id: npm-cache-dir
+        run: echo "dir=$(npm config get cache)" >> $GITHUB_OUTPUT
+
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        id: npm-cache
+        with:
+          path: ${{ steps.npm-cache-dir.outputs.dir }}
+          key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-
+
       - name: Install dependencies
         run: npm ci
+
+      # Cache Hardhat compilation artifacts
+      - name: Cache Hardhat artifacts
+        uses: actions/cache@v3
+        with:
+          path: |
+            artifacts
+            cache
+            typechain
+          key: ${{ runner.os }}-hardhat-${{ hashFiles('contracts/**/*.sol') }}-${{ hashFiles('hardhat.config.ts') }}
+          restore-keys: |
+            ${{ runner.os }}-hardhat-
 
       - name: Compile contracts
         run: npm run compile
