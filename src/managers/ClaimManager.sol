@@ -18,7 +18,7 @@ import { IDisputeResolver, IArbitrator } from "@kleros/dispute-resolver-interfac
 
 error OnlyArbitrator();
 error OnlyCoverOwner();
-error WrongClaimStatus();
+error WrongClaimStatus(IClaimManager.ClaimStatus _claimStatus);
 error InvalidParty();
 error CannotClaimZero();
 error IncorrectDeposit();
@@ -376,7 +376,6 @@ contract ClaimManager is
         .coverInfo(claim.coverId)
         .coverAmount,
       isCoverActive: liquidityManager.isCoverActive(claim.coverId),
-      //
       coverId: claim.coverId,
       disputeId: claim.disputeId,
       metaEvidenceURI: metaEvidenceURI(claimId_),
@@ -618,11 +617,12 @@ contract ClaimManager is
       claim.status != ClaimStatus.Initiated &&
       claim.status != ClaimStatus.Disputed &&
       claim.status != ClaimStatus.Appealed
-    ) revert WrongClaimStatus();
+    ) revert WrongClaimStatus(claim.status);
 
     /// @dev Override the delay for the evidence guardian
     if (msg.sender == evidenceGuardian) return;
 
+    uint256 contribution;
     // Check the evidence upload period has not ended
     if (
       claim.status == ClaimStatus.Disputed &&
@@ -630,22 +630,20 @@ contract ClaimManager is
       block.timestamp
     ) {
       revert EvidenceUploadPeriodEnded();
-    } else if (
-      claim.status == ClaimStatus.Appealed &&
-      claim.appeals[claim.appeals.length - 1] + evidenceUploadPeriod <
-      block.timestamp
-    ) {
-      revert EvidenceUploadPeriodEnded();
-    }
+    } else if (claim.status == ClaimStatus.Appealed) {
+      if (
+        claim.appeals[claim.appeals.length - 1] +
+          evidenceUploadPeriod <
+        block.timestamp
+      ) revert EvidenceUploadPeriodEnded();
 
-    /**
-     * @dev Sum of the contributions to sides 0 (refuse to rule) and 2 (reject the claim)
-     * This is to allow contributors to the prosecution side to submit evidence
-     */
-    uint256 roundId = claimIdtoRoundArray[claimId_].length - 1;
-    Round storage round = claimIdtoRoundArray[claimId_][roundId];
-    uint256 contribution = round.contributions[msg.sender][0] +
-      round.contributions[msg.sender][2];
+      /// @dev Allow contributors to the prosecution sides to submit evidence
+      uint256 roundId = claimIdtoRoundArray[claimId_].length - 1;
+      Round storage round = claimIdtoRoundArray[claimId_][roundId];
+      contribution =
+        round.contributions[msg.sender][0] +
+        round.contributions[msg.sender][2];
+    }
 
     if (
       msg.sender != claim.claimant &&
@@ -923,7 +921,7 @@ contract ClaimManager is
 
     // Check the claim has been ruled for by Kleros
     if (claim.status != ClaimStatus.RejectedByCourtDecision)
-      revert WrongClaimStatus();
+      revert WrongClaimStatus(claim.status);
 
     claim.status = ClaimStatus.ProsecutionResolved;
     // Remove claims from pool to unblock withdrawals
@@ -950,7 +948,7 @@ contract ClaimManager is
     if (
       claim.status != ClaimStatus.Disputed &&
       claim.status != ClaimStatus.Appealed
-    ) revert WrongClaimStatus();
+    ) revert WrongClaimStatus(claim.status);
     if (NUMBER_OF_RULING_OPTIONS < side_) revert InvalidRuling();
 
     uint256 disputeId = claim.disputeId;
@@ -1121,7 +1119,7 @@ contract ClaimManager is
     if (
       claim.status != ClaimStatus.Initiated &&
       claim.status != ClaimStatus.AcceptedByCourtDecision
-    ) revert WrongClaimStatus();
+    ) revert WrongClaimStatus(claim.status);
 
     // Check the claim has not yet passed the challenge/overrule period
     if (
