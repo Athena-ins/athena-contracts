@@ -1,5 +1,5 @@
 {
-  "filter_paths": "src/dependencies",
+  "filter_paths": "src/dependencies,src/mock",
   "detectors_to_exclude": [
     "unused-return"
   ],

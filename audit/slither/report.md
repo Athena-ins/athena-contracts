@@ -1,7 +1,7 @@
 **THIS CHECKLIST IS NOT COMPLETE**. Use `--show-ignored-findings` to show all the results.
 Summary
  - [arbitrary-send-erc20](#arbitrary-send-erc20) (2 results) (High)
- - [arbitrary-send-eth](#arbitrary-send-eth) (2 results) (High)
+ - [arbitrary-send-eth](#arbitrary-send-eth) (1 results) (High)
  - [weak-prng](#weak-prng) (1 results) (High)
  - [incorrect-exp](#incorrect-exp) (1 results) (High)
  - [incorrect-return](#incorrect-return) (1 results) (High)
@@ -9,12 +9,11 @@ Summary
  - [unchecked-transfer](#unchecked-transfer) (1 results) (High)
  - [uninitialized-state](#uninitialized-state) (7 results) (High)
  - [divide-before-multiply](#divide-before-multiply) (14 results) (Medium)
- - [erc20-interface](#erc20-interface) (15 results) (Medium)
- - [incorrect-equality](#incorrect-equality) (12 results) (Medium)
+ - [incorrect-equality](#incorrect-equality) (10 results) (Medium)
  - [reentrancy-no-eth](#reentrancy-no-eth) (17 results) (Medium)
  - [tautology](#tautology) (1 results) (Medium)
  - [unchecked-lowlevel](#unchecked-lowlevel) (1 results) (Medium)
- - [uninitialized-local](#uninitialized-local) (9 results) (Medium)
+ - [uninitialized-local](#uninitialized-local) (10 results) (Medium)
 ## arbitrary-send-erc20
 Impact: High
 Confidence: High
@@ -41,18 +40,10 @@ Confidence: Medium
 src/misc/WrappedTokenGateway.sol#L194-L197
 
 
- - [ ] ID-3
-[MockArbitrator._giveRuling(uint256,uint256)](src/mock/MockArbitrator.sol#L153-L167) sends eth to arbitrary user
-	Dangerous calls:
-	- [address(msg.sender).transfer(dispute.fee)](src/mock/MockArbitrator.sol#L165)
-
-src/mock/MockArbitrator.sol#L153-L167
-
-
 ## weak-prng
 Impact: High
 Confidence: Medium
- - [ ] ID-4
+ - [ ] ID-3
 [VirtualPool._refreshSlot0(uint64,uint256)](src/libs/VirtualPool.sol#L228-L309) uses a weak PRNG: "[secondsSinceTickStart = remaining % slot0.secondsPerTick](src/libs/VirtualPool.sol#L291)" 
 
 src/libs/VirtualPool.sol#L228-L309
@@ -61,7 +52,7 @@ src/libs/VirtualPool.sol#L228-L309
 ## incorrect-exp
 Impact: High
 Confidence: Medium
- - [ ] ID-5
+ - [ ] ID-4
 [Math.mulDiv(uint256,uint256,uint256)](node_modules/@openzeppelin/contracts/utils/math/Math.sol#L144-L223) has bitwise-xor operator ^ instead of the exponentiation operator **: 
 	 - [inverse = (3 * denominator) ^ 2](node_modules/@openzeppelin/contracts/utils/math/Math.sol#L205)
 
@@ -71,7 +62,7 @@ node_modules/@openzeppelin/contracts/utils/math/Math.sol#L144-L223
 ## incorrect-return
 Impact: High
 Confidence: Medium
- - [ ] ID-6
+ - [ ] ID-5
 [TransparentUpgradeableProxy._fallback()](node_modules/@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol#L95-L105) calls [Proxy._fallback()](node_modules/@openzeppelin/contracts/proxy/Proxy.sol#L58-L60) which halt the execution [return(uint256,uint256)(0,returndatasize()())](node_modules/@openzeppelin/contracts/proxy/Proxy.sol#L42)
 
 node_modules/@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol#L95-L105
@@ -80,71 +71,71 @@ node_modules/@openzeppelin/contracts/proxy/transparent/TransparentUpgradeablePro
 ## reentrancy-eth
 Impact: High
 Confidence: Medium
- - [ ] ID-7
-Reentrancy in [ClaimManager.disputeClaim(uint256)](src/managers/ClaimManager.sol#L797-L841):
+ - [ ] ID-6
+Reentrancy in [ClaimManager.disputeClaim(uint256)](src/managers/ClaimManager.sol#L795-L839):
 	External calls:
-	- [disputeId = arbitrator.createDispute{value: costOfArbitration}(NUMBER_OF_RULING_OPTIONS,klerosExtraData)](src/managers/ClaimManager.sol#L818-L820)
+	- [disputeId = arbitrator.createDispute{value: costOfArbitration}(NUMBER_OF_RULING_OPTIONS,klerosExtraData)](src/managers/ClaimManager.sol#L816-L818)
 	State variables written after the call(s):
-	- [claim.status = ClaimStatus.Disputed](src/managers/ClaimManager.sol#L823)
+	- [claim.status = ClaimStatus.Disputed](src/managers/ClaimManager.sol#L821)
 	[ClaimManager.claims](src/managers/ClaimManager.sol#L70) can be used in cross function reentrancies:
-	- [ClaimManager._checkCanUploadEvidence(uint256)](src/managers/ClaimManager.sol#L614-L655)
-	- [ClaimManager._claimViewData(uint256)](src/managers/ClaimManager.sol#L355-L401)
+	- [ClaimManager._checkCanUploadEvidence(uint256)](src/managers/ClaimManager.sol#L613-L653)
+	- [ClaimManager._claimViewData(uint256)](src/managers/ClaimManager.sol#L355-L400)
 	- [ClaimManager.claims](src/managers/ClaimManager.sol#L70)
 	- [ClaimManager.claimsExists(uint256)](src/managers/ClaimManager.sol#L162-L165)
 	- [ClaimManager.getTotalWithdrawableAmount(uint256,address,uint256)](src/managers/ClaimManager.sol#L286-L306)
 	- [ClaimManager.getWithdrawableAmount(uint256,address,uint256,uint256)](src/managers/ClaimManager.sol#L257-L276)
 	- [ClaimManager.hasAcceptationFinalized(uint256)](src/managers/ClaimManager.sol#L212-L223)
 	- [ClaimManager.hasAutoResolved(uint256)](src/managers/ClaimManager.sol#L194-L206)
-	- [ClaimManager.overrule(uint256,bool)](src/managers/ClaimManager.sol#L1114-L1142)
-	- [ClaimManager.submitEvidence(uint256,string)](src/managers/ClaimManager.sol#L665-L686)
-	- [ClaimManager.submitEvidenceForClaim(uint256,string[])](src/managers/ClaimManager.sol#L694-L718)
-	- [claim.prosecutor = msg.sender](src/managers/ClaimManager.sol#L824)
+	- [ClaimManager.overrule(uint256,bool)](src/managers/ClaimManager.sol#L1112-L1140)
+	- [ClaimManager.submitEvidence(uint256,string)](src/managers/ClaimManager.sol#L663-L684)
+	- [ClaimManager.submitEvidenceForClaim(uint256,string[])](src/managers/ClaimManager.sol#L692-L716)
+	- [claim.prosecutor = msg.sender](src/managers/ClaimManager.sol#L822)
 	[ClaimManager.claims](src/managers/ClaimManager.sol#L70) can be used in cross function reentrancies:
-	- [ClaimManager._checkCanUploadEvidence(uint256)](src/managers/ClaimManager.sol#L614-L655)
-	- [ClaimManager._claimViewData(uint256)](src/managers/ClaimManager.sol#L355-L401)
+	- [ClaimManager._checkCanUploadEvidence(uint256)](src/managers/ClaimManager.sol#L613-L653)
+	- [ClaimManager._claimViewData(uint256)](src/managers/ClaimManager.sol#L355-L400)
 	- [ClaimManager.claims](src/managers/ClaimManager.sol#L70)
 	- [ClaimManager.claimsExists(uint256)](src/managers/ClaimManager.sol#L162-L165)
 	- [ClaimManager.getTotalWithdrawableAmount(uint256,address,uint256)](src/managers/ClaimManager.sol#L286-L306)
 	- [ClaimManager.getWithdrawableAmount(uint256,address,uint256,uint256)](src/managers/ClaimManager.sol#L257-L276)
 	- [ClaimManager.hasAcceptationFinalized(uint256)](src/managers/ClaimManager.sol#L212-L223)
 	- [ClaimManager.hasAutoResolved(uint256)](src/managers/ClaimManager.sol#L194-L206)
-	- [ClaimManager.overrule(uint256,bool)](src/managers/ClaimManager.sol#L1114-L1142)
-	- [ClaimManager.submitEvidence(uint256,string)](src/managers/ClaimManager.sol#L665-L686)
-	- [ClaimManager.submitEvidenceForClaim(uint256,string[])](src/managers/ClaimManager.sol#L694-L718)
-	- [claim.disputeId = disputeId](src/managers/ClaimManager.sol#L825)
+	- [ClaimManager.overrule(uint256,bool)](src/managers/ClaimManager.sol#L1112-L1140)
+	- [ClaimManager.submitEvidence(uint256,string)](src/managers/ClaimManager.sol#L663-L684)
+	- [ClaimManager.submitEvidenceForClaim(uint256,string[])](src/managers/ClaimManager.sol#L692-L716)
+	- [claim.disputeId = disputeId](src/managers/ClaimManager.sol#L823)
 	[ClaimManager.claims](src/managers/ClaimManager.sol#L70) can be used in cross function reentrancies:
-	- [ClaimManager._checkCanUploadEvidence(uint256)](src/managers/ClaimManager.sol#L614-L655)
-	- [ClaimManager._claimViewData(uint256)](src/managers/ClaimManager.sol#L355-L401)
+	- [ClaimManager._checkCanUploadEvidence(uint256)](src/managers/ClaimManager.sol#L613-L653)
+	- [ClaimManager._claimViewData(uint256)](src/managers/ClaimManager.sol#L355-L400)
 	- [ClaimManager.claims](src/managers/ClaimManager.sol#L70)
 	- [ClaimManager.claimsExists(uint256)](src/managers/ClaimManager.sol#L162-L165)
 	- [ClaimManager.getTotalWithdrawableAmount(uint256,address,uint256)](src/managers/ClaimManager.sol#L286-L306)
 	- [ClaimManager.getWithdrawableAmount(uint256,address,uint256,uint256)](src/managers/ClaimManager.sol#L257-L276)
 	- [ClaimManager.hasAcceptationFinalized(uint256)](src/managers/ClaimManager.sol#L212-L223)
 	- [ClaimManager.hasAutoResolved(uint256)](src/managers/ClaimManager.sol#L194-L206)
-	- [ClaimManager.overrule(uint256,bool)](src/managers/ClaimManager.sol#L1114-L1142)
-	- [ClaimManager.submitEvidence(uint256,string)](src/managers/ClaimManager.sol#L665-L686)
-	- [ClaimManager.submitEvidenceForClaim(uint256,string[])](src/managers/ClaimManager.sol#L694-L718)
-	- [claim.challengedTimestamp = uint64(block.timestamp)](src/managers/ClaimManager.sol#L826)
+	- [ClaimManager.overrule(uint256,bool)](src/managers/ClaimManager.sol#L1112-L1140)
+	- [ClaimManager.submitEvidence(uint256,string)](src/managers/ClaimManager.sol#L663-L684)
+	- [ClaimManager.submitEvidenceForClaim(uint256,string[])](src/managers/ClaimManager.sol#L692-L716)
+	- [claim.challengedTimestamp = uint64(block.timestamp)](src/managers/ClaimManager.sol#L824)
 	[ClaimManager.claims](src/managers/ClaimManager.sol#L70) can be used in cross function reentrancies:
-	- [ClaimManager._checkCanUploadEvidence(uint256)](src/managers/ClaimManager.sol#L614-L655)
-	- [ClaimManager._claimViewData(uint256)](src/managers/ClaimManager.sol#L355-L401)
+	- [ClaimManager._checkCanUploadEvidence(uint256)](src/managers/ClaimManager.sol#L613-L653)
+	- [ClaimManager._claimViewData(uint256)](src/managers/ClaimManager.sol#L355-L400)
 	- [ClaimManager.claims](src/managers/ClaimManager.sol#L70)
 	- [ClaimManager.claimsExists(uint256)](src/managers/ClaimManager.sol#L162-L165)
 	- [ClaimManager.getTotalWithdrawableAmount(uint256,address,uint256)](src/managers/ClaimManager.sol#L286-L306)
 	- [ClaimManager.getWithdrawableAmount(uint256,address,uint256,uint256)](src/managers/ClaimManager.sol#L257-L276)
 	- [ClaimManager.hasAcceptationFinalized(uint256)](src/managers/ClaimManager.sol#L212-L223)
 	- [ClaimManager.hasAutoResolved(uint256)](src/managers/ClaimManager.sol#L194-L206)
-	- [ClaimManager.overrule(uint256,bool)](src/managers/ClaimManager.sol#L1114-L1142)
-	- [ClaimManager.submitEvidence(uint256,string)](src/managers/ClaimManager.sol#L665-L686)
-	- [ClaimManager.submitEvidenceForClaim(uint256,string[])](src/managers/ClaimManager.sol#L694-L718)
+	- [ClaimManager.overrule(uint256,bool)](src/managers/ClaimManager.sol#L1112-L1140)
+	- [ClaimManager.submitEvidence(uint256,string)](src/managers/ClaimManager.sol#L663-L684)
+	- [ClaimManager.submitEvidenceForClaim(uint256,string[])](src/managers/ClaimManager.sol#L692-L716)
 
-src/managers/ClaimManager.sol#L797-L841
+src/managers/ClaimManager.sol#L795-L839
 
 
 ## unchecked-transfer
 Impact: High
 Confidence: Medium
- - [ ] ID-8
+ - [ ] ID-7
 [WrappedTokenGateway._convertEthToWrappedLidoETH(uint256)](src/misc/WrappedTokenGateway.sol#L204-L221) ignores return value by [WETH.transferFrom(msg.sender,address(this),selectedAmount)](src/misc/WrappedTokenGateway.sol#L211)
 
 src/misc/WrappedTokenGateway.sol#L204-L221
@@ -153,7 +144,7 @@ src/misc/WrappedTokenGateway.sol#L204-L221
 ## uninitialized-state
 Impact: High
 Confidence: High
- - [ ] ID-9
+ - [ ] ID-8
 [StrategyManagerVL.aaveLendingPool](src/managers/StrategyManagerVL.sol#L63) is never initialized. It is used in:
 	- [StrategyManagerVL.getRewardIndex(uint256)](src/managers/StrategyManagerVL.sol#L158-L169)
 	- [StrategyManagerVL.getRewardRate(uint256)](src/managers/StrategyManagerVL.sol#L179-L191)
@@ -165,34 +156,34 @@ Confidence: High
 src/managers/StrategyManagerVL.sol#L63
 
 
- - [ ] ID-10
+ - [ ] ID-9
 [StrategyManagerVL.aUSDC](src/managers/StrategyManagerVL.sol#L65) is never initialized. It is used in:
 	- [StrategyManagerVL.wrappedAsset(uint256)](src/managers/StrategyManagerVL.sol#L242-L255)
 
 src/managers/StrategyManagerVL.sol#L65
 
 
- - [ ] ID-11
+ - [ ] ID-10
 [ClaimManager.claimIdToEvidence](src/managers/ClaimManager.sol#L78-L79) is never initialized. It is used in:
-	- [ClaimManager._claimViewData(uint256)](src/managers/ClaimManager.sol#L355-L401)
-	- [ClaimManager.getClaimEvidence(uint256)](src/managers/ClaimManager.sol#L484-L488)
-	- [ClaimManager.submitEvidence(uint256,string)](src/managers/ClaimManager.sol#L665-L686)
-	- [ClaimManager.submitEvidenceForClaim(uint256,string[])](src/managers/ClaimManager.sol#L694-L718)
+	- [ClaimManager._claimViewData(uint256)](src/managers/ClaimManager.sol#L355-L400)
+	- [ClaimManager.getClaimEvidence(uint256)](src/managers/ClaimManager.sol#L483-L487)
+	- [ClaimManager.submitEvidence(uint256,string)](src/managers/ClaimManager.sol#L663-L684)
+	- [ClaimManager.submitEvidenceForClaim(uint256,string[])](src/managers/ClaimManager.sol#L692-L716)
 
 src/managers/ClaimManager.sol#L78-L79
 
 
- - [ ] ID-12
+ - [ ] ID-11
 [ClaimManager.claimIdToCounterEvidence](src/managers/ClaimManager.sol#L80-L81) is never initialized. It is used in:
-	- [ClaimManager._claimViewData(uint256)](src/managers/ClaimManager.sol#L355-L401)
-	- [ClaimManager.getClaimCounterEvidence(uint256)](src/managers/ClaimManager.sol#L495-L499)
-	- [ClaimManager.submitEvidence(uint256,string)](src/managers/ClaimManager.sol#L665-L686)
-	- [ClaimManager.submitEvidenceForClaim(uint256,string[])](src/managers/ClaimManager.sol#L694-L718)
+	- [ClaimManager._claimViewData(uint256)](src/managers/ClaimManager.sol#L355-L400)
+	- [ClaimManager.getClaimCounterEvidence(uint256)](src/managers/ClaimManager.sol#L494-L498)
+	- [ClaimManager.submitEvidence(uint256,string)](src/managers/ClaimManager.sol#L663-L684)
+	- [ClaimManager.submitEvidenceForClaim(uint256,string[])](src/managers/ClaimManager.sol#L692-L716)
 
 src/managers/ClaimManager.sol#L80-L81
 
 
- - [ ] ID-13
+ - [ ] ID-12
 [StrategyManagerVL.USDC](src/managers/StrategyManagerVL.sol#L64) is never initialized. It is used in:
 	- [StrategyManagerVL.getRewardIndex(uint256)](src/managers/StrategyManagerVL.sol#L158-L169)
 	- [StrategyManagerVL.getRewardRate(uint256)](src/managers/StrategyManagerVL.sol#L179-L191)
@@ -205,7 +196,7 @@ src/managers/ClaimManager.sol#L80-L81
 src/managers/StrategyManagerVL.sol#L64
 
 
- - [ ] ID-14
+ - [ ] ID-13
 [FarmingRange._balances](src/rewards/FarmingRange.sol#L96-L97) is never initialized. It is used in:
 	- [FarmingRange.depositedLpTokens(address)](src/rewards/FarmingRange.sol#L145-L149)
 	- [FarmingRange.depositedCoverTokens(address)](src/rewards/FarmingRange.sol#L151-L155)
@@ -216,7 +207,7 @@ src/managers/StrategyManagerVL.sol#L64
 src/rewards/FarmingRange.sol#L96-L97
 
 
- - [ ] ID-15
+ - [ ] ID-14
 [FarmingRange.campaignRewardInfo](src/rewards/FarmingRange.sol#L83-L84) is never initialized. It is used in:
 	- [FarmingRange.addRewardInfo(uint256,uint256,uint256)](src/rewards/FarmingRange.sol#L733-L776)
 	- [FarmingRange.updateRewardInfo(uint256,uint256,uint256,uint256)](src/rewards/FarmingRange.sol#L797-L880)
@@ -233,7 +224,7 @@ src/rewards/FarmingRange.sol#L83-L84
 ## divide-before-multiply
 Impact: Medium
 Confidence: Medium
- - [ ] ID-16
+ - [ ] ID-15
 [EcclesiaDao.earlyWithdraw(uint256)](src/misc/EcclesiaDao.sol#L455-L500) performs a multiplication on the result of a division:
 	- [_penalty = (earlyWithdrawBpsPerDay * remainingDays * amount_) / RAY](src/misc/EcclesiaDao.sol#L478-L480)
 	- [_amountBurn = (_penalty * burnBps) / RAY](src/misc/EcclesiaDao.sol#L489)
@@ -241,7 +232,7 @@ Confidence: Medium
 src/misc/EcclesiaDao.sol#L455-L500
 
 
- - [ ] ID-17
+ - [ ] ID-16
 [Math.mulDiv(uint256,uint256,uint256)](node_modules/@openzeppelin/contracts/utils/math/Math.sol#L144-L223) performs a multiplication on the result of a division:
 	- [denominator = denominator / twos](node_modules/@openzeppelin/contracts/utils/math/Math.sol#L190)
 	- [inverse *= 2 - denominator * inverse](node_modules/@openzeppelin/contracts/utils/math/Math.sol#L211)
@@ -249,7 +240,7 @@ src/misc/EcclesiaDao.sol#L455-L500
 node_modules/@openzeppelin/contracts/utils/math/Math.sol#L144-L223
 
 
- - [ ] ID-18
+ - [ ] ID-17
 [Math.invMod(uint256,uint256)](node_modules/@openzeppelin/contracts/utils/math/Math.sol#L243-L289) performs a multiplication on the result of a division:
 	- [quotient = gcd / remainder](node_modules/@openzeppelin/contracts/utils/math/Math.sol#L265)
 	- [(gcd,remainder) = (remainder,gcd - remainder * quotient)](node_modules/@openzeppelin/contracts/utils/math/Math.sol#L267-L274)
@@ -257,7 +248,7 @@ node_modules/@openzeppelin/contracts/utils/math/Math.sol#L144-L223
 node_modules/@openzeppelin/contracts/utils/math/Math.sol#L243-L289
 
 
- - [ ] ID-19
+ - [ ] ID-18
 [Math.mulDiv(uint256,uint256,uint256)](node_modules/@openzeppelin/contracts/utils/math/Math.sol#L144-L223) performs a multiplication on the result of a division:
 	- [denominator = denominator / twos](node_modules/@openzeppelin/contracts/utils/math/Math.sol#L190)
 	- [inverse *= 2 - denominator * inverse](node_modules/@openzeppelin/contracts/utils/math/Math.sol#L213)
@@ -265,7 +256,7 @@ node_modules/@openzeppelin/contracts/utils/math/Math.sol#L243-L289
 node_modules/@openzeppelin/contracts/utils/math/Math.sol#L144-L223
 
 
- - [ ] ID-20
+ - [ ] ID-19
 [Math.mulDiv(uint256,uint256,uint256)](node_modules/@openzeppelin/contracts/utils/math/Math.sol#L144-L223) performs a multiplication on the result of a division:
 	- [denominator = denominator / twos](node_modules/@openzeppelin/contracts/utils/math/Math.sol#L190)
 	- [inverse *= 2 - denominator * inverse](node_modules/@openzeppelin/contracts/utils/math/Math.sol#L212)
@@ -273,7 +264,7 @@ node_modules/@openzeppelin/contracts/utils/math/Math.sol#L144-L223
 node_modules/@openzeppelin/contracts/utils/math/Math.sol#L144-L223
 
 
- - [ ] ID-21
+ - [ ] ID-20
 [FarmingRange.updateRewardInfo(uint256,uint256,uint256,uint256)](src/rewards/FarmingRange.sol#L797-L880) performs a multiplication on the result of a division:
 	- [_currentRewardPerBlock = (_currentRewardPerBlock * _initialBlockRange) / _nextBlockRange](src/rewards/FarmingRange.sol#L855-L857)
 	- [_nextTotal = _nextBlockRange * _currentRewardPerBlock](src/rewards/FarmingRange.sol#L858)
@@ -281,7 +272,7 @@ node_modules/@openzeppelin/contracts/utils/math/Math.sol#L144-L223
 src/rewards/FarmingRange.sol#L797-L880
 
 
- - [ ] ID-22
+ - [ ] ID-21
 [Math.mulDiv(uint256,uint256,uint256)](node_modules/@openzeppelin/contracts/utils/math/Math.sol#L144-L223) performs a multiplication on the result of a division:
 	- [denominator = denominator / twos](node_modules/@openzeppelin/contracts/utils/math/Math.sol#L190)
 	- [inverse *= 2 - denominator * inverse](node_modules/@openzeppelin/contracts/utils/math/Math.sol#L214)
@@ -289,7 +280,7 @@ src/rewards/FarmingRange.sol#L797-L880
 node_modules/@openzeppelin/contracts/utils/math/Math.sol#L144-L223
 
 
- - [ ] ID-23
+ - [ ] ID-22
 [Math.mulDiv(uint256,uint256,uint256)](node_modules/@openzeppelin/contracts/utils/math/Math.sol#L144-L223) performs a multiplication on the result of a division:
 	- [prod0 = prod0 / twos](node_modules/@openzeppelin/contracts/utils/math/Math.sol#L193)
 	- [result = prod0 * inverse](node_modules/@openzeppelin/contracts/utils/math/Math.sol#L220)
@@ -297,7 +288,7 @@ node_modules/@openzeppelin/contracts/utils/math/Math.sol#L144-L223
 node_modules/@openzeppelin/contracts/utils/math/Math.sol#L144-L223
 
 
- - [ ] ID-24
+ - [ ] ID-23
 [Math.mulDiv(uint256,uint256,uint256)](node_modules/@openzeppelin/contracts/utils/math/Math.sol#L144-L223) performs a multiplication on the result of a division:
 	- [denominator = denominator / twos](node_modules/@openzeppelin/contracts/utils/math/Math.sol#L190)
 	- [inverse *= 2 - denominator * inverse](node_modules/@openzeppelin/contracts/utils/math/Math.sol#L210)
@@ -305,7 +296,7 @@ node_modules/@openzeppelin/contracts/utils/math/Math.sol#L144-L223
 node_modules/@openzeppelin/contracts/utils/math/Math.sol#L144-L223
 
 
- - [ ] ID-25
+ - [ ] ID-24
 [Math.mulDiv(uint256,uint256,uint256)](node_modules/@openzeppelin/contracts/utils/math/Math.sol#L144-L223) performs a multiplication on the result of a division:
 	- [denominator = denominator / twos](node_modules/@openzeppelin/contracts/utils/math/Math.sol#L190)
 	- [inverse *= 2 - denominator * inverse](node_modules/@openzeppelin/contracts/utils/math/Math.sol#L209)
@@ -313,7 +304,7 @@ node_modules/@openzeppelin/contracts/utils/math/Math.sol#L144-L223
 node_modules/@openzeppelin/contracts/utils/math/Math.sol#L144-L223
 
 
- - [ ] ID-26
+ - [ ] ID-25
 [EcclesiaDao.earlyWithdraw(uint256)](src/misc/EcclesiaDao.sol#L455-L500) performs a multiplication on the result of a division:
 	- [_penalty = (earlyWithdrawBpsPerDay * remainingDays * amount_) / RAY](src/misc/EcclesiaDao.sol#L478-L480)
 	- [_amountRedistribute = (_penalty * redistributeBps) / RAY](src/misc/EcclesiaDao.sol#L486)
@@ -321,7 +312,7 @@ node_modules/@openzeppelin/contracts/utils/math/Math.sol#L144-L223
 src/misc/EcclesiaDao.sol#L455-L500
 
 
- - [ ] ID-27
+ - [ ] ID-26
 [Math.mulDiv(uint256,uint256,uint256)](node_modules/@openzeppelin/contracts/utils/math/Math.sol#L144-L223) performs a multiplication on the result of a division:
 	- [denominator = denominator / twos](node_modules/@openzeppelin/contracts/utils/math/Math.sol#L190)
 	- [inverse = (3 * denominator) ^ 2](node_modules/@openzeppelin/contracts/utils/math/Math.sol#L205)
@@ -329,7 +320,7 @@ src/misc/EcclesiaDao.sol#L455-L500
 node_modules/@openzeppelin/contracts/utils/math/Math.sol#L144-L223
 
 
- - [ ] ID-28
+ - [ ] ID-27
 [EcclesiaDao.earlyWithdraw(uint256)](src/misc/EcclesiaDao.sol#L455-L500) performs a multiplication on the result of a division:
 	- [remainingDays = (_prevLockEnd + 86400 - block.timestamp) / 86400](src/misc/EcclesiaDao.sol#L474-L476)
 	- [_penalty = (earlyWithdrawBpsPerDay * remainingDays * amount_) / RAY](src/misc/EcclesiaDao.sol#L478-L480)
@@ -337,7 +328,7 @@ node_modules/@openzeppelin/contracts/utils/math/Math.sol#L144-L223
 src/misc/EcclesiaDao.sol#L455-L500
 
 
- - [ ] ID-29
+ - [ ] ID-28
 [EcclesiaDao.tokenToVotes(uint256,uint256)](src/misc/EcclesiaDao.sol#L196-L210) performs a multiplication on the result of a division:
 	- [votes = (amount_ * bias) / RAY](src/misc/EcclesiaDao.sol#L209)
 	- [bias = (lockDuration_ * RAY) / EQUILIBRIUM_LOCK](src/misc/EcclesiaDao.sol#L203-L207)
@@ -345,180 +336,73 @@ src/misc/EcclesiaDao.sol#L455-L500
 src/misc/EcclesiaDao.sol#L196-L210
 
 
-## erc20-interface
-Impact: Medium
-Confidence: High
- - [ ] ID-30
-[UpgradedStandardToken](src/mock/TetherToken.sol#L329-L350) has incorrect ERC20 function interface:[BasicToken.transfer(address,uint256)](src/mock/TetherToken.sol#L137-L153)
-
-src/mock/TetherToken.sol#L329-L350
-
-
- - [ ] ID-31
-[UpgradedStandardToken](src/mock/TetherToken.sol#L329-L350) has incorrect ERC20 function interface:[ERC20Basic.approve(address,uint256)](src/mock/TetherToken.sol#L102)
-
-src/mock/TetherToken.sol#L329-L350
-
-
- - [ ] ID-32
-[TetherToken](src/mock/TetherToken.sol#L352-L522) has incorrect ERC20 function interface:[TetherToken.transfer(address,uint256)](src/mock/TetherToken.sol#L381-L393)
-
-src/mock/TetherToken.sol#L352-L522
-
-
- - [ ] ID-33
-[TetherToken](src/mock/TetherToken.sol#L352-L522) has incorrect ERC20 function interface:[StandardToken.transferFrom(address,address,uint256)](src/mock/TetherToken.sol#L185-L210)
-
-src/mock/TetherToken.sol#L352-L522
-
-
- - [ ] ID-34
-[UpgradedStandardToken](src/mock/TetherToken.sol#L329-L350) has incorrect ERC20 function interface:[ERC20Basic.transfer(address,uint256)](src/mock/TetherToken.sol#L87)
-
-src/mock/TetherToken.sol#L329-L350
-
-
- - [ ] ID-35
-[UpgradedStandardToken](src/mock/TetherToken.sol#L329-L350) has incorrect ERC20 function interface:[StandardToken.approve(address,uint256)](src/mock/TetherToken.sol#L217-L229)
-
-src/mock/TetherToken.sol#L329-L350
-
-
- - [ ] ID-36
-[TetherToken](src/mock/TetherToken.sol#L352-L522) has incorrect ERC20 function interface:[ERC20Basic.transfer(address,uint256)](src/mock/TetherToken.sol#L87)
-
-src/mock/TetherToken.sol#L352-L522
-
-
- - [ ] ID-37
-[TetherToken](src/mock/TetherToken.sol#L352-L522) has incorrect ERC20 function interface:[TetherToken.transferFrom(address,address,uint256)](src/mock/TetherToken.sol#L396-L413)
-
-src/mock/TetherToken.sol#L352-L522
-
-
- - [ ] ID-38
-[TetherToken](src/mock/TetherToken.sol#L352-L522) has incorrect ERC20 function interface:[TetherToken.approve(address,uint256)](src/mock/TetherToken.sol#L425-L439)
-
-src/mock/TetherToken.sol#L352-L522
-
-
- - [ ] ID-39
-[TetherToken](src/mock/TetherToken.sol#L352-L522) has incorrect ERC20 function interface:[BasicToken.transfer(address,uint256)](src/mock/TetherToken.sol#L137-L153)
-
-src/mock/TetherToken.sol#L352-L522
-
-
- - [ ] ID-40
-[TetherToken](src/mock/TetherToken.sol#L352-L522) has incorrect ERC20 function interface:[StandardToken.approve(address,uint256)](src/mock/TetherToken.sol#L217-L229)
-
-src/mock/TetherToken.sol#L352-L522
-
-
- - [ ] ID-41
-[TetherToken](src/mock/TetherToken.sol#L352-L522) has incorrect ERC20 function interface:[ERC20Basic.approve(address,uint256)](src/mock/TetherToken.sol#L102)
-
-src/mock/TetherToken.sol#L352-L522
-
-
- - [ ] ID-42
-[UpgradedStandardToken](src/mock/TetherToken.sol#L329-L350) has incorrect ERC20 function interface:[ERC20Basic.transferFrom(address,address,uint256)](src/mock/TetherToken.sol#L100)
-
-src/mock/TetherToken.sol#L329-L350
-
-
- - [ ] ID-43
-[UpgradedStandardToken](src/mock/TetherToken.sol#L329-L350) has incorrect ERC20 function interface:[StandardToken.transferFrom(address,address,uint256)](src/mock/TetherToken.sol#L185-L210)
-
-src/mock/TetherToken.sol#L329-L350
-
-
- - [ ] ID-44
-[TetherToken](src/mock/TetherToken.sol#L352-L522) has incorrect ERC20 function interface:[ERC20Basic.transferFrom(address,address,uint256)](src/mock/TetherToken.sol#L100)
-
-src/mock/TetherToken.sol#L352-L522
-
-
 ## incorrect-equality
 Impact: Medium
 Confidence: High
- - [ ] ID-45
+ - [ ] ID-29
 [Staking.amountToYieldBonus(uint256)](src/rewards/Staking.sol#L394-L409) uses a dangerous strict equality:
 	- [stakedAten_ == 0](src/rewards/Staking.sol#L398)
 
 src/rewards/Staking.sol#L394-L409
 
 
- - [ ] ID-46
+ - [ ] ID-30
 [ClaimManager.getTotalWithdrawableAmount(uint256,address,uint256)](src/managers/ClaimManager.sol#L286-L306) uses a dangerous strict equality:
 	- [claims[claimId_].rulingTimestamp == 0](src/managers/ClaimManager.sol#L292)
 
 src/managers/ClaimManager.sol#L286-L306
 
 
- - [ ] ID-47
+ - [ ] ID-31
 [MerkleDistributor.acceptRoot()](src/misc/MerkleDistributor.sol#L178-L184) uses a dangerous strict equality:
 	- [pendingRoot.validAt == 0](src/misc/MerkleDistributor.sol#L179)
 
 src/misc/MerkleDistributor.sol#L178-L184
 
 
- - [ ] ID-48
+ - [ ] ID-32
 [ClaimManager.getWithdrawableAmount(uint256,address,uint256,uint256)](src/managers/ClaimManager.sol#L257-L276) uses a dangerous strict equality:
 	- [claims[claimId_].rulingTimestamp == 0](src/managers/ClaimManager.sol#L264)
 
 src/managers/ClaimManager.sol#L257-L276
 
 
- - [ ] ID-49
-[ClaimManager._withdrawableAmount(uint256,address,uint256,uint256,uint256)](src/managers/ClaimManager.sol#L561-L591) uses a dangerous strict equality:
-	- [finalRuling == side_ && 0 < paidFees](src/managers/ClaimManager.sol#L584)
-
-src/managers/ClaimManager.sol#L561-L591
-
-
- - [ ] ID-50
+ - [ ] ID-33
 [Staking.deposit(uint256)](src/rewards/Staking.sol#L128-L168) uses a dangerous strict equality:
 	- [_userNewShares == 0](src/rewards/Staking.sol#L149)
 
 src/rewards/Staking.sol#L128-L168
 
 
- - [ ] ID-51
+ - [ ] ID-34
 [Staking.withdraw(address,uint256)](src/rewards/Staking.sol#L201-L230) uses a dangerous strict equality:
 	- [_sharesAmount == 0 || userInfo[msg.sender].shares < _sharesAmount](src/rewards/Staking.sol#L206-L207)
 
 src/rewards/Staking.sol#L201-L230
 
 
- - [ ] ID-52
-[MockArbitrator.disputeStatus(uint256)](src/mock/MockArbitrator.sol#L184-L196) uses a dangerous strict equality:
-	- [disputes[_disputeID].status == DisputeStatus.Appealable && disputes[_disputeID].rulingTime + appealPeriodDuration < block.timestamp](src/mock/MockArbitrator.sol#L188-L190)
-
-src/mock/MockArbitrator.sol#L184-L196
-
-
- - [ ] ID-53
+ - [ ] ID-35
 [ClaimManager.claimsExists(uint256)](src/managers/ClaimManager.sol#L162-L165) uses a dangerous strict equality:
 	- [claims[claimId_].createdAt == 0](src/managers/ClaimManager.sol#L163)
 
 src/managers/ClaimManager.sol#L162-L165
 
 
- - [ ] ID-54
-[AthenaArbitrator.disputeStatus(uint256)](src/misc/AthenaArbitrator.sol#L75-L87) uses a dangerous strict equality:
-	- [disputes[disputeID_].status == DisputeStatus.Appealable && disputes[disputeID_].rulingTime + appealPeriodDuration < block.timestamp](src/misc/AthenaArbitrator.sol#L79-L81)
+ - [ ] ID-36
+[ClaimManager._withdrawableAmount(uint256,address,uint256,uint256,uint256)](src/managers/ClaimManager.sol#L560-L590) uses a dangerous strict equality:
+	- [finalRuling == side_ && 0 < paidFees](src/managers/ClaimManager.sol#L583)
 
-src/misc/AthenaArbitrator.sol#L75-L87
+src/managers/ClaimManager.sol#L560-L590
 
 
- - [ ] ID-55
+ - [ ] ID-37
 [FarmingRange.depositLpNft(uint256[],uint256)](src/rewards/FarmingRange.sol#L300-L346) uses a dangerous strict equality:
 	- [campaignPoolId == poolIds[j]](src/rewards/FarmingRange.sol#L328)
 
 src/rewards/FarmingRange.sol#L300-L346
 
 
- - [ ] ID-56
+ - [ ] ID-38
 [MerkleDistributor.claim(address,address,uint256,bytes32[])](src/misc/MerkleDistributor.sol#L203-L232) uses a dangerous strict equality:
 	- [root == bytes32(0)](src/misc/MerkleDistributor.sol#L209)
 
@@ -528,7 +412,7 @@ src/misc/MerkleDistributor.sol#L203-L232
 ## reentrancy-no-eth
 Impact: Medium
 Confidence: Medium
- - [ ] ID-57
+ - [ ] ID-39
 Reentrancy in [EcclesiaDao.withdraw()](src/misc/EcclesiaDao.sol#L428-L449):
 	External calls:
 	- [_unlock(_lock,_amount)](src/misc/EcclesiaDao.sol#L442)
@@ -546,7 +430,7 @@ Reentrancy in [EcclesiaDao.withdraw()](src/misc/EcclesiaDao.sol#L428-L449):
 src/misc/EcclesiaDao.sol#L428-L449
 
 
- - [ ] ID-58
+ - [ ] ID-40
 Reentrancy in [LiquidityManager._takeInterests(uint256,address,uint256)](src/managers/LiquidityManager.sol#L574-L634):
 	External calls:
 	- [(newUserCapital,strategyRewards) = VirtualPool._takePoolInterests(position.poolIds[i],positionId_,coverRewardsBeneficiary_,position.supplied,position.strategyRewardIndex,latestStrategyRewardIndex,yieldBonus_,position.poolIds)](src/managers/LiquidityManager.sol#L601-L611)
@@ -570,7 +454,7 @@ Reentrancy in [LiquidityManager._takeInterests(uint256,address,uint256)](src/man
 src/managers/LiquidityManager.sol#L574-L634
 
 
- - [ ] ID-59
+ - [ ] ID-41
 Reentrancy in [LiquidityManager.updatePositionUpTo(uint256,uint256[])](src/managers/LiquidityManager.sol#L1290-L1356):
 	External calls:
 	- [VirtualPool._payRewardsAndFees(position.poolIds[i],info.coverRewards,account,0,position.poolIds.length)](src/managers/LiquidityManager.sol#L1342-L1348)
@@ -586,7 +470,7 @@ Reentrancy in [LiquidityManager.updatePositionUpTo(uint256,uint256[])](src/manag
 src/managers/LiquidityManager.sol#L1290-L1356
 
 
- - [ ] ID-60
+ - [ ] ID-42
 Reentrancy in [FarmingRange.depositWithPermit(uint256,uint256,bool,uint256,uint8,bytes32,bytes32)](src/rewards/FarmingRange.sol#L399-L420):
 	External calls:
 	- [IERC20Permit(address(campaignInfo[_campaignID].stakingToken)).permit(msg.sender,address(this),type()(uint256).max,_deadline,_v,_r,_s)](src/rewards/FarmingRange.sol#L408-L417)
@@ -615,7 +499,7 @@ Reentrancy in [FarmingRange.depositWithPermit(uint256,uint256,bool,uint256,uint8
 src/rewards/FarmingRange.sol#L399-L420
 
 
- - [ ] ID-61
+ - [ ] ID-43
 Reentrancy in [LiquidityManager.removeLiquidity(uint256,uint256,bool)](src/managers/LiquidityManager.sol#L733-L801):
 	External calls:
 	- [_closeWithdrawalCommit(positionId_)](src/managers/LiquidityManager.sol#L749)
@@ -644,7 +528,7 @@ Reentrancy in [LiquidityManager.removeLiquidity(uint256,uint256,bool)](src/manag
 src/managers/LiquidityManager.sol#L733-L801
 
 
- - [ ] ID-62
+ - [ ] ID-44
 Reentrancy in [EcclesiaDao._unlock(EcclesiaDao.LockedBalance,uint256)](src/misc/EcclesiaDao.sol#L386-L423):
 	External calls:
 	- [staking.withdrawTokenDao(msg.sender,address(this),withdrawAmount_)](src/misc/EcclesiaDao.sol#L407-L411)
@@ -659,7 +543,7 @@ Reentrancy in [EcclesiaDao._unlock(EcclesiaDao.LockedBalance,uint256)](src/misc/
 src/misc/EcclesiaDao.sol#L386-L423
 
 
- - [ ] ID-63
+ - [ ] ID-45
 Reentrancy in [Staking.initializeFarming(IStaking.BonusLevel[])](src/rewards/Staking.sol#L111-L125):
 	External calls:
 	- [farming.deposit(CAMPAIGN_ID,1)](src/rewards/Staking.sol#L122)
@@ -673,7 +557,7 @@ Reentrancy in [Staking.initializeFarming(IStaking.BonusLevel[])](src/rewards/Sta
 src/rewards/Staking.sol#L111-L125
 
 
- - [ ] ID-64
+ - [ ] ID-46
 Reentrancy in [EcclesiaDao._deposit(uint256,uint256)](src/misc/EcclesiaDao.sol#L254-L300):
 	External calls:
 	- [staking.depositDao(msg.sender,toStake)](src/misc/EcclesiaDao.sol#L287)
@@ -694,7 +578,7 @@ Reentrancy in [EcclesiaDao._deposit(uint256,uint256)](src/misc/EcclesiaDao.sol#L
 src/misc/EcclesiaDao.sol#L254-L300
 
 
- - [ ] ID-65
+ - [ ] ID-47
 Reentrancy in [FarmingRange.updateRewardInfo(uint256,uint256,uint256,uint256)](src/rewards/FarmingRange.sol#L797-L880):
 	External calls:
 	- [_transferFromWithAllowance(campaign.rewardToken,_diff,_campaignID)](src/rewards/FarmingRange.sol#L833-L837)
@@ -747,7 +631,7 @@ Reentrancy in [FarmingRange.updateRewardInfo(uint256,uint256,uint256,uint256)](s
 src/rewards/FarmingRange.sol#L797-L880
 
 
- - [ ] ID-66
+ - [ ] ID-48
 Reentrancy in [EcclesiaDao.earlyWithdraw(uint256)](src/misc/EcclesiaDao.sol#L455-L500):
 	External calls:
 	- [_unlock(_lock,amount_)](src/misc/EcclesiaDao.sol#L471)
@@ -777,7 +661,7 @@ Reentrancy in [EcclesiaDao.earlyWithdraw(uint256)](src/misc/EcclesiaDao.sol#L455
 src/misc/EcclesiaDao.sol#L455-L500
 
 
- - [ ] ID-67
+ - [ ] ID-49
 Reentrancy in [LiquidityManager.addLiquidity(uint256,uint256,bool)](src/managers/LiquidityManager.sol#L502-L564):
 	External calls:
 	- [_takeInterests(positionId_,positionToken.ownerOf(positionId_),0)](src/managers/LiquidityManager.sol#L519-L523)
@@ -798,7 +682,7 @@ Reentrancy in [LiquidityManager.addLiquidity(uint256,uint256,bool)](src/managers
 src/managers/LiquidityManager.sol#L502-L564
 
 
- - [ ] ID-68
+ - [ ] ID-50
 Reentrancy in [Staking.deposit(uint256)](src/rewards/Staking.sol#L128-L168):
 	External calls:
 	- [harvestFarming()](src/rewards/Staking.sol#L135)
@@ -815,7 +699,7 @@ Reentrancy in [Staking.deposit(uint256)](src/rewards/Staking.sol#L128-L168):
 src/rewards/Staking.sol#L128-L168
 
 
- - [ ] ID-69
+ - [ ] ID-51
 Reentrancy in [LiquidityManager.commitRemoveLiquidity(uint256)](src/managers/LiquidityManager.sol#L678-L693):
 	External calls:
 	- [_takeInterests(positionId_,positionToken.ownerOf(positionId_),0)](src/managers/LiquidityManager.sol#L685-L689)
@@ -834,7 +718,7 @@ Reentrancy in [LiquidityManager.commitRemoveLiquidity(uint256)](src/managers/Liq
 src/managers/LiquidityManager.sol#L678-L693
 
 
- - [ ] ID-70
+ - [ ] ID-52
 Reentrancy in [FarmingRange.emergencyWithdrawNft(uint256[],uint256[][])](src/rewards/FarmingRange.sol#L583-L631):
 	External calls:
 	- [coverToken.transferFrom(address(this),msg.sender,tokenId)](src/rewards/FarmingRange.sol#L608)
@@ -879,7 +763,7 @@ Reentrancy in [FarmingRange.emergencyWithdrawNft(uint256[],uint256[][])](src/rew
 src/rewards/FarmingRange.sol#L583-L631
 
 
- - [ ] ID-71
+ - [ ] ID-53
 Reentrancy in [FarmingRange.depositCoverNft(uint256,uint256)](src/rewards/FarmingRange.sol#L348-L396):
 	External calls:
 	- [coverToken.transferFrom(msg.sender,address(this),_tokenId)](src/rewards/FarmingRange.sol#L355)
@@ -907,7 +791,7 @@ Reentrancy in [FarmingRange.depositCoverNft(uint256,uint256)](src/rewards/Farmin
 src/rewards/FarmingRange.sol#L348-L396
 
 
- - [ ] ID-72
+ - [ ] ID-54
 Reentrancy in [Staking.withdraw(address,uint256)](src/rewards/Staking.sol#L201-L230):
 	External calls:
 	- [harvestFarming()](src/rewards/Staking.sol#L212)
@@ -924,7 +808,7 @@ Reentrancy in [Staking.withdraw(address,uint256)](src/rewards/Staking.sol#L201-L
 src/rewards/Staking.sol#L201-L230
 
 
- - [ ] ID-73
+ - [ ] ID-55
 Reentrancy in [FarmingRange.forceExpiredCoverWithdrawal(uint256)](src/rewards/FarmingRange.sol#L653-L674):
 	External calls:
 	- [coverToken.transferFrom(address(this),owner,_tokenId)](src/rewards/FarmingRange.sol#L668)
@@ -944,7 +828,7 @@ src/rewards/FarmingRange.sol#L653-L674
 ## tautology
 Impact: Medium
 Confidence: High
- - [ ] ID-74
+ - [ ] ID-56
 [Staking.amountToYieldBonus(uint256)](src/rewards/Staking.sol#L394-L409) contains a tautology or contradiction:
 	- [0 <= i](src/rewards/Staking.sol#L402)
 
@@ -954,7 +838,7 @@ src/rewards/Staking.sol#L394-L409
 ## unchecked-lowlevel
 Impact: Medium
 Confidence: Medium
- - [ ] ID-75
+ - [ ] ID-57
 [FarmingRange._transferFromWithAllowance(IERC20,uint256,uint256)](src/rewards/FarmingRange.sol#L1175-L1200) ignores return value by [rewardManager.call(abi.encodeWithSignature(resetAllowance(uint256),_campaignID))](src/rewards/FarmingRange.sol#L1188-L1193)
 
 src/rewards/FarmingRange.sol#L1175-L1200
@@ -963,55 +847,61 @@ src/rewards/FarmingRange.sol#L1175-L1200
 ## uninitialized-local
 Impact: Medium
 Confidence: Medium
- - [ ] ID-76
+ - [ ] ID-58
 [FarmingRange._updateCampaign(uint256)._amount](src/rewards/FarmingRange.sol#L1260) is a local variable never initialized
 
 src/rewards/FarmingRange.sol#L1260
 
 
- - [ ] ID-77
+ - [ ] ID-59
 [LiquidityManager._takeInterests(uint256,address,uint256).strategyRewards](src/managers/LiquidityManager.sol#L593) is a local variable never initialized
 
 src/managers/LiquidityManager.sol#L593
 
 
- - [ ] ID-78
+ - [ ] ID-60
 [EcclesiaDao.harvest(address[]).tokenRewardsRay](src/misc/EcclesiaDao.sol#L567) is a local variable never initialized
 
 src/misc/EcclesiaDao.sol#L567
 
 
- - [ ] ID-79
-[ClaimManager.claimsByAccount(address).nbOfClaims](src/managers/ClaimManager.sol#L458) is a local variable never initialized
+ - [ ] ID-61
+[ClaimManager.claimsByAccount(address).nbOfClaims](src/managers/ClaimManager.sol#L457) is a local variable never initialized
 
-src/managers/ClaimManager.sol#L458
-
-
- - [ ] ID-80
-[ClaimManager.claimsByAccount(address).index](src/managers/ClaimManager.sol#L465) is a local variable never initialized
-
-src/managers/ClaimManager.sol#L465
+src/managers/ClaimManager.sol#L457
 
 
- - [ ] ID-81
+ - [ ] ID-62
+[ClaimManager.claimsByAccount(address).index](src/managers/ClaimManager.sol#L464) is a local variable never initialized
+
+src/managers/ClaimManager.sol#L464
+
+
+ - [ ] ID-63
 [AthenaDataProvider.positionInfo(ILiquidityManager.Position,uint256).info](src/misc/AthenaDataProvider.sol#L37) is a local variable never initialized
 
 src/misc/AthenaDataProvider.sol#L37
 
 
- - [ ] ID-82
+ - [ ] ID-64
 [FarmingRange.depositLpNft(uint256[],uint256).hasRequiredPools](src/rewards/FarmingRange.sol#L326) is a local variable never initialized
 
 src/rewards/FarmingRange.sol#L326
 
 
- - [ ] ID-83
+ - [ ] ID-65
+[ClaimManager._checkCanUploadEvidence(uint256).contribution](src/managers/ClaimManager.sol#L625) is a local variable never initialized
+
+src/managers/ClaimManager.sol#L625
+
+
+ - [ ] ID-66
 [VirtualPool._payRewardsAndFees(uint64,uint256,address,uint256,uint256).leverageFee](src/libs/VirtualPool.sol#L409) is a local variable never initialized
 
 src/libs/VirtualPool.sol#L409
 
 
- - [ ] ID-84
+ - [ ] ID-67
 [LiquidityManager._takeInterests(uint256,address,uint256).newUserCapital](src/managers/LiquidityManager.sol#L592) is a local variable never initialized
 
 src/managers/LiquidityManager.sol#L592
