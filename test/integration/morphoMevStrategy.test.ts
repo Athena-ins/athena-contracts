@@ -13,6 +13,7 @@ import {
 import {
   deployStrategyManagerEthereum,
   ProtocolConfig,
+  deployProxyStrategyManager,
 } from "../helpers/deployers";
 import {
   MorphoProtocolContracts,
@@ -66,8 +67,8 @@ interface Arguments extends Mocha.Context {
   };
 }
 
-export function EthereumStrategyTest() {
-  context("Ethereum Strategy Test", function () {
+export function MorphoMevStrategyTest() {
+  context("Morpho MEV Strategy Test", function () {
     this.timeout(120_000);
 
     before(async function (this: Arguments) {
@@ -78,15 +79,21 @@ export function EthereumStrategyTest() {
         this.skip();
       }
 
-      const protocolConfig = getDefaultProtocolConfig("mainnet");
-      const contracts = await getConnectedProtocolContracts(
-        getNetworkAddresses(),
-        "ethereum-morpho",
-      );
-      // const contracts = await deployAllContractsAndInitializeProtocolMorpho(
-      //   this.signers.deployer,
-      //   this.customEnv.protocolConfig,
+      // const contracts = await getConnectedProtocolContracts(
+      //   getNetworkAddresses(),
+      //   "ethereum-morpho",
       // );
+
+      const protocolConfig = getDefaultProtocolConfig("mainnet");
+      const contracts = await deployAllContractsAndInitializeProtocolMorpho(
+        this.signers.deployer,
+        protocolConfig,
+      );
+      contracts.ProxyStrategyManager = await deployProxyStrategyManager(
+        this.signers.deployer,
+        [contracts.StrategyManager.address, this.signers.deployer.address],
+      );
+
       const helpers = await makeTestHelpers(this.signers.deployer, contracts);
 
       this.customEnv = {
@@ -124,6 +131,7 @@ export function EthereumStrategyTest() {
       const strategyManagerProxy =
         this.customEnv.contracts.ProxyStrategyManager;
 
+      expect(strategyManagerProxy).to.not.be.undefined;
       if (!strategyManagerProxy)
         throw Error("ProxyStrategyManager address is missing");
 

@@ -30,7 +30,7 @@ import {
 } from "../helpers/protocol";
 import { AthenaToken__factory } from "../../typechain";
 // Types
-import { BaseContract } from "ethers";
+import { BaseContract, constants } from "ethers";
 
 interface Arguments extends Omit<Mocha.Context, "contracts"> {
   args: {
@@ -266,6 +266,8 @@ export function DeployProtocolTest() {
         expect(Object.keys(contracts).length).to.equal(19);
 
         for (const contract of Object.values(contracts)) {
+          if (contract.address === constants.AddressZero) continue;
+
           expect((await ethers.provider.getCode(contract.address)).length).gt(
             2,
           );

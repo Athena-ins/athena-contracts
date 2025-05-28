@@ -83,7 +83,7 @@ interface Arguments extends Mocha.Context {
   };
 }
 
-export function MorphoStrategyUpgradeTest() {
+export function StrategyManagerProxyTest() {
   context("Strategy Manager Proxy Test", function () {
     this.timeout(120_000);
 

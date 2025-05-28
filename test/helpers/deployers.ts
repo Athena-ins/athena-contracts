@@ -301,15 +301,6 @@ export async function deployAthenaToken(
   });
 }
 
-export async function deployBasicProxy(
-  signer: Signer,
-  args: Parameters<BasicProxy__factory["deploy"]>,
-): Promise<WithAddress<BasicProxy>> {
-  return new BasicProxy__factory(signer).deploy(...args).catch((err) => {
-    throw Error(`Deploy BasicProxy:\n${err}`);
-  });
-}
-
 export async function deployWrappedTokenGateway(
   signer: Signer,
   args: Parameters<WrappedTokenGateway__factory["deploy"]>,
@@ -346,6 +337,25 @@ export async function deploySafeProxy(
   return new SafeProxy__factory(signer).deploy(...args).catch((err) => {
     throw Error(`Deploy SafeProxy:\n${err}`);
   });
+}
+
+export async function deployBasicProxy(
+  signer: Signer,
+  args: Parameters<BasicProxy__factory["deploy"]>,
+): Promise<WithAddress<BasicProxy>> {
+  return new BasicProxy__factory(signer).deploy(...args).catch((err) => {
+    throw Error(`Deploy BasicProxy:\n${err}`);
+  });
+}
+
+export async function deployProxyStrategyManager(
+  signer: Signer,
+  args: Parameters<BasicProxy__factory["deploy"]>,
+): Promise<WithAddress<StrategyManager>> {
+  return deployBasicProxy(
+    signer,
+    args,
+  ) as unknown as WithAddress<StrategyManager>;
 }
 
 // ======================= //

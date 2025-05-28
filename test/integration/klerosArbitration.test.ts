@@ -178,7 +178,7 @@ export function KlerosArbitrationTest() {
         expect(
           await postTxHandler(
             this.contracts.ClaimManager.setPeriods(
-              this.protocolConfig.challengePeriod,
+              this.protocolConfig.claimPeriods[0],
               84 * 60 * 60, // Appeal Period 3 days 12 hours
               42 * 60 * 60, // Evidence Period 1 day 18 hours
             ),
