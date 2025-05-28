@@ -12,12 +12,15 @@ error NotOwner();
 error NotEnoughETHToCoverArbitrationCosts();
 error InvalidRuling();
 error DisputeAlreadyResolved();
+error DisputeNotResolved();
+error DisputeNotAppealable();
 error InvalidNumberOfChoices();
 error OnlyClaimManager();
+error AppealPeriodNotOver();
 
 /** @title Athena Implementation of Kleros Centralized Arbitrator
  * Used as a temporary arbitrator until the Kleros Arbitrum Arbitrator is live.
- * This arbitrator decides alone on the result of disputes. No appeals are possible.
+ * This arbitrator allows appeals and follows the Kleros arbitration interface.
  *
  * Originial Kleros contract:
  * https://github.com/kleros/kleros-interaction/blob/master/contracts/standard/arbitration/CentralizedArbitrator.sol
@@ -37,6 +40,8 @@ contract AthenaArbitrator is IArbitrator, Ownable {
     uint256 ruling;
     DisputeStatus status;
     uint256 rulingTime;
+    uint256 appeals; // Count of appeals that have occurred
+    bool ruled; // Whether the dispute has been ruled by ClaimManager
   }
 
   uint256 public nextDisputeID;
@@ -75,15 +80,17 @@ contract AthenaArbitrator is IArbitrator, Ownable {
   function disputeStatus(
     uint256 disputeID_
   ) public view override returns (DisputeStatus status) {
+    Dispute storage dispute = disputes[disputeID_];
+
+    // If the dispute is appealable but the appeal period has ended, it's solved
     if (
-      disputes[disputeID_].status == DisputeStatus.Appealable &&
-      disputes[disputeID_].rulingTime + appealPeriodDuration <
-      block.timestamp
+      dispute.status == DisputeStatus.Appealable &&
+      dispute.rulingTime + appealPeriodDuration < block.timestamp
     ) {
       return DisputeStatus.Solved;
     }
 
-    return disputes[disputeID_].status;
+    return dispute.status;
   }
 
   /** @dev Return the ruling of a dispute.
@@ -115,7 +122,7 @@ contract AthenaArbitrator is IArbitrator, Ownable {
     uint256 _disputeID
   ) external view returns (uint256 start, uint256 end) {
     Dispute storage dispute = disputes[_disputeID];
-    if (dispute.status != DisputeStatus.Waiting) return (0, 0);
+    if (dispute.status != DisputeStatus.Appealable) return (0, 0);
 
     return (
       dispute.rulingTime,
@@ -134,21 +141,22 @@ contract AthenaArbitrator is IArbitrator, Ownable {
   function createDispute(
     uint256 choices_,
     bytes calldata /*_extraData*/
-  ) public payable returns (uint256 disputeID) {
+  ) public payable override returns (uint256 disputeID) {
     if (choices_ != choices) revert InvalidNumberOfChoices();
     if (msg.sender != address(claimManager))
       revert OnlyClaimManager();
     if (msg.value < _arbitrationPrice)
       revert NotEnoughETHToCoverArbitrationCosts();
 
-    disputeID = nextDisputeID;
-    nextDisputeID++;
+    disputeID = nextDisputeID++;
 
     disputes[disputeID] = Dispute({
       fee: msg.value,
       ruling: 0,
       status: DisputeStatus.Waiting,
-      rulingTime: 0
+      rulingTime: 0,
+      appeals: 0,
+      ruled: false
     });
 
     emit DisputeCreation(disputeID, IArbitrable(msg.sender));
@@ -160,18 +168,26 @@ contract AthenaArbitrator is IArbitrator, Ownable {
   function appeal(
     uint256 _disputeID,
     bytes memory /* _extraData */
-  ) external payable {
+  ) external payable override {
+    Dispute storage dispute = disputes[_disputeID];
+
+    // Can only appeal if the dispute is appealable and within the appeal period
+    if (dispute.status != DisputeStatus.Appealable)
+      revert DisputeNotAppealable();
+    if (dispute.rulingTime + appealPeriodDuration < block.timestamp)
+      revert DisputeNotAppealable();
+
     if (msg.sender != address(claimManager))
       revert OnlyClaimManager();
     if (msg.value < _appealPrice)
       revert NotEnoughETHToCoverArbitrationCosts();
 
-    disputes[_disputeID] = Dispute({
-      fee: msg.value,
-      ruling: 0,
-      status: DisputeStatus.Waiting,
-      rulingTime: 0
-    });
+    // Reset to waiting status for a new ruling
+    dispute.status = DisputeStatus.Waiting;
+    dispute.rulingTime = 0;
+    dispute.appeals++;
+
+    emit AppealDecision(_disputeID, IArbitrable(msg.sender));
   }
 
   // ======= ADMIN ======= //
@@ -196,7 +212,28 @@ contract AthenaArbitrator is IArbitrator, Ownable {
 
     payable(msg.sender).transfer(dispute.fee); // Avoid blocking.
 
-    claimManager.rule(disputeID_, ruling_);
+    // Only call rule on the claim manager after appeal period has ended or when explicitly enforced
+    emit AppealPossible(
+      disputeID_,
+      IArbitrable(address(claimManager))
+    );
+  }
+
+  /** @dev Execute the ruling after appeal period has ended.
+   *  This should be called only after the appeal period has ended and no appeal was made.
+   *  @param disputeID_ ID of the dispute to execute ruling on.
+   */
+  function executeRuling(uint256 disputeID_) external {
+    Dispute storage dispute = disputes[disputeID_];
+
+    // Only execute if the dispute is solved (appeal period ended) and not yet ruled
+    if (disputeStatus(disputeID_) != DisputeStatus.Solved)
+      revert AppealPeriodNotOver();
+    if (dispute.ruled) revert DisputeAlreadyResolved();
+
+    dispute.ruled = true;
+    // Now call rule on the claim manager with the final ruling
+    claimManager.rule(disputeID_, dispute.ruling);
   }
 
   /** @dev Set the arbitration price. Only callable by the owner.
