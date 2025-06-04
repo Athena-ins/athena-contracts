@@ -167,6 +167,17 @@ contract ClaimManager is
   // ======= VIEWS ======= //
 
   /**
+   * @notice Returns the appeal cost for a given dispute ID.
+   * @param disputeId The dispute ID
+   * @return The appeal cost
+   */
+  function getAppealCost(
+    uint256 disputeId
+  ) external view returns (uint256) {
+    return arbitrator.appealCost(disputeId, klerosExtraData);
+  }
+
+  /**
    * @notice Maps external (arbitrator side) dispute id to local (arbitrable) dispute id.
    * @param externalDisputeID_ Dispute id as on arbitrator side.
    * @return Dispute id as in arbitrable contract aka claimID.
