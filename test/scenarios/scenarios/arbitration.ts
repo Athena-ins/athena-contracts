@@ -706,8 +706,9 @@ export const arbitration: Scenario = {
       actions: [
         {
           userName: "user1",
-          name: "appeal",
+          name: "fundAppeal",
           args: {
+            side: "PayClaimant",
             claimId: 6,
           },
           expected: "success",
@@ -855,8 +856,9 @@ export const arbitration: Scenario = {
       actions: [
         {
           userName: "user2",
-          name: "appeal",
+          name: "fundAppeal",
           args: {
+            side: "RejectClaim",
             claimId: 7,
           },
           expected: "success",
@@ -888,7 +890,7 @@ export const arbitration: Scenario = {
         },
         {
           userName: "user2",
-          name: "withdrawProsecutionReward",
+          name: "resolveProsecution",
           args: {
             claimId: 7,
           },
@@ -979,8 +981,9 @@ export const arbitration: Scenario = {
       actions: [
         {
           userName: "user1",
-          name: "appeal",
+          name: "fundAppeal",
           args: {
+            side: "PayClaimant",
             claimId: 8,
           },
           expected: "success",
@@ -1006,8 +1009,9 @@ export const arbitration: Scenario = {
       actions: [
         {
           userName: "user2",
-          name: "appeal",
+          name: "fundAppeal",
           args: {
+            side: "RejectClaim",
             claimId: 8,
           },
           expected: "success",
@@ -1065,7 +1069,7 @@ export const arbitration: Scenario = {
         },
         {
           userName: "user2",
-          name: "withdrawProsecutionReward",
+          name: "resolveProsecution",
           args: {
             claimId: 8,
           },
@@ -1157,8 +1161,9 @@ export const arbitration: Scenario = {
       actions: [
         {
           userName: "user1",
-          name: "appeal",
+          name: "fundAppeal",
           args: {
+            side: "PayClaimant",
             claimId: 9,
           },
           expected: "success",
@@ -1283,8 +1288,9 @@ export const arbitration: Scenario = {
       actions: [
         {
           userName: "user1",
-          name: "appeal",
+          name: "fundAppeal",
           args: {
+            side: "PayClaimant",
             claimId: 10,
           },
           expected: "success",

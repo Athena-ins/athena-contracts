@@ -13,11 +13,12 @@ import {
   updateCover,
   initiateClaim,
   withdrawCompensation,
-  withdrawProsecutionReward,
+  resolveProsecution,
   submitEvidenceForClaim,
   disputeClaim,
-  appeal,
+  fundAppeal,
   rule,
+  executeRuling,
   overrule,
   //
   // need dao, farming, staking, claim
@@ -399,10 +400,10 @@ export async function executeAction(this: Mocha.Context, action: Action) {
       break;
     }
 
-    case "withdrawProsecutionReward": {
+    case "resolveProsecution": {
       const { claimId } = args;
 
-      await withdrawProsecutionReward(
+      await resolveProsecution(
         this,
         signer,
         claimId,
@@ -449,13 +450,14 @@ export async function executeAction(this: Mocha.Context, action: Action) {
       break;
     }
 
-    case "appeal": {
-      const { claimId, valueSent } = args;
+    case "fundAppeal": {
+      const { claimId, side, valueSent } = args;
 
-      await appeal(
+      await fundAppeal(
         this,
         signer,
         claimId,
+        side,
         valueSent,
         expected,
         revertMessage,
@@ -474,6 +476,22 @@ export async function executeAction(this: Mocha.Context, action: Action) {
         signer,
         disputeId,
         ruling,
+        expected,
+        revertMessage,
+        timeTravel,
+        skipTokenCheck,
+      );
+
+      break;
+    }
+
+    case "executeRuling": {
+      const { disputeId } = args;
+
+      await executeRuling(
+        this,
+        signer,
+        disputeId,
         expected,
         revertMessage,
         timeTravel,

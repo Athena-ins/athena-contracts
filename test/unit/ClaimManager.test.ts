@@ -587,7 +587,7 @@ export function ClaimManagerTest() {
           (this.contracts.AthenaArbitrator as any).executeRuling(disputeId),
         );
 
-        // Resolve prosecution (replace withdrawProsecutionReward with resolveProsecution)
+        // Resolve prosecution
         await postTxHandler(
           this.contracts.ClaimManager.connect(
             this.signers.user2,

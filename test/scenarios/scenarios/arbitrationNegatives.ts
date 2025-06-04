@@ -490,6 +490,14 @@ export const arbitrationNegatives: Scenario = {
           },
           expected: "success",
         },
+        {
+          userName: "deployer",
+          name: "executeRuling",
+          args: {
+            disputeId: 2,
+          },
+          expected: "success",
+        },
       ],
     },
     {
@@ -607,6 +615,14 @@ export const arbitrationNegatives: Scenario = {
           args: {
             disputeId: 3,
             ruling: "PayClaimant",
+          },
+          expected: "success",
+        },
+        {
+          userName: "deployer",
+          name: "executeRuling",
+          args: {
+            disputeId: 3,
           },
           expected: "success",
         },
@@ -855,8 +871,9 @@ export const arbitrationNegatives: Scenario = {
       actions: [
         {
           userName: "user1",
-          name: "appeal",
+          name: "fundAppeal",
           args: {
+            side: "PayClaimant",
             claimId: 6,
           },
           expected: "revert",
@@ -882,8 +899,9 @@ export const arbitrationNegatives: Scenario = {
       actions: [
         {
           userName: "user1",
-          name: "appeal",
+          name: "fundAppeal",
           args: {
+            side: "PayClaimant",
             claimId: 6,
           },
           expected: "revert",
@@ -903,6 +921,14 @@ export const arbitrationNegatives: Scenario = {
           },
           expected: "success",
         },
+        {
+          userName: "deployer",
+          name: "executeRuling",
+          args: {
+            disputeId: 4,
+          },
+          expected: "success",
+        },
       ],
     },
     {
@@ -910,8 +936,9 @@ export const arbitrationNegatives: Scenario = {
       actions: [
         {
           userName: "user3",
-          name: "appeal",
+          name: "fundAppeal",
           args: {
+            side: "RejectClaim",
             claimId: 6,
           },
           expected: "revert",
@@ -924,8 +951,9 @@ export const arbitrationNegatives: Scenario = {
       actions: [
         {
           userName: "user2",
-          name: "appeal",
+          name: "fundAppeal",
           args: {
+            side: "RejectClaim",
             claimId: 6,
           },
           expected: "revert",
@@ -938,8 +966,9 @@ export const arbitrationNegatives: Scenario = {
       actions: [
         {
           userName: "user1",
-          name: "appeal",
+          name: "fundAppeal",
           args: {
+            side: "PayClaimant",
             claimId: 6,
             valueSent: "100", // small amount
           },
@@ -953,8 +982,9 @@ export const arbitrationNegatives: Scenario = {
       actions: [
         {
           userName: "user1",
-          name: "appeal",
+          name: "fundAppeal",
           args: {
+            side: "PayClaimant",
             claimId: 6,
           },
           expected: "success",
@@ -966,8 +996,9 @@ export const arbitrationNegatives: Scenario = {
       actions: [
         {
           userName: "user1",
-          name: "appeal",
+          name: "fundAppeal",
           args: {
+            side: "PayClaimant",
             claimId: 6,
           },
           expected: "revert",
@@ -984,6 +1015,14 @@ export const arbitrationNegatives: Scenario = {
           args: {
             disputeId: 4,
             ruling: "PayClaimant",
+          },
+          expected: "success",
+        },
+        {
+          userName: "deployer",
+          name: "executeRuling",
+          args: {
+            disputeId: 4,
           },
           expected: "success",
         },
@@ -1099,6 +1138,14 @@ export const arbitrationNegatives: Scenario = {
           },
           expected: "success",
         },
+        {
+          userName: "deployer",
+          name: "executeRuling",
+          args: {
+            disputeId: 5,
+          },
+          expected: "success",
+        },
       ],
     },
     {
@@ -1107,7 +1154,7 @@ export const arbitrationNegatives: Scenario = {
       actions: [
         {
           userName: "user2",
-          name: "withdrawProsecutionReward",
+          name: "resolveProsecution",
           args: {
             claimId: 7,
           },
@@ -1121,8 +1168,9 @@ export const arbitrationNegatives: Scenario = {
       actions: [
         {
           userName: "user1",
-          name: "appeal",
+          name: "fundAppeal",
           args: {
+            side: "PayClaimant",
             claimId: 7,
           },
           expected: "success",
@@ -1134,7 +1182,7 @@ export const arbitrationNegatives: Scenario = {
       actions: [
         {
           userName: "user2",
-          name: "withdrawProsecutionReward",
+          name: "resolveProsecution",
           args: {
             claimId: 7,
           },
@@ -1155,6 +1203,14 @@ export const arbitrationNegatives: Scenario = {
           },
           expected: "success",
         },
+        {
+          userName: "deployer",
+          name: "executeRuling",
+          args: {
+            disputeId: 5,
+          },
+          expected: "success",
+        },
       ],
     },
     {
@@ -1169,7 +1225,7 @@ export const arbitrationNegatives: Scenario = {
         },
         {
           userName: "user3",
-          name: "withdrawProsecutionReward",
+          name: "resolveProsecution",
           args: {
             claimId: 7,
           },
@@ -1182,7 +1238,7 @@ export const arbitrationNegatives: Scenario = {
       actions: [
         {
           userName: "user2",
-          name: "withdrawProsecutionReward",
+          name: "resolveProsecution",
           args: {
             claimId: 7,
           },
@@ -1274,8 +1330,9 @@ export const arbitrationNegatives: Scenario = {
       actions: [
         {
           userName: "user2",
-          name: "appeal",
+          name: "fundAppeal",
           args: {
+            side: "RejectClaim",
             claimId: 8,
           },
           expected: "success",
@@ -1307,8 +1364,9 @@ export const arbitrationNegatives: Scenario = {
         },
         {
           userName: "user1",
-          name: "appeal",
+          name: "fundAppeal",
           args: {
+            side: "PayClaimant",
             claimId: 8,
           },
           expected: "revert",

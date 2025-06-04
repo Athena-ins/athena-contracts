@@ -2,6 +2,7 @@
 import { SignerName } from "../../context";
 import { ProtocolContracts } from "../../helpers/deployers";
 import { TimeTravelOptions } from "../../helpers/hardhat";
+import { DisputeSide } from "../../helpers/types";
 
 type PoolTokenSymbols = "USDT" | "aUSDT" | "USDC" | "aUSDC";
 type TokensSymbols = "ATEN" | PoolTokenSymbols;
@@ -37,11 +38,12 @@ export type Action =
   | ActionTakeInterests
   | ActionInitiateClaim
   | ActionWithdrawCompensation
-  | ActionWithdrawProsecutionReward
+  | ActionResolveProsecution
   | ActionSubmitEvidence
   | ActionDisputeClaim
-  | ActionAppeal
-  | ActionRuleClaim
+  | ActionFundAppeal
+  | ActionRuleDispute
+  | ActionExecuteRuling
   | ActionOverruleRuling;
 
 //===========================//
@@ -194,8 +196,8 @@ type ActionWithdrawCompensation = BaseAction & {
   };
 };
 
-type ActionWithdrawProsecutionReward = BaseAction & {
-  name: "withdrawProsecutionReward";
+type ActionResolveProsecution = BaseAction & {
+  name: "resolveProsecution";
   args: {
     claimId: number;
   };
@@ -218,19 +220,27 @@ type ActionDisputeClaim = BaseAction & {
   };
 };
 
-type ActionAppeal = BaseAction & {
-  name: "appeal";
+type ActionFundAppeal = BaseAction & {
+  name: "fundAppeal";
   args: {
     claimId: number;
+    side: DisputeSide;
     valueSent?: string;
   };
 };
 
-type ActionRuleClaim = BaseAction & {
+type ActionRuleDispute = BaseAction & {
   name: "rule";
   args: {
     disputeId: number;
     ruling: "RefusedToArbitrate" | "PayClaimant" | "RejectClaim";
+  };
+};
+
+type ActionExecuteRuling = BaseAction & {
+  name: "executeRuling";
+  args: {
+    disputeId: number;
   };
 };
 
