@@ -1015,7 +1015,7 @@ contract ClaimManager is
 
     if (totalCost <= round.paidFees[side_]) {
       round.feeRewards += round.paidFees[side_];
-      round.fundedSides.push(side_);
+      round.fundedSides.push(uint8(side_));
       round.hasPaid[side_] = true;
 
       if (1 < round.fundedSides.length) {

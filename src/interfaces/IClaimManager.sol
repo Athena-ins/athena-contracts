@@ -75,10 +75,10 @@ interface IClaimManager {
   /** @dev Struct to return round data since mappings can't be returned directly
    */
   struct RoundRead {
-    uint256[3] paidFees;
     bool[3] hasPaid;
+    uint8[] fundedSides;
+    uint256[3] paidFees;
     uint256 feeRewards;
-    uint256[] fundedSides;
   }
 
   // Round struct stores the contributions made to particular sides.
@@ -86,11 +86,11 @@ interface IClaimManager {
   // - 1 side for `RulingOptions.PayClaimant`.
   // - 2 side for `RulingOptions.RejectClaim`.
   struct Round {
-    uint256[3] paidFees; // Tracks the fees paid in this round in the form paidFees[side].
+    uint8[] fundedSides; // Stores the sides that are fully funded.
     bool[3] hasPaid; // True if the fees for this particular side have been fully paid in the form hasPaid[side].
-    mapping(address => uint256[3]) contributions; // Maps contributors to their contributions for each side in the form contributions[address][side].
+    uint256[3] paidFees; // Tracks the fees paid in this round in the form paidFees[side].
     uint256 feeRewards; // Sum of reimbursable appeal fees available to the parties that made contributions to the side that ultimately wins a dispute.
-    uint256[] fundedSides; // Stores the sides that are fully funded.
+    mapping(address => uint256[3]) contributions; // Maps contributors to their contributions for each side in the form contributions[address][side].
   }
 
   // ======= EVENTS ======= //
