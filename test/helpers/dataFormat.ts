@@ -5,6 +5,7 @@ import {
   CoverInfoObject,
   ClaimInfoObject,
   ClaimStatus,
+  DisputeSide,
 } from "./types";
 
 const claimStatusIndex = {
@@ -22,11 +23,24 @@ const claimStatusIndex = {
   9: "ProsecutorPaid",
 } as const;
 
+const disputeSideIndex = {
+  0: "RefusedToArbitrate",
+  1: "PayClaimant",
+  2: "RejectClaim",
+} as const;
+
 export function getClaimStatus(index: number): ClaimStatus {
   const status = claimStatusIndex[index as keyof typeof claimStatusIndex];
   if (!status) throw new Error(`Unknown claim status: ${index}`);
 
   return status;
+}
+
+export function getDisputeSide(index: number): DisputeSide {
+  const side = disputeSideIndex[index as keyof typeof disputeSideIndex];
+  if (!side) throw new Error(`Unknown dispute side: ${index}`);
+
+  return side;
 }
 
 export function poolInfoFormat(
@@ -104,21 +118,27 @@ export function claimInfoFormat(
   data: Awaited<ReturnType<ClaimManager["claimInfo"]>>,
 ): ClaimInfoObject {
   return {
-    claimant: data.claimant,
-    coverId: data.coverId.toNumber(),
-    poolId: data.poolId.toNumber(),
     claimId: data.claimId.toNumber(),
+    poolId: data.poolId.toNumber(),
+    relatedClaimIds: data.relatedClaimIds.map((val) => val.toNumber()),
+    evidence: data.evidence,
+    counterEvidence: data.counterEvidence,
+    coverAmount: data.coverAmount,
+    isCoverActive: data.isCoverActive,
+    coverId: data.coverId.toNumber(),
     disputeId: data.disputeId.toNumber(),
+    metaEvidenceURI: data.metaEvidenceURI,
     status: data.status,
+    ruling: data.ruling,
     createdAt: data.createdAt.toNumber(),
     amount: data.amount,
+    claimant: data.claimant,
     prosecutor: data.prosecutor,
     deposit: data.deposit,
     collateral: data.collateral,
-    evidence: data.evidence,
-    counterEvidence: data.counterEvidence,
-    metaEvidenceURI: data.metaEvidenceURI,
     rulingTimestamp: data.rulingTimestamp.toNumber(),
+    challengedTimestamp: data.challengedTimestamp.toNumber(),
     appeals: data.appeals.map((val) => val.toNumber()),
+    appealRounds: data.appealRounds,
   };
 }

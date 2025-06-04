@@ -1,18 +1,6 @@
 import { BigNumber } from "ethers";
 import { LiquidityManager, ClaimManager } from "../../typechain";
 
-export type ClaimStatus =
-  | "Initiated"
-  | "Accepted"
-  | "Compensated"
-  | "Disputed"
-  | "Appealed"
-  | "RejectedByOverrule"
-  | "RejectedByCourtDecision"
-  | "AcceptedByCourtDecision"
-  | "CompensatedAfterDispute"
-  | "ProsecutorPaid";
-
 export type PoolInfoObject = {
   poolId: number;
   feeRate: BigNumber;
@@ -72,23 +60,53 @@ export type CoverInfoObject = {
   lastTick: number;
 };
 
+export type ClaimStatus =
+  | "Initiated"
+  | "Accepted"
+  | "Compensated"
+  | "Disputed"
+  | "Appealed"
+  | "RejectedByOverrule"
+  | "RejectedByCourtDecision"
+  | "AcceptedByCourtDecision"
+  | "CompensatedAfterDispute"
+  | "ProsecutorPaid";
+
+export type DisputeSide = "RefusedToArbitrate" | "PayClaimant" | "RejectClaim";
+
+export type RoundData = {
+  // - 0 side for `RulingOptions.RefusedToArbitrate`.
+  // - 1 side for `RulingOptions.PayClaimant`.
+  // - 2 side for `RulingOptions.RejectClaim`.
+  paidFees: [BigNumber, BigNumber, BigNumber];
+  hasPaid: [boolean, boolean, boolean];
+  fundedSides: number[];
+  feeRewards: BigNumber;
+};
+
 export type ClaimInfoObject = {
-  claimant: string;
-  coverId: number;
-  poolId: number;
   claimId: number;
+  poolId: number;
+  relatedClaimIds: number[];
+  evidence: string[];
+  counterEvidence: string[];
+  coverAmount: BigNumber;
+  isCoverActive: boolean;
+  coverId: number;
   disputeId: number;
+  metaEvidenceURI: string;
   status: number;
+  ruling: number;
   createdAt: number;
   amount: BigNumber;
+  claimant: string;
   prosecutor: string;
   deposit: BigNumber;
   collateral: BigNumber;
-  evidence: string[];
-  counterEvidence: string[];
-  metaEvidenceURI: string;
   rulingTimestamp: number;
+  challengedTimestamp: number;
   appeals: number[];
+  appealRounds: RoundData[];
 };
 
 export type PoolInfo =
