@@ -311,7 +311,7 @@ export function calcExpectedCoverDataAfterDisputeClaim(
   return tokenDataBefore;
 }
 
-export function calcExpectedCoverDataAfterRuleClaim(
+export function calcExpectedCoverDataAfterCourtRuling(
   tokenDataBefore: CoverInfoObject,
   txTimestamp: number,
   timestamp: number,
@@ -320,7 +320,16 @@ export function calcExpectedCoverDataAfterRuleClaim(
   return tokenDataBefore;
 }
 
-export function calcExpectedCoverDataAfterOverruleRuling(
+export function calcExpectedCoverDataAfterExecuteRuling(
+  tokenDataBefore: CoverInfoObject,
+  txTimestamp: number,
+  timestamp: number,
+): CoverInfoObject {
+  // Cover data remains unchanged after ruling until compensation is withdrawn
+  return tokenDataBefore;
+}
+
+export function calcExpectedCoverDataAfterOverrule(
   tokenDataBefore: CoverInfoObject,
   txTimestamp: number,
   timestamp: number,
@@ -329,7 +338,7 @@ export function calcExpectedCoverDataAfterOverruleRuling(
   return tokenDataBefore;
 }
 
-export function calcExpectedCoverDataAfterAppeal(
+export function calcExpectedCoverDataAfterFundAppeal(
   tokenDataBefore: CoverInfoObject,
   txTimestamp: number,
   timestamp: number,
@@ -338,7 +347,7 @@ export function calcExpectedCoverDataAfterAppeal(
   return tokenDataBefore;
 }
 
-export function calcExpectedCoverDataAfterWithdrawProsecutionReward(
+export function calcExpectedCoverDataAfterResolveProsecution(
   tokenDataBefore: CoverInfoObject,
   txTimestamp: number,
   timestamp: number,

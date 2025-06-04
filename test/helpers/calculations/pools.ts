@@ -382,13 +382,70 @@ export function calcExpectedPoolDataAfterInitiateClaim(
   txTimestamp: number,
   timestamp: number,
 ): PoolInfoObject {
-  const pool = poolDataBefore;
+  const expect = deepCopy(poolDataBefore);
 
-  const expect = deepCopy(pool);
-
+  expect.strategyRewardIndex = strategyRewardIndex;
   expect.ongoingClaims++;
+
+  return updatePoolTimeBasedState(poolDataBefore, expect, timestamp);
+}
+
+export function calcExpectedPoolDataAfterSubmitEvidence(
+  poolDataBefore: PoolInfoObject,
+  strategyRewardIndex: BigNumber,
+  txTimestamp: number,
+  timestamp: number,
+): PoolInfoObject {
+  const expect = deepCopy(poolDataBefore);
+  expect.strategyRewardIndex = strategyRewardIndex;
+  return updatePoolTimeBasedState(poolDataBefore, expect, timestamp);
+}
+
+export function calcExpectedPoolDataAfterDisputeClaim(
+  poolDataBefore: PoolInfoObject,
+  strategyRewardIndex: BigNumber,
+  txTimestamp: number,
+  timestamp: number,
+): PoolInfoObject {
+  const expect = deepCopy(poolDataBefore);
+  expect.strategyRewardIndex = strategyRewardIndex;
+  return updatePoolTimeBasedState(poolDataBefore, expect, timestamp);
+}
+
+export function calcExpectedPoolDataAfterCourtRuling(
+  poolDataBefore: PoolInfoObject,
+  strategyRewardIndex: BigNumber,
+  txTimestamp: number,
+  timestamp: number,
+): PoolInfoObject {
+  const expect = deepCopy(poolDataBefore);
   expect.strategyRewardIndex = strategyRewardIndex;
 
+  // No changes untill the claim is either compensated, rejected or overruled
+  return updatePoolTimeBasedState(poolDataBefore, expect, timestamp);
+}
+
+export function calcExpectedPoolDataAfterExecuteRuling(
+  poolDataBefore: PoolInfoObject,
+  strategyRewardIndex: BigNumber,
+  txTimestamp: number,
+  timestamp: number,
+): PoolInfoObject {
+  const expect = deepCopy(poolDataBefore);
+  expect.strategyRewardIndex = strategyRewardIndex;
+
+  // No changes untill the claim is either compensated, rejected or overruled
+  return updatePoolTimeBasedState(poolDataBefore, expect, timestamp);
+}
+
+export function calcExpectedPoolDataAfterFundAppeal(
+  poolDataBefore: PoolInfoObject,
+  strategyRewardIndex: BigNumber,
+  txTimestamp: number,
+  timestamp: number,
+): PoolInfoObject {
+  const expect = deepCopy(poolDataBefore);
+  expect.strategyRewardIndex = strategyRewardIndex;
   return updatePoolTimeBasedState(poolDataBefore, expect, timestamp);
 }
 
@@ -405,8 +462,6 @@ export function calcExpectedPoolDataAfterWithdrawCompensation(
   const expect = deepCopy(poolDataBefore);
 
   expect.strategyRewardIndex = strategyRewardIndex;
-
-  expect.ongoingClaims--;
   expect.compensationIds = [...pool.compensationIds, compensationId];
 
   const shouldCloseCover =
@@ -421,50 +476,22 @@ export function calcExpectedPoolDataAfterWithdrawCompensation(
 
   expect.totalLiquidity = pool.totalLiquidity.sub(claimAmount);
   expect.slot0.coveredCapital = pool.slot0.coveredCapital.sub(claimAmount);
-
   expect.utilizationRate = utilization(
     expect.slot0.coveredCapital,
     expect.totalLiquidity,
   );
-
   expect.overlappedCapital = pool.overlappedCapital.map((capital) =>
     capital.sub(claimAmount),
   );
 
-  return updatePoolTimeBasedState(poolDataBefore, expect, timestamp);
-}
-
-export function calcExpectedPoolDataAfterSubmitEvidence(
-  poolDataBefore: PoolInfoObject,
-  strategyRewardIndex: BigNumber,
-  txTimestamp: number,
-  timestamp: number,
-): PoolInfoObject {
-  const expect = deepCopy(poolDataBefore);
-
-  expect.strategyRewardIndex = strategyRewardIndex;
-
-  return updatePoolTimeBasedState(poolDataBefore, expect, timestamp);
-}
-
-export function calcExpectedPoolDataAfterDisputeClaim(
-  poolDataBefore: PoolInfoObject,
-  strategyRewardIndex: BigNumber,
-  txTimestamp: number,
-  timestamp: number,
-): PoolInfoObject {
-  const expect = deepCopy(poolDataBefore);
-
-  expect.strategyRewardIndex = strategyRewardIndex;
-
-  expect.ongoingClaims = poolDataBefore.ongoingClaims - 1;
+  expect.ongoingClaims--;
   if (expect.ongoingClaims < 0)
     throw Error("Ongoing claims cannot be negative");
 
   return updatePoolTimeBasedState(poolDataBefore, expect, timestamp);
 }
 
-export function calcExpectedPoolDataAfterRuleClaim(
+export function calcExpectedPoolDataAfterOverrule(
   poolDataBefore: PoolInfoObject,
   strategyRewardIndex: BigNumber,
   txTimestamp: number,
@@ -473,15 +500,14 @@ export function calcExpectedPoolDataAfterRuleClaim(
   const expect = deepCopy(poolDataBefore);
 
   expect.strategyRewardIndex = strategyRewardIndex;
-
-  expect.ongoingClaims = poolDataBefore.ongoingClaims - 1;
+  expect.ongoingClaims--;
   if (expect.ongoingClaims < 0)
     throw Error("Ongoing claims cannot be negative");
 
   return updatePoolTimeBasedState(poolDataBefore, expect, timestamp);
 }
 
-export function calcExpectedPoolDataAfterOverruleRuling(
+export function calcExpectedPoolDataAfterResolveProsecution(
   poolDataBefore: PoolInfoObject,
   strategyRewardIndex: BigNumber,
   txTimestamp: number,
@@ -490,36 +516,6 @@ export function calcExpectedPoolDataAfterOverruleRuling(
   const expect = deepCopy(poolDataBefore);
 
   expect.strategyRewardIndex = strategyRewardIndex;
-
-  return updatePoolTimeBasedState(poolDataBefore, expect, timestamp);
-}
-
-export function calcExpectedPoolDataAfterAppeal(
-  poolDataBefore: PoolInfoObject,
-  strategyRewardIndex: BigNumber,
-  txTimestamp: number,
-  timestamp: number,
-): PoolInfoObject {
-  const expect = deepCopy(poolDataBefore);
-
-  expect.strategyRewardIndex = strategyRewardIndex;
-
-  // No change to the ongoingClaims count as the claim remains disputed
-
-  return updatePoolTimeBasedState(poolDataBefore, expect, timestamp);
-}
-
-export function calcExpectedPoolDataAfterWithdrawProsecutionReward(
-  poolDataBefore: PoolInfoObject,
-  strategyRewardIndex: BigNumber,
-  txTimestamp: number,
-  timestamp: number,
-): PoolInfoObject {
-  const expect = deepCopy(poolDataBefore);
-
-  expect.strategyRewardIndex = strategyRewardIndex;
-
-  // The claim is removed from the pool when the prosecutor gets paid
   expect.ongoingClaims--;
   if (expect.ongoingClaims < 0)
     throw Error("Ongoing claims cannot be negative");

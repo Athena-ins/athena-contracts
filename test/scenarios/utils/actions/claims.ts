@@ -15,36 +15,124 @@ import {
   calcExpectedClaimDataAfterInitiateClaim,
   calcExpectedClaimDataAfterWithdrawCompensation,
   calcExpectedClaimDataAfterDisputeClaim,
-  calcExpectedClaimDataAfterRuleClaim,
-  calcExpectedClaimDataAfterOverruleRuling,
-  calcExpectedClaimDataAfterAppeal,
-  calcExpectedClaimDataAfterWithdrawProsecutionReward,
+  calcExpectedClaimDataAfterCourtRuling,
+  calcExpectedClaimDataAfterOverrule,
+  calcExpectedClaimDataAfterFundAppeal,
+  calcExpectedClaimDataAfterResolveProsecution,
   //
   calcExpectedCoverDataAfterSubmitEvidence,
   calcExpectedCoverDataAfterInitiateClaim,
   calcExpectedCoverDataAfterWithdrawCompensation,
   calcExpectedCoverDataAfterDisputeClaim,
-  calcExpectedCoverDataAfterRuleClaim,
-  calcExpectedCoverDataAfterOverruleRuling,
-  calcExpectedCoverDataAfterAppeal,
-  calcExpectedCoverDataAfterWithdrawProsecutionReward,
+  calcExpectedCoverDataAfterCourtRuling,
+  calcExpectedCoverDataAfterOverrule,
+  calcExpectedCoverDataAfterFundAppeal,
+  calcExpectedCoverDataAfterResolveProsecution,
   //
   calcExpectedPoolDataAfterSubmitEvidence,
   calcExpectedPoolDataAfterInitiateClaim,
   calcExpectedPoolDataAfterWithdrawCompensation,
   calcExpectedPoolDataAfterDisputeClaim,
-  calcExpectedPoolDataAfterRuleClaim,
-  calcExpectedPoolDataAfterOverruleRuling,
-  calcExpectedPoolDataAfterAppeal,
-  calcExpectedPoolDataAfterWithdrawProsecutionReward,
+  calcExpectedPoolDataAfterCourtRuling,
+  calcExpectedPoolDataAfterOverrule,
+  calcExpectedPoolDataAfterFundAppeal,
+  calcExpectedPoolDataAfterResolveProsecution,
 } from "../../../helpers/calculations";
 import { getTxCostAndTimestamp, getEntityData } from "./helpers";
 // Types
 import { BigNumber, BigNumberish, Wallet } from "ethers";
 import { TestEnv } from "../../../context";
+import { DisputeSide } from "../../../helpers/types";
 import { TimeTravelOptions } from "../../../helpers/hardhat";
 
 // ======= ACTIONS ======= //
+
+export async function executeRuling(
+  testEnv: TestEnv,
+  user: Wallet,
+  disputeId: number,
+  expectedResult: "success" | "revert",
+  revertMessage?: string,
+  timeTravel?: TimeTravelOptions,
+  skipTokenCheck?: boolean,
+) {
+  const { ClaimManager, LiquidityManager, AthenaArbitrator } =
+    testEnv.contracts;
+
+  if (expectedResult === "success") {
+    const claimId = await ClaimManager.disputeIdToClaimId(disputeId);
+    const claimInfoBefore = await ClaimManager.claimInfo(claimId).then((data) =>
+      claimInfoFormat(data),
+    );
+
+    // Sanity check to make sure it is the correct claim
+    expect(claimInfoBefore.disputeId).to.equal(disputeId);
+
+    const coverDataBefore = await LiquidityManager.coverInfo(
+      claimInfoBefore.coverId,
+    ).then((data) => coverInfoFormat(data));
+    const poolDataBefore = await LiquidityManager.poolInfo(
+      coverDataBefore.poolId,
+    ).then((data) => poolInfoFormat(data));
+
+    // Execute the ruling to finalize it
+    const txResult = await postTxHandler(
+      (AthenaArbitrator as any).connect(user).executeRuling(disputeId),
+    );
+
+    const { txTimestamp } = await getTxCostAndTimestamp(txResult);
+
+    if (timeTravel) {
+      await setNextBlockTimestamp(timeTravel);
+    }
+
+    const {
+      poolData: [poolDataAfter],
+      entityDatas: [coverDataAfter, claimDataAfter],
+      timestamp,
+    } = await getEntityData(
+      testEnv,
+      [claimInfoBefore.poolId],
+      [
+        { id: claimInfoBefore.coverId, type: "cover" },
+        { id: claimId, type: "claim" },
+      ],
+    );
+
+    // Use the same calculation functions as rule since this is effectively completing the ruling
+    const rulingValue = (
+      await AthenaArbitrator.currentRuling(disputeId)
+    ).toNumber();
+
+    const expectedClaimData = calcExpectedClaimDataAfterCourtRuling(
+      claimInfoBefore,
+      rulingValue,
+      txTimestamp,
+      timestamp,
+    );
+
+    const expectedPoolData = calcExpectedPoolDataAfterCourtRuling(
+      poolDataBefore,
+      poolDataAfter.strategyRewardIndex,
+      txTimestamp,
+      timestamp,
+    );
+
+    const expectedCoverData = calcExpectedCoverDataAfterCourtRuling(
+      coverDataBefore,
+      txTimestamp,
+      timestamp,
+    );
+
+    expectEqual(claimDataAfter, expectedClaimData);
+    expectEqual(poolDataAfter, expectedPoolData);
+    if (!skipTokenCheck) expectEqual(coverDataAfter, expectedCoverData);
+  } else if (expectedResult === "revert") {
+    await expect(
+      (AthenaArbitrator as any).connect(user).executeRuling(disputeId),
+    ).to.revertTransactionWith(revertMessage);
+  }
+}
 
 export async function submitEvidenceForClaim(
   testEnv: TestEnv,
@@ -169,6 +257,8 @@ export async function initiateClaim(
 
     const expectedClaimId = Number(await ClaimManager.nextClaimId());
     const metaEvidenceURI = await ClaimManager.metaEvidenceURI(expectedClaimId);
+    const relatedClaimIds =
+      await ClaimManager.coverIdToClaimIds(expectedClaimId);
 
     const txResult = await postTxHandler(
       ClaimManager.connect(user).initiateClaim(coverId, amountClaimedAmount, {
@@ -200,7 +290,9 @@ export async function initiateClaim(
       coverId,
       expectedClaimId,
       metaEvidenceURI,
+      relatedClaimIds,
       poolDataBefore,
+      coverDataAfter,
       user.address,
       messageValue,
       claimCollateral,
@@ -480,21 +572,21 @@ export async function rule(
       }
     }
 
-    const expectedClaimData = calcExpectedClaimDataAfterRuleClaim(
+    const expectedClaimData = calcExpectedClaimDataAfterCourtRuling(
       claimInfoBefore,
       rulingValue,
       txTimestamp,
       timestamp,
     );
 
-    const expectedPoolData = calcExpectedPoolDataAfterRuleClaim(
+    const expectedPoolData = calcExpectedPoolDataAfterCourtRuling(
       poolDataBefore,
       poolDataAfter.strategyRewardIndex,
       txTimestamp,
       timestamp,
     );
 
-    const expectedCoverData = calcExpectedCoverDataAfterRuleClaim(
+    const expectedCoverData = calcExpectedCoverDataAfterCourtRuling(
       coverDataBefore,
       txTimestamp,
       timestamp,
@@ -560,20 +652,20 @@ export async function overrule(
       // @bw Add specific validation for punish case
     }
 
-    const expectedClaimData = calcExpectedClaimDataAfterOverruleRuling(
+    const expectedClaimData = calcExpectedClaimDataAfterOverrule(
       claimInfoBefore,
       txTimestamp,
       timestamp,
     );
 
-    const expectedPoolData = calcExpectedPoolDataAfterOverruleRuling(
+    const expectedPoolData = calcExpectedPoolDataAfterOverrule(
       poolDataBefore,
       poolDataAfter.strategyRewardIndex,
       txTimestamp,
       timestamp,
     );
 
-    const expectedCoverData = calcExpectedCoverDataAfterOverruleRuling(
+    const expectedCoverData = calcExpectedCoverDataAfterOverrule(
       coverDataBefore,
       txTimestamp,
       timestamp,
@@ -589,27 +681,59 @@ export async function overrule(
   }
 }
 
-export async function appeal(
+export async function fundAppeal(
   testEnv: TestEnv,
   user: Wallet,
   claimId: number,
+  side: DisputeSide,
   valueSent: BigNumberish | undefined,
   expectedResult: "success" | "revert",
   revertMessage?: string,
   timeTravel?: TimeTravelOptions,
   skipTokenCheck?: boolean,
 ) {
-  const { ClaimManager, LiquidityManager } = testEnv.contracts;
+  const { ClaimManager, LiquidityManager, AthenaArbitrator } =
+    testEnv.contracts;
+
+  let sideValue: number;
+  switch (side) {
+    case "RefusedToArbitrate":
+      sideValue = 0;
+      break;
+    case "PayClaimant":
+      sideValue = 1;
+      break;
+    case "RejectClaim":
+      sideValue = 2;
+      break;
+  }
 
   if (expectedResult === "success") {
     const claimInfoBefore = await ClaimManager.claimInfo(claimId).then((data) =>
       claimInfoFormat(data),
     );
 
-    // Get appeal cost for this dispute
-    const messageValue = valueSent
-      ? BigNumber.from(valueSent)
-      : await ClaimManager.appealCost(claimInfoBefore.disputeId);
+    // Calculate appeal cost based on the current ruling
+    const [appealCost, multipliers] = await Promise.all([
+      ClaimManager.getAppealCost(claimInfoBefore.disputeId),
+      ClaimManager.getMultipliers(),
+    ]);
+
+    let messageValue: BigNumber;
+    if (valueSent) {
+      messageValue = BigNumber.from(valueSent);
+    } else {
+      // Get the appropriate multiplier based on whether we're funding the side that won or lost
+      const currentRuling = await AthenaArbitrator.currentRuling(
+        claimInfoBefore.disputeId,
+      ).then((el) => el.toNumber());
+      const multiplier =
+        sideValue === currentRuling ? multipliers.winner : multipliers.loser;
+
+      messageValue = appealCost.add(
+        appealCost.mul(multiplier).div(multipliers.divisor),
+      );
+    }
 
     const coverDataBefore = await LiquidityManager.coverInfo(
       claimInfoBefore.coverId,
@@ -620,7 +744,7 @@ export async function appeal(
     ).then((data) => poolInfoFormat(data));
 
     const txResult = await postTxHandler(
-      ClaimManager.connect(user).appeal(claimId, {
+      ClaimManager.connect(user).fundAppeal(claimId, sideValue, {
         value: messageValue,
       }),
     );
@@ -644,20 +768,24 @@ export async function appeal(
       ],
     );
 
-    const expectedClaimData = calcExpectedClaimDataAfterAppeal(
+    const expectedClaimData = calcExpectedClaimDataAfterFundAppeal(
+      sideValue,
+      messageValue,
+      multipliers,
+      appealCost,
       claimInfoBefore,
       txTimestamp,
       timestamp,
     );
 
-    const expectedPoolData = calcExpectedPoolDataAfterAppeal(
+    const expectedPoolData = calcExpectedPoolDataAfterFundAppeal(
       poolDataBefore,
       poolDataAfter.strategyRewardIndex,
       txTimestamp,
       timestamp,
     );
 
-    const expectedCoverData = calcExpectedCoverDataAfterAppeal(
+    const expectedCoverData = calcExpectedCoverDataAfterFundAppeal(
       coverDataBefore,
       txTimestamp,
       timestamp,
@@ -668,14 +796,14 @@ export async function appeal(
     if (!skipTokenCheck) expectEqual(coverDataAfter, expectedCoverData);
   } else if (expectedResult === "revert") {
     await expect(
-      ClaimManager.connect(user).appeal(claimId, {
+      ClaimManager.connect(user).fundAppeal(claimId, sideValue, {
         value: valueSent ? BigNumber.from(valueSent) : BigNumber.from(0),
       }),
     ).to.revertTransactionWith(revertMessage);
   }
 }
 
-export async function withdrawProsecutionReward(
+export async function resolveProsecution(
   testEnv: TestEnv,
   user: Wallet,
   claimId: number,
@@ -701,7 +829,7 @@ export async function withdrawProsecutionReward(
     );
 
     const txResult = await postTxHandler(
-      ClaimManager.connect(user).withdrawProsecutionReward(claimId),
+      ClaimManager.connect(user).resolveProsecution(claimId),
     );
 
     const { txTimestamp } = await getTxCostAndTimestamp(txResult);
@@ -723,33 +851,31 @@ export async function withdrawProsecutionReward(
       ],
     );
 
-    const expectedClaimData =
-      calcExpectedClaimDataAfterWithdrawProsecutionReward(
-        claimInfoBefore,
-        txTimestamp,
-        timestamp,
-      );
+    const expectedClaimData = calcExpectedClaimDataAfterResolveProsecution(
+      claimInfoBefore,
+      txTimestamp,
+      timestamp,
+    );
 
-    const expectedPoolData = calcExpectedPoolDataAfterWithdrawProsecutionReward(
+    const expectedPoolData = calcExpectedPoolDataAfterResolveProsecution(
       poolDataBefore,
       poolDataAfter.strategyRewardIndex,
       txTimestamp,
       timestamp,
     );
 
-    const expectedCoverData =
-      calcExpectedCoverDataAfterWithdrawProsecutionReward(
-        coverDataBefore,
-        txTimestamp,
-        timestamp,
-      );
+    const expectedCoverData = calcExpectedCoverDataAfterResolveProsecution(
+      coverDataBefore,
+      txTimestamp,
+      timestamp,
+    );
 
     expectEqual(claimDataAfter, expectedClaimData);
     expectEqual(poolDataAfter, expectedPoolData);
     if (!skipTokenCheck) expectEqual(coverDataAfter, expectedCoverData);
   } else if (expectedResult === "revert") {
     await expect(
-      ClaimManager.connect(user).withdrawProsecutionReward(claimId),
+      ClaimManager.connect(user).resolveProsecution(claimId),
     ).to.revertTransactionWith(revertMessage);
   }
 }
