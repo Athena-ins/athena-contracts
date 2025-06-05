@@ -323,7 +323,7 @@ export const arbitrationNegatives: Scenario = {
             valueSent: "1", // Tiny amount
           },
           expected: "revert",
-          revertMessage: "MustDepositArbitrationCost",
+          revertMessage: "IncorrectDeposit",
         },
       ],
     },
@@ -364,7 +364,7 @@ export const arbitrationNegatives: Scenario = {
             claimId: 2,
           },
           expected: "revert",
-          revertMessage: "ClaimNotChallengeable",
+          revertMessage: "ClaimAlreadyChallenged",
         },
       ],
     },
@@ -436,22 +436,6 @@ export const arbitrationNegatives: Scenario = {
       ],
     },
     {
-      description:
-        "arbitrator fails to rule on undisputed dispute 3 of claim 3",
-      actions: [
-        {
-          userName: "deployer",
-          name: "rule",
-          args: {
-            disputeId: 3,
-            ruling: "PayClaimant",
-          },
-          expected: "revert",
-          revertMessage: "ClaimDoesNotExist",
-        },
-      ],
-    },
-    {
       description: "user1 fails to withdraw claim 3 before challenge period",
       actions: [
         {
@@ -461,7 +445,7 @@ export const arbitrationNegatives: Scenario = {
             claimId: 3,
           },
           expected: "revert",
-          revertMessage: "PeriodNotElapsed",
+          revertMessage: "WithdrawConditionsNotMet",
         },
       ],
     },
@@ -491,6 +475,12 @@ export const arbitrationNegatives: Scenario = {
           expected: "success",
         },
         {
+          name: "wait",
+          timeTravel: {
+            days: 3,
+          },
+        },
+        {
           userName: "deployer",
           name: "executeRuling",
           args: {
@@ -510,7 +500,7 @@ export const arbitrationNegatives: Scenario = {
             claimId: 3,
           },
           expected: "revert",
-          revertMessage: "PeriodNotElapsed",
+          revertMessage: "WithdrawConditionsNotMet",
         },
       ],
     },
@@ -538,7 +528,7 @@ export const arbitrationNegatives: Scenario = {
             claimId: 3,
           },
           expected: "revert",
-          revertMessage: "WrongClaimStatus",
+          revertMessage: "WithdrawConditionsNotMet",
         },
       ],
     },
@@ -617,6 +607,12 @@ export const arbitrationNegatives: Scenario = {
             ruling: "PayClaimant",
           },
           expected: "success",
+        },
+        {
+          name: "wait",
+          timeTravel: {
+            days: 3,
+          },
         },
         {
           userName: "deployer",
@@ -729,7 +725,7 @@ export const arbitrationNegatives: Scenario = {
             valueSent: "0",
           },
           expected: "revert",
-          revertMessage: "InsufficientDeposit",
+          revertMessage: "IncorrectDeposit",
         },
       ],
     },
@@ -747,7 +743,7 @@ export const arbitrationNegatives: Scenario = {
             valueSent: protocolConfig.arbitrationCost.toString(),
           },
           expected: "revert",
-          revertMessage: "InsufficientDeposit",
+          revertMessage: "IncorrectDeposit",
         },
       ],
     },
@@ -765,7 +761,7 @@ export const arbitrationNegatives: Scenario = {
             valueSent: protocolConfig.claimCollateral.toString(),
           },
           expected: "revert",
-          revertMessage: "InsufficientDeposit",
+          revertMessage: "IncorrectDeposit",
         },
       ],
     },
@@ -795,7 +791,7 @@ export const arbitrationNegatives: Scenario = {
             valueSent: "0",
           },
           expected: "revert",
-          revertMessage: "MustDepositArbitrationCost",
+          revertMessage: "IncorrectDeposit",
         },
       ],
     },
@@ -811,7 +807,7 @@ export const arbitrationNegatives: Scenario = {
             valueSent: protocolConfig.arbitrationCost.sub(1).toString(),
           },
           expected: "revert",
-          revertMessage: "MustDepositArbitrationCost",
+          revertMessage: "IncorrectDeposit",
         },
       ],
     },
@@ -905,12 +901,12 @@ export const arbitrationNegatives: Scenario = {
             claimId: 6,
           },
           expected: "revert",
-          revertMessage: "WrongClaimStatus",
+          revertMessage: "OutOfAppealPeriodBounds",
         },
       ],
     },
     {
-      description: "arbitrator rejects claim 6 (dispute 4)",
+      description: "arbitrator rejects claim 6 for dispute 4",
       actions: [
         {
           userName: "deployer",
@@ -921,64 +917,11 @@ export const arbitrationNegatives: Scenario = {
           },
           expected: "success",
         },
-        {
-          userName: "deployer",
-          name: "executeRuling",
-          args: {
-            disputeId: 4,
-          },
-          expected: "success",
-        },
       ],
     },
     {
-      description: "user3 fails to appeal claim 6 as invalid party",
-      actions: [
-        {
-          userName: "user3",
-          name: "fundAppeal",
-          args: {
-            side: "RejectClaim",
-            claimId: 6,
-          },
-          expected: "revert",
-          revertMessage: "InvalidParty",
-        },
-      ],
-    },
-    {
-      description: "user2 fails to appeal a rejected claim 6",
-      actions: [
-        {
-          userName: "user2",
-          name: "fundAppeal",
-          args: {
-            side: "RejectClaim",
-            claimId: 6,
-          },
-          expected: "revert",
-          revertMessage: "InvalidParty",
-        },
-      ],
-    },
-    {
-      description: "user1 fails to appeal with insufficient deposit",
-      actions: [
-        {
-          userName: "user1",
-          name: "fundAppeal",
-          args: {
-            side: "PayClaimant",
-            claimId: 6,
-            valueSent: "100", // small amount
-          },
-          expected: "revert",
-          revertMessage: "InsufficientDeposit",
-        },
-      ],
-    },
-    {
-      description: "user1 appeals claim 6",
+      description:
+        "user1 initiates appeal for claim 6 & user2 funds the appeal",
       actions: [
         {
           userName: "user1",
@@ -1002,7 +945,21 @@ export const arbitrationNegatives: Scenario = {
             claimId: 6,
           },
           expected: "revert",
-          revertMessage: "WrongClaimStatus",
+          revertMessage: "AppealFeeAlreadyPaid",
+        },
+      ],
+    },
+    {
+      description: "user2 funds the appeal for claim 6",
+      actions: [
+        {
+          userName: "user2",
+          name: "fundAppeal",
+          args: {
+            side: "RejectClaim",
+            claimId: 6,
+          },
+          expected: "success",
         },
       ],
     },
@@ -1017,6 +974,12 @@ export const arbitrationNegatives: Scenario = {
             ruling: "PayClaimant",
           },
           expected: "success",
+        },
+        {
+          name: "wait",
+          timeTravel: {
+            days: 3,
+          },
         },
         {
           userName: "deployer",
@@ -1039,7 +1002,7 @@ export const arbitrationNegatives: Scenario = {
             claimId: 6,
           },
           expected: "revert",
-          revertMessage: "PeriodNotElapsed",
+          revertMessage: "WithdrawConditionsNotMet",
         },
       ],
     },
@@ -1127,7 +1090,7 @@ export const arbitrationNegatives: Scenario = {
       ],
     },
     {
-      description: "arbitrator rejects claim 7 (dispute 5)",
+      description: "arbitrator rejects claim 7 for dispute 5",
       actions: [
         {
           userName: "deployer",
@@ -1135,14 +1098,6 @@ export const arbitrationNegatives: Scenario = {
           args: {
             disputeId: 5,
             ruling: "RejectClaim",
-          },
-          expected: "success",
-        },
-        {
-          userName: "deployer",
-          name: "executeRuling",
-          args: {
-            disputeId: 5,
           },
           expected: "success",
         },
@@ -1159,21 +1114,7 @@ export const arbitrationNegatives: Scenario = {
             claimId: 7,
           },
           expected: "revert",
-          revertMessage: "AppealPeriodOngoing",
-        },
-      ],
-    },
-    {
-      description: "user1 appeals claim 7",
-      actions: [
-        {
-          userName: "user1",
-          name: "fundAppeal",
-          args: {
-            side: "PayClaimant",
-            claimId: 7,
-          },
-          expected: "success",
+          revertMessage: "WrongClaimStatus",
         },
       ],
     },
@@ -1192,6 +1133,30 @@ export const arbitrationNegatives: Scenario = {
       ],
     },
     {
+      description:
+        "user1 initiates appeal for claim 7 & user2 funds the appeal",
+      actions: [
+        {
+          userName: "user1",
+          name: "fundAppeal",
+          args: {
+            side: "PayClaimant",
+            claimId: 7,
+          },
+          expected: "success",
+        },
+        {
+          userName: "user2",
+          name: "fundAppeal",
+          args: {
+            side: "RejectClaim",
+            claimId: 7,
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
       description: "arbitrator rules for the prosecution on appeal",
       actions: [
         {
@@ -1202,6 +1167,12 @@ export const arbitrationNegatives: Scenario = {
             ruling: "RejectClaim",
           },
           expected: "success",
+        },
+        {
+          name: "wait",
+          timeTravel: {
+            days: 3,
+          },
         },
         {
           userName: "deployer",
@@ -1312,7 +1283,7 @@ export const arbitrationNegatives: Scenario = {
       ],
     },
     {
-      description: "arbitrator accepts claim 8 (dispute 6)",
+      description: "arbitrator accepts claim 8 for dispute 6",
       actions: [
         {
           userName: "deployer",
@@ -1326,13 +1297,23 @@ export const arbitrationNegatives: Scenario = {
       ],
     },
     {
-      description: "user2 appeals claim 8",
+      description:
+        "user2 initiates appeal for claim 8 & user1 funds the appeal",
       actions: [
         {
           userName: "user2",
           name: "fundAppeal",
           args: {
             side: "RejectClaim",
+            claimId: 8,
+          },
+          expected: "success",
+        },
+        {
+          userName: "user1",
+          name: "fundAppeal",
+          args: {
+            side: "PayClaimant",
             claimId: 8,
           },
           expected: "success",
@@ -1350,6 +1331,12 @@ export const arbitrationNegatives: Scenario = {
             ruling: "PayClaimant",
           },
           expected: "success",
+        },
+        {
+          name: "wait",
+          timeTravel: {
+            days: 3,
+          },
         },
       ],
     },
@@ -1370,13 +1357,27 @@ export const arbitrationNegatives: Scenario = {
             claimId: 8,
           },
           expected: "revert",
-          revertMessage: "AppealPeriodEnded",
+          revertMessage: "OutOfAppealPeriodBounds",
         },
       ],
     },
     {
       description: "user1 withdraws compensation after appeal period",
       actions: [
+        {
+          userName: "deployer",
+          name: "executeRuling",
+          args: {
+            disputeId: 6,
+          },
+          expected: "success",
+        },
+        {
+          name: "wait",
+          timeTravel: {
+            days: 4, // Past overrule period
+          },
+        },
         {
           userName: "user1",
           name: "withdrawCompensation",
@@ -1397,7 +1398,7 @@ export const arbitrationNegatives: Scenario = {
             claimId: 8,
           },
           expected: "revert",
-          revertMessage: "WrongClaimStatus",
+          revertMessage: "WithdrawConditionsNotMet",
         },
       ],
     },

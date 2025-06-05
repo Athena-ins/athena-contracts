@@ -239,6 +239,20 @@ export const arbitration: Scenario = {
           },
           expected: "success",
         },
+        {
+          name: "wait",
+          timeTravel: {
+            days: 3,
+          },
+        },
+        {
+          userName: "deployer",
+          name: "executeRuling",
+          args: {
+            disputeId: 0,
+          },
+          expected: "success",
+        },
       ],
     },
     {
@@ -356,6 +370,20 @@ export const arbitration: Scenario = {
           },
           expected: "success",
         },
+        {
+          name: "wait",
+          timeTravel: {
+            days: 3,
+          },
+        },
+        {
+          userName: "deployer",
+          name: "executeRuling",
+          args: {
+            disputeId: 1,
+          },
+          expected: "success",
+        },
       ],
     },
     // Refused to arbitrate case
@@ -435,6 +463,20 @@ export const arbitration: Scenario = {
           },
           expected: "success",
         },
+        {
+          name: "wait",
+          timeTravel: {
+            days: 3,
+          },
+        },
+        {
+          userName: "deployer",
+          name: "executeRuling",
+          args: {
+            disputeId: 2,
+          },
+          expected: "success",
+        },
       ],
     },
     // Overrule without punishment
@@ -511,6 +553,20 @@ export const arbitration: Scenario = {
           args: {
             disputeId: 3,
             ruling: "PayClaimant",
+          },
+          expected: "success",
+        },
+        {
+          name: "wait",
+          timeTravel: {
+            days: 3,
+          },
+        },
+        {
+          userName: "deployer",
+          name: "executeRuling",
+          args: {
+            disputeId: 3,
           },
           expected: "success",
         },
@@ -607,6 +663,20 @@ export const arbitration: Scenario = {
           },
           expected: "success",
         },
+        {
+          name: "wait",
+          timeTravel: {
+            days: 3,
+          },
+        },
+        {
+          userName: "deployer",
+          name: "executeRuling",
+          args: {
+            disputeId: 4,
+          },
+          expected: "success",
+        },
       ],
     },
     {
@@ -688,7 +758,7 @@ export const arbitration: Scenario = {
       ],
     },
     {
-      description: "arbitrator rejects claim 6 (dispute 5)",
+      description: "arbitrator rejects claim 6 after dispute 5",
       actions: [
         {
           userName: "deployer",
@@ -702,7 +772,7 @@ export const arbitration: Scenario = {
       ],
     },
     {
-      description: "user1 appeals the ruling of claim 6",
+      description: "user1 initiated appeal for claim 6 & user2 funds appeal",
       actions: [
         {
           userName: "user1",
@@ -713,10 +783,19 @@ export const arbitration: Scenario = {
           },
           expected: "success",
         },
+        {
+          userName: "user2",
+          name: "fundAppeal",
+          args: {
+            side: "RejectClaim",
+            claimId: 6,
+          },
+          expected: "success",
+        },
       ],
     },
     {
-      description: "user1 submits additional evidence for appeal",
+      description: "user1 & user2 submit additional evidence for appeal",
       actions: [
         {
           userName: "user1",
@@ -749,6 +828,20 @@ export const arbitration: Scenario = {
           args: {
             disputeId: 5, // Same dispute ID as original case
             ruling: "PayClaimant",
+          },
+          expected: "success",
+        },
+        {
+          name: "wait",
+          timeTravel: {
+            days: 3,
+          },
+        },
+        {
+          userName: "deployer",
+          name: "executeRuling",
+          args: {
+            disputeId: 5,
           },
           expected: "success",
         },
@@ -852,13 +945,22 @@ export const arbitration: Scenario = {
       ],
     },
     {
-      description: "user2 appeals the ruling of claim 7",
+      description: "user2 initiates appeal for claim 7 & user1 funds appeal",
       actions: [
         {
           userName: "user2",
           name: "fundAppeal",
           args: {
             side: "RejectClaim",
+            claimId: 7,
+          },
+          expected: "success",
+        },
+        {
+          userName: "user1",
+          name: "fundAppeal",
+          args: {
+            side: "PayClaimant",
             claimId: 7,
           },
           expected: "success",
@@ -874,6 +976,20 @@ export const arbitration: Scenario = {
           args: {
             disputeId: 6, // Same dispute ID
             ruling: "RejectClaim",
+          },
+          expected: "success",
+        },
+        {
+          name: "wait",
+          timeTravel: {
+            days: 3,
+          },
+        },
+        {
+          userName: "deployer",
+          name: "executeRuling",
+          args: {
+            disputeId: 6,
           },
           expected: "success",
         },
@@ -977,13 +1093,23 @@ export const arbitration: Scenario = {
       ],
     },
     {
-      description: "user1 makes first appeal on claim 8",
+      description:
+        "user1 initiates first appeal on claim 8 & user2 funds appeal",
       actions: [
         {
           userName: "user1",
           name: "fundAppeal",
           args: {
             side: "PayClaimant",
+            claimId: 8,
+          },
+          expected: "success",
+        },
+        {
+          userName: "user2",
+          name: "fundAppeal",
+          args: {
+            side: "RejectClaim",
             claimId: 8,
           },
           expected: "success",
@@ -1005,13 +1131,23 @@ export const arbitration: Scenario = {
       ],
     },
     {
-      description: "user2 makes second appeal on claim 8",
+      description:
+        "user2 initiates second appeal on claim 8 & user1 funds appeal",
       actions: [
         {
           userName: "user2",
           name: "fundAppeal",
           args: {
             side: "RejectClaim",
+            claimId: 8,
+          },
+          expected: "success",
+        },
+        {
+          userName: "user1",
+          name: "fundAppeal",
+          args: {
+            side: "PayClaimant",
             claimId: 8,
           },
           expected: "success",
@@ -1052,6 +1188,20 @@ export const arbitration: Scenario = {
           args: {
             disputeId: 7,
             ruling: "RejectClaim",
+          },
+          expected: "success",
+        },
+        {
+          name: "wait",
+          timeTravel: {
+            days: 3,
+          },
+        },
+        {
+          userName: "deployer",
+          name: "executeRuling",
+          args: {
+            disputeId: 7,
           },
           expected: "success",
         },
@@ -1143,7 +1293,7 @@ export const arbitration: Scenario = {
       ],
     },
     {
-      description: "arbitrator refuses to arbitrate claim 9 (dispute 8)",
+      description: "arbitrator refuses to arbitrate claim 9 for dispute 8",
       actions: [
         {
           userName: "deployer",
@@ -1157,13 +1307,23 @@ export const arbitration: Scenario = {
       ],
     },
     {
-      description: "user1 appeals the refusal to arbitrate on claim 9",
+      description:
+        "user1 initiates appeal for refusal to arbitrate on claim 9 & user2 funds appeal",
       actions: [
         {
           userName: "user1",
           name: "fundAppeal",
           args: {
             side: "PayClaimant",
+            claimId: 9,
+          },
+          expected: "success",
+        },
+        {
+          userName: "user2",
+          name: "fundAppeal",
+          args: {
+            side: "RejectClaim",
             claimId: 9,
           },
           expected: "success",
@@ -1179,6 +1339,20 @@ export const arbitration: Scenario = {
           args: {
             disputeId: 8,
             ruling: "PayClaimant",
+          },
+          expected: "success",
+        },
+        {
+          name: "wait",
+          timeTravel: {
+            days: 3,
+          },
+        },
+        {
+          userName: "deployer",
+          name: "executeRuling",
+          args: {
+            disputeId: 8,
           },
           expected: "success",
         },
@@ -1284,13 +1458,22 @@ export const arbitration: Scenario = {
       ],
     },
     {
-      description: "user1 appeals the ruling on claim 10",
+      description: "user1 initiates appeal on claim 10 & user2 funds appeal",
       actions: [
         {
           userName: "user1",
           name: "fundAppeal",
           args: {
             side: "PayClaimant",
+            claimId: 10,
+          },
+          expected: "success",
+        },
+        {
+          userName: "user2",
+          name: "fundAppeal",
+          args: {
+            side: "RejectClaim",
             claimId: 10,
           },
           expected: "success",
@@ -1306,6 +1489,20 @@ export const arbitration: Scenario = {
           args: {
             disputeId: 9,
             ruling: "PayClaimant",
+          },
+          expected: "success",
+        },
+        {
+          name: "wait",
+          timeTravel: {
+            days: 3,
+          },
+        },
+        {
+          userName: "deployer",
+          name: "executeRuling",
+          args: {
+            disputeId: 9,
           },
           expected: "success",
         },
