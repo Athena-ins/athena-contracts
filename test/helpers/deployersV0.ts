@@ -195,8 +195,16 @@ export async function deployAllContractsAndInitializeProtocolV0(
         config.nbOfJurors, // uint256 nbOfJurors_
         config.claimCollateral, // uint256 claimCollateral_
         config.baseMetaEvidenceURI, // string memory baseMetaEvidenceURI_
-        config.claimPeriods, // uint64[3] memory periods_ // [challengePeriod, evidenceUploadPeriod, overrulePeriod]
-        config.claimMultipliers, // uint16[3] memory multipliers_ // [winnerMultiplier, loserMultiplier, loserAppealPeriodMultiplier]
+        [
+          config.claimPeriods.challenge,
+          config.claimPeriods.evidenceUpload,
+          config.claimPeriods.overrule,
+        ],
+        [
+          config.claimMultipliers.winner,
+          config.claimMultipliers.loser,
+          config.claimMultipliers.loserAppealPeriodMultiplier,
+        ],
       ]),
     );
     txCount++;

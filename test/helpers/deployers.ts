@@ -369,8 +369,18 @@ export type ProtocolConfig = {
   claimCollateral: BigNumber;
   arbitrationCost: BigNumber; // in ETH for centralized AthenaArbitrator
   appealCost: BigNumber; // in ETH for centralized AthenaArbitrator
-  claimPeriods: [number, number, number]; // in seconds [challengePeriod, evidenceUploadPeriod, overrulePeriod]
-  claimMultipliers: [number, number, number]; // base 10_000 [winnerMultiplier, loserMultiplier, loserAppealPeriodMultiplier]
+  // in seconds
+  claimPeriods: {
+    challenge: number;
+    evidenceUpload: number;
+    overrule: number;
+  };
+  // base 10_000
+  claimMultipliers: {
+    winner: number;
+    loser: number;
+    loserAppealPeriodMultiplier: number;
+  };
   evidenceGuardian: Wallet;
   buybackWallet: Wallet;
   treasuryWallet: Wallet;
@@ -574,8 +584,16 @@ export async function deployAllContractsAndInitializeProtocol(
         config.nbOfJurors, // uint256 nbOfJurors_
         config.claimCollateral, // uint256 claimCollateral_
         config.baseMetaEvidenceURI, // string memory baseMetaEvidenceURI_
-        config.claimPeriods, // uint64[3] memory periods_ // [challengePeriod, evidenceUploadPeriod, overrulePeriod]
-        config.claimMultipliers, // uint16[3] memory multipliers_ // [winnerMultiplier, loserMultiplier, loserAppealPeriodMultiplier]
+        [
+          config.claimPeriods.challenge,
+          config.claimPeriods.evidenceUpload,
+          config.claimPeriods.overrule,
+        ],
+        [
+          config.claimMultipliers.winner,
+          config.claimMultipliers.loser,
+          config.claimMultipliers.loserAppealPeriodMultiplier,
+        ],
       ]),
     );
     txCount++;

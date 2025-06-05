@@ -92,8 +92,16 @@ const defaultProtocolConfig: ProtocolConfig = {
   //==== Claim Manager Config ====//
   subcourtId: 4, // View https://klerosboard.com/1/courts/4
   nbOfJurors: 3,
-  claimPeriods: [10 * DAY_SECONDS, 2 * DAY_SECONDS, 4 * DAY_SECONDS], // [challengePeriod, evidenceUploadPeriod, overrulePeriod]
-  claimMultipliers: [3_000, 7_000, 5_000], // [winnerMultiplier, loserMultiplier, loserAppealPeriodMultiplier]
+  claimPeriods: {
+    challenge: 10 * DAY_SECONDS,
+    evidenceUpload: 2 * DAY_SECONDS,
+    overrule: 4 * DAY_SECONDS,
+  },
+  claimMultipliers: {
+    winner: 3_000,
+    loser: 7_000,
+    loserAppealPeriodMultiplier: 5_000,
+  },
   baseMetaEvidenceURI: "https://api.athenains.io/metaevidence",
   claimCollateral: parseEther("0.0002"), // in ETH
   arbitrationCost: parseEther("0.00012"), // in ETH
@@ -125,8 +133,16 @@ const deployParams: {
   mainnet: {
     subcourtId: 4, // View https://klerosboard.com/1/courts/4
     nbOfJurors: 3,
-    claimPeriods: [182 * DAY_SECONDS, 2 * DAY_SECONDS, 4 * DAY_SECONDS], // [challengePeriod, evidenceUploadPeriod, overrulePeriod]
-    claimMultipliers: [3_000, 7_000, 5_000], // [winnerMultiplier, loserMultiplier, loserAppealPeriodMultiplier]
+    claimPeriods: {
+      challenge: 182 * DAY_SECONDS,
+      evidenceUpload: 2 * DAY_SECONDS,
+      overrule: 4 * DAY_SECONDS,
+    },
+    claimMultipliers: {
+      winner: 3_000,
+      loser: 7_000,
+      loserAppealPeriodMultiplier: 5_000,
+    },
     claimCollateral: parseEther("0.0002"),
     arbitrationCost: parseEther("0.00012"), // in ETH for centralized AthenaArbitrator
     appealCost: parseEther("0.00024"), // in ETH
@@ -164,8 +180,16 @@ const deployParams: {
   arbitrum: {
     subcourtId: 4, // View https://klerosboard.com/1/courts/4
     nbOfJurors: 3,
-    claimPeriods: [182 * DAY_SECONDS, 2 * DAY_SECONDS, 4 * DAY_SECONDS], // [challengePeriod, evidenceUploadPeriod, overrulePeriod]
-    claimMultipliers: [3_000, 7_000, 5_000], // [winnerMultiplier, loserMultiplier, loserAppealPeriodMultiplier]
+    claimPeriods: {
+      challenge: 182 * DAY_SECONDS,
+      evidenceUpload: 2 * DAY_SECONDS,
+      overrule: 4 * DAY_SECONDS,
+    },
+    claimMultipliers: {
+      winner: 3_000,
+      loser: 7_000,
+      loserAppealPeriodMultiplier: 5_000,
+    },
     claimCollateral: parseEther("0.0002"),
     arbitrationCost: parseEther("0.00012"), // in ETH for centralized AthenaArbitrator
     appealCost: parseEther("0.00024"), // in ETH

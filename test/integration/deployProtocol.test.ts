@@ -32,7 +32,7 @@ import { AthenaToken__factory } from "../../typechain";
 // Types
 import { BaseContract, constants } from "ethers";
 
-interface Arguments extends Omit<Mocha.Context, "contracts"> {
+interface Arguments extends Mocha.Context {
   args: {
     deployedAt: { [key: string]: string };
   };
@@ -156,8 +156,16 @@ export function DeployProtocolTest() {
           this.protocolConfig.nbOfJurors, // uint256 nbOfJurors_
           this.protocolConfig.claimCollateral, // uint256 claimCollateral_
           this.protocolConfig.baseMetaEvidenceURI, // string memory baseMetaEvidenceURI_
-          this.protocolConfig.claimPeriods, // uint64[3] memory periods_ // [challengePeriod, evidenceUploadPeriod, overrulePeriod]
-          this.protocolConfig.claimMultipliers, // uint16[3] memory multipliers_ // [winnerMultiplier, loserMultiplier, loserAppealPeriodMultiplier]
+          [
+            this.protocolConfig.claimPeriods.challenge,
+            this.protocolConfig.claimPeriods.evidenceUpload,
+            this.protocolConfig.claimPeriods.overrule,
+          ],
+          [
+            this.protocolConfig.claimMultipliers.winner,
+            this.protocolConfig.claimMultipliers.loser,
+            this.protocolConfig.claimMultipliers.loserAppealPeriodMultiplier,
+          ],
         ]).then((contract) =>
           postDeployCheck(contract, this.args.deployedAt.ClaimManager),
         );
