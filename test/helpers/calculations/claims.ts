@@ -99,6 +99,7 @@ export function calcExpectedClaimDataAfterWithdrawCompensation(
 ): ClaimInfoObject {
   return {
     ...claimInfoBefore,
+    coverAmount: claimInfoBefore.coverAmount.sub(claimInfoBefore.amount),
     // If status is 'Accepted' then it should be 'Compensated' otherwise 'CompensatedAfterDispute'
     status: claimInfoBefore.status === 1 ? 2 : 8,
   };
@@ -138,20 +139,8 @@ export function calcExpectedClaimDataAfterExecuteRuling(
   txTimestamp: number,
   timestamp: number,
 ): ClaimInfoObject {
-  let newStatus;
-  switch (claimInfoBefore.ruling) {
-    case 0: // RefusedToArbitrate
-      newStatus = 6;
-      break;
-    case 1: // PayClaimant
-      newStatus = 7;
-      break;
-    case 2: // RejectClaim
-      newStatus = 6;
-      break;
-    default:
-      throw new Error("Invalid ruling");
-  }
+  // Refusal to arbitrate or rejections results in the claim being tossed
+  const newStatus = claimInfoBefore.ruling === 1 ? 7 : 6;
 
   return {
     ...claimInfoBefore,

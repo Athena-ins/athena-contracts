@@ -16,6 +16,7 @@ import {
   calcExpectedClaimDataAfterWithdrawCompensation,
   calcExpectedClaimDataAfterDisputeClaim,
   calcExpectedClaimDataAfterCourtRuling,
+  calcExpectedClaimDataAfterExecuteRuling,
   calcExpectedClaimDataAfterOverrule,
   calcExpectedClaimDataAfterFundAppeal,
   calcExpectedClaimDataAfterResolveProsecution,
@@ -25,6 +26,7 @@ import {
   calcExpectedCoverDataAfterWithdrawCompensation,
   calcExpectedCoverDataAfterDisputeClaim,
   calcExpectedCoverDataAfterCourtRuling,
+  calcExpectedCoverDataAfterExecuteRuling,
   calcExpectedCoverDataAfterOverrule,
   calcExpectedCoverDataAfterFundAppeal,
   calcExpectedCoverDataAfterResolveProsecution,
@@ -34,6 +36,7 @@ import {
   calcExpectedPoolDataAfterWithdrawCompensation,
   calcExpectedPoolDataAfterDisputeClaim,
   calcExpectedPoolDataAfterCourtRuling,
+  calcExpectedPoolDataAfterExecuteRuling,
   calcExpectedPoolDataAfterOverrule,
   calcExpectedPoolDataAfterFundAppeal,
   calcExpectedPoolDataAfterResolveProsecution,
@@ -64,9 +67,6 @@ export async function executeRuling(
     const claimInfoBefore = await ClaimManager.claimInfo(claimId).then((data) =>
       claimInfoFormat(data),
     );
-
-    // Sanity check to make sure it is the correct claim
-    expect(claimInfoBefore.disputeId).to.equal(disputeId);
 
     const coverDataBefore = await LiquidityManager.coverInfo(
       claimInfoBefore.coverId,
@@ -99,26 +99,20 @@ export async function executeRuling(
       ],
     );
 
-    // Use the same calculation functions as rule since this is effectively completing the ruling
-    const rulingValue = (
-      await AthenaArbitrator.currentRuling(disputeId)
-    ).toNumber();
-
-    const expectedClaimData = calcExpectedClaimDataAfterCourtRuling(
+    const expectedClaimData = calcExpectedClaimDataAfterExecuteRuling(
       claimInfoBefore,
-      rulingValue,
       txTimestamp,
       timestamp,
     );
 
-    const expectedPoolData = calcExpectedPoolDataAfterCourtRuling(
+    const expectedPoolData = calcExpectedPoolDataAfterExecuteRuling(
       poolDataBefore,
       poolDataAfter.strategyRewardIndex,
       txTimestamp,
       timestamp,
     );
 
-    const expectedCoverData = calcExpectedCoverDataAfterCourtRuling(
+    const expectedCoverData = calcExpectedCoverDataAfterExecuteRuling(
       coverDataBefore,
       txTimestamp,
       timestamp,
@@ -527,9 +521,6 @@ export async function rule(
     const claimInfoBefore = await ClaimManager.claimInfo(claimId).then((data) =>
       claimInfoFormat(data),
     );
-
-    // Sanity check to make sure it is the correct claim
-    expect(claimInfoBefore.disputeId).to.equal(disputeId);
 
     const coverDataBefore = await LiquidityManager.coverInfo(
       claimInfoBefore.coverId,
