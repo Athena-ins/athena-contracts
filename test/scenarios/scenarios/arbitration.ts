@@ -36,7 +36,7 @@ export const arbitration: Scenario = {
           name: "getTokens",
           args: {
             tokenSymbol: "USDC",
-            amount: 40_000,
+            amount: 50_000,
           },
           expected: "success",
         },
@@ -46,7 +46,7 @@ export const arbitration: Scenario = {
           args: {
             spender: "LiquidityManager",
             tokenSymbol: "USDC",
-            amount: 40_000,
+            amount: 50_000,
           },
           expected: "success",
         },
@@ -54,7 +54,7 @@ export const arbitration: Scenario = {
           userName: "user0",
           name: "openPosition",
           args: {
-            amount: 40_000,
+            amount: 50_000,
             tokenSymbol: "USDC",
             isWrapped: false,
             poolIds: [0],
@@ -1517,6 +1517,459 @@ export const arbitration: Scenario = {
           args: {
             claimId: 10,
             punish: false,
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "user1 opens cover 11 for multiple appeal rounds test",
+      actions: [
+        {
+          userName: "user1",
+          name: "getTokens",
+          args: {
+            tokenSymbol: "USDC",
+            amount: 500,
+          },
+          expected: "success",
+        },
+        {
+          userName: "user1",
+          name: "approveTokens",
+          args: {
+            spender: "LiquidityManager",
+            tokenSymbol: "USDC",
+            amount: 500,
+          },
+          expected: "success",
+        },
+        {
+          userName: "user1",
+          name: "openCover",
+          args: {
+            poolId: 0,
+            coverTokenSymbol: "USDC",
+            coverAmount: 3_000,
+            premiumTokenSymbol: "USDC",
+            premiumAmount: 500,
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "user1 creates claim 11 for multiple appeal rounds test",
+      actions: [
+        {
+          userName: "user1",
+          name: "initiateClaim",
+          args: {
+            coverId: 11,
+            tokenSymbol: "USDC",
+            amountClaimed: 2_000,
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "user2 disputes claim 11 in dispute 10",
+      actions: [
+        {
+          userName: "user2",
+          name: "disputeClaim",
+          args: {
+            claimId: 11,
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "arbitrator rules in favor of claimant for claim 11",
+      actions: [
+        {
+          userName: "deployer",
+          name: "rule",
+          args: {
+            disputeId: 10,
+            ruling: "PayClaimant",
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "both sides fund appeal 1 for claim 11",
+      actions: [
+        {
+          userName: "user2",
+          name: "fundAppeal",
+          args: {
+            side: "RejectClaim",
+            claimId: 11,
+          },
+          expected: "success",
+        },
+        {
+          userName: "user1",
+          name: "fundAppeal",
+          args: {
+            side: "PayClaimant",
+            claimId: 11,
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description:
+        "arbitrator rules in favor of claimant appeal 1 for claim 11",
+      actions: [
+        {
+          userName: "deployer",
+          name: "rule",
+          args: {
+            disputeId: 10,
+            ruling: "PayClaimant",
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "both sides fund appeal 2 for claim 11",
+      actions: [
+        {
+          userName: "user1",
+          name: "fundAppeal",
+          args: {
+            side: "PayClaimant",
+            claimId: 11,
+          },
+          expected: "success",
+        },
+        {
+          userName: "user2",
+          name: "fundAppeal",
+          args: {
+            side: "RejectClaim",
+            claimId: 11,
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description:
+        "arbitrator rules in favor of claimant appeal 2 for claim 11",
+      actions: [
+        {
+          userName: "deployer",
+          name: "rule",
+          args: {
+            disputeId: 10,
+            ruling: "PayClaimant",
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "arbitrator executes ruling for claim 11",
+      actions: [
+        {
+          name: "wait",
+          timeTravel: {
+            days: 3,
+          },
+        },
+        {
+          userName: "deployer",
+          name: "executeRuling",
+          args: {
+            disputeId: 10,
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "user1 opens cover 12",
+      actions: [
+        {
+          userName: "user1",
+          name: "getTokens",
+          args: {
+            tokenSymbol: "USDC",
+            amount: 500,
+          },
+          expected: "success",
+        },
+        {
+          userName: "user1",
+          name: "approveTokens",
+          args: {
+            spender: "LiquidityManager",
+            tokenSymbol: "USDC",
+            amount: 500,
+          },
+          expected: "success",
+        },
+        {
+          userName: "user1",
+          name: "openCover",
+          args: {
+            poolId: 0,
+            coverTokenSymbol: "USDC",
+            coverAmount: 3_000,
+            premiumTokenSymbol: "USDC",
+            premiumAmount: 500,
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "user1 creates claim 12",
+      actions: [
+        {
+          userName: "user1",
+          name: "initiateClaim",
+          args: {
+            coverId: 12,
+            tokenSymbol: "USDC",
+            amountClaimed: 2_000,
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "user2 disputes claim 12",
+      actions: [
+        {
+          userName: "user2",
+          name: "disputeClaim",
+          args: {
+            claimId: 12,
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "arbitrator rules RefusedToArbitrate for claim 12",
+      actions: [
+        {
+          userName: "deployer",
+          name: "rule",
+          args: {
+            disputeId: 11,
+            ruling: "RefusedToArbitrate",
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description:
+        "both sides fund appeal after RefusedToArbitrate ruling for claim 12",
+      actions: [
+        {
+          userName: "user1",
+          name: "fundAppeal",
+          args: {
+            side: "PayClaimant",
+            claimId: 12,
+          },
+          expected: "success",
+        },
+        {
+          userName: "user2",
+          name: "fundAppeal",
+          args: {
+            side: "RejectClaim",
+            claimId: 12,
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description:
+        "arbitrator rules PayClaimant after appeal from RefusedToArbitrate for claim 12",
+      actions: [
+        {
+          userName: "deployer",
+          name: "rule",
+          args: {
+            disputeId: 11,
+            ruling: "PayClaimant",
+          },
+          expected: "success",
+        },
+        {
+          name: "wait",
+          timeTravel: {
+            days: 3,
+          },
+        },
+        {
+          userName: "deployer",
+          name: "executeRuling",
+          args: {
+            disputeId: 11,
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "user1 opens cover 13",
+      actions: [
+        {
+          userName: "user1",
+          name: "getTokens",
+          args: {
+            tokenSymbol: "USDC",
+            amount: 500,
+          },
+          expected: "success",
+        },
+        {
+          userName: "user1",
+          name: "approveTokens",
+          args: {
+            spender: "LiquidityManager",
+            tokenSymbol: "USDC",
+            amount: 500,
+          },
+          expected: "success",
+        },
+        {
+          userName: "user1",
+          name: "openCover",
+          args: {
+            poolId: 0,
+            coverTokenSymbol: "USDC",
+            coverAmount: 3_000,
+            premiumTokenSymbol: "USDC",
+            premiumAmount: 500,
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "user1 creates claim 13",
+      actions: [
+        {
+          userName: "user1",
+          name: "initiateClaim",
+          args: {
+            coverId: 13,
+            tokenSymbol: "USDC",
+            amountClaimed: 2_000,
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "user2 disputes claim 13",
+      actions: [
+        {
+          userName: "user2",
+          name: "disputeClaim",
+          args: {
+            claimId: 13,
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "arbitrator rules PayClaimant for claim 13",
+      actions: [
+        {
+          userName: "deployer",
+          name: "rule",
+          args: {
+            disputeId: 12,
+            ruling: "PayClaimant",
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "user2 & user3 funds appeal for claim 13",
+      actions: [
+        {
+          userName: "user2",
+          name: "fundAppeal",
+          args: {
+            side: "RejectClaim",
+            claimId: 13,
+            valueSent: "5000000",
+          },
+          expected: "success",
+        },
+        {
+          userName: "user3",
+          name: "fundAppeal",
+          args: {
+            side: "RejectClaim",
+            claimId: 13,
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "user1 funds appeal for claim 13",
+      actions: [
+        {
+          userName: "user1",
+          name: "fundAppeal",
+          args: {
+            side: "PayClaimant",
+            claimId: 13,
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "arbitrator rules in favor of prosecutor for claim 13",
+      actions: [
+        {
+          userName: "deployer",
+          name: "rule",
+          args: {
+            disputeId: 12,
+            ruling: "RejectClaim",
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "execute ruling for claim 13 (dispute 12)",
+      actions: [
+        {
+          name: "wait",
+          timeTravel: {
+            days: 3,
+          },
+        },
+        {
+          userName: "deployer",
+          name: "executeRuling",
+          args: {
+            disputeId: 12,
           },
           expected: "success",
         },

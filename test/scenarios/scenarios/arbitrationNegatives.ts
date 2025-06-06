@@ -29,7 +29,7 @@ export const arbitrationNegatives: Scenario = {
           name: "getTokens",
           args: {
             tokenSymbol: "USDC",
-            amount: 35_000,
+            amount: 44_000,
           },
           expected: "success",
         },
@@ -39,7 +39,7 @@ export const arbitrationNegatives: Scenario = {
           args: {
             spender: "LiquidityManager",
             tokenSymbol: "USDC",
-            amount: 35_000,
+            amount: 44_000,
           },
           expected: "success",
         },
@@ -47,7 +47,7 @@ export const arbitrationNegatives: Scenario = {
           userName: "user0",
           name: "openPosition",
           args: {
-            amount: 35_000,
+            amount: 44_000,
             tokenSymbol: "USDC",
             isWrapped: false,
             poolIds: [0],
@@ -1399,6 +1399,240 @@ export const arbitrationNegatives: Scenario = {
           },
           expected: "revert",
           revertMessage: "WithdrawConditionsNotMet",
+        },
+      ],
+    },
+    {
+      description: "user1 opens cover 9",
+      actions: [
+        {
+          userName: "user1",
+          name: "getTokens",
+          args: {
+            tokenSymbol: "USDC",
+            amount: 500,
+          },
+          expected: "success",
+        },
+        {
+          userName: "user1",
+          name: "approveTokens",
+          args: {
+            spender: "LiquidityManager",
+            tokenSymbol: "USDC",
+            amount: 500,
+          },
+          expected: "success",
+        },
+        {
+          userName: "user1",
+          name: "openCover",
+          args: {
+            poolId: 0,
+            coverTokenSymbol: "USDC",
+            coverAmount: 3_000,
+            premiumTokenSymbol: "USDC",
+            premiumAmount: 500,
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "user1 creates claim 9 for cover 9",
+      actions: [
+        {
+          userName: "user1",
+          name: "initiateClaim",
+          args: {
+            coverId: 9,
+            tokenSymbol: "USDC",
+            amountClaimed: 2_000,
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "user2 disputes claim 9",
+      actions: [
+        {
+          userName: "user2",
+          name: "disputeClaim",
+          args: {
+            claimId: 9,
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "arbitrator rules in favor of claimant for claim 9",
+      actions: [
+        {
+          userName: "deployer",
+          name: "rule",
+          args: {
+            disputeId: 7,
+            ruling: "PayClaimant",
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description:
+        "user2 as loser fails to fund appeal after their period expires for claim 9",
+      actions: [
+        {
+          name: "wait",
+          timeTravel: {
+            seconds:
+              Math.floor(
+                (protocolConfig.claimMultipliers.loserAppealPeriodMultiplier *
+                  3 *
+                  24 *
+                  60 *
+                  60) /
+                  10000,
+              ) + 10,
+          },
+        },
+        {
+          userName: "user2",
+          name: "fundAppeal",
+          args: {
+            side: "RejectClaim",
+            claimId: 9,
+          },
+          expected: "revert",
+          revertMessage: "OutOfAppealPeriodBounds",
+        },
+      ],
+    },
+    {
+      description:
+        "user1 as winner can still fund appeal within their longer period for claim 9",
+      actions: [
+        {
+          userName: "user1",
+          name: "fundAppeal",
+          args: {
+            side: "PayClaimant",
+            claimId: 9,
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "user1 opens cover 10",
+      actions: [
+        {
+          userName: "user1",
+          name: "getTokens",
+          args: {
+            tokenSymbol: "USDC",
+            amount: 500,
+          },
+          expected: "success",
+        },
+        {
+          userName: "user1",
+          name: "approveTokens",
+          args: {
+            spender: "LiquidityManager",
+            tokenSymbol: "USDC",
+            amount: 500,
+          },
+          expected: "success",
+        },
+        {
+          userName: "user1",
+          name: "openCover",
+          args: {
+            poolId: 0,
+            coverTokenSymbol: "USDC",
+            coverAmount: 3_000,
+            premiumTokenSymbol: "USDC",
+            premiumAmount: 500,
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "user1 creates claim 10 for cover 10",
+      actions: [
+        {
+          userName: "user1",
+          name: "initiateClaim",
+          args: {
+            coverId: 10,
+            tokenSymbol: "USDC",
+            amountClaimed: 2_000,
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "user2 disputes claim 10",
+      actions: [
+        {
+          userName: "user2",
+          name: "disputeClaim",
+          args: {
+            claimId: 10,
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "arbitrator rules in favor of claimant for claim 10",
+      actions: [
+        {
+          userName: "deployer",
+          name: "rule",
+          args: {
+            disputeId: 8,
+            ruling: "PayClaimant",
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "user1 funds appeal for claim 10 but user2 doesn't",
+      actions: [
+        {
+          userName: "user1",
+          name: "fundAppeal",
+          args: {
+            side: "PayClaimant",
+            claimId: 10,
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "execute final ruling for claim 10 (dispute 9)",
+      actions: [
+        {
+          name: "wait",
+          timeTravel: {
+            days: 3,
+          },
+        },
+        {
+          userName: "deployer",
+          name: "executeRuling",
+          args: {
+            disputeId: 8,
+          },
+          expected: "success",
         },
       ],
     },
