@@ -132,7 +132,7 @@ export async function submitEvidenceForClaim(
   testEnv: TestEnv,
   user: Wallet,
   claimId: number,
-  ipfsEvidenceCids: string[],
+  evidenceURI: string[],
   party: "claimant" | "prosecutor",
   expectedResult: "success" | "revert",
   revertMessage?: string,
@@ -153,10 +153,7 @@ export async function submitEvidenceForClaim(
     ).then((data) => poolInfoFormat(data));
 
     const txResult = await postTxHandler(
-      ClaimManager.connect(user).submitEvidenceForClaim(
-        claimId,
-        ipfsEvidenceCids,
-      ),
+      ClaimManager.connect(user).submitEvidenceForClaim(claimId, evidenceURI),
     );
 
     const { txTimestamp } = await getTxCostAndTimestamp(txResult);
@@ -179,7 +176,7 @@ export async function submitEvidenceForClaim(
     );
 
     const expectedClaimData = calcExpectedClaimDataAfterSubmitEvidence(
-      ipfsEvidenceCids,
+      evidenceURI,
       party,
       claimInfoBefore,
       txTimestamp,
@@ -203,10 +200,7 @@ export async function submitEvidenceForClaim(
     if (!skipTokenCheck) expectEqual(coverDataAfter, expectedCoverData);
   } else if (expectedResult === "revert") {
     await expect(
-      ClaimManager.connect(user).submitEvidenceForClaim(
-        claimId,
-        ipfsEvidenceCids,
-      ),
+      ClaimManager.connect(user).submitEvidenceForClaim(claimId, evidenceURI),
     ).to.revertTransactionWith(revertMessage);
   }
 }

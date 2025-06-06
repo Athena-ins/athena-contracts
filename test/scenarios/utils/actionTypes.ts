@@ -183,7 +183,7 @@ type ActionInitiateClaim = BaseAction & {
     coverId: number;
     tokenSymbol: TokensSymbols;
     amountClaimed: number;
-    ipfsMetaEvidenceCid?: string;
+    metaEvidenceURI?: string;
     signature?: string;
     valueSent?: string;
   };
@@ -207,7 +207,7 @@ type ActionSubmitEvidence = BaseAction & {
   name: "submitEvidence";
   args: {
     claimId: number;
-    ipfsEvidenceCids: string[];
+    evidenceURI: string[];
     party: "claimant" | "prosecutor";
   };
 };

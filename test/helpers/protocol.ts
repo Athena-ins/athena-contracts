@@ -599,9 +599,9 @@ async function updateCover(
 
 // ======== Claims ======== //
 
-export async function getTestingCidAndSig(
+export async function getTestingSignedEvidenceURI(
   cid?: string,
-): Promise<{ ipfsCid: string; cidSignature: string }> {
+): Promise<{ evidenceURI: string; evidenceSignature: string }> {
   const ipfsCid = cid || "Qma00000000000000000000000000000000000000_test";
   const hash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(ipfsCid));
   const cidSignature = await evidenceGuardianWallet().signMessage(
@@ -609,7 +609,7 @@ export async function getTestingCidAndSig(
   );
 
   // @dev Not using signature authentication
-  return { ipfsCid, cidSignature };
+  return { evidenceURI: ipfsCid, evidenceSignature: cidSignature };
 }
 
 async function initiateClaim(

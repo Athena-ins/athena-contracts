@@ -27,7 +27,7 @@ import {
 // ========= CLAIMS ========= //
 
 export function calcExpectedClaimDataAfterSubmitEvidence(
-  ipfsEvidenceCids: string[],
+  evidenceURI: string[],
   party: "claimant" | "prosecutor",
   claimInfoBefore: ClaimInfoObject,
   txTimestamp: number,
@@ -36,14 +36,11 @@ export function calcExpectedClaimDataAfterSubmitEvidence(
   return party === "claimant"
     ? {
         ...claimInfoBefore,
-        evidence: [...claimInfoBefore.evidence, ...ipfsEvidenceCids],
+        evidence: [...claimInfoBefore.evidence, ...evidenceURI],
       }
     : {
         ...claimInfoBefore,
-        counterEvidence: [
-          ...claimInfoBefore.counterEvidence,
-          ...ipfsEvidenceCids,
-        ],
+        counterEvidence: [...claimInfoBefore.counterEvidence, ...evidenceURI],
       };
 }
 

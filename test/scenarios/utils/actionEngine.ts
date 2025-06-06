@@ -24,7 +24,7 @@ import {
   // need dao, farming, staking, claim
 } from "./actions";
 import {
-  getTestingCidAndSig,
+  getTestingSignedEvidenceURI,
   getTokenAddressBySymbol,
 } from "../../helpers/protocol";
 import { toRay } from "../../helpers/utils/poolRayMath";
@@ -351,14 +351,14 @@ export async function executeAction(this: Mocha.Context, action: Action) {
         coverId,
         tokenSymbol,
         amountClaimed,
-        ipfsMetaEvidenceCid,
+        metaEvidenceURI,
         signature,
         valueSent,
       } = args;
 
       // @dev Remove usage of signature authentication
-      const { ipfsCid, cidSignature } =
-        await getTestingCidAndSig(ipfsMetaEvidenceCid);
+      const { evidenceURI, evidenceSignature } =
+        await getTestingSignedEvidenceURI(metaEvidenceURI);
 
       const tokenClaimed = getTokenAddressBySymbol(
         this.contracts,
@@ -372,8 +372,8 @@ export async function executeAction(this: Mocha.Context, action: Action) {
         coverId,
         tokenClaimed,
         amountClaimed,
-        ipfsCid ?? ipfsMetaEvidenceCid,
-        cidSignature ?? signature,
+        evidenceURI,
+        evidenceSignature,
         valueSent,
         expected,
         revertMessage,
@@ -417,13 +417,13 @@ export async function executeAction(this: Mocha.Context, action: Action) {
     }
 
     case "submitEvidence": {
-      const { claimId, ipfsEvidenceCids, party } = args;
+      const { claimId, evidenceURI, party } = args;
 
       await submitEvidenceForClaim(
         this,
         signer,
         claimId,
-        ipfsEvidenceCids,
+        evidenceURI,
         party,
         expected,
         revertMessage,
