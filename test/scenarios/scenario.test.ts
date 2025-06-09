@@ -23,7 +23,6 @@ const scenarios: Scenario[] = [
   coverNegatives,
   arbitration,
   arbitrationNegatives,
-  //
   // poolNegatives,
   // multiplePools,
 ];
