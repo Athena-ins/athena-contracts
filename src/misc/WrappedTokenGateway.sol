@@ -491,6 +491,16 @@ contract WrappedTokenGateway is Ownable, ReentrancyGuard {
   function updateLiquidityManager(
     address newLiquidityManager
   ) external onlyOwner {
+    address oldLiquidityManager = address(LIQUIDITY_MANAGER);
+
+    // Renew approvals for LiquidityManager
+    WETH.approve(oldLiquidityManager, 0);
+    WSTETH.approve(oldLiquidityManager, 0);
+    STETH.approve(oldLiquidityManager, 0);
+    WETH.approve(newLiquidityManager, type(uint256).max);
+    WSTETH.approve(newLiquidityManager, type(uint256).max);
+    STETH.approve(newLiquidityManager, type(uint256).max);
+
     LIQUIDITY_MANAGER = ILiquidityManager(newLiquidityManager);
   }
 
