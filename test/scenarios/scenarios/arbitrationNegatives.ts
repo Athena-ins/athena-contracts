@@ -29,7 +29,7 @@ export const arbitrationNegatives: Scenario = {
           name: "getTokens",
           args: {
             tokenSymbol: "USDC",
-            amount: 44_000,
+            amount: 50_000,
           },
           expected: "success",
         },
@@ -39,7 +39,7 @@ export const arbitrationNegatives: Scenario = {
           args: {
             spender: "LiquidityManager",
             tokenSymbol: "USDC",
-            amount: 44_000,
+            amount: 50_000,
           },
           expected: "success",
         },
@@ -47,7 +47,7 @@ export const arbitrationNegatives: Scenario = {
           userName: "user0",
           name: "openPosition",
           args: {
-            amount: 44_000,
+            amount: 50_000,
             tokenSymbol: "USDC",
             isWrapped: false,
             poolIds: [0],
@@ -147,7 +147,7 @@ export const arbitrationNegatives: Scenario = {
           name: "submitEvidence",
           args: {
             claimId: 0,
-            ipfsEvidenceCids: ["QmTest1"],
+            evidenceURI: ["QmTest1"],
             party: "claimant",
           },
           expected: "revert",
@@ -182,7 +182,7 @@ export const arbitrationNegatives: Scenario = {
           name: "submitEvidence",
           args: {
             claimId: 0,
-            ipfsEvidenceCids: ["QmTest2"],
+            evidenceURI: ["QmTest2"],
             party: "claimant",
           },
           expected: "revert",
@@ -1631,6 +1631,285 @@ export const arbitrationNegatives: Scenario = {
           name: "executeRuling",
           args: {
             disputeId: 8,
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "user1 opens cover 11 for evidence tests",
+      actions: [
+        {
+          userName: "user1",
+          name: "getTokens",
+          args: {
+            tokenSymbol: "USDC",
+            amount: 500,
+          },
+          expected: "success",
+        },
+        {
+          userName: "user1",
+          name: "approveTokens",
+          args: {
+            spender: "LiquidityManager",
+            tokenSymbol: "USDC",
+            amount: 500,
+          },
+          expected: "success",
+        },
+        {
+          userName: "user1",
+          name: "openCover",
+          args: {
+            poolId: 0,
+            coverTokenSymbol: "USDC",
+            coverAmount: 3_000,
+            premiumTokenSymbol: "USDC",
+            premiumAmount: 500,
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "user1 creates claim 11 for evidence timing tests",
+      actions: [
+        {
+          userName: "user1",
+          name: "initiateClaim",
+          args: {
+            coverId: 11,
+            tokenSymbol: "USDC",
+            amountClaimed: 2_000,
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "user2 disputes claim 11 (dispute 9)",
+      actions: [
+        {
+          userName: "user2",
+          name: "disputeClaim",
+          args: {
+            claimId: 11,
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "user3 fails to submit evidence for claim 11 (unauthorized)",
+      actions: [
+        {
+          userName: "user3",
+          name: "submitEvidence",
+          args: {
+            claimId: 11,
+            party: "claimant",
+            evidenceURI: ["ipfs://unauthorized-evidence"],
+          },
+          expected: "revert",
+          revertMessage: "InvalidParty",
+        },
+      ],
+    },
+    {
+      description: "wait until evidence period ends for claim 11",
+      actions: [
+        {
+          name: "wait",
+          timeTravel: {
+            seconds: 2 * 24 * 60 * 60 + 10, // evidence period + buffer
+          },
+        },
+      ],
+    },
+    {
+      description: "user1 fails to submit evidence after period ends",
+      actions: [
+        {
+          userName: "user1",
+          name: "submitEvidence",
+          args: {
+            party: "claimant",
+            claimId: 11,
+            evidenceURI: ["ipfs://late-evidence"],
+          },
+          expected: "revert",
+          revertMessage: "EvidenceUploadPeriodEnded",
+        },
+      ],
+    },
+    {
+      description: "user1 opens cover 12 for double funding test",
+      actions: [
+        {
+          userName: "user1",
+          name: "getTokens",
+          args: {
+            tokenSymbol: "USDC",
+            amount: 500,
+          },
+          expected: "success",
+        },
+        {
+          userName: "user1",
+          name: "approveTokens",
+          args: {
+            spender: "LiquidityManager",
+            tokenSymbol: "USDC",
+            amount: 500,
+          },
+          expected: "success",
+        },
+        {
+          userName: "user1",
+          name: "openCover",
+          args: {
+            poolId: 0,
+            coverTokenSymbol: "USDC",
+            coverAmount: 3_000,
+            premiumTokenSymbol: "USDC",
+            premiumAmount: 500,
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "user1 creates claim 12",
+      actions: [
+        {
+          userName: "user1",
+          name: "initiateClaim",
+          args: {
+            coverId: 12,
+            tokenSymbol: "USDC",
+            amountClaimed: 2_000,
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "user2 disputes claim 12 (dispute 10)",
+      actions: [
+        {
+          userName: "user2",
+          name: "disputeClaim",
+          args: {
+            claimId: 12,
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "arbitrator rules on claim 12",
+      actions: [
+        {
+          userName: "deployer",
+          name: "rule",
+          args: {
+            disputeId: 10,
+            ruling: "PayClaimant",
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "user1 funds appeal for claim 12",
+      actions: [
+        {
+          userName: "user1",
+          name: "fundAppeal",
+          args: {
+            side: "PayClaimant",
+            claimId: 12,
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "user1 cannot fund appeal twice for same side",
+      actions: [
+        {
+          userName: "user1",
+          name: "fundAppeal",
+          args: {
+            side: "PayClaimant",
+            claimId: 12,
+          },
+          expected: "revert",
+          revertMessage: "AppealFeeAlreadyPaid",
+        },
+      ],
+    },
+    {
+      description: "user1 opens cover 13 for immediate overrule test",
+      actions: [
+        {
+          userName: "user1",
+          name: "getTokens",
+          args: {
+            tokenSymbol: "USDC",
+            amount: 500,
+          },
+          expected: "success",
+        },
+        {
+          userName: "user1",
+          name: "approveTokens",
+          args: {
+            spender: "LiquidityManager",
+            tokenSymbol: "USDC",
+            amount: 500,
+          },
+          expected: "success",
+        },
+        {
+          userName: "user1",
+          name: "openCover",
+          args: {
+            poolId: 0,
+            coverTokenSymbol: "USDC",
+            coverAmount: 3_000,
+            premiumTokenSymbol: "USDC",
+            premiumAmount: 500,
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "user1 creates claim 13 for immediate overrule",
+      actions: [
+        {
+          userName: "user1",
+          name: "initiateClaim",
+          args: {
+            coverId: 13,
+            tokenSymbol: "USDC",
+            amountClaimed: 2_000,
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "deployer immediately overrules claim 13",
+      actions: [
+        {
+          userName: "deployer",
+          name: "overrule",
+          args: {
+            claimId: 13,
+            punish: false,
           },
           expected: "success",
         },

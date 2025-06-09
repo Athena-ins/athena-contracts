@@ -36,7 +36,7 @@ export const arbitration: Scenario = {
           name: "getTokens",
           args: {
             tokenSymbol: "USDC",
-            amount: 50_000,
+            amount: 55_000,
           },
           expected: "success",
         },
@@ -46,7 +46,7 @@ export const arbitration: Scenario = {
           args: {
             spender: "LiquidityManager",
             tokenSymbol: "USDC",
-            amount: 50_000,
+            amount: 55_000,
           },
           expected: "success",
         },
@@ -54,7 +54,7 @@ export const arbitration: Scenario = {
           userName: "user0",
           name: "openPosition",
           args: {
-            amount: 50_000,
+            amount: 55_000,
             tokenSymbol: "USDC",
             isWrapped: false,
             poolIds: [0],
@@ -117,7 +117,7 @@ export const arbitration: Scenario = {
           name: "submitEvidence",
           args: {
             claimId: 0,
-            ipfsEvidenceCids: ["QmTest1", "QmTest2"],
+            evidenceURI: ["QmTest1", "QmTest2"],
             party: "claimant",
           },
           expected: "success",
@@ -197,7 +197,7 @@ export const arbitration: Scenario = {
           name: "submitEvidence",
           args: {
             claimId: 1,
-            ipfsEvidenceCids: ["QmTest3"],
+            evidenceURI: ["QmTest3"],
             party: "claimant",
           },
           expected: "success",
@@ -220,7 +220,7 @@ export const arbitration: Scenario = {
           name: "submitEvidence",
           args: {
             claimId: 1,
-            ipfsEvidenceCids: ["QmTest4"],
+            evidenceURI: ["QmTest4"],
             party: "prosecutor",
           },
           expected: "success",
@@ -341,7 +341,7 @@ export const arbitration: Scenario = {
           name: "submitEvidence",
           args: {
             claimId: 2,
-            ipfsEvidenceCids: ["QmTest5"],
+            evidenceURI: ["QmTest5"],
             party: "claimant",
           },
           expected: "success",
@@ -351,7 +351,7 @@ export const arbitration: Scenario = {
           name: "submitEvidence",
           args: {
             claimId: 2,
-            ipfsEvidenceCids: ["QmTest6", "QmTest7"],
+            evidenceURI: ["QmTest6", "QmTest7"],
             party: "prosecutor",
           },
           expected: "success",
@@ -386,7 +386,6 @@ export const arbitration: Scenario = {
         },
       ],
     },
-    // Refused to arbitrate case
     {
       description: "user1 opens cover 3 on pool 0",
       actions: [
@@ -479,7 +478,6 @@ export const arbitration: Scenario = {
         },
       ],
     },
-    // Overrule without punishment
     {
       description: "user1 opens cover 4 on pool 0",
       actions: [
@@ -586,7 +584,6 @@ export const arbitration: Scenario = {
         },
       ],
     },
-    // Overrule with punishment
     {
       description: "user1 opens cover 5 on pool 0",
       actions: [
@@ -802,7 +799,7 @@ export const arbitration: Scenario = {
           name: "submitEvidence",
           args: {
             claimId: 6,
-            ipfsEvidenceCids: ["QmAppealEvidence1"],
+            evidenceURI: ["QmAppealEvidence1"],
             party: "claimant",
           },
           expected: "success",
@@ -812,7 +809,7 @@ export const arbitration: Scenario = {
           name: "submitEvidence",
           args: {
             claimId: 6,
-            ipfsEvidenceCids: ["QmAppealCounterEvidence1"],
+            evidenceURI: ["QmAppealCounterEvidence1"],
             party: "prosecutor",
           },
           expected: "success",
@@ -1162,7 +1159,7 @@ export const arbitration: Scenario = {
           name: "submitEvidence",
           args: {
             claimId: 8,
-            ipfsEvidenceCids: ["QmSecondAppealEvidence1"],
+            evidenceURI: ["QmSecondAppealEvidence1"],
             party: "claimant",
           },
           expected: "success",
@@ -1172,7 +1169,7 @@ export const arbitration: Scenario = {
           name: "submitEvidence",
           args: {
             claimId: 8,
-            ipfsEvidenceCids: ["QmSecondAppealCounterEvidence1"],
+            evidenceURI: ["QmSecondAppealCounterEvidence1"],
             party: "prosecutor",
           },
           expected: "success",
@@ -1970,6 +1967,182 @@ export const arbitration: Scenario = {
           name: "executeRuling",
           args: {
             disputeId: 12,
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "user1 opens multiple covers for parallel dispute tests",
+      actions: [
+        {
+          userName: "user1",
+          name: "getTokens",
+          args: {
+            tokenSymbol: "USDC",
+            amount: 1000,
+          },
+          expected: "success",
+        },
+        {
+          userName: "user1",
+          name: "approveTokens",
+          args: {
+            spender: "LiquidityManager",
+            tokenSymbol: "USDC",
+            amount: 1000,
+          },
+          expected: "success",
+        },
+        {
+          userName: "user1",
+          name: "openCover",
+          args: {
+            poolId: 0,
+            coverTokenSymbol: "USDC",
+            coverAmount: 3_000,
+            premiumTokenSymbol: "USDC",
+            premiumAmount: 500,
+          },
+          expected: "success",
+        },
+        {
+          userName: "user1",
+          name: "openCover",
+          args: {
+            poolId: 0,
+            coverTokenSymbol: "USDC",
+            coverAmount: 2_500,
+            premiumTokenSymbol: "USDC",
+            premiumAmount: 500,
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "user1 creates parallel claims for multiple dispute test",
+      actions: [
+        {
+          userName: "user1",
+          name: "initiateClaim",
+          args: {
+            coverId: 14,
+            tokenSymbol: "USDC",
+            amountClaimed: 2_000,
+          },
+          expected: "success",
+        },
+        {
+          userName: "user1",
+          name: "initiateClaim",
+          args: {
+            coverId: 15,
+            tokenSymbol: "USDC",
+            amountClaimed: 1_500,
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "user2 disputes parallel claims",
+      actions: [
+        {
+          userName: "user2",
+          name: "disputeClaim",
+          args: {
+            claimId: 14,
+          },
+          expected: "success",
+        },
+        {
+          userName: "user2",
+          name: "disputeClaim",
+          args: {
+            claimId: 15,
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "arbitrator rules differently on parallel claims",
+      actions: [
+        {
+          userName: "deployer",
+          name: "rule",
+          args: {
+            disputeId: 13,
+            ruling: "PayClaimant",
+          },
+          expected: "success",
+        },
+        {
+          userName: "deployer",
+          name: "rule",
+          args: {
+            disputeId: 14,
+            ruling: "RejectClaim",
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "execute rulings for parallel claims",
+      actions: [
+        {
+          name: "wait",
+          timeTravel: {
+            days: 3,
+          },
+        },
+        {
+          userName: "deployer",
+          name: "executeRuling",
+          args: {
+            disputeId: 13,
+          },
+          expected: "success",
+        },
+        {
+          userName: "deployer",
+          name: "executeRuling",
+          args: {
+            disputeId: 14,
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "user1 withdraws compensation for accepted claim",
+      actions: [
+        {
+          name: "wait",
+          timeTravel: {
+            days: 10, // Past overrule period
+          },
+        },
+        {
+          userName: "user1",
+          name: "withdrawCompensation",
+          args: {
+            claimId: 14,
+          },
+          expected: "success",
+        },
+      ],
+    },
+    {
+      description: "user2 resolves prosecution for rejected claim",
+      actions: [
+        {
+          userName: "user2",
+          name: "resolveProsecution",
+          args: {
+            claimId: 15,
           },
           expected: "success",
         },
