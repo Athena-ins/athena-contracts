@@ -8,7 +8,6 @@ import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.s
 // libraries
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import { Address } from "@openzeppelin/contracts/utils/Address.sol";
-import { RayMath } from "../libs/RayMath.sol";
 import { IsContract } from "../libs/IsContract.sol";
 
 // interfaces
@@ -44,10 +43,10 @@ error TransferCallFailed();
  */
 contract StrategyManagerEthereum is IStrategyManager, Ownable {
   using SafeERC20 for IERC20;
-  using RayMath for uint256;
 
+  uint256 constant RAY = 1e27;
   uint256 constant PERCENTAGE_BASE = 100;
-  uint256 constant HUNDRED_PERCENT = PERCENTAGE_BASE * RayMath.RAY;
+  uint256 constant HUNDRED_PERCENT = PERCENTAGE_BASE * RAY;
 
   //======== STORAGE ========//
   ILiquidityManager public liquidityManager;
@@ -170,11 +169,11 @@ contract StrategyManagerEthereum is IStrategyManager, Ownable {
     if (strategyId_ == 0) {
       return aaveLendingPool.getReserveNormalizedIncome(USDC);
     } else if (strategyId_ == 1 || strategyId_ == 2) {
-      return RayMath.RAY;
+      return RAY;
     } else if (strategyId_ == 3) {
-      return IERC4626(morphoMevVault).convertToAssets(RayMath.RAY);
+      return IERC4626(morphoMevVault).convertToAssets(RAY);
     } else if (strategyId_ == 4) {
-      return IERC4626(inceptionVault).convertToAssets(RayMath.RAY);
+      return IERC4626(inceptionVault).convertToAssets(RAY);
     }
     revert NotAValidStrategy();
   }
@@ -217,8 +216,7 @@ contract StrategyManagerEthereum is IStrategyManager, Ownable {
   ) external pure returns (uint256) {
     if (strategyId_ == 0 || strategyId_ == 3 || strategyId_ == 4) {
       return
-        amount_.rayMul(endRewardIndex_).rayDiv(startRewardIndex_) -
-        amount_;
+        ((amount_ * endRewardIndex_) / startRewardIndex_) - amount_;
     } else if (strategyId_ == 1 || strategyId_ == 2) {
       return 0;
     }

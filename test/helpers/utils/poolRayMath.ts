@@ -404,8 +404,8 @@ export function computeReward(
   endRewardIndex: BigNumber,
 ) {
   return RayInt.from(amount)
-    .rayMul(endRewardIndex)
-    .rayDiv(startRewardIndex)
+    .mul(endRewardIndex)
+    .div(startRewardIndex)
     .sub(amount)
     .toBigNumber();
 }

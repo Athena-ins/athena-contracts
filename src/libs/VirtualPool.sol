@@ -537,7 +537,13 @@ library VirtualPool {
     uint256 strategyRewardIndex_,
     uint256 latestStrategyRewardIndex_,
     uint64[] storage poolIds_
-  ) external returns (uint256, uint256) {
+  )
+    external
+    returns (
+      uint256 /* newUserCapital */,
+      uint256 /* strategyRewards */
+    )
+  {
     DataTypes.VPool storage self = VirtualPool.getPool(poolId_);
 
     // Get the updated position info
