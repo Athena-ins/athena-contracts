@@ -5,7 +5,11 @@ import {
   getConnectedProtocolContracts,
   MorphoConnectedProtocolContracts,
 } from "../helpers/contracts-getters";
-import { entityProviderChainId, postTxHandler } from "../helpers/hardhat";
+import {
+  entityProviderChainId,
+  postTxHandler,
+  impersonateAccount,
+} from "../helpers/hardhat";
 import { makeIdArray } from "../helpers/miscUtils";
 import { deployProtocolManager } from "../helpers/deployers";
 import { ProtocolManager } from "../../typechain";
@@ -106,66 +110,26 @@ export function ProtocolManagerTest() {
     });
 
     it("transfers ownership of contracts to ProtocolManager", async function (this: Arguments) {
-      // Save original owners to restore later
-      const originalLMOwner =
-        await this.customEnv.contracts.LiquidityManager.owner();
-      const originalSMOwner =
-        await this.customEnv.contracts.StrategyManager.owner();
-      const originalCMOwner =
-        await this.customEnv.contracts.ClaimManager.owner();
+      const contractsToTransferOwnership = [
+        this.customEnv.contracts.LiquidityManager,
+        this.customEnv.contracts.StrategyManager,
+        this.customEnv.contracts.ClaimManager,
+      ];
 
-      // If the current owner is not the deployer, we need to skip or modify the test
-      if (
-        originalLMOwner.toLowerCase() !==
-          this.signers.deployer.address.toLowerCase() ||
-        originalSMOwner.toLowerCase() !==
-          this.signers.deployer.address.toLowerCase() ||
-        originalCMOwner.toLowerCase() !==
-          this.signers.deployer.address.toLowerCase()
-      ) {
-        console.warn(
-          "\n\nSkipping ownership transfer test as contracts are not owned by deployer\n\n",
+      for (const contract of contractsToTransferOwnership) {
+        const owner = await contract.owner();
+        const ownerSigner = await impersonateAccount(owner);
+
+        await postTxHandler(
+          contract
+            .connect(ownerSigner)
+            .transferOwnership(this.customEnv.ProtocolManager.address),
         );
-        return;
+
+        expect(await contract.owner()).to.equal(
+          this.customEnv.ProtocolManager.address,
+        );
       }
-
-      // Transfer ownership of contracts to ProtocolManager
-      expect(
-        await postTxHandler(
-          this.customEnv.contracts.LiquidityManager.transferOwnership(
-            this.customEnv.ProtocolManager.address,
-          ),
-        ),
-      ).to.not.throw;
-
-      expect(
-        await postTxHandler(
-          this.customEnv.contracts.StrategyManager.transferOwnership(
-            this.customEnv.ProtocolManager.address,
-          ),
-        ),
-      ).to.not.throw;
-
-      expect(
-        await postTxHandler(
-          this.customEnv.contracts.ClaimManager.transferOwnership(
-            this.customEnv.ProtocolManager.address,
-          ),
-        ),
-      ).to.not.throw;
-
-      // Verify ownership was transferred
-      expect(await this.customEnv.contracts.LiquidityManager.owner()).to.equal(
-        this.customEnv.ProtocolManager.address,
-      );
-
-      expect(await this.customEnv.contracts.StrategyManager.owner()).to.equal(
-        this.customEnv.ProtocolManager.address,
-      );
-
-      expect(await this.customEnv.contracts.ClaimManager.owner()).to.equal(
-        this.customEnv.ProtocolManager.address,
-      );
     });
 
     it("batch pauses pools", async function (this: Arguments) {
@@ -387,9 +351,13 @@ export function ProtocolManagerTest() {
       // Store original addresses
       const originalYieldRewarder =
         await this.customEnv.ProtocolManager.yieldRewarder();
+      const originalPositionToken =
+        await this.customEnv.ProtocolManager.positionToken();
 
       // Set a new yield rewarder address
       const newYieldRewarder = this.signers.user1.address;
+
+      expect(originalYieldRewarder).to.not.equal(newYieldRewarder);
 
       // Update only yieldRewarder, passing zeros for all other addresses to keep them the same
       expect(
@@ -408,17 +376,15 @@ export function ProtocolManagerTest() {
         ),
       ).to.not.throw;
 
-      // Verify only yieldRewarder was updated
-      expect(await this.customEnv.ProtocolManager.yieldRewarder()).to.equal(
-        newYieldRewarder,
-      );
+      const updatedYieldRewarder =
+        await this.customEnv.ProtocolManager.yieldRewarder();
+      const updatedPositionToken =
+        await this.customEnv.ProtocolManager.positionToken();
 
+      // Verify only yieldRewarder was updated
+      expect(updatedYieldRewarder).to.equal(newYieldRewarder);
       // Make sure other addresses remained unchanged
-      expect(
-        (await this.customEnv.ProtocolManager.positionToken()).toLowerCase(),
-      ).to.equal(
-        this.customEnv.contracts.AthenaPositionToken.address.toLowerCase(),
-      );
+      expect(updatedPositionToken).to.equal(originalPositionToken);
     });
 
     it("can freeze and unfreeze the protocol", async function (this: Arguments) {
@@ -453,19 +419,6 @@ export function ProtocolManagerTest() {
     });
 
     it("allows transferring ownership of multiple contracts at once", async function (this: Arguments) {
-      // Need to restore ownership to ProtocolManager first if needed
-      const lmOwner = await this.customEnv.contracts.LiquidityManager.owner();
-      if (
-        lmOwner.toLowerCase() !==
-        this.customEnv.ProtocolManager.address.toLowerCase()
-      ) {
-        // We can't transfer ownership if we don't own the contracts
-        console.warn(
-          "\n\nSkipping batch ownership transfer test as contracts not owned by ProtocolManager\n\n",
-        );
-        return;
-      }
-
       const newOwner = this.signers.user1.address;
       const contractsToTransfer = [
         this.customEnv.contracts.LiquidityManager.address,

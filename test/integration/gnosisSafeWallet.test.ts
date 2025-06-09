@@ -8,7 +8,11 @@ import {
   MorphoConnectedProtocolContracts,
 } from "../helpers/contracts-getters";
 import { deployProtocolManager, deploySafeProxy } from "../helpers/deployers";
-import { entityProviderChainId, postTxHandler } from "../helpers/hardhat";
+import {
+  entityProviderChainId,
+  postTxHandler,
+  impersonateAccount,
+} from "../helpers/hardhat";
 // Types
 import { MetaTransactionData } from "@safe-global/types-kit";
 import { IGnosisSafeWallet, ProtocolManager } from "../../typechain";
@@ -212,10 +216,14 @@ export function GnosisSafeWalletTest() {
         this.customEnv.ProtocolManager,
       ];
 
-      // Step 1: First transfer ownership from deployer to Protocol Manager
       for (const contract of contractsToMigrate) {
+        const owner = await contract.owner();
+        const ownerSigner = await impersonateAccount(owner);
+
         await postTxHandler(
-          contract.transferOwnership(this.customEnv.AthenaMultisig.address),
+          contract
+            .connect(ownerSigner)
+            .transferOwnership(this.customEnv.AthenaMultisig.address),
         );
         expect(await contract.owner()).to.equal(
           this.customEnv.AthenaMultisig.address,

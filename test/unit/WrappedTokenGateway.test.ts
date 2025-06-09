@@ -49,8 +49,8 @@ export function WrappedTokenGatewayTest() {
         nbLpProviders: 1,
         coverAmount: parseEther("1000"),
         coverPremiums: parseEther("200"),
-        lpIncreaseAmount: parseEther("500"),
-        coverIncreaseAmount: parseEther("350"),
+        lpIncreaseAmount: parseEther("100"),
+        coverIncreaseAmount: parseEther("35"),
         coverIncreasePremiums: parseEther("1"),
         wstETH: this.protocolConfig.wstETH,
       };
@@ -287,8 +287,7 @@ export function WrappedTokenGatewayTest() {
 
         for (let i = 0; i < this.args.nbLpProviders; i++) {
           const positionInfo =
-            await this.contracts.LiquidityManager.positionInfo(0);
-
+            await this.contracts.LiquidityManager.positionInfo(i);
           const balanceBefore = await this.signers.deployer.getBalance();
 
           expect(

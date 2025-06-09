@@ -200,7 +200,7 @@ export async function setNextBlockTimestamp(timeToAdd: TimeTravelOptions) {
 // === Wallet & signers === //
 // ======================== //
 
-export async function impersonateAccount(address: string) {
+export async function impersonateAccount(address: string): Promise<Signer> {
   await hre.network.provider.request({
     method: "hardhat_impersonateAccount",
     params: [address],
