@@ -25,8 +25,7 @@ import {
   FarmingRange__factory,
   Staking__factory,
   StrategyManager__factory,
-  StrategyManagerVE__factory,
-  StrategyManagerVL__factory,
+  StrategyManagerLisk__factory,
   StrategyManagerEthereum__factory,
   PoolManager__factory,
   VirtualPool__factory,
@@ -39,17 +38,10 @@ import { verifyEtherscanContract } from "./helpers/verify";
 import dotenv from "dotenv";
 dotenv.config();
 
-const VERIFY_V0 = false;
-const VERIFY_VE = false;
-const VERIFY_VL = false;
-const VERIFY_MORPHO = true;
+const VERIFY_LISK = false;
+const VERIFY_ETHEREUM = true;
 
-const nbStrategyManagerOptions = [
-  VERIFY_V0,
-  VERIFY_VE,
-  VERIFY_VL,
-  VERIFY_MORPHO,
-]
+const nbStrategyManagerOptions = [VERIFY_LISK, VERIFY_ETHEREUM]
   .map((el) => Number(el))
   .reduce((a, b) => a + b, 0);
 
@@ -81,10 +73,8 @@ const ADDRESS_ZERO = "0x0000000000000000000000000000000000000000";
 async function main() {
   const networkName = hre.network.name.toUpperCase();
   console.log(`\n== VERIFYING ON ${networkName} ==\n`);
-  if (VERIFY_V0) console.log(">>> Version VERIFY_V0 <<<\n");
-  if (VERIFY_VE) console.log(">>> Version VERIFY_VE <<<\n");
-  if (VERIFY_VL) console.log(">>> Version VERIFY_VL <<<\n");
-  if (VERIFY_MORPHO) console.log(">>> Version VERIFY_MORPHO <<<\n");
+  if (VERIFY_LISK) console.log(">>> Version VERIFY_LISK <<<\n");
+  if (VERIFY_ETHEREUM) console.log(">>> Version VERIFY_ETHEREUM <<<\n");
 
   const deployer = (await ethers.getSigners())[0] as unknown as Wallet;
   console.log("deployer: ", deployer.address);
@@ -141,7 +131,7 @@ async function main() {
 
   if (shouldVerify.includes("AthenaToken")) {
     await verifyEtherscanContract<AthenaToken__factory>(AthenaToken, [
-      VERIFY_V0 ? [] : [EcclesiaDao, Staking],
+      [EcclesiaDao, Staking],
     ]);
     console.log("==> Verification processed for AthenaToken");
   }
@@ -178,42 +168,30 @@ async function main() {
       AthenaCoverToken, // IAthenaCoverToken coverToken_,
       LiquidityManager, // ILiquidityManager liquidityManager_,
       AthenaArbitrator, // IArbitrator arbitrator_,
-      config.evidenceGuardian.address, // address evidenceGuardian_,
-      config.subcourtId, // uint256 subcourtId_,
-      config.nbOfJurors, // uint256 nbOfJurors_,
-      config.claimCollateral, // uint256 claimCollateral_,
-      config.challengePeriod, // uint64 challengePeriod_,
-      config.overrulePeriod, // uint64 overrulePeriod_,
-      config.evidenceUploadPeriod, // uint64 evidenceUploadPeriod_,
+      config.evidenceGuardian.address, // address metaEvidenceGuardian_
+      config.subcourtId, // uint256 subcourtId_
+      config.nbOfJurors, // uint256 nbOfJurors_
+      config.claimCollateral, // uint256 claimCollateral_
       config.baseMetaEvidenceURI, // string memory baseMetaEvidenceURI_
+      [
+        config.claimPeriods.challenge,
+        config.claimPeriods.evidenceUpload,
+        config.claimPeriods.overrule,
+      ],
+      [
+        config.claimMultipliers.winner,
+        config.claimMultipliers.loser,
+        config.claimMultipliers.loserAppealPeriodMultiplier,
+      ],
     ]);
     console.log("==> Verification processed for ClaimManager");
   }
 
   if (shouldVerify.includes("StrategyManager")) {
-    if (VERIFY_VE) {
-      if (!config.wstETH || !config.amphrETH || !config.amphrLRT)
-        throw Error("Missing amphor strategy params");
-
-      await verifyEtherscanContract<StrategyManagerVE__factory>(
-        StrategyManager,
-        [
-          LiquidityManager,
-          VERIFY_V0 ? deployer.address : EcclesiaDao,
-          aaveLendingPoolV3Address(chainId),
-          usdcTokenAddress(chainId),
-          config.buybackWallet.address,
-          config.payoutDeductibleRate, // payoutDeductibleRate
-          config.strategyFeeRate, // performanceFee
-          config.wstETH, // wstETH
-          config.amphrETH, // amphrETH
-          config.amphrLRT, // amphrL
-        ],
-      );
-    } else if (VERIFY_VL) {
+    if (VERIFY_LISK) {
       if (!config.lsk) throw Error("Missing amphor strategy params");
 
-      await verifyEtherscanContract<StrategyManagerVL__factory>(
+      await verifyEtherscanContract<StrategyManagerLisk__factory>(
         StrategyManager,
         [
           LiquidityManager,
@@ -228,7 +206,7 @@ async function main() {
           config.lsk, // amphrL
         ],
       );
-    } else if (VERIFY_MORPHO) {
+    } else if (VERIFY_ETHEREUM) {
       if (
         !config.wstETH ||
         !config.amphrETH ||
@@ -258,7 +236,7 @@ async function main() {
     } else {
       await verifyEtherscanContract<StrategyManager__factory>(StrategyManager, [
         LiquidityManager,
-        VERIFY_V0 ? deployer.address : EcclesiaDao,
+        EcclesiaDao,
         aaveLendingPoolV3Address(chainId),
         usdcTokenAddress(chainId),
         config.buybackWallet.address,
@@ -275,10 +253,10 @@ async function main() {
       [
         AthenaPositionToken,
         AthenaCoverToken,
-        VERIFY_V0 ? deployer.address : EcclesiaDao,
+        EcclesiaDao,
         StrategyManager,
-        VERIFY_V0 && !VERIFY_VE ? deployer.address : ClaimManager,
-        VERIFY_V0 ? deployer.address : config.yieldRewarder,
+        ClaimManager,
+        config.yieldRewarder,
         config.withdrawDelay,
         config.maxLeverage,
         config.leverageFeePerPool,
@@ -339,6 +317,7 @@ async function main() {
     await verifyEtherscanContract<AthenaArbitrator__factory>(AthenaArbitrator, [
       ClaimManager,
       config.arbitrationCost,
+      config.appealCost,
     ]);
     console.log("==> Verification processed for AthenaArbitrator");
   }

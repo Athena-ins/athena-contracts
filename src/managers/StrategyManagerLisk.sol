@@ -41,7 +41,7 @@ error TransferCallFailed();
  * on top of the Aave v3 USDC strategy.
  *
  */
-contract StrategyManagerVE is IStrategyManager, Ownable {
+contract StrategyManagerLisk is IStrategyManager, Ownable {
   using SafeERC20 for IERC20;
   using RayMath for uint256;
 
@@ -80,8 +80,8 @@ contract StrategyManagerVE is IStrategyManager, Ownable {
   constructor(
     ILiquidityManager liquidityManager_,
     IEcclesiaDao ecclesiaDao_,
-    IAaveLendingPoolV3 aaveLendingPool_,
-    address reserveAsset_, // USDC for Strategy Manager v0
+    IAaveLendingPoolV3 /* aaveLendingPool_ */,
+    address /* reserveAsset_ */, // USDC for Strategy Manager v0
     address buybackWallet_,
     uint256 payoutDeductibleRate_, // in rays
     uint256 performanceFee_, // in rays
@@ -91,9 +91,7 @@ contract StrategyManagerVE is IStrategyManager, Ownable {
   ) Ownable(msg.sender) {
     liquidityManager = liquidityManager_;
     ecclesiaDao = ecclesiaDao_;
-    aaveLendingPool = aaveLendingPool_;
 
-    USDC = reserveAsset_;
     buybackWallet = buybackWallet_;
 
     // Amphor Restaked ETH & Amphor Symbiotic LRT
@@ -108,8 +106,6 @@ contract StrategyManagerVE is IStrategyManager, Ownable {
 
     payoutDeductibleRate = payoutDeductibleRate_;
     strategyFeeRate = performanceFee_;
-
-    aUSDC = aaveLendingPool.getReserveData(USDC).aTokenAddress;
   }
 
   //======== MODIFIERS ========//
@@ -129,6 +125,7 @@ contract StrategyManagerVE is IStrategyManager, Ownable {
   }
 
   modifier checkId(uint256 strategyId_) {
+    if (0 == strategyId_) revert NotAValidStrategy();
     if (2 < strategyId_) revert NotAValidStrategy();
     _;
   }

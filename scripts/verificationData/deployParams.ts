@@ -95,15 +95,16 @@ const defaultProtocolConfig: ProtocolConfig = {
   claimPeriods: {
     challenge: 10 * DAY_SECONDS,
     evidenceUpload: 2 * DAY_SECONDS,
-    overrule: 4 * DAY_SECONDS,
+    overrule: 2 * DAY_SECONDS,
   },
   claimMultipliers: {
     winner: 3_000,
     loser: 7_000,
     loserAppealPeriodMultiplier: 5_000,
   },
-  baseMetaEvidenceURI: "https://api.athenains.io/metaevidence",
-  claimCollateral: parseEther("0.0002"), // in ETH
+  baseMetaEvidenceURI:
+    "https://athena-api-2y7mn.ondigitalocean.app/meta-evidence",
+  claimCollateral: parseEther("0.1"), // in ETH
   arbitrationCost: parseEther("0.00012"), // in ETH
   appealCost: parseEther("0.00024"), // in ETH
   //==== Rewards Manager Config ====//
@@ -134,20 +135,21 @@ const deployParams: {
     subcourtId: 4, // View https://klerosboard.com/1/courts/4
     nbOfJurors: 3,
     claimPeriods: {
-      challenge: 182 * DAY_SECONDS,
+      challenge: 10 * DAY_SECONDS,
       evidenceUpload: 2 * DAY_SECONDS,
-      overrule: 4 * DAY_SECONDS,
+      overrule: 2 * DAY_SECONDS,
     },
     claimMultipliers: {
       winner: 3_000,
       loser: 7_000,
       loserAppealPeriodMultiplier: 5_000,
     },
-    claimCollateral: parseEther("0.0002"),
+    claimCollateral: parseEther("0.1"),
     arbitrationCost: parseEther("0.00012"), // in ETH for centralized AthenaArbitrator
     appealCost: parseEther("0.00024"), // in ETH
     evidenceGuardian: evidenceGuardianWallet(),
-    baseMetaEvidenceURI: "https://api.athenains.io/metaevidence",
+    baseMetaEvidenceURI:
+      "https://athena-api-2y7mn.ondigitalocean.app/meta-evidence",
     //
     buybackWallet: buybackWallet(),
     treasuryWallet: treasuryWallet(),
@@ -194,7 +196,8 @@ const deployParams: {
     arbitrationCost: parseEther("0.00012"), // in ETH for centralized AthenaArbitrator
     appealCost: parseEther("0.00024"), // in ETH
     evidenceGuardian: evidenceGuardianWallet(),
-    baseMetaEvidenceURI: "https://api.athenains.io/metaevidence",
+    baseMetaEvidenceURI:
+      "https://athena-api-2y7mn.ondigitalocean.app/meta-evidence",
     //
     buybackWallet: buybackWallet(),
     treasuryWallet: treasuryWallet(),
