@@ -16,6 +16,7 @@ const { parseEther, parseUnits } = ethers.utils;
 const DAY_SECONDS = 24 * 60 * 60;
 
 export type AmphorStrategyParams = {
+  klerosLiquid: string;
   wstETH: string;
   amphrETH: string;
   amphrLRT: string;
@@ -41,6 +42,7 @@ type ProtocolConfigWithOptions = ProtocolConfig &
   ({} | AmphorStrategyParams | LiskStrategyParams | CoreDaoStrategyParams);
 
 export const mainnetStrategyParams: AmphorStrategyParams = {
+  klerosLiquid: "0x988b3A538b618C7A603e1c11Ab82Cd16dbE28069".toLowerCase(),
   // Lido LST Token
   wstETH: "0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0".toLowerCase(),
   // (((Strategy 1))) - Amphor Restaked ETH

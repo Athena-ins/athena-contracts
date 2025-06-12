@@ -367,16 +367,17 @@ export type ProtocolConfig = {
   payoutDeductibleRate: BigNumber;
   strategyFeeRate: BigNumber;
   farmingBlockStart: number; // leave 0 for dynamic
-  // For Amphor strategy
+  // For Ethereum
+  klerosLiquid?: string;
   wstETH?: string;
   amphrETH?: string;
   amphrLRT?: string;
   morphoMevVault?: string;
   inceptionVault?: string;
-  // For Lisk strategy
+  // For Lisk
   usdt?: string;
   lsk?: string;
-  // For Core strategy
+  // For Core
   colendLendingPool?: string;
   USDC?: string;
   sUSDC?: string;

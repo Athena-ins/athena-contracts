@@ -16,6 +16,7 @@ import {
 import {
   // Claims
   AthenaArbitrator__factory,
+  IKlerosLiquid__factory,
   // Tokens
   AthenaCoverToken__factory,
   AthenaDataProvider__factory,
@@ -83,7 +84,7 @@ const deployments: DeploymentList = [
   "LiquidityManager",
   // "RewardManager",
   // "EcclesiaDao",
-  "AthenaArbitrator",
+  // "AthenaArbitrator",
   "WrappedTokenGateway",
 ];
 
@@ -224,7 +225,7 @@ export async function deployAllContractsAndInitializeProtocolEthereum(
     if (
       !isNonNullAddress(deployedAt.AthenaCoverToken) ||
       !isNonNullAddress(deployedAt.LiquidityManager) ||
-      !isNonNullAddress(deployedAt.AthenaArbitrator)
+      !isNonNullAddress(config.klerosLiquid)
     ) {
       throw Error("Missing address");
     }
@@ -233,7 +234,7 @@ export async function deployAllContractsAndInitializeProtocolEthereum(
       deployClaimManager(deployer, [
         deployedAt.AthenaCoverToken, // IAthenaCoverToken coverToken_
         deployedAt.LiquidityManager, // ILiquidityManager liquidityManager_
-        deployedAt.AthenaArbitrator, // IArbitrator arbitrator_
+        config.klerosLiquid as string, // IArbitrator arbitrator_
         config.evidenceGuardian.address, // address metaEvidenceGuardian_
         config.subcourtId, // uint256 subcourtId_
         config.nbOfJurors, // uint256 nbOfJurors_
@@ -374,22 +375,6 @@ export async function deployAllContractsAndInitializeProtocolEthereum(
     txCount++;
   }
 
-  // ======= Claims ======= //
-  if (deploymentOrder[txCount] === "AthenaArbitrator") {
-    if (!isNonNullAddress(deployedAt.ClaimManager)) {
-      throw Error("Missing address");
-    }
-
-    deployExecutors.push(async () =>
-      deployAthenaArbitrator(deployer, [
-        deployedAt.ClaimManager,
-        config.arbitrationCost,
-        config.appealCost,
-      ]),
-    );
-    txCount++;
-  }
-
   // ======= MISC ======= //
 
   if (deploymentOrder[txCount] === "WrappedTokenGateway") {
@@ -437,8 +422,12 @@ export async function deployAllContractsAndInitializeProtocolEthereum(
     deployedAt.EcclesiaDao || ADDRESS_ZERO,
     deployer,
   );
+  const KlerosLiquid = IKlerosLiquid__factory.connect(
+    deployedAt.KlerosLiquid || ADDRESS_ZERO,
+    deployer,
+  );
   const AthenaArbitrator = AthenaArbitrator__factory.connect(
-    deployedAt.AthenaArbitrator || ADDRESS_ZERO,
+    ADDRESS_ZERO,
     deployer,
   );
   const ClaimManager = ClaimManager__factory.connect(
@@ -491,6 +480,7 @@ export async function deployAllContractsAndInitializeProtocolEthereum(
     AthenaPositionToken,
     AthenaToken,
     EcclesiaDao,
+    KlerosLiquid,
     AthenaArbitrator,
     ClaimManager,
     LiquidityManager,
