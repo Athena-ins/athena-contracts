@@ -3,14 +3,15 @@ import {
   entityProviderChainId,
   genContractAddress,
   getCurrentBlockNumber,
+  isNonNullAddress,
   postTxHandler,
-} from "./hardhat";
+} from "../hardhat";
 import {
   aaveLendingPoolV3Address,
   usdcTokenAddress,
   usdtTokenAddress,
   wethTokenAddress,
-} from "./protocol";
+} from "../protocol";
 // typechain
 import {
   // Claims
@@ -29,16 +30,18 @@ import {
   FarmingRange__factory,
   IWETH__factory,
   LiquidityManager__factory,
+  // Misc
+  WrappedTokenGateway__factory,
   // Libs
   PoolMath__factory,
   RewardManager__factory,
   Staking__factory,
-  StrategyManager__factory,
+  StrategyManagerEthereum,
+  StrategyManagerEthereum__factory,
   // Other
   TetherToken__factory,
   VirtualPool__factory,
-  WrappedTokenGateway__factory,
-} from "../../typechain";
+} from "../../../typechain";
 import {
   deployAthenaArbitrator,
   deployAthenaCoverToken,
@@ -50,45 +53,51 @@ import {
   deployLiquidityManager,
   deployPoolMath,
   deployRewardManager,
-  deployStrategyManager,
+  deployStrategyManagerEthereum,
   deployVirtualPool,
   deployWrappedTokenGateway,
 } from "./deployers";
 // Types
 import { Wallet } from "ethers";
-import { ProtocolConfig, ProtocolContracts } from "./deployers";
-
-const { parseUnits } = utils;
-
-const ADDRESS_ZERO = "0x0000000000000000000000000000000000000000";
+import {
+  ProtocolConfig,
+  ProtocolContracts,
+  DeploymentList,
+  ADDRESS_ZERO,
+} from "./deployers";
 
 // ======================= //
 // === Deploy protocol === //
 // ======================= //
 
-export const deploymentOrder: Partial<keyof ProtocolContracts | "_approve">[] =
-  [
-    "AthenaCoverToken",
-    "AthenaPositionToken",
-    "AthenaToken",
-    // "_approve",
-    "PoolMath",
-    "VirtualPool",
-    "AthenaDataProvider",
-    "ClaimManager",
-    "StrategyManager",
-    "LiquidityManager",
-    // "RewardManager",
-    // "EcclesiaDao",
-    "AthenaArbitrator",
-  ];
+const deployments: DeploymentList = [
+  "AthenaCoverToken",
+  "AthenaPositionToken",
+  // "AthenaToken",
+  // "_approve",
+  "PoolMath",
+  "VirtualPool",
+  "AthenaDataProvider",
+  "ClaimManager",
+  "StrategyManager",
+  "LiquidityManager",
+  // "RewardManager",
+  // "EcclesiaDao",
+  "AthenaArbitrator",
+  "WrappedTokenGateway",
+];
 
-export async function deployAllContractsAndInitializeProtocolV0(
+export type ProtocolContractsEthereum = ProtocolContracts & {
+  StrategyManager: StrategyManagerEthereum;
+};
+
+export async function deployAllContractsAndInitializeProtocolEthereum(
   deployer: Wallet,
   config: ProtocolConfig,
   addresses?: { [key: string]: string },
   logAddresses = false,
-): Promise<ProtocolContracts> {
+  deploymentOrder: DeploymentList = deployments,
+): Promise<ProtocolContractsEthereum> {
   const chainId = await entityProviderChainId(deployer);
   if (!chainId) throw Error("No chainId found for deployment signer");
 
@@ -125,6 +134,10 @@ export async function deployAllContractsAndInitializeProtocolV0(
   const WethToken = IWETH__factory.connect(wethAddress, deployer);
 
   if (deploymentOrder[txCount] === "AthenaCoverToken") {
+    if (!isNonNullAddress(deployedAt.LiquidityManager)) {
+      throw Error("Missing address");
+    }
+
     deployExecutors.push(() =>
       deployAthenaCoverToken(deployer, [deployedAt.LiquidityManager]),
     );
@@ -132,6 +145,10 @@ export async function deployAllContractsAndInitializeProtocolV0(
   }
 
   if (deploymentOrder[txCount] === "AthenaPositionToken") {
+    if (!isNonNullAddress(deployedAt.LiquidityManager)) {
+      throw Error("Missing address");
+    }
+
     deployExecutors.push(() =>
       deployAthenaPositionToken(deployer, [deployedAt.LiquidityManager]),
     );
@@ -139,12 +156,20 @@ export async function deployAllContractsAndInitializeProtocolV0(
   }
 
   if (deploymentOrder[txCount] === "AthenaToken") {
-    deployExecutors.push(() => deployAthenaToken(deployer, [[]]));
+    deployExecutors.push(() =>
+      deployAthenaToken(deployer, [
+        [deployedAt.EcclesiaDao, deployedAt.Staking],
+      ]),
+    );
     txCount++;
   }
 
   // Approve for initial minimal DAO lock
   if (deploymentOrder[txCount] === "_approve") {
+    if (!isNonNullAddress(deployedAt.AthenaToken)) {
+      throw Error("Missing address");
+    }
+
     deployExecutors.push(() =>
       postTxHandler(
         AthenaToken__factory.connect(deployedAt.AthenaToken, deployer).approve(
@@ -164,6 +189,10 @@ export async function deployAllContractsAndInitializeProtocolV0(
   }
 
   if (deploymentOrder[txCount] === "VirtualPool") {
+    if (!isNonNullAddress(deployedAt.PoolMath)) {
+      throw Error("Missing address");
+    }
+
     deployExecutors.push(() =>
       deployVirtualPool(deployer, [], {
         PoolMath: deployedAt.PoolMath,
@@ -173,6 +202,13 @@ export async function deployAllContractsAndInitializeProtocolV0(
   }
 
   if (deploymentOrder[txCount] === "AthenaDataProvider") {
+    if (
+      !isNonNullAddress(deployedAt.PoolMath) ||
+      !isNonNullAddress(deployedAt.VirtualPool)
+    ) {
+      throw Error("Missing address");
+    }
+
     deployExecutors.push(() =>
       deployAthenaDataProvider(deployer, [], {
         PoolMath: deployedAt.PoolMath,
@@ -185,6 +221,14 @@ export async function deployAllContractsAndInitializeProtocolV0(
   // ======= Managers ======= //
 
   if (deploymentOrder[txCount] === "ClaimManager") {
+    if (
+      !isNonNullAddress(deployedAt.AthenaCoverToken) ||
+      !isNonNullAddress(deployedAt.LiquidityManager) ||
+      !isNonNullAddress(deployedAt.AthenaArbitrator)
+    ) {
+      throw Error("Missing address");
+    }
+
     deployExecutors.push(() =>
       deployClaimManager(deployer, [
         deployedAt.AthenaCoverToken, // IAthenaCoverToken coverToken_
@@ -211,8 +255,24 @@ export async function deployAllContractsAndInitializeProtocolV0(
   }
 
   if (deploymentOrder[txCount] === "StrategyManager") {
+    if (
+      !config.wstETH ||
+      !config.amphrETH ||
+      !config.amphrLRT ||
+      !config.morphoMevVault ||
+      !config.inceptionVault
+    )
+      throw Error("Missing strategy params");
+
+    if (
+      !isNonNullAddress(deployedAt.LiquidityManager) ||
+      !isNonNullAddress(config.buybackWallet.address)
+    ) {
+      throw Error("Missing address");
+    }
+
     deployExecutors.push(() =>
-      deployStrategyManager(deployer, [
+      deployStrategyManagerEthereum(deployer, [
         deployedAt.LiquidityManager,
         deployer.address, // EcclesiaDao
         aaveLendingPoolV3Address(chainId),
@@ -220,12 +280,26 @@ export async function deployAllContractsAndInitializeProtocolV0(
         config.buybackWallet.address,
         config.payoutDeductibleRate, // payoutDeductibleRate
         config.strategyFeeRate, // strategyFeeRate
+        config.wstETH as string,
+        config.amphrETH as string,
+        config.amphrLRT as string,
+        config.morphoMevVault as string,
+        config.inceptionVault as string,
       ]),
     );
     txCount++;
   }
 
   if (deploymentOrder[txCount] === "LiquidityManager") {
+    if (
+      !isNonNullAddress(deployedAt.AthenaPositionToken) ||
+      !isNonNullAddress(deployedAt.AthenaCoverToken) ||
+      !isNonNullAddress(deployedAt.StrategyManager) ||
+      !isNonNullAddress(deployedAt.ClaimManager)
+    ) {
+      throw Error("Missing address");
+    }
+
     deployExecutors.push(() =>
       deployLiquidityManager(
         deployer,
@@ -234,7 +308,7 @@ export async function deployAllContractsAndInitializeProtocolV0(
           deployedAt.AthenaCoverToken,
           deployer.address, // EcclesiaDao
           deployedAt.StrategyManager,
-          deployer.address, // ClaimManager
+          deployedAt.ClaimManager, // ClaimManager
           deployer.address, // to be replaced by farming/yieldRewarder
           config.withdrawDelay,
           config.maxLeverage,
@@ -250,6 +324,15 @@ export async function deployAllContractsAndInitializeProtocolV0(
   }
 
   if (deploymentOrder[txCount] === "RewardManager") {
+    if (
+      !isNonNullAddress(deployedAt.LiquidityManager) ||
+      !isNonNullAddress(deployedAt.AthenaPositionToken) ||
+      !isNonNullAddress(deployedAt.AthenaCoverToken) ||
+      !isNonNullAddress(deployedAt.AthenaToken)
+    ) {
+      throw Error("Missing address");
+    }
+
     deployExecutors.push(async () =>
       deployRewardManager(deployer, [
         deployedAt.LiquidityManager,
@@ -267,6 +350,17 @@ export async function deployAllContractsAndInitializeProtocolV0(
   // ======= DAO ======= //
 
   if (deploymentOrder[txCount] === "EcclesiaDao") {
+    if (
+      !isNonNullAddress(deployedAt.AthenaToken) ||
+      !isNonNullAddress(deployedAt.Staking) ||
+      !isNonNullAddress(deployedAt.LiquidityManager) ||
+      !isNonNullAddress(deployedAt.StrategyManager) ||
+      !isNonNullAddress(config.treasuryWallet.address) ||
+      !isNonNullAddress(config.leverageRiskWallet.address)
+    ) {
+      throw Error("Missing address");
+    }
+
     deployExecutors.push(async () =>
       deployEcclesiaDao(deployer, [
         deployedAt.AthenaToken,
@@ -282,6 +376,10 @@ export async function deployAllContractsAndInitializeProtocolV0(
 
   // ======= Claims ======= //
   if (deploymentOrder[txCount] === "AthenaArbitrator") {
+    if (!isNonNullAddress(deployedAt.ClaimManager)) {
+      throw Error("Missing address");
+    }
+
     deployExecutors.push(async () =>
       deployAthenaArbitrator(deployer, [
         deployedAt.ClaimManager,
@@ -351,7 +449,7 @@ export async function deployAllContractsAndInitializeProtocolV0(
     deployedAt.LiquidityManager || ADDRESS_ZERO,
     deployer,
   );
-  const StrategyManager = StrategyManager__factory.connect(
+  const StrategyManager = StrategyManagerEthereum__factory.connect(
     deployedAt.StrategyManager || ADDRESS_ZERO,
     deployer,
   );

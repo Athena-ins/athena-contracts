@@ -21,8 +21,8 @@ import {
   StrategyManagerVE__factory,
   StrategyManagerEthereum,
   StrategyManagerEthereum__factory,
-  StrategyManagerVL,
-  StrategyManagerVL__factory,
+  StrategyManagerLisk,
+  StrategyManagerLisk__factory,
   StrategyManagerCore,
   StrategyManagerCore__factory,
   // Rewards
@@ -113,8 +113,8 @@ export async function getStrategyManagerVE(address: string) {
 export async function getStrategyManagerEthereum(address: string) {
   return connectWrapper(StrategyManagerEthereum__factory, address);
 }
-export async function getStrategyManagerVL(address: string) {
-  return connectWrapper(StrategyManagerVL__factory, address);
+export async function getStrategyManagerLisk(address: string) {
+  return connectWrapper(StrategyManagerLisk__factory, address);
 }
 export async function getStrategyManagerCore(address: string) {
   return connectWrapper(StrategyManagerCore__factory, address);
@@ -202,7 +202,7 @@ export type ConnectedProtocolContracts = {
     | ConnectWithAddress<StrategyManager>
     | ConnectWithAddress<StrategyManagerVE>
     | ConnectWithAddress<StrategyManagerEthereum>
-    | ConnectWithAddress<StrategyManagerVL>
+    | ConnectWithAddress<StrategyManagerLisk>
     | ConnectWithAddress<StrategyManagerCore>;
   FarmingRange: ConnectWithAddress<FarmingRange>;
   RewardManager: ConnectWithAddress<RewardManager>;
@@ -222,16 +222,13 @@ export type ConnectedProtocolContracts = {
 export type DefaultConnectedProtocolContracts = ConnectedProtocolContracts & {
   StrategyManager: ConnectWithAddress<StrategyManager>;
 };
-export type VEConnectedProtocolContracts = ConnectedProtocolContracts & {
-  StrategyManager: ConnectWithAddress<StrategyManagerVE>;
-};
-export type MorphoConnectedProtocolContracts = ConnectedProtocolContracts & {
+export type EthereumConnectedProtocolContracts = ConnectedProtocolContracts & {
   StrategyManager: ConnectWithAddress<StrategyManagerEthereum>;
   ProxyStrategyManager: ConnectWithAddress<StrategyManager>;
   AthenaMultisig: ConnectWithAddress<IGnosisSafeWallet>;
 };
-export type VLConnectedProtocolContracts = ConnectedProtocolContracts & {
-  StrategyManager: ConnectWithAddress<StrategyManagerVL>;
+export type LiskConnectedProtocolContracts = ConnectedProtocolContracts & {
+  StrategyManager: ConnectWithAddress<StrategyManagerLisk>;
 };
 export type CoreConnectedProtocolContracts = ConnectedProtocolContracts & {
   StrategyManager: ConnectWithAddress<StrategyManagerCore>;
@@ -239,18 +236,13 @@ export type CoreConnectedProtocolContracts = ConnectedProtocolContracts & {
 
 export async function getConnectedProtocolContracts(
   addresses: NetworkAddressDirectory,
-  version: "ethereum-amphor",
-): Promise<VEConnectedProtocolContracts>;
-
-export async function getConnectedProtocolContracts(
-  addresses: NetworkAddressDirectory,
-  version: "ethereum-morpho",
-): Promise<MorphoConnectedProtocolContracts>;
+  version: "ethereum",
+): Promise<EthereumConnectedProtocolContracts>;
 
 export async function getConnectedProtocolContracts(
   addresses: NetworkAddressDirectory,
   version: "lisk",
-): Promise<VLConnectedProtocolContracts>;
+): Promise<LiskConnectedProtocolContracts>;
 
 export async function getConnectedProtocolContracts(
   addresses: NetworkAddressDirectory,
@@ -264,19 +256,16 @@ export async function getConnectedProtocolContracts(
 
 export async function getConnectedProtocolContracts(
   addresses: NetworkAddressDirectory,
-  version?: "ethereum-amphor" | "ethereum-morpho" | "lisk" | "core",
+  version?: "ethereum" | "lisk" | "core",
 ): Promise<ConnectedProtocolContracts> {
   let stratManagerGetter:
     | typeof getStrategyManager
-    | typeof getStrategyManagerVE
     | typeof getStrategyManagerEthereum
-    | typeof getStrategyManagerVL
+    | typeof getStrategyManagerLisk
     | typeof getStrategyManagerCore = getStrategyManager;
 
-  if (version === "ethereum-amphor") stratManagerGetter = getStrategyManagerVE;
-  if (version === "ethereum-morpho")
-    stratManagerGetter = getStrategyManagerEthereum;
-  if (version === "lisk") stratManagerGetter = getStrategyManagerVL;
+  if (version === "ethereum") stratManagerGetter = getStrategyManagerEthereum;
+  if (version === "lisk") stratManagerGetter = getStrategyManagerLisk;
   if (version === "core") stratManagerGetter = getStrategyManagerCore;
 
   const addressPoolManager = addresses.PoolManager || constants.AddressZero;

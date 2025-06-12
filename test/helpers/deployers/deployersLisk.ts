@@ -3,15 +3,10 @@ import {
   entityProviderChainId,
   genContractAddress,
   getCurrentBlockNumber,
-  postTxHandler,
   isNonNullAddress,
-} from "./hardhat";
-import {
-  aaveLendingPoolV3Address,
-  usdcTokenAddress,
-  usdtTokenAddress,
-  wethTokenAddress,
-} from "./protocol";
+  postTxHandler,
+} from "../hardhat";
+import { aaveLendingPoolV3Address, wethTokenAddress } from "../protocol";
 // typechain
 import {
   // Claims
@@ -23,24 +18,21 @@ import {
   AthenaToken__factory,
   // Managers
   ClaimManager__factory,
-  ERC20__factory,
   // Dao
   EcclesiaDao__factory,
   // Rewards
   FarmingRange__factory,
   IWETH__factory,
   LiquidityManager__factory,
+  MockToken__factory,
   // Libs
   PoolMath__factory,
   RewardManager__factory,
   Staking__factory,
-  StrategyManagerCore__factory,
-  StrategyManagerCore,
-  // Other
-  TetherToken__factory,
+  StrategyManagerLisk,
+  StrategyManagerLisk__factory,
   VirtualPool__factory,
-  MockToken__factory,
-} from "../../typechain";
+} from "../../../typechain";
 import {
   deployAthenaArbitrator,
   deployAthenaCoverToken,
@@ -50,33 +42,32 @@ import {
   deployClaimManager,
   deployEcclesiaDao,
   deployLiquidityManager,
+  deployMockToken,
   deployPoolMath,
   deployRewardManager,
-  deployStrategyManagerCore,
+  deployStrategyManagerLisk,
   deployVirtualPool,
-  deployMockToken,
 } from "./deployers";
 // Types
 import { Wallet } from "ethers";
-import { ProtocolConfig, ProtocolContracts } from "./deployers";
-
-const { parseUnits } = utils;
-
-const ADDRESS_ZERO = "0x0000000000000000000000000000000000000000";
+import {
+  ProtocolConfig,
+  ProtocolContracts,
+  DeploymentList,
+  ADDRESS_ZERO,
+} from "./deployers";
 
 // ======================= //
 // === Deploy protocol === //
 // ======================= //
 
-export type CoreProtocolContracts = ProtocolContracts & {
-  StrategyManager: StrategyManagerCore;
+export type ProtocolContractsLisk = ProtocolContracts & {
+  StrategyManager: StrategyManagerLisk;
 };
 
-export const deploymentOrder: Partial<
-  keyof CoreProtocolContracts | "_approve"
->[] = [
-  // "TetherToken",
-  // "CircleToken",
+const deployments: DeploymentList = [
+  "TetherToken",
+  "CircleToken",
   "AthenaCoverToken",
   "AthenaPositionToken",
   // "AthenaToken",
@@ -92,12 +83,13 @@ export const deploymentOrder: Partial<
   "AthenaArbitrator",
 ];
 
-export async function deployAllContractsAndInitializeProtocolCore(
+export async function deployAllContractsAndInitializeProtocolLisk(
   deployer: Wallet,
   config: ProtocolConfig,
   addresses?: { [key: string]: string },
   logAddresses = false,
-): Promise<CoreProtocolContracts> {
+  deploymentOrder: DeploymentList = deployments,
+): Promise<ProtocolContracts> {
   const chainId = await entityProviderChainId(deployer);
   if (!chainId) throw Error("No chainId found for deployment signer");
 
@@ -114,6 +106,8 @@ export async function deployAllContractsAndInitializeProtocolCore(
     ),
   );
 
+  // Add token interface
+
   // Compute deployment addresses of reward manager deployed contracts
   if (deploymentOrder.includes("RewardManager")) {
     deployedAt.FarmingRange = await genContractAddress(
@@ -124,14 +118,30 @@ export async function deployAllContractsAndInitializeProtocolCore(
   }
 
   // Add token interface
-  const usdtAddress = usdtTokenAddress(chainId);
-  const TetherToken = TetherToken__factory.connect(usdtAddress, deployer);
-
-  const usdcAddress = usdcTokenAddress(chainId);
-  const CircleToken = ERC20__factory.connect(usdcAddress, deployer);
-
   const wethAddress = wethTokenAddress(chainId);
   const WethToken = IWETH__factory.connect(wethAddress, deployer);
+
+  if (deploymentOrder[txCount] === "TetherToken") {
+    deployExecutors.push(() =>
+      deployMockToken(deployer, [
+        "Tether USD",
+        "USDT",
+        utils.parseUnits("1000000", 18),
+      ]),
+    );
+    txCount++;
+  }
+
+  if (deploymentOrder[txCount] === "CircleToken") {
+    deployExecutors.push(() =>
+      deployMockToken(deployer, [
+        "Lisk",
+        "LSK",
+        utils.parseUnits("1000000", 18),
+      ]),
+    );
+    txCount++;
+  }
 
   if (deploymentOrder[txCount] === "AthenaCoverToken") {
     deployExecutors.push(() =>
@@ -220,6 +230,9 @@ export async function deployAllContractsAndInitializeProtocolCore(
   }
 
   if (deploymentOrder[txCount] === "StrategyManager") {
+    if (!deployedAt.TetherToken || !deployedAt.CircleToken)
+      throw Error("Missing lisk strategy params");
+
     if (
       !isNonNullAddress(deployedAt.LiquidityManager) ||
       !isNonNullAddress(config.buybackWallet.address)
@@ -228,14 +241,17 @@ export async function deployAllContractsAndInitializeProtocolCore(
     }
 
     deployExecutors.push(() =>
-      deployStrategyManagerCore(deployer, [
+      deployStrategyManagerLisk(deployer, [
         deployedAt.LiquidityManager,
         deployer.address, // EcclesiaDao
         aaveLendingPoolV3Address(chainId),
-        usdcAddress,
+        deployedAt.CircleToken,
         config.buybackWallet.address,
         config.payoutDeductibleRate, // payoutDeductibleRate
         config.strategyFeeRate, // strategyFeeRate
+        deployedAt.CircleToken,
+        deployedAt.CircleToken,
+        deployedAt.CircleToken,
       ]),
     );
     txCount++;
@@ -250,7 +266,7 @@ export async function deployAllContractsAndInitializeProtocolCore(
           deployedAt.AthenaCoverToken,
           deployer.address, // EcclesiaDao
           deployedAt.StrategyManager,
-          deployedAt.ClaimManager, // ClaimManager
+          deployer.address, // ClaimManager
           deployer.address, // to be replaced by farming/yieldRewarder
           config.withdrawDelay,
           config.maxLeverage,
@@ -321,6 +337,15 @@ export async function deployAllContractsAndInitializeProtocolCore(
     await executor();
   }
 
+  const TetherToken = MockToken__factory.connect(
+    deployedAt.TetherToken || ADDRESS_ZERO,
+    deployer,
+  );
+  const CircleToken = MockToken__factory.connect(
+    deployedAt.CircleToken || ADDRESS_ZERO,
+    deployer,
+  );
+
   const AthenaCoverToken = AthenaCoverToken__factory.connect(
     deployedAt.AthenaCoverToken || ADDRESS_ZERO,
     deployer,
@@ -349,7 +374,7 @@ export async function deployAllContractsAndInitializeProtocolCore(
     deployedAt.LiquidityManager || ADDRESS_ZERO,
     deployer,
   );
-  const StrategyManager = StrategyManagerCore__factory.connect(
+  const StrategyManager = StrategyManagerLisk__factory.connect(
     deployedAt.StrategyManager || ADDRESS_ZERO,
     deployer,
   );
@@ -417,5 +442,5 @@ export async function deployAllContractsAndInitializeProtocolCore(
   }
 
   // Force cast because of mock tokens
-  return contracts as unknown as CoreProtocolContracts;
+  return contracts as unknown as ProtocolContracts;
 }
