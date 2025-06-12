@@ -9,8 +9,8 @@ import {
 import { makeIdArray } from "../helpers/miscUtils";
 import {
   deployAllContractsAndInitializeProtocolCore,
-  CoreProtocolContracts,
-} from "../helpers/deployersCore";
+  ProtocolContractsCore,
+} from "../helpers/deployers";
 import { makeTestHelpers, TestHelper } from "../helpers/protocol";
 // Types
 import { BigNumber } from "ethers";

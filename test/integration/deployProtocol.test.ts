@@ -2,7 +2,7 @@ import { expect } from "chai";
 import hre, { ethers } from "hardhat";
 // Helpers
 import {
-  deploymentOrder,
+  deploymentOrderFull,
   //
   deployAthenaArbitrator,
   deployAthenaCoverToken,
@@ -46,7 +46,7 @@ export function DeployProtocolTest() {
       };
 
       await Promise.all(
-        deploymentOrder.map((name, i) =>
+        deploymentOrderFull.map((name, i) =>
           genContractAddress(this.signers.deployer, i).then(
             (address: string) => {
               this.args.deployedAt[name] = address;

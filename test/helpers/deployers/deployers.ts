@@ -415,6 +415,23 @@ export type ProtocolContracts =
   | ConnectedProtocolContracts
   | DeployedProtocolContracts;
 
-export type DeploymentList = Partial<keyof ProtocolContracts | "_approve">[];
+export type DeploymentList = (keyof ProtocolContracts | "_approve")[];
 
 export const ADDRESS_ZERO = constants.AddressZero;
+
+export const deploymentOrderFull: DeploymentList = [
+  "AthenaCoverToken",
+  "AthenaPositionToken",
+  "AthenaToken",
+  "_approve",
+  "PoolMath",
+  "VirtualPool",
+  "AthenaDataProvider",
+  "ClaimManager",
+  "StrategyManager",
+  "LiquidityManager",
+  "RewardManager",
+  "EcclesiaDao",
+  "AthenaArbitrator",
+  "WrappedTokenGateway",
+];

@@ -1,39 +1,32 @@
 import { ethers } from "hardhat";
 // Functions
+import { getDefaultProtocolConfig } from "../scripts/verificationData/deployParams";
 import {
-  evmSnapshot,
-  evmRevert,
-  entityProviderChainId,
-  deployerWallet,
-  evidenceGuardianWallet,
-  buybackWallet,
-  treasuryWallet,
-  leverageRiskWallet,
-  fromFork,
-} from "./helpers/hardhat";
-import {
+  ProtocolContractsCore,
   deployAllContractsAndInitializeProtocol,
+  deployAllContractsAndInitializeProtocolCore,
+  deployAllContractsAndInitializeProtocolEthereum,
+  deployAllContractsAndInitializeProtocolLisk,
+  ProtocolContractsEthereum,
+  ProtocolContractsLisk,
   ProtocolConfig,
   ProtocolContracts,
 } from "./helpers/deployers";
-import { deployAllContractsAndInitializeProtocolV0 } from "../test/helpers/deployersV0";
 import {
-  deployAllContractsAndInitializeProtocolMorpho,
-  MorphoProtocolContracts,
-} from "../test/helpers/deployersMorpho";
-import {
-  deployAllContractsAndInitializeProtocolVL,
-  VLProtocolContracts,
-} from "../test/helpers/deployersVL";
-import {
-  deployAllContractsAndInitializeProtocolCore,
-  CoreProtocolContracts,
-} from "../test/helpers/deployersCore";
-import { getDefaultProtocolConfig } from "../scripts/verificationData/deployParams";
+  buybackWallet,
+  deployerWallet,
+  entityProviderChainId,
+  evidenceGuardianWallet,
+  evmRevert,
+  evmSnapshot,
+  fromFork,
+  leverageRiskWallet,
+  treasuryWallet,
+} from "./helpers/hardhat";
 import { makeTestHelpers, TestHelper } from "./helpers/protocol";
 // Chai hooks
-import { beforeEachSuite } from "./helpers/chai/beforeEachSuite";
 import { afterEachSuite } from "./helpers/chai/afterEachSuite";
+import { beforeEachSuite } from "./helpers/chai/beforeEachSuite";
 // Types
 import { Signer, Wallet } from "ethers";
 
@@ -81,27 +74,17 @@ async function getProtocolContractsAndConfig(
 ): Promise<{
   contracts:
     | ProtocolContracts
-    | MorphoProtocolContracts
-    | VLProtocolContracts
-    | CoreProtocolContracts;
+    | ProtocolContractsEthereum
+    | ProtocolContractsLisk
+    | ProtocolContractsCore;
   protocolConfig: ProtocolConfig;
 }> {
   console.log("Using contract for chain".magenta, chainId || "default", "\n");
 
-  // arbitrum
-  if (chainId === 42161) {
-    const protocolConfig = getDefaultProtocolConfig();
-    const contracts = await deployAllContractsAndInitializeProtocolV0(
-      deployer,
-      protocolConfig,
-    );
-    return { contracts, protocolConfig };
-  }
-
   // ethereum
   if (chainId === 1) {
     const protocolConfig = getDefaultProtocolConfig("mainnet");
-    const contracts = await deployAllContractsAndInitializeProtocolMorpho(
+    const contracts = await deployAllContractsAndInitializeProtocolEthereum(
       deployer,
       protocolConfig,
     );
@@ -111,7 +94,7 @@ async function getProtocolContractsAndConfig(
   // lisk
   if (chainId === 4202) {
     const protocolConfig = getDefaultProtocolConfig("lisk");
-    const contracts = await deployAllContractsAndInitializeProtocolVL(
+    const contracts = await deployAllContractsAndInitializeProtocolLisk(
       deployer,
       protocolConfig,
     );

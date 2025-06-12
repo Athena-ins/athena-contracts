@@ -3,7 +3,7 @@ import { ethers } from "ethers";
 import { getNetworkAddresses } from "../../scripts/verificationData/addresses";
 import {
   getConnectedProtocolContracts,
-  MorphoConnectedProtocolContracts,
+  EthereumConnectedProtocolContracts,
 } from "../helpers/contracts-getters";
 import {
   entityProviderChainId,
@@ -16,7 +16,7 @@ import { ProtocolManager } from "../../typechain";
 
 interface Arguments extends Mocha.Context {
   customEnv: {
-    contracts: MorphoConnectedProtocolContracts;
+    contracts: EthereumConnectedProtocolContracts;
     ProtocolManager: ProtocolManager;
   };
   args: {
@@ -41,7 +41,7 @@ export function ProtocolManagerTest() {
       // Get deployed contract addresses instead of deploying new ones
       const contracts = await getConnectedProtocolContracts(
         getNetworkAddresses(),
-        "ethereum-morpho",
+        "ethereum",
       );
 
       this.customEnv = {

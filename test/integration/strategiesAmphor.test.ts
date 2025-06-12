@@ -5,13 +5,13 @@ import { getNetworkAddresses } from "../../scripts/verificationData/addresses";
 // Helpers
 import {
   getConnectedProtocolContracts,
-  VEConnectedProtocolContracts,
+  EthereumConnectedProtocolContracts,
 } from "../helpers/contracts-getters";
 import { getDefaultProtocolConfig } from "../../scripts/verificationData/deployParams";
 import {
-  deployAllContractsAndInitializeProtocolVE,
-  VEProtocolContracts,
-} from "../helpers/deployersVE";
+  deployAllContractsAndInitializeProtocolEthereum,
+  ProtocolContractsEthereum,
+} from "../helpers/deployers";
 import {
   entityProviderChainId,
   getCurrentTime,
@@ -29,7 +29,7 @@ const DAY_SECONDS = 24 * 60 * 60;
 
 interface Arguments extends Mocha.Context {
   customEnv: {
-    contracts: VEProtocolContracts | VEConnectedProtocolContracts;
+    contracts: ProtocolContractsEthereum | EthereumConnectedProtocolContracts;
     helpers: TestHelper;
   };
   args: {
@@ -77,7 +77,7 @@ export function AmphorStrategiesTest() {
       //   getNetworkAddresses(),
       //   "ethereum-amphor",
       // );
-      const veContracts = await deployAllContractsAndInitializeProtocolVE(
+      const veContracts = await deployAllContractsAndInitializeProtocolEthereum(
         this.signers.deployer,
         this.protocolConfig,
       );

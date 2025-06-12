@@ -8,17 +8,16 @@ import {
 import { ProxyAdmin__factory } from "../../typechain";
 import {
   getConnectedProtocolContracts,
-  MorphoConnectedProtocolContracts,
+  EthereumConnectedProtocolContracts,
 } from "../helpers/contracts-getters";
 import {
   deployStrategyManagerEthereum,
-  ProtocolConfig,
   deployProxyStrategyManager,
+  deployAllContractsAndInitializeProtocolEthereum,
+  ProtocolConfig,
+  ProtocolContractsEthereum,
 } from "../helpers/deployers";
-import {
-  MorphoProtocolContracts,
-  deployAllContractsAndInitializeProtocolMorpho,
-} from "../helpers/deployersMorpho";
+
 import {
   entityProviderChainId,
   getProxyAdmin,
@@ -39,7 +38,7 @@ const DAY_SECONDS = 24 * 60 * 60;
 interface Arguments extends Mocha.Context {
   customEnv: {
     protocolConfig: ProtocolConfig & AmphorStrategyParams;
-    contracts: MorphoProtocolContracts | MorphoConnectedProtocolContracts;
+    contracts: ProtocolContractsEthereum | EthereumConnectedProtocolContracts;
     helpers: TestHelper;
   };
   args: {
@@ -67,8 +66,8 @@ interface Arguments extends Mocha.Context {
   };
 }
 
-export function MorphoMevStrategyTest() {
-  context("Morpho MEV Strategy Test", function () {
+export function EthereumStrategyTest() {
+  context("Ethereum Strategy Test", function () {
     this.timeout(120_000);
 
     before(async function (this: Arguments) {
@@ -85,7 +84,7 @@ export function MorphoMevStrategyTest() {
       // );
 
       const protocolConfig = getDefaultProtocolConfig("mainnet");
-      const contracts = await deployAllContractsAndInitializeProtocolMorpho(
+      const contracts = await deployAllContractsAndInitializeProtocolEthereum(
         this.signers.deployer,
         protocolConfig,
       );
@@ -183,8 +182,8 @@ export function MorphoMevStrategyTest() {
       this.customEnv.contracts.StrategyManager = newImplementation;
     });
 
-    describe("Morpho MEV Strategy Tests", function () {
-      it("can create pool with Morpho strategy", async function (this: Arguments) {
+    describe("Ethereum Strategy Tests", function () {
+      it("can create pool with Ethereum strategy", async function (this: Arguments) {
         const poolId = (
           await this.customEnv.contracts.LiquidityManager.nextPoolId()
         ).toNumber();
@@ -628,7 +627,7 @@ export function MorphoMevStrategyTest() {
     });
 
     describe("Strategy View Functions", async function () {
-      describe("MetaMorpho Strategy", function () {
+      describe("MetaEthereum Strategy", function () {
         it("verifies reward index", async function (this: Arguments) {
           const rewardIndex =
             await this.customEnv.contracts.StrategyManager.getRewardIndex(

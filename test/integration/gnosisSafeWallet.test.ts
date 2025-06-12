@@ -5,7 +5,7 @@ import { getNetworkAddresses } from "../../scripts/verificationData/addresses";
 import {
   getAthenaMultisig,
   getConnectedProtocolContracts,
-  MorphoConnectedProtocolContracts,
+  EthereumConnectedProtocolContracts,
 } from "../helpers/contracts-getters";
 import { deployProtocolManager, deploySafeProxy } from "../helpers/deployers";
 import {
@@ -19,7 +19,7 @@ import { IGnosisSafeWallet, ProtocolManager } from "../../typechain";
 
 interface Arguments extends Mocha.Context {
   customEnv: {
-    contracts: MorphoConnectedProtocolContracts;
+    contracts: EthereumConnectedProtocolContracts;
     ProtocolManager: ProtocolManager;
     AthenaMultisig: IGnosisSafeWallet;
     formatAndExecTx: (
@@ -113,7 +113,7 @@ export function GnosisSafeWalletTest() {
       // Get deployed contract addresses
       const contracts = await getConnectedProtocolContracts(
         getNetworkAddresses(),
-        "ethereum-morpho",
+        "ethereum",
       );
 
       this.args = {

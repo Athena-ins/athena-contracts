@@ -3,16 +3,14 @@ import { ethers, utils } from "ethers";
 import { getNetworkAddresses } from "../../scripts/verificationData/addresses";
 import {
   getConnectedProtocolContracts,
-  MorphoConnectedProtocolContracts,
+  EthereumConnectedProtocolContracts,
 } from "../helpers/contracts-getters";
 import { getDefaultProtocolConfig } from "../../scripts/verificationData/deployParams";
+
 import {
-  deployAllContractsAndInitializeProtocolMorpho,
-  MorphoProtocolContracts,
-} from "../helpers/deployersMorpho";
-import {
-  deployStrategyManagerEthereum,
-  deployStrategyManagerVE,
+  deployAllContractsAndInitializeProtocolEthereum,
+  ProtocolContractsEthereum,
+  deployStrategyManager,
   deployBasicProxy,
 } from "../helpers/deployers";
 import {
@@ -30,15 +28,12 @@ import {
   getProxyImplementation,
 } from "../helpers/hardhat";
 import { makeTestHelpers, TestHelper } from "../helpers/protocol";
-import { getCoverRewards } from "../helpers/utils/poolRayMath";
 import { BigNumber } from "ethers";
 import {
-  ERC20Basic__factory,
   BasicProxy,
   BasicProxy__factory,
   ProxyAdmin__factory,
   StrategyManagerEthereum__factory,
-  StrategyManagerVE__factory,
 } from "../../typechain";
 
 const { parseUnits } = utils;
@@ -46,7 +41,7 @@ const DAY_SECONDS = 24 * 60 * 60;
 
 interface Arguments extends Mocha.Context {
   customEnv: {
-    contracts: MorphoProtocolContracts | MorphoConnectedProtocolContracts;
+    contracts: ProtocolContractsEthereum | EthereumConnectedProtocolContracts;
     helpers: TestHelper;
   };
   args: {
@@ -104,7 +99,7 @@ export function StrategyManagerProxyTest() {
       //   "ethereum-morpho",
       // );
 
-      const contracts = await deployAllContractsAndInitializeProtocolMorpho(
+      const contracts = await deployAllContractsAndInitializeProtocolEthereum(
         this.signers.deployer,
         this.protocolConfig,
       );
@@ -249,7 +244,7 @@ export function StrategyManagerProxyTest() {
     });
 
     describe("test protocol with proxy", async function () {
-      it("can create pool with Morpho strategy", async function (this: Arguments) {
+      it("can create pool with Ethereum strategy", async function (this: Arguments) {
         const poolId = (
           await this.customEnv.contracts.LiquidityManager.nextPoolId()
         ).toNumber();
@@ -480,12 +475,14 @@ export function StrategyManagerProxyTest() {
         if (
           !this.protocolConfig.wstETH ||
           !this.protocolConfig.amphrETH ||
-          !this.protocolConfig.amphrLRT
+          !this.protocolConfig.amphrLRT ||
+          !this.protocolConfig.morphoMevVault ||
+          !this.protocolConfig.inceptionVault
         )
           throw new Error("Missing config");
 
         // Deploy new implementation
-        const newImplementation = await deployStrategyManagerVE(
+        const newImplementation = await deployStrategyManager(
           this.signers.deployer,
           [
             this.customEnv.contracts.LiquidityManager.address,
@@ -495,9 +492,6 @@ export function StrategyManagerProxyTest() {
             this.protocolConfig.buybackWallet.address,
             this.protocolConfig.payoutDeductibleRate,
             this.protocolConfig.strategyFeeRate,
-            this.protocolConfig.wstETH,
-            this.protocolConfig.amphrETH,
-            this.protocolConfig.amphrLRT,
           ],
         );
 
@@ -549,16 +543,10 @@ export function StrategyManagerProxyTest() {
         if (proxy.address === ethers.constants.AddressZero)
           throw Error("Proxy contract not initialized");
 
-        const strategyManager = StrategyManagerVE__factory.connect(
+        const strategyManager = StrategyManagerEthereum__factory.connect(
           proxy.address,
           this.signers.deployer,
         );
-
-        // Verify new functionality exists
-        expect(await postTxHandler(strategyManager.setWhitelistStatus(true))).to
-          .not.throw;
-        const isWhitelistEnabled = await strategyManager.isWhitelistEnabled();
-        expect(isWhitelistEnabled).to.eq(true);
 
         // Verify old functions are removed
         await expect(

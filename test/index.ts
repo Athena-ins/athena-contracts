@@ -11,10 +11,8 @@ import { DeployProtocolTest } from "./integration/deployProtocol.test";
 import { SanityTest } from "./integration/sanity.test";
 import { KlerosArbitrationTest } from "./integration/klerosArbitration.test";
 import { GnosisSafeWalletTest } from "./integration/gnosisSafeWallet.test";
-import { MorphoMevStrategyTest } from "./integration/morphoMevStrategy.test";
+import { EthereumStrategyTest } from "./integration/strategiesEthereum.test";
 import { StrategyManagerProxyTest } from "./integration/strategyManagerProxyTest.test";
-import { CoreStrategyTest } from "./integration/coreStrategies.test";
-import { AmphorStrategiesTest } from "./integration/amphorStrategies.test";
 
 // Scenarios
 import { ScenarioTests } from "./scenarios/scenario.test";
@@ -31,19 +29,15 @@ baseContext("Test Athena Protocol", function () {
   SanityTest();
   KlerosArbitrationTest();
   GnosisSafeWalletTest();
-  MorphoMevStrategyTest();
+  EthereumStrategyTest();
   StrategyManagerProxyTest();
-  //
-  // @dev Tests from previous strategy manager version
-  // CoreStrategyTest();
-  // AmphorStrategiesTest();
-  //
-  //=== Scenarios ===//
-  ScenarioTests();
-  //
+
   //=== Unit tests ===//
   PoolManagerTest();
   ProtocolManagerTest();
   WrappedTokenGatewayTest();
   ClaimManagerTest();
+
+  //=== Scenarios ===//
+  ScenarioTests();
 });
