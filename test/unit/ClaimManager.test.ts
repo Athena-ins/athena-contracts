@@ -6,6 +6,8 @@ import {
   getCurrentTime,
 } from "../helpers/hardhat";
 import { poolInfoFormat, claimInfoFormat } from "../helpers/dataFormat";
+// Types
+import { ClaimStatusEnum } from "../helpers/types";
 import { BigNumber } from "ethers";
 
 const { parseUnits } = utils;
@@ -118,7 +120,7 @@ export function ClaimManagerTest() {
         expect(claimInfo.claimant).to.equal(this.signers.user1.address);
         expect(claimInfo.coverId).to.equal(0);
         expect(claimInfo.amount).to.equal(this.args.claimAmount);
-        expect(claimInfo.status).to.equal(0); // Initiated
+        expect(claimInfo.status).to.equal(ClaimStatusEnum.Initiated);
       });
 
       it("allows claimant to submit evidence", async function (this: Arguments) {
@@ -150,7 +152,7 @@ export function ClaimManagerTest() {
 
         const claimInfo = await this.contracts.ClaimManager.claimInfo(0);
         expect(claimInfo.prosecutor).to.equal(this.signers.user2.address);
-        expect(claimInfo.status).to.equal(3); // Disputed
+        expect(claimInfo.status).to.equal(ClaimStatusEnum.Disputed);
       });
 
       it("allows prosecutor to submit counter-evidence", async function (this: Arguments) {
@@ -190,7 +192,9 @@ export function ClaimManagerTest() {
         );
 
         const claimInfo = await this.contracts.ClaimManager.claimInfo(0);
-        expect(claimInfo.status).to.equal(6); // RejectedByCourtDecision
+        expect(claimInfo.status).to.equal(
+          ClaimStatusEnum.RejectedByCourtDecision,
+        );
       });
     });
 
@@ -300,7 +304,7 @@ export function ClaimManagerTest() {
 
         const updatedClaimInfo =
           await this.contracts.ClaimManager.claimInfo(claimId);
-        expect(updatedClaimInfo.status).to.equal(4); // Appealed
+        expect(updatedClaimInfo.status).to.equal(ClaimStatusEnum.Appealed);
         expect(updatedClaimInfo.appeals.length).to.equal(1);
       });
 
@@ -368,7 +372,9 @@ export function ClaimManagerTest() {
         // Verify the ruling was applied
         const updatedClaimInfo =
           await this.contracts.ClaimManager.claimInfo(claimId);
-        expect(updatedClaimInfo.status).to.equal(7); // AcceptedByCourtDecision
+        expect(updatedClaimInfo.status).to.equal(
+          ClaimStatusEnum.AcceptedByCourtDecision,
+        );
       });
 
       it("prevents withdrawal before overrule period ends", async function (this: Arguments) {
@@ -414,7 +420,7 @@ export function ClaimManagerTest() {
 
         const claimInfo =
           await this.contracts.ClaimManager.claimInfo(newClaimId);
-        expect(claimInfo.status).to.equal(5); // RejectedByOverrule
+        expect(claimInfo.status).to.equal(ClaimStatusEnum.RejectedByOverrule);
       });
     });
 
@@ -458,7 +464,7 @@ export function ClaimManagerTest() {
         );
 
         const claimInfo = await this.contracts.ClaimManager.claimInfo(claimId);
-        expect(claimInfo.status).to.equal(2); // Compensated
+        expect(claimInfo.status).to.equal(ClaimStatusEnum.Compensated);
       });
 
       it("allows accepted claim to be compensated after overrule period", async function (this: Arguments) {
@@ -529,7 +535,9 @@ export function ClaimManagerTest() {
         );
 
         const claimInfo = await this.contracts.ClaimManager.claimInfo(claimId);
-        expect(claimInfo.status).to.equal(8); // CompensatedAfterDispute
+        expect(claimInfo.status).to.equal(
+          ClaimStatusEnum.CompensatedAfterDispute,
+        );
       });
 
       it("allows prosecutor to withdraw reward for rejected claim", async function (this: Arguments) {
@@ -595,7 +603,7 @@ export function ClaimManagerTest() {
         );
 
         const claimInfo = await this.contracts.ClaimManager.claimInfo(claimId);
-        expect(claimInfo.status).to.equal(9); // ProsecutionResolved
+        expect(claimInfo.status).to.equal(ClaimStatusEnum.ProsecutionResolved);
       });
     });
 
@@ -776,7 +784,9 @@ export function ClaimManagerTest() {
 
         const finalClaimInfo =
           await this.contracts.ClaimManager.claimInfo(claimId);
-        expect(finalClaimInfo.status).to.equal(8); // CompensatedAfterDispute
+        expect(finalClaimInfo.status).to.equal(
+          ClaimStatusEnum.CompensatedAfterDispute,
+        );
       });
     });
   });

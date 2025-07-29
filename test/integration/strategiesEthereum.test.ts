@@ -17,7 +17,6 @@ import {
   ProtocolConfig,
   ProtocolContractsEthereum,
 } from "../helpers/deployers";
-
 import {
   entityProviderChainId,
   getProxyAdmin,
@@ -31,6 +30,8 @@ import {
   TestHelper,
   usdcTokenAddress,
 } from "../helpers/protocol";
+// Types
+import { ClaimStatusEnum } from "../helpers/types";
 
 const { parseUnits } = utils;
 const DAY_SECONDS = 24 * 60 * 60;
@@ -303,7 +304,7 @@ export function EthereumStrategyTest() {
 
         const claim =
           await this.customEnv.contracts.ClaimManager.claimInfo(claimId);
-        expect(claim.status).to.equal(0);
+        expect(claim.status).to.equal(ClaimStatusEnum.Initiated);
         expect(claim.amount).to.equal(this.args.claimAmount);
 
         await setNextBlockTimestamp({ days: this.args.claimResolvePeriod });
@@ -525,7 +526,7 @@ export function EthereumStrategyTest() {
 
         const claim =
           await this.customEnv.contracts.ClaimManager.claimInfo(claimId);
-        expect(claim.status).to.equal(0);
+        expect(claim.status).to.equal(ClaimStatusEnum.Initiated);
         expect(claim.amount).to.equal(this.args.claimAmount);
 
         await setNextBlockTimestamp({ days: this.args.claimResolvePeriod });

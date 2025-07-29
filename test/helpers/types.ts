@@ -60,6 +60,20 @@ export type FormattedCover = {
   lastTick: number;
 };
 
+export enum ClaimStatusEnum {
+  Initiated = 0,
+  Accepted = 1, // Virtual status
+  Compensated = 2,
+  // Statuses below are only used when a claim is disputed
+  Disputed = 3,
+  Appealed = 4,
+  RejectedByOverrule = 5,
+  RejectedByCourtDecision = 6,
+  AcceptedByCourtDecision = 7,
+  CompensatedAfterDispute = 8,
+  ProsecutionResolved = 9,
+}
+
 export type ClaimStatus =
   | "Initiated"
   | "Accepted"

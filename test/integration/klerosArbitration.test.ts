@@ -10,6 +10,7 @@ import { makeIdArray } from "../helpers/miscUtils";
 import { getKlerosLiquid } from "../helpers/contracts-getters";
 // Types
 import { BigNumber } from "ethers";
+import { ClaimStatusEnum } from "../helpers/types";
 import { IKlerosLiquid } from "../../typechain";
 
 const { parseUnits } = utils;
@@ -200,7 +201,7 @@ export function KlerosArbitrationTest() {
 
           const claim = await this.contracts.ClaimManager.claims(i);
 
-          expect(claim.status).to.equal(0);
+          expect(claim.status).to.equal(ClaimStatusEnum.Initiated);
           expect(claim.amount).to.equal(this.args.claimAmount);
           expect(claim.coverId).to.equal(i);
         }

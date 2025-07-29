@@ -22,6 +22,7 @@ import { makeTestHelpers, TestHelper } from "../helpers/protocol";
 import { getCoverRewards } from "../helpers/utils/poolRayMath";
 // Types
 import { BigNumber } from "ethers";
+import { ClaimStatusEnum } from "../helpers/types";
 import { ERC20Basic__factory } from "../../typechain";
 
 const { parseUnits } = utils;
@@ -288,7 +289,7 @@ export function AmphorStrategiesTest() {
 
         const claim = await this.customEnv.contracts.ClaimManager.claims(i);
 
-        expect(claim.status).to.equal(0);
+        expect(claim.status).to.equal(ClaimStatusEnum.Initiated);
         expect(claim.amount).to.equal(claimAmount);
         expect(claim.coverId).to.equal(i);
       }

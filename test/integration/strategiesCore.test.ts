@@ -14,6 +14,7 @@ import {
 import { makeTestHelpers, TestHelper } from "../helpers/protocol";
 // Types
 import { BigNumber } from "ethers";
+import { ClaimStatusEnum } from "../helpers/types";
 
 const { parseUnits } = utils;
 
@@ -207,7 +208,7 @@ export function CoreStrategyTest() {
 
         const claim = await this.contracts.ClaimManager.claims(i);
 
-        expect(claim.status).to.equal(0);
+        expect(claim.status).to.equal(ClaimStatusEnum.Initiated);
         expect(claim.amount).to.equal(this.args.claimAmount);
         expect(claim.coverId).to.equal(i);
       }

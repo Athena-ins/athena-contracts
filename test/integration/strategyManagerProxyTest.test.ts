@@ -28,6 +28,7 @@ import {
   getProxyImplementation,
 } from "../helpers/hardhat";
 import { makeTestHelpers, TestHelper } from "../helpers/protocol";
+// Types
 import { BigNumber } from "ethers";
 import {
   BasicProxy,
@@ -35,6 +36,7 @@ import {
   ProxyAdmin__factory,
   StrategyManagerEthereum__factory,
 } from "../../typechain";
+import { ClaimStatusEnum } from "../helpers/types";
 
 const { parseUnits } = utils;
 const DAY_SECONDS = 24 * 60 * 60;
@@ -364,7 +366,7 @@ export function StrategyManagerProxyTest() {
 
         const claim =
           await this.customEnv.contracts.ClaimManager.claims(claimId);
-        expect(claim.status).to.equal(0);
+        expect(claim.status).to.equal(ClaimStatusEnum.Initiated);
         expect(claim.amount).to.equal(this.args.claimAmount);
 
         await setNextBlockTimestamp({ days: this.args.claimResolvePeriod });

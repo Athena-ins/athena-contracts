@@ -22,6 +22,7 @@ import {
   FormattedCover,
   FormattedClaim,
   RoundData,
+  ClaimStatusEnum,
 } from "../types";
 
 // ========= CLAIMS ========= //
@@ -98,7 +99,10 @@ export function calcExpectedClaimDataAfterWithdrawCompensation(
     ...claimInfoBefore,
     coverAmount: claimInfoBefore.coverAmount.sub(claimInfoBefore.amount),
     // If status is 'Accepted' then it should be 'Compensated' otherwise 'CompensatedAfterDispute'
-    status: claimInfoBefore.status === 1 ? 2 : 8,
+    status:
+      claimInfoBefore.status === ClaimStatusEnum.Accepted
+        ? ClaimStatusEnum.Compensated
+        : ClaimStatusEnum.CompensatedAfterDispute,
   };
 }
 
@@ -197,7 +201,7 @@ export function calcExpectedClaimDataAfterFundAppeal(
     if (1 < round.fundedSides.length) {
       // New appeal round triggered
       claim.appeals.push(txTimestamp);
-      claim.status = 4; // Appealed
+      claim.status = ClaimStatusEnum.Appealed; // Appealed
       // Remove appealCost from previous round feeRewards
       round.feeRewards = round.feeRewards.sub(appealCost);
 

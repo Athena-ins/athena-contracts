@@ -8,6 +8,7 @@ import {
 } from "../helpers/hardhat";
 import { makeIdArray } from "../helpers/miscUtils";
 // Types
+import { ClaimStatusEnum } from "../helpers/types";
 import { BigNumber } from "ethers";
 
 const { parseUnits } = utils;
@@ -194,7 +195,7 @@ export function SanityTest() {
 
         const claim = await this.contracts.ClaimManager.claims(i);
 
-        expect(claim.status).to.equal(0);
+        expect(claim.status).to.equal(ClaimStatusEnum.Initiated);
         expect(claim.amount).to.equal(this.args.claimAmount);
         expect(claim.coverId).to.equal(i);
       }
