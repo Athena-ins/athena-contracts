@@ -1,7 +1,7 @@
 import { BigNumber } from "ethers";
 import { LiquidityManager, ClaimManager } from "../../typechain";
 
-export type PoolInfoObject = {
+export type FormattedPool = {
   poolId: number;
   feeRate: BigNumber;
   formula: {
@@ -36,7 +36,7 @@ export type PoolInfoObject = {
   liquidityIndexLead: BigNumber;
 };
 
-export type PositionInfoObject = {
+export type FormattedPosition = {
   positionId: number;
   supplied: BigNumber;
   suppliedWrapped: BigNumber;
@@ -49,7 +49,7 @@ export type PositionInfoObject = {
   strategyRewards: BigNumber;
 };
 
-export type CoverInfoObject = {
+export type FormattedCover = {
   coverId: number;
   poolId: number;
   coverAmount: BigNumber;
@@ -70,7 +70,7 @@ export type ClaimStatus =
   | "RejectedByCourtDecision"
   | "AcceptedByCourtDecision"
   | "CompensatedAfterDispute"
-  | "ProsecutorPaid";
+  | "ProsecutionResolved";
 
 export type DisputeSide = "RefusedToArbitrate" | "PayClaimant" | "RejectClaim";
 
@@ -84,7 +84,7 @@ export type RoundData = {
   feeRewards: BigNumber;
 };
 
-export type ClaimInfoObject = {
+export type FormattedClaim = {
   claimId: number;
   poolId: number;
   relatedClaimIds: number[];
@@ -111,13 +111,13 @@ export type ClaimInfoObject = {
 
 export type PoolInfo =
   | Awaited<ReturnType<LiquidityManager["poolInfo"]>>
-  | PoolInfoObject;
+  | FormattedPool;
 export type PositionInfo =
   | Awaited<ReturnType<LiquidityManager["positionInfo"]>>
-  | PositionInfoObject;
+  | FormattedPosition;
 export type CoverInfo =
   | Awaited<ReturnType<LiquidityManager["coverInfo"]>>
-  | CoverInfoObject;
+  | FormattedCover;
 export type ClaimInfo =
   | Awaited<ReturnType<ClaimManager["claimInfo"]>>
-  | ClaimInfoObject;
+  | FormattedClaim;

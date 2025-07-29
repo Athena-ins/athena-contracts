@@ -1,9 +1,9 @@
 import { LiquidityManager, ClaimManager } from "../../typechain";
 import {
-  PoolInfoObject,
-  PositionInfoObject,
-  CoverInfoObject,
-  ClaimInfoObject,
+  FormattedPool,
+  FormattedPosition,
+  FormattedCover,
+  FormattedClaim,
   ClaimStatus,
   DisputeSide,
 } from "./types";
@@ -20,7 +20,7 @@ const claimStatusIndex = {
   6: "RejectedByCourtDecision",
   7: "AcceptedByCourtDecision",
   8: "CompensatedAfterDispute",
-  9: "ProsecutorPaid",
+  9: "ProsecutionResolved",
 } as const;
 
 const disputeSideIndex = {
@@ -45,7 +45,7 @@ export function getDisputeSide(index: number): DisputeSide {
 
 export function poolInfoFormat(
   data: Awaited<ReturnType<LiquidityManager["poolInfo"]>>,
-): PoolInfoObject {
+): FormattedPool {
   return {
     poolId: data.poolId.toNumber(),
     feeRate: data.feeRate,
@@ -84,7 +84,7 @@ export function poolInfoFormat(
 
 export function positionInfoFormat(
   data: Awaited<ReturnType<LiquidityManager["positionInfo"]>>,
-): PositionInfoObject {
+): FormattedPosition {
   return {
     positionId: data.positionId.toNumber(),
     supplied: data.supplied,
@@ -101,7 +101,7 @@ export function positionInfoFormat(
 
 export function coverInfoFormat(
   data: Awaited<ReturnType<LiquidityManager["coverInfo"]>>,
-): CoverInfoObject {
+): FormattedCover {
   return {
     coverId: data.coverId.toNumber(),
     poolId: data.poolId.toNumber(),
@@ -116,7 +116,7 @@ export function coverInfoFormat(
 
 export function claimInfoFormat(
   data: Awaited<ReturnType<ClaimManager["claimInfo"]>>,
-): ClaimInfoObject {
+): FormattedClaim {
   return {
     claimId: data.claimId.toNumber(),
     poolId: data.poolId.toNumber(),

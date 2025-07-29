@@ -17,19 +17,19 @@ import { deepCopy } from "../miscUtils";
 // Types
 import { BigNumber } from "ethers";
 import {
-  PoolInfoObject,
-  PositionInfoObject,
-  CoverInfoObject,
-  ClaimInfoObject,
+  FormattedPool,
+  FormattedPosition,
+  FormattedCover,
+  FormattedClaim,
 } from "../types";
 
 // @bw should not make copies of the previous data but rebuild explicitely the expected data
 
 function updatePoolTimeBasedState(
-  poolDataBefore: PoolInfoObject,
-  expect: PoolInfoObject,
+  poolDataBefore: FormattedPool,
+  expect: FormattedPool,
   timestamp: number,
-): PoolInfoObject {
+): FormattedPool {
   // These value may be unpredictably changed due to covers expiring during time travel
   const timeElapsed = timestamp - poolDataBefore.slot0.lastUpdateTimestamp;
   const ignoredDuration = timeElapsed % expect.slot0.secondsPerTick;
@@ -87,7 +87,7 @@ export function calcExpectedPoolDataAfterCreatePool(
   strategyTokens: { underlying: string; wrapped: string },
   strategyRewardIndex: BigNumber,
   txTimestamp: number,
-): PoolInfoObject {
+): FormattedPool {
   return {
     poolId: poolId.toNumber(),
     feeRate,
@@ -127,12 +127,12 @@ export function calcExpectedPoolDataAfterCreatePool(
 export function calcExpectedPoolDataAfterOpenPosition(
   positionAmount: BigNumber,
   poolIds: number[],
-  poolDataBefore: PoolInfoObject[],
+  poolDataBefore: FormattedPool[],
   strategyRewardIndex: BigNumber,
   txTimestamp: number,
   timestamp: number,
-): PoolInfoObject[] {
-  const expectedArray: PoolInfoObject[] = [];
+): FormattedPool[] {
+  const expectedArray: FormattedPool[] = [];
 
   for (const pool of poolDataBefore) {
     const expect = deepCopy(pool);
@@ -168,12 +168,12 @@ export function calcExpectedPoolDataAfterOpenPosition(
 export function calcExpectedPoolDataAfterAddLiquidity(
   amountToAdd: BigNumber,
   poolIds: number[],
-  poolDataBefore: PoolInfoObject[],
+  poolDataBefore: FormattedPool[],
   strategyRewardIndex: BigNumber,
   txTimestamp: number,
   timestamp: number,
-): PoolInfoObject[] {
-  const expectedArray: PoolInfoObject[] = [];
+): FormattedPool[] {
+  const expectedArray: FormattedPool[] = [];
 
   for (const pool of poolDataBefore) {
     const expect = deepCopy(pool);
@@ -202,11 +202,11 @@ export function calcExpectedPoolDataAfterAddLiquidity(
 }
 
 export function calcExpectedPoolDataAfterCommitRemoveLiquidity(
-  poolDataBefore: PoolInfoObject[],
+  poolDataBefore: FormattedPool[],
   strategyRewardIndex: BigNumber,
   txTimestamp: number,
   timestamp: number,
-): PoolInfoObject[] {
+): FormattedPool[] {
   const expectedArray = [];
 
   for (const pool of poolDataBefore) {
@@ -222,11 +222,11 @@ export function calcExpectedPoolDataAfterCommitRemoveLiquidity(
 }
 
 export function calcExpectedPoolDataAfterUncommitRemoveLiquidity(
-  poolDataBefore: PoolInfoObject[],
+  poolDataBefore: FormattedPool[],
   strategyRewardIndex: BigNumber,
   txTimestamp: number,
   timestamp: number,
-): PoolInfoObject[] {
+): FormattedPool[] {
   const expectedArray = [];
 
   for (const pool of poolDataBefore) {
@@ -243,11 +243,11 @@ export function calcExpectedPoolDataAfterUncommitRemoveLiquidity(
 }
 
 export function calcExpectedPoolDataAfterTakeInterests(
-  poolDataBefore: PoolInfoObject[],
+  poolDataBefore: FormattedPool[],
   strategyRewardIndex: BigNumber,
   txTimestamp: number,
   timestamp: number,
-): PoolInfoObject[] {
+): FormattedPool[] {
   const expectedArray = [];
 
   for (const pool of poolDataBefore) {
@@ -267,12 +267,12 @@ export function calcExpectedPoolDataAfterRemoveLiquidity(
   amountToRemove: BigNumber,
   poolIds: number[],
   keepWrapped: boolean,
-  poolDataBefore: PoolInfoObject[],
+  poolDataBefore: FormattedPool[],
   strategyRewardIndex: BigNumber,
   txTimestamp: number,
   timestamp: number,
-): PoolInfoObject[] {
-  const expectedArray: PoolInfoObject[] = [];
+): FormattedPool[] {
+  const expectedArray: FormattedPool[] = [];
 
   for (const pool of poolDataBefore) {
     const expect = deepCopy(pool);
@@ -303,11 +303,11 @@ export function calcExpectedPoolDataAfterRemoveLiquidity(
 export function calcExpectedPoolDataAfterOpenCover(
   amount: BigNumber,
   premiums: BigNumber,
-  poolDataBefore: PoolInfoObject,
+  poolDataBefore: FormattedPool,
   strategyRewardIndex: BigNumber,
   txTimestamp: number,
   timestamp: number,
-): PoolInfoObject {
+): FormattedPool {
   const expect = deepCopy(poolDataBefore);
   const pool = poolDataBefore;
 
@@ -337,12 +337,12 @@ export function calcExpectedPoolDataAfterUpdateCover(
   coverToRemoveAmount: BigNumber,
   premiumsToAddAmount: BigNumber,
   premiumsToRemoveAmount: BigNumber,
-  tokenDataBefore: CoverInfoObject,
-  poolDataBefore: PoolInfoObject,
+  tokenDataBefore: FormattedCover,
+  poolDataBefore: FormattedPool,
   strategyRewardIndex: BigNumber,
   txTimestamp: number,
   timestamp: number,
-): PoolInfoObject {
+): FormattedPool {
   const expect = deepCopy(poolDataBefore);
   const pool = poolDataBefore;
 
@@ -377,11 +377,11 @@ export function calcExpectedPoolDataAfterUpdateCover(
 
 export function calcExpectedPoolDataAfterInitiateClaim(
   amountClaimedAmount: BigNumber,
-  poolDataBefore: PoolInfoObject,
+  poolDataBefore: FormattedPool,
   strategyRewardIndex: BigNumber,
   txTimestamp: number,
   timestamp: number,
-): PoolInfoObject {
+): FormattedPool {
   const expect = deepCopy(poolDataBefore);
 
   expect.strategyRewardIndex = strategyRewardIndex;
@@ -391,33 +391,33 @@ export function calcExpectedPoolDataAfterInitiateClaim(
 }
 
 export function calcExpectedPoolDataAfterSubmitEvidence(
-  poolDataBefore: PoolInfoObject,
+  poolDataBefore: FormattedPool,
   strategyRewardIndex: BigNumber,
   txTimestamp: number,
   timestamp: number,
-): PoolInfoObject {
+): FormattedPool {
   const expect = deepCopy(poolDataBefore);
   expect.strategyRewardIndex = strategyRewardIndex;
   return updatePoolTimeBasedState(poolDataBefore, expect, timestamp);
 }
 
 export function calcExpectedPoolDataAfterDisputeClaim(
-  poolDataBefore: PoolInfoObject,
+  poolDataBefore: FormattedPool,
   strategyRewardIndex: BigNumber,
   txTimestamp: number,
   timestamp: number,
-): PoolInfoObject {
+): FormattedPool {
   const expect = deepCopy(poolDataBefore);
   expect.strategyRewardIndex = strategyRewardIndex;
   return updatePoolTimeBasedState(poolDataBefore, expect, timestamp);
 }
 
 export function calcExpectedPoolDataAfterCourtRuling(
-  poolDataBefore: PoolInfoObject,
+  poolDataBefore: FormattedPool,
   strategyRewardIndex: BigNumber,
   txTimestamp: number,
   timestamp: number,
-): PoolInfoObject {
+): FormattedPool {
   const expect = deepCopy(poolDataBefore);
   expect.strategyRewardIndex = strategyRewardIndex;
 
@@ -426,11 +426,11 @@ export function calcExpectedPoolDataAfterCourtRuling(
 }
 
 export function calcExpectedPoolDataAfterExecuteRuling(
-  poolDataBefore: PoolInfoObject,
+  poolDataBefore: FormattedPool,
   strategyRewardIndex: BigNumber,
   txTimestamp: number,
   timestamp: number,
-): PoolInfoObject {
+): FormattedPool {
   const expect = deepCopy(poolDataBefore);
   expect.strategyRewardIndex = strategyRewardIndex;
 
@@ -439,11 +439,11 @@ export function calcExpectedPoolDataAfterExecuteRuling(
 }
 
 export function calcExpectedPoolDataAfterFundAppeal(
-  poolDataBefore: PoolInfoObject,
+  poolDataBefore: FormattedPool,
   strategyRewardIndex: BigNumber,
   txTimestamp: number,
   timestamp: number,
-): PoolInfoObject {
+): FormattedPool {
   const expect = deepCopy(poolDataBefore);
   expect.strategyRewardIndex = strategyRewardIndex;
   return updatePoolTimeBasedState(poolDataBefore, expect, timestamp);
@@ -452,12 +452,12 @@ export function calcExpectedPoolDataAfterFundAppeal(
 export function calcExpectedPoolDataAfterWithdrawCompensation(
   claimAmount: BigNumber,
   compensationId: number,
-  poolDataBefore: PoolInfoObject,
-  tokenDataBefore: CoverInfoObject,
+  poolDataBefore: FormattedPool,
+  tokenDataBefore: FormattedCover,
   strategyRewardIndex: BigNumber,
   txTimestamp: number,
   timestamp: number,
-): PoolInfoObject {
+): FormattedPool {
   const pool = poolDataBefore;
   const expect = deepCopy(poolDataBefore);
 
@@ -492,11 +492,11 @@ export function calcExpectedPoolDataAfterWithdrawCompensation(
 }
 
 export function calcExpectedPoolDataAfterOverrule(
-  poolDataBefore: PoolInfoObject,
+  poolDataBefore: FormattedPool,
   strategyRewardIndex: BigNumber,
   txTimestamp: number,
   timestamp: number,
-): PoolInfoObject {
+): FormattedPool {
   const expect = deepCopy(poolDataBefore);
 
   expect.strategyRewardIndex = strategyRewardIndex;
@@ -508,11 +508,11 @@ export function calcExpectedPoolDataAfterOverrule(
 }
 
 export function calcExpectedPoolDataAfterResolveProsecution(
-  poolDataBefore: PoolInfoObject,
+  poolDataBefore: FormattedPool,
   strategyRewardIndex: BigNumber,
   txTimestamp: number,
   timestamp: number,
-): PoolInfoObject {
+): FormattedPool {
   const expect = deepCopy(poolDataBefore);
 
   expect.strategyRewardIndex = strategyRewardIndex;

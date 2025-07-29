@@ -17,10 +17,10 @@ import { deepCopy } from "../miscUtils";
 // Types
 import { BigNumber } from "ethers";
 import {
-  PoolInfoObject,
-  PositionInfoObject,
-  CoverInfoObject,
-  ClaimInfoObject,
+  FormattedPool,
+  FormattedPosition,
+  FormattedCover,
+  FormattedClaim,
 } from "../types";
 
 // ========= POSITIONS ========= //
@@ -28,13 +28,13 @@ import {
 export function calcExpectedPositionDataAfterOpenPosition(
   positionAmount: BigNumber,
   poolIds: number[],
-  poolDataBefore: PoolInfoObject[],
-  expectedPoolData: PoolInfoObject[],
-  tokenDataBefore: PositionInfoObject,
+  poolDataBefore: FormattedPool[],
+  expectedPoolData: FormattedPool[],
+  tokenDataBefore: FormattedPosition,
   txTimestamp: number,
   timestamp: number,
-): PositionInfoObject {
-  const expect = {} as PositionInfoObject;
+): FormattedPosition {
+  const expect = {} as FormattedPosition;
 
   expect.positionId = tokenDataBefore.positionId;
   expect.supplied = positionAmount;
@@ -70,13 +70,13 @@ export function calcExpectedPositionDataAfterOpenPosition(
 export function calcExpectedPositionDataAfterAddLiquidity(
   amountToAdd: BigNumber,
   poolIds: number[],
-  poolDataBefore: PoolInfoObject[],
-  expectedPoolData: PoolInfoObject[],
-  tokenDataBefore: PositionInfoObject,
+  poolDataBefore: FormattedPool[],
+  expectedPoolData: FormattedPool[],
+  tokenDataBefore: FormattedPosition,
   txTimestamp: number,
   timestamp: number,
-): PositionInfoObject {
-  const expect = {} as PositionInfoObject;
+): FormattedPosition {
+  const expect = {} as FormattedPosition;
 
   expect.positionId = tokenDataBefore.positionId;
   expect.supplied = tokenDataBefore.supplied.add(amountToAdd);
@@ -118,13 +118,13 @@ export function calcExpectedPositionDataAfterAddLiquidity(
 }
 
 export function calcExpectedPositionDataAfterTakeInterests(
-  poolDataBefore: PoolInfoObject[],
-  expectedPoolData: PoolInfoObject[],
-  tokenDataBefore: PositionInfoObject,
+  poolDataBefore: FormattedPool[],
+  expectedPoolData: FormattedPool[],
+  tokenDataBefore: FormattedPosition,
   txTimestamp: number,
   timestamp: number,
-): PositionInfoObject {
-  const expect = {} as PositionInfoObject;
+): FormattedPosition {
+  const expect = {} as FormattedPosition;
 
   expect.positionId = tokenDataBefore.positionId;
   expect.supplied = tokenDataBefore.supplied;
@@ -166,15 +166,15 @@ export function calcExpectedPositionDataAfterTakeInterests(
 }
 
 export function calcExpectedPositionDataAfterCommitRemoveLiquidity(
-  poolDataBefore: PoolInfoObject[],
-  expectedPoolData: PoolInfoObject[],
-  tokenDataBefore: PositionInfoObject,
+  poolDataBefore: FormattedPool[],
+  expectedPoolData: FormattedPool[],
+  tokenDataBefore: FormattedPosition,
   newStartStrategyIndex: BigNumber,
   newStartLiquidityIndexes: BigNumber[],
   txTimestamp: number,
   timestamp: number,
-): PositionInfoObject {
-  const expect = {} as PositionInfoObject;
+): FormattedPosition {
+  const expect = {} as FormattedPosition;
 
   expect.positionId = tokenDataBefore.positionId;
   expect.supplied = tokenDataBefore.supplied;
@@ -218,15 +218,15 @@ export function calcExpectedPositionDataAfterCommitRemoveLiquidity(
 }
 
 export function calcExpectedPositionDataAfterUncommitRemoveLiquidity(
-  poolDataBefore: PoolInfoObject[],
-  expectedPoolData: PoolInfoObject[],
-  tokenDataBefore: PositionInfoObject,
+  poolDataBefore: FormattedPool[],
+  expectedPoolData: FormattedPool[],
+  tokenDataBefore: FormattedPosition,
   newStartStrategyIndex: BigNumber,
   newStartLiquidityIndexes: BigNumber[],
   txTimestamp: number,
   timestamp: number,
-): PositionInfoObject {
-  const expect = {} as PositionInfoObject;
+): FormattedPosition {
+  const expect = {} as FormattedPosition;
 
   expect.positionId = tokenDataBefore.positionId;
   expect.supplied = tokenDataBefore.supplied;
@@ -272,13 +272,13 @@ export function calcExpectedPositionDataAfterUncommitRemoveLiquidity(
 export function calcExpectedPositionDataAfterRemoveLiquidity(
   amountToRemove: BigNumber,
   keepWrapped: boolean,
-  poolDataBefore: PoolInfoObject[],
-  expectedPoolData: PoolInfoObject[],
-  tokenDataBefore: PositionInfoObject,
+  poolDataBefore: FormattedPool[],
+  expectedPoolData: FormattedPool[],
+  tokenDataBefore: FormattedPosition,
   txTimestamp: number,
   timestamp: number,
-): PositionInfoObject {
-  const expect = {} as PositionInfoObject;
+): FormattedPosition {
+  const expect = {} as FormattedPosition;
 
   expect.positionId = tokenDataBefore.positionId;
   expect.supplied = tokenDataBefore.supplied.sub(amountToRemove);

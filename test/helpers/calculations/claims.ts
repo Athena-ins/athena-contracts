@@ -17,10 +17,10 @@ import { deepCopy } from "../miscUtils";
 // Types
 import { BigNumber } from "ethers";
 import {
-  PoolInfoObject,
-  PositionInfoObject,
-  CoverInfoObject,
-  ClaimInfoObject,
+  FormattedPool,
+  FormattedPosition,
+  FormattedCover,
+  FormattedClaim,
   RoundData,
 } from "../types";
 
@@ -29,10 +29,10 @@ import {
 export function calcExpectedClaimDataAfterSubmitEvidence(
   evidenceURI: string[],
   party: "claimant" | "prosecutor",
-  claimInfoBefore: ClaimInfoObject,
+  claimInfoBefore: FormattedClaim,
   txTimestamp: number,
   timestamp: number,
-): ClaimInfoObject {
+): FormattedClaim {
   return party === "claimant"
     ? {
         ...claimInfoBefore,
@@ -50,14 +50,14 @@ export function calcExpectedClaimDataAfterInitiateClaim(
   expectedClaimId: number,
   metaEvidenceURI: string,
   relatedClaimIds: BigNumber[],
-  poolInfo: PoolInfoObject,
-  coverDataAfter: CoverInfoObject,
+  poolInfo: FormattedPool,
+  coverDataAfter: FormattedCover,
   claimant: string,
   deposit: BigNumber,
   collateral: BigNumber,
   txTimestamp: number,
   timestamp: number,
-): ClaimInfoObject {
+): FormattedClaim {
   const relatedClaims = [
     ...relatedClaimIds.map((id) => id.toNumber()),
     expectedClaimId,
@@ -90,10 +90,10 @@ export function calcExpectedClaimDataAfterInitiateClaim(
 }
 
 export function calcExpectedClaimDataAfterWithdrawCompensation(
-  claimInfoBefore: ClaimInfoObject,
+  claimInfoBefore: FormattedClaim,
   txTimestamp: number,
   timestamp: number,
-): ClaimInfoObject {
+): FormattedClaim {
   return {
     ...claimInfoBefore,
     coverAmount: claimInfoBefore.coverAmount.sub(claimInfoBefore.amount),
@@ -103,12 +103,12 @@ export function calcExpectedClaimDataAfterWithdrawCompensation(
 }
 
 export function calcExpectedClaimDataAfterDisputeClaim(
-  claimInfoBefore: ClaimInfoObject,
+  claimInfoBefore: FormattedClaim,
   prosecutor: string,
   disputeId: number,
   txTimestamp: number,
   timestamp: number,
-): ClaimInfoObject {
+): FormattedClaim {
   return {
     ...claimInfoBefore,
     status: 3, // Disputed
@@ -119,11 +119,11 @@ export function calcExpectedClaimDataAfterDisputeClaim(
 }
 
 export function calcExpectedClaimDataAfterCourtRuling(
-  claimInfoBefore: ClaimInfoObject,
+  claimInfoBefore: FormattedClaim,
   ruling: number,
   txTimestamp: number,
   timestamp: number,
-): ClaimInfoObject {
+): FormattedClaim {
   // Only update the ruling field, leave status and rulingTimestamp unchanged
   return {
     ...claimInfoBefore,
@@ -132,10 +132,10 @@ export function calcExpectedClaimDataAfterCourtRuling(
 }
 
 export function calcExpectedClaimDataAfterExecuteRuling(
-  claimInfoBefore: ClaimInfoObject,
+  claimInfoBefore: FormattedClaim,
   txTimestamp: number,
   timestamp: number,
-): ClaimInfoObject {
+): FormattedClaim {
   // Refusal to arbitrate or rejections results in the claim being tossed
   const newStatus = claimInfoBefore.ruling === 1 ? 7 : 6;
 
@@ -147,10 +147,10 @@ export function calcExpectedClaimDataAfterExecuteRuling(
 }
 
 export function calcExpectedClaimDataAfterOverrule(
-  claimInfoBefore: ClaimInfoObject,
+  claimInfoBefore: FormattedClaim,
   txTimestamp: number,
   timestamp: number,
-): ClaimInfoObject {
+): FormattedClaim {
   return {
     ...claimInfoBefore,
     status: 5, // RejectedByOverrule
@@ -166,10 +166,10 @@ export function calcExpectedClaimDataAfterFundAppeal(
     divisor: BigNumber;
   },
   appealCost: BigNumber,
-  claimInfoBefore: ClaimInfoObject,
+  claimInfoBefore: FormattedClaim,
   txTimestamp: number,
   timestamp: number,
-): ClaimInfoObject {
+): FormattedClaim {
   const claim = deepCopy(claimInfoBefore);
   // This is ok because the dispute creates a new round
   const roundId = claim.appealRounds.length - 1;
@@ -214,12 +214,12 @@ export function calcExpectedClaimDataAfterFundAppeal(
 }
 
 export function calcExpectedClaimDataAfterResolveProsecution(
-  claimInfoBefore: ClaimInfoObject,
+  claimInfoBefore: FormattedClaim,
   txTimestamp: number,
   timestamp: number,
-): ClaimInfoObject {
+): FormattedClaim {
   return {
     ...claimInfoBefore,
-    status: 9, // ProsecutorPaid
+    status: 9, // ProsecutionResolved
   };
 }

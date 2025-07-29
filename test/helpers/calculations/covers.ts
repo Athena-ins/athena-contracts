@@ -17,10 +17,10 @@ import { deepCopy } from "../miscUtils";
 // Types
 import { BigNumber } from "ethers";
 import {
-  PoolInfoObject,
-  PositionInfoObject,
-  CoverInfoObject,
-  ClaimInfoObject,
+  FormattedPool,
+  FormattedPosition,
+  FormattedCover,
+  FormattedClaim,
 } from "../types";
 
 // ========= COVERS ========= //
@@ -28,12 +28,12 @@ import {
 export function calcExpectedCoverDataAfterOpenCover(
   amount: BigNumber,
   premiums: BigNumber,
-  poolDataBefore: PoolInfoObject,
-  expectedPoolData: PoolInfoObject,
-  tokenDataBefore: CoverInfoObject,
+  poolDataBefore: FormattedPool,
+  expectedPoolData: FormattedPool,
+  tokenDataBefore: FormattedCover,
   txTimestamp: number,
   timestamp: number,
-): CoverInfoObject {
+): FormattedCover {
   const expect = deepCopy(tokenDataBefore);
 
   expect.coverAmount = amount;
@@ -97,12 +97,12 @@ export function calcExpectedCoverDataAfterUpdateCover(
   coverToRemoveAmount: BigNumber,
   premiumsToAddAmount: BigNumber,
   premiumsToRemoveAmount: BigNumber,
-  poolDataBefore: PoolInfoObject,
-  expectedPoolData: PoolInfoObject,
-  tokenDataBefore: CoverInfoObject,
+  poolDataBefore: FormattedPool,
+  expectedPoolData: FormattedPool,
+  tokenDataBefore: FormattedCover,
   txTimestamp: number,
   timestamp: number,
-): CoverInfoObject {
+): FormattedCover {
   const expect = deepCopy(tokenDataBefore);
 
   expect.coverAmount = tokenDataBefore.coverAmount
@@ -164,11 +164,11 @@ export function calcExpectedCoverDataAfterUpdateCover(
 }
 
 export function calcExpectedCoverDataAfterSubmitEvidence(
-  expectedPoolData: PoolInfoObject,
-  tokenDataBefore: CoverInfoObject,
+  expectedPoolData: FormattedPool,
+  tokenDataBefore: FormattedCover,
   txTimestamp: number,
   timestamp: number,
-): CoverInfoObject {
+): FormattedCover {
   const coverId = tokenDataBefore.coverId;
   const coverAmount = tokenDataBefore.coverAmount;
   const poolId = tokenDataBefore.poolId;
@@ -198,12 +198,12 @@ export function calcExpectedCoverDataAfterSubmitEvidence(
 
 export function calcExpectedCoverDataAfterInitiateClaim(
   amountClaimedAmount: BigNumber,
-  poolDataBefore: PoolInfoObject,
-  expectedPoolData: PoolInfoObject,
-  tokenDataBefore: CoverInfoObject,
+  poolDataBefore: FormattedPool,
+  expectedPoolData: FormattedPool,
+  tokenDataBefore: FormattedCover,
   txTimestamp: number,
   timestamp: number,
-): CoverInfoObject {
+): FormattedCover {
   const coverId = tokenDataBefore.coverId;
   const coverAmount = tokenDataBefore.coverAmount;
   const poolId = tokenDataBefore.poolId;
@@ -232,18 +232,18 @@ export function calcExpectedCoverDataAfterInitiateClaim(
 }
 
 export function calcExpectedCoverDataAfterWithdrawCompensation(
-  claimInfoBefore: ClaimInfoObject,
-  poolDataBefore: PoolInfoObject,
-  expectedPoolData: PoolInfoObject,
-  tokenDataBefore: CoverInfoObject,
+  claimInfoBefore: FormattedClaim,
+  poolDataBefore: FormattedPool,
+  expectedPoolData: FormattedPool,
+  tokenDataBefore: FormattedCover,
   txTimestamp: number,
   timestamp: number,
-): CoverInfoObject {
+): FormattedCover {
   const expect = {
     coverId: tokenDataBefore.coverId,
     poolId: tokenDataBefore.poolId,
     isActive: true,
-  } as CoverInfoObject;
+  } as FormattedCover;
 
   const claimAmount = claimInfoBefore.amount;
 
@@ -303,55 +303,55 @@ export function calcExpectedCoverDataAfterWithdrawCompensation(
 }
 
 export function calcExpectedCoverDataAfterDisputeClaim(
-  tokenDataBefore: CoverInfoObject,
+  tokenDataBefore: FormattedCover,
   txTimestamp: number,
   timestamp: number,
-): CoverInfoObject {
+): FormattedCover {
   // Cover data remains unchanged after dispute
   return tokenDataBefore;
 }
 
 export function calcExpectedCoverDataAfterCourtRuling(
-  tokenDataBefore: CoverInfoObject,
+  tokenDataBefore: FormattedCover,
   txTimestamp: number,
   timestamp: number,
-): CoverInfoObject {
+): FormattedCover {
   // Cover data remains unchanged after ruling until compensation is withdrawn
   return tokenDataBefore;
 }
 
 export function calcExpectedCoverDataAfterExecuteRuling(
-  tokenDataBefore: CoverInfoObject,
+  tokenDataBefore: FormattedCover,
   txTimestamp: number,
   timestamp: number,
-): CoverInfoObject {
+): FormattedCover {
   // Cover data remains unchanged after ruling until compensation is withdrawn
   return tokenDataBefore;
 }
 
 export function calcExpectedCoverDataAfterOverrule(
-  tokenDataBefore: CoverInfoObject,
+  tokenDataBefore: FormattedCover,
   txTimestamp: number,
   timestamp: number,
-): CoverInfoObject {
+): FormattedCover {
   // Cover data remains unchanged after overrule
   return tokenDataBefore;
 }
 
 export function calcExpectedCoverDataAfterFundAppeal(
-  tokenDataBefore: CoverInfoObject,
+  tokenDataBefore: FormattedCover,
   txTimestamp: number,
   timestamp: number,
-): CoverInfoObject {
+): FormattedCover {
   // Cover data remains unchanged after appeal
   return tokenDataBefore;
 }
 
 export function calcExpectedCoverDataAfterResolveProsecution(
-  tokenDataBefore: CoverInfoObject,
+  tokenDataBefore: FormattedCover,
   txTimestamp: number,
   timestamp: number,
-): CoverInfoObject {
+): FormattedCover {
   // Cover data remains unchanged after prosecutor reward withdrawal
   return tokenDataBefore;
 }

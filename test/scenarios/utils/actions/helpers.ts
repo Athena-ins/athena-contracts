@@ -7,10 +7,10 @@ import {
 } from "../../../helpers/dataFormat";
 import { getCurrentTime } from "../../../helpers/hardhat";
 import {
-  ClaimInfoObject,
-  CoverInfoObject,
-  PoolInfoObject,
-  PositionInfoObject,
+  FormattedClaim,
+  FormattedCover,
+  FormattedPool,
+  FormattedPosition,
 } from "../../../helpers/types";
 // Types
 import { BigNumber, BigNumberish, ContractReceipt } from "ethers";
@@ -38,13 +38,13 @@ type EntityInfo = {
 };
 
 type EntityDataMap = {
-  cover: CoverInfoObject;
-  position: PositionInfoObject;
-  claim: ClaimInfoObject;
+  cover: FormattedCover;
+  position: FormattedPosition;
+  claim: FormattedClaim;
 };
 
 type ContractsDataStateMulti<T extends EntityInfo[]> = {
-  poolData: PoolInfoObject[];
+  poolData: FormattedPool[];
   entityDatas: { [K in keyof T]: EntityDataMap[T[K]["type"]] };
   timestamp: number;
 };
