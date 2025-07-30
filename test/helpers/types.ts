@@ -121,6 +121,7 @@ export type FormattedClaim = {
   challengedTimestamp: number;
   appeals: number[];
   appealRounds: RoundData[];
+  currentRuling: number;
 };
 
 export type PoolInfo =

@@ -54,6 +54,7 @@ interface IClaimManager {
     uint256 collateral;
     uint64[] appeals;
     RoundRead[] appealRounds;
+    int256 currentRuling;
   }
 
   struct Claim {

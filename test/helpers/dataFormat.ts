@@ -140,5 +140,6 @@ export function claimInfoFormat(
     challengedTimestamp: data.challengedTimestamp.toNumber(),
     appeals: data.appeals.map((val) => val.toNumber()),
     appealRounds: data.appealRounds,
+    currentRuling: data.currentRuling.toNumber(),
   };
 }

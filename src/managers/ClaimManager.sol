@@ -377,6 +377,11 @@ contract ClaimManager is
 
     RoundRead[] memory appealRounds = roundsDataByClaimId(claimId_);
 
+    // Only fetch the current ruling for disputed claims
+    int256 currentRuling = claim.disputeId != 0
+      ? int256(arbitrator.currentRuling(claim.disputeId))
+      : -1;
+
     claimData = ClaimRead({
       claimId: claimId_,
       poolId: poolId,
@@ -401,7 +406,8 @@ contract ClaimManager is
       rulingTimestamp: claim.rulingTimestamp,
       challengedTimestamp: claim.challengedTimestamp,
       appeals: claim.appeals,
-      appealRounds: appealRounds
+      appealRounds: appealRounds,
+      currentRuling: currentRuling
     });
 
     // We check if a claim has auto resolved by passing the challenge period
